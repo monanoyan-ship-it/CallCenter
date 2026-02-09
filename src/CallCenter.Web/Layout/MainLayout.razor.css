@@ -124,6 +124,21 @@
     color: #6b7280;
 }
 
+/* ─── Logout butonu ─── */
+
+.btn-logout {
+    font-size: 1.1rem;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.btn-logout:hover {
+    color: #dc2626 !important;
+    background: #fef2f2;
+}
+
 /* ═══════════════════════════════════════════
    SAYFA İÇERİĞİ
    ═══════════════════════════════════════════ */

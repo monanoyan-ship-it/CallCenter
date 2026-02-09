@@ -1,0 +1,103 @@
+@page "/login"
+@layout LoginLayout
+@inject CallCenter.Web.Services.AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Giris - Call Center</PageTitle>
+
+<div class="login-card">
+    <div class="login-header">
+        <div class="login-logo">
+            <i class="bi bi-headset"></i>
+        </div>
+        <h4 class="mb-1">Call Center</h4>
+        <p class="text-muted small mb-0">Hesabiniza giris yapin</p>
+    </div>
+
+    <EditForm Model="@model" OnValidSubmit="HandleLogin" FormName="LoginForm">
+        <DataAnnotationsValidator />
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger d-flex align-items-center py-2 mb-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span class="small">@errorMessage</span>
+            </div>
+        }
+
+        <div class="form-floating mb-3">
+            <InputText id="username" class="form-control" @bind-Value="model.UserName"
+                       placeholder="Kullanici adi" disabled="@isLoading" />
+            <label for="username">
+                <i class="bi bi-person me-1"></i>Kullanici Adi
+            </label>
+            <ValidationMessage For="@(() => model.UserName)" />
+        </div>
+
+        <div class="form-floating mb-3">
+            <InputText id="password" type="password" class="form-control" @bind-Value="model.Password"
+                       placeholder="Sifre" disabled="@isLoading" />
+            <label for="password">
+                <i class="bi bi-lock me-1"></i>Sifre
+            </label>
+            <ValidationMessage For="@(() => model.Password)" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                <span>Giris yapiliyor...</span>
+            }
+            else
+            {
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                <span>Giris Yap</span>
+            }
+        </button>
+    </EditForm>
+
+    <div class="login-footer">
+        <small class="text-muted">&copy; @DateTime.Now.Year Call Center</small>
+    </div>
+</div>
+
+@code {
+    private LoginModel model = new();
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        isLoading = true;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(new CallCenter.Shared.DTOs.LoginRequest
+            {
+                UserName = model.UserName,
+                Password = model.Password
+            });
+
+            if (result.Success)
+            {
+                NavigationManager.NavigateTo("/", forceLoad: false);
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage;
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

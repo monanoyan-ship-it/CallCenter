@@ -1,4 +1,7 @@
 @* Sol Panel - Call Center Menü *@
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+@implements IDisposable
 
 <div class="sidebar-header">
     <div class="d-flex align-items-center justify-content-between px-3 py-2">
@@ -124,8 +127,8 @@
                 <i class="bi bi-person-circle"></i>
             </div>
             <div class="agent-info">
-                <span class="agent-name">Admin</span>
-                <span class="agent-role">Yonetici</span>
+                <span class="agent-name">@fullName</span>
+                <span class="agent-role">@roleName</span>
             </div>
         </div>
     </div>
@@ -133,7 +136,67 @@
 
 @code {
     private bool collapseNavMenu = true;
-    private HashSet<int> openGroups = new() { 0 }; // Çağrı grubu varsayılan açık
+    private HashSet<int> openGroups = new();
+    private string fullName = "...";
+    private string roleName = "";
+
+    // Rol adlarini Turkce goster
+    private static readonly Dictionary<string, string> RoleNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Admin", "Yonetici" },
+        { "Supervisor", "Supervisor" },
+        { "Agent", "Temsilci" },
+        { "CustomerUser", "Musteri" }
+    };
+
+    // Grup index → URL prefix eslestirmesi
+    private static readonly Dictionary<int, string[]> GroupRoutes = new()
+    {
+        { 0, new[] { "dialer", "calls/" } },
+        { 1, new[] { "queues" } },
+        { 2, new[] { "reports/" } },
+        { 3, new[] { "admin/" } }
+    };
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        OpenGroupByCurrentUrl();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var name = await AuthService.GetFullNameAsync();
+            var role = await AuthService.GetRoleAsync();
+
+            fullName = name ?? "Kullanici";
+            roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
+
+            StateHasChanged();
+        }
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        OpenGroupByCurrentUrl();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OpenGroupByCurrentUrl()
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+
+        foreach (var (groupIndex, prefixes) in GroupRoutes)
+        {
+            if (prefixes.Any(p => relativePath.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+            {
+                openGroups.Add(groupIndex);
+                return;
+            }
+        }
+    }
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
@@ -151,4 +214,9 @@
     }
 
     private bool IsGroupOpen(int index) => openGroups.Contains(index);
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }

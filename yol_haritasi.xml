@@ -145,9 +145,26 @@
         - Sidebar footer'daki agent bilgisi statik. JWT'den okunmalı.
       </Riskler>
     </Gorev>
-    <Gorev no="2.1" durum="bekliyor">
-      <Ad>Login sayfası</Ad>
-      <Detay>Bootstrap ile şık login ekranı, JWT token saklama</Detay>
+    <Gorev no="2.1" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Login sayfası ve auth entegrasyonu</Ad>
+      <Detay>
+        - LoginLayout: Sidebar'sız, tam ekran gradient arkaplan
+        - Login.razor: Form floating input'lar, spinner, hata mesajı
+        - JwtAuthStateProvider: JWT token parse, claim okuma, süre kontrolü
+        - AuthService: API login çağrısı, localStorage'da token/ad/rol saklama, logout
+        - AuthHeaderHandler: Her HTTP isteğine Bearer token ekleme
+        - App.razor: CascadingAuthenticationState + AuthorizeRouteView + RedirectToLogin
+        - Home.razor'a [Authorize] attribute eklendi
+        - MainLayout: Logout butonu eklendi
+        - NavMenu: Sidebar footer dinamik (JWT'den ad ve rol okunuyor)
+        - NuGet: Microsoft.AspNetCore.Components.Authorization, System.IdentityModel.Tokens.Jwt
+      </Detay>
+      <Riskler>
+        - Token süresi dolunca kullanıcı otomatik logout olmuyor - sayfa yenilenene kadar eski state kalabilir.
+        - localStorage'da token saklamak XSS açığına karşı hassas. Production'da HttpOnly cookie düşünülebilir.
+        - API base URL appsettings'ten okunuyor ama henüz wwwroot/appsettings.json yok. Default "https://localhost:7147" kullanılıyor.
+        - Role bazlı menü filtrelemesi henüz yok. Tüm menü öğeleri herkese görünüyor.
+      </Riskler>
     </Gorev>
     <Gorev no="2.2" durum="bekliyor">
       <Ad>Agent paneli</Ad>
@@ -285,5 +302,9 @@
     <Not tarih="2026-02-09">T() çoklu dil sistemi eklendi (DB tabanlı, XML export/import). Backend hazır, frontend entegrasyonu Faz 2'de.</Not>
     <Not tarih="2026-02-09">Tüm ID'ler int'e çevrildi. Dışarıya açık entity'lerde Guid Uid alanı var (URL güvenliği). FK'lar int.</Not>
     <Not tarih="2026-02-09">Windows (WPF Blazor Hybrid) ve Mobile (MAUI Blazor Hybrid) projeleri oluşturuldu. 6 proje, 0 hata, 0 uyarı.</Not>
+    <Not tarih="2026-02-09">Login sayfası ve auth altyapısı tamamlandı. JWT token localStorage'da, AuthorizeRouteView ile koruma, logout butonu, sidebar'da dinamik kullanıcı bilgisi.</Not>
+    <Not tarih="2026-02-09">BCrypt seed data sorunu: Her build'de farklı hash → EF Core uyarısı. Çözüm: Sabit hash string. Güvenlik kaybı yok.</Not>
+    <Not tarih="2026-02-09">İlk EF migration (InitialCreate) oluşturuldu. CallCenterDB sıfırdan yaratıldı, tüm tablolar + seed data hazır.</Not>
+    <Not tarih="2026-02-09">ÖNEMLİ: Bu proje bir SOFTPHONE uygulamasıdır! MicroSIP'in (microsip.org) çok müşterili çağrı merkezi versiyonu. Asıl hedef gerçek SIP/WebRTC üzerinden sesli arama. Şu an UI ve altyapı hazırlanıyor, VoIP entegrasyonu Faz 3-4'te gelecek.</Not>
   </Notlar>
 </Proje>

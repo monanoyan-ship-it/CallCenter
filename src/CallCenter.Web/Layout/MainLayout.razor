@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 
 <div class="app-layout @(sidebarOpen ? "sidebar-open" : "")">
     @* ─── MOBİL OVERLAY ─── *@
@@ -21,6 +23,9 @@
                     <span class="status-badge online">
                         <i class="bi bi-circle-fill"></i> Musait
                     </span>
+                    <button class="btn btn-link text-muted btn-logout" title="Cikis Yap" @onclick="HandleLogout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
                 </div>
             </div>
         </header>
@@ -43,5 +48,11 @@
     private void CloseSidebar()
     {
         sidebarOpen = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/login", forceLoad: false);
     }
 }

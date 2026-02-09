@@ -177,3 +177,48 @@ CallCenter.sln
 - Counter.razor ve Weather.razor silindi
 - weather.json sample data silindi
 - Home.razor → Dashboard sayfasına dönüştürüldü (4 istatistik kartı + Son Aramalar + Temsilci Durumları)
+
+### 2026-02-09 - Faz 2 Devam: Login ve Auth Entegrasyonu
+
+**Login Sayfası:**
+- LoginLayout.razor: Sidebar'sız tam ekran, koyu gradient arkaplan
+- Login.razor: Form floating input'lar, spinner, hata mesajı gösterimi
+- Login.razor.css: Responsive kart, gradient buton, hover efektleri
+
+**Auth Altyapısı (Blazor WASM):**
+- JwtAuthStateProvider: JWT token parse (client-side), claim okuma, süre kontrolü
+- AuthService: API login çağrısı, localStorage'da token/ad/rol saklama, logout
+- AuthHeaderHandler (DelegatingHandler): Her HTTP isteğine otomatik Bearer token ekleme
+- RedirectToLogin component: Yetkisiz kullanıcıları /login'e yönlendirme
+
+**App.razor Güncellendi:**
+- CascadingAuthenticationState → tüm component'lara auth state akıyor
+- AuthorizeRouteView → yetkisiz sayfalar RedirectToLogin tetikliyor
+- Home.razor'a [Authorize] attribute eklendi
+
+**Layout Auth Entegrasyonu:**
+- MainLayout: Logout butonu (üst bar, sağ taraf)
+- NavMenu sidebar footer: JWT'den okunan ad ve rol (Türkçe rol adları)
+
+**NuGet (Web projesine):**
+- Microsoft.AspNetCore.Components.Authorization 10.0.2
+- System.IdentityModel.Tokens.Jwt 8.7.0
+
+**Seed Data Düzeltmesi:**
+- BCrypt.HashPassword() her seferinde farklı hash üretiyordu → EF Core PendingModelChangesWarning
+- Çözüm: Hash bir kez üretilip sabit string olarak seed data'ya kondu
+- Admin şifresi: 1123Azs+- (güvenlik kaybı yok — BCrypt.Verify salt'ı hash'ten okur)
+
+**İlk Migration:**
+- `dotnet ef migrations add InitialCreate` başarılı
+- `dotnet ef database update` → CallCenterDB oluşturuldu, tüm tablolar + seed data hazır
+
+## Proje Vizyonu — ÖNEMLİ HATIRLATMA
+
+**Bu proje bir SOFTPHONE uygulamasıdır!** MicroSIP'in (https://www.microsip.org/) çok müşterili,
+çağrı merkezi versiyonunu yazıyoruz. Asıl hedef:
+- Gerçek SIP/WebRTC üzerinden sesli arama yapma/alma
+- Windows'ta native SIP (WPF), Web'de SIP.js/WebRTC, Mobil'de SRTP/VoIP
+- Admin panelinden SIP sunucu bilgileri girilecek (dinamik SIP)
+- MicroSIP C++ kaynak kodu referans: `microsip-reference/` klasöründe
+- Faz 4-5'te VoIP entegrasyonu gelecek — şu an UI ve altyapı hazırlanıyor

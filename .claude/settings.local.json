@@ -21,7 +21,13 @@
       "Bash(where.exe:*)",
       "Bash(dir:*)",
       "Bash(dotnet sln:*)",
-      "Bash(del \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\src\\\\CallCenter.Windows\\\\App.razor\")"
+      "Bash(del \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\src\\\\CallCenter.Windows\\\\App.razor\")",
+      "Bash(git rm:*)",
+      "Bash(dotnet tool list:*)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet ef database drop:*)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(dotnet ef migrations remove:*)"
     ]
   }
 }

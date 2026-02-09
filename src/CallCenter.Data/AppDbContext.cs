@@ -146,7 +146,8 @@ public class AppDbContext : DbContext
             UserName = "admin",
             FullName = "System Admin",
             Email = "admin@callcenter.local",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+            // Sifre: 1123Azs+-  (BCrypt hash sabitlesti - migration uyumlulugu icin)
+            PasswordHash = "$2a$11$4NK5QRHYyKGuXY/Wr41bGOgqCOD1PDK.c1473NdyCowy2.HJswS72",
             Role = Shared.Enums.UserRole.Admin,
             IsActive = true,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
