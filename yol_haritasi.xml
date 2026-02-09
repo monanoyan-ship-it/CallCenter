@@ -192,6 +192,26 @@
         - Transfer özelliği henüz placeholder (TODO).
       </Riskler>
     </Gorev>
+    <Gorev no="2.2.1" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Dinamik müşteri yetki sistemi</Ad>
+      <Detay>
+        - Katmanlı yetki sistemi: TypeItem (yetki tipleri) + DB (müşteri modül/yetki atama)
+        - [Flags] CustomerPermission enum SİLİNDİ → dinamik sistem
+        - Yeni TypeItem'lar: PortalModules (7 modül), CustomerPermissionTypes (15 yetki), PermissionScopes (3 kapsam)
+        - Yeni entity'ler: CustomerPortalModule (müşteriye modül açma), CustomerPersonnelPermission (personele yetki atama)
+        - CustomerPersonnel.Permissions: int bitmask → ICollection navigation property
+        - JWT claim: bitmask int → virgülle ayrılmış aktif yetki TypeId'leri
+        - CustomerPermissionsController: Modül CRUD + Yetki CRUD (Admin/Supervisor)
+        - Migration yeniden oluşturuldu, Build: 0 hata, 0 uyarı
+      </Detay>
+      <Riskler>
+        - Yetki kontrolü şu an sadece JWT claim bazlı. Token süresi dolana kadar yetki değişiklikleri yansımaz. İleride real-time yetki yenileme (SignalR ile) düşünülebilir.
+        - CustomerPortalModule'ü silmek yerine deactivate ediyoruz (IsActive=false). Silinen modüldeki mevcut personel yetkileri otomatik deaktive edilmiyor — sadece yeni yetki ataması engelleniyor.
+        - PermissionScopes (All, Own, Customer) şu an sadece kayıt ediliyor, runtime'da scope kontrolü henüz implemente değil. İleride controller/service katmanında scope filtresi eklenmeli.
+        - CreatedByUserId ile iz takibi var ama güncelleme/silme audit'i henüz yok.
+        - Toplu yetki atamasında (POST) mevcut yetki varsa günceller (IsActive=true, scope değişir) — bu davranış istenmeyen bir yan etki olabilir.
+      </Riskler>
+    </Gorev>
     <Gorev no="2.3" durum="bekliyor">
       <Ad>Supervisor dashboard</Ad>
       <Detay>
@@ -394,5 +414,6 @@
     <Not tarih="2026-02-09">TypeItem pattern'e geçildi. Standart C# enum'lar artık kullanılmıyor (CustomerPermission [Flags] hariç). TypeItem: Id, SystemName, NameResourceKey, Description, Icon, CssClass, DisplayOrder, IsDefault, IsActive, IsSystem.</Not>
     <Not tarih="2026-02-09">Görev 2.2 tamamlandı: Agent paneli + TypeItem dönüşümü. Dialer, Active Calls, History sayfaları, IncomingCallNotification, TopBar durum dropdown, SignalR HubService, CallsController API — tümü 0 hata build.</Not>
     <Not tarih="2026-02-09">MOBİL UYGULAMA KULLANIM SENARYOlARI: Müşterilerin saha elemanları (kuryeler vb.) mobil uygulama üzerinden arama yapacak. Mobil: Saha personeli → müşterinin müşterilerini arar. Masaüstü/Web: Ofis çağrı merkezi temsilcileri.</Not>
+    <Not tarih="2026-02-09">Dinamik yetki sistemi: [Flags] CustomerPermission enum → Katmanlı sistem (PortalModules TypeItem + CustomerPortalModule DB + CustomerPersonnelPermission DB). Müşteriye modül lisansı, personele granüler yetki. JWT claim'de virgülle ayrılmış TypeId listesi.</Not>
   </Notlar>
 </Proje>

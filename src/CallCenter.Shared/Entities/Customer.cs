@@ -13,4 +13,7 @@ public class Customer
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();
+
+    // Müşteriye açık portal modülleri
+    public ICollection<CustomerPortalModule> PortalModules { get; set; } = new List<CustomerPortalModule>();
 }

@@ -237,7 +237,7 @@ geçer → kayıt altında, raporlanabilir, denetlenebilir. UI hızlı arama, te
 ### 2026-02-09 - Görev 2.2: Agent Paneli + TypeItem Dönüşümü
 
 **TypeItem Pattern (Enum Yerine):**
-- **KURAL**: Standart C# enum kullanılmayacak, TypeItem pattern kullanılacak. [Flags] CustomerPermission hariç.
+- **KURAL**: Standart C# enum kullanılmayacak, TypeItem pattern kullanılacak. Hiçbir [Flags] enum kalmadı.
 - TypeItem base class: Id, SystemName, NameResourceKey, Description, Icon, CssClass, DisplayOrder, IsDefault, IsActive, IsSystem
 - TypeDefinitions.cs: UserRoles, AgentStatuses, CallStatuses, CallDirections — hepsi tek dosyada
 - Her TypeItem'da inner `Ids` class (const int) — EF Core seed data ve koşullarda kullanılır
@@ -286,6 +286,53 @@ geçer → kayıt altında, raporlanabilir, denetlenebilir. UI hızlı arama, te
 - Microsoft.AspNetCore.SignalR.Client 10.0.2
 
 **Migration yeniden oluşturuldu** (DB drop + InitialCreate + apply)
+
+### 2026-02-09 - Dinamik Müşteri Yetki Sistemi
+
+**Mimari Karar: Katmanlı Yetki Sistemi**
+- **1. Katman (TypeItem)**: Yetki tipleri kodda sabit tanımlı → Derleme zamanı güvenliği
+- **2. Katman (CustomerPortalModule DB tablosu)**: Müşteriye hangi modüller açık → Lisans/paket yönetimi
+- **3. Katman (CustomerPersonnelPermission DB tablosu)**: Personele granüler yetki atama → Dinamik yönetim
+- Supervisor ve Admin'ler yönetir, personele sadece müşterinin açık modüllerindeki yetkiler atanabilir
+
+**[Flags] CustomerPermission enum SİLİNDİ** — Yerine dinamik sistem geldi.
+
+**Yeni TypeItem Grupları (TypeDefinitions.cs):**
+- `PortalModules` — 7 modül: Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel
+  - `IsDefault` ile yeni müşteriye varsayılan açılacak modüller işaretli (Dashboard, Calls, Personnel)
+- `CustomerPermissionTypes` — 15 yetki tipi, 7 modüle dağılmış (ID aralıkları: 1-9 Dashboard, 10-19 Call, 20-29 Report, 30-39 Agent, 40-49 Queue, 50-59 Settings, 60-69 Personnel)
+  - `GetByModule(int moduleId)` — Modüle göre yetkiler
+  - `GetModuleId(int permissionTypeId)` — Yetki tipinden modül ID'sini bul
+- `PermissionScopes` — 3 kapsam: All(1), Own(2), Customer(3 - varsayılan)
+
+**Yeni Entity'ler:**
+- `CustomerPortalModule` — Müşteriye açık modüller (CustomerId + ModuleId unique index)
+- `CustomerPersonnelPermission` — Personel yetkileri (PersonnelId + PermissionTypeId unique index, CreatedByUserId ile iz takibi, ValidFrom/ValidUntil ile süre kontrolü)
+
+**Güncel Entity Değişikliği:**
+- `CustomerPersonnel.Permissions`: `CustomerPermission Permissions` (int bitmask) → `ICollection<CustomerPersonnelPermission> Permissions` (nav property)
+- `Customer.PortalModules`: Yeni navigation property eklendi
+
+**JWT Token Değişikliği:**
+- Eski: `CustomerPermissions: "7"` (bitmask int)
+- Yeni: `CustomerPermissions: "1,10,11,20,30"` (virgülle ayrılmış aktif yetki TypeId'leri)
+- Login'de tarih kontrolü yapılıyor (ValidFrom/ValidUntil)
+
+**API Endpoint'leri (CustomerPermissionsController):**
+- Modül yönetimi:
+  - GET /api/customers/{id}/modules — Müşteri modüllerini listele
+  - POST /api/customers/{id}/modules — Modül aç (toplu)
+  - DELETE /api/customers/{id}/modules/{moduleId} — Modül kapat
+- Yetki tipleri:
+  - GET /api/customers/{id}/permissions/types — Açık modüllerdeki yetki tiplerini listele
+- Personel yetki yönetimi:
+  - GET /api/customers/{id}/personnel/{pid}/permissions — Personel yetkilerini getir
+  - POST /api/customers/{id}/personnel/{pid}/permissions — Toplu yetki ata
+  - PUT /api/customers/{id}/personnel/{pid}/permissions/{id} — Yetki güncelle
+  - DELETE /api/customers/{id}/personnel/{pid}/permissions/{id} — Yetki kaldır
+
+**Migration yeniden oluşturuldu** (DB drop + InitialCreate + apply)
+**Build: 0 hata, 0 uyarı**
 
 ## Dış Entegrasyon Vizyonu (Faz 7)
 

@@ -25,6 +25,7 @@ public class AuthController : ControllerBase
     {
         var user = await _db.Users
             .Include(u => u.CustomerPersonnel)
+                .ThenInclude(cp => cp!.Permissions)
             .FirstOrDefaultAsync(u => u.UserName == request.UserName && u.IsActive);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -33,7 +34,20 @@ public class AuthController : ControllerBase
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel);
+        // Musteri personelinin aktif yetkilerini filtrele
+        IEnumerable<int>? activePermissionIds = null;
+        if (user.CustomerPersonnel != null)
+        {
+            var now = DateTime.UtcNow;
+            activePermissionIds = user.CustomerPersonnel.Permissions
+                .Where(p => p.IsActive)
+                .Where(p => !p.ValidFrom.HasValue || p.ValidFrom.Value <= now)
+                .Where(p => !p.ValidUntil.HasValue || p.ValidUntil.Value >= now)
+                .Select(p => p.PermissionTypeId)
+                .ToList();
+        }
+
+        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, activePermissionIds);
         var expireMinutes = int.Parse(HttpContext.RequestServices
             .GetRequiredService<IConfiguration>()["Jwt:ExpireMinutes"] ?? "480");
 

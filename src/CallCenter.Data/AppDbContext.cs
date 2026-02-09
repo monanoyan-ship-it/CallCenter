@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<SipAccount> SipAccounts => Set<SipAccount>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerPersonnel> CustomerPersonnel => Set<CustomerPersonnel>();
+    public DbSet<CustomerPersonnelPermission> CustomerPersonnelPermissions => Set<CustomerPersonnelPermission>();
+    public DbSet<CustomerPortalModule> CustomerPortalModules => Set<CustomerPortalModule>();
     public DbSet<Language> Languages => Set<Language>();
     public DbSet<TranslationKey> TranslationKeys => Set<TranslationKey>();
     public DbSet<Translation> Translations => Set<Translation>();
@@ -62,6 +64,34 @@ public class AppDbContext : DbContext
             e.HasOne(cp => cp.Customer)
              .WithMany(c => c.Personnel)
              .HasForeignKey(cp => cp.CustomerId);
+        });
+
+        // CustomerPersonnelPermission (dinamik yetki atamalari)
+        modelBuilder.Entity<CustomerPersonnelPermission>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.PersonnelId, p.PermissionTypeId }).IsUnique();
+            e.Property(p => p.Description).HasMaxLength(500);
+            e.HasOne(p => p.Personnel)
+             .WithMany(cp => cp.Permissions)
+             .HasForeignKey(p => p.PersonnelId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.CreatedByUser)
+             .WithMany()
+             .HasForeignKey(p => p.CreatedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // CustomerPortalModule (musteriye acik moduller)
+        modelBuilder.Entity<CustomerPortalModule>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => new { m.CustomerId, m.ModuleId }).IsUnique();
+            e.Property(m => m.Notes).HasMaxLength(500);
+            e.HasOne(m => m.Customer)
+             .WithMany(c => c.PortalModules)
+             .HasForeignKey(m => m.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // CallRecord

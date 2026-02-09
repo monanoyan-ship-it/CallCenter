@@ -129,6 +129,30 @@ namespace CallCenter.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CustomerPortalModules",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false),
+                    ModuleId = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    ActivatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DeactivatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerPortalModules", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CustomerPortalModules_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Translations",
                 columns: table => new
                 {
@@ -200,7 +224,6 @@ namespace CallCenter.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Uid = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Permissions = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
@@ -246,6 +269,39 @@ namespace CallCenter.Data.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CustomerPersonnelPermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PersonnelId = table.Column<int>(type: "integer", nullable: false),
+                    PermissionTypeId = table.Column<int>(type: "integer", nullable: false),
+                    ScopeId = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    ValidFrom = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ValidUntil = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedByUserId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerPersonnelPermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CustomerPersonnelPermissions_CustomerPersonnel_PersonnelId",
+                        column: x => x.PersonnelId,
+                        principalTable: "CustomerPersonnel",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CustomerPersonnelPermissions_Users_CreatedByUserId",
+                        column: x => x.CreatedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.InsertData(
@@ -405,6 +461,23 @@ namespace CallCenter.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_CustomerPersonnelPermissions_CreatedByUserId",
+                table: "CustomerPersonnelPermissions",
+                column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CustomerPersonnelPermissions_PersonnelId_PermissionTypeId",
+                table: "CustomerPersonnelPermissions",
+                columns: new[] { "PersonnelId", "PermissionTypeId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CustomerPortalModules_CustomerId_ModuleId",
+                table: "CustomerPortalModules",
+                columns: new[] { "CustomerId", "ModuleId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Customers_Name",
                 table: "Customers",
                 column: "Name");
@@ -481,7 +554,10 @@ namespace CallCenter.Data.Migrations
                 name: "CallRecords");
 
             migrationBuilder.DropTable(
-                name: "CustomerPersonnel");
+                name: "CustomerPersonnelPermissions");
+
+            migrationBuilder.DropTable(
+                name: "CustomerPortalModules");
 
             migrationBuilder.DropTable(
                 name: "QueueAgents");
@@ -493,19 +569,22 @@ namespace CallCenter.Data.Migrations
                 name: "Translations");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "CustomerPersonnel");
 
             migrationBuilder.DropTable(
                 name: "Queues");
-
-            migrationBuilder.DropTable(
-                name: "Users");
 
             migrationBuilder.DropTable(
                 name: "Languages");
 
             migrationBuilder.DropTable(
                 name: "TranslationKeys");
+
+            migrationBuilder.DropTable(
+                name: "Customers");
+
+            migrationBuilder.DropTable(
+                name: "Users");
         }
     }
 }

@@ -16,7 +16,11 @@ public class TokenService
         _config = config;
     }
 
-    public string GenerateToken(User user, CustomerPersonnel? customerPersonnel = null)
+    /// <summary>
+    /// JWT token olusturur.
+    /// activePermissionTypeIds: Musteri kullanicisi icin aktif yetki tipi ID'leri (virgul ile ayrilmis claim)
+    /// </summary>
+    public string GenerateToken(User user, CustomerPersonnel? customerPersonnel = null, IEnumerable<int>? activePermissionTypeIds = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -37,7 +41,13 @@ public class TokenService
         {
             claims.Add(new Claim("CustomerId", customerPersonnel.CustomerId.ToString()));
             claims.Add(new Claim("CustomerPersonnelId", customerPersonnel.Id.ToString()));
-            claims.Add(new Claim("CustomerPermissions", ((int)customerPersonnel.Permissions).ToString()));
+
+            // Aktif yetki tipi ID'leri virgülle ayrılmış string olarak
+            if (activePermissionTypeIds != null)
+            {
+                var permissionIds = string.Join(",", activePermissionTypeIds);
+                claims.Add(new Claim("CustomerPermissions", permissionIds));
+            }
         }
 
         var token = new JwtSecurityToken(
