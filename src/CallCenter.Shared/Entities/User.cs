@@ -4,7 +4,8 @@ namespace CallCenter.Shared.Entities;
 
 public class User
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
+    public Guid Uid { get; set; } = Guid.NewGuid();
     public string UserName { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
@@ -17,4 +18,7 @@ public class User
     public DateTime? LastLoginAt { get; set; }
 
     public ICollection<CallRecord> CallRecords { get; set; } = new List<CallRecord>();
+
+    // Müşteri kullanıcıları için (Role == CustomerUser ise dolu)
+    public CustomerPersonnel? CustomerPersonnel { get; set; }
 }

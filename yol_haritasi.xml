@@ -15,18 +15,19 @@
   <!-- ============================================================ -->
   <!-- FAZ 1: TEMEL ALTYAPI                                         -->
   <!-- ============================================================ -->
-  <Faz no="1" ad="Temel Altyapi" durum="devam-ediyor">
+  <Faz no="1" ad="Temel Altyapi" durum="tamamlandi">
     <Gorev no="1.1" durum="tamamlandi" tamamlanma="2026-02-09">
       <Ad>Solution ve proje yapısını oluştur</Ad>
       <Detay>
-        - CallCenter.sln
+        - CallCenter.slnx (.NET 10 yeni format)
         - CallCenter.Api (ASP.NET Core Web API)
         - CallCenter.Web (Blazor WebAssembly)
         - CallCenter.Shared (Ortak modeller, DTO'lar)
         - CallCenter.Data (EF Core, veritabanı)
-        - CallCenter.Windows (Blazor Hybrid WPF - sonra)
-        - CallCenter.Mobile (MAUI Blazor Hybrid - sonra)
+        - CallCenter.Windows (WPF + Blazor Hybrid, WebView2)
+        - CallCenter.Mobile (MAUI Blazor Hybrid)
       </Detay>
+      <Riskler>Yok. Build başarılı (6 proje, 0 hata, 0 uyarı), proje referansları doğru.</Riskler>
     </Gorev>
     <Gorev no="1.2" durum="tamamlandi" tamamlanma="2026-02-09">
       <Ad>Veritabanı modellerini tasarla</Ad>
@@ -34,24 +35,116 @@
         - User (Agent, Supervisor, Admin rolleri)
         - CallRecord (çağrı geçmişi)
         - Queue (çağrı kuyrukları)
+        - QueueAgent (many-to-many)
         - SipAccount (dinamik SIP hesap bilgileri)
         - AgentStatus (müsait, meşgul, mola, offline)
       </Detay>
+      <Riskler>
+        - Migration henüz oluşturulmadı. İlk çalıştırmada "dotnet ef migrations add Initial" gerekecek.
+        - Seed data'daki admin şifresi (admin123) her build'de farklı hash üretir çünkü BCrypt salt kullanır. Bu migration'da sabit kalacak ama dikkat edilmeli.
+        - SipAccount.Password düz metin olarak saklanıyor. Production'da şifrelenmeli (AES veya DataProtection API).
+      </Riskler>
     </Gorev>
     <Gorev no="1.3" durum="tamamlandi" tamamlanma="2026-02-09">
       <Ad>Kimlik doğrulama sistemi (JWT)</Ad>
       <Detay>Login, Register, Token yönetimi, Rol bazlı yetkilendirme</Detay>
+      <Riskler>
+        - Register endpoint henüz YOK. Şu an sadece login var. Kullanıcı ekleme admin panelinden yapılacak.
+        - JWT Key appsettings.json'da düz metin. Production'da environment variable veya User Secrets kullanılmalı.
+        - Token refresh mekanizması yok. Token süresi dolduğunda tekrar login gerekecek.
+      </Riskler>
     </Gorev>
     <Gorev no="1.4" durum="tamamlandi" tamamlanma="2026-02-09">
       <Ad>SignalR Hub altyapısı</Ad>
       <Detay>Gerçek zamanlı çağrı bildirimleri, agent durum güncellemeleri, kuyruk değişiklikleri</Detay>
+      <Riskler>
+        - Hub her bağlantıda yeni DbContext scope açıyor ama concurrent erişimde sorun olabilir.
+        - OnConnectedAsync'te otomatik Available yapılıyor. Kullanıcı sayfayı yenilerse status sıfırlanır, bu istenmeyen davranış olabilir.
+        - Henüz runtime'da test EDİLMEDİ. Build başarılı ama çalışma zamanı hataları olabilir.
+      </Riskler>
+    </Gorev>
+    <Gorev no="1.5" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Müşteri yönetimi entity'leri</Ad>
+      <Detay>
+        - Customer (müşteri firma bilgileri: ad, vergi no, adres, tel, email)
+        - CustomerPersonnel (müşteri personeli: User'a bağlı, Customer'a bağlı, [Flags] CustomerPermission)
+        - User entity'sine CustomerPersonnel nav property eklendi (one-to-one)
+        - UserRole'a CustomerUser eklendi
+        - Login'de CustomerPersonnel Include edilerek JWT'ye customer claim'leri ekleniyor
+      </Detay>
+      <Riskler>
+        - CustomerPersonnel silinince User silinmez ama CustomerUser rolündeki user artık yetkisiz kalır. Bunu kontrol eden bir mekanizma yok.
+        - Customer.IsActive false olduğunda o müşterinin tüm personelinin giriş yapamaması lazım - henüz kontrol yok.
+      </Riskler>
+    </Gorev>
+    <Gorev no="1.6" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Çoklu dil sistemi (T() - DB tabanlı)</Ad>
+      <Detay>
+        - Language entity (Code PK: "tr", "en")
+        - TranslationKey entity (key: "auth.login", module: "auth")
+        - Translation entity (value + FK'lar, unique index on key+lang)
+        - ITranslationService interface + TranslationService (ConcurrentDictionary cache)
+        - TranslationsController: JSON get, XML export, XML import, cache reload
+        - Seed data: ~28 key, TR/EN çevirileri
+      </Detay>
+      <Riskler>
+        - TranslationService singleton olarak register ediliyor. Ama içinde IServiceProvider ile scope açıyor - bu doğru ama dikkatli olunmalı.
+        - Cache otomatik yenilenmiyor. DB'den değişiklik yapıldığında /reload-cache çağrılmalı veya moderatör panelinden otomatik yapılmalı.
+        - XML import'ta büyük dosyalarda performans sorunu olabilir (tek tek SaveChanges çağrılıyor).
+      </Riskler>
+    </Gorev>
+    <Gorev no="1.7" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>ID tiplerini int'e çevir + Uid ekle</Ad>
+      <Detay>
+        - Tüm entity'lerde PK: int Id (auto-increment)
+        - Dışarıya açık entity'lerde: Guid Uid (URL/link güvenliği için)
+        - FK ilişkileri int tipinde
+        - Seed data int ID'lere güncellendi (artık deterministic)
+        - DbContext'te Uid alanlarına unique index eklendi
+      </Detay>
+      <Riskler>
+        - Mevcut veritabanı varsa migration'lar çakışacak. Temiz DB gerekli.
+        - Uid alanı bazı entity'lerde (Translation, TranslationKey) yok - bunlar dahili tablolar, dışarıya expose edilmiyor.
+      </Riskler>
+    </Gorev>
+    <Gorev no="1.8" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Windows ve Mobile projeleri oluştur</Ad>
+      <Detay>
+        - CallCenter.Windows: WPF + Blazor Hybrid (WebView2), BlazorWebView ile UI render
+        - CallCenter.Mobile: MAUI Blazor Hybrid (android, ios, maccatalyst, windows)
+        - Her iki proje de Shared'a referans
+        - Solution'a eklenip build başarılı (6 proje, 0 hata, 0 uyarı)
+      </Detay>
+      <Riskler>
+        - Windows projesi henüz placeholder UI içeriyor. Faz 2'de paylaşılan Razor Class Library oluşturulmalı.
+        - Mobile projede MAUI şablon sayfaları duruyor, ileride temizlenecek.
+        - WPF BlazorWebView runtime'da WebView2 Runtime gerektiriyor - kullanıcının PC'sinde yoksa hata verir.
+      </Riskler>
     </Gorev>
   </Faz>
 
   <!-- ============================================================ -->
   <!-- FAZ 2: WEB ARAYÜZÜ                                           -->
   <!-- ============================================================ -->
-  <Faz no="2" ad="Web Arayuzu (Blazor)" durum="bekliyor">
+  <Faz no="2" ad="Web Arayuzu (Blazor)" durum="devam-ediyor">
+    <Gorev no="2.0" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Sol panel (sidebar) ve layout tasarımı</Ad>
+      <Detay>
+        - MainLayout: Sidebar + TopBar + Main Content yapısı
+        - NavMenu: Gruplu menü (Arama, Kuyruklar, Raporlar, Yönetim)
+        - Bootstrap Icons entegrasyonu (CDN)
+        - Mobil uyumlu: hamburger menü + overlay (lg breakpoint)
+        - Sidebar footer: Agent bilgi alanı
+        - TopBar: Durum badge'i (Müsait/Meşgul/Mola/Offline)
+        - Dashboard sayfası: 4 istatistik kartı + Son Aramalar + Temsilci Durumları
+        - Şablon sayfalar temizlendi (Counter, Weather kaldırıldı)
+      </Detay>
+      <Riskler>
+        - Bootstrap Icons CDN'den yükleniyor. Offline çalışmada ikonlar görünmez. İleride lokal dosya eklenebilir.
+        - Menü öğeleri henüz statik. Login/auth yapılınca role bazlı filtreleme gerekecek.
+        - Sidebar footer'daki agent bilgisi statik. JWT'den okunmalı.
+      </Riskler>
+    </Gorev>
     <Gorev no="2.1" durum="bekliyor">
       <Ad>Login sayfası</Ad>
       <Detay>Bootstrap ile şık login ekranı, JWT token saklama</Detay>
@@ -172,8 +265,8 @@
       <Detay>Ses kaydı, supervisor dinleme/fısıldama</Detay>
     </Gorev>
     <Gorev no="6.4" durum="bekliyor">
-      <Ad>Çoklu dil desteği</Ad>
-      <Detay>Türkçe, İngilizce arayüz</Detay>
+      <Ad>Çoklu dil desteği - Frontend entegrasyonu</Ad>
+      <Detay>Backend T() sistemi hazır. Frontend tarafında Blazor'da T() kullanımı, dil seçici component, kullanıcı dil tercihini saklama.</Detay>
     </Gorev>
   </Faz>
 
@@ -188,5 +281,9 @@
     <Not tarih="2026-02-09">Veritabanı PostgreSQL olarak belirlendi (Npgsql + EF Core)</Not>
     <Not tarih="2026-02-09">.NET 10 varsayılan olarak .slnx formatı kullanıyor (CallCenter.slnx)</Not>
     <Not tarih="2026-02-09">Faz 1 tamamlandı - Solution, Entity modelleri, DbContext, JWT Auth, SignalR Hub, API yapısı hazır. Build başarılı.</Not>
+    <Not tarih="2026-02-09">Customer/CustomerPersonnel entity'leri eklendi. JWT'ye customer claim'leri eklendi.</Not>
+    <Not tarih="2026-02-09">T() çoklu dil sistemi eklendi (DB tabanlı, XML export/import). Backend hazır, frontend entegrasyonu Faz 2'de.</Not>
+    <Not tarih="2026-02-09">Tüm ID'ler int'e çevrildi. Dışarıya açık entity'lerde Guid Uid alanı var (URL güvenliği). FK'lar int.</Not>
+    <Not tarih="2026-02-09">Windows (WPF Blazor Hybrid) ve Mobile (MAUI Blazor Hybrid) projeleri oluşturuldu. 6 proje, 0 hata, 0 uyarı.</Not>
   </Notlar>
 </Proje>

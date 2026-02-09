@@ -2,7 +2,8 @@ namespace CallCenter.Shared.Entities;
 
 public class SipAccount
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
+    public Guid Uid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Server { get; set; } = string.Empty;
     public int Port { get; set; } = 5060;

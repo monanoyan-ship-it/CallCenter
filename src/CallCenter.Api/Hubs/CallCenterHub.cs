@@ -88,14 +88,14 @@ public class CallCenterHub : Hub
         await Clients.All.SendAsync("IncomingCall", notification);
     }
 
-    public async Task NotifyCallEnded(Guid callId)
+    public async Task NotifyCallEnded(int callId)
     {
         await Clients.All.SendAsync("CallEnded", callId);
     }
 
-    private Guid? GetUserId()
+    private int? GetUserId()
     {
         var claim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return claim != null ? Guid.Parse(claim) : null;
+        return claim != null ? int.Parse(claim) : null;
     }
 }

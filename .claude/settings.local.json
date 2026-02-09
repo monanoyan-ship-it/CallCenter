@@ -15,7 +15,13 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(gh repo view:*)",
+      "Bash(where:*)",
+      "Bash(where.exe:*)",
+      "Bash(dir:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(del \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\src\\\\CallCenter.Windows\\\\App.razor\")"
     ]
   }
 }

@@ -2,7 +2,8 @@ namespace CallCenter.Shared.Entities;
 
 public class Queue
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
+    public Guid Uid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int MaxWaitTimeSeconds { get; set; } = 300;

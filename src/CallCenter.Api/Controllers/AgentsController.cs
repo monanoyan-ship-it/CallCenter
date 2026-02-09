@@ -46,7 +46,7 @@ public class AgentsController : ControllerBase
     [HttpPut("status")]
     public async Task<IActionResult> UpdateStatus([FromBody] AgentStatus newStatus)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return NotFound();
 
@@ -66,7 +66,7 @@ public class AgentsController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentAgent()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return NotFound();
 

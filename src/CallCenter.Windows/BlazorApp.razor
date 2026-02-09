@@ -1,0 +1,10 @@
+<Router AppAssembly="@typeof(BlazorApp).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" />
+    </Found>
+    <NotFound>
+        <LayoutView>
+            <p>Sayfa bulunamadı.</p>
+        </LayoutView>
+    </NotFound>
+</Router>

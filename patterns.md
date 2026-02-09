@@ -1,5 +1,20 @@
 # Call Center Projesi - Geliştirme Desenleri ve Kararlar
 
+## Çalışma Kuralları (KESİN)
+
+1. **COMMIT**: Kullanıcı açıkça "commit et" demeden asla commit yapılmayacak.
+2. **RUN/DEBUG**: Asla `dotnet run`, `dotnet watch` veya benzeri çalıştırma komutu kullanılmayacak. Test ve debug Visual Studio'da yapılacak.
+3. **DÜRÜSTLÜK**: Eksik varsa eksik, yanlış olma ihtimali varsa ihtimal raporlanacak. Yalan yok.
+4. **RİSK RAPORU**: Her tamamlanan adımın altına olası riskler/eksikler `yol_haritasi.xml`'e `<Riskler>` etiketi ile yazılacak.
+5. **CONTEXT**: Her oturumda `patterns.md` ve `yol_haritasi.xml` okunacak.
+
+## Veritabanı Kuralları (KESİN)
+
+1. **ID TİPİ**: Tüm entity'lerde primary key `int Id` olacak (auto-increment). Asla `Guid` PK kullanılmayacak.
+2. **UID ALANI**: Dışarıya açık entity'lerde (User, Customer, CallRecord vb.) `Guid Uid` alanı olacak. Bu alan URL/link'lerde kullanılacak (güvenlik: int ID dışarıya expose edilmez).
+3. **FK İLİŞKİLERİ**: Foreign key'ler `int` tipinde olacak (performans).
+4. **DAHİLİ TABLOLAR**: Translation, TranslationKey gibi sadece dahili kullanılan tablolarda Uid gerekmez, sadece `int Id` yeterli.
+
 ## Mimari Kararlar
 
 ### Neden Blazor Hybrid?
@@ -110,3 +125,55 @@ CallCenter.sln
 - Microsoft.EntityFrameworkCore.Design 10.0.2
 - Microsoft.AspNetCore.Authentication.JwtBearer 10.0.2
 - BCrypt.Net-Next 4.0.3
+- Microsoft.AspNetCore.Components.WebView.Wpf 10.0.10 (Windows projesi)
+- Microsoft.AspNetCore.Components.WebView.Maui (Mobile projesi, MAUI built-in)
+
+### 2026-02-09 - Faz 1 Devam: Customer, T(), ID, Windows/Mobile
+
+**Müşteri Yönetimi:**
+- Customer entity (firma bilgileri)
+- CustomerPersonnel entity (User'a bağlı, [Flags] CustomerPermission ile yetki)
+- AuthController'da login'de CustomerPersonnel Include → JWT'ye customer claim'leri
+
+**Çoklu Dil (T() Sistemi):**
+- Language, TranslationKey, Translation entity'leri
+- ITranslationService + TranslationService (ConcurrentDictionary cache, singleton)
+- TranslationsController: JSON get, XML export/import, cache reload
+- Seed data: ~28 key, TR/EN çevirileri
+
+**ID Tipi Değişikliği:**
+- Tüm entity'lerde `Guid Id` → `int Id` (auto-increment PK)
+- Dışarıya açık entity'lerde `Guid Uid` alanı eklendi (URL/link güvenliği)
+- FK ilişkileri int tipinde (performans)
+- Seed data int ID'lere güncellendi
+
+**Windows ve Mobile Projeleri:**
+- CallCenter.Windows: WPF + WebView2 + BlazorWebView (Blazor Hybrid)
+- CallCenter.Mobile: .NET MAUI Blazor Hybrid (android, ios, maccatalyst, windows)
+- Solution: 6 proje, Build: 0 hata, 0 uyarı
+
+### 2026-02-09 - Faz 2 Başlangıç: Sol Panel ve Layout
+
+**Layout Tasarımı:**
+- MainLayout: `app-layout` flex container → Sidebar (fixed) + MainWrapper (margin-left)
+- Sidebar: Koyu tema (slate-900 gradient), 260px genişlik, 3 bölüm (header/body/footer)
+- TopBar: Beyaz, sticky, hamburger butonu (mobil), durum badge
+- Responsive: lg breakpoint (992px), mobil'de sidebar gizli + hamburger ile açılır + overlay
+
+**NavMenu Gruplu Yapı:**
+- Dashboard (tek link)
+- Arama grubu: Numara Çevirici, Aktif Aramalar, Arama Geçmişi
+- Kuyruklar grubu: Kuyruk Listesi, Canlı İzleme
+- Raporlar grubu: Arama Raporları, Temsilci Performansı
+- Yönetim grubu: Kullanıcılar, Müşteriler, SIP Ayarları, Dil Yönetimi, Sistem Ayarları
+- Gruplar açılıp kapanabiliyor (chevron animasyonu)
+- Sidebar footer: Agent avatar + isim + rol
+
+**İkon Kütüphanesi:**
+- Bootstrap Icons 1.11.3 (CDN)
+- İleride lokal dosya olarak da eklenebilir (offline destek)
+
+**Temizlik:**
+- Counter.razor ve Weather.razor silindi
+- weather.json sample data silindi
+- Home.razor → Dashboard sayfasına dönüştürüldü (4 istatistik kartı + Son Aramalar + Temsilci Durumları)

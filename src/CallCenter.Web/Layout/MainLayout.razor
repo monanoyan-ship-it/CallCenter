@@ -1,16 +1,47 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
+@inherits LayoutComponentBase
+
+<div class="app-layout @(sidebarOpen ? "sidebar-open" : "")">
+    @* ─── MOBİL OVERLAY ─── *@
+    <div class="sidebar-overlay @(sidebarOpen ? "show" : "")" @onclick="CloseSidebar"></div>
+
+    @* ─── SOL PANEL ─── *@
+    <aside class="sidebar">
         <NavMenu />
-    </div>
+    </aside>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+    @* ─── ANA İÇERİK ─── *@
+    <div class="main-wrapper">
+        @* ─── ÜST BAR ─── *@
+        <header class="top-bar">
+            <button class="btn btn-link hamburger d-lg-none" @onclick="ToggleSidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="top-bar-content">
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <span class="status-badge online">
+                        <i class="bi bi-circle-fill"></i> Musait
+                    </span>
+                </div>
+            </div>
+        </header>
 
-        <article class="content px-4">
+        @* ─── SAYFA İÇERİĞİ ─── *@
+        <main class="main-content">
             @Body
-        </article>
-    </main>
+        </main>
+    </div>
 </div>
+
+@code {
+    private bool sidebarOpen;
+
+    private void ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        sidebarOpen = false;
+    }
+}

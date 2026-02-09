@@ -1,77 +1,170 @@
-.page {
-    position: relative;
+/* ═══════════════════════════════════════════
+   ANA LAYOUT
+   ═══════════════════════════════════════════ */
+
+.app-layout {
     display: flex;
-    flex-direction: column;
+    min-height: 100vh;
+    background: #f0f2f5;
 }
 
-main {
+/* ═══════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════ */
+
+.sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1040;
+    transition: transform 0.25s ease;
+}
+
+/* ═══════════════════════════════════════════
+   OVERLAY (mobil - sidebar açıkken arkaplan)
+   ═══════════════════════════════════════════ */
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1035;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.show {
+    display: block;
+}
+
+/* ═══════════════════════════════════════════
+   ANA İÇERİK ALANI
+   ═══════════════════════════════════════════ */
+
+.main-wrapper {
+    flex: 1;
+    margin-left: 260px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════
+   ÜST BAR
+   ═══════════════════════════════════════════ */
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    height: 3.25rem;
+    padding: 0 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    gap: 0.75rem;
+}
+
+.hamburger {
+    color: #374151;
+    font-size: 1.35rem;
+    padding: 0.25rem;
+    line-height: 1;
+}
+
+.hamburger:hover {
+    color: #111827;
+}
+
+.top-bar-content {
+    display: flex;
+    align-items: center;
     flex: 1;
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
+/* ─── Durum badge'i ─── */
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
+.status-badge {
+    display: inline-flex;
     align-items: center;
+    gap: 0.375rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.775rem;
+    font-weight: 500;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
+.status-badge i {
+    font-size: 0.5rem;
+}
+
+.status-badge.online {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.busy {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge.break {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.offline {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* ═══════════════════════════════════════════
+   SAYFA İÇERİĞİ
+   ═══════════════════════════════════════════ */
+
+.main-content {
+    flex: 1;
+    padding: 1.25rem;
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE - MOBİL (<992px / lg breakpoint)
+   ═══════════════════════════════════════════ */
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
     }
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
+    .app-layout.sidebar-open .sidebar {
+        transform: translateX(0);
     }
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
+    .main-wrapper {
         margin-left: 0;
     }
 }
 
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
+/* ═══════════════════════════════════════════
+   RESPONSIVE - KÜÇÜK EKRANlar
+   ═══════════════════════════════════════════ */
 
+@media (max-width: 575.98px) {
     .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
+        width: 280px;
     }
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
+    .main-content {
+        padding: 0.75rem;
     }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
+    .top-bar {
+        padding: 0 0.75rem;
     }
 }

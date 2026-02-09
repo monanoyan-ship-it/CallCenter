@@ -48,6 +48,7 @@ builder.Services.AddAuthorization();
 
 // Services
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddSingleton<CallCenter.Shared.Services.ITranslationService, TranslationService>();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -63,7 +64,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", policy =>
     {
-        policy.WithOrigins("https://localhost:7100", "http://localhost:5100")
+        policy.WithOrigins("https://localhost:7242", "http://localhost:5123")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

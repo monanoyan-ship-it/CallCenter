@@ -23,6 +23,7 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
         var user = await _db.Users
+            .Include(u => u.CustomerPersonnel)
             .FirstOrDefaultAsync(u => u.UserName == request.UserName && u.IsActive);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -31,7 +32,7 @@ public class AuthController : ControllerBase
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        var token = _tokenService.GenerateToken(user);
+        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel);
         var expireMinutes = int.Parse(HttpContext.RequestServices
             .GetRequiredService<IConfiguration>()["Jwt:ExpireMinutes"] ?? "480");
 
