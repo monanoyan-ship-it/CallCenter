@@ -1,0 +1,12 @@
+::deep .table th {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+}
+
+::deep .table td {
+    vertical-align: middle;
+    font-size: 0.88rem;
+}

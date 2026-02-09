@@ -67,3 +67,39 @@ public class CustomerSimpleDto
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// KUYRUK SAYFALARI
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Agent'in kendi kuyruklari (read-only kuyruk listesi sayfasi)</summary>
+public class MyQueueDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public int AgentCount { get; set; }
+    public int WaitingCount { get; set; }
+    public int ActiveCount { get; set; }
+}
+
+/// <summary>Canli kuyruk izleme — her kuyruk bir kart</summary>
+public class QueueLiveDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public int WaitingCount { get; set; }
+    public int ActiveCount { get; set; }
+    public List<QueueLiveAgentDto> Agents { get; set; } = new();
+}
+
+/// <summary>Canli kuyruk izlemede her agent'in bilgisi</summary>
+public class QueueLiveAgentDto
+{
+    public int Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string? Extension { get; set; }
+    public int StatusId { get; set; }
+}

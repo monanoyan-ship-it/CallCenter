@@ -1,0 +1,290 @@
+@page "/reports/calls"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Arama Raporlari - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Arama Raporlari
+    </h4>
+</div>
+
+@* ─── FİLTRELER ─── *@
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Firma</label>
+                <select class="form-select form-select-sm" @bind="selectedCustomerId">
+                    <option value="0">Tumu</option>
+                    @foreach (var c in customers)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Baslangic</label>
+                <input type="date" class="form-control form-control-sm" @bind="fromDate" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Bitis</label>
+                <input type="date" class="form-control form-control-sm" @bind="toDate" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Yon</label>
+                <select class="form-select form-select-sm" @bind="selectedDirectionId">
+                    <option value="0">Tumu</option>
+                    @foreach (var d in CallDirections.All)
+                    {
+                        <option value="@d.Id">@GetDirectionDisplayName(d.SystemName)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Durum</label>
+                <select class="form-select form-select-sm" @bind="selectedStatusId">
+                    <option value="0">Tumu</option>
+                    @foreach (var s in CallStatuses.FinishedStatuses)
+                    {
+                        <option value="@s.Id">@GetStatusDisplayName(s.SystemName)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-sm w-100" @onclick="ApplyFilters">
+                    <i class="bi bi-funnel me-1"></i>Filtrele
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (report != null)
+{
+    @* ─── ÖZET KARTLARI ─── *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Toplam Arama</div>
+                            <div class="fs-3 fw-bold text-primary">@report.TotalCalls</div>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-telephone-fill text-primary fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Cevaplanan</div>
+                            <div class="fs-3 fw-bold text-success">@report.AnsweredCalls</div>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Cevapsiz</div>
+                            <div class="fs-3 fw-bold text-warning">@report.MissedCalls</div>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-telephone-x-fill text-warning fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Ort. Sure</div>
+                            <div class="fs-3 fw-bold text-info">@FormatDuration(report.AvgDurationSeconds)</div>
+                        </div>
+                        <div class="bg-info bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-clock-fill text-info fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── TABLO ─── *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (report.Items.Items.Count == 0)
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-telephone-x fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Arama kaydi bulunamadi</span>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Arayan</th>
+                                <th>Aranan</th>
+                                <th>Yon</th>
+                                <th>Durum</th>
+                                <th>Sure</th>
+                                <th>Temsilci</th>
+                                <th>Kuyruk</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var call in report.Items.Items)
+                            {
+                                var direction = CallDirections.GetById(call.DirectionId);
+                                var status = CallStatuses.GetById(call.StatusId);
+                                <tr>
+                                    <td class="fw-medium">@call.CallerNumber</td>
+                                    <td class="fw-medium">@call.CalleeNumber</td>
+                                    <td>
+                                        <i class="bi @(direction?.Icon ?? "bi-telephone") @(direction?.CssClass ?? "")"></i>
+                                        <span class="small ms-1">@GetDirectionDisplayName(call.DirectionName)</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(status?.CssClass ?? "bg-secondary") rounded-pill">
+                                            @GetStatusDisplayName(call.StatusName)
+                                        </span>
+                                    </td>
+                                    <td class="text-muted">@FormatDuration(call.DurationSeconds)</td>
+                                    <td class="text-muted">@(call.AgentName ?? "-")</td>
+                                    <td class="text-muted small">@(call.QueueName ?? "-")</td>
+                                    <td class="text-muted small">@call.StartedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Toplam: @report.Items.TotalCount kayit</small>
+                    <Pagination CurrentPage="currentPage" TotalPages="report.Items.TotalPages" OnPageChanged="OnPageChanged" />
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private CallReportResponse? report;
+    private List<CustomerSimpleDto> customers = new();
+    private int selectedCustomerId;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private int selectedDirectionId;
+    private int selectedStatusId;
+    private int currentPage = 1;
+    private bool isLoading;
+
+    private static readonly Dictionary<string, string> StatusDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Ringing", "Caliyor" }, { "InProgress", "Devam Ediyor" }, { "OnHold", "Beklemede" },
+        { "Transferred", "Transfer" }, { "Completed", "Tamamlandi" }, { "Missed", "Cevapsiz" }, { "Failed", "Basarisiz" }
+    };
+
+    private static readonly Dictionary<string, string> DirectionDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Inbound", "Gelen" }, { "Outbound", "Giden" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Varsayilan tarih: son 7 gun
+        toDate = DateTime.Today;
+        fromDate = DateTime.Today.AddDays(-7);
+
+        try
+        {
+            var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+            customers = list ?? new();
+        }
+        catch { }
+
+        await LoadReport();
+    }
+
+    private async Task LoadReport()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"api/reports/calls?page={currentPage}&pageSize=20";
+            if (selectedCustomerId > 0) url += $"&customerId={selectedCustomerId}";
+            if (fromDate.HasValue) url += $"&from={fromDate.Value:yyyy-MM-dd}";
+            if (toDate.HasValue) url += $"&to={toDate.Value:yyyy-MM-dd}";
+            if (selectedDirectionId > 0) url += $"&directionId={selectedDirectionId}";
+            if (selectedStatusId > 0) url += $"&statusId={selectedStatusId}";
+
+            report = await Http.GetFromJsonAsync<CallReportResponse>(url);
+        }
+        catch
+        {
+            report = new CallReportResponse();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        await LoadReport();
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        currentPage = page;
+        await LoadReport();
+    }
+
+    private string GetStatusDisplayName(string systemName) =>
+        StatusDisplayNames.TryGetValue(systemName, out var name) ? name : systemName;
+
+    private string GetDirectionDisplayName(string systemName) =>
+        DirectionDisplayNames.TryGetValue(systemName, out var name) ? name : systemName;
+
+    private static string FormatDuration(int seconds)
+    {
+        if (seconds <= 0) return "-";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0
+            ? $"{ts.Hours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes}:{ts.Seconds:D2}";
+    }
+}

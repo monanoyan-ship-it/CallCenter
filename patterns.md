@@ -500,3 +500,48 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
   - Zaten giriş yapmışsa otomatik /dashboard'a yönlendirme
 - `Index.razor.css` — Koyu tema, glassmorphism kartlar, responsive grid (3→2→1 kolon)
 - Build: 0 hata, 0 uyarı
+
+### 2026-02-10 - Faz 2 Tamamlama: Kuyruk ve Rapor Sayfaları (4 Sayfa)
+
+**DTO'lar:**
+- `ReportDtos.cs` — Yeni dosya: CallReportResponse, CallReportItemDto, AgentReportResponse, AgentReportItemDto
+- `SupervisorDtos.cs` — 3 DTO eklendi: MyQueueDto, QueueLiveDto, QueueLiveAgentDto
+
+**Backend Endpoint'leri:**
+- `AgentsController.cs` — `GET /api/agents/my/queues` eklendi: Agent kendi kuyrukları, Admin/Supervisor tümü (customerId filtreli)
+- `SupervisorController.cs` — `GET /api/supervisor/queues/live?customerId=X` eklendi: Her kuyruğun anlık durumu + agent listesi
+- `ReportsController.cs` — Yeni controller: [Authorize(Roles="Admin,Supervisor")]
+  - `GET /api/reports/calls?customerId&from&to&directionId&statusId&page&pageSize` — Özet istatistikler + sayfalamalı arama listesi
+  - `GET /api/reports/agents?customerId&from&to&page&pageSize` — Özet istatistikler + sayfalamalı temsilci performansı
+
+**Kuyruk Listesi (/queues):**
+- `Queues/Index.razor` — [Authorize], Agent: kendi kuyrukları, Admin/Supervisor: tümü + firma dropdown
+- Read-only tablo: Kuyruk Adı, Firma, Bekleyen, Aktif, Temsilci Sayısı, Durum badge
+- `Queues/Index.razor.css`
+
+**Canlı Kuyruk İzleme (/queues/live):**
+- `Queues/Live.razor` — [Authorize(Roles="Admin,Supervisor")]
+- Firma dropdown + card-based layout (her kuyruk = 1 kart)
+- Kart içinde: Kuyruk adı, firma, bekleyen/aktif badge, agent listesi (durum rengine göre badge)
+- SignalR: OnAgentStatusChanged, OnIncomingCall, OnCallEnded → UI güncelle
+- 30 saniye fallback timer ile tam yenileme
+- `Queues/Live.razor.css` — Card hover efekti, agent badge stilleri
+
+**Arama Raporları (/reports/calls):**
+- `Reports/Calls.razor` — [Authorize(Roles="Admin,Supervisor")]
+- Filtreler: Firma dropdown + tarih aralığı (input type="date") + yön select + durum select
+- Özet kartları: Toplam Arama, Cevaplanan, Cevapsız, Ort. Süre
+- Tablo + Pagination: Arayan, Aranan, Yön, Durum, Süre, Temsilci, Kuyruk, Tarih
+- Varsayılan: Son 7 gün
+- `Reports/Calls.razor.css`
+
+**Temsilci Performansı (/reports/agents):**
+- `Reports/Agents.razor` — [Authorize(Roles="Admin,Supervisor")]
+- Filtreler: Firma dropdown + tarih aralığı
+- Özet kartları: Toplam Temsilci, En İyi Performans, En Düşük Ort. Süre, Genel Ort. Süre
+- Tablo + Pagination: Temsilci, Dahili, Toplam, Cevaplanan, Cevapsız, Ort. Süre, Cevaplama Oranı (%)
+- Oran renklendirme: ≥80% yeşil, ≥50% sarı, <50% kırmızı
+- Varsayılan: Son 30 gün
+- `Reports/Agents.razor.css`
+
+**Build: 0 hata, 0 uyarı (Tüm solution — API + Web + Shared + Data + Windows + Mobile)**

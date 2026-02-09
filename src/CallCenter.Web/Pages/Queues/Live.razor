@@ -1,0 +1,237 @@
+@page "/queues/live"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject HubService HubService
+@implements IDisposable
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Canli Kuyruk Izleme - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-broadcast me-2 text-primary"></i>Canli Kuyruk Izleme
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm text-primary ms-2" role="status"></span>
+        }
+    </h4>
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small mb-0">Firma:</label>
+        <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
+            <option value="0">Tumu</option>
+            @foreach (var c in customers)
+            {
+                <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
+            }
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadQueues" title="Yenile">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+</div>
+
+@if (queues == null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Kuyruklar yukleniyor...</p>
+    </div>
+}
+else if (queues.Count == 0)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2 text-muted opacity-25"></i>
+        <p class="text-muted">Aktif kuyruk bulunamadi</p>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var q in queues)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card border-0 shadow-sm queue-card h-100">
+                    <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-0 fw-bold">
+                                <i class="bi bi-people-fill me-1 text-primary"></i>@q.Name
+                            </h6>
+                            <small class="text-muted">@q.CustomerName</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-warning text-dark rounded-pill" title="Bekleyen">
+                                <i class="bi bi-hourglass-split me-1"></i>@q.WaitingCount
+                            </span>
+                            <span class="badge bg-success rounded-pill" title="Aktif">
+                                <i class="bi bi-telephone-fill me-1"></i>@q.ActiveCount
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        @if (q.Agents.Count == 0)
+                        {
+                            <div class="text-center text-muted py-3 small">
+                                <i class="bi bi-person-x d-block mb-1 fs-5 opacity-25"></i>
+                                Temsilci atanmamis
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var agent in q.Agents)
+                                {
+                                    var status = AgentStatuses.GetById(agent.StatusId);
+                                    var badgeClass = GetAgentBadgeClass(agent.StatusId);
+                                    <span class="badge @badgeClass d-flex align-items-center gap-1 py-2 px-2 agent-badge">
+                                        <i class="bi @(status?.Icon ?? "bi-circle-fill")"></i>
+                                        <span>@agent.FullName</span>
+                                        @if (!string.IsNullOrEmpty(agent.Extension))
+                                        {
+                                            <small class="opacity-75">#@agent.Extension</small>
+                                        }
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer bg-white border-top py-1">
+                        <small class="text-muted">
+                            <i class="bi bi-person me-1"></i>@q.Agents.Count temsilci
+                        </small>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<QueueLiveDto>? queues;
+    private List<CustomerSimpleDto> customers = new();
+    private int selectedCustomerId;
+    private bool isLoading;
+    private System.Threading.Timer? refreshTimer;
+
+    // Durum adlarini Turkce goster
+    private static readonly Dictionary<string, string> StatusDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Available", "Musait" },
+        { "Busy", "Mesgul" },
+        { "OnBreak", "Mola" },
+        { "Offline", "Cevrimdisi" },
+        { "InCall", "Aramada" },
+        { "AfterCallWork", "Arama Sonrasi" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Firma listesi
+        try
+        {
+            var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+            customers = list ?? new();
+        }
+        catch { }
+
+        await LoadQueues();
+
+        // SignalR event'leri
+        HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
+        HubService.OnIncomingCall += HandleIncomingCall;
+        HubService.OnCallEnded += HandleCallEnded;
+
+        // 30 saniyede bir tam yenileme (fallback)
+        refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            await LoadQueues();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task LoadQueues()
+    {
+        isLoading = true;
+
+        try
+        {
+            var url = "api/supervisor/queues/live";
+            if (selectedCustomerId > 0)
+                url += $"?customerId={selectedCustomerId}";
+
+            queues = await Http.GetFromJsonAsync<List<QueueLiveDto>>(url);
+        }
+        catch
+        {
+            queues ??= new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            selectedCustomerId = id;
+            await LoadQueues();
+        }
+    }
+
+    private void HandleAgentStatusChanged(AgentStatusUpdate update)
+    {
+        if (queues == null) return;
+
+        foreach (var q in queues)
+        {
+            var agent = q.Agents.FirstOrDefault(a => a.Id == update.AgentId);
+            if (agent != null)
+            {
+                agent.StatusId = update.StatusId;
+            }
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleIncomingCall(CallNotification notification)
+    {
+        // Tam yenileme en guvenilir yol
+        _ = InvokeAsync(async () =>
+        {
+            await LoadQueues();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleCallEnded(int callId)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadQueues();
+            StateHasChanged();
+        });
+    }
+
+    private static string GetAgentBadgeClass(int statusId)
+    {
+        return statusId switch
+        {
+            AgentStatuses.Ids.Available => "bg-success-subtle text-success",
+            AgentStatuses.Ids.InCall => "bg-danger-subtle text-danger",
+            AgentStatuses.Ids.Busy => "bg-warning-subtle text-warning",
+            AgentStatuses.Ids.OnBreak => "bg-info-subtle text-info",
+            AgentStatuses.Ids.AfterCallWork => "bg-secondary-subtle text-secondary",
+            _ => "bg-light text-muted" // Offline
+        };
+    }
+
+    public void Dispose()
+    {
+        HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
+        HubService.OnIncomingCall -= HandleIncomingCall;
+        HubService.OnCallEnded -= HandleCallEnded;
+        refreshTimer?.Dispose();
+    }
+}

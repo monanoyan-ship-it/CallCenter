@@ -126,7 +126,7 @@
   <!-- ============================================================ -->
   <!-- FAZ 2: WEB ARAYÜZÜ                                           -->
   <!-- ============================================================ -->
-  <Faz no="2" ad="Web Arayuzu (Blazor)" durum="devam-ediyor">
+  <Faz no="2" ad="Web Arayuzu (Blazor)" durum="tamamlandi">
     <Gorev no="2.0" durum="tamamlandi" tamamlanma="2026-02-09">
       <Ad>Sol panel (sidebar) ve layout tasarımı</Ad>
       <Detay>
@@ -263,6 +263,27 @@
         - Kuyruk agent atama panelinde tum agent'lar (roleId=1) getiriliyor. Buyuk sistemlerde performans sorunu olabilir — sayfalama veya arama eklenmeli.
         - Role-based menu filtreleme client-side (JWT role claim). Token manipulasyonu ile menu gorulebilir ama API [Authorize(Roles)] koruyor — guvenlik sorunu yok, sadece UI.
         - XML export sonrasi dosya indirme Blazor WASM'de JS Interop gerektirir — suan sadece bildirim gosteriyor, gercek indirme ileride eklenmeli.
+      </Riskler>
+    </Gorev>
+    <Gorev no="2.5" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>Kuyruk ve Rapor Sayfalari (4 sayfa)</Ad>
+      <Detay>
+        Faz 2'nin son 4 sayfasi:
+        - Kuyruk Listesi (/queues): Agent kendi kuyrukları, Admin/Supervisor tümü + firma dropdown, read-only tablo
+        - Canli Kuyruk Izleme (/queues/live): Card layout, SignalR gercek zamanli, 30s fallback, agent durum badge
+        - Arama Raporlari (/reports/calls): Filtreler (firma/tarih/yon/durum), ozet KPI kartlari, sayfalamali tablo
+        - Temsilci Performansi (/reports/agents): Filtreler (firma/tarih), ozet KPI, performans tablosu + cevaplama orani
+        - Backend: 4 yeni endpoint (AgentsController, SupervisorController, ReportsController)
+        - DTO'lar: ReportDtos.cs (yeni), SupervisorDtos.cs (3 DTO eklendi)
+        - Build: 0 hata, 0 uyari (tum solution)
+      </Detay>
+      <Riskler>
+        - ReportsController'da her filtre kombinasyonu icin ayri COUNT sorgusu calisiyor (totalCalls, answeredCalls, missedCalls, avgDuration). Buyuk veri setlerinde performans sorunu olabilir — tek GroupBy ile optimize edilebilir.
+        - Agent performans raporu her agent icin correlated subquery kullaniyor (callsQuery.Count inside Select). EF Core bunu SQL'e donusturur ama N+1 benzeri performans riski var — materialized view veya pre-computed tablo dusunulebilir.
+        - Canli kuyruk izlemede SignalR event'leri OnIncomingCall/OnCallEnded'da tam sayfa yenileme yapiliyor (LoadQueues). Granüler guncelleme daha verimli olur ama sadelik icin boyle birakildi.
+        - Kuyruk Listesi sayfasinda pagination yok — tum kuyruklar tek seferde yukleniyor. Cok fazla kuyruk olan sistemlerde sorun olabilir.
+        - Rapor sayfalarinda export (CSV/Excel) ozelligi henuz yok. Ileride eklenebilir.
+        - Tarih filtrelerinde timezone farki var — UTC ile karsilastirma yapiliyor, kullanicinin yerel saati ile uyumsuzluk olabilir.
       </Riskler>
     </Gorev>
   </Faz>
@@ -454,5 +475,6 @@
     <Not tarih="2026-02-09">SIP/VoIP Multi-Tenant Fizibilite Araştırması tamamlandı: SIP.js (çoklu UserAgent), SIPSorcery (C# native), tüm büyük cloud sağlayıcılar (Twilio, Telnyx, Vonage, Plivo, Bandwidth) WebRTC destekliyor. On-premise (Asterisk, FreeSWITCH) sorunsuz. VoIP.ms gibi legacy sağlayıcılar Kamailio proxy ile çözülebilir. Adapter pattern yaklaşımı doğrulandı. Detaylı analiz: patterns.md</Not>
     <Not tarih="2026-02-10">Görev 2.4 tamamlandı: Admin Paneli — 8 adımda tam CRUD. Kullanıcı, Müşteri, Kuyruk, SIP, Dil, Sistem Ayarları yönetimi. Ortak bileşenler (Pagination, ConfirmDialog, Toast). Role-based menü filtreleme. SystemSetting entity + migration. ~30 yeni dosya. Build: 0 hata, 0 uyarı.</Not>
     <Not tarih="2026-02-10">Public landing page eklendi: Index.razor (/) → Tanıtım sayfası (LoginLayout, hero, özellikler, platformlar, roller). Home.razor route "/" → "/dashboard" olarak taşındı. Login/NavMenu yönlendirmeleri güncellendi. Build: 0 hata, 0 uyarı.</Not>
+    <Not tarih="2026-02-10">FAZ 2 TAMAMLANDI! Son 4 sayfa eklendi: Kuyruk Listesi (/queues), Canlı Kuyruk İzleme (/queues/live), Arama Raporları (/reports/calls), Temsilci Performansı (/reports/agents). 10 yeni dosya, 3 düzenlenen dosya. Build: 0 hata, 0 uyarı. Sıradaki: Faz 3 — SIP/VoIP Entegrasyonu.</Not>
   </Notlar>
 </Proje>

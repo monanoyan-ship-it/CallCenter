@@ -1,0 +1,19 @@
+.queue-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.queue-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important;
+}
+
+.agent-badge {
+    font-size: 0.78rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: opacity 0.2s;
+}
+
+.agent-badge:hover {
+    opacity: 0.85;
+}

@@ -203,6 +203,38 @@ public class SupervisorController : ControllerBase
     }
 
     /// <summary>
+    /// Canli kuyruk izleme — her kuyrugun anlik durumu + agent listesi.
+    /// </summary>
+    [HttpGet("queues/live")]
+    public async Task<ActionResult<List<QueueLiveDto>>> GetQueuesLive([FromQuery] int? customerId)
+    {
+        var queuesQuery = _db.Queues.Where(q => q.IsActive);
+        if (customerId.HasValue && customerId.Value > 0)
+            queuesQuery = queuesQuery.Where(q => q.CustomerId == customerId.Value);
+
+        var queues = await queuesQuery
+            .OrderBy(q => q.Customer.Name).ThenBy(q => q.Name)
+            .Select(q => new QueueLiveDto
+            {
+                Id = q.Id,
+                Name = q.Name,
+                CustomerName = q.Customer.Name,
+                WaitingCount = q.CallRecords.Count(c => c.StatusId == CallStatuses.Ids.Ringing),
+                ActiveCount = q.CallRecords.Count(c => c.StatusId == CallStatuses.Ids.InProgress || c.StatusId == CallStatuses.Ids.OnHold),
+                Agents = q.QueueAgents.Select(qa => new QueueLiveAgentDto
+                {
+                    Id = qa.Agent.Id,
+                    FullName = qa.Agent.FullName,
+                    Extension = qa.Agent.Extension,
+                    StatusId = qa.Agent.StatusId
+                }).ToList()
+            })
+            .ToListAsync();
+
+        return Ok(queues);
+    }
+
+    /// <summary>
     /// Dashboard'daki firma dropdown icin musteri listesi.
     /// </summary>
     [HttpGet("customers")]

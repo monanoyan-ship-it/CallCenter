@@ -1,0 +1,177 @@
+@page "/queues"
+@attribute [Authorize]
+@inject HttpClient Http
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+@using System.Security.Claims
+
+<PageTitle>Kuyruk Listesi - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-list-ol me-2 text-primary"></i>Kuyruk Listesi
+    </h4>
+    @if (isAdminOrSupervisor)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Firma:</label>
+            <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
+                <option value="0">Tumu</option>
+                @foreach (var c in customers)
+                {
+                    <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
+                }
+            </select>
+        </div>
+    }
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Kuyruklar yukleniyor...</p>
+    </div>
+}
+else if (queues == null || queues.Count == 0)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2 text-muted opacity-25"></i>
+        <p class="text-muted">Kuyruk bulunamadi</p>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kuyruk Adi</th>
+                            <th>Firma</th>
+                            <th class="text-center">Bekleyen</th>
+                            <th class="text-center">Aktif</th>
+                            <th class="text-center">Temsilci</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var q in queues)
+                        {
+                            <tr>
+                                <td class="fw-medium">
+                                    <i class="bi bi-people-fill me-1 text-muted"></i>@q.Name
+                                </td>
+                                <td class="text-muted small">@q.CustomerName</td>
+                                <td class="text-center">
+                                    @if (q.WaitingCount > 0)
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill">@q.WaitingCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">0</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (q.ActiveCount > 0)
+                                    {
+                                        <span class="badge bg-success rounded-pill">@q.ActiveCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">0</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill">@q.AgentCount</span>
+                                </td>
+                                <td>
+                                    @if (q.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white border-top">
+                <small class="text-muted">Toplam: @queues.Count kuyruk</small>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<MyQueueDto>? queues;
+    private List<CustomerSimpleDto> customers = new();
+    private int selectedCustomerId;
+    private bool isLoading;
+    private bool isAdminOrSupervisor;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Rol kontrolu
+        if (AuthState != null)
+        {
+            var state = await AuthState;
+            var role = state.User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            isAdminOrSupervisor = role is "Admin" or "Supervisor";
+        }
+
+        // Admin/Supervisor icin firma listesi
+        if (isAdminOrSupervisor)
+        {
+            try
+            {
+                var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+                customers = list ?? new();
+            }
+            catch { }
+        }
+
+        await LoadQueues();
+    }
+
+    private async Task LoadQueues()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = "api/agents/my/queues";
+            if (selectedCustomerId > 0)
+                url += $"?customerId={selectedCustomerId}";
+
+            queues = await Http.GetFromJsonAsync<List<MyQueueDto>>(url);
+        }
+        catch
+        {
+            queues = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            selectedCustomerId = id;
+            await LoadQueues();
+        }
+    }
+}
