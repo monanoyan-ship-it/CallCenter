@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Proje>
+  <Ad>Call Center Application</Ad>
+  <Baslangic>2026-02-09</Baslangic>
+  <Aciklama>SIP/VoIP tabanlı call center uygulaması. Web, Windows ve Mobil platformlarda çalışacak.</Aciklama>
+  <Teknolojiler>
+    <Backend>ASP.NET Core Web API + SignalR</Backend>
+    <Web>Blazor WebAssembly + Bootstrap</Web>
+    <Windows>Blazor Hybrid (WebView2 + WPF)</Windows>
+    <Mobil>.NET MAUI Blazor Hybrid</Mobil>
+    <Veritabani>PostgreSQL + Entity Framework Core (Npgsql)</Veritabani>
+    <VoIP>Dinamik SIP/WebRTC</VoIP>
+  </Teknolojiler>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 1: TEMEL ALTYAPI                                         -->
+  <!-- ============================================================ -->
+  <Faz no="1" ad="Temel Altyapi" durum="devam-ediyor">
+    <Gorev no="1.1" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Solution ve proje yapısını oluştur</Ad>
+      <Detay>
+        - CallCenter.sln
+        - CallCenter.Api (ASP.NET Core Web API)
+        - CallCenter.Web (Blazor WebAssembly)
+        - CallCenter.Shared (Ortak modeller, DTO'lar)
+        - CallCenter.Data (EF Core, veritabanı)
+        - CallCenter.Windows (Blazor Hybrid WPF - sonra)
+        - CallCenter.Mobile (MAUI Blazor Hybrid - sonra)
+      </Detay>
+    </Gorev>
+    <Gorev no="1.2" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Veritabanı modellerini tasarla</Ad>
+      <Detay>
+        - User (Agent, Supervisor, Admin rolleri)
+        - CallRecord (çağrı geçmişi)
+        - Queue (çağrı kuyrukları)
+        - SipAccount (dinamik SIP hesap bilgileri)
+        - AgentStatus (müsait, meşgul, mola, offline)
+      </Detay>
+    </Gorev>
+    <Gorev no="1.3" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Kimlik doğrulama sistemi (JWT)</Ad>
+      <Detay>Login, Register, Token yönetimi, Rol bazlı yetkilendirme</Detay>
+    </Gorev>
+    <Gorev no="1.4" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>SignalR Hub altyapısı</Ad>
+      <Detay>Gerçek zamanlı çağrı bildirimleri, agent durum güncellemeleri, kuyruk değişiklikleri</Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 2: WEB ARAYÜZÜ                                           -->
+  <!-- ============================================================ -->
+  <Faz no="2" ad="Web Arayuzu (Blazor)" durum="bekliyor">
+    <Gorev no="2.1" durum="bekliyor">
+      <Ad>Login sayfası</Ad>
+      <Detay>Bootstrap ile şık login ekranı, JWT token saklama</Detay>
+    </Gorev>
+    <Gorev no="2.2" durum="bekliyor">
+      <Ad>Agent paneli</Ad>
+      <Detay>
+        - Durum değiştirme (müsait/meşgul/mola)
+        - Gelen çağrı bildirimi
+        - Arama yapma (numara çevirici)
+        - Aktif çağrı ekranı (beklet, transfer, kapat)
+        - Çağrı geçmişi listesi
+      </Detay>
+    </Gorev>
+    <Gorev no="2.3" durum="bekliyor">
+      <Ad>Supervisor dashboard</Ad>
+      <Detay>
+        - Canlı kuyruk durumu
+        - Agent listesi ve durumları
+        - Çağrı istatistikleri (bugün, bu hafta)
+        - Gerçek zamanlı güncelleme (SignalR)
+      </Detay>
+    </Gorev>
+    <Gorev no="2.4" durum="bekliyor">
+      <Ad>Admin paneli</Ad>
+      <Detay>
+        - Kullanıcı yönetimi (CRUD)
+        - SIP hesap ayarları
+        - Kuyruk yapılandırması
+        - Genel sistem ayarları
+      </Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 3: SIP/VoIP ENTEGRASYONU                                 -->
+  <!-- ============================================================ -->
+  <Faz no="3" ad="SIP/VoIP Entegrasyonu" durum="bekliyor">
+    <Gorev no="3.1" durum="bekliyor">
+      <Ad>SIP konfigürasyon modülü</Ad>
+      <Detay>Admin panelinden SIP sunucu bilgilerini girme, test etme</Detay>
+    </Gorev>
+    <Gorev no="3.2" durum="bekliyor">
+      <Ad>WebRTC entegrasyonu (tarayıcıda arama)</Ad>
+      <Detay>
+        - SIP.js veya JsSIP kütüphanesi
+        - Tarayıcıda mikrofon/hoparlör erişimi
+        - Ses cihazı seçimi
+        - Arama yapma ve alma
+      </Detay>
+    </Gorev>
+    <Gorev no="3.3" durum="bekliyor">
+      <Ad>Çağrı yönetimi</Ad>
+      <Detay>Bekletme, transfer, konferans, DTMF, çağrı kaydı</Detay>
+    </Gorev>
+    <Gorev no="3.4" durum="bekliyor">
+      <Ad>Kuyruk sistemi</Ad>
+      <Detay>Otomatik çağrı dağıtımı (ACD), bekleme müziği, IVR menü</Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 4: WINDOWS UYGULAMASI                                     -->
+  <!-- ============================================================ -->
+  <Faz no="4" ad="Windows Uygulamasi" durum="bekliyor">
+    <Gorev no="4.1" durum="bekliyor">
+      <Ad>Blazor Hybrid WPF projesi</Ad>
+      <Detay>WebView2 içinde Blazor UI çalıştırma, aynı web arayüzünü kullanma</Detay>
+    </Gorev>
+    <Gorev no="4.2" durum="bekliyor">
+      <Ad>Native Windows özellikleri</Ad>
+      <Detay>
+        - System tray ikonu
+        - Windows bildirimleri (toast)
+        - Otomatik başlatma (startup)
+        - Ses cihazı yönetimi (native)
+        - Kısayol tuşları
+      </Detay>
+    </Gorev>
+    <Gorev no="4.3" durum="bekliyor">
+      <Ad>Kurulum paketi</Ad>
+      <Detay>MSI veya MSIX installer, otomatik güncelleme</Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 5: MOBİL UYGULAMA                                        -->
+  <!-- ============================================================ -->
+  <Faz no="5" ad="Mobil Uygulama" durum="bekliyor">
+    <Gorev no="5.1" durum="bekliyor">
+      <Ad>MAUI Blazor Hybrid projesi</Ad>
+      <Detay>Aynı Blazor UI'ı mobil cihazda çalıştırma</Detay>
+    </Gorev>
+    <Gorev no="5.2" durum="bekliyor">
+      <Ad>Mobil özel özellikler</Ad>
+      <Detay>
+        - Push notification
+        - Arka planda çağrı alma
+        - Mobil uyumlu UI düzenlemesi
+      </Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 6: İLERİ ÖZELLİKLER (SONRA)                             -->
+  <!-- ============================================================ -->
+  <Faz no="6" ad="Ileri Ozellikler" durum="bekliyor">
+    <Gorev no="6.1" durum="bekliyor">
+      <Ad>Raporlama modülü</Ad>
+      <Detay>Çağrı raporları, agent performansı, SLA metrikleri, grafikler</Detay>
+    </Gorev>
+    <Gorev no="6.2" durum="bekliyor">
+      <Ad>CRM entegrasyonu</Ad>
+      <Detay>Arayan bilgisi popup, müşteri notu, çağrı etiketi</Detay>
+    </Gorev>
+    <Gorev no="6.3" durum="bekliyor">
+      <Ad>Çağrı kaydı ve dinleme</Ad>
+      <Detay>Ses kaydı, supervisor dinleme/fısıldama</Detay>
+    </Gorev>
+    <Gorev no="6.4" durum="bekliyor">
+      <Ad>Çoklu dil desteği</Ad>
+      <Detay>Türkçe, İngilizce arayüz</Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- NOTLAR: Aklımıza gelen şeyleri buraya ekleyelim              -->
+  <!-- ============================================================ -->
+  <Notlar>
+    <Not tarih="2026-02-09">MicroSIP C++ kaynak kodu referans olarak indirildi (microsip-reference klasörü)</Not>
+    <Not tarih="2026-02-09">VoIP dinamik olacak - admin panelinden SIP bilgileri girilecek</Not>
+    <Not tarih="2026-02-09">UI tek sefer yazılacak (Blazor), 3 platformda paylaşılacak</Not>
+    <Not tarih="2026-02-09">MicroSIP kaynak kodu incelenerek SIP iş akışları öğrenilecek</Not>
+    <Not tarih="2026-02-09">Veritabanı PostgreSQL olarak belirlendi (Npgsql + EF Core)</Not>
+    <Not tarih="2026-02-09">.NET 10 varsayılan olarak .slnx formatı kullanıyor (CallCenter.slnx)</Not>
+    <Not tarih="2026-02-09">Faz 1 tamamlandı - Solution, Entity modelleri, DbContext, JWT Auth, SignalR Hub, API yapısı hazır. Build başarılı.</Not>
+  </Notlar>
+</Proje>
