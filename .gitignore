@@ -41,6 +41,3 @@ Desktop.ini
 
 ## Secrets (production'da kullanılacak gerçek ayarlar)
 appsettings.Production.json
-
-## Claude Code
-.claude/
