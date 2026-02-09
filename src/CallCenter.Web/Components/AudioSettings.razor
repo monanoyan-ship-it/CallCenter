@@ -1,0 +1,122 @@
+@inject SipService SipService
+
+<div class="dropdown">
+    <button class="btn btn-link text-muted btn-audio-settings" title="Ses Ayarlari"
+            @onclick="ToggleDropdown" @onclick:stopPropagation="true">
+        <i class="bi bi-headset"></i>
+    </button>
+
+    @if (isOpen)
+    {
+        <div class="audio-backdrop" @onclick="CloseDropdown"></div>
+        <div class="audio-dropdown">
+            <div class="audio-dropdown-header">
+                <i class="bi bi-headset me-1"></i> Ses Ayarlari
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="text-center p-2">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                </div>
+            }
+            else
+            {
+                @if (microphones.Any())
+                {
+                    <div class="audio-section">
+                        <label class="audio-label">
+                            <i class="bi bi-mic-fill me-1"></i>Mikrofon
+                        </label>
+                        @foreach (var mic in microphones)
+                        {
+                            <div class="audio-device @(mic.DeviceId == selectedMicId ? "selected" : "")"
+                                 @onclick="() => SelectMic(mic.DeviceId)">
+                                <i class="bi @(mic.DeviceId == selectedMicId ? "bi-check-circle-fill text-success" : "bi-circle")"></i>
+                                <span>@mic.Label</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (speakers.Any())
+                {
+                    <div class="audio-section">
+                        <label class="audio-label">
+                            <i class="bi bi-speaker-fill me-1"></i>Hoparlor
+                        </label>
+                        @foreach (var spk in speakers)
+                        {
+                            <div class="audio-device @(spk.DeviceId == selectedSpeakerId ? "selected" : "")"
+                                 @onclick="() => SelectSpeaker(spk.DeviceId)">
+                                <i class="bi @(spk.DeviceId == selectedSpeakerId ? "bi-check-circle-fill text-success" : "bi-circle")"></i>
+                                <span>@spk.Label</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (!microphones.Any() && !speakers.Any())
+                {
+                    <div class="text-muted small p-2 text-center">
+                        Ses cihazi bulunamadi
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isOpen;
+    private bool isLoading;
+    private List<AudioDeviceInfo> microphones = new();
+    private List<AudioDeviceInfo> speakers = new();
+    private string selectedMicId = "";
+    private string selectedSpeakerId = "";
+
+    private async Task ToggleDropdown()
+    {
+        isOpen = !isOpen;
+        if (isOpen)
+        {
+            await LoadDevices();
+        }
+    }
+
+    private void CloseDropdown()
+    {
+        isOpen = false;
+    }
+
+    private async Task LoadDevices()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var devices = await SipService.GetAudioDevicesAsync();
+        microphones = devices.Where(d => d.Kind == "audioinput").ToList();
+        speakers = devices.Where(d => d.Kind == "audiooutput").ToList();
+
+        // İlk cihazları default olarak seç
+        if (string.IsNullOrEmpty(selectedMicId) && microphones.Any())
+            selectedMicId = microphones.First().DeviceId;
+        if (string.IsNullOrEmpty(selectedSpeakerId) && speakers.Any())
+            selectedSpeakerId = speakers.First().DeviceId;
+
+        isLoading = false;
+    }
+
+    private void SelectMic(string deviceId)
+    {
+        selectedMicId = deviceId;
+        // Not: Mikrofon değişikliği SIP.js tarafında otomatik uygulanmaz,
+        // yeni arama açıldığında seçili cihaz kullanılır.
+    }
+
+    private async Task SelectSpeaker(string deviceId)
+    {
+        selectedSpeakerId = deviceId;
+        await SipService.SetAudioDeviceAsync(deviceId);
+    }
+}

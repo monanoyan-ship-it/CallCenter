@@ -169,6 +169,14 @@
     background: linear-gradient(135deg, #d97706, #b45309);
 }
 
+.call-resume {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.call-resume:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
 .in-call-actions {
     display: flex;
     gap: 0.75rem;
@@ -193,4 +201,12 @@
     padding: 0.5rem;
     border-radius: 8px;
     background: #f8fafc;
+}
+
+/* ─── SIP durum badge ─── */
+
+::deep .sip-badge {
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.3em 0.6em;
 }

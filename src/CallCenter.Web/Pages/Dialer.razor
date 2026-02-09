@@ -1,15 +1,26 @@
 @page "/dialer"
 @attribute [Authorize]
 @inject HubService HubService
+@inject SipService SipService
 @inject HttpClient Http
+@inject ToastService Toast
 @using CallCenter.Shared.Enums
+@using CallCenter.Shared.DTOs
+@implements IAsyncDisposable
 
 <div class="dialer-page">
     <div class="row justify-content-center">
         <div class="col-12 col-md-8 col-lg-5">
             <div class="dialer-card">
                 <div class="dialer-header">
-                    <h5><i class="bi bi-telephone-fill me-2"></i>Numara Cevirici</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-telephone-fill me-2"></i>Numara Cevirici</h5>
+                        @* SIP Kayıt Durumu *@
+                        <span class="badge @(SipService.IsRegistered ? "bg-success" : "bg-secondary") sip-badge">
+                            <i class="bi @(SipService.IsRegistered ? "bi-wifi" : "bi-wifi-off") me-1"></i>
+                            @(SipService.IsRegistered ? "SIP Kayitli" : sipStatusText)
+                        </span>
+                    </div>
                 </div>
 
                 @* ─── Numara Gosterge ─── *@
@@ -50,18 +61,19 @@
                     @if (!isInCall)
                     {
                         <button class="btn call-btn call-start"
-                                disabled="@(string.IsNullOrWhiteSpace(phoneNumber))"
+                                disabled="@(string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered || isCallStarting)"
                                 @onclick="StartCall">
                             <i class="bi bi-telephone-fill"></i>
-                            <span>Ara</span>
+                            <span>@(isCallStarting ? "Araniyor..." : "Ara")</span>
                         </button>
                     }
                     else
                     {
                         <div class="in-call-actions">
-                            <button class="btn call-btn call-hold" @onclick="HoldCall">
-                                <i class="bi bi-pause-circle-fill"></i>
-                                <span>Beklet</span>
+                            <button class="btn call-btn @(SipService.IsOnHold ? "call-resume" : "call-hold")"
+                                    @onclick="ToggleHold">
+                                <i class="bi @(SipService.IsOnHold ? "bi-play-circle-fill" : "bi-pause-circle-fill")"></i>
+                                <span>@(SipService.IsOnHold ? "Devam" : "Beklet")</span>
                             </button>
                             <button class="btn call-btn call-end" @onclick="EndCall">
                                 <i class="bi bi-telephone-x-fill"></i>
@@ -90,13 +102,14 @@
 @code {
     private string phoneNumber = "";
     private bool isInCall;
+    private bool isCallStarting;
     private string statusMessage = "";
     private string statusClass = "";
     private string callDuration = "00:00";
+    private string sipStatusText = "Baglaniyor...";
     private System.Timers.Timer? callTimer;
     private DateTime callStartTime;
 
-    // Tus takimi layout'u
     private readonly (string digit, string letters)[][] keypadRows = new[]
     {
         new[] { ("1", ""), ("2", "ABC"), ("3", "DEF") },
@@ -105,9 +118,154 @@
         new[] { ("*", ""), ("0", "+"), ("#", "") }
     };
 
+    protected override async Task OnInitializedAsync()
+    {
+        // SIP event'lerini dinle
+        SipService.OnRegistered += HandleSipRegistered;
+        SipService.OnRegistrationFailed += HandleSipRegistrationFailed;
+        SipService.OnCallAnswered += HandleCallAnswered;
+        SipService.OnCallEnded += HandleCallEnded;
+        SipService.OnCallFailed += HandleCallFailed;
+
+        // SIP zaten kayıtlıysa (başka sayfadan gelmiş olabilir) tekrar initialize etme
+        if (SipService.IsRegistered)
+        {
+            sipStatusText = "SIP Kayitli";
+            return;
+        }
+
+        // SIP bağlantı bilgilerini API'den çek
+        await InitializeSip();
+    }
+
+    private async Task InitializeSip()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/sipaccounts/my/connection");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                sipStatusText = "SIP Yok";
+                statusMessage = "SIP hesabi bulunamadi. Yonetici ile iletisime gecin.";
+                statusClass = "text-warning";
+                return;
+            }
+
+            var sipInfo = await response.Content.ReadFromJsonAsync<SipConnectionInfoDto>();
+            if (sipInfo == null)
+            {
+                sipStatusText = "SIP Hata";
+                return;
+            }
+
+            sipStatusText = "Kayit olunuyor...";
+            StateHasChanged();
+
+            await SipService.InitializeAsync(
+                sipInfo.WsUri,
+                sipInfo.SipUri,
+                sipInfo.AuthUsername,
+                sipInfo.AuthPassword,
+                sipInfo.DisplayName);
+        }
+        catch (Exception ex)
+        {
+            sipStatusText = "SIP Hata";
+            statusMessage = "SIP baglanti hatasi: " + ex.Message;
+            statusClass = "text-danger";
+            Console.WriteLine($"[Dialer] SIP init hatasi: {ex.Message}");
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SIP EVENT HANDLER'LAR
+    // ═══════════════════════════════════════════════════════════════
+
+    private Task HandleSipRegistered()
+    {
+        sipStatusText = "SIP Kayitli";
+        statusMessage = "";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleSipRegistrationFailed(string error)
+    {
+        sipStatusText = "SIP Hata";
+        statusMessage = "SIP kayit hatasi: " + error;
+        statusClass = "text-danger";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleCallAnswered()
+    {
+        isCallStarting = false;
+        statusMessage = $"{phoneNumber} ile gorusme baslatildi";
+        statusClass = "text-success";
+
+        // Timer'i baslat
+        callStartTime = DateTime.Now;
+        callTimer = new System.Timers.Timer(1000);
+        callTimer.Elapsed += (s, e) =>
+        {
+            var elapsed = DateTime.Now - callStartTime;
+            callDuration = elapsed.ToString(@"mm\:ss");
+            InvokeAsync(StateHasChanged);
+        };
+        callTimer.Start();
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleCallEnded()
+    {
+        StopTimer();
+        isInCall = false;
+        isCallStarting = false;
+
+        statusMessage = $"Arama sonlandirildi ({callDuration})";
+        statusClass = "text-muted";
+        callDuration = "00:00";
+
+        // Agent durumunu AfterCallWork yap
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
+
+        await InvokeAsync(StateHasChanged);
+
+        // 5 saniye sonra Available'a don
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(5000);
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+        });
+    }
+
+    private Task HandleCallFailed(string error)
+    {
+        StopTimer();
+        isInCall = false;
+        isCallStarting = false;
+
+        statusMessage = "Arama basarisiz: " + error;
+        statusClass = "text-danger";
+        callDuration = "00:00";
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // KULLANICI AKSIYONLARI
+    // ═══════════════════════════════════════════════════════════════
+
     private void PressKey(string key)
     {
         phoneNumber += key;
+
+        // Arama sırasında tuşa basınca DTMF gönder
+        if (isInCall && !isCallStarting)
+        {
+            _ = SipService.SendDtmfAsync(key);
+        }
     }
 
     private void ClearNumber()
@@ -121,63 +279,75 @@
         {
             _ = StartCall();
         }
-        else if (e.Key == "Backspace" && phoneNumber.Length > 0)
-        {
-            // Blazor input binding handles backspace
-        }
     }
 
     private async Task StartCall()
     {
-        if (string.IsNullOrWhiteSpace(phoneNumber)) return;
+        if (string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered) return;
 
+        isCallStarting = true;
         isInCall = true;
-        statusMessage = $"{phoneNumber} aranıyor...";
+        statusMessage = $"{phoneNumber} araniyor...";
         statusClass = "text-info";
 
         // Agent durumunu InCall yap
         await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
 
-        // Timer'i baslat
-        callStartTime = DateTime.Now;
-        callTimer = new System.Timers.Timer(1000);
-        callTimer.Elapsed += (s, e) =>
+        // SIP araması başlat
+        var success = await SipService.MakeCallAsync(phoneNumber);
+        if (!success)
         {
-            var elapsed = DateTime.Now - callStartTime;
-            callDuration = elapsed.ToString(@"mm\:ss");
-            InvokeAsync(StateHasChanged);
-        };
-        callTimer.Start();
-
-        statusMessage = $"{phoneNumber} ile gorusme baslatildi";
-        statusClass = "text-success";
+            isInCall = false;
+            isCallStarting = false;
+            statusMessage = "Arama baslatilamadi";
+            statusClass = "text-danger";
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+        }
     }
 
-    private async Task HoldCall()
+    private async Task ToggleHold()
     {
-        statusMessage = "Arama beklemede...";
-        statusClass = "text-warning";
+        if (SipService.IsOnHold)
+        {
+            var success = await SipService.UnholdAsync();
+            if (success)
+            {
+                statusMessage = $"{phoneNumber} ile gorusme devam ediyor";
+                statusClass = "text-success";
+            }
+        }
+        else
+        {
+            var success = await SipService.HoldAsync();
+            if (success)
+            {
+                statusMessage = "Arama beklemede...";
+                statusClass = "text-warning";
+            }
+        }
     }
 
     private async Task EndCall()
     {
-        isInCall = false;
+        await SipService.HangupAsync();
+        // HandleCallEnded event'i otomatik tetiklenecek
+    }
+
+    private void StopTimer()
+    {
         callTimer?.Stop();
         callTimer?.Dispose();
         callTimer = null;
+    }
 
-        statusMessage = $"Arama sonlandirildi ({callDuration})";
-        statusClass = "text-muted";
-        callDuration = "00:00";
+    public async ValueTask DisposeAsync()
+    {
+        SipService.OnRegistered -= HandleSipRegistered;
+        SipService.OnRegistrationFailed -= HandleSipRegistrationFailed;
+        SipService.OnCallAnswered -= HandleCallAnswered;
+        SipService.OnCallEnded -= HandleCallEnded;
+        SipService.OnCallFailed -= HandleCallFailed;
 
-        // Agent durumunu AfterCallWork yap, kisa sure sonra Available'a donecek
-        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
-
-        // 5 saniye sonra Available'a don
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(5000);
-            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
-        });
+        StopTimer();
     }
 }

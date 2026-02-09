@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -9,7 +10,7 @@ namespace CallCenter.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class SipAccountsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -19,8 +20,55 @@ public class SipAccountsController : ControllerBase
         _db = db;
     }
 
+    /// <summary>
+    /// Agent'ın müşterisinin default SIP hesabının bağlantı bilgilerini döndürür.
+    /// WebSocket URI otomatik oluşturulur: wss://server:port/ws
+    /// Tüm authenticated kullanıcılar erişebilir.
+    /// </summary>
+    [HttpGet("my/connection")]
+    public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection()
+    {
+        var customerIdClaim = User.FindFirstValue("CustomerId");
+        if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+        {
+            return BadRequest(new { message = "Müşteri bilgisi bulunamadı. Lütfen tekrar giriş yapın." });
+        }
+
+        var sip = await _db.SipAccounts
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.IsDefault && s.IsActive);
+
+        // Default yoksa herhangi bir aktif hesap al
+        sip ??= await _db.SipAccounts
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.IsActive);
+
+        if (sip == null)
+        {
+            return NotFound(new { message = "Firmanıza ait aktif SIP hesabı bulunamadı." });
+        }
+
+        var domain = sip.Domain ?? sip.Server;
+        var userName = User.FindFirstValue(ClaimTypes.GivenName) ?? sip.Username;
+
+        // WebSocket URI: SIP.js sadece WSS ile çalışır
+        // Yaygın portlar: 8089 (Asterisk), 7443 (FreeSWITCH), 443 (Telnyx/cloud)
+        var wsPort = sip.Transport?.ToUpper() == "WSS" ? sip.Port : 8089;
+        var wsUri = $"wss://{sip.Server}:{wsPort}/ws";
+
+        return Ok(new SipConnectionInfoDto
+        {
+            WsUri = wsUri,
+            SipUri = $"sip:{sip.Username}@{domain}",
+            AuthUsername = sip.Username,
+            AuthPassword = sip.Password,
+            DisplayName = userName,
+            Transport = "WSS",
+            UseSrtp = sip.UseSrtp
+        });
+    }
+
     /// <summary>Sayfalamali SIP hesap listesi (Password yok)</summary>
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<PagedResult<SipAccountListDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -65,6 +113,7 @@ public class SipAccountsController : ControllerBase
 
     /// <summary>SIP hesap detay (Password maskelenmis)</summary>
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GetById(int id)
     {
         var s = await _db.SipAccounts.Include(x => x.Customer).FirstOrDefaultAsync(x => x.Id == id);
@@ -90,6 +139,7 @@ public class SipAccountsController : ControllerBase
 
     /// <summary>Yeni SIP hesap olustur</summary>
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Create(SipAccountCreateDto dto)
     {
         // IsDefault — ayni firma icinde tek default olacak
@@ -127,6 +177,7 @@ public class SipAccountsController : ControllerBase
 
     /// <summary>SIP hesap guncelle (Password null ise degismez)</summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Update(int id, SipAccountUpdateDto dto)
     {
         var sip = await _db.SipAccounts.FindAsync(id);
@@ -165,6 +216,7 @@ public class SipAccountsController : ControllerBase
 
     /// <summary>SIP hesap sil (soft delete)</summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Delete(int id)
     {
         var sip = await _db.SipAccounts.FindAsync(id);

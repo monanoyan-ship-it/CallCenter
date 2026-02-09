@@ -29,6 +29,9 @@ builder.Services.AddScoped(sp =>
 // SignalR Hub servisi
 builder.Services.AddScoped<HubService>();
 
+// SIP/VoIP servisi (SIP.js JS Interop wrapper)
+builder.Services.AddScoped<SipService>();
+
 // Toast bildirim servisi
 builder.Services.AddScoped<ToastService>();
 

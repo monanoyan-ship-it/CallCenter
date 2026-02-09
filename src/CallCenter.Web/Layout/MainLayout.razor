@@ -1,9 +1,12 @@
 @inherits LayoutComponentBase
 @inject AuthService AuthService
 @inject HubService HubService
+@inject SipService SipService
+@inject HttpClient Http
 @inject NavigationManager NavigationManager
-@implements IDisposable
+@implements IAsyncDisposable
 @using CallCenter.Shared.Enums
+@using CallCenter.Shared.DTOs
 
 <div class="app-layout @(sidebarOpen ? "sidebar-open" : "")">
     @* ─── MOBİL OVERLAY ─── *@
@@ -45,6 +48,9 @@
                             </div>
                         }
                     </div>
+
+                    @* ─── Ses Ayarları ─── *@
+                    <AudioSettings />
 
                     @* ─── SignalR baglanti durumu ─── *@
                     @if (!HubService.IsConnected)
@@ -120,6 +126,34 @@
             }
 
             StateHasChanged();
+
+            // SIP register baslat (arka planda, UI'i bloklamaz)
+            _ = InitializeSipAsync();
+        }
+    }
+
+    private async Task InitializeSipAsync()
+    {
+        if (SipService.IsRegistered) return;
+
+        try
+        {
+            var response = await Http.GetAsync("api/sipaccounts/my/connection");
+            if (!response.IsSuccessStatusCode) return;
+
+            var sipInfo = await response.Content.ReadFromJsonAsync<SipConnectionInfoDto>();
+            if (sipInfo == null) return;
+
+            await SipService.InitializeAsync(
+                sipInfo.WsUri,
+                sipInfo.SipUri,
+                sipInfo.AuthUsername,
+                sipInfo.AuthPassword,
+                sipInfo.DisplayName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainLayout] SIP init hatasi: {ex.Message}");
         }
     }
 
@@ -172,12 +206,13 @@
 
     private async Task HandleLogout()
     {
+        await SipService.DisposeAsync();
         await HubService.DisconnectAsync();
         await AuthService.LogoutAsync();
         NavigationManager.NavigateTo("/login", forceLoad: false);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;

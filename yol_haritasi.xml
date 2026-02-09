@@ -291,27 +291,77 @@
   <!-- ============================================================ -->
   <!-- FAZ 3: SIP/VoIP ENTEGRASYONU                                 -->
   <!-- ============================================================ -->
-  <Faz no="3" ad="SIP/VoIP Entegrasyonu" durum="bekliyor">
-    <Gorev no="3.1" durum="bekliyor">
+  <Faz no="3" ad="SIP/VoIP Entegrasyonu" durum="tamamlandi">
+    <Gorev no="3.1" durum="tamamlandi" tamamlanma="2026-02-10">
       <Ad>SIP konfigürasyon modülü</Ad>
-      <Detay>Admin panelinden SIP sunucu bilgilerini girme, test etme</Detay>
+      <Detay>
+        - SipConnectionDto + GET /api/sipaccounts/my/connection endpoint
+        - JWT CustomerId claim ile firma bazlı SIP hesap çekme
+        - WSS URI otomatik oluşturma (wss://server:port/ws)
+        - SipAccountsController auth refactor (class→method seviyesi)
+      </Detay>
+      <Riskler>
+        - SipAccount.Password düz metin API response'unda dönüyor. HTTPS zorunlu. Production'da SIP şifreleri DB'de encrypt edilmeli.
+        - WSS port heuristic: Transport=WSS ise SipAccount.Port, değilse 8089 varsayılıyor. Farklı PBX'ler farklı portlar kullanabilir (7443 FreeSWITCH, 443 cloud).
+        - CustomerId claim yoksa BadRequest dönüyor. Admin kullanıcılar CustomerPersonnel olmadan login edebilir — Admin için SIP bağlantı bilgisi sorunu olabilir.
+      </Riskler>
     </Gorev>
-    <Gorev no="3.2" durum="bekliyor">
+    <Gorev no="3.2" durum="tamamlandi" tamamlanma="2026-02-10">
       <Ad>WebRTC entegrasyonu (tarayıcıda arama)</Ad>
       <Detay>
-        - SIP.js veya JsSIP kütüphanesi
-        - Tarayıcıda mikrofon/hoparlör erişimi
-        - Ses cihazı seçimi
-        - Arama yapma ve alma
+        - SIP.js 0.21.2 CDN (UserAgent API)
+        - sipClient.js: Tam JS wrapper (initialize, makeCall, answerCall, hangup, hold/unhold, DTMF, transfer, audio devices)
+        - SipService.cs: C# IJSRuntime wrapper (DotNetObjectReference, [JSInvokable] callback'ler, event'ler)
+        - Dialer.razor: Gerçek SIP araması (API'den config çek → register → call)
+        - MainLayout.razor: Login sonrası SIP register başlatma (tüm sayfalarda aktif)
+        - IncomingCallNotification.razor: SIP gelen arama algılama + cevaplama
+        - AudioSettings.razor: Ses cihazı seçici (mikrofon + hoparlör dropdown)
+        - index.html: SIP.js CDN + hidden audio element
       </Detay>
+      <Riskler>
+        - HTTPS zorunlu: getUserMedia sadece HTTPS/localhost'ta çalışır. HTTP'de mikrofon erişimi başarısız olur.
+        - SIP.js CDN bağımlılığı: Offline/intranet ortamda CDN erişilemezse SIP.js yüklenmez. Lokal kopyası da eklenebilir.
+        - Tarayıcı mikrofon izni: Kullanıcı mikrofon iznini reddederse arama başlatılamaz. UX'te bu açıkça bildirilmeli.
+        - SipService scoped: Blazor WASM'de scoped = singleton gibi davranır (tek tab = tek instance). Ama her sayfa değişiminde OnInitialized tekrar çağrılıyor — IsRegistered kontrolü ile çift register engellendi.
+        - WebSocket bağlantı kesilirse (ağ sorunu, PBX restart) otomatik reconnect yok. SIP.js transport.onDisconnect'te kullanıcıya uyarı veriliyor ama otomatik yeniden bağlanma eklenmeli.
+        - Concurrent arama desteği yok: sipClient.js tek currentSession tutuyor. İkinci gelen arama otomatik reddediliyor.
+      </Riskler>
     </Gorev>
-    <Gorev no="3.3" durum="bekliyor">
+    <Gorev no="3.3" durum="tamamlandi" tamamlanma="2026-02-10">
       <Ad>Çağrı yönetimi</Ad>
-      <Detay>Bekletme, transfer, konferans, DTMF, çağrı kaydı</Detay>
+      <Detay>
+        - Hold/Unhold: re-INVITE + SIP.Web.holdModifier (SDP sendonly)
+        - Transfer: Blind transfer (REFER), TransferDialog.razor modal
+        - DTMF: SIP INFO (application/dtmf-relay, Duration=160)
+        - Ses cihazı: setSinkId (hoparlör), getUserMedia (mikrofon)
+        - Konferans: Henüz yok (PBX seviyesinde yapılmalı)
+        - Çağrı kaydı: Henüz yok (Faz 6'da MediaRecorder ile)
+      </Detay>
+      <Riskler>
+        - Blind transfer: Karşı taraf meşgulse veya yoksa transfer başarısız olur. Attended transfer (danışmalı) henüz yok.
+        - DTMF SIP INFO yöntemi: Bazı PBX'ler sadece RFC 2833 (in-band) DTMF destekler. SIP.js'de RFC 2833 ayrıca yapılandırılabilir.
+        - Hold modifier (SIP.Web.holdModifier): SIP.js 0.21.x'de bu API mevcut ama dokümantasyonu sınırlı. Bazı PBX'lerle uyumsuzluk olabilir.
+        - setSinkId tüm tarayıcılarda desteklenmiyor (Safari'de sınırlı). Firefox'ta cihaz seçimi kısıtlı.
+      </Riskler>
     </Gorev>
-    <Gorev no="3.4" durum="bekliyor">
-      <Ad>Kuyruk sistemi</Ad>
-      <Detay>Otomatik çağrı dağıtımı (ACD), bekleme müziği, IVR menü</Detay>
+    <Gorev no="3.4" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>Kuyruk sistemi (Uygulama Seviyesi ACD)</Ad>
+      <Detay>
+        - CallDistributionService.cs: Uygulama seviyesi ACD
+        - Strateji: QueueAgent öncelik sırası + en az meşgul (bugünkü arama sayısı)
+        - POST /api/calls/incoming: Gelen arama kaydı + ACD yönlendirme
+        - SignalR Clients.User ile belirli agent'a bildirim
+        - Müsait agent yoksa "Queued" durumu
+      </Detay>
+      <Riskler>
+        - GERÇEK ACD PBX'İN İŞİDİR: Bu uygulama seviyesi ACD, PBX yoksa veya PBX'te kuyruk tanımlı değilse devreye girer. Gerçek senaryoda Asterisk Queue / FreeSWITCH mod_fifo tercih edilmeli.
+        - Agent 30 saniye cevap vermezse sonraki agent'a yönlendirme henüz yok. Timeout mekanizması eklenmelidir (background timer veya Hangfire job).
+        - Kuyrukta bekleyen arama için periyodik kontrol yok. Yeni agent müsait olduğunda bekleyen aramaları dağıtma mekanizması eksik.
+        - Bekleme müziği yok: Tarayıcıdan bekleme müziği çalamaz (PBX'in işi). Uygulama sadece "Bekliyor" durumu gösterir.
+        - IVR menü yok: PBX olmadan IVR yapılamaz. Uygulama seviyesinde sadece yönlendirme.
+        - CallDistributionService scoped: Her HTTP request'te yeni instance. Concurrent incoming call'larda race condition olabilir — ama EF Core transaction güvenliği var.
+        - SignalR User ID mapping: JWT'deki NameIdentifier (user.Id.ToString()) ile eşleştiriliyor. SignalR'ın IUserIdProvider'ı buna göre çalışıyor.
+      </Riskler>
     </Gorev>
   </Faz>
 
@@ -475,6 +525,7 @@
     <Not tarih="2026-02-09">SIP/VoIP Multi-Tenant Fizibilite Araştırması tamamlandı: SIP.js (çoklu UserAgent), SIPSorcery (C# native), tüm büyük cloud sağlayıcılar (Twilio, Telnyx, Vonage, Plivo, Bandwidth) WebRTC destekliyor. On-premise (Asterisk, FreeSWITCH) sorunsuz. VoIP.ms gibi legacy sağlayıcılar Kamailio proxy ile çözülebilir. Adapter pattern yaklaşımı doğrulandı. Detaylı analiz: patterns.md</Not>
     <Not tarih="2026-02-10">Görev 2.4 tamamlandı: Admin Paneli — 8 adımda tam CRUD. Kullanıcı, Müşteri, Kuyruk, SIP, Dil, Sistem Ayarları yönetimi. Ortak bileşenler (Pagination, ConfirmDialog, Toast). Role-based menü filtreleme. SystemSetting entity + migration. ~30 yeni dosya. Build: 0 hata, 0 uyarı.</Not>
     <Not tarih="2026-02-10">Public landing page eklendi: Index.razor (/) → Tanıtım sayfası (LoginLayout, hero, özellikler, platformlar, roller). Home.razor route "/" → "/dashboard" olarak taşındı. Login/NavMenu yönlendirmeleri güncellendi. Build: 0 hata, 0 uyarı.</Not>
+    <Not tarih="2026-02-10">FAZ 3 TAMAMLANDI! SIP/VoIP entegrasyonu: SIP.js 0.21.2, C# SipService, SipConnectionDto, Dialer SIP entegrasyonu, gelen arama, transfer, ses cihazı seçimi, kuyruk ACD sistemi. 6 yeni dosya, 9 düzenlenen dosya. Build: 0 hata, 0 uyarı.</Not>
     <Not tarih="2026-02-10">FAZ 2 TAMAMLANDI! Son 4 sayfa eklendi: Kuyruk Listesi (/queues), Canlı Kuyruk İzleme (/queues/live), Arama Raporları (/reports/calls), Temsilci Performansı (/reports/agents). 10 yeni dosya, 3 düzenlenen dosya. Build: 0 hata, 0 uyarı. Sıradaki: Faz 3 — SIP/VoIP Entegrasyonu.</Not>
   </Notlar>
 </Proje>

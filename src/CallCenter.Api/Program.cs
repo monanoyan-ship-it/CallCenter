@@ -48,6 +48,7 @@ builder.Services.AddAuthorization();
 
 // Services
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<CallDistributionService>();
 builder.Services.AddSingleton<CallCenter.Shared.Services.ITranslationService, TranslationService>();
 
 // SignalR

@@ -99,6 +99,12 @@ public class CallCenterHub : Hub
         await Clients.All.SendAsync("CallEnded", callId);
     }
 
+    /// <summary>Belirli bir agent'a gelen arama bildirimi gönderir.</summary>
+    public async Task NotifySpecificAgent(int agentId, CallNotification notification)
+    {
+        await Clients.User(agentId.ToString()).SendAsync("IncomingCall", notification);
+    }
+
     private int? GetUserId()
     {
         var claim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;

@@ -545,3 +545,60 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 - `Reports/Agents.razor.css`
 
 **Build: 0 hata, 0 uyarı (Tüm solution — API + Web + Shared + Data + Windows + Mobile)**
+
+### 2026-02-10 - Faz 3: SIP/VoIP Entegrasyonu (Tam Faz)
+
+**8 Adımda Tamamlandı:**
+
+**Adım 1 — SIP.js Altyapısı:**
+- `index.html` — SIP.js 0.21.2 CDN, `<audio id="remoteAudio" autoplay>`
+- `wwwroot/js/sipClient.js` — Tam SIP.js UserAgent API wrapper (initialize, makeCall, answerCall, hangup, holdCall, unholdCall, sendDtmf, transferCall, getAudioDevices, setAudioDevice, dispose + C# callback köprüsü)
+
+**Adım 2 — C# SipService (Blazor JS Interop):**
+- `Services/SipService.cs` — IJSRuntime wrapper, DotNetObjectReference, event'ler, [JSInvokable] callback'ler, AudioDeviceInfo DTO
+- `Program.cs` — `AddScoped<SipService>()` DI kaydı
+
+**Adım 3 — SIP Config API:**
+- `SipConnectionDto.cs` — SipConnectionInfoDto (WsUri, SipUri, AuthUsername, AuthPassword, DisplayName, Transport, UseSrtp)
+- `SipAccountsController.cs` — `GET /api/sipaccounts/my/connection` (tüm roller, JWT CustomerId claim, default SIP hesabı, WSS URI otomatik oluşturma)
+- Controller auth refactor: Class [Authorize(Roles="Admin")] → [Authorize] + method seviyesinde [Authorize(Roles="Admin")]
+
+**Adım 4 — Dialer.razor SIP Entegrasyonu:**
+- Tamamen yeniden yazıldı: SipService inject, API'den SIP init, MakeCallAsync, HoldAsync/UnholdAsync toggle, HangupAsync, DTMF gönderimi, SIP kayıt badge, event-driven timer
+- CSS: call-resume + sip-badge stilleri
+
+**Adım 5 — Gelen Arama:**
+- `MainLayout.razor` — SIP register başlatma, AudioSettings component, IAsyncDisposable
+- `IncomingCallNotification.razor` — SipService.OnIncomingCall dinleme, isSipCall flag, SIP accept/reject
+- `Active.razor` — SIP aksiyonları (answer, hold, resume, end) + TransferDialog entegrasyonu
+
+**Adım 6 — Transfer + Ses Cihazı:**
+- `TransferDialog.razor` — Blind transfer modal, SipService.TransferAsync
+- `AudioSettings.razor` + CSS — Topbar ses cihazı seçici, mikrofon/hoparlör listesi, setSinkId
+
+**Adım 7 — Kuyruk ACD Sistemi:**
+- `CallDistributionService.cs` — Uygulama seviyesi ACD (QueueAgent öncelik + en az meşgul strateji), SignalR Clients.User ile agent'a bildirim
+- `CallsController.cs` — `POST /api/calls/incoming` (arama kaydı + ACD yönlendirme)
+- `CallCenterHub.cs` — `NotifySpecificAgent` metodu
+- `Program.cs` (API) — `AddScoped<CallDistributionService>()` DI kaydı
+
+**Yeni Dosyalar (6):**
+1. `wwwroot/js/sipClient.js`
+2. `Services/SipService.cs`
+3. `DTOs/SipConnectionDto.cs`
+4. `Components/TransferDialog.razor`
+5. `Components/AudioSettings.razor` + CSS
+6. `Api/Services/CallDistributionService.cs`
+
+**Düzenlenen Dosyalar (9):**
+1. `wwwroot/index.html`
+2. `Pages/Dialer.razor` + CSS
+3. `Layout/MainLayout.razor`
+4. `Components/IncomingCallNotification.razor`
+5. `Pages/Calls/Active.razor`
+6. `Controllers/SipAccountsController.cs`
+7. `Controllers/CallsController.cs`
+8. `Hubs/CallCenterHub.cs`
+9. `Api/Program.cs` + `Web/Program.cs`
+
+**Build: 0 hata, 0 uyarı (Tüm solution)**

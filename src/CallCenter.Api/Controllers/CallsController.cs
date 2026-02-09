@@ -4,6 +4,7 @@ using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using CallCenter.Api.Hubs;
+using CallCenter.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -18,11 +19,13 @@ public class CallsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IHubContext<CallCenterHub> _hub;
+    private readonly CallDistributionService _distribution;
 
-    public CallsController(AppDbContext db, IHubContext<CallCenterHub> hub)
+    public CallsController(AppDbContext db, IHubContext<CallCenterHub> hub, CallDistributionService distribution)
     {
         _db = db;
         _hub = hub;
+        _distribution = distribution;
     }
 
     /// <summary>Arama gecmisi (tamamlanmis aramalar)</summary>
@@ -176,6 +179,54 @@ public class CallsController : ControllerBase
         return Ok();
     }
 
+    /// <summary>
+    /// Gelen arama kaydı oluşturur ve uygun agent'a yönlendirir.
+    /// PBX webhook veya SIP event'i tarafından çağrılabilir.
+    /// </summary>
+    [HttpPost("incoming")]
+    public async Task<IActionResult> IncomingCall([FromBody] IncomingCallRequest request)
+    {
+        // CallRecord oluştur
+        var call = new CallRecord
+        {
+            CallerNumber = request.CallerNumber,
+            CalleeNumber = request.CalleeNumber,
+            DirectionId = CallDirections.Ids.Inbound,
+            StatusId = CallStatuses.Ids.Ringing,
+            StartedAt = DateTime.UtcNow,
+            QueueId = request.QueueId
+        };
+
+        _db.CallRecords.Add(call);
+        await _db.SaveChangesAsync();
+
+        // Kuyruk belirtilmişse ACD ile agent'a yönlendir
+        if (request.QueueId.HasValue)
+        {
+            var assignedAgentId = await _distribution.AssignCallToAgentAsync(request.QueueId.Value, call.Id);
+            if (assignedAgentId == null)
+            {
+                // Müsait agent yok — arama kuyrukta bekliyor
+                return Ok(new { call.Id, call.Uid, Status = "Queued", Message = "Musait agent bulunamadi, kuyrukta bekliyor." });
+            }
+
+            return Ok(new { call.Id, call.Uid, Status = "Assigned", AgentId = assignedAgentId });
+        }
+
+        // Kuyruk belirtilmemişse, tüm agent'lara bildirim gönder
+        var notification = new CallNotification
+        {
+            CallId = call.Id,
+            CallerNumber = call.CallerNumber,
+            CalleeNumber = call.CalleeNumber,
+            DirectionId = call.DirectionId,
+            StatusId = CallStatuses.Ids.Ringing
+        };
+
+        await _hub.Clients.All.SendAsync("IncomingCall", notification);
+        return Ok(new { call.Id, call.Uid, Status = "Broadcasting" });
+    }
+
     private int GetUserId()
     {
         return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -184,6 +235,14 @@ public class CallsController : ControllerBase
 
 /// <summary>Yeni arama baslatma request'i</summary>
 public class StartCallRequest
+{
+    public string CallerNumber { get; set; } = string.Empty;
+    public string CalleeNumber { get; set; } = string.Empty;
+    public int? QueueId { get; set; }
+}
+
+/// <summary>Gelen arama request'i (PBX/webhook'tan)</summary>
+public class IncomingCallRequest
 {
     public string CallerNumber { get; set; } = string.Empty;
     public string CalleeNumber { get; set; } = string.Empty;

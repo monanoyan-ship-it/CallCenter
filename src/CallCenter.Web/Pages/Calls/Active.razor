@@ -1,6 +1,7 @@
 @page "/calls/active"
 @attribute [Authorize]
 @inject HubService HubService
+@inject SipService SipService
 @inject HttpClient Http
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -95,6 +96,9 @@
     }
 </div>
 
+@* ─── Transfer Dialog ─── *@
+<TransferDialog IsVisible="showTransferDialog" OnClosed="CloseTransferDialog" OnTransferred="HandleTransferred" />
+
 @code {
     private List<CallNotification> activeCalls = new();
 
@@ -114,7 +118,6 @@
 
     private void HandleIncomingCall(CallNotification notification)
     {
-        // Aktif cagrilar listesine ekle
         var existing = activeCalls.FirstOrDefault(c => c.CallId == notification.CallId);
         if (existing != null)
         {
@@ -138,6 +141,9 @@
         var call = activeCalls.FirstOrDefault(c => c.CallId == callId);
         if (call != null)
         {
+            // SIP ile cevapla
+            await SipService.AnswerCallAsync();
+
             call.StatusId = CallStatuses.Ids.InProgress;
             await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
         }
@@ -145,6 +151,9 @@
 
     private async Task RejectCall(int callId)
     {
+        // SIP aramayı reddet
+        await SipService.HangupAsync();
+
         activeCalls.RemoveAll(c => c.CallId == callId);
         await HubService.NotifyCallEndedAsync(callId);
     }
@@ -154,7 +163,11 @@
         var call = activeCalls.FirstOrDefault(c => c.CallId == callId);
         if (call != null)
         {
-            call.StatusId = CallStatuses.Ids.OnHold;
+            var success = await SipService.HoldAsync();
+            if (success)
+            {
+                call.StatusId = CallStatuses.Ids.OnHold;
+            }
         }
     }
 
@@ -163,17 +176,44 @@
         var call = activeCalls.FirstOrDefault(c => c.CallId == callId);
         if (call != null)
         {
-            call.StatusId = CallStatuses.Ids.InProgress;
+            var success = await SipService.UnholdAsync();
+            if (success)
+            {
+                call.StatusId = CallStatuses.Ids.InProgress;
+            }
         }
     }
 
-    private async Task TransferCall(int callId)
+    private int? transferCallId;
+    private bool showTransferDialog;
+
+    private void TransferCall(int callId)
     {
-        // TODO: Transfer dialog acilacak
+        transferCallId = callId;
+        showTransferDialog = true;
+    }
+
+    private void CloseTransferDialog()
+    {
+        showTransferDialog = false;
+        transferCallId = null;
+    }
+
+    private void HandleTransferred(bool success)
+    {
+        if (success && transferCallId.HasValue)
+        {
+            activeCalls.RemoveAll(c => c.CallId == transferCallId.Value);
+        }
+        showTransferDialog = false;
+        transferCallId = null;
     }
 
     private async Task EndCall(int callId)
     {
+        // SIP aramayı kapat
+        await SipService.HangupAsync();
+
         activeCalls.RemoveAll(c => c.CallId == callId);
         await HubService.NotifyCallEndedAsync(callId);
         await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);

@@ -1,4 +1,5 @@
 @inject HubService HubService
+@inject SipService SipService
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 @implements IDisposable
@@ -16,7 +17,7 @@
             @* ─── Arayan bilgisi ─── *@
             <div class="caller-details">
                 <span class="call-label">Gelen Arama</span>
-                <span class="caller-number">@incomingCall.CallerNumber</span>
+                <span class="caller-number">@(incomingCall.CallerNumber)</span>
                 @if (!string.IsNullOrEmpty(incomingCall.QueueName))
                 {
                     <span class="call-queue">
@@ -42,19 +43,22 @@
 
 @code {
     private CallNotification? incomingCall;
+    private bool isSipCall; // SIP üzerinden gelen mi, SignalR üzerinden mi
 
     protected override void OnInitialized()
     {
         HubService.OnIncomingCall += HandleIncomingCall;
         HubService.OnCallEnded += HandleCallEnded;
+        SipService.OnIncomingCall += HandleSipIncomingCall;
+        SipService.OnCallEnded += HandleSipCallEnded;
     }
 
     private void HandleIncomingCall(CallNotification notification)
     {
-        // Sadece Ringing durumundaki cagilari goster
         if (notification.StatusId == CallStatuses.Ids.Ringing)
         {
             incomingCall = notification;
+            isSipCall = false;
             InvokeAsync(StateHasChanged);
         }
     }
@@ -68,34 +72,68 @@
         }
     }
 
+    private Task HandleSipIncomingCall(string callerUri, string callerDisplay)
+    {
+        // SIP üzerinden gelen arama — synthetic CallNotification oluştur
+        incomingCall = new CallNotification
+        {
+            CallId = 0, // SIP araması henüz DB'de kayıtlı değil
+            CallerNumber = !string.IsNullOrEmpty(callerDisplay) ? callerDisplay : callerUri,
+            StatusId = CallStatuses.Ids.Ringing
+        };
+        isSipCall = true;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleSipCallEnded()
+    {
+        if (isSipCall && incomingCall != null)
+        {
+            incomingCall = null;
+            return InvokeAsync(StateHasChanged);
+        }
+        return Task.CompletedTask;
+    }
+
     private async Task AcceptCall()
     {
         if (incomingCall == null) return;
+
+        // SIP aramayı kabul et
+        if (isSipCall)
+        {
+            await SipService.AnswerCallAsync();
+        }
 
         // Durumu InCall yap
         await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
 
         // Bildirimi kapat
-        var callId = incomingCall.CallId;
         incomingCall = null;
-
-        // Aktif aramalar sayfasina bilgi gonder (SignalR ile status guncelle)
-        // API uzerinden de cevaplanabilir: PUT /api/calls/{callId}/answer
     }
 
     private async Task RejectCall()
     {
         if (incomingCall == null) return;
 
-        var callId = incomingCall.CallId;
-        incomingCall = null;
+        // SIP aramayı reddet
+        if (isSipCall)
+        {
+            await SipService.HangupAsync();
+        }
+        else
+        {
+            await HubService.NotifyCallEndedAsync(incomingCall.CallId);
+        }
 
-        await HubService.NotifyCallEndedAsync(callId);
+        incomingCall = null;
     }
 
     public void Dispose()
     {
         HubService.OnIncomingCall -= HandleIncomingCall;
         HubService.OnCallEnded -= HandleCallEnded;
+        SipService.OnIncomingCall -= HandleSipIncomingCall;
+        SipService.OnCallEnded -= HandleSipCallEnded;
     }
 }
