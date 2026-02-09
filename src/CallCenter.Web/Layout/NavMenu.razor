@@ -19,103 +19,125 @@
     <nav>
         @* ─── ANA SAYFA ─── *@
         <div class="nav-item">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
                 <i class="bi bi-grid-1x2-fill"></i>
                 <span>Dashboard</span>
             </NavLink>
         </div>
 
-        @* ─── ÇAĞRI YÖNETİMİ ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
-                <i class="bi bi-telephone-fill"></i>
-                <span>Arama</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
-                <NavLink class="nav-link" href="dialer">
-                    <i class="bi bi-dialpad-fill"></i>
-                    <span>Numara Çevirici</span>
-                </NavLink>
-                <NavLink class="nav-link" href="calls/active">
-                    <i class="bi bi-telephone-inbound-fill"></i>
-                    <span>Aktif Aramalar</span>
-                </NavLink>
-                <NavLink class="nav-link" href="calls/history">
-                    <i class="bi bi-clock-history"></i>
-                    <span>Arama Gecmisi</span>
-                </NavLink>
+        @* ─── ÇAĞRI YÖNETİMİ (herkes gorebilir — CustomerUser dahil) ─── *@
+        @if (!IsCustomerUser)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>Arama</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
+                    <NavLink class="nav-link" href="dialer">
+                        <i class="bi bi-dialpad-fill"></i>
+                        <span>Numara Cevirici</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="calls/active">
+                        <i class="bi bi-telephone-inbound-fill"></i>
+                        <span>Aktif Aramalar</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="calls/history">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Arama Gecmisi</span>
+                    </NavLink>
+                </div>
             </div>
-        </div>
+        }
 
-        @* ─── KUYRUK ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(1)">
-                <i class="bi bi-people-fill"></i>
-                <span>Kuyruklar</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(1) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(1) ? "show" : "")">
-                <NavLink class="nav-link" href="queues">
-                    <i class="bi bi-list-ol"></i>
-                    <span>Kuyruk Listesi</span>
-                </NavLink>
-                <NavLink class="nav-link" href="queues/live">
-                    <i class="bi bi-broadcast"></i>
-                    <span>Canli Izleme</span>
-                </NavLink>
+        @* ─── KUYRUKLAR (Admin + Supervisor + Agent) ─── *@
+        @if (!IsCustomerUser)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(1)">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Kuyruklar</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(1) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(1) ? "show" : "")">
+                    <NavLink class="nav-link" href="queues">
+                        <i class="bi bi-list-ol"></i>
+                        <span>Kuyruk Listesi</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="queues/live">
+                        <i class="bi bi-broadcast"></i>
+                        <span>Canli Izleme</span>
+                    </NavLink>
+                </div>
             </div>
-        </div>
+        }
 
-        @* ─── RAPORLAR ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(2)">
-                <i class="bi bi-bar-chart-fill"></i>
-                <span>Raporlar</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(2) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(2) ? "show" : "")">
-                <NavLink class="nav-link" href="reports/calls">
-                    <i class="bi bi-file-earmark-bar-graph"></i>
-                    <span>Arama Raporlari</span>
-                </NavLink>
-                <NavLink class="nav-link" href="reports/agents">
-                    <i class="bi bi-person-lines-fill"></i>
-                    <span>Temsilci Performansi</span>
-                </NavLink>
+        @* ─── RAPORLAR (Admin + Supervisor + Agent) ─── *@
+        @if (!IsCustomerUser)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(2)">
+                    <i class="bi bi-bar-chart-fill"></i>
+                    <span>Raporlar</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(2) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(2) ? "show" : "")">
+                    <NavLink class="nav-link" href="reports/calls">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                        <span>Arama Raporlari</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="reports/agents">
+                        <i class="bi bi-person-lines-fill"></i>
+                        <span>Temsilci Performansi</span>
+                    </NavLink>
+                </div>
             </div>
-        </div>
+        }
 
-        @* ─── YÖNETİM ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
-                <i class="bi bi-gear-fill"></i>
-                <span>Yonetim</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(3) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(3) ? "show" : "")">
-                <NavLink class="nav-link" href="admin/users">
-                    <i class="bi bi-person-fill-gear"></i>
-                    <span>Kullanicilar</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/customers">
-                    <i class="bi bi-building"></i>
-                    <span>Musteriler</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/sip">
-                    <i class="bi bi-router-fill"></i>
-                    <span>SIP Ayarlari</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/translations">
-                    <i class="bi bi-translate"></i>
-                    <span>Dil Yonetimi</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/settings">
-                    <i class="bi bi-sliders"></i>
-                    <span>Sistem Ayarlari</span>
-                </NavLink>
+        @* ─── YÖNETİM (Admin + Supervisor) ─── *@
+        @if (IsAdminOrSupervisor)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
+                    <i class="bi bi-gear-fill"></i>
+                    <span>Yonetim</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(3) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(3) ? "show" : "")">
+                    @if (IsAdmin)
+                    {
+                        <NavLink class="nav-link" href="admin/users">
+                            <i class="bi bi-person-fill-gear"></i>
+                            <span>Kullanicilar</span>
+                        </NavLink>
+                    }
+                    <NavLink class="nav-link" href="admin/customers">
+                        <i class="bi bi-building"></i>
+                        <span>Musteriler</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="admin/queues">
+                        <i class="bi bi-diagram-3-fill"></i>
+                        <span>Kuyruk Yapilandirmasi</span>
+                    </NavLink>
+                    @if (IsAdmin)
+                    {
+                        <NavLink class="nav-link" href="admin/sip">
+                            <i class="bi bi-router-fill"></i>
+                            <span>SIP Ayarlari</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="admin/translations">
+                            <i class="bi bi-translate"></i>
+                            <span>Dil Yonetimi</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="admin/settings">
+                            <i class="bi bi-sliders"></i>
+                            <span>Sistem Ayarlari</span>
+                        </NavLink>
+                    }
+                </div>
             </div>
-        </div>
+        }
     </nav>
 </div>
 
@@ -139,6 +161,11 @@
     private HashSet<int> openGroups = new();
     private string fullName = "...";
     private string roleName = "";
+    private string userRole = "";
+
+    private bool IsAdmin => string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase);
+    private bool IsAdminOrSupervisor => IsAdmin || string.Equals(userRole, "Supervisor", StringComparison.OrdinalIgnoreCase);
+    private bool IsCustomerUser => string.Equals(userRole, "CustomerUser", StringComparison.OrdinalIgnoreCase);
 
     // Rol adlarini Turkce goster
     private static readonly Dictionary<string, string> RoleNames = new(StringComparer.OrdinalIgnoreCase)
@@ -172,6 +199,7 @@
             var role = await AuthService.GetRoleAsync();
 
             fullName = name ?? "Kullanici";
+            userRole = role ?? "";
             roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
 
             StateHasChanged();

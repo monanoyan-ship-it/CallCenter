@@ -29,4 +29,7 @@ builder.Services.AddScoped(sp =>
 // SignalR Hub servisi
 builder.Services.AddScoped<HubService>();
 
+// Toast bildirim servisi
+builder.Services.AddScoped<ToastService>();
+
 await builder.Build().RunAsync();

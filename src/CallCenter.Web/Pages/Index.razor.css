@@ -1,0 +1,334 @@
+/* ===============================================
+   LANDING PAGE - Tanitim Sayfasi
+   =============================================== */
+
+/* ─── Container ─── */
+
+.landing-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: #e2e8f0;
+}
+
+/* ─── HERO ─── */
+
+.landing-hero {
+    text-align: center;
+    padding: 4rem 1.5rem 3rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-glow {
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-logo {
+    width: 5rem;
+    height: 5rem;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
+}
+
+.hero-logo i {
+    font-size: 2.25rem;
+    color: #fff;
+}
+
+.landing-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    max-width: 520px;
+    margin: 0 auto 2rem;
+    line-height: 1.7;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.btn-hero-primary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.btn-hero-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* ─── FEATURES ─── */
+
+.landing-features {
+    padding: 2rem 1.5rem 3rem;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.feature-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Feature icon */
+
+.feature-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    color: #fff;
+}
+
+.feature-icon.bg-blue   { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.feature-icon.bg-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.feature-icon.bg-purple { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+.feature-icon.bg-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+.feature-icon.bg-teal   { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+.feature-icon.bg-red    { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+/* ─── PLATFORMS ─── */
+
+.landing-platforms {
+    padding: 2rem 1.5rem 3rem;
+}
+
+.landing-platforms h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2rem;
+}
+
+.platforms-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+}
+
+.platform-card {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.platform-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.platform-card > i {
+    font-size: 2rem;
+    color: #3b82f6;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.platform-card h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.platform-card p {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ─── ROLES ─── */
+
+.landing-roles {
+    padding: 2rem 1.5rem 3rem;
+}
+
+.landing-roles h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2rem;
+}
+
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+}
+
+.role-card {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.role-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.role-badge {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+    font-size: 1.25rem;
+}
+
+.role-card h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.role-card p {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ─── FOOTER ─── */
+
+.landing-footer {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 1rem;
+}
+
+.landing-footer p {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* ─── RESPONSIVE ─── */
+
+@media (max-width: 991.98px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .roles-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .landing-hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .features-grid,
+    .platforms-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .roles-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .landing-hero {
+        padding: 2.5rem 1rem 2rem;
+    }
+
+    .landing-hero h1 {
+        font-size: 1.75rem;
+    }
+
+    .roles-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -212,23 +212,58 @@
         - Toplu yetki atamasında (POST) mevcut yetki varsa günceller (IsActive=true, scope değişir) — bu davranış istenmeyen bir yan etki olabilir.
       </Riskler>
     </Gorev>
-    <Gorev no="2.3" durum="bekliyor">
+    <Gorev no="2.3" durum="tamamlandi" tamamlanma="2026-02-09">
       <Ad>Supervisor dashboard</Ad>
       <Detay>
-        - Canlı kuyruk durumu
-        - Agent listesi ve durumları
-        - Çağrı istatistikleri (bugün, bu hafta)
-        - Gerçek zamanlı güncelleme (SignalR)
+        - Firma bazlı dashboard: Supervisor firma seçer (dropdown), Admin tümünü görür
+        - SupervisorController: GET /api/supervisor/dashboard?customerId=X, GET /api/supervisor/customers
+        - KPI kartları: Aktif aramalar, müsait temsilci, kuyrukta bekleyen, bugün toplam (gerçek verilerle)
+        - Son aramalar tablosu: Son 10 arama (yön, numara, temsilci, durum, süre, zaman)
+        - Temsilci durum listesi: Tüm agent'lar, anlık durum badge, çağrıdaysa ikon
+        - Alt istatistikler: Cevaplanan, kaçırılan, ortalama süre
+        - Kuyruk özet tablosu: Kuyruk adı, bekleyen, aktif, temsilci sayısı
+        - SignalR gerçek zamanlı: OnAgentStatusChanged, OnIncomingCall, OnCallEnded
+        - 60 saniyelik fallback timer ile tam yenileme
+        - DTO'lar: DashboardResponse, AgentStatusDto, RecentCallDto, QueueSummaryDto, CustomerSimpleDto
+        - Build: 0 hata, 0 uyarı
       </Detay>
+      <Riskler>
+        - Firma filtreleme sadece CustomerPersonnel→User ilişkisi üzerinden. Supervisor'ın kendisi henüz firmaya atanmıyor — şimdilik tüm firmaları görebilir. İleride JWT'deki CustomerId ile kısıtlanmalı.
+        - Queue→Customer ve SipAccount→Customer ilişkisi EKLENDİ (CustomerId FK). Kuyruklar ve SIP hesapları artık firma bazlı filtrelenebiliyor.
+        - SignalR event'leri herkese broadcast ediliyor. Firma bazlı filtreleme yok — Supervisor A firmasının agent değişikliğini B firmasını izlerken de alıyor. SignalR Groups ile iyileştirilebilir.
+        - Dashboard'daki KPI artırma/azaltma (SignalR handler'larda ++ / --) yaklaşık. Gerçek sayılar 60 saniyelik fallback ile düzeltiliyor ama kısa süreli tutarsızlık olabilir.
+        - Home.razor tüm kullanıcılar için açık ([Authorize]). Agent rolü dashboard API'ye 403 alır ama boş dashboard görür. İleride agent'a özel basitleştirilmiş bir dashboard düşünülebilir.
+        - SupervisorController'da birden fazla DB sorgusu çalışıyor (agents, calls, queues ayrı ayrı). Büyük veri setlerinde performans sorunu olabilir — ileride cache veya materialized view düşünülebilir.
+      </Riskler>
     </Gorev>
-    <Gorev no="2.4" durum="bekliyor">
+    <Gorev no="2.4" durum="tamamlandi" tamamlanma="2026-02-10">
       <Ad>Admin paneli</Ad>
       <Detay>
-        - Kullanıcı yönetimi (CRUD)
-        - SIP hesap ayarları
-        - Kuyruk yapılandırması
-        - Genel sistem ayarları
+        8 adimda tam CRUD admin paneli:
+        - Ortak bilesenler: Pagination, ConfirmDialog, ToastNotification + ToastService
+        - Kullanici yonetimi (CRUD): UsersController, Users.razor, UserForm.razor — BCrypt hash, unique kontrol, soft delete, admin kendini silemez
+        - Musteri yonetimi (CRUD): CustomersController, Customers.razor, CustomerForm.razor — varsayilan portal modulleri otomatik atama, personel/kuyruk/SIP sayilari
+        - Kuyruk yapilandirmasi (CRUD): QueuesController, Queues.razor, QueueForm.razor — firma bazli, agent atama/cikarma paneli, unique(customerId+name)
+        - SIP hesap ayarlari (CRUD): SipAccountsController, SipAccounts.razor, SipAccountForm.razor — Password maskeleme, IsDefault tek, Transport dropdown (UDP/TCP/TLS/WSS)
+        - Dil yonetimi (CRUD): TranslationsController'a key CRUD eklendi, Translations.razor, TranslationForm.razor — modul filtresi, XML export, cache yenileme
+        - Sistem ayarlari: SystemSetting entity, SettingsController, Settings.razor — grup bazli (Genel/Guvenlik/SIP/Bildirim), inline edit, IsSystem korumasi, seed data (14 varsayilan ayar)
+        - Role-Based menu filtreleme: NavMenu'de Admin/Supervisor/Agent/CustomerUser icin farkli gorunum
+        - AdminDtos.cs: PagedResult, tum CRUD DTO'lari tek dosyada
+        - Migration: AddSystemSettings (SystemSettings tablosu + seed data)
+        - Build: 0 hata, 0 uyari (API + Web)
       </Detay>
+      <Riskler>
+        - UsersController'da kullanici adı (UserName) guncelleme endpoint'i yok — kasitli karar (kullanici adi degistirilemez).
+        - SipAccount.Password duz metin olarak DB'de saklaniyor. Production'da AES veya DataProtection ile sifrelenmeli.
+        - Soft delete (IsActive=false) kullaniliyor ama filtreleme her sayfada ayri yapiliyor. Global query filter (HasQueryFilter) ile merkezilestirilebilir.
+        - TranslationsController'daki key CRUD sonrasinda cache yenileniyor ama coklu API sunucusunda sadece o sunucunun cache'i yenilenir. Distributed cache invalidation (Redis pub/sub veya SignalR) gerekebilir.
+        - Pagination bileseninde sayfa numaralari client-side hesaplaniyor. Cok buyuk sayfalarda (1000+) gorsel sorun olmayacak ama UX iyilestirilebilir.
+        - Settings sayfasinda inline edit kullaniliyor. ValueType dogrulamasi (int alanina string girilmesi) sadece backend'de yapilmali — suan frontend'de dogrulama yok.
+        - SystemSetting seed data ID'leri hardcoded (1-32). Yeni eklenen ayarlarin ID'si cakismamali.
+        - Kuyruk agent atama panelinde tum agent'lar (roleId=1) getiriliyor. Buyuk sistemlerde performans sorunu olabilir — sayfalama veya arama eklenmeli.
+        - Role-based menu filtreleme client-side (JWT role claim). Token manipulasyonu ile menu gorulebilir ama API [Authorize(Roles)] koruyor — guvenlik sorunu yok, sadece UI.
+        - XML export sonrasi dosya indirme Blazor WASM'de JS Interop gerektirir — suan sadece bildirim gosteriyor, gercek indirme ileride eklenmeli.
+      </Riskler>
     </Gorev>
   </Faz>
 
@@ -415,5 +450,9 @@
     <Not tarih="2026-02-09">Görev 2.2 tamamlandı: Agent paneli + TypeItem dönüşümü. Dialer, Active Calls, History sayfaları, IncomingCallNotification, TopBar durum dropdown, SignalR HubService, CallsController API — tümü 0 hata build.</Not>
     <Not tarih="2026-02-09">MOBİL UYGULAMA KULLANIM SENARYOlARI: Müşterilerin saha elemanları (kuryeler vb.) mobil uygulama üzerinden arama yapacak. Mobil: Saha personeli → müşterinin müşterilerini arar. Masaüstü/Web: Ofis çağrı merkezi temsilcileri.</Not>
     <Not tarih="2026-02-09">Dinamik yetki sistemi: [Flags] CustomerPermission enum → Katmanlı sistem (PortalModules TypeItem + CustomerPortalModule DB + CustomerPersonnelPermission DB). Müşteriye modül lisansı, personele granüler yetki. JWT claim'de virgülle ayrılmış TypeId listesi.</Not>
+    <Not tarih="2026-02-09">Görev 2.3 tamamlandı: Supervisor Dashboard. Firma bazlı filtreleme (dropdown), KPI kartları, son aramalar tablosu, temsilci durum listesi, kuyruk özeti, SignalR gerçek zamanlı güncelleme. SupervisorController API + Home.razor yeniden yazıldı. 0 hata, 0 uyarı.</Not>
+    <Not tarih="2026-02-09">SIP/VoIP Multi-Tenant Fizibilite Araştırması tamamlandı: SIP.js (çoklu UserAgent), SIPSorcery (C# native), tüm büyük cloud sağlayıcılar (Twilio, Telnyx, Vonage, Plivo, Bandwidth) WebRTC destekliyor. On-premise (Asterisk, FreeSWITCH) sorunsuz. VoIP.ms gibi legacy sağlayıcılar Kamailio proxy ile çözülebilir. Adapter pattern yaklaşımı doğrulandı. Detaylı analiz: patterns.md</Not>
+    <Not tarih="2026-02-10">Görev 2.4 tamamlandı: Admin Paneli — 8 adımda tam CRUD. Kullanıcı, Müşteri, Kuyruk, SIP, Dil, Sistem Ayarları yönetimi. Ortak bileşenler (Pagination, ConfirmDialog, Toast). Role-based menü filtreleme. SystemSetting entity + migration. ~30 yeni dosya. Build: 0 hata, 0 uyarı.</Not>
+    <Not tarih="2026-02-10">Public landing page eklendi: Index.razor (/) → Tanıtım sayfası (LoginLayout, hero, özellikler, platformlar, roller). Home.razor route "/" → "/dashboard" olarak taşındı. Login/NavMenu yönlendirmeleri güncellendi. Build: 0 hata, 0 uyarı.</Not>
   </Notlar>
 </Proje>

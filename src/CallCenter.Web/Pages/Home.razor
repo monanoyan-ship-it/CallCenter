@@ -1,106 +1,494 @@
-@page "/"
+@page "/dashboard"
 @attribute [Authorize]
+@inject HttpClient Http
+@inject HubService HubService
+@implements IDisposable
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
 
 <PageTitle>Dashboard - Call Center</PageTitle>
 
-<h4 class="mb-4">
-    <i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard
-</h4>
-
-@* ─── ÜST KARTLAR ─── *@
-<div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small">Aktif Aramalar</div>
-                        <div class="fs-3 fw-bold text-primary">0</div>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 rounded-3 p-2">
-                        <i class="bi bi-telephone-fill text-primary fs-4"></i>
-                    </div>
-                </div>
+@* ─── BAŞLIK + FİRMA DROPDOWN ─── *@
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard
+    </h4>
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small mb-0">Firma:</label>
+        <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
+            <option value="0">Tumu</option>
+            @foreach (var c in customers)
+            {
+                <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
+            }
+        </select>
+        @if (isLoading)
+        {
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Yukleniyor...</span>
             </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small">Musait Temsilci</div>
-                        <div class="fs-3 fw-bold text-success">0</div>
-                    </div>
-                    <div class="bg-success bg-opacity-10 rounded-3 p-2">
-                        <i class="bi bi-headset text-success fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small">Kuyrukta Bekleyen</div>
-                        <div class="fs-3 fw-bold text-warning">0</div>
-                    </div>
-                    <div class="bg-warning bg-opacity-10 rounded-3 p-2">
-                        <i class="bi bi-hourglass-split text-warning fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small">Bugun Toplam</div>
-                        <div class="fs-3 fw-bold text-info">0</div>
-                    </div>
-                    <div class="bg-info bg-opacity-10 rounded-3 p-2">
-                        <i class="bi bi-bar-chart-fill text-info fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+        }
     </div>
 </div>
 
-@* ─── ALT BÖLÜM ─── *@
-<div class="row g-3">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom">
-                <h6 class="mb-0">
-                    <i class="bi bi-clock-history me-2"></i>Son Aramalar
-                </h6>
+@if (data == null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Dashboard yukleniyor...</p>
+    </div>
+}
+else
+{
+    @* ─── KPI KARTLARI ─── *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Aktif Aramalar</div>
+                            <div class="fs-3 fw-bold text-primary">@data.ActiveCallCount</div>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-telephone-fill text-primary fs-4"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="text-center text-muted py-4">
-                    <i class="bi bi-telephone-x fs-1 d-block mb-2 opacity-25"></i>
-                    <span>Henuz arama kaydı yok</span>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Musait Temsilci</div>
+                            <div class="fs-3 fw-bold text-success">@data.AvailableAgentCount</div>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-headset text-success fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Kuyrukta Bekleyen</div>
+                            <div class="fs-3 fw-bold text-warning">@data.QueueWaitingCount</div>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Bugun Toplam</div>
+                            <div class="fs-3 fw-bold text-info">@data.TodayTotalCallCount</div>
+                        </div>
+                        <div class="bg-info bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-bar-chart-fill text-info fs-4"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom">
-                <h6 class="mb-0">
-                    <i class="bi bi-people-fill me-2"></i>Temsilci Durumlari
-                </h6>
+
+    @* ─── ORTA BÖLÜM: Son Aramalar + Temsilci Durumları ─── *@
+    <div class="row g-3 mb-4">
+        @* ─── SOL: Son Aramalar ─── *@
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Son Aramalar
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (data.RecentCalls.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-telephone-x fs-1 d-block mb-2 opacity-25"></i>
+                            <span>Henuz arama kaydi yok</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px;"></th>
+                                        <th>Numara</th>
+                                        <th>Temsilci</th>
+                                        <th>Durum</th>
+                                        <th>Sure</th>
+                                        <th>Zaman</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var call in data.RecentCalls)
+                                    {
+                                        var direction = CallDirections.GetById(call.DirectionId);
+                                        var status = CallStatuses.GetById(call.StatusId);
+                                        <tr>
+                                            <td class="text-center">
+                                                <i class="bi @(direction?.Icon ?? "bi-telephone") @(direction?.CssClass ?? "")"></i>
+                                            </td>
+                                            <td>
+                                                <span class="fw-medium">@(call.DirectionId == CallDirections.Ids.Inbound ? call.CallerNumber : call.CalleeNumber)</span>
+                                            </td>
+                                            <td class="text-muted">@(call.AgentName ?? "-")</td>
+                                            <td>
+                                                <span class="badge @(status?.CssClass ?? "bg-secondary") rounded-pill">
+                                                    @GetStatusDisplayName(call.StatusName)
+                                                </span>
+                                            </td>
+                                            <td class="text-muted">@FormatDuration(call.DurationSeconds)</td>
+                                            <td class="text-muted small">@FormatTimeAgo(call.StartedAt)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
             </div>
-            <div class="card-body">
-                <div class="text-center text-muted py-4">
-                    <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
-                    <span>Cevrimici temsilci yok</span>
+        </div>
+
+        @* ─── SAĞ: Temsilci Durumları ─── *@
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0">
+                        <i class="bi bi-people-fill me-2"></i>Temsilci Durumlari
+                        <span class="badge bg-primary rounded-pill ms-1">@data.Agents.Count</span>
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (data.Agents.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+                            <span>Temsilci bulunamadi</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                            @foreach (var agent in data.Agents.OrderByDescending(a => a.StatusId == AgentStatuses.Ids.InCall)
+                                                               .ThenByDescending(a => a.StatusId == AgentStatuses.Ids.Available)
+                                                               .ThenBy(a => a.FullName))
+                            {
+                                <div class="list-group-item d-flex align-items-center py-2">
+                                    <div class="position-relative me-2">
+                                        <i class="bi bi-person-circle fs-5 text-muted"></i>
+                                        <span class="position-absolute bottom-0 end-0 translate-middle-x badge rounded-pill p-1"
+                                              style="font-size: 0.5rem;">
+                                            <i class="bi @agent.StatusIcon @agent.StatusCss"></i>
+                                        </span>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-medium small">@agent.FullName</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            @if (!string.IsNullOrEmpty(agent.Extension))
+                                            {
+                                                <span>Dahili: @agent.Extension</span>
+                                                <span class="mx-1">&middot;</span>
+                                            }
+                                            <span>@GetStatusDisplayName(agent.StatusName)</span>
+                                        </div>
+                                    </div>
+                                    @if (agent.CurrentCallId.HasValue)
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success" title="Aramada">
+                                            <i class="bi bi-telephone-fill"></i>
+                                        </span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    @* ─── ALT BÖLÜM: İstatistikler + Kuyruk Tablosu ─── *@
+    <div class="row g-3">
+        @* ─── Bugünün detay istatistikleri ─── *@
+        <div class="col-lg-4">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Cevaplanan</div>
+                            <div class="fs-4 fw-bold text-success">@data.TodayAnsweredCount</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Kacirilan</div>
+                            <div class="fs-4 fw-bold text-danger">@data.TodayMissedCount</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Ort. Sure</div>
+                            <div class="fs-4 fw-bold text-info">@FormatDuration(data.TodayAvgDurationSeconds)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ─── Kuyruk Özeti ─── *@
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0">
+                        <i class="bi bi-diagram-3-fill me-2"></i>Kuyruk Ozeti
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (data.QueueSummaries.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                            <span>Aktif kuyruk yok</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Kuyruk</th>
+                                        <th class="text-center">Bekleyen</th>
+                                        <th class="text-center">Aktif</th>
+                                        <th class="text-center">Temsilci</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var queue in data.QueueSummaries)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-people-fill me-1 text-muted"></i>
+                                                @queue.Name
+                                            </td>
+                                            <td class="text-center">
+                                                @if (queue.WaitingCount > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark rounded-pill">@queue.WaitingCount</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">0</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                @if (queue.ActiveCount > 0)
+                                                {
+                                                    <span class="badge bg-success rounded-pill">@queue.ActiveCount</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">0</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="text-muted">@queue.AgentCount</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardResponse? data;
+    private List<CustomerSimpleDto> customers = new();
+    private int selectedCustomerId;
+    private bool isLoading;
+    private System.Threading.Timer? refreshTimer;
+
+    // Durum adlarini Turkce goster
+    private static readonly Dictionary<string, string> StatusDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Available", "Musait" },
+        { "Busy", "Mesgul" },
+        { "OnBreak", "Mola" },
+        { "Offline", "Cevrimdisi" },
+        { "InCall", "Aramada" },
+        { "AfterCallWork", "Arama Sonrasi" },
+        { "Ringing", "Caliyor" },
+        { "InProgress", "Devam Ediyor" },
+        { "OnHold", "Beklemede" },
+        { "Transferred", "Transfer" },
+        { "Completed", "Tamamlandi" },
+        { "Missed", "Cevapsiz" },
+        { "Failed", "Basarisiz" },
+        { "Inbound", "Gelen" },
+        { "Outbound", "Giden" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Firma listesini yukle
+        try
+        {
+            var customerList = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+            customers = customerList ?? new();
+        }
+        catch
+        {
+            // Supervisor/Admin degilse 403 doner — bos liste birak
+        }
+
+        // Dashboard verisini yukle
+        await LoadDashboard();
+
+        // SignalR event'lerini dinle
+        HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
+        HubService.OnIncomingCall += HandleIncomingCall;
+        HubService.OnCallEnded += HandleCallEnded;
+
+        // 60 saniyede bir tam yenileme (fallback)
+        refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            await LoadDashboard();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+    }
+
+    private async Task LoadDashboard()
+    {
+        isLoading = true;
+
+        try
+        {
+            var url = selectedCustomerId > 0
+                ? $"api/supervisor/dashboard?customerId={selectedCustomerId}"
+                : "api/supervisor/dashboard";
+
+            data = await Http.GetFromJsonAsync<DashboardResponse>(url);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            // Yetkisiz kullanici — bos dashboard goster
+            data = new DashboardResponse();
+        }
+        catch
+        {
+            // Hata durumunda mevcut veriyi koru
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            selectedCustomerId = id;
+            await LoadDashboard();
+        }
+    }
+
+    private void HandleAgentStatusChanged(AgentStatusUpdate update)
+    {
+        if (data == null) return;
+
+        var agent = data.Agents.FirstOrDefault(a => a.Id == update.AgentId);
+        if (agent != null)
+        {
+            agent.StatusId = update.StatusId;
+            agent.StatusName = update.StatusName;
+
+            var statusItem = AgentStatuses.GetById(update.StatusId);
+            if (statusItem != null)
+            {
+                agent.StatusCss = statusItem.CssClass ?? "offline";
+                agent.StatusIcon = statusItem.Icon ?? "bi-circle-fill";
+            }
+
+            // KPI guncelle
+            data.AvailableAgentCount = data.Agents.Count(a => a.StatusId == AgentStatuses.Ids.Available);
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleIncomingCall(CallNotification notification)
+    {
+        if (data == null) return;
+
+        data.ActiveCallCount++;
+        data.QueueWaitingCount++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCallEnded(int callId)
+    {
+        if (data == null) return;
+
+        if (data.ActiveCallCount > 0) data.ActiveCallCount--;
+        data.TodayTotalCallCount++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetStatusDisplayName(string systemName)
+    {
+        return StatusDisplayNames.TryGetValue(systemName, out var name) ? name : systemName;
+    }
+
+    private static string FormatDuration(int seconds)
+    {
+        if (seconds <= 0) return "-";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0
+            ? $"{ts.Hours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes}:{ts.Seconds:D2}";
+    }
+
+    private static string FormatTimeAgo(DateTime utcTime)
+    {
+        var diff = DateTime.UtcNow - utcTime;
+        if (diff.TotalMinutes < 1) return "Az once";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} dk once";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} saat once";
+        return utcTime.ToLocalTime().ToString("dd.MM HH:mm");
+    }
+
+    public void Dispose()
+    {
+        HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
+        HubService.OnIncomingCall -= HandleIncomingCall;
+        HubService.OnCallEnded -= HandleCallEnded;
+        refreshTimer?.Dispose();
+    }
+}

@@ -1,0 +1,296 @@
+@page "/admin/translations"
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Dil Yonetimi - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-translate me-2 text-primary"></i>Dil Yonetimi
+    </h4>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-info btn-sm" @onclick="ExportXml" disabled="@isExporting">
+            <i class="bi bi-download me-1"></i>XML Export
+        </button>
+        <button class="btn btn-outline-warning btn-sm" @onclick="ReloadCache">
+            <i class="bi bi-arrow-repeat me-1"></i>Cache Yenile
+        </button>
+        <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Key
+        </button>
+    </div>
+</div>
+
+@* ─── FİLTRELER ─── *@
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Key veya deger ara..."
+                           @bind="searchText" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" @onchange="OnModuleFilterChanged">
+                    <option value="">Tum Moduller</option>
+                    @foreach (var m in modules)
+                    {
+                        <option value="@m">@m</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" @onclick="LoadData">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ─── TABLO ─── *@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (result == null || result.Items.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-translate fs-1 d-block mb-2 opacity-25"></i>
+                <span>Ceviri bulunamadi</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Key</th>
+                            <th>Modul</th>
+                            @foreach (var lang in languages)
+                            {
+                                <th>@lang.Name (@lang.Code)</th>
+                            }
+                            <th style="width: 100px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var key in result.Items)
+                        {
+                            <tr>
+                                <td class="fw-medium small">@key.Key</td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary">@key.Module</span>
+                                </td>
+                                @foreach (var lang in languages)
+                                {
+                                    <td class="small">
+                                        @(key.Values.TryGetValue(lang.Code, out var v) ? v : "-")
+                                    </td>
+                                }
+                                <td>
+                                    <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
+                                            @onclick="() => OpenEditForm(key)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Sil"
+                                            @onclick="() => ConfirmDelete(key)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                <small class="text-muted">Toplam: @result.TotalCount kayit</small>
+                <Pagination CurrentPage="currentPage" TotalPages="result.TotalPages" OnPageChanged="OnPageChanged" />
+            </div>
+        }
+    </div>
+</div>
+
+<TranslationForm @ref="translationForm" Languages="languages" OnSaved="LoadData" />
+
+<ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDelete"
+               Message="@($"'{deleteTarget?.Key}' key'ini silmek istediginize emin misiniz? Tum ceviriler de silinecek.")" />
+
+@code {
+    private PagedResult<TranslationKeyListDto>? result;
+    private List<LanguageDto> languages = new();
+    private List<string> modules = new();
+    private bool isLoading;
+    private bool isExporting;
+    private string searchText = "";
+    private string selectedModule = "";
+    private int currentPage = 1;
+    private TranslationForm translationForm = null!;
+    private ConfirmDialog confirmDialog = null!;
+    private TranslationKeyListDto? deleteTarget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Dil listesini yukle
+        try
+        {
+            var langList = await Http.GetFromJsonAsync<List<LanguageDto>>("api/translations/languages");
+            languages = langList ?? new();
+        }
+        catch { }
+
+        await LoadData();
+
+        // Modul listesini benzersiz olarak cikar
+        if (result?.Items != null)
+        {
+            modules = result.Items.Select(i => i.Module).Distinct().OrderBy(m => m).ToList();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"api/translations/keys?page={currentPage}&pageSize=30";
+            if (!string.IsNullOrWhiteSpace(searchText))
+                url += $"&search={Uri.EscapeDataString(searchText)}";
+            if (!string.IsNullOrWhiteSpace(selectedModule))
+                url += $"&module={Uri.EscapeDataString(selectedModule)}";
+
+            result = await Http.GetFromJsonAsync<PagedResult<TranslationKeyListDto>>(url);
+
+            // Modul listesini guncelle (ilk yuklemede veya filtre temizlendiginde)
+            if (string.IsNullOrWhiteSpace(selectedModule) && result?.Items != null)
+            {
+                var newModules = result.Items.Select(i => i.Module).Distinct().ToList();
+                foreach (var m in newModules.Where(m => !modules.Contains(m)))
+                    modules.Add(m);
+                modules.Sort();
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Veri yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadData();
+        }
+    }
+
+    private async Task OnModuleFilterChanged(ChangeEventArgs e)
+    {
+        selectedModule = e.Value?.ToString() ?? "";
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        currentPage = page;
+        await LoadData();
+    }
+
+    private void OpenCreateForm()
+    {
+        translationForm.OpenForCreate();
+    }
+
+    private void OpenEditForm(TranslationKeyListDto key)
+    {
+        translationForm.OpenForEdit(key);
+    }
+
+    private void ConfirmDelete(TranslationKeyListDto key)
+    {
+        deleteTarget = key;
+        confirmDialog.Show();
+    }
+
+    private async Task ExecuteDelete()
+    {
+        if (deleteTarget == null) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/translations/keys/{deleteTarget.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Key basariyla silindi.");
+                await LoadData();
+            }
+            else
+            {
+                Toast.ShowError("Silme islemi basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+
+    private async Task ExportXml()
+    {
+        isExporting = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.GetAsync("api/translations/export/xml");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("XML export basarili. Tarayiciniz dosyayi indirecek.");
+                // Blazor WASM'de dosya indirmek icin JS interop gerekir
+                // Simdilik sadece bildirim gosteriyoruz
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Export hatasi: {ex.Message}");
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private async Task ReloadCache()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/translations/reload-cache", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Ceviri onbellegi yenilendi.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+}

@@ -27,7 +27,8 @@
       "Bash(dotnet ef migrations add:*)",
       "Bash(dotnet ef database drop:*)",
       "Bash(dotnet ef database update:*)",
-      "Bash(dotnet ef migrations remove:*)"
+      "Bash(dotnet ef migrations remove:*)",
+      "Bash(dotnet list:*)"
     ]
   }
 }

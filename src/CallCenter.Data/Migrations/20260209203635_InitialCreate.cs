@@ -49,48 +49,6 @@ namespace CallCenter.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Queues",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Uid = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: true),
-                    MaxWaitTimeSeconds = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Queues", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SipAccounts",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Uid = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Server = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Port = table.Column<int>(type: "integer", nullable: false),
-                    Domain = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    Username = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Password = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    Transport = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
-                    UseSrtp = table.Column<bool>(type: "boolean", nullable: false),
-                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SipAccounts", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "TranslationKeys",
                 columns: table => new
                 {
@@ -153,6 +111,62 @@ namespace CallCenter.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Queues",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uid = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    MaxWaitTimeSeconds = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Queues", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Queues_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SipAccounts",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uid = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Server = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Port = table.Column<int>(type: "integer", nullable: false),
+                    Domain = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Username = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Password = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Transport = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    UseSrtp = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SipAccounts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SipAccounts_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Translations",
                 columns: table => new
                 {
@@ -177,6 +191,36 @@ namespace CallCenter.Data.Migrations
                         name: "FK_Translations_TranslationKeys_TranslationKeyId",
                         column: x => x.TranslationKeyId,
                         principalTable: "TranslationKeys",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CustomerPersonnel",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uid = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CustomerId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerPersonnel", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CustomerPersonnel_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CustomerPersonnel_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -214,36 +258,6 @@ namespace CallCenter.Data.Migrations
                         column: x => x.AgentId,
                         principalTable: "Users",
                         principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CustomerPersonnel",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Uid = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    CustomerId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CustomerPersonnel", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CustomerPersonnel_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CustomerPersonnel_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -494,9 +508,9 @@ namespace CallCenter.Data.Migrations
                 column: "AgentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Queues_Name",
+                name: "IX_Queues_CustomerId_Name",
                 table: "Queues",
-                column: "Name",
+                columns: new[] { "CustomerId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -504,6 +518,11 @@ namespace CallCenter.Data.Migrations
                 table: "Queues",
                 column: "Uid",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SipAccounts_CustomerId",
+                table: "SipAccounts",
+                column: "CustomerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SipAccounts_Uid",
@@ -581,10 +600,10 @@ namespace CallCenter.Data.Migrations
                 name: "TranslationKeys");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "Users");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "Customers");
         }
     }
 }

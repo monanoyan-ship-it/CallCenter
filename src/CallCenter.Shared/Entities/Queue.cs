@@ -10,6 +10,10 @@ public class Queue
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Hangi musteriye ait (her kuyruk bir firmaya baglidir)
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
+
     public ICollection<CallRecord> CallRecords { get; set; } = new List<CallRecord>();
     public ICollection<QueueAgent> QueueAgents { get; set; } = new List<QueueAgent>();
 }

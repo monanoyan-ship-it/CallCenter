@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260209203635_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -420,190 +423,6 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("SipAccounts");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SystemSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Group")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<bool>("IsSystem")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ValueType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("SystemSettings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Uygulama adi",
-                            Group = "general",
-                            IsSystem = true,
-                            Key = "app.name",
-                            Value = "Call Center",
-                            ValueType = "string"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Varsayilan dil",
-                            Group = "general",
-                            IsSystem = true,
-                            Key = "app.language",
-                            Value = "tr",
-                            ValueType = "string"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Zaman dilimi",
-                            Group = "general",
-                            IsSystem = true,
-                            Key = "app.timezone",
-                            Value = "Europe/Istanbul",
-                            ValueType = "string"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Tarih formati",
-                            Group = "general",
-                            IsSystem = true,
-                            Key = "app.date_format",
-                            Value = "dd.MM.yyyy",
-                            ValueType = "string"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Description = "Maks hatali giris denemesi",
-                            Group = "security",
-                            IsSystem = true,
-                            Key = "security.max_login_attempts",
-                            Value = "5",
-                            ValueType = "int"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Description = "Hesap kilitleme suresi (dk)",
-                            Group = "security",
-                            IsSystem = true,
-                            Key = "security.lockout_minutes",
-                            Value = "15",
-                            ValueType = "int"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Description = "JWT token suresi (dk)",
-                            Group = "security",
-                            IsSystem = true,
-                            Key = "security.token_expire_minutes",
-                            Value = "480",
-                            ValueType = "int"
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Description = "Minimum sifre uzunlugu",
-                            Group = "security",
-                            IsSystem = true,
-                            Key = "security.password_min_length",
-                            Value = "6",
-                            ValueType = "int"
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Description = "Varsayilan SIP transport",
-                            Group = "sip",
-                            IsSystem = true,
-                            Key = "sip.default_transport",
-                            Value = "UDP",
-                            ValueType = "string"
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Description = "SIP kayit suresi (sn)",
-                            Group = "sip",
-                            IsSystem = true,
-                            Key = "sip.registration_timeout",
-                            Value = "3600",
-                            ValueType = "int"
-                        },
-                        new
-                        {
-                            Id = 22,
-                            Description = "Keep-alive araligi (sn)",
-                            Group = "sip",
-                            IsSystem = true,
-                            Key = "sip.keep_alive_interval",
-                            Value = "30",
-                            ValueType = "int"
-                        },
-                        new
-                        {
-                            Id = 30,
-                            Description = "Bildirim sesi",
-                            Group = "notification",
-                            IsSystem = false,
-                            Key = "notification.sound_enabled",
-                            Value = "true",
-                            ValueType = "bool"
-                        },
-                        new
-                        {
-                            Id = 31,
-                            Description = "Masaustu bildirimi",
-                            Group = "notification",
-                            IsSystem = false,
-                            Key = "notification.desktop_enabled",
-                            Value = "true",
-                            ValueType = "bool"
-                        },
-                        new
-                        {
-                            Id = 32,
-                            Description = "Zil calma suresi (sn)",
-                            Group = "notification",
-                            IsSystem = false,
-                            Key = "notification.ring_duration",
-                            Value = "30",
-                            ValueType = "int"
-                        });
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Translation", b =>

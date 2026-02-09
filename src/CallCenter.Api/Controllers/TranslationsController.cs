@@ -2,6 +2,7 @@ using System.Xml.Linq;
 using CallCenter.Data;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Services;
+using DTOs = CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -172,5 +173,182 @@ public class TranslationsController : ControllerBase
     {
         await _translationService.ReloadCacheAsync();
         return Ok(new { message = "Çeviri önbelleği yenilendi." });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // KEY CRUD (Admin panel icin)
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>Dil listesi</summary>
+    [HttpGet("languages")]
+    public async Task<ActionResult<List<DTOs.LanguageDto>>> GetLanguages()
+    {
+        var languages = await _db.Languages
+            .Where(l => l.IsActive)
+            .OrderByDescending(l => l.IsDefault)
+            .ThenBy(l => l.Name)
+            .Select(l => new DTOs.LanguageDto
+            {
+                Code = l.Code,
+                Name = l.Name,
+                IsDefault = l.IsDefault,
+                IsActive = l.IsActive
+            })
+            .ToListAsync();
+
+        return Ok(languages);
+    }
+
+    /// <summary>Key listesi (tum dillerdeki degerlerle birlikte)</summary>
+    [HttpGet("keys")]
+    public async Task<ActionResult<DTOs.PagedResult<DTOs.TranslationKeyListDto>>> GetKeys(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 30,
+        [FromQuery] string? search = null,
+        [FromQuery] string? module = null)
+    {
+        var query = _db.TranslationKeys.Include(tk => tk.Translations).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(tk => tk.Key.ToLower().Contains(s)
+                                   || tk.Translations.Any(t => t.Value.ToLower().Contains(s)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(module))
+        {
+            query = query.Where(tk => tk.Module == module);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(tk => tk.Module).ThenBy(tk => tk.Key)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(tk => new DTOs.TranslationKeyListDto
+            {
+                Id = tk.Id,
+                Key = tk.Key,
+                Module = tk.Module,
+                Description = tk.Description,
+                Values = tk.Translations.ToDictionary(t => t.LanguageCode, t => t.Value)
+            })
+            .ToListAsync();
+
+        return Ok(new DTOs.PagedResult<DTOs.TranslationKeyListDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        });
+    }
+
+    /// <summary>Yeni key + ceviri olustur</summary>
+    [HttpPost("keys")]
+    public async Task<ActionResult> CreateKey(DTOs.TranslationKeyCreateDto dto)
+    {
+        if (await _db.TranslationKeys.AnyAsync(tk => tk.Key == dto.Key))
+            return BadRequest(new { message = "Bu key zaten mevcut." });
+
+        var translationKey = new TranslationKey
+        {
+            Key = dto.Key,
+            Module = dto.Module,
+            Description = dto.Description
+        };
+
+        _db.TranslationKeys.Add(translationKey);
+        await _db.SaveChangesAsync();
+
+        // Her dil icin ceviri ekle
+        foreach (var (langCode, value) in dto.Values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                _db.Translations.Add(new Translation
+                {
+                    TranslationKeyId = translationKey.Id,
+                    LanguageCode = langCode,
+                    Value = value,
+                    UpdatedAt = DateTime.UtcNow,
+                    UpdatedBy = User.Identity?.Name ?? "admin"
+                });
+            }
+        }
+        await _db.SaveChangesAsync();
+
+        // Cache yenile
+        await _translationService.ReloadCacheAsync();
+
+        return Ok(new { id = translationKey.Id });
+    }
+
+    /// <summary>Key + ceviri guncelle</summary>
+    [HttpPut("keys/{id}")]
+    public async Task<ActionResult> UpdateKey(int id, DTOs.TranslationKeyUpdateDto dto)
+    {
+        var translationKey = await _db.TranslationKeys
+            .Include(tk => tk.Translations)
+            .FirstOrDefaultAsync(tk => tk.Id == id);
+
+        if (translationKey == null)
+            return NotFound(new { message = "Key bulunamadi." });
+
+        if (!string.IsNullOrWhiteSpace(dto.Module))
+            translationKey.Module = dto.Module;
+
+        if (dto.Description != null)
+            translationKey.Description = dto.Description;
+
+        // Cevirileri guncelle/ekle
+        foreach (var (langCode, value) in dto.Values)
+        {
+            var existing = translationKey.Translations.FirstOrDefault(t => t.LanguageCode == langCode);
+            if (existing != null)
+            {
+                existing.Value = value;
+                existing.UpdatedAt = DateTime.UtcNow;
+                existing.UpdatedBy = User.Identity?.Name ?? "admin";
+            }
+            else if (!string.IsNullOrWhiteSpace(value))
+            {
+                _db.Translations.Add(new Translation
+                {
+                    TranslationKeyId = translationKey.Id,
+                    LanguageCode = langCode,
+                    Value = value,
+                    UpdatedAt = DateTime.UtcNow,
+                    UpdatedBy = User.Identity?.Name ?? "admin"
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        await _translationService.ReloadCacheAsync();
+
+        return NoContent();
+    }
+
+    /// <summary>Key sil (cascading: ceviriler de silinir)</summary>
+    [HttpDelete("keys/{id}")]
+    public async Task<ActionResult> DeleteKey(int id)
+    {
+        var translationKey = await _db.TranslationKeys
+            .Include(tk => tk.Translations)
+            .FirstOrDefaultAsync(tk => tk.Id == id);
+
+        if (translationKey == null)
+            return NotFound(new { message = "Key bulunamadi." });
+
+        _db.Translations.RemoveRange(translationKey.Translations);
+        _db.TranslationKeys.Remove(translationKey);
+        await _db.SaveChangesAsync();
+
+        await _translationService.ReloadCacheAsync();
+
+        return NoContent();
     }
 }

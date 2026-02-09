@@ -1,0 +1,157 @@
+@page "/"
+@layout LoginLayout
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+
+<PageTitle>Call Center - Bulut Tabanli Cagri Merkezi</PageTitle>
+
+<div class="landing-container">
+    @* ─── HERO ─── *@
+    <header class="landing-hero">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+            <div class="hero-logo">
+                <i class="bi bi-headset"></i>
+            </div>
+            <h1>Call Center</h1>
+            <p class="hero-subtitle">
+                Bulut tabanli, cok platformlu cagri merkezi cozumu.
+                <br />Web, masaustu ve mobil — tek uygulama, tam kontrol.
+            </p>
+            <div class="hero-actions">
+                <a href="/login" class="btn-hero-primary">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Giris Yap
+                </a>
+            </div>
+        </div>
+    </header>
+
+    @* ─── ÖZELLİKLER ─── *@
+    <section class="landing-features">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon bg-blue">
+                    <i class="bi bi-telephone-fill"></i>
+                </div>
+                <h3>VoIP / SIP Arama</h3>
+                <p>SIP/WebRTC uzerinden gercek sesli arama. Farkli SIP saglayicilari destegi. Dinamik hesap yonetimi.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon bg-green">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <h3>Kuyruk Yonetimi</h3>
+                <p>Otomatik cagri dagitimi, bekleme suresi kontrolu, agent atama. Canli kuyruk izleme.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon bg-purple">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+                <h3>Canli Dashboard</h3>
+                <p>Gercek zamanli KPI'lar, temsilci durumlari, kuyruk ozeti. SignalR ile anlik guncelleme.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon bg-orange">
+                    <i class="bi bi-building"></i>
+                </div>
+                <h3>Coklu Musteri</h3>
+                <p>Her musteri kendi kuyrugu, SIP hesabi ve personeli ile. Firma bazli izolasyon ve raporlama.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon bg-teal">
+                    <i class="bi bi-phone"></i>
+                </div>
+                <h3>Mobil Uygulama</h3>
+                <p>Saha personeli icin mobil cagri uygulamasi. Kuryeler, teknik servis, satis ekibi — tek elle kullanim.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon bg-red">
+                    <i class="bi bi-shield-lock"></i>
+                </div>
+                <h3>Guvenlik & Yetki</h3>
+                <p>JWT kimlik dogrulama, rol bazli erisim, dinamik musteri yetki sistemi. Portal modul yonetimi.</p>
+            </div>
+        </div>
+    </section>
+
+    @* ─── PLATFORMLAR ─── *@
+    <section class="landing-platforms">
+        <h2>
+            <i class="bi bi-display me-2"></i>Her Platformda Calisin
+        </h2>
+        <div class="platforms-grid">
+            <div class="platform-card">
+                <i class="bi bi-globe2"></i>
+                <h4>Web</h4>
+                <p>Blazor WebAssembly — tarayicida calisir, kurulum gerektirmez</p>
+            </div>
+            <div class="platform-card">
+                <i class="bi bi-windows"></i>
+                <h4>Windows</h4>
+                <p>WPF + Blazor Hybrid — native masaustu, system tray, kisayollar</p>
+            </div>
+            <div class="platform-card">
+                <i class="bi bi-phone"></i>
+                <h4>Mobil</h4>
+                <p>.NET MAUI — Android ve iOS, push bildirim, arka plan arama</p>
+            </div>
+        </div>
+    </section>
+
+    @* ─── ROLLER ─── *@
+    <section class="landing-roles">
+        <h2>
+            <i class="bi bi-person-badge me-2"></i>Kim Ne Yapar?
+        </h2>
+        <div class="roles-grid">
+            <div class="role-card">
+                <div class="role-badge bg-danger text-white">
+                    <i class="bi bi-shield-fill-check"></i>
+                </div>
+                <h4>Admin</h4>
+                <p>Sistem yonetimi, kullanici/musteri CRUD, SIP ayarlari, dil ve ayar yonetimi</p>
+            </div>
+            <div class="role-card">
+                <div class="role-badge bg-info text-white">
+                    <i class="bi bi-eye-fill"></i>
+                </div>
+                <h4>Supervisor</h4>
+                <p>Canli dashboard, firma bazli izleme, kuyruk yapilandirmasi, temsilci yonetimi</p>
+            </div>
+            <div class="role-card">
+                <div class="role-badge bg-primary text-white">
+                    <i class="bi bi-headset"></i>
+                </div>
+                <h4>Agent</h4>
+                <p>Arama yapma/alma, numara cevirici, aktif aramalar, arama gecmisi</p>
+            </div>
+            <div class="role-card">
+                <div class="role-badge bg-warning text-dark">
+                    <i class="bi bi-building"></i>
+                </div>
+                <h4>Musteri</h4>
+                <p>Firma portali, personel yonetimi, arama raporlari, ozel yetkiler</p>
+            </div>
+        </div>
+    </section>
+
+    @* ─── FOOTER ─── *@
+    <footer class="landing-footer">
+        <p>&copy; @DateTime.Now.Year Call Center — Bulut Tabanli Cagri Merkezi Cozumu</p>
+    </footer>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Zaten login olmussa dashboard'a yonlendir
+            var token = await AuthService.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                NavigationManager.NavigateTo("/dashboard", forceLoad: false);
+            }
+        }
+    }
+}

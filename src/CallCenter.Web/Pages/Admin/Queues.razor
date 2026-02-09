@@ -1,0 +1,400 @@
+@page "/admin/queues"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Kuyruklar - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-diagram-3-fill me-2 text-primary"></i>Kuyruk Yapilandirmasi
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Kuyruk
+    </button>
+</div>
+
+@* ─── FİLTRELER ─── *@
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <select class="form-select form-select-sm" @onchange="OnCustomerFilterChanged">
+                    <option value="0">Tum Firmalar</option>
+                    @foreach (var c in customers)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Kuyruk adi ara..."
+                           @bind="searchText" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" @onclick="LoadData">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ─── TABLO ─── *@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (result == null || result.Items.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                <span>Kuyruk bulunamadi</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kuyruk Adi</th>
+                            <th>Firma</th>
+                            <th>Aciklama</th>
+                            <th class="text-center">Temsilci</th>
+                            <th class="text-center">Maks Bekleme</th>
+                            <th>Durum</th>
+                            <th style="width: 140px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var queue in result.Items)
+                        {
+                            <tr class="@(!queue.IsActive ? "table-secondary" : "")">
+                                <td class="fw-medium">@queue.Name</td>
+                                <td class="text-muted small">@queue.CustomerName</td>
+                                <td class="text-muted small">@(queue.Description ?? "-")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill">@queue.AgentCount</span>
+                                </td>
+                                <td class="text-center text-muted">@(queue.MaxWaitTimeSeconds)s</td>
+                                <td>
+                                    @if (queue.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-info btn-sm me-1" title="Temsilci Ata"
+                                            @onclick="() => OpenAgentPanel(queue)">
+                                        <i class="bi bi-people"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
+                                            @onclick="() => OpenEditForm(queue)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Sil"
+                                            @onclick="() => ConfirmDelete(queue)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                <small class="text-muted">Toplam: @result.TotalCount kayit</small>
+                <Pagination CurrentPage="currentPage" TotalPages="result.TotalPages" OnPageChanged="OnPageChanged" />
+            </div>
+        }
+    </div>
+</div>
+
+@* ─── AGENT ATAMA PANELİ ─── *@
+@if (agentPanelQueue != null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-people me-2"></i>@agentPanelQueue.Name — Temsilci Atama
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseAgentPanel"></button>
+                </div>
+                <div class="modal-body">
+                    @if (queueDetail == null)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                        </div>
+                    }
+                    else
+                    {
+                        @* Atanmis agent'lar *@
+                        <h6 class="small text-muted mb-2">Atanmis Temsilciler (@queueDetail.Agents.Count)</h6>
+                        @if (queueDetail.Agents.Count == 0)
+                        {
+                            <p class="text-muted small">Henuz temsilci atanmamis.</p>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @foreach (var agent in queueDetail.Agents)
+                                {
+                                    <span class="badge bg-primary d-flex align-items-center gap-1 py-2 px-3">
+                                        <i class="bi bi-person"></i>
+                                        @agent.FullName
+                                        @if (!string.IsNullOrEmpty(agent.Extension))
+                                        {
+                                            <small class="opacity-75">(#@agent.Extension)</small>
+                                        }
+                                        <button class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;"
+                                                @onclick="() => RemoveAgentFromQueue(agent.AgentId)"></button>
+                                    </span>
+                                }
+                            </div>
+                        }
+
+                        <hr />
+
+                        @* Agent ata *@
+                        <h6 class="small text-muted mb-2">Temsilci Ekle</h6>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" @bind="selectedAgentId">
+                                <option value="0">-- Temsilci Sec --</option>
+                                @foreach (var agent in availableAgents)
+                                {
+                                    <option value="@agent.Id">@agent.FullName @(!string.IsNullOrEmpty(agent.Extension) ? $"(#{agent.Extension})" : "")</option>
+                                }
+                            </select>
+                            <button class="btn btn-primary" @onclick="AssignAgentToQueue" disabled="@(selectedAgentId <= 0)">
+                                <i class="bi bi-plus-lg me-1"></i>Ekle
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<QueueForm @ref="queueForm" Customers="customers" OnSaved="LoadData" />
+
+<ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDelete"
+               Message="@($"'{deleteTarget?.Name}' kuyrugunu silmek istediginize emin misiniz?")" />
+
+@code {
+    private PagedResult<QueueListDto>? result;
+    private List<CustomerSimpleDto> customers = new();
+    private bool isLoading;
+    private string searchText = "";
+    private int selectedCustomerId;
+    private int currentPage = 1;
+    private QueueForm queueForm = null!;
+    private ConfirmDialog confirmDialog = null!;
+    private QueueListDto? deleteTarget;
+
+    // Agent atama paneli
+    private QueueListDto? agentPanelQueue;
+    private QueueDetailDto? queueDetail;
+    private List<UserListDto> availableAgents = new();
+    private int selectedAgentId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Firma listesini yukle
+        try
+        {
+            var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+            customers = list ?? new();
+        }
+        catch { }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"api/queues?page={currentPage}&pageSize=20";
+            if (selectedCustomerId > 0)
+                url += $"&customerId={selectedCustomerId}";
+            if (!string.IsNullOrWhiteSpace(searchText))
+                url += $"&search={Uri.EscapeDataString(searchText)}";
+
+            result = await Http.GetFromJsonAsync<PagedResult<QueueListDto>>(url);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Veri yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            currentPage = 1;
+            await LoadData();
+        }
+    }
+
+    private async Task OnCustomerFilterChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            selectedCustomerId = id;
+            currentPage = 1;
+            await LoadData();
+        }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        currentPage = page;
+        await LoadData();
+    }
+
+    private void OpenCreateForm()
+    {
+        queueForm.OpenForCreate();
+    }
+
+    private void OpenEditForm(QueueListDto queue)
+    {
+        queueForm.OpenForEdit(queue);
+    }
+
+    private void ConfirmDelete(QueueListDto queue)
+    {
+        deleteTarget = queue;
+        confirmDialog.Show();
+    }
+
+    private async Task ExecuteDelete()
+    {
+        if (deleteTarget == null) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/queues/{deleteTarget.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Kuyruk basariyla silindi.");
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Silme islemi basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+
+    private async Task OpenAgentPanel(QueueListDto queue)
+    {
+        agentPanelQueue = queue;
+        queueDetail = null;
+        selectedAgentId = 0;
+        StateHasChanged();
+
+        try
+        {
+            queueDetail = await Http.GetFromJsonAsync<QueueDetailDto>($"api/queues/{queue.Id}");
+
+            // Tum agent'lari yukle, atanmis olanlari filtrele
+            var allUsers = await Http.GetFromJsonAsync<PagedResult<UserListDto>>("api/users?page=1&pageSize=200&roleId=1");
+            var assignedIds = queueDetail?.Agents.Select(a => a.AgentId).ToHashSet() ?? new();
+            availableAgents = allUsers?.Items.Where(u => u.IsActive && !assignedIds.Contains(u.Id)).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Detay yuklenemedi: {ex.Message}");
+        }
+
+        StateHasChanged();
+    }
+
+    private void CloseAgentPanel()
+    {
+        agentPanelQueue = null;
+        queueDetail = null;
+    }
+
+    private async Task AssignAgentToQueue()
+    {
+        if (agentPanelQueue == null || selectedAgentId <= 0) return;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"api/queues/{agentPanelQueue.Id}/agents",
+                new QueueAgentAssignDto { AgentId = selectedAgentId });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Temsilci kuyruga atandi.");
+                await OpenAgentPanel(agentPanelQueue); // Refresh
+                await LoadData(); // Tablo da guncelle
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Atama basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveAgentFromQueue(int agentId)
+    {
+        if (agentPanelQueue == null) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/queues/{agentPanelQueue.Id}/agents/{agentId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Temsilci kuyruktan cikarildi.");
+                await OpenAgentPanel(agentPanelQueue);
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+
+    private record ErrorMsg(string? Message);
+}

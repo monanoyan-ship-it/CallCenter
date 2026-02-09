@@ -15,4 +15,8 @@ public class SipAccount
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Hangi musteriye ait (her SIP hesabi bir firmaya baglidir)
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
 }

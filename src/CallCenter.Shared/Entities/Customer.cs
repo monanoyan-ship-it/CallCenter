@@ -16,4 +16,10 @@ public class Customer
 
     // Müşteriye açık portal modülleri
     public ICollection<CustomerPortalModule> PortalModules { get; set; } = new List<CustomerPortalModule>();
+
+    // Musteriye ait kuyruklar
+    public ICollection<Queue> Queues { get; set; } = new List<Queue>();
+
+    // Musteriye ait SIP hesaplari
+    public ICollection<SipAccount> SipAccounts { get; set; } = new List<SipAccount>();
 }

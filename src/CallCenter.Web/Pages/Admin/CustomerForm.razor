@@ -1,0 +1,192 @@
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+@if (isVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi @(isEditMode ? "bi-pencil" : "bi-building-add") me-2"></i>
+                        @(isEditMode ? "Musteri Duzenle" : "Yeni Musteri")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger py-2 small">@errorMessage</div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label small">Firma Adi</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="model.Name" />
+                            <ValidationMessage For="@(() => model.Name)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small">Vergi No</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="model.TaxNumber" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small">Adres</label>
+                            <InputTextArea class="form-control form-control-sm" @bind-Value="model.Address" rows="2" />
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small">Telefon</label>
+                                    <InputText class="form-control form-control-sm" @bind-Value="model.Phone" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small">E-posta</label>
+                                    <InputText class="form-control form-control-sm" @bind-Value="model.Email" />
+                                    <ValidationMessage For="@(() => model.Email)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (isEditMode)
+                        {
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="isActive" />
+                                <label class="form-check-label small">Aktif</label>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="Close">Iptal</button>
+                        <button type="submit" class="btn btn-primary btn-sm" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            <i class="bi bi-check-lg me-1"></i>Kaydet
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private bool isVisible;
+    private bool isEditMode;
+    private bool isSaving;
+    private string? errorMessage;
+    private int editCustomerId;
+    private bool isActive = true;
+
+    private CustomerCreateDto model = new();
+
+    public void OpenForCreate()
+    {
+        isEditMode = false;
+        model = new();
+        isActive = true;
+        errorMessage = null;
+        isVisible = true;
+        StateHasChanged();
+    }
+
+    public void OpenForEdit(CustomerListDto customer)
+    {
+        isEditMode = true;
+        editCustomerId = customer.Id;
+        model = new()
+        {
+            Name = customer.Name,
+            Phone = customer.Phone,
+            Email = customer.Email
+        };
+        isActive = customer.IsActive;
+        errorMessage = null;
+        isVisible = true;
+
+        // Detay bilgilerini async yukle
+        _ = LoadDetail(customer.Id);
+    }
+
+    private async Task LoadDetail(int id)
+    {
+        try
+        {
+            var detail = await Http.GetFromJsonAsync<CustomerDetailDto>($"api/customers/{id}");
+            if (detail != null)
+            {
+                model.TaxNumber = detail.TaxNumber;
+                model.Address = detail.Address;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
+    private void Close()
+    {
+        isVisible = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            HttpResponseMessage response;
+
+            if (isEditMode)
+            {
+                var updateDto = new CustomerUpdateDto
+                {
+                    Name = model.Name,
+                    TaxNumber = model.TaxNumber,
+                    Address = model.Address,
+                    Phone = model.Phone,
+                    Email = model.Email,
+                    IsActive = isActive
+                };
+                response = await Http.PutAsJsonAsync($"api/customers/{editCustomerId}", updateDto);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/customers", model);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess(isEditMode ? "Musteri guncellendi." : "Musteri olusturuldu.");
+                isVisible = false;
+                await OnSaved.InvokeAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                errorMessage = error?.Message ?? "Islem basarisiz.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Hata: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private record ErrorMsg(string? Message);
+}

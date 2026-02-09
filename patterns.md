@@ -334,6 +334,93 @@ geçer → kayıt altında, raporlanabilir, denetlenebilir. UI hızlı arama, te
 **Migration yeniden oluşturuldu** (DB drop + InitialCreate + apply)
 **Build: 0 hata, 0 uyarı**
 
+### 2026-02-09 - Görev 2.3: Supervisor Dashboard
+
+**Supervisor Dashboard — Firma Bazlı Gerçek Zamanlı:**
+- Dashboard verileri firma bazlı filtreli: Supervisor üstte firma dropdown'dan seçer, "Tümü" genel bakış. Admin tümünü görür.
+- Tek endpoint `GET /api/supervisor/dashboard?customerId=X` tüm veriyi döndürür (KPI + agent listesi + son aramalar + kuyruk özeti)
+- `GET /api/supervisor/customers` — Firma dropdown için müşteri listesi
+- `[Authorize(Roles = "Admin,Supervisor")]` — Sadece yetkili roller erişebilir
+
+**Dashboard Bölümleri:**
+- KPI kartları: Aktif aramalar, müsait temsilci, kuyrukta bekleyen, bugün toplam
+- Son aramalar tablosu: Son 10 arama, yön, numara, temsilci, durum, süre
+- Temsilci durum listesi: Tüm agent'lar, anlık durum badge, çağrıdaysa ikon
+- Alt istatistikler: Cevaplanan, kaçırılan, ortalama süre
+- Kuyruk özeti tablosu: Kuyruk adı, bekleyen, aktif, temsilci sayısı
+
+**SignalR Gerçek Zamanlı Güncelleme:**
+- `OnAgentStatusChanged` → Temsilci listesinde anlık güncelleme
+- `OnIncomingCall` → KPI kartlarında aktif arama ve kuyruk sayısı artırılır
+- `OnCallEnded` → KPI kartlarında aktif arama düşürülür, toplam artırılır
+- 60 saniyede bir fallback tam yenileme (SignalR event kaçırılırsa)
+
+**Firma Bazlı Filtreleme Mantığı:**
+- customerId verilmişse: CustomerPersonnel → User ID'leri bulunur → Sadece o agent'ların verileri
+- customerId verilmemişse: Tüm Users (IsActive), tüm CallRecords, tüm Queues
+- Queue ve SipAccount artık Customer'a bağlı (CustomerId FK)
+
+**Build: 0 hata, 0 uyarı**
+
+### 2026-02-09 - Queue ve SipAccount → Customer İlişkisi
+
+**Temel multi-tenant düzeltme:**
+- `Queue.CustomerId` FK eklendi — Her kuyruk bir müşteriye ait
+- `SipAccount.CustomerId` FK eklendi — Her SIP hesabı bir müşteriye ait
+- `Customer.Queues` ve `Customer.SipAccounts` navigation property'leri eklendi
+- Queue unique index: `(CustomerId, Name)` — Aynı firma içinde kuyruk adı tekil
+- Cascade delete: Müşteri silinince kuyruğu ve SIP hesapları da silinir
+- SupervisorController'da kuyruk sorgusu firma bazlı filtreleme destekliyor
+- Migration yeniden oluşturuldu (InitialCreate)
+
+**Build: 0 hata, 0 uyarı**
+
+### 2026-02-09 - SIP/VoIP Multi-Tenant Fizibilite Araştırması
+
+**Soru:** Birden fazla müşteri farklı SIP sağlayıcılarına bağlanacak — her müşteriye ayrı SIP bağlantısı kurulabilir mi?
+
+**Cevap: EVET — Engelleyen bir durum yok.**
+
+**Web (Tarayıcı — SIP.js / JsSIP):**
+- SIP.js ve JsSIP birden fazla `UserAgent` instance'ı destekler
+- Her müşterinin SIP hesabı için ayrı UserAgent oluşturulur
+- WebSocket üzerinden bağlantı (WSS)
+- Tüm büyük sağlayıcılar WebRTC/WebSocket destekliyor
+
+**Windows (Masaüstü — SIPSorcery):**
+- SIPSorcery: Pure C# .NET kütüphanesi, NuGet paketi
+- Birden fazla `SIPRegistrationUserAgent` aynı anda çalışabilir
+- BSD lisansı (Ocak 2026'dan itibaren), ticari kullanıma uygun
+- Alternatif: pjsip C wrapper da mümkün ama SIPSorcery daha temiz
+
+**Cloud Sağlayıcılar Uyumluluğu:**
+| Sağlayıcı | WebRTC/WebSocket | Adapter Yaklaşımı |
+|---|---|---|
+| **Asterisk** | ✅ Dahili WebSocket (mod_http_websocket) | Doğrudan SIP.js bağlantısı |
+| **FreeSWITCH** | ✅ mod_verto + WSS | Doğrudan SIP.js/Verto bağlantısı |
+| **Telnyx** | ✅ telnyx-webrtc SDK | En iyi uyum — SIP.js tabanlı SDK |
+| **Twilio** | ✅ twilio.js SDK | Kendi SDK'sı, Voice API üzerinden |
+| **Vonage** | ✅ vonage-client-sdk | WebRTC tabanlı |
+| **Plivo** | ✅ plivo-browser-sdk | WebRTC tabanlı |
+| **Bandwidth** | ✅ WebRTC desteği | SIP üzerinden |
+| **VoIP.ms** | ❌ WebSocket yok | Kamailio proxy gerekli (SIP→WSS) |
+
+**Faz 3 Öncelik Sırası (Önerilen):**
+1. Asterisk / FreeSWITCH doğrudan bağlantı (en yaygın, on-premise)
+2. Telnyx SDK entegrasyonu (SIP.js tabanlı, kolay geçiş)
+3. Twilio SDK entegrasyonu (yaygın, iyi dokümantasyon)
+4. Diğer cloud sağlayıcılar (Vonage, Plivo, Bandwidth)
+5. Legacy sağlayıcılar — Kamailio proxy üzerinden (VoIP.ms vb.)
+
+**Adapter Pattern Doğrulandı:**
+- `ISipProvider` interface → Her sağlayıcı için concrete implementation
+- Web: `AsteriskProvider`, `TelnyxProvider`, `TwilioProvider` vb.
+- Windows: SIPSorcery ile doğrudan SIP, sağlayıcıdan bağımsız
+- DB'deki `SipAccount.Server/Port/Username/Password/Transport` bilgileri yeterli
+- Ek sağlayıcı-özel config gerekirse `SipAccount`'a JSON metadata alanı eklenebilir
+
+**Sonuç:** Multi-tenant SIP bağlantısı teknik olarak sorunsuz. Adapter pattern yaklaşımımız doğru.
+
 ## Dış Entegrasyon Vizyonu (Faz 7)
 
 Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kuracak:
@@ -341,3 +428,75 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 - **Inbound** (dış sistemler → biz): REST API, Webhook, SignalR ile dış sistemlerin bize erişimi
 - **Mevcut uyum**: Halihazırda kullanılan takip uygulamalarından veri göçü, paralel çalışma desteği
 - **Teknik**: Adapter/Connector pattern, API Key/OAuth2 güvenlik, Swagger/OpenAPI dokümantasyon, SDK
+
+### 2026-02-10 - Görev 2.4: Admin Paneli (Tam CRUD)
+
+**8 Adımda Tamamlandı:**
+
+**Adım 1 — Ortak Bileşenler:**
+- `Pagination.razor` — Sayfalama bileşeni (CurrentPage, TotalPages, OnPageChanged, ellipsis desteği)
+- `ConfirmDialog.razor` — Bootstrap modal silme onayı (Show/Hide metodları)
+- `ToastNotification.razor` — Sağ üst köşe bildirim (4 saniye otomatik kapanma)
+- `ToastService.cs` — ShowSuccess/ShowError/ShowWarning/ShowInfo event servisi, DI'a eklendi
+
+**Adım 2 — Kullanıcı Yönetimi (Pattern-setter CRUD):**
+- `AdminDtos.cs` — Tüm admin DTO'ları tek dosyada: PagedResult<T>, UserListDto/CreateDto/UpdateDto, CustomerListDto/CreateDto/UpdateDto/DetailDto, QueueListDto/CreateDto/UpdateDto/DetailDto/AgentDto/AgentAssignDto, SipAccountListDto/CreateDto/UpdateDto, TranslationKeyListDto/CreateDto/UpdateDto, LanguageDto, SystemSettingDto/CreateDto/UpdateDto
+- `UsersController.cs` — [Authorize(Roles="Admin")], GET(sayfalı+arama+rol filtre), GET/{id}, POST(BCrypt hash, unique), PUT(şifre opsiyonel), DELETE(soft, admin kendini silemez)
+- `Users.razor` — Tablo + filtreler + UserForm modal + ConfirmDialog + Pagination
+- `UserForm.razor` — Create/Edit modal, EditForm + DataAnnotationsValidator
+
+**Adım 3 — Müşteri Yönetimi:**
+- `CustomersController.cs` — [Authorize(Roles="Admin,Supervisor")], varsayılan portal modülleri otomatik atama, personel/kuyruk/SIP sayıları
+- `Customers.razor` + `CustomerForm.razor` — Aynı pattern
+
+**Adım 4 — Kuyruk Yapılandırması:**
+- `QueuesController.cs` — Firma bazlı, unique(customerId+name), POST/DELETE agents endpoint'leri
+- `Queues.razor` — Firma dropdown, agent atama modal paneli (badge'larla gösterim, ekleme/çıkarma)
+- `QueueForm.razor` — Firma seçimi + kuyruk ayarları
+
+**Adım 5 — SIP Hesap Ayarları:**
+- `SipAccountsController.cs` — [Authorize(Roles="Admin")], Password listede dönmez, update'de null ise değişmez, IsDefault tek
+- `SipAccounts.razor` + `SipAccountForm.razor` — Transport dropdown (UDP/TCP/TLS/WSS), SRTP checkbox
+
+**Adım 6 — Dil Yönetimi:**
+- `TranslationsController.cs`'a eklendi: GET keys(sayfalı+arama+modül), GET languages, POST/PUT/DELETE keys — her işlemde cache otomatik yenilenir
+- `Translations.razor` — Modül filtresi, her dil sütun olarak gösterilir, XML export butonu, cache yenile butonu
+- `TranslationForm.razor` — Key + her dil için input alanı
+
+**Adım 7 — Sistem Ayarları:**
+- `SystemSetting.cs` entity — Key, Value, Group, ValueType, Description, IsSystem
+- `SettingsController.cs` — GET(grup filtre), PUT, POST, DELETE(IsSystem engelle)
+- `Settings.razor` — Grup bazlı kartlar (Genel/Güvenlik/SIP/Bildirim), inline edit, yeni ayar modal
+- `AppDbContext.cs` — SystemSettings DbSet + OnModelCreating + 14 seed ayar
+- Migration: `AddSystemSettings`
+
+**Adım 8 — Role-Based Menü Filtreleme:**
+- NavMenu güncellendi: `IsAdmin`, `IsAdminOrSupervisor`, `IsCustomerUser` property'leri
+- Yönetim grubu: Sadece Admin+Supervisor görür
+- Kullanıcılar, SIP, Dil, Sistem Ayarları: Sadece Admin görür
+- Müşteriler, Kuyruk Yapılandırması: Admin+Supervisor görür
+- Arama/Kuyruklar/Raporlar: CustomerUser hariç herkes görür
+- Dashboard: Herkes görür
+- Yönetim grubuna `/admin/queues` linki eklendi
+
+**Build: 0 hata, 0 uyarı (API + Web)**
+
+**Razor Build Hataları ve Çözümleri:**
+- Pagination'da `page` değişken adı `@page` Razor directive ile çakıştı → `pageNum` olarak değiştirildi
+- TranslationForm'da inline lambda'daki `""` (boş string literal) Razor parser'ı bozdu → `HandleValueChange` metodu ile çözüldü
+
+### 2026-02-10 - Public Landing Page (Tanıtım Sayfası)
+
+**Değişiklik:**
+- Home.razor route `"/"` → `"/dashboard"` olarak değiştirildi (dashboard artık /dashboard'da)
+- Login.razor post-login yönlendirmesi `"/"` → `"/dashboard"` olarak güncellendi
+- NavMenu Dashboard linki `""` → `"dashboard"` olarak güncellendi
+- **Yeni:** `Index.razor` — `/` route, LoginLayout kullanan public tanıtım sayfası
+  - Hero bölümü: Logo, başlık, alt başlık, "Giriş Yap" butonu
+  - 6 özellik kartı: VoIP/SIP, Kuyruk, Dashboard, Çoklu Müşteri, Mobil, Güvenlik
+  - 3 platform kartı: Web, Windows, Mobil
+  - 4 rol kartı: Admin, Supervisor, Agent, Müşteri
+  - Footer
+  - Zaten giriş yapmışsa otomatik /dashboard'a yönlendirme
+- `Index.razor.css` — Koyu tema, glassmorphism kartlar, responsive grid (3→2→1 kolon)
+- Build: 0 hata, 0 uyarı

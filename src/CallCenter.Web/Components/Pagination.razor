@@ -1,0 +1,71 @@
+@if (TotalPages > 1)
+{
+    <nav aria-label="Sayfalama">
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+            <li class="page-item @(CurrentPage <= 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            </li>
+            @foreach (var pageNum in GetPageNumbers())
+            {
+                if (pageNum == -1)
+                {
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                }
+                else
+                {
+                    var p = pageNum;
+                    <li class="page-item @(p == CurrentPage ? "active" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(p)">@p</button>
+                    </li>
+                }
+            }
+            <li class="page-item @(CurrentPage >= TotalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </li>
+        </ul>
+    </nav>
+}
+
+@code {
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalPages { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > TotalPages || page == CurrentPage) return;
+        await OnPageChanged.InvokeAsync(page);
+    }
+
+    private List<int> GetPageNumbers()
+    {
+        var pages = new List<int>();
+        const int maxVisible = 5;
+
+        if (TotalPages <= maxVisible + 2)
+        {
+            for (int i = 1; i <= TotalPages; i++)
+                pages.Add(i);
+        }
+        else
+        {
+            pages.Add(1);
+
+            int start = Math.Max(2, CurrentPage - 1);
+            int end = Math.Min(TotalPages - 1, CurrentPage + 1);
+
+            if (start > 2) pages.Add(-1); // ellipsis
+            for (int i = start; i <= end; i++)
+                pages.Add(i);
+            if (end < TotalPages - 1) pages.Add(-1); // ellipsis
+
+            pages.Add(TotalPages);
+        }
+
+        return pages;
+    }
+}

@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<Language> Languages => Set<Language>();
     public DbSet<TranslationKey> TranslationKeys => Set<TranslationKey>();
     public DbSet<Translation> Translations => Set<Translation>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -112,7 +113,11 @@ public class AppDbContext : DbContext
             e.HasKey(q => q.Id);
             e.HasIndex(q => q.Uid).IsUnique();
             e.Property(q => q.Name).HasMaxLength(100).IsRequired();
-            e.HasIndex(q => q.Name).IsUnique();
+            e.HasIndex(q => new { q.CustomerId, q.Name }).IsUnique();
+            e.HasOne(q => q.Customer)
+             .WithMany(c => c.Queues)
+             .HasForeignKey(q => q.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // QueueAgent (many-to-many)
@@ -134,6 +139,10 @@ public class AppDbContext : DbContext
             e.Property(s => s.Password).HasMaxLength(256).IsRequired();
             e.Property(s => s.Domain).HasMaxLength(200);
             e.Property(s => s.Transport).HasMaxLength(10);
+            e.HasOne(s => s.Customer)
+             .WithMany(c => c.SipAccounts)
+             .HasForeignKey(s => s.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Language
@@ -165,6 +174,18 @@ public class AppDbContext : DbContext
             e.HasIndex(t => new { t.TranslationKeyId, t.LanguageCode }).IsUnique();
         });
 
+        // SystemSetting
+        modelBuilder.Entity<SystemSetting>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Key).HasMaxLength(100).IsRequired();
+            e.HasIndex(s => s.Key).IsUnique();
+            e.Property(s => s.Value).IsRequired();
+            e.Property(s => s.Group).HasMaxLength(50).IsRequired();
+            e.Property(s => s.ValueType).HasMaxLength(20).IsRequired();
+            e.Property(s => s.Description).HasMaxLength(500);
+        });
+
         // =============================================
         // SEED DATA
         // =============================================
@@ -193,6 +214,9 @@ public class AppDbContext : DbContext
 
         // Varsayılan çeviri key'leri ve çeviriler
         SeedTranslations(modelBuilder);
+
+        // Varsayılan sistem ayarları
+        SeedSystemSettings(modelBuilder);
     }
 
     private static void SeedTranslations(ModelBuilder modelBuilder)
@@ -272,6 +296,48 @@ public class AppDbContext : DbContext
                     UpdatedBy = "system"
                 }
             );
+        }
+    }
+
+    private static void SeedSystemSettings(ModelBuilder modelBuilder)
+    {
+        var settings = new (int id, string key, string value, string group, string valueType, string desc, bool isSystem)[]
+        {
+            // Genel
+            (1, "app.name", "Call Center", "general", "string", "Uygulama adi", true),
+            (2, "app.language", "tr", "general", "string", "Varsayilan dil", true),
+            (3, "app.timezone", "Europe/Istanbul", "general", "string", "Zaman dilimi", true),
+            (4, "app.date_format", "dd.MM.yyyy", "general", "string", "Tarih formati", true),
+
+            // Guvenlik
+            (10, "security.max_login_attempts", "5", "security", "int", "Maks hatali giris denemesi", true),
+            (11, "security.lockout_minutes", "15", "security", "int", "Hesap kilitleme suresi (dk)", true),
+            (12, "security.token_expire_minutes", "480", "security", "int", "JWT token suresi (dk)", true),
+            (13, "security.password_min_length", "6", "security", "int", "Minimum sifre uzunlugu", true),
+
+            // SIP
+            (20, "sip.default_transport", "UDP", "sip", "string", "Varsayilan SIP transport", true),
+            (21, "sip.registration_timeout", "3600", "sip", "int", "SIP kayit suresi (sn)", true),
+            (22, "sip.keep_alive_interval", "30", "sip", "int", "Keep-alive araligi (sn)", true),
+
+            // Bildirim
+            (30, "notification.sound_enabled", "true", "notification", "bool", "Bildirim sesi", false),
+            (31, "notification.desktop_enabled", "true", "notification", "bool", "Masaustu bildirimi", false),
+            (32, "notification.ring_duration", "30", "notification", "int", "Zil calma suresi (sn)", false),
+        };
+
+        foreach (var (id, key, value, group, valueType, desc, isSystem) in settings)
+        {
+            modelBuilder.Entity<SystemSetting>().HasData(new SystemSetting
+            {
+                Id = id,
+                Key = key,
+                Value = value,
+                Group = group,
+                ValueType = valueType,
+                Description = desc,
+                IsSystem = isSystem
+            });
         }
     }
 }

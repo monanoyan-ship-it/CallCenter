@@ -1,0 +1,258 @@
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+@if (isVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi @(isEditMode ? "bi-pencil" : "bi-router") me-2"></i>
+                        @(isEditMode ? "SIP Hesabi Duzenle" : "Yeni SIP Hesabi")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger py-2 small">@errorMessage</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Hesap Adi</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="model.Name" />
+                                <ValidationMessage For="@(() => model.Name)" />
+                            </div>
+                            @if (!isEditMode)
+                            {
+                                <div class="col-md-6">
+                                    <label class="form-label small">Firma</label>
+                                    <InputSelect class="form-select form-select-sm" @bind-Value="model.CustomerId">
+                                        <option value="0">-- Firma Sec --</option>
+                                        @foreach (var c in Customers)
+                                        {
+                                            <option value="@c.Id">@c.Name</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => model.CustomerId)" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-md-6"></div>
+                            }
+                        </div>
+
+                        <hr class="my-3" />
+                        <h6 class="small text-muted mb-3"><i class="bi bi-hdd-network me-1"></i>Sunucu Bilgileri</h6>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Sunucu Adresi</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="model.Server" placeholder="sip.example.com" />
+                                <ValidationMessage For="@(() => model.Server)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Port</label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="model.Port" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Transport</label>
+                                <InputSelect class="form-select form-select-sm" @bind-Value="model.Transport">
+                                    <option value="UDP">UDP</option>
+                                    <option value="TCP">TCP</option>
+                                    <option value="TLS">TLS</option>
+                                    <option value="WSS">WSS</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <label class="form-label small">Domain</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="model.Domain" placeholder="(opsiyonel)" />
+                            </div>
+                        </div>
+
+                        <hr class="my-3" />
+                        <h6 class="small text-muted mb-3"><i class="bi bi-key me-1"></i>Kimlik Bilgileri</h6>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Kullanici Adi</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="model.Username" />
+                                <ValidationMessage For="@(() => model.Username)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">
+                                    Sifre
+                                    @if (isEditMode)
+                                    {
+                                        <span class="text-muted">(bos birakirsaniz degismez)</span>
+                                    }
+                                </label>
+                                <InputText type="password" class="form-control form-control-sm" @bind-Value="model.Password" />
+                                @if (!isEditMode)
+                                {
+                                    <ValidationMessage For="@(() => model.Password)" />
+                                }
+                            </div>
+                        </div>
+
+                        <hr class="my-3" />
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="model.UseSrtp" />
+                                    <label class="form-check-label small">SRTP Kullan</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="model.IsDefault" />
+                                    <label class="form-check-label small">Varsayilan Hesap</label>
+                                </div>
+                            </div>
+                            @if (isEditMode)
+                            {
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <InputCheckbox class="form-check-input" @bind-Value="isActive" />
+                                        <label class="form-check-label small">Aktif</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="Close">Iptal</button>
+                        <button type="submit" class="btn btn-primary btn-sm" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            <i class="bi bi-check-lg me-1"></i>Kaydet
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public List<CustomerSimpleDto> Customers { get; set; } = new();
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private bool isVisible;
+    private bool isEditMode;
+    private bool isSaving;
+    private string? errorMessage;
+    private int editSipId;
+    private bool isActive = true;
+
+    private SipAccountCreateDto model = new();
+
+    public void OpenForCreate()
+    {
+        isEditMode = false;
+        model = new() { Port = 5060, Transport = "UDP" };
+        isActive = true;
+        errorMessage = null;
+        isVisible = true;
+        StateHasChanged();
+    }
+
+    public void OpenForEdit(SipAccountListDto sip)
+    {
+        isEditMode = true;
+        editSipId = sip.Id;
+        model = new()
+        {
+            Name = sip.Name,
+            Server = sip.Server,
+            Port = sip.Port,
+            Username = sip.Username,
+            Transport = sip.Transport ?? "UDP",
+            IsDefault = sip.IsDefault,
+            CustomerId = sip.CustomerId,
+            Password = "" // bos — degismez
+        };
+        isActive = sip.IsActive;
+        errorMessage = null;
+        isVisible = true;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        isVisible = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            HttpResponseMessage response;
+
+            if (isEditMode)
+            {
+                var updateDto = new SipAccountUpdateDto
+                {
+                    Name = model.Name,
+                    Server = model.Server,
+                    Port = model.Port,
+                    Domain = model.Domain,
+                    Username = model.Username,
+                    Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
+                    Transport = model.Transport,
+                    UseSrtp = model.UseSrtp,
+                    IsDefault = model.IsDefault,
+                    IsActive = isActive
+                };
+                response = await Http.PutAsJsonAsync($"api/sipaccounts/{editSipId}", updateDto);
+            }
+            else
+            {
+                if (model.CustomerId <= 0)
+                {
+                    errorMessage = "Firma secimi zorunludur.";
+                    return;
+                }
+                response = await Http.PostAsJsonAsync("api/sipaccounts", model);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess(isEditMode ? "SIP hesabi guncellendi." : "SIP hesabi olusturuldu.");
+                isVisible = false;
+                await OnSaved.InvokeAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                errorMessage = error?.Message ?? "Islem basarisiz.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Hata: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private record ErrorMsg(string? Message);
+}
