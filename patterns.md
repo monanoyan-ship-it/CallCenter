@@ -221,4 +221,76 @@ CallCenter.sln
 - Windows'ta native SIP (WPF), Web'de SIP.js/WebRTC, Mobil'de SRTP/VoIP
 - Admin panelinden SIP sunucu bilgileri girilecek (dinamik SIP)
 - MicroSIP C++ kaynak kodu referans: `microsip-reference/` klasöründe
-- Faz 4-5'te VoIP entegrasyonu gelecek — şu an UI ve altyapı hazırlanıyor
+- Faz 3-5'te VoIP entegrasyonu gelecek — şu an UI ve altyapı hazırlanıyor
+
+**Platform = Kullanıcı Profili Eşlemesi:**
+| Platform | Kullanıcı | Senaryo |
+|---|---|---|
+| Web (Blazor WASM) | Ofis çağrı merkezi temsilcisi | Masabaşında, kulaklıkla, kuyruktan arama cevaplıyor |
+| Windows (WPF Hybrid) | Ofis temsilcisi / Supervisor | Native masaüstü, system tray, kısayollar |
+| **Mobil (MAUI Hybrid)** | **Saha elemanı (kurye, teknisyen, satışçı)** | **Dışarıda, müşterinin müşterilerini firmamız üzerinden arıyor** |
+
+**Mobil = Saha Personeli Uygulaması**: Müşterilerimizin kuryesi, teknik servisi vb. saha ekibi
+bu uygulamayı kullanarak teslimat/randevu yapacağı kişileri arar. Tüm aramalar firma üzerinden
+geçer → kayıt altında, raporlanabilir, denetlenebilir. UI hızlı arama, tek elle kullanım odaklı olacak.
+
+### 2026-02-09 - Görev 2.2: Agent Paneli + TypeItem Dönüşümü
+
+**TypeItem Pattern (Enum Yerine):**
+- **KURAL**: Standart C# enum kullanılmayacak, TypeItem pattern kullanılacak. [Flags] CustomerPermission hariç.
+- TypeItem base class: Id, SystemName, NameResourceKey, Description, Icon, CssClass, DisplayOrder, IsDefault, IsActive, IsSystem
+- TypeDefinitions.cs: UserRoles, AgentStatuses, CallStatuses, CallDirections — hepsi tek dosyada
+- Her TypeItem'da inner `Ids` class (const int) — EF Core seed data ve koşullarda kullanılır
+- Entity'lerde `int RoleId`, `int StatusId`, `int DirectionId` — enum yerine int
+- Referans: SecretCustomer projesindeki TypeItem deseni
+
+**Enum → TypeItem Dönüşümü:**
+- UserRole enum → UserRoles static class (Agent=1, Supervisor=2, Admin=3, CustomerUser=4)
+- AgentStatus enum → AgentStatuses static class (Offline=1, Available=2, Busy=3, OnBreak=4, InCall=5, AfterCallWork=6)
+- CallStatus enum → CallStatuses static class (Ringing=1, InProgress=2, OnHold=3, Transferred=4, Completed=5, Missed=6, Failed=7)
+- CallDirection enum → CallDirections static class (Inbound=1, Outbound=2)
+- Eski enum dosyaları silindi: UserRole.cs, AgentStatus.cs, CallStatus.cs, CallDirection.cs
+- Tüm backend ve frontend referansları güncellendi
+
+**SignalR Client (Web):**
+- NuGet: Microsoft.AspNetCore.SignalR.Client 10.0.2
+- HubService.cs: JWT token ile bağlantı, WithAutomaticReconnect (0s, 2s, 5s, 10s, 30s)
+- Event'ler: OnAgentStatusChanged, OnIncomingCall, OnCallEnded, OnConnectionStateChanged
+- Metodlar: ConnectAsync, DisconnectAsync, UpdateStatusAsync, NotifyIncomingCallAsync, NotifyCallEndedAsync
+
+**TopBar Durum Dropdown:**
+- MainLayout'ta statik badge → tıklanabilir dropdown (4 seçenek: Müsait, Meşgul, Mola, Çevrimdışı)
+- SignalR event'i ile senkron (hub bağlantısında otomatik Available)
+- Icon ve cssClass TypeItem'dan okunur
+- WiFi-off göstergesi: SignalR bağlantısı kesilirse uyarı
+
+**Agent Sayfaları:**
+- Dialer (Numara Çevirici): /dialer — Tuş takımı, numara input, arama başlat/beklet/kapat, timer
+- Active Calls (Aktif Aramalar): /calls/active — SignalR'dan gelen aktif arama kartları, cevapla/reddet/beklet/transfer/kapat
+- Call History (Arama Geçmişi): /calls/history — API'den gelen geçmiş, filtreleme (yön/durum/numara arama)
+
+**Gelen Arama Bildirimi:**
+- IncomingCallNotification.razor: Global overlay popup, animasyonlu çalan telefon ikonu
+- Kabul/Reddet butonları, kuyruk bilgisi gösterimi
+- MainLayout'a yerleştirildi (tüm sayfalarda aktif)
+
+**API Endpoint'leri (CallsController):**
+- GET /api/calls/history — Sayfalı arama geçmişi
+- GET /api/calls/active — Aktif aramalar
+- POST /api/calls/start — Yeni arama başlat
+- PUT /api/calls/{id}/hold — Aramayı beklet
+- PUT /api/calls/{id}/end — Aramayı sonlandır
+- PUT /api/calls/{id}/answer — Aramayı cevapla
+
+**NuGet (Web):**
+- Microsoft.AspNetCore.SignalR.Client 10.0.2
+
+**Migration yeniden oluşturuldu** (DB drop + InitialCreate + apply)
+
+## Dış Entegrasyon Vizyonu (Faz 7)
+
+Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kuracak:
+- **Outbound** (biz → dış sistemler): CRM, ERP, Helpdesk sistemlerine bağlanma (Salesforce, SAP, Zendesk vb.)
+- **Inbound** (dış sistemler → biz): REST API, Webhook, SignalR ile dış sistemlerin bize erişimi
+- **Mevcut uyum**: Halihazırda kullanılan takip uygulamalarından veri göçü, paralel çalışma desteği
+- **Teknik**: Adapter/Connector pattern, API Key/OAuth2 güvenlik, Swagger/OpenAPI dokümantasyon, SDK

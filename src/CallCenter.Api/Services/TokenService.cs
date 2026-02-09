@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CallCenter.Api.Services;
@@ -21,12 +22,14 @@ public class TokenService
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
+        var roleName = UserRoles.GetById(user.RoleId)?.SystemName ?? "Agent";
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.UserName),
             new(ClaimTypes.GivenName, user.FullName),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, roleName)
         };
 
         // Müşteri kullanıcısıysa ek claim'ler ekle

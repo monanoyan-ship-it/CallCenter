@@ -1,0 +1,196 @@
+/* ═══════════════════════════════════════════
+   NUMARA CEVİRİCİ SAYFASI
+   ═══════════════════════════════════════════ */
+
+.dialer-page {
+    display: flex;
+    justify-content: center;
+    padding-top: 1rem;
+}
+
+.dialer-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+.dialer-header h5 {
+    margin: 0 0 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+/* ─── Numara gosterge ─── */
+
+.number-display {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.number-input {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    transition: border-color 0.2s;
+}
+
+.number-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.clear-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+}
+
+.clear-btn:hover {
+    color: #ef4444;
+}
+
+/* ─── Tus takimi ─── */
+
+.keypad {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.keypad-row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.keypad-btn {
+    width: 72px;
+    height: 58px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.keypad-btn:hover {
+    background: #f0f4ff;
+    border-color: #93c5fd;
+}
+
+.keypad-btn:active {
+    background: #dbeafe;
+    transform: scale(0.96);
+}
+
+.keypad-btn .digit {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.keypad-btn .letters {
+    font-size: 0.55rem;
+    color: #9ca3af;
+    letter-spacing: 2px;
+    margin-top: 1px;
+}
+
+/* ─── Arama butonlari ─── */
+
+.call-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.call-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+    border: none;
+    color: #fff;
+}
+
+.call-start {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    min-width: 200px;
+}
+
+.call-start:hover:not(:disabled) {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: scale(1.03);
+}
+
+.call-start:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.call-end {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.call-end:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.call-hold {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.call-hold:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.in-call-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.call-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Durum mesaji ─── */
+
+.status-message {
+    text-align: center;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: #f8fafc;
+}

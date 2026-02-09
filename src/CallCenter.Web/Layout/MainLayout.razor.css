@@ -88,7 +88,11 @@
     flex: 1;
 }
 
-/* ─── Durum badge'i ─── */
+/* ─── Durum badge + dropdown ─── */
+
+.status-dropdown-wrapper {
+    position: relative;
+}
 
 .status-badge {
     display: inline-flex;
@@ -98,10 +102,23 @@
     border-radius: 20px;
     font-size: 0.775rem;
     font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: filter 0.15s ease;
 }
 
-.status-badge i {
+.status-badge:hover {
+    filter: brightness(0.95);
+}
+
+.status-badge i:first-child {
     font-size: 0.5rem;
+}
+
+.status-chevron {
+    font-size: 0.6rem !important;
+    margin-left: 0.125rem;
+    transition: transform 0.2s ease;
 }
 
 .status-badge.online {
@@ -122,6 +139,90 @@
 .status-badge.offline {
     background: #f3f4f6;
     color: #6b7280;
+}
+
+/* ─── Dropdown menu ─── */
+
+.status-dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+}
+
+.status-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    border: 1px solid #e5e7eb;
+    min-width: 160px;
+    padding: 0.375rem;
+    z-index: 1051;
+    animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.status-option:hover {
+    background: #f3f4f6;
+}
+
+.status-option.active {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 500;
+}
+
+.status-dot {
+    font-size: 0.5rem;
+}
+
+.status-dot.online {
+    color: #22c55e;
+}
+
+.status-dot.busy {
+    color: #ef4444;
+}
+
+.status-dot.break {
+    color: #f59e0b;
+}
+
+.status-dot.offline {
+    color: #9ca3af;
+}
+
+/* ─── Baglanti gostergesi ─── */
+
+.connection-indicator {
+    font-size: 0.9rem;
+    animation: pulse-warning 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
 
 /* ─── Logout butonu ─── */

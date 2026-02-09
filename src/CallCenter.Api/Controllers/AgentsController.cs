@@ -34,8 +34,10 @@ public class AgentsController : ControllerBase
                 u.Id,
                 u.UserName,
                 u.FullName,
-                u.Role,
-                u.Status,
+                u.RoleId,
+                RoleName = UserRoles.GetById(u.RoleId) != null ? UserRoles.GetById(u.RoleId)!.SystemName : "Agent",
+                u.StatusId,
+                StatusName = AgentStatuses.GetById(u.StatusId) != null ? AgentStatuses.GetById(u.StatusId)!.SystemName : "Offline",
                 u.Extension
             })
             .ToListAsync();
@@ -44,20 +46,24 @@ public class AgentsController : ControllerBase
     }
 
     [HttpPut("status")]
-    public async Task<IActionResult> UpdateStatus([FromBody] AgentStatus newStatus)
+    public async Task<IActionResult> UpdateStatus([FromBody] int newStatusId)
     {
+        var statusItem = AgentStatuses.GetById(newStatusId);
+        if (statusItem == null) return BadRequest("Gecersiz durum ID'si.");
+
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return NotFound();
 
-        user.Status = newStatus;
+        user.StatusId = newStatusId;
         await _db.SaveChangesAsync();
 
         await _hub.Clients.All.SendAsync("AgentStatusChanged", new AgentStatusUpdate
         {
             AgentId = user.Id,
             AgentName = user.FullName,
-            Status = newStatus
+            StatusId = newStatusId,
+            StatusName = statusItem.SystemName
         });
 
         return Ok();
@@ -75,8 +81,10 @@ public class AgentsController : ControllerBase
             user.Id,
             user.UserName,
             user.FullName,
-            user.Role,
-            user.Status,
+            RoleId = user.RoleId,
+            RoleName = UserRoles.GetById(user.RoleId)?.SystemName ?? "Agent",
+            StatusId = user.StatusId,
+            StatusName = AgentStatuses.GetById(user.StatusId)?.SystemName ?? "Offline",
             user.Extension,
             user.Email
         });

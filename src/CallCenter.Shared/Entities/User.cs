@@ -10,8 +10,8 @@ public class User
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
-    public UserRole Role { get; set; } = UserRole.Agent;
-    public AgentStatus Status { get; set; } = AgentStatus.Offline;
+    public int RoleId { get; set; } = UserRoles.Ids.Agent;
+    public int StatusId { get; set; } = AgentStatuses.Ids.Offline;
     public string? Extension { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -19,6 +19,6 @@ public class User
 
     public ICollection<CallRecord> CallRecords { get; set; } = new List<CallRecord>();
 
-    // Müşteri kullanıcıları için (Role == CustomerUser ise dolu)
+    // Musteri kullanicilari icin (RoleId == CustomerUser ise dolu)
     public CustomerPersonnel? CustomerPersonnel { get; set; }
 }

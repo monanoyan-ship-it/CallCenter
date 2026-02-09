@@ -26,14 +26,15 @@ public class CallCenterHub : Hub
             var user = await _db.Users.FindAsync(userId.Value);
             if (user != null)
             {
-                user.Status = AgentStatus.Available;
+                user.StatusId = AgentStatuses.Ids.Available;
                 await _db.SaveChangesAsync();
 
                 await Clients.All.SendAsync("AgentStatusChanged", new AgentStatusUpdate
                 {
                     AgentId = user.Id,
                     AgentName = user.FullName,
-                    Status = AgentStatus.Available
+                    StatusId = AgentStatuses.Ids.Available,
+                    StatusName = AgentStatuses.Available.SystemName
                 });
             }
         }
@@ -49,14 +50,15 @@ public class CallCenterHub : Hub
             var user = await _db.Users.FindAsync(userId.Value);
             if (user != null)
             {
-                user.Status = AgentStatus.Offline;
+                user.StatusId = AgentStatuses.Ids.Offline;
                 await _db.SaveChangesAsync();
 
                 await Clients.All.SendAsync("AgentStatusChanged", new AgentStatusUpdate
                 {
                     AgentId = user.Id,
                     AgentName = user.FullName,
-                    Status = AgentStatus.Offline
+                    StatusId = AgentStatuses.Ids.Offline,
+                    StatusName = AgentStatuses.Offline.SystemName
                 });
             }
         }
@@ -64,22 +66,26 @@ public class CallCenterHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task UpdateMyStatus(AgentStatus status)
+    public async Task UpdateMyStatus(int statusId)
     {
         var userId = GetUserId();
         if (userId == null) return;
 
+        var statusItem = AgentStatuses.GetById(statusId);
+        if (statusItem == null) return;
+
         var user = await _db.Users.FindAsync(userId.Value);
         if (user == null) return;
 
-        user.Status = status;
+        user.StatusId = statusId;
         await _db.SaveChangesAsync();
 
         await Clients.All.SendAsync("AgentStatusChanged", new AgentStatusUpdate
         {
             AgentId = user.Id,
             AgentName = user.FullName,
-            Status = status
+            StatusId = statusId,
+            StatusName = statusItem.SystemName
         });
     }
 

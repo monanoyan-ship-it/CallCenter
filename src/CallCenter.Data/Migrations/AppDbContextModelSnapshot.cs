@@ -46,7 +46,7 @@ namespace CallCenter.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("Direction")
+                    b.Property<int>("DirectionId")
                         .HasColumnType("integer");
 
                     b.Property<int>("DurationSeconds")
@@ -67,7 +67,7 @@ namespace CallCenter.Data.Migrations
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("StatusId")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("Uid")
@@ -1192,10 +1192,10 @@ namespace CallCenter.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<int>("Role")
+                    b.Property<int>("RoleId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("StatusId")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("Uid")
@@ -1228,8 +1228,8 @@ namespace CallCenter.Data.Migrations
                             FullName = "System Admin",
                             IsActive = true,
                             PasswordHash = "$2a$11$4NK5QRHYyKGuXY/Wr41bGOgqCOD1PDK.c1473NdyCowy2.HJswS72",
-                            Role = 2,
-                            Status = 0,
+                            RoleId = 3,
+                            StatusId = 1,
                             Uid = new Guid("00000000-0000-0000-0000-000000000001"),
                             UserName = "admin"
                         });

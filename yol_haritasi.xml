@@ -166,15 +166,31 @@
         - Role bazlı menü filtrelemesi henüz yok. Tüm menü öğeleri herkese görünüyor.
       </Riskler>
     </Gorev>
-    <Gorev no="2.2" durum="bekliyor">
-      <Ad>Agent paneli</Ad>
+    <Gorev no="2.2" durum="tamamlandi" tamamlanma="2026-02-09">
+      <Ad>Agent paneli + TypeItem dönüşümü</Ad>
       <Detay>
-        - Durum değiştirme (müsait/meşgul/mola)
-        - Gelen çağrı bildirimi
-        - Arama yapma (numara çevirici)
-        - Aktif çağrı ekranı (beklet, transfer, kapat)
-        - Çağrı geçmişi listesi
+        - Enum → TypeItem dönüşümü: UserRoles, AgentStatuses, CallStatuses, CallDirections
+        - TypeItem base class (Id, SystemName, Icon, CssClass vb.)
+        - Eski enum dosyaları silindi, tüm referanslar güncellendi
+        - SignalR.Client NuGet + HubService.cs (JWT auth, auto reconnect, events)
+        - TopBar durum dropdown (4 seçenek, SignalR senkron, bağlantı göstergesi)
+        - Dialer sayfası: Tuş takımı, timer, arama başlat/beklet/kapat
+        - Aktif Aramalar sayfası: Canlı arama kartları, cevapla/reddet/beklet/transfer/kapat
+        - Arama Geçmişi sayfası: Filtreleme (yön/durum/numara), sayfalı tablo
+        - IncomingCallNotification: Global overlay popup, animasyonlu ikon, kabul/reddet
+        - CallsController API: history, active, start, hold, end, answer endpoint'leri
+        - Migration yeniden oluşturuldu (InitialCreate)
+        - Build: 0 hata, 0 uyarı
       </Detay>
+      <Riskler>
+        - Dialer'da gerçek SIP araması yok, sadece UI + SignalR durum güncellemesi. VoIP Faz 3'te gelecek.
+        - CallsController.GetHistory'de LINQ Contains() server-side çalışıyor, büyük veri setlerinde yavaşlayabilir.
+        - AgentsController.GetAll'da UserRoles.GetById() iki kez çağrılıyor (null kontrolü için). Performans etkisi minimal ama static lookup.
+        - HubService Blazor WASM'de çalışıyor — WebSocket bağlantısı tarayıcıda. Windows/Mobile'da ayrı bağlantı stratejisi gerekebilir.
+        - AfterCallWork→Available geçişi client-side Task.Delay ile yapılıyor. Server-side background job daha güvenilir olur.
+        - IncomingCallNotification ve Active.razor'da aynı event'ler dinleniyor — aynı callId iki yerde işleniyor. Çakışma riski düşük ama state management ileride merkezileştirilmeli.
+        - Transfer özelliği henüz placeholder (TODO).
+      </Riskler>
     </Gorev>
     <Gorev no="2.3" durum="bekliyor">
       <Ad>Supervisor dashboard</Ad>
@@ -250,17 +266,42 @@
   <!-- ============================================================ -->
   <!-- FAZ 5: MOBİL UYGULAMA                                        -->
   <!-- ============================================================ -->
-  <Faz no="5" ad="Mobil Uygulama" durum="bekliyor">
+  <Faz no="5" ad="Mobil Uygulama (Saha Personeli)" durum="bekliyor">
+    <Aciklama>
+      MOBİL UYGULAMA = SAHA PERSONELİ UYGULAMASI
+      Müşterilerimizin saha elemanları (kuryeler, teknik servis, satış temsilcileri vb.)
+      bu uygulamayı kullanarak müşterinin müşterilerini arayacak.
+      Örnek: Lojistik firmasının kuryesi → teslimat yapacağı kişiyi uygulama üzerinden arar.
+      Tüm aramalar firma üzerinden geçer → kayıt altında, raporlanabilir, denetlenebilir.
+      UI: Hızlı arama, tek elle kullanım, minimal adım, saha koşullarına uygun.
+    </Aciklama>
     <Gorev no="5.1" durum="bekliyor">
-      <Ad>MAUI Blazor Hybrid projesi</Ad>
-      <Detay>Aynı Blazor UI'ı mobil cihazda çalıştırma</Detay>
+      <Ad>MAUI Blazor Hybrid — Saha UI</Ad>
+      <Detay>
+        - Blazor UI'ı mobilde çalıştırma (paylaşılan component'lar)
+        - Saha personeline özel basitleştirilmiş arayüz (hızlı arama, son arananlar, tek tuş ile arama)
+        - Mobil responsive düzenleme (tuş takımı büyük, tek elle kullanım)
+        - Offline mod: Son aranılan numaralar, kuyruk bilgisi cache
+      </Detay>
     </Gorev>
     <Gorev no="5.2" durum="bekliyor">
-      <Ad>Mobil özel özellikler</Ad>
+      <Ad>Mobil VoIP + native özellikler</Ad>
       <Detay>
-        - Push notification
-        - Arka planda çağrı alma
-        - Mobil uyumlu UI düzenlemesi
+        - Push notification (gelen arama, Firebase/APNs)
+        - Arka planda çağrı alma (VoIP push — iOS CallKit, Android ConnectionService)
+        - Ses cihazı yönetimi (hoparlör, kulaklık, bluetooth)
+        - Proximity sensor (ekran karartma)
+        - GPS konum paylaşımı (isteğe bağlı — saha takibi)
+      </Detay>
+    </Gorev>
+    <Gorev no="5.3" durum="bekliyor">
+      <Ad>Saha personeli senaryoları</Ad>
+      <Detay>
+        - Teslimat listesi → numara tıkla → ara (entegrasyon ile)
+        - Randevu hatırlatma araması (otomatik veya tek tuş)
+        - Müşteri notu görüntüleme (arama sırasında CRM bilgisi)
+        - Arama sonrası durum güncelleme (teslim edildi, ulaşılamadı vb.)
+        - Supervisor: Saha ekibinin arama aktivitesini canlı izleme
       </Detay>
     </Gorev>
   </Faz>
@@ -288,6 +329,49 @@
   </Faz>
 
   <!-- ============================================================ -->
+  <!-- FAZ 7: DIŞ ENTEGRASYON VE UYUM                               -->
+  <!-- ============================================================ -->
+  <Faz no="7" ad="Dis Entegrasyon ve Uyum" durum="bekliyor">
+    <Gorev no="7.1" durum="bekliyor">
+      <Ad>API Gateway / Webhook altyapısı</Ad>
+      <Detay>
+        - REST API: Dış sistemlerin bizim verimize erişmesi (çağrı kayıtları, agent durumları, kuyruk bilgileri)
+        - Webhook: Olay bazlı bildirimler dış sistemlere (çağrı başladı, bitti, agent durumu değişti)
+        - API Key / OAuth2 ile güvenli erişim
+        - Rate limiting ve throttling
+      </Detay>
+    </Gorev>
+    <Gorev no="7.2" durum="bekliyor">
+      <Ad>Dış veri kaynaklarına bağlanma (Outbound)</Ad>
+      <Detay>
+        - CRM sistemleri (Salesforce, HubSpot, Zoho CRM, custom CRM)
+        - ERP sistemleri (SAP, Microsoft Dynamics, Logo, Netsis)
+        - Helpdesk/Ticketing (Zendesk, Freshdesk, Jira Service Management)
+        - Adapter/Connector pattern ile farklı sistemlere entegrasyon
+        - Admin panelinden bağlantı konfigürasyonu
+      </Detay>
+    </Gorev>
+    <Gorev no="7.3" durum="bekliyor">
+      <Ad>Dış sistemlerin bize bağlanması (Inbound)</Ad>
+      <Detay>
+        - REST API endpoint'leri (müşteri bilgisi sorgula, çağrı başlat, agent durumu değiştir)
+        - WebSocket/SignalR bağlantısı (gerçek zamanlı olay akışı)
+        - Swagger/OpenAPI dokümantasyonu (otomatik oluşturulacak)
+        - SDK/Client library (C#, JavaScript)
+      </Detay>
+    </Gorev>
+    <Gorev no="7.4" durum="bekliyor">
+      <Ad>Mevcut takip uygulamalarıyla uyum</Ad>
+      <Detay>
+        - Mevcut çağrı takip sistemlerinden veri import (CSV, XML, API)
+        - Mevcut müşteri veritabanlarıyla senkronizasyon
+        - Numara havuzu ve yönlendirme kurallarını aktarma
+        - Geçiş sürecinde paralel çalışma desteği
+      </Detay>
+    </Gorev>
+  </Faz>
+
+  <!-- ============================================================ -->
   <!-- NOTLAR: Aklımıza gelen şeyleri buraya ekleyelim              -->
   <!-- ============================================================ -->
   <Notlar>
@@ -306,5 +390,9 @@
     <Not tarih="2026-02-09">BCrypt seed data sorunu: Her build'de farklı hash → EF Core uyarısı. Çözüm: Sabit hash string. Güvenlik kaybı yok.</Not>
     <Not tarih="2026-02-09">İlk EF migration (InitialCreate) oluşturuldu. CallCenterDB sıfırdan yaratıldı, tüm tablolar + seed data hazır.</Not>
     <Not tarih="2026-02-09">ÖNEMLİ: Bu proje bir SOFTPHONE uygulamasıdır! MicroSIP'in (microsip.org) çok müşterili çağrı merkezi versiyonu. Asıl hedef gerçek SIP/WebRTC üzerinden sesli arama. Şu an UI ve altyapı hazırlanıyor, VoIP entegrasyonu Faz 3-4'te gelecek.</Not>
+    <Not tarih="2026-02-09">Faz 7 eklendi: Dış entegrasyon. Hem dış sistemlere bağlanma (CRM, ERP, Helpdesk) hem dış sistemlerin bize bağlanması (API, Webhook, SDK). Mevcut takip uygulamalarıyla uyum ve veri göçü de dahil.</Not>
+    <Not tarih="2026-02-09">TypeItem pattern'e geçildi. Standart C# enum'lar artık kullanılmıyor (CustomerPermission [Flags] hariç). TypeItem: Id, SystemName, NameResourceKey, Description, Icon, CssClass, DisplayOrder, IsDefault, IsActive, IsSystem.</Not>
+    <Not tarih="2026-02-09">Görev 2.2 tamamlandı: Agent paneli + TypeItem dönüşümü. Dialer, Active Calls, History sayfaları, IncomingCallNotification, TopBar durum dropdown, SignalR HubService, CallsController API — tümü 0 hata build.</Not>
+    <Not tarih="2026-02-09">MOBİL UYGULAMA KULLANIM SENARYOlARI: Müşterilerin saha elemanları (kuryeler vb.) mobil uygulama üzerinden arama yapacak. Mobil: Saha personeli → müşterinin müşterilerini arar. Masaüstü/Web: Ofis çağrı merkezi temsilcileri.</Not>
   </Notlar>
 </Proje>

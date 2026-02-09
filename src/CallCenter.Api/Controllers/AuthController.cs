@@ -1,6 +1,7 @@
 using CallCenter.Api.Services;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,11 +37,13 @@ public class AuthController : ControllerBase
         var expireMinutes = int.Parse(HttpContext.RequestServices
             .GetRequiredService<IConfiguration>()["Jwt:ExpireMinutes"] ?? "480");
 
+        var roleName = UserRoles.GetById(user.RoleId)?.SystemName ?? "Agent";
+
         return Ok(new LoginResponse
         {
             Token = token,
             FullName = user.FullName,
-            Role = user.Role.ToString(),
+            Role = roleName,
             ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes)
         });
     }

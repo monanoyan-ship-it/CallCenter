@@ -1,0 +1,101 @@
+@inject HubService HubService
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+@implements IDisposable
+
+@if (incomingCall != null)
+{
+    <div class="incoming-call-overlay">
+        <div class="incoming-call-popup">
+            @* ─── Ust kisim: Animasyonlu ikon ─── *@
+            <div class="call-icon-wrapper">
+                <div class="call-ring-animation"></div>
+                <i class="bi bi-telephone-fill call-icon"></i>
+            </div>
+
+            @* ─── Arayan bilgisi ─── *@
+            <div class="caller-details">
+                <span class="call-label">Gelen Arama</span>
+                <span class="caller-number">@incomingCall.CallerNumber</span>
+                @if (!string.IsNullOrEmpty(incomingCall.QueueName))
+                {
+                    <span class="call-queue">
+                        <i class="bi bi-people-fill me-1"></i>@incomingCall.QueueName
+                    </span>
+                }
+            </div>
+
+            @* ─── Aksiyon butonlari ─── *@
+            <div class="call-actions">
+                <button class="btn call-action-btn accept" @onclick="AcceptCall">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>Cevapla</span>
+                </button>
+                <button class="btn call-action-btn reject" @onclick="RejectCall">
+                    <i class="bi bi-telephone-x-fill"></i>
+                    <span>Reddet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private CallNotification? incomingCall;
+
+    protected override void OnInitialized()
+    {
+        HubService.OnIncomingCall += HandleIncomingCall;
+        HubService.OnCallEnded += HandleCallEnded;
+    }
+
+    private void HandleIncomingCall(CallNotification notification)
+    {
+        // Sadece Ringing durumundaki cagilari goster
+        if (notification.StatusId == CallStatuses.Ids.Ringing)
+        {
+            incomingCall = notification;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandleCallEnded(int callId)
+    {
+        if (incomingCall?.CallId == callId)
+        {
+            incomingCall = null;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task AcceptCall()
+    {
+        if (incomingCall == null) return;
+
+        // Durumu InCall yap
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+
+        // Bildirimi kapat
+        var callId = incomingCall.CallId;
+        incomingCall = null;
+
+        // Aktif aramalar sayfasina bilgi gonder (SignalR ile status guncelle)
+        // API uzerinden de cevaplanabilir: PUT /api/calls/{callId}/answer
+    }
+
+    private async Task RejectCall()
+    {
+        if (incomingCall == null) return;
+
+        var callId = incomingCall.CallId;
+        incomingCall = null;
+
+        await HubService.NotifyCallEndedAsync(callId);
+    }
+
+    public void Dispose()
+    {
+        HubService.OnIncomingCall -= HandleIncomingCall;
+        HubService.OnCallEnded -= HandleCallEnded;
+    }
+}

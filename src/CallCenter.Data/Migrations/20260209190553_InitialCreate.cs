@@ -116,8 +116,8 @@ namespace CallCenter.Data.Migrations
                     FullName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     PasswordHash = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    Role = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
+                    RoleId = table.Column<int>(type: "integer", nullable: false),
+                    StatusId = table.Column<int>(type: "integer", nullable: false),
                     Extension = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -166,8 +166,8 @@ namespace CallCenter.Data.Migrations
                     Uid = table.Column<Guid>(type: "uuid", nullable: false),
                     CallerNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     CalleeNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Direction = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
+                    DirectionId = table.Column<int>(type: "integer", nullable: false),
+                    StatusId = table.Column<int>(type: "integer", nullable: false),
                     StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     AnsweredAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     EndedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -296,8 +296,8 @@ namespace CallCenter.Data.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "CreatedAt", "Email", "Extension", "FullName", "IsActive", "LastLoginAt", "PasswordHash", "Role", "Status", "Uid", "UserName" },
-                values: new object[] { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "admin@callcenter.local", null, "System Admin", true, null, "$2a$11$4NK5QRHYyKGuXY/Wr41bGOgqCOD1PDK.c1473NdyCowy2.HJswS72", 2, 0, new Guid("00000000-0000-0000-0000-000000000001"), "admin" });
+                columns: new[] { "Id", "CreatedAt", "Email", "Extension", "FullName", "IsActive", "LastLoginAt", "PasswordHash", "RoleId", "StatusId", "Uid", "UserName" },
+                values: new object[] { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "admin@callcenter.local", null, "System Admin", true, null, "$2a$11$4NK5QRHYyKGuXY/Wr41bGOgqCOD1PDK.c1473NdyCowy2.HJswS72", 3, 1, new Guid("00000000-0000-0000-0000-000000000001"), "admin" });
 
             migrationBuilder.InsertData(
                 table: "Translations",

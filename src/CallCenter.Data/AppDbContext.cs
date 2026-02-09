@@ -1,4 +1,5 @@
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Data;
@@ -148,7 +149,8 @@ public class AppDbContext : DbContext
             Email = "admin@callcenter.local",
             // Sifre: 1123Azs+-  (BCrypt hash sabitlesti - migration uyumlulugu icin)
             PasswordHash = "$2a$11$4NK5QRHYyKGuXY/Wr41bGOgqCOD1PDK.c1473NdyCowy2.HJswS72",
-            Role = Shared.Enums.UserRole.Admin,
+            RoleId = UserRoles.Ids.Admin,
+            StatusId = AgentStatuses.Ids.Offline,
             IsActive = true,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });

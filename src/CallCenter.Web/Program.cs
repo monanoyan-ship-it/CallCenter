@@ -26,4 +26,7 @@ builder.Services.AddScoped(sp =>
     return new HttpClient(handler) { BaseAddress = new Uri(apiBaseUrl) };
 });
 
+// SignalR Hub servisi
+builder.Services.AddScoped<HubService>();
+
 await builder.Build().RunAsync();

@@ -8,8 +8,8 @@ public class CallRecord
     public Guid Uid { get; set; } = Guid.NewGuid();
     public string CallerNumber { get; set; } = string.Empty;
     public string CalleeNumber { get; set; } = string.Empty;
-    public CallDirection Direction { get; set; }
-    public CallStatus Status { get; set; }
+    public int DirectionId { get; set; } = CallDirections.Ids.Inbound;
+    public int StatusId { get; set; } = CallStatuses.Ids.Ringing;
     public DateTime StartedAt { get; set; }
     public DateTime? AnsweredAt { get; set; }
     public DateTime? EndedAt { get; set; }

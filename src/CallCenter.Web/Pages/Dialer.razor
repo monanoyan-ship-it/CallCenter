@@ -1,0 +1,183 @@
+@page "/dialer"
+@attribute [Authorize]
+@inject HubService HubService
+@inject HttpClient Http
+@using CallCenter.Shared.Enums
+
+<div class="dialer-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-5">
+            <div class="dialer-card">
+                <div class="dialer-header">
+                    <h5><i class="bi bi-telephone-fill me-2"></i>Numara Cevirici</h5>
+                </div>
+
+                @* ─── Numara Gosterge ─── *@
+                <div class="number-display">
+                    <input type="text" class="form-control number-input"
+                           @bind="phoneNumber" @bind:event="oninput"
+                           placeholder="Numara girin..."
+                           @onkeydown="HandleKeyDown" />
+                    @if (!string.IsNullOrEmpty(phoneNumber))
+                    {
+                        <button class="btn btn-link clear-btn" @onclick="ClearNumber">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    }
+                </div>
+
+                @* ─── Tus Takimi ─── *@
+                <div class="keypad">
+                    @foreach (var row in keypadRows)
+                    {
+                        <div class="keypad-row">
+                            @foreach (var key in row)
+                            {
+                                <button class="keypad-btn" @onclick="() => PressKey(key.digit)">
+                                    <span class="digit">@key.digit</span>
+                                    @if (!string.IsNullOrEmpty(key.letters))
+                                    {
+                                        <span class="letters">@key.letters</span>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* ─── Arama Butonlari ─── *@
+                <div class="call-actions">
+                    @if (!isInCall)
+                    {
+                        <button class="btn call-btn call-start"
+                                disabled="@(string.IsNullOrWhiteSpace(phoneNumber))"
+                                @onclick="StartCall">
+                            <i class="bi bi-telephone-fill"></i>
+                            <span>Ara</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="in-call-actions">
+                            <button class="btn call-btn call-hold" @onclick="HoldCall">
+                                <i class="bi bi-pause-circle-fill"></i>
+                                <span>Beklet</span>
+                            </button>
+                            <button class="btn call-btn call-end" @onclick="EndCall">
+                                <i class="bi bi-telephone-x-fill"></i>
+                                <span>Kapat</span>
+                            </button>
+                        </div>
+                        <div class="call-timer mt-2">
+                            <i class="bi bi-clock"></i>
+                            <span>@callDuration</span>
+                        </div>
+                    }
+                </div>
+
+                @* ─── Durum Mesaji ─── *@
+                @if (!string.IsNullOrEmpty(statusMessage))
+                {
+                    <div class="status-message @statusClass">
+                        @statusMessage
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string phoneNumber = "";
+    private bool isInCall;
+    private string statusMessage = "";
+    private string statusClass = "";
+    private string callDuration = "00:00";
+    private System.Timers.Timer? callTimer;
+    private DateTime callStartTime;
+
+    // Tus takimi layout'u
+    private readonly (string digit, string letters)[][] keypadRows = new[]
+    {
+        new[] { ("1", ""), ("2", "ABC"), ("3", "DEF") },
+        new[] { ("4", "GHI"), ("5", "JKL"), ("6", "MNO") },
+        new[] { ("7", "PQRS"), ("8", "TUV"), ("9", "WXYZ") },
+        new[] { ("*", ""), ("0", "+"), ("#", "") }
+    };
+
+    private void PressKey(string key)
+    {
+        phoneNumber += key;
+    }
+
+    private void ClearNumber()
+    {
+        phoneNumber = "";
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(phoneNumber) && !isInCall)
+        {
+            _ = StartCall();
+        }
+        else if (e.Key == "Backspace" && phoneNumber.Length > 0)
+        {
+            // Blazor input binding handles backspace
+        }
+    }
+
+    private async Task StartCall()
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber)) return;
+
+        isInCall = true;
+        statusMessage = $"{phoneNumber} aranıyor...";
+        statusClass = "text-info";
+
+        // Agent durumunu InCall yap
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+
+        // Timer'i baslat
+        callStartTime = DateTime.Now;
+        callTimer = new System.Timers.Timer(1000);
+        callTimer.Elapsed += (s, e) =>
+        {
+            var elapsed = DateTime.Now - callStartTime;
+            callDuration = elapsed.ToString(@"mm\:ss");
+            InvokeAsync(StateHasChanged);
+        };
+        callTimer.Start();
+
+        statusMessage = $"{phoneNumber} ile gorusme baslatildi";
+        statusClass = "text-success";
+    }
+
+    private async Task HoldCall()
+    {
+        statusMessage = "Arama beklemede...";
+        statusClass = "text-warning";
+    }
+
+    private async Task EndCall()
+    {
+        isInCall = false;
+        callTimer?.Stop();
+        callTimer?.Dispose();
+        callTimer = null;
+
+        statusMessage = $"Arama sonlandirildi ({callDuration})";
+        statusClass = "text-muted";
+        callDuration = "00:00";
+
+        // Agent durumunu AfterCallWork yap, kisa sure sonra Available'a donecek
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
+
+        // 5 saniye sonra Available'a don
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(5000);
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+        });
+    }
+}

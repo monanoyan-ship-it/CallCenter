@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════
+   ARAMA GECMİSİ SAYFASI
+   ═══════════════════════════════════════════ */
+
+.page-header h5 {
+    margin: 0;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.search-box {
+    max-width: 200px;
+}
+
+.search-box .input-group-text {
+    background: #fff;
+    border-right: 0;
+}
+
+.search-box .form-control {
+    border-left: 0;
+}
+
+.filter-select {
+    max-width: 140px;
+}
+
+/* ─── Bos durum ─── */
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.empty-state h6 {
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+
+.empty-state p {
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* ─── Tablo ─── */
+
+.history-table {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.history-table thead th {
+    background: #f8fafc;
+    border-bottom: 2px solid #e5e7eb;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+}
+
+.history-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.85rem;
+}
+
+.history-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.history-table .badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+}
