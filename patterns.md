@@ -605,9 +605,8 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 
 ### 2026-02-10 - Faz 4: Müşteri Portalı + Modül Yönetimi
 
-**Mimari Karar: Factory + Service Pattern (Yeni Kod İçin)**
-- Faz 1-3'teki controller'lar mevcut yapıda kalır (doğrudan DbContext)
-- Faz 4'ten itibaren: Controller → ServiceFactory → IPortalService → AppDbContext
+**Mimari Karar: Factory + Service Pattern (Tüm Kod İçin)**
+- Tüm controller'lar: Controller → ServiceFactory → IXxxService → AppDbContext
 - Controller'larda iş mantığı YOK, sadece HTTP routing
 - Tüm iş mantığı (unique kontrol, BCrypt hash, yetki kopyalama) service katmanında
 - ServiceFactory: IServiceProvider wrapper, `CreatePortalService()` ile DI'dan resolve
@@ -683,3 +682,50 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 **Düzenlenen Dosyalar (8):** TypeDefinitions, CustomerPersonnel, Customer, AppDbContext, Api/Program, Web/Program, NavMenu, Customers
 
 **Build: 0 hata, 0 uyarı (Tüm solution)**
+
+### 2026-02-10 - Eski Controller'ları Factory+Service Mimarisine Geçirme
+
+**Tüm 12 eski controller (Faz 1-3) Factory+Service pattern'e geçirildi.**
+
+**11 Yeni Interface (Services/Interfaces/):**
+- IAuthService, IUserService, ICustomerService, IAgentService, ICallService
+- IQueueService, ISipAccountService, ISupervisorService, IReportService
+- ISettingService, ITranslationManagementService
+
+**11 Yeni Service (Services/):**
+- AuthService (TokenService + IConfiguration inject)
+- UserService (BCrypt hash, unique kontrol, soft delete)
+- CustomerService (Müşteri CRUD + CustomerPermissions modül/yetki yönetimi)
+- AgentService (SignalR IHubContext inject, durum güncelleme)
+- CallService (SignalR + CallDistributionService inject, ACD yönlendirme)
+- QueueService (Kuyruk CRUD, agent atama/çıkarma)
+- SipAccountService (SIP CRUD, IsDefault yönetimi, bağlantı bilgisi)
+- SupervisorService (Dashboard aggregation, canlı kuyruk, müşteri listesi)
+- ReportService (Arama raporu, agent performansı)
+- SettingService (Sistem ayarları CRUD, IsSystem koruma)
+- TranslationManagementService (Çeviri CRUD, XML import/export, cache yönetimi)
+
+**Domain Bazlı Servis Birleştirme:**
+- CustomersController + CustomerPermissionsController → ICustomerService (tek servis)
+- Mevcut ITranslationService (cache/lookup) dokunulmadı → ITranslationManagementService (CRUD)
+- Mevcut CallDistributionService ve TokenService dokunulmadı, yeni servisler bunları inject ediyor
+
+**Inline DTO Taşıma:**
+- CallsController'daki StartCallRequest + IncomingCallRequest → Shared/DTOs/CallDtos.cs
+
+**ServiceFactory Güncelleme:**
+- 12 yeni Create*Service() metodu eklendi (mevcut CreatePortalService korundu)
+
+**Program.cs DI Kayıtları:**
+- 11 yeni AddScoped<IXxxService, XxxService>() kaydı
+
+**12 Controller Dönüşümü:**
+- Tüm controller'lar: AppDbContext → ServiceFactory
+- İş mantığı sıfır, sadece HTTP routing + request/response mapping
+- Aynı route, aynı endpoint imzası, aynı HTTP status kodları
+
+**Dosya Özeti:**
+- Yeni dosyalar (23): 11 interface + 11 service + 1 DTO (CallDtos.cs)
+- Düzenlenen dosyalar (14): 12 controller + ServiceFactory.cs + Program.cs
+
+**Build: 0 hata, 0 uyarı (Tüm solution — API + Web + Shared + Data + Windows + Mobile)**

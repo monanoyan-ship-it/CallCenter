@@ -445,11 +445,41 @@
       - Modul 10-14 (CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns) icin portal sayfalari bu fazda yapilmadi. Sadece TypeDefinitions'a tanimlandi.
       - Personel unique kontrolu: UserName ve Email unique — anlamli hata mesaji donuyor.
       - Cascade delete: Customer → UserType → UserTypePermission cascade. Personnel.UserTypeId SetNull.
-      - Mevcut controller'lar (Faz 1-3) Factory+Service mimarisine gecmedi. Geriye donuk refactor ileriki fazlarda yapilabilir.
+      - Mevcut controller'lar (Faz 1-3) Factory+Service mimarisine gecirildi (Gorev 4.8).
       - Blazor WASM'de Microsoft.AspNetCore.WebUtilities kullanılamaz. System.Web.HttpUtility.ParseQueryString kullanildi.
       - Razor @bind-Value ternary expression desteklemez. Tek FormModel pattern kullanildi.
     </Riskler>
   </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 4.5: ESKI CONTROLLER'LARI FACTORY+SERVICE'E GEÇİRME      -->
+  <!-- ============================================================ -->
+  <Gorev no="4.8" durum="tamamlandi" tamamlanma="2026-02-10">
+    <Ad>Eski controller'lari Factory+Service mimarisine gecirme</Ad>
+    <Detay>
+      12 eski controller (Faz 1-3) Factory+Service pattern'e gecirildi:
+      - 11 yeni interface (IAuthService, IUserService, ICustomerService, IAgentService, ICallService, IQueueService, ISipAccountService, ISupervisorService, IReportService, ISettingService, ITranslationManagementService)
+      - 11 yeni service implementasyonu (birebir is mantigi tasima)
+      - ServiceFactory: 12 yeni Create*Service() metodu
+      - Program.cs: 11 yeni DI kaydi
+      - 12 controller donusumu: AppDbContext -> ServiceFactory, is mantigi sifir
+      - Inline DTO tasima: StartCallRequest, IncomingCallRequest -> Shared/DTOs/CallDtos.cs
+      - Domain bazli birlestirme: CustomersController + CustomerPermissionsController -> ICustomerService
+      - Mevcut ITranslationService (cache) dokunulmadi, yeni ITranslationManagementService (CRUD)
+      - Mevcut CallDistributionService ve TokenService dokunulmadi
+      - Yeni dosyalar: 23 (11 interface + 11 service + 1 DTO)
+      - Duzenlenen dosyalar: 14 (12 controller + ServiceFactory + Program.cs)
+      - Build: 0 hata, 0 uyari (tum solution)
+    </Detay>
+    <Riskler>
+      - Davranis degismemeli: Tum endpoint imzalari, HTTP status kodlari, response yapilari ayni tutuldu. Ancak runtime test edilmedi (kullanici Visual Studio'da test edecek).
+      - SignalR injection: AgentService ve CallService icinde IHubContext inject ediliyor. Controller'da artik SignalR referansi yok — dogru.
+      - ITranslationManagementService isim farki: Mevcut ITranslationService (cache/lookup) dokunulmadi. Yeni servis farkli isimde (Management). DI'da cakisma yok.
+      - ServiceFactory her endpoint'te GetRequiredService cagiriyor — scoped servisler icin sorun yok, ama her cagri DI resolution maliyeti tasiyor. Performans etkisi ihmal edilebilir.
+      - CustomerService cok buyuk: CustomersController + CustomerPermissionsController is mantigi tek serviste. Ileride ayrilabilir ama su an calisir durumda.
+      - ExportXml artik byte[] donuyor (eskiden MemoryStream). Controller'da File(bytes, ...) kullaniliyor — ayni davranis.
+    </Riskler>
+  </Gorev>
 
   <!-- ============================================================ -->
   <!-- FAZ 5: WINDOWS UYGULAMASI                                     -->
@@ -615,5 +645,6 @@
     <Not tarih="2026-02-10">FAZ 2 TAMAMLANDI! Son 4 sayfa eklendi: Kuyruk Listesi (/queues), Canlı Kuyruk İzleme (/queues/live), Arama Raporları (/reports/calls), Temsilci Performansı (/reports/agents). 10 yeni dosya, 3 düzenlenen dosya. Build: 0 hata, 0 uyarı. Sıradaki: Faz 3 — SIP/VoIP Entegrasyonu.</Not>
     <Not tarih="2026-02-10">FAZ 4 TAMAMLANDI! Musteri Portali + Modul Yonetimi: Factory+Service mimari deseni, 7 yeni modul (toplam 14), 17 yeni izin, CustomerUserType entity, PortalController (16 endpoint), PermissionService (client-side), 8 portal sayfasi, NavMenu dinamik menu. 17 yeni dosya, 8 duzenlenen dosya. Build: 0 hata, 0 uyari.</Not>
     <Not tarih="2026-02-10">Faz numaralari kaydirma: Eski Faz 4 (Windows) → Faz 5, Eski Faz 5 (Mobil) → Faz 6, Eski Faz 6 (Ileri) → Faz 7, Eski Faz 7 (Entegrasyon) → Faz 8.</Not>
+    <Not tarih="2026-02-10">Tum 12 eski controller Factory+Service mimarisine gecirildi. 11 interface + 11 service + 1 DTO (CallDtos.cs) = 23 yeni dosya. 14 duzenlenen dosya. Controller'larda is mantigi sifir — sadece HTTP routing. Build: 0 hata, 0 uyari.</Not>
   </Notlar>
 </Proje>

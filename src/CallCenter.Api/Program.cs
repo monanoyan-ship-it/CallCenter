@@ -52,8 +52,19 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<CallDistributionService>();
 builder.Services.AddSingleton<CallCenter.Shared.Services.ITranslationService, TranslationService>();
 
-// Portal: Factory + Service pattern (Faz 4+)
+// Factory + Service pattern
 builder.Services.AddScoped<IPortalService, PortalService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAgentService, AgentService>();
+builder.Services.AddScoped<ICallService, CallService>();
+builder.Services.AddScoped<IQueueService, QueueService>();
+builder.Services.AddScoped<ISipAccountService, SipAccountService>();
+builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ISettingService, SettingService>();
+builder.Services.AddScoped<ITranslationManagementService, TranslationManagementService>();
 builder.Services.AddScoped<ServiceFactory>();
 
 // SignalR

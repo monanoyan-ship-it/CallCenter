@@ -1,0 +1,27 @@
+using CallCenter.Shared.DTOs;
+
+namespace CallCenter.Api.Services.Interfaces;
+
+public interface ICustomerService
+{
+    // Customers
+    Task<PagedResult<CustomerListDto>> GetAllAsync(int page, int pageSize, string? search);
+    Task<CustomerDetailDto?> GetByIdAsync(int id);
+    Task<int> CreateAsync(CustomerCreateDto dto);
+    Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto);
+    Task<(bool Success, string? Error)> DeleteAsync(int id);
+
+    // CustomerPermissions — Modules
+    Task<object?> GetCustomerModulesAsync(int customerId);
+    Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request);
+    Task<(bool Success, string? Error)> DeactivateModuleAsync(int customerId, int moduleId);
+
+    // CustomerPermissions — Permission Types
+    Task<object> GetAvailablePermissionTypesAsync(int customerId);
+
+    // CustomerPermissions — Personnel Permissions
+    Task<object?> GetPersonnelPermissionsAsync(int customerId, int personnelId);
+    Task<(bool Success, object? Result, string? Error)> AssignPermissionsAsync(int customerId, int personnelId, AssignPermissionsRequest request, int currentUserId);
+    Task<(bool Success, string? Error)> UpdatePermissionAsync(int customerId, int personnelId, int id, UpdatePermissionRequest request);
+    Task<(bool Success, string? Error)> RemovePermissionAsync(int customerId, int personnelId, int id);
+}
