@@ -1,6 +1,7 @@
 @* Sol Panel - Call Center Menü *@
 @inject NavigationManager NavigationManager
 @inject AuthService AuthService
+@inject PermissionService PermService
 @implements IDisposable
 
 <div class="sidebar-header">
@@ -25,9 +26,103 @@
             </NavLink>
         </div>
 
-        @* ─── ÇAĞRI YÖNETİMİ (herkes gorebilir — CustomerUser dahil) ─── *@
-        @if (!IsCustomerUser)
+        @if (IsCustomerUser)
         {
+            @* ═══════════════════════════════════════════════════ *@
+            @* CUSTOMERUSER PORTAL MENUSU                          *@
+            @* ═══════════════════════════════════════════════════ *@
+
+            @* ─── PORTAL YÖNETİMİ ─── *@
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(10)">
+                    <i class="bi bi-building"></i>
+                    <span>Portal</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(10) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(10) ? "show" : "")">
+                    @if (PermService.HasModule(7))
+                    {
+                        <NavLink class="nav-link" href="portal/personnel">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Personel Yonetimi</span>
+                        </NavLink>
+                    }
+                    @if (PermService.HasModule(8))
+                    {
+                        <NavLink class="nav-link" href="portal/usertypes">
+                            <i class="bi bi-person-vcard"></i>
+                            <span>Kullanici Tipleri</span>
+                        </NavLink>
+                    }
+                    @if (PermService.HasModule(9))
+                    {
+                        <NavLink class="nav-link" href="portal/sip">
+                            <i class="bi bi-router-fill"></i>
+                            <span>SIP Ayarlari</span>
+                        </NavLink>
+                    }
+                    <NavLink class="nav-link" href="portal/modules">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                        <span>Modullerim</span>
+                    </NavLink>
+                </div>
+            </div>
+
+            @* ─── ARAMALAR (CustomerUser — Calls modulu aciksa) ─── *@
+            @if (PermService.HasModule(2))
+            {
+                <div class="nav-group">
+                    <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
+                        <i class="bi bi-telephone-fill"></i>
+                        <span>Arama</span>
+                        <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
+                    </button>
+                    <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
+                        <NavLink class="nav-link" href="dialer">
+                            <i class="bi bi-dialpad-fill"></i>
+                            <span>Numara Cevirici</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="calls/active">
+                            <i class="bi bi-telephone-inbound-fill"></i>
+                            <span>Aktif Aramalar</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="calls/history">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Arama Gecmisi</span>
+                        </NavLink>
+                    </div>
+                </div>
+            }
+
+            @* ─── RAPORLAR (CustomerUser — Reports modulu aciksa) ─── *@
+            @if (PermService.HasModule(3))
+            {
+                <div class="nav-group">
+                    <button class="nav-group-toggle" @onclick="() => ToggleGroup(2)">
+                        <i class="bi bi-bar-chart-fill"></i>
+                        <span>Raporlar</span>
+                        <i class="bi bi-chevron-down chevron @(IsGroupOpen(2) ? "open" : "")"></i>
+                    </button>
+                    <div class="nav-group-items @(IsGroupOpen(2) ? "show" : "")">
+                        <NavLink class="nav-link" href="reports/calls">
+                            <i class="bi bi-file-earmark-bar-graph"></i>
+                            <span>Arama Raporlari</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="reports/agents">
+                            <i class="bi bi-person-lines-fill"></i>
+                            <span>Temsilci Performansi</span>
+                        </NavLink>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            @* ═══════════════════════════════════════════════════ *@
+            @* ADMIN / SUPERVISOR / AGENT MENUSU                   *@
+            @* ═══════════════════════════════════════════════════ *@
+
+            @* ─── ÇAĞRI YÖNETİMİ ─── *@
             <div class="nav-group">
                 <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
                     <i class="bi bi-telephone-fill"></i>
@@ -49,11 +144,8 @@
                     </NavLink>
                 </div>
             </div>
-        }
 
-        @* ─── KUYRUKLAR (Admin + Supervisor + Agent) ─── *@
-        @if (!IsCustomerUser)
-        {
+            @* ─── KUYRUKLAR ─── *@
             <div class="nav-group">
                 <button class="nav-group-toggle" @onclick="() => ToggleGroup(1)">
                     <i class="bi bi-people-fill"></i>
@@ -71,11 +163,8 @@
                     </NavLink>
                 </div>
             </div>
-        }
 
-        @* ─── RAPORLAR (Admin + Supervisor + Agent) ─── *@
-        @if (!IsCustomerUser)
-        {
+            @* ─── RAPORLAR ─── *@
             <div class="nav-group">
                 <button class="nav-group-toggle" @onclick="() => ToggleGroup(2)">
                     <i class="bi bi-bar-chart-fill"></i>
@@ -93,50 +182,50 @@
                     </NavLink>
                 </div>
             </div>
-        }
 
-        @* ─── YÖNETİM (Admin + Supervisor) ─── *@
-        @if (IsAdminOrSupervisor)
-        {
-            <div class="nav-group">
-                <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
-                    <i class="bi bi-gear-fill"></i>
-                    <span>Yonetim</span>
-                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(3) ? "open" : "")"></i>
-                </button>
-                <div class="nav-group-items @(IsGroupOpen(3) ? "show" : "")">
-                    @if (IsAdmin)
-                    {
-                        <NavLink class="nav-link" href="admin/users">
-                            <i class="bi bi-person-fill-gear"></i>
-                            <span>Kullanicilar</span>
+            @* ─── YÖNETİM (Admin + Supervisor) ─── *@
+            @if (IsAdminOrSupervisor)
+            {
+                <div class="nav-group">
+                    <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
+                        <i class="bi bi-gear-fill"></i>
+                        <span>Yonetim</span>
+                        <i class="bi bi-chevron-down chevron @(IsGroupOpen(3) ? "open" : "")"></i>
+                    </button>
+                    <div class="nav-group-items @(IsGroupOpen(3) ? "show" : "")">
+                        @if (IsAdmin)
+                        {
+                            <NavLink class="nav-link" href="admin/users">
+                                <i class="bi bi-person-fill-gear"></i>
+                                <span>Kullanicilar</span>
+                            </NavLink>
+                        }
+                        <NavLink class="nav-link" href="admin/customers">
+                            <i class="bi bi-building"></i>
+                            <span>Musteriler</span>
                         </NavLink>
-                    }
-                    <NavLink class="nav-link" href="admin/customers">
-                        <i class="bi bi-building"></i>
-                        <span>Musteriler</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/queues">
-                        <i class="bi bi-diagram-3-fill"></i>
-                        <span>Kuyruk Yapilandirmasi</span>
-                    </NavLink>
-                    @if (IsAdmin)
-                    {
-                        <NavLink class="nav-link" href="admin/sip">
-                            <i class="bi bi-router-fill"></i>
-                            <span>SIP Ayarlari</span>
+                        <NavLink class="nav-link" href="admin/queues">
+                            <i class="bi bi-diagram-3-fill"></i>
+                            <span>Kuyruk Yapilandirmasi</span>
                         </NavLink>
-                        <NavLink class="nav-link" href="admin/translations">
-                            <i class="bi bi-translate"></i>
-                            <span>Dil Yonetimi</span>
-                        </NavLink>
-                        <NavLink class="nav-link" href="admin/settings">
-                            <i class="bi bi-sliders"></i>
-                            <span>Sistem Ayarlari</span>
-                        </NavLink>
-                    }
+                        @if (IsAdmin)
+                        {
+                            <NavLink class="nav-link" href="admin/sip">
+                                <i class="bi bi-router-fill"></i>
+                                <span>SIP Ayarlari</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/translations">
+                                <i class="bi bi-translate"></i>
+                                <span>Dil Yonetimi</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/settings">
+                                <i class="bi bi-sliders"></i>
+                                <span>Sistem Ayarlari</span>
+                            </NavLink>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         }
     </nav>
 </div>
@@ -182,7 +271,8 @@
         { 0, new[] { "dialer", "calls/" } },
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/" } }
+        { 3, new[] { "admin/" } },
+        { 10, new[] { "portal/" } }
     };
 
     protected override void OnInitialized()
@@ -201,6 +291,9 @@
             fullName = name ?? "Kullanici";
             userRole = role ?? "";
             roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
+
+            // Portal yetkileri yukle
+            await PermService.LoadAsync();
 
             StateHasChanged();
         }

@@ -1,0 +1,66 @@
+using System.Security.Claims;
+using CallCenter.Shared.Enums;
+using Microsoft.AspNetCore.Components.Authorization;
+
+namespace CallCenter.Web.Services;
+
+/// <summary>
+/// JWT claim'lerinden CustomerUser yetkilerini parse eder.
+/// NavMenu ve portal sayfalari icin client-side yetki kontrolu.
+/// </summary>
+public class PermissionService
+{
+    private readonly AuthenticationStateProvider _authState;
+    private HashSet<int> _permissions = new();
+    private bool _loaded;
+
+    public bool IsAdmin { get; private set; }
+    public int? CustomerId { get; private set; }
+
+    public PermissionService(AuthenticationStateProvider authState)
+    {
+        _authState = authState;
+    }
+
+    public async Task LoadAsync()
+    {
+        if (_loaded) return;
+
+        var state = await _authState.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        if (user.Identity?.IsAuthenticated != true) return;
+
+        IsAdmin = user.IsInRole("Admin");
+
+        var customerIdClaim = user.FindFirst("CustomerId")?.Value;
+        CustomerId = customerIdClaim != null && int.TryParse(customerIdClaim, out var cid) ? cid : null;
+
+        var permsClaim = user.FindFirst("CustomerPermissions")?.Value;
+        if (!string.IsNullOrEmpty(permsClaim))
+        {
+            _permissions = permsClaim
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Where(p => int.TryParse(p.Trim(), out _))
+                .Select(p => int.Parse(p.Trim()))
+                .ToHashSet();
+        }
+
+        _loaded = true;
+    }
+
+    /// <summary>Tekil izin kontrolu. Admin her zaman true doner.</summary>
+    public bool HasPermission(int permTypeId)
+    {
+        if (IsAdmin) return true;
+        return _permissions.Contains(permTypeId);
+    }
+
+    /// <summary>Moduldeki herhangi bir izne sahip mi? Admin her zaman true.</summary>
+    public bool HasModule(int moduleId)
+    {
+        if (IsAdmin) return true;
+        var modulePerms = CustomerPermissionTypes.GetByModule(moduleId);
+        return modulePerms.Any(p => _permissions.Contains(p.Id));
+    }
+}

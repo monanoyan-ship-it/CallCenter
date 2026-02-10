@@ -1,0 +1,291 @@
+@page "/portal/usertypes"
+@attribute [Authorize(Roles = "Admin,CustomerUser")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Kullanici Tipleri - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-person-vcard me-2 text-primary"></i>Kullanici Tipleri
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Tip
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (items == null || items.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-person-vcard fs-1 d-block mb-2 opacity-25"></i>
+                <span>Kullanici tipi bulunamadi</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tip Adi</th>
+                            <th>Aciklama</th>
+                            <th class="text-center">Yetki</th>
+                            <th class="text-center">Personel</th>
+                            <th>Durum</th>
+                            <th style="width: 140px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            <tr class="@(!item.IsActive ? "table-secondary" : "")">
+                                <td class="fw-medium">@item.Name</td>
+                                <td class="text-muted small">@(item.Description ?? "-")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info rounded-pill">@item.PermissionCount</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill">@item.PersonnelCount</span>
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-info btn-sm me-1" title="Yetkiler"
+                                            @onclick="() => OpenPermissions(item)">
+                                        <i class="bi bi-shield-check"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
+                                            @onclick="() => OpenEditForm(item)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
+                                            @onclick="() => ConfirmDeactivate(item)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<UserTypeForm @ref="typeForm" CustomerIdParam="@GetCustomerIdParam()" OnSaved="LoadData" />
+
+<ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDeactivate"
+               Message="@($"'{deactivateTarget?.Name}' tipini deaktive etmek istediginize emin misiniz?")" />
+
+@* ─── YETKİ ATAMA MODAL ─── *@
+@if (showPermissions)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-shield-check me-2"></i>@permTarget?.Name — Yetki Atama
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="ClosePermissions"></button>
+                </div>
+                <div class="modal-body">
+                    @if (modules == null)
+                    {
+                        <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+                    }
+                    else
+                    {
+                        @foreach (var mod in modules.Where(m => m.IsActive))
+                        {
+                            <div class="mb-3">
+                                <h6 class="text-muted border-bottom pb-1">
+                                    <i class="bi @(mod.Icon ?? "bi-box") me-1"></i>@mod.SystemName
+                                </h6>
+                                @foreach (var perm in mod.Permissions)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_@perm.Id"
+                                               checked="@selectedPermIds.Contains(perm.Id)"
+                                               @onchange="(e) => TogglePerm(perm.Id, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label small" for="perm_@perm.Id">
+                                            <i class="bi @(perm.Icon ?? "bi-check") me-1 text-muted"></i>
+                                            @perm.Description
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="ClosePermissions">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="SavePermissions" disabled="@isSavingPerms">
+                        @if (isSavingPerms)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserTypeListDto>? items;
+    private bool isLoading;
+    private UserTypeForm typeForm = null!;
+    private ConfirmDialog confirmDialog = null!;
+    private UserTypeListDto? deactivateTarget;
+
+    // Yetki atama
+    private bool showPermissions;
+    private bool isSavingPerms;
+    private UserTypeListDto? permTarget;
+    private List<PortalModuleDto>? modules;
+    private HashSet<int> selectedPermIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        await LoadData();
+    }
+
+    private string? GetCustomerIdParam()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var cidStr = queryParams["customerId"];
+        if (!string.IsNullOrEmpty(cidStr))
+            return cidStr;
+        return null;
+    }
+
+    private string BuildUrl(string baseUrl)
+    {
+        var cid = GetCustomerIdParam();
+        return cid != null ? $"{baseUrl}?customerId={cid}" : baseUrl;
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            items = await Http.GetFromJsonAsync<List<UserTypeListDto>>(BuildUrl("api/portal/usertypes"));
+        }
+        catch (Exception ex) { Toast.ShowError($"Veri yuklenemedi: {ex.Message}"); }
+        finally { isLoading = false; }
+    }
+
+    private void OpenCreateForm() => typeForm.OpenForCreate();
+
+    private void OpenEditForm(UserTypeListDto item) => typeForm.OpenForEdit(item);
+
+    private void ConfirmDeactivate(UserTypeListDto item)
+    {
+        deactivateTarget = item;
+        confirmDialog.Show();
+    }
+
+    private async Task ExecuteDeactivate()
+    {
+        if (deactivateTarget == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync(BuildUrl($"api/portal/usertypes/{deactivateTarget.Id}"));
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Kullanici tipi deaktive edildi.");
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private async Task OpenPermissions(UserTypeListDto item)
+    {
+        permTarget = item;
+        selectedPermIds.Clear();
+
+        try
+        {
+            // Modulleri ve mevcut yetkileri paralel yukle
+            modules = await Http.GetFromJsonAsync<List<PortalModuleDto>>(BuildUrl("api/portal/modules"));
+            var perms = await Http.GetFromJsonAsync<int[]>(BuildUrl($"api/portal/usertypes/{item.Id}/permissions"));
+            if (perms != null)
+                selectedPermIds = perms.ToHashSet();
+        }
+        catch (Exception ex) { Toast.ShowError($"Yetkiler yuklenemedi: {ex.Message}"); }
+
+        showPermissions = true;
+        StateHasChanged();
+    }
+
+    private void ClosePermissions()
+    {
+        showPermissions = false;
+        permTarget = null;
+    }
+
+    private void TogglePerm(int permId, bool isChecked)
+    {
+        if (isChecked) selectedPermIds.Add(permId);
+        else selectedPermIds.Remove(permId);
+    }
+
+    private async Task SavePermissions()
+    {
+        if (permTarget == null) return;
+        isSavingPerms = true;
+
+        try
+        {
+            var request = new SetUserTypePermissionsRequest { PermissionTypeIds = selectedPermIds.ToArray() };
+            var response = await Http.PostAsJsonAsync(BuildUrl($"api/portal/usertypes/{permTarget.Id}/permissions"), request);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Yetkiler kaydedildi.");
+                showPermissions = false;
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Yetki kaydi basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isSavingPerms = false; }
+    }
+
+    private record ErrorMsg(string? Message);
+}

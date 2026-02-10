@@ -14,6 +14,9 @@ public class Customer
 
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();
 
+    // Musteriye ait kullanici tipleri (sablon yetki setleri)
+    public ICollection<CustomerUserType> UserTypes { get; set; } = new List<CustomerUserType>();
+
     // Müşteriye açık portal modülleri
     public ICollection<CustomerPortalModule> PortalModules { get; set; } = new List<CustomerPortalModule>();
 

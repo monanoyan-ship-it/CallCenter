@@ -35,4 +35,7 @@ builder.Services.AddScoped<SipService>();
 // Toast bildirim servisi
 builder.Services.AddScoped<ToastService>();
 
+// Portal yetki servisi (JWT claim parse)
+builder.Services.AddScoped<PermissionService>();
+
 await builder.Build().RunAsync();

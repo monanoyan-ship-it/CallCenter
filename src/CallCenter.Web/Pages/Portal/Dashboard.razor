@@ -1,0 +1,159 @@
+@page "/portal/dashboard"
+@attribute [Authorize(Roles = "Admin,CustomerUser")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Portal Dashboard - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-speedometer2 me-2 text-primary"></i>Portal Dashboard
+    </h4>
+    @if (PermService.IsAdmin)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <label class="form-label mb-0 small text-muted">Musteri:</label>
+            <span class="badge bg-primary-subtle text-primary">@(customerId.HasValue ? $"ID: {customerId}" : "Belirtilmedi")</span>
+        </div>
+    }
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (dashboard == null)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>Dashboard verileri yuklenemedi.
+        @if (PermService.IsAdmin && !customerId.HasValue)
+        {
+            <span>Admin olarak erisim icin <code>?customerId=X</code> parametresi gereklidir.</span>
+        }
+    </div>
+}
+else
+{
+    @* ─── KPI KARTLARI ─── *@
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-4 col-xl">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-badge fs-2 text-primary opacity-75"></i>
+                    <h3 class="mt-2 mb-0">@dashboard.PersonnelCount</h3>
+                    <small class="text-muted">Personel</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-4 col-xl">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-grid-3x3-gap-fill fs-2 text-success opacity-75"></i>
+                    <h3 class="mt-2 mb-0">@dashboard.ActiveModuleCount</h3>
+                    <small class="text-muted">Aktif Modul</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-4 col-xl">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-vcard fs-2 text-info opacity-75"></i>
+                    <h3 class="mt-2 mb-0">@dashboard.UserTypeCount</h3>
+                    <small class="text-muted">Kullanici Tipi</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-4 col-xl">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-telephone-fill fs-2 text-warning opacity-75"></i>
+                    <h3 class="mt-2 mb-0">@dashboard.TotalCallsToday</h3>
+                    <small class="text-muted">Bugun Arama</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-4 col-xl">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-router-fill fs-2 text-danger opacity-75"></i>
+                    <h3 class="mt-2 mb-0">@dashboard.SipAccountCount</h3>
+                    <small class="text-muted">SIP Hesap</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── MODÜL LİSTESİ ─── *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Moduller</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                @foreach (var mod in dashboard.Modules)
+                {
+                    <div class="col-sm-6 col-md-4 col-lg-3">
+                        <div class="card h-100 @(mod.IsActive ? "border-success" : "border-0 bg-light") text-center py-3">
+                            <div class="card-body p-2">
+                                <i class="bi @(mod.Icon ?? "bi-box") fs-3 @(mod.IsActive ? "text-success" : "text-muted opacity-50")"></i>
+                                <div class="mt-1 small fw-medium @(mod.IsActive ? "" : "text-muted")">@mod.ModuleName</div>
+                                <span class="badge @(mod.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") mt-1">
+                                    @(mod.IsActive ? "Aktif" : "Pasif")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PortalDashboardDto? dashboard;
+    private bool isLoading;
+    private int? customerId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+
+        // Admin icin customerId query param'dan al
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var cidStr = queryParams["customerId"];
+        if (!string.IsNullOrEmpty(cidStr))
+        {
+            if (int.TryParse(cidStr, out var cid))
+                customerId = cid;
+        }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var url = "api/portal/dashboard";
+            if (customerId.HasValue)
+                url += $"?customerId={customerId}";
+
+            dashboard = await Http.GetFromJsonAsync<PortalDashboardDto>(url);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Dashboard yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

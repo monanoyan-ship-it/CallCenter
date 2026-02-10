@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<CustomerPersonnel> CustomerPersonnel => Set<CustomerPersonnel>();
     public DbSet<CustomerPersonnelPermission> CustomerPersonnelPermissions => Set<CustomerPersonnelPermission>();
     public DbSet<CustomerPortalModule> CustomerPortalModules => Set<CustomerPortalModule>();
+    public DbSet<CustomerUserType> CustomerUserTypes => Set<CustomerUserType>();
+    public DbSet<CustomerUserTypePermission> CustomerUserTypePermissions => Set<CustomerUserTypePermission>();
     public DbSet<Language> Languages => Set<Language>();
     public DbSet<TranslationKey> TranslationKeys => Set<TranslationKey>();
     public DbSet<Translation> Translations => Set<Translation>();
@@ -56,17 +58,6 @@ public class AppDbContext : DbContext
             e.Property(c => c.Email).HasMaxLength(150);
         });
 
-        // CustomerPersonnel
-        modelBuilder.Entity<CustomerPersonnel>(e =>
-        {
-            e.HasKey(cp => cp.Id);
-            e.HasIndex(cp => cp.Uid).IsUnique();
-            e.Property(cp => cp.Title).HasMaxLength(100).IsRequired();
-            e.HasOne(cp => cp.Customer)
-             .WithMany(c => c.Personnel)
-             .HasForeignKey(cp => cp.CustomerId);
-        });
-
         // CustomerPersonnelPermission (dinamik yetki atamalari)
         modelBuilder.Entity<CustomerPersonnelPermission>(e =>
         {
@@ -93,6 +84,46 @@ public class AppDbContext : DbContext
              .WithMany(c => c.PortalModules)
              .HasForeignKey(m => m.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CustomerUserType (musteri kullanici tipleri / sablon yetki setleri)
+        modelBuilder.Entity<CustomerUserType>(e =>
+        {
+            e.HasKey(ut => ut.Id);
+            e.HasIndex(ut => ut.Uid).IsUnique();
+            e.Property(ut => ut.Name).HasMaxLength(100).IsRequired();
+            e.Property(ut => ut.Description).HasMaxLength(500);
+            e.HasIndex(ut => new { ut.CustomerId, ut.Name }).IsUnique();
+            e.HasOne(ut => ut.Customer)
+             .WithMany(c => c.UserTypes)
+             .HasForeignKey(ut => ut.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CustomerUserTypePermission (kullanici tipi sablon yetkileri)
+        modelBuilder.Entity<CustomerUserTypePermission>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.UserTypeId, p.PermissionTypeId }).IsUnique();
+            e.HasOne(p => p.UserType)
+             .WithMany(ut => ut.Permissions)
+             .HasForeignKey(p => p.UserTypeId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CustomerPersonnel.UserTypeId (opsiyonel FK — tip silinirse null olur)
+        modelBuilder.Entity<CustomerPersonnel>(e =>
+        {
+            e.HasKey(cp => cp.Id);
+            e.HasIndex(cp => cp.Uid).IsUnique();
+            e.Property(cp => cp.Title).HasMaxLength(100).IsRequired();
+            e.HasOne(cp => cp.Customer)
+             .WithMany(c => c.Personnel)
+             .HasForeignKey(cp => cp.CustomerId);
+            e.HasOne(cp => cp.UserType)
+             .WithMany(ut => ut.Personnel)
+             .HasForeignKey(cp => cp.UserTypeId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // CallRecord

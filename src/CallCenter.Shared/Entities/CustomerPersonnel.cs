@@ -16,6 +16,10 @@ public class CustomerPersonnel
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
 
+    // Kullanici tipi (sablon yetki seti) — opsiyonel
+    public int? UserTypeId { get; set; }
+    public CustomerUserType? UserType { get; set; }
+
     // Dinamik yetkiler (CustomerPersonnelPermission tablosu)
     public ICollection<CustomerPersonnelPermission> Permissions { get; set; } = new List<CustomerPersonnelPermission>();
 }

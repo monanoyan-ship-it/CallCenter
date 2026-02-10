@@ -366,14 +366,100 @@
   </Faz>
 
   <!-- ============================================================ -->
-  <!-- FAZ 4: WINDOWS UYGULAMASI                                     -->
+  <!-- FAZ 4: MÜŞTERİ PORTALI + MODÜL YÖNETİMİ                     -->
   <!-- ============================================================ -->
-  <Faz no="4" ad="Windows Uygulamasi" durum="bekliyor">
-    <Gorev no="4.1" durum="bekliyor">
+  <Faz no="4" ad="Musteri Portali ve Modul Yonetimi" durum="tamamlandi">
+    <Aciklama>
+      Musteri portali: CustomerUser rolundeki kullanicilar kendi firmalarini yonetebilir.
+      Admin de ?customerId parametresi ile ayni portali kullanabilir (fallback yonetim).
+      Factory + Service mimari deseni bu fazdan itibaren uygulanmaya baslandi.
+      Sektorel arastirma ile 7 yeni modul eklendi (toplam 14 modul).
+    </Aciklama>
+    <Gorev no="4.1" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>TypeDefinitions guncelleme (7 modul + 17 izin)</Ad>
+      <Detay>
+        - 7 yeni PortalModules: UserTypes(8), SipSettings(9), CallRecords(10), QualityManagement(11), KnowledgeBase(12), Integrations(13), Campaigns(14)
+        - 17 yeni CustomerPermissionTypes: UserTypeView/Manage(70-71), SipView/Manage(80-81), RecordListen/Download/Delete(90-92), QualityView/Manage/Score(100-102), KBView/Manage(110-111), IntegrationView/Manage(120-121), CampaignView/Manage/Execute(130-132)
+        - All dizileri, Ids siniflari, GetByModule, GetModuleId guncellendi
+      </Detay>
+    </Gorev>
+    <Gorev no="4.2" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>Yeni entity'ler + migration</Ad>
+      <Detay>
+        - CustomerUserType entity (Id, Uid, CustomerId, Name, Description, IsActive, CreatedAt)
+        - CustomerUserTypePermission entity (Id, UserTypeId, PermissionTypeId, unique index)
+        - CustomerPersonnel.UserTypeId FK eklendi (SetNull on delete)
+        - Customer.UserTypes nav property eklendi
+        - AppDbContext: DbSet + OnModelCreating (unique index'ler, cascade delete kuralları)
+        - Migration: DB drop + InitialCreate
+      </Detay>
+    </Gorev>
+    <Gorev no="4.3" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>Portal DTO'lari</Ad>
+      <Detay>
+        - PortalDtos.cs: UserType (List/Create/Update/Detail), Personnel (List/Create/Update), Dashboard, ModuleSummary, SipAccount, SipUpdate, SetPermissions request DTO'lari
+        - DataAnnotations validation
+      </Detay>
+    </Gorev>
+    <Gorev no="4.4" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>Service katmani (Factory + Service pattern)</Ad>
+      <Detay>
+        - IPortalService: 16 metod (dashboard, usertypes, personnel, modules, SIP)
+        - PortalService: Tam implementasyon (unique kontrol, BCrypt hash, template yetki kopyalama, modul bazli izin dogrulamasi)
+        - ServiceFactory: IServiceProvider wrapper, CreatePortalService()
+        - DI kaydi: AddScoped IPortalService, PortalService + AddScoped ServiceFactory
+      </Detay>
+    </Gorev>
+    <Gorev no="4.5" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>PortalController (16 endpoint)</Ad>
+      <Detay>
+        - [Authorize(Roles = "Admin,CustomerUser")]
+        - ResolveCustomerId: Admin → ?customerId param, CustomerUser → JWT claim
+        - HasPermission: Admin always true, CustomerUser → JWT CustomerPermissions claim
+        - Endpoint'ler: dashboard, usertypes CRUD+perms, personnel CRUD+perms, modules, SIP read+update
+      </Detay>
+    </Gorev>
+    <Gorev no="4.6" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>PermissionService (client-side) + NavMenu</Ad>
+      <Detay>
+        - PermissionService: JWT claim parse, HasPermission, HasModule, IsAdmin
+        - NavMenu: CustomerUser icin dinamik portal menusu (Portal grubu + Arama + Raporlar)
+        - Admin/Supervisor/Agent menusu degismedi
+      </Detay>
+    </Gorev>
+    <Gorev no="4.7" durum="tamamlandi" tamamlanma="2026-02-10">
+      <Ad>Portal sayfalari (8 Razor) + Admin entegrasyonu</Ad>
+      <Detay>
+        - Dashboard.razor: KPI kartlari + modul listesi
+        - UserTypes.razor + UserTypeForm.razor: CRUD + yetki atama modal
+        - Personnel.razor + PersonnelForm.razor + PersonnelPermissionForm.razor: CRUD + yetki modal
+        - Modules.razor: Read-only kart gorunumu
+        - SipSettings.razor: Tablo + sinirli edit modal
+        - Customers.razor: Portal butonu eklendi → /portal/dashboard?customerId={id}
+      </Detay>
+    </Gorev>
+    <Riskler>
+      - JWT yetki cache: Token suresi boyunca degismez. Yetki guncellendikten sonra logout/login gerekir.
+      - Admin CustomerId: Admin JWT'sinde CustomerId yok. Portal sayfalarinda ?customerId param zorunlu, yoksa uyari gosterilir.
+      - UserType template: Degisiklikler retroaktif degil. Mevcut personele uygulamak icin tekrar yetki ataması gerekir.
+      - Modul 10-14 (CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns) icin portal sayfalari bu fazda yapilmadi. Sadece TypeDefinitions'a tanimlandi.
+      - Personel unique kontrolu: UserName ve Email unique — anlamli hata mesaji donuyor.
+      - Cascade delete: Customer → UserType → UserTypePermission cascade. Personnel.UserTypeId SetNull.
+      - Mevcut controller'lar (Faz 1-3) Factory+Service mimarisine gecmedi. Geriye donuk refactor ileriki fazlarda yapilabilir.
+      - Blazor WASM'de Microsoft.AspNetCore.WebUtilities kullanılamaz. System.Web.HttpUtility.ParseQueryString kullanildi.
+      - Razor @bind-Value ternary expression desteklemez. Tek FormModel pattern kullanildi.
+    </Riskler>
+  </Faz>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 5: WINDOWS UYGULAMASI                                     -->
+  <!-- ============================================================ -->
+  <Faz no="5" ad="Windows Uygulamasi" durum="bekliyor">
+    <Gorev no="5.1" durum="bekliyor">
       <Ad>Blazor Hybrid WPF projesi</Ad>
       <Detay>WebView2 içinde Blazor UI çalıştırma, aynı web arayüzünü kullanma</Detay>
     </Gorev>
-    <Gorev no="4.2" durum="bekliyor">
+    <Gorev no="5.2" durum="bekliyor">
       <Ad>Native Windows özellikleri</Ad>
       <Detay>
         - System tray ikonu
@@ -383,16 +469,16 @@
         - Kısayol tuşları
       </Detay>
     </Gorev>
-    <Gorev no="4.3" durum="bekliyor">
+    <Gorev no="5.3" durum="bekliyor">
       <Ad>Kurulum paketi</Ad>
       <Detay>MSI veya MSIX installer, otomatik güncelleme</Detay>
     </Gorev>
   </Faz>
 
   <!-- ============================================================ -->
-  <!-- FAZ 5: MOBİL UYGULAMA                                        -->
+  <!-- FAZ 6: MOBİL UYGULAMA                                        -->
   <!-- ============================================================ -->
-  <Faz no="5" ad="Mobil Uygulama (Saha Personeli)" durum="bekliyor">
+  <Faz no="6" ad="Mobil Uygulama (Saha Personeli)" durum="bekliyor">
     <Aciklama>
       MOBİL UYGULAMA = SAHA PERSONELİ UYGULAMASI
       Müşterilerimizin saha elemanları (kuryeler, teknik servis, satış temsilcileri vb.)
@@ -401,7 +487,7 @@
       Tüm aramalar firma üzerinden geçer → kayıt altında, raporlanabilir, denetlenebilir.
       UI: Hızlı arama, tek elle kullanım, minimal adım, saha koşullarına uygun.
     </Aciklama>
-    <Gorev no="5.1" durum="bekliyor">
+    <Gorev no="6.1" durum="bekliyor">
       <Ad>MAUI Blazor Hybrid — Saha UI</Ad>
       <Detay>
         - Blazor UI'ı mobilde çalıştırma (paylaşılan component'lar)
@@ -410,7 +496,7 @@
         - Offline mod: Son aranılan numaralar, kuyruk bilgisi cache
       </Detay>
     </Gorev>
-    <Gorev no="5.2" durum="bekliyor">
+    <Gorev no="6.2" durum="bekliyor">
       <Ad>Mobil VoIP + native özellikler</Ad>
       <Detay>
         - Push notification (gelen arama, Firebase/APNs)
@@ -420,7 +506,7 @@
         - GPS konum paylaşımı (isteğe bağlı — saha takibi)
       </Detay>
     </Gorev>
-    <Gorev no="5.3" durum="bekliyor">
+    <Gorev no="6.3" durum="bekliyor">
       <Ad>Saha personeli senaryoları</Ad>
       <Detay>
         - Teslimat listesi → numara tıkla → ara (entegrasyon ile)
@@ -433,32 +519,32 @@
   </Faz>
 
   <!-- ============================================================ -->
-  <!-- FAZ 6: İLERİ ÖZELLİKLER (SONRA)                             -->
+  <!-- FAZ 7: İLERİ ÖZELLİKLER (SONRA)                             -->
   <!-- ============================================================ -->
-  <Faz no="6" ad="Ileri Ozellikler" durum="bekliyor">
-    <Gorev no="6.1" durum="bekliyor">
+  <Faz no="7" ad="Ileri Ozellikler" durum="bekliyor">
+    <Gorev no="7.1" durum="bekliyor">
       <Ad>Raporlama modülü</Ad>
       <Detay>Çağrı raporları, agent performansı, SLA metrikleri, grafikler</Detay>
     </Gorev>
-    <Gorev no="6.2" durum="bekliyor">
+    <Gorev no="7.2" durum="bekliyor">
       <Ad>CRM entegrasyonu</Ad>
       <Detay>Arayan bilgisi popup, müşteri notu, çağrı etiketi</Detay>
     </Gorev>
-    <Gorev no="6.3" durum="bekliyor">
+    <Gorev no="7.3" durum="bekliyor">
       <Ad>Çağrı kaydı ve dinleme</Ad>
       <Detay>Ses kaydı, supervisor dinleme/fısıldama</Detay>
     </Gorev>
-    <Gorev no="6.4" durum="bekliyor">
+    <Gorev no="7.4" durum="bekliyor">
       <Ad>Çoklu dil desteği - Frontend entegrasyonu</Ad>
       <Detay>Backend T() sistemi hazır. Frontend tarafında Blazor'da T() kullanımı, dil seçici component, kullanıcı dil tercihini saklama.</Detay>
     </Gorev>
   </Faz>
 
   <!-- ============================================================ -->
-  <!-- FAZ 7: DIŞ ENTEGRASYON VE UYUM                               -->
+  <!-- FAZ 8: DIŞ ENTEGRASYON VE UYUM                               -->
   <!-- ============================================================ -->
-  <Faz no="7" ad="Dis Entegrasyon ve Uyum" durum="bekliyor">
-    <Gorev no="7.1" durum="bekliyor">
+  <Faz no="8" ad="Dis Entegrasyon ve Uyum" durum="bekliyor">
+    <Gorev no="8.1" durum="bekliyor">
       <Ad>API Gateway / Webhook altyapısı</Ad>
       <Detay>
         - REST API: Dış sistemlerin bizim verimize erişmesi (çağrı kayıtları, agent durumları, kuyruk bilgileri)
@@ -467,7 +553,7 @@
         - Rate limiting ve throttling
       </Detay>
     </Gorev>
-    <Gorev no="7.2" durum="bekliyor">
+    <Gorev no="8.2" durum="bekliyor">
       <Ad>Dış veri kaynaklarına bağlanma (Outbound)</Ad>
       <Detay>
         - CRM sistemleri (Salesforce, HubSpot, Zoho CRM, custom CRM)
@@ -477,7 +563,7 @@
         - Admin panelinden bağlantı konfigürasyonu
       </Detay>
     </Gorev>
-    <Gorev no="7.3" durum="bekliyor">
+    <Gorev no="8.3" durum="bekliyor">
       <Ad>Dış sistemlerin bize bağlanması (Inbound)</Ad>
       <Detay>
         - REST API endpoint'leri (müşteri bilgisi sorgula, çağrı başlat, agent durumu değiştir)
@@ -486,7 +572,7 @@
         - SDK/Client library (C#, JavaScript)
       </Detay>
     </Gorev>
-    <Gorev no="7.4" durum="bekliyor">
+    <Gorev no="8.4" durum="bekliyor">
       <Ad>Mevcut takip uygulamalarıyla uyum</Ad>
       <Detay>
         - Mevcut çağrı takip sistemlerinden veri import (CSV, XML, API)
@@ -527,5 +613,7 @@
     <Not tarih="2026-02-10">Public landing page eklendi: Index.razor (/) → Tanıtım sayfası (LoginLayout, hero, özellikler, platformlar, roller). Home.razor route "/" → "/dashboard" olarak taşındı. Login/NavMenu yönlendirmeleri güncellendi. Build: 0 hata, 0 uyarı.</Not>
     <Not tarih="2026-02-10">FAZ 3 TAMAMLANDI! SIP/VoIP entegrasyonu: SIP.js 0.21.2, C# SipService, SipConnectionDto, Dialer SIP entegrasyonu, gelen arama, transfer, ses cihazı seçimi, kuyruk ACD sistemi. 6 yeni dosya, 9 düzenlenen dosya. Build: 0 hata, 0 uyarı.</Not>
     <Not tarih="2026-02-10">FAZ 2 TAMAMLANDI! Son 4 sayfa eklendi: Kuyruk Listesi (/queues), Canlı Kuyruk İzleme (/queues/live), Arama Raporları (/reports/calls), Temsilci Performansı (/reports/agents). 10 yeni dosya, 3 düzenlenen dosya. Build: 0 hata, 0 uyarı. Sıradaki: Faz 3 — SIP/VoIP Entegrasyonu.</Not>
+    <Not tarih="2026-02-10">FAZ 4 TAMAMLANDI! Musteri Portali + Modul Yonetimi: Factory+Service mimari deseni, 7 yeni modul (toplam 14), 17 yeni izin, CustomerUserType entity, PortalController (16 endpoint), PermissionService (client-side), 8 portal sayfasi, NavMenu dinamik menu. 17 yeni dosya, 8 duzenlenen dosya. Build: 0 hata, 0 uyari.</Not>
+    <Not tarih="2026-02-10">Faz numaralari kaydirma: Eski Faz 4 (Windows) → Faz 5, Eski Faz 5 (Mobil) → Faz 6, Eski Faz 6 (Ileri) → Faz 7, Eski Faz 7 (Entegrasyon) → Faz 8.</Not>
   </Notlar>
 </Proje>

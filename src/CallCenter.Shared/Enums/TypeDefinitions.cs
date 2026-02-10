@@ -134,7 +134,16 @@ public static class PortalModules
     public static readonly TypeItem Settings = new(6, "Settings", "PortalModule.Settings", "Ayarlar", "bi-gear-fill", "bg-danger", 6);
     public static readonly TypeItem Personnel = new(7, "Personnel", "PortalModule.Personnel", "Personel yonetimi", "bi-person-badge", "bg-dark", 7, isDefault: true);
 
-    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel };
+    // Yeni moduller (Faz 4 — sektorel arastirma sonucu)
+    public static readonly TypeItem UserTypes = new(8, "UserTypes", "PortalModule.UserTypes", "Kullanici tipi sablonlari", "bi-person-vcard", "bg-indigo", 8);
+    public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9);
+    public static readonly TypeItem CallRecords = new(10, "CallRecords", "PortalModule.CallRecords", "Arama kaydi dinleme/yonetimi", "bi-record-circle", "bg-orange", 10);
+    public static readonly TypeItem QualityManagement = new(11, "QualityManagement", "PortalModule.QualityManagement", "Kalite degerlendirme formlari", "bi-clipboard-check", "bg-pink", 11);
+    public static readonly TypeItem KnowledgeBase = new(12, "KnowledgeBase", "PortalModule.KnowledgeBase", "Bilgi bankasi, agent senaryolari", "bi-book", "bg-cyan", 12);
+    public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);
+    public static readonly TypeItem Campaigns = new(14, "Campaigns", "PortalModule.Campaigns", "Giden arama kampanyalari", "bi-megaphone-fill", "bg-yellow text-dark", 14);
+
+    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, UserTypes, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
@@ -150,6 +159,13 @@ public static class PortalModules
         public const int Queues = 5;
         public const int Settings = 6;
         public const int Personnel = 7;
+        public const int UserTypes = 8;
+        public const int SipSettings = 9;
+        public const int CallRecords = 10;
+        public const int QualityManagement = 11;
+        public const int KnowledgeBase = 12;
+        public const int Integrations = 13;
+        public const int Campaigns = 14;
     }
 }
 
@@ -188,6 +204,37 @@ public static class CustomerPermissionTypes
     public static readonly TypeItem PersonnelView = new(60, "PersonnelView", "CustomerPermission.PersonnelView", "Personeli goruntuleyebilir", "bi-people", "bg-dark", 60);
     public static readonly TypeItem PersonnelManage = new(61, "PersonnelManage", "CustomerPermission.PersonnelManage", "Personeli yonetebilir", "bi-person-plus-fill", "bg-dark", 61);
 
+    // UserTypes (Kullanici Tipleri)
+    public static readonly TypeItem UserTypeView = new(70, "UserTypeView", "CustomerPermission.UserTypeView", "Kullanici tiplerini goruntuleyebilir", "bi-person-vcard", "bg-indigo", 70);
+    public static readonly TypeItem UserTypeManage = new(71, "UserTypeManage", "CustomerPermission.UserTypeManage", "Kullanici tiplerini yonetebilir", "bi-person-vcard-fill", "bg-indigo", 71);
+
+    // SipSettings (SIP Ayarlari)
+    public static readonly TypeItem SipView = new(80, "SipView", "CustomerPermission.SipView", "SIP hesaplarini goruntuleyebilir", "bi-router", "bg-teal", 80);
+    public static readonly TypeItem SipManage = new(81, "SipManage", "CustomerPermission.SipManage", "SIP hesaplarini yonetebilir", "bi-router-fill", "bg-teal", 81);
+
+    // CallRecords (Arama Kayitlari)
+    public static readonly TypeItem RecordListen = new(90, "RecordListen", "CustomerPermission.RecordListen", "Arama kayitlarini dinleyebilir", "bi-play-circle", "bg-orange", 90);
+    public static readonly TypeItem RecordDownload = new(91, "RecordDownload", "CustomerPermission.RecordDownload", "Arama kayitlarini indirebilir", "bi-download", "bg-orange", 91);
+    public static readonly TypeItem RecordDelete = new(92, "RecordDelete", "CustomerPermission.RecordDelete", "Arama kayitlarini silebilir", "bi-trash", "bg-orange", 92);
+
+    // QualityManagement (Kalite Yonetimi)
+    public static readonly TypeItem QualityView = new(100, "QualityView", "CustomerPermission.QualityView", "Kalite degerlendirmelerini goruntuleyebilir", "bi-clipboard-data", "bg-pink", 100);
+    public static readonly TypeItem QualityManage = new(101, "QualityManage", "CustomerPermission.QualityManage", "Kalite formlarini yonetebilir", "bi-clipboard-check", "bg-pink", 101);
+    public static readonly TypeItem QualityScore = new(102, "QualityScore", "CustomerPermission.QualityScore", "Kalite puanlamasi yapabilir", "bi-star-fill", "bg-pink", 102);
+
+    // KnowledgeBase (Bilgi Bankasi)
+    public static readonly TypeItem KBView = new(110, "KBView", "CustomerPermission.KBView", "Bilgi bankasini goruntuleyebilir", "bi-book", "bg-cyan", 110);
+    public static readonly TypeItem KBManage = new(111, "KBManage", "CustomerPermission.KBManage", "Bilgi bankasini yonetebilir", "bi-book-fill", "bg-cyan", 111);
+
+    // Integrations (Entegrasyonlar)
+    public static readonly TypeItem IntegrationView = new(120, "IntegrationView", "CustomerPermission.IntegrationView", "Entegrasyonlari goruntuleyebilir", "bi-plug", "bg-purple", 120);
+    public static readonly TypeItem IntegrationManage = new(121, "IntegrationManage", "CustomerPermission.IntegrationManage", "Entegrasyonlari yonetebilir", "bi-plug-fill", "bg-purple", 121);
+
+    // Campaigns (Kampanyalar)
+    public static readonly TypeItem CampaignView = new(130, "CampaignView", "CustomerPermission.CampaignView", "Kampanyalari goruntuleyebilir", "bi-megaphone", "bg-yellow text-dark", 130);
+    public static readonly TypeItem CampaignManage = new(131, "CampaignManage", "CustomerPermission.CampaignManage", "Kampanyalari yonetebilir", "bi-megaphone-fill", "bg-yellow text-dark", 131);
+    public static readonly TypeItem CampaignExecute = new(132, "CampaignExecute", "CustomerPermission.CampaignExecute", "Kampanya calistirabilir", "bi-play-fill", "bg-yellow text-dark", 132);
+
     public static IEnumerable<TypeItem> All => new[]
     {
         DashboardView, DashboardExport,
@@ -196,7 +243,14 @@ public static class CustomerPermissionTypes
         AgentView, AgentManage,
         QueueView, QueueManage,
         SettingsView, SettingsManage,
-        PersonnelView, PersonnelManage
+        PersonnelView, PersonnelManage,
+        UserTypeView, UserTypeManage,
+        SipView, SipManage,
+        RecordListen, RecordDownload, RecordDelete,
+        QualityView, QualityManage, QualityScore,
+        KBView, KBManage,
+        IntegrationView, IntegrationManage,
+        CampaignView, CampaignManage, CampaignExecute
     };
 
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -214,6 +268,13 @@ public static class CustomerPermissionTypes
             PortalModules.Ids.Queues => new[] { QueueView, QueueManage },
             PortalModules.Ids.Settings => new[] { SettingsView, SettingsManage },
             PortalModules.Ids.Personnel => new[] { PersonnelView, PersonnelManage },
+            PortalModules.Ids.UserTypes => new[] { UserTypeView, UserTypeManage },
+            PortalModules.Ids.SipSettings => new[] { SipView, SipManage },
+            PortalModules.Ids.CallRecords => new[] { RecordListen, RecordDownload, RecordDelete },
+            PortalModules.Ids.QualityManagement => new[] { QualityView, QualityManage, QualityScore },
+            PortalModules.Ids.KnowledgeBase => new[] { KBView, KBManage },
+            PortalModules.Ids.Integrations => new[] { IntegrationView, IntegrationManage },
+            PortalModules.Ids.Campaigns => new[] { CampaignView, CampaignManage, CampaignExecute },
             _ => Enumerable.Empty<TypeItem>()
         };
     }
@@ -230,6 +291,13 @@ public static class CustomerPermissionTypes
             >= 40 and <= 49 => PortalModules.Ids.Queues,
             >= 50 and <= 59 => PortalModules.Ids.Settings,
             >= 60 and <= 69 => PortalModules.Ids.Personnel,
+            >= 70 and <= 79 => PortalModules.Ids.UserTypes,
+            >= 80 and <= 89 => PortalModules.Ids.SipSettings,
+            >= 90 and <= 99 => PortalModules.Ids.CallRecords,
+            >= 100 and <= 109 => PortalModules.Ids.QualityManagement,
+            >= 110 and <= 119 => PortalModules.Ids.KnowledgeBase,
+            >= 120 and <= 129 => PortalModules.Ids.Integrations,
+            >= 130 and <= 139 => PortalModules.Ids.Campaigns,
             _ => 0
         };
     }
@@ -258,6 +326,30 @@ public static class CustomerPermissionTypes
         // Personnel
         public const int PersonnelView = 60;
         public const int PersonnelManage = 61;
+        // UserTypes
+        public const int UserTypeView = 70;
+        public const int UserTypeManage = 71;
+        // SipSettings
+        public const int SipView = 80;
+        public const int SipManage = 81;
+        // CallRecords
+        public const int RecordListen = 90;
+        public const int RecordDownload = 91;
+        public const int RecordDelete = 92;
+        // QualityManagement
+        public const int QualityView = 100;
+        public const int QualityManage = 101;
+        public const int QualityScore = 102;
+        // KnowledgeBase
+        public const int KBView = 110;
+        public const int KBManage = 111;
+        // Integrations
+        public const int IntegrationView = 120;
+        public const int IntegrationManage = 121;
+        // Campaigns
+        public const int CampaignView = 130;
+        public const int CampaignManage = 131;
+        public const int CampaignExecute = 132;
     }
 }
 

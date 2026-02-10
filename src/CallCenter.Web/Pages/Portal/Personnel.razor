@@ -1,0 +1,183 @@
+@page "/portal/personnel"
+@attribute [Authorize(Roles = "Admin,CustomerUser")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Personel Yonetimi - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-person-badge me-2 text-primary"></i>Personel Yonetimi
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Personel
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (items == null || items.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+                <span>Personel bulunamadi</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ad Soyad</th>
+                            <th>E-posta</th>
+                            <th>Unvan</th>
+                            <th>Kullanici Tipi</th>
+                            <th class="text-center">Yetki</th>
+                            <th>Durum</th>
+                            <th style="width: 140px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            <tr class="@(!item.IsActive ? "table-secondary" : "")">
+                                <td class="fw-medium">@item.FullName</td>
+                                <td class="text-muted small">@item.Email</td>
+                                <td class="small">@item.Title</td>
+                                <td>
+                                    @if (item.UserTypeName != null)
+                                    {
+                                        <span class="badge bg-info-subtle text-info">@item.UserTypeName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill">@item.PermissionCount</span>
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-info btn-sm me-1" title="Yetkiler"
+                                            @onclick="() => OpenPermissions(item)">
+                                        <i class="bi bi-shield-check"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
+                                            @onclick="() => OpenEditForm(item)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
+                                            @onclick="() => ConfirmDeactivate(item)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<PersonnelForm @ref="personnelForm" CustomerIdParam="@GetCustomerIdParam()" OnSaved="LoadData" />
+
+<PersonnelPermissionForm @ref="permForm" CustomerIdParam="@GetCustomerIdParam()" OnSaved="LoadData" />
+
+<ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDeactivate"
+               Message="@($"'{deactivateTarget?.FullName}' personelini deaktive etmek istediginize emin misiniz?")" />
+
+@code {
+    private List<PortalPersonnelListDto>? items;
+    private bool isLoading;
+    private PersonnelForm personnelForm = null!;
+    private PersonnelPermissionForm permForm = null!;
+    private ConfirmDialog confirmDialog = null!;
+    private PortalPersonnelListDto? deactivateTarget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        await LoadData();
+    }
+
+    private string? GetCustomerIdParam()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var cidStr = queryParams["customerId"];
+        if (!string.IsNullOrEmpty(cidStr))
+            return cidStr;
+        return null;
+    }
+
+    private string BuildUrl(string baseUrl)
+    {
+        var cid = GetCustomerIdParam();
+        return cid != null ? $"{baseUrl}?customerId={cid}" : baseUrl;
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            items = await Http.GetFromJsonAsync<List<PortalPersonnelListDto>>(BuildUrl("api/portal/personnel"));
+        }
+        catch (Exception ex) { Toast.ShowError($"Veri yuklenemedi: {ex.Message}"); }
+        finally { isLoading = false; }
+    }
+
+    private void OpenCreateForm() => personnelForm.OpenForCreate();
+    private void OpenEditForm(PortalPersonnelListDto item) => personnelForm.OpenForEdit(item);
+    private void OpenPermissions(PortalPersonnelListDto item) => permForm.Open(item);
+
+    private void ConfirmDeactivate(PortalPersonnelListDto item)
+    {
+        deactivateTarget = item;
+        confirmDialog.Show();
+    }
+
+    private async Task ExecuteDeactivate()
+    {
+        if (deactivateTarget == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync(BuildUrl($"api/portal/personnel/{deactivateTarget.Id}"));
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Personel deaktive edildi.");
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private record ErrorMsg(string? Message);
+}

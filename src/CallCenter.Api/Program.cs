@@ -1,6 +1,7 @@
 using System.Text;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Services;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<CallDistributionService>();
 builder.Services.AddSingleton<CallCenter.Shared.Services.ITranslationService, TranslationService>();
+
+// Portal: Factory + Service pattern (Faz 4+)
+builder.Services.AddScoped<IPortalService, PortalService>();
+builder.Services.AddScoped<ServiceFactory>();
 
 // SignalR
 builder.Services.AddSignalR();

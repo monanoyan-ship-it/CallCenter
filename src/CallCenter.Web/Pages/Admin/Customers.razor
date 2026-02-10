@@ -1,6 +1,7 @@
 @page "/admin/customers"
 @attribute [Authorize(Roles = "Admin,Supervisor")]
 @inject HttpClient Http
+@inject NavigationManager Nav
 @inject ToastService Toast
 @using CallCenter.Shared.DTOs
 
@@ -64,7 +65,7 @@
                             <th class="text-center">Kuyruk</th>
                             <th class="text-center">SIP</th>
                             <th>Durum</th>
-                            <th style="width: 100px;"></th>
+                            <th style="width: 130px;"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -94,6 +95,10 @@
                                     }
                                 </td>
                                 <td>
+                                    <button class="btn btn-outline-success btn-sm me-1" title="Portal"
+                                            @onclick="() => GoToPortal(customer)">
+                                        <i class="bi bi-building"></i>
+                                    </button>
                                     <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(customer)">
                                         <i class="bi bi-pencil"></i>
@@ -212,6 +217,11 @@
         {
             Toast.ShowError($"Hata: {ex.Message}");
         }
+    }
+
+    private void GoToPortal(CustomerListDto customer)
+    {
+        Nav.NavigateTo($"portal/dashboard?customerId={customer.Id}");
     }
 
     private record ErrorMsg(string? Message);

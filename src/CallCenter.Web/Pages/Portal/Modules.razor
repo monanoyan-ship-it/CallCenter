@@ -1,0 +1,87 @@
+@page "/portal/modules"
+@attribute [Authorize(Roles = "Admin,CustomerUser")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Modullerim - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Modullerim
+    </h4>
+    <span class="badge bg-light text-muted border">
+        @(modules?.Count(m => m.IsActive) ?? 0) aktif / @(modules?.Count ?? 0) toplam
+    </span>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (modules == null || modules.Count == 0)
+{
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-grid-3x3-gap fs-1 d-block mb-2 opacity-25"></i>
+        <span>Modul bulunamadi</span>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var mod in modules)
+        {
+            <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 @(mod.IsActive ? "border-success" : "border-0") shadow-sm">
+                    <div class="card-body text-center py-4 @(!mod.IsActive ? "opacity-50" : "")">
+                        <i class="bi @(mod.Icon ?? "bi-box") fs-1 @(mod.IsActive ? "text-success" : "text-muted")"></i>
+                        <h6 class="mt-3 mb-1">@mod.SystemName</h6>
+                        <small class="text-muted d-block mb-2">@mod.Description</small>
+                        <span class="badge @(mod.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")">
+                            @(mod.IsActive ? "Aktif" : "Pasif")
+                        </span>
+                        <div class="mt-2">
+                            <small class="text-muted">@mod.Permissions.Count izin</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<PortalModuleDto>? modules;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        await LoadData();
+    }
+
+    private string BuildUrl(string baseUrl)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var cidStr = queryParams["customerId"];
+        if (!string.IsNullOrEmpty(cidStr))
+            return $"{baseUrl}?customerId={cidStr}";
+        return baseUrl;
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            modules = await Http.GetFromJsonAsync<List<PortalModuleDto>>(BuildUrl("api/portal/modules"));
+        }
+        catch (Exception ex) { Toast.ShowError($"Moduller yuklenemedi: {ex.Message}"); }
+        finally { isLoading = false; }
+    }
+}

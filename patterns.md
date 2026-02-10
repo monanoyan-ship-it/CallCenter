@@ -602,3 +602,84 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 9. `Api/Program.cs` + `Web/Program.cs`
 
 **Build: 0 hata, 0 uyarı (Tüm solution)**
+
+### 2026-02-10 - Faz 4: Müşteri Portalı + Modül Yönetimi
+
+**Mimari Karar: Factory + Service Pattern (Yeni Kod İçin)**
+- Faz 1-3'teki controller'lar mevcut yapıda kalır (doğrudan DbContext)
+- Faz 4'ten itibaren: Controller → ServiceFactory → IPortalService → AppDbContext
+- Controller'larda iş mantığı YOK, sadece HTTP routing
+- Tüm iş mantığı (unique kontrol, BCrypt hash, yetki kopyalama) service katmanında
+- ServiceFactory: IServiceProvider wrapper, `CreatePortalService()` ile DI'dan resolve
+- Bu sayede controller'lar ince, test edilebilir, service'ler bağımsız
+
+**Sektörel Araştırma (Call Center Modül Yapısı):**
+- Freshcaller, Zendesk Talk, Five9, Genesys Cloud, 3CX, Talkdesk, NICE CXone, Aircall, RingCentral incelendi
+- Sonuç: Mevcut 7 modülümüz yetersiz, 7 yeni modül eklendi (toplam 14)
+- Paketleme vizyonu: Starter (3), Professional (10), Enterprise (14)
+
+**7 Yeni Modül (ID 8-14, IsDefault=false):**
+| ID | Modül | Açıklama |
+|----|-------|----------|
+| 8 | UserTypes | Müşteri tanımlı rol şablonları |
+| 9 | SipSettings | SIP/VoIP yapılandırması |
+| 10 | CallRecords | Arama kaydı dinleme/yönetimi |
+| 11 | QualityManagement | Kalite değerlendirme formları |
+| 12 | KnowledgeBase | Bilgi bankası, agent senaryoları |
+| 13 | Integrations | API/webhook/CRM entegrasyonları |
+| 14 | Campaigns | Giden arama kampanyaları |
+
+**17 Yeni İzin (CustomerPermissionTypes):**
+- UserTypes: UserTypeView(70), UserTypeManage(71)
+- SipSettings: SipView(80), SipManage(81)
+- CallRecords: RecordListen(90), RecordDownload(91), RecordDelete(92)
+- QualityManagement: QualityView(100), QualityManage(101), QualityScore(102)
+- KnowledgeBase: KBView(110), KBManage(111)
+- Integrations: IntegrationView(120), IntegrationManage(121)
+- Campaigns: CampaignView(130), CampaignManage(131), CampaignExecute(132)
+
+**Yeni Entity'ler:**
+- `CustomerUserType` — Müşteri tanımlı rol şablonu (Id, Uid, CustomerId, Name, Description, IsActive)
+- `CustomerUserTypePermission` — Tip-yetki ilişkisi (UserTypeId, PermissionTypeId, unique index)
+- `CustomerPersonnel.UserTypeId` — FK eklendi (SetNull on delete)
+
+**Service Katmanı:**
+- `IPortalService` — 16 metod (dashboard, usertypes CRUD+perms, personnel CRUD+perms, modules, SIP)
+- `PortalService` — Tam implementasyon, AppDbContext injection
+- `ServiceFactory` — IServiceProvider wrapper
+- DI: `AddScoped<IPortalService, PortalService>()` + `AddScoped<ServiceFactory>()`
+
+**PortalController (16 Endpoint):**
+- [Authorize(Roles = "Admin,CustomerUser")]
+- `ResolveCustomerId()` — Admin: ?customerId param, CustomerUser: JWT claim
+- `HasPermission()` — Admin always true, CustomerUser: JWT CustomerPermissions claim
+- Dashboard, UserTypes CRUD+perms, Personnel CRUD+perms, Modules (read-only), SIP (read+limited update)
+
+**Client-Side PermissionService:**
+- JWT'deki CustomerPermissions claim'ini parse eder
+- `HasPermission(int)`, `HasModule(int)`, `IsAdmin` property'leri
+- NavMenu'de dinamik portal menüsü gösteriminde kullanılır
+
+**Portal Sayfaları (8 Razor):**
+1. Dashboard.razor — KPI kartları + modül listesi
+2. UserTypes.razor — Tablo + yetki atama modal (modül bazlı gruplandırma)
+3. UserTypeForm.razor — Create/Edit modal
+4. Personnel.razor — Tablo + yetki/düzenle/deaktive butonları
+5. PersonnelForm.razor — Create/Edit modal (tek FormModel pattern)
+6. PersonnelPermissionForm.razor — Personel yetki atama modal
+7. Modules.razor — Read-only kart görünümü
+8. SipSettings.razor — Tablo + sınırlı edit modal (Server/Port read-only)
+
+**NavMenu Güncellemesi:**
+- CustomerUser: Portal grubu (Personnel, UserTypes, SIP, Moduller) + Arama + Raporlar
+- Admin/Supervisor/Agent: Mevcut menü aynen korunur
+- Müşteri tablosuna "Portal" butonu eklendi → /portal/dashboard?customerId={id}
+
+**Build Hataları ve Çözümleri:**
+1. `Microsoft.AspNetCore.WebUtilities` Blazor WASM'de YOK → `System.Web.HttpUtility.ParseQueryString()` kullanıldı
+2. Razor'da `@bind-Value` ternary expression çalışmaz → Tek FormModel pattern kullanıldı
+
+**Yeni Dosyalar (17):** Entity(2), DTO(1), Service(3), Controller(1), Client Service(1), Razor(8), Migration(1)
+**Düzenlenen Dosyalar (8):** TypeDefinitions, CustomerPersonnel, Customer, AppDbContext, Api/Program, Web/Program, NavMenu, Customers
+
+**Build: 0 hata, 0 uyarı (Tüm solution)**

@@ -1,0 +1,233 @@
+@page "/portal/sip"
+@attribute [Authorize(Roles = "Admin,CustomerUser")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+
+<PageTitle>SIP Ayarlari - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-router-fill me-2 text-primary"></i>SIP Ayarlari
+    </h4>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (items == null || items.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-router fs-1 d-block mb-2 opacity-25"></i>
+                <span>SIP hesabi bulunamadi</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Hesap Adi</th>
+                            <th>Sunucu</th>
+                            <th>Port</th>
+                            <th>Kullanici Adi</th>
+                            <th>Transport</th>
+                            <th class="text-center">Varsayilan</th>
+                            <th>Durum</th>
+                            <th style="width: 60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            <tr class="@(!item.IsActive ? "table-secondary" : "")">
+                                <td class="fw-medium">@item.Name</td>
+                                <td class="small text-muted">@item.Server</td>
+                                <td class="small">@item.Port</td>
+                                <td class="small">@item.Username</td>
+                                <td><span class="badge bg-light text-dark border">@(item.Transport ?? "UDP")</span></td>
+                                <td class="text-center">
+                                    @if (item.IsDefault)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-sm" title="Duzenle"
+                                            @onclick="() => OpenEdit(item)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@* ─── EDIT MODAL (sinirli) ─── *@
+@if (showEdit)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil me-2"></i>SIP Hesabi Duzenle
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseEdit"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger py-2 small">@errorMessage</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label small">Hesap Adi</label>
+                        <input type="text" class="form-control form-control-sm" @bind="editModel.Name" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Sunucu <span class="text-muted">(salt okunur)</span></label>
+                        <input type="text" class="form-control form-control-sm" value="@editTarget?.Server" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Port <span class="text-muted">(salt okunur)</span></label>
+                        <input type="text" class="form-control form-control-sm" value="@editTarget?.Port" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Kullanici Adi</label>
+                        <input type="text" class="form-control form-control-sm" @bind="editModel.Username" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Sifre <span class="text-muted">(bos birakirsaniz degismez)</span></label>
+                        <input type="password" class="form-control form-control-sm" @bind="editModel.Password" />
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" @bind="editIsDefault" />
+                        <label class="form-check-label small">Varsayilan hesap olarak ayarla</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseEdit">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="SaveEdit" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<PortalSipAccountDto>? items;
+    private bool isLoading;
+
+    // Edit
+    private bool showEdit;
+    private bool isSaving;
+    private bool editIsDefault;
+    private string? errorMessage;
+    private PortalSipAccountDto? editTarget;
+    private PortalSipUpdateDto editModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        await LoadData();
+    }
+
+    private string BuildUrl(string baseUrl)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var cidStr = queryParams["customerId"];
+        if (!string.IsNullOrEmpty(cidStr))
+            return $"{baseUrl}?customerId={cidStr}";
+        return baseUrl;
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            items = await Http.GetFromJsonAsync<List<PortalSipAccountDto>>(BuildUrl("api/portal/sip"));
+        }
+        catch (Exception ex) { Toast.ShowError($"SIP hesaplari yuklenemedi: {ex.Message}"); }
+        finally { isLoading = false; }
+    }
+
+    private void OpenEdit(PortalSipAccountDto item)
+    {
+        editTarget = item;
+        editModel = new() { Name = item.Name, Username = item.Username };
+        editIsDefault = item.IsDefault;
+        errorMessage = null;
+        showEdit = true;
+    }
+
+    private void CloseEdit()
+    {
+        showEdit = false;
+        editTarget = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editTarget == null) return;
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            editModel.IsDefault = editIsDefault;
+            var response = await Http.PutAsJsonAsync(BuildUrl($"api/portal/sip/{editTarget.Id}"), editModel);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("SIP hesabi guncellendi.");
+                showEdit = false;
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                errorMessage = error?.Message ?? "Guncelleme basarisiz.";
+            }
+        }
+        catch (Exception ex) { errorMessage = $"Hata: {ex.Message}"; }
+        finally { isSaving = false; }
+    }
+
+    private record ErrorMsg(string? Message);
+}
