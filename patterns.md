@@ -729,3 +729,123 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 - Düzenlenen dosyalar (14): 12 controller + ServiceFactory.cs + Program.cs
 
 **Build: 0 hata, 0 uyarı (Tüm solution — API + Web + Shared + Data + Windows + Mobile)**
+
+### 2026-02-10 - Proje Altyapı Durum Özeti
+
+**Tamamlanan Fazlar:**
+- Faz 1: Temel Altyapı (8 görev) — Solution, entity, JWT, SignalR, müşteri, i18n, ID dönüşümü
+- Faz 2: Web Arayüzü (7 görev) — Layout, login, agent paneli, admin paneli, kuyruk/rapor sayfaları
+- Faz 3: SIP/VoIP Entegrasyonu (4 görev) — SIP.js, WebRTC, ACD, transfer, ses cihazı
+- Faz 4: Müşteri Portalı + Modül Yönetimi (8 görev) — Portal, 14 modül, Factory+Service pattern
+- Görev 4.8: Tüm controller'lar Factory+Service'e geçirildi
+
+**Sayısal Özet:**
+- 6 proje (Api, Web, Shared, Data, Windows, Mobile)
+- 13 controller, 12 service, 12 interface, ServiceFactory
+- ~30+ Razor sayfa, ~60 API endpoint
+- 14 portal modülü, 32 izin tipi
+- 0 build hatası, 0 uyarı
+
+**Henüz Yapılmamış / Test Edilmemiş:**
+- Runtime test: Henüz Visual Studio'da debug ile test edilmedi
+- SIP bağlantısı: Gerçek bir SIP sunucu (Asterisk/FreeSWITCH/cloud) ile test gerekiyor — arkadaştan yardım istenecek
+- Windows ve Mobil uygulamalar: Placeholder UI, Faz 5-6'da gelecek
+- İleri özellikler: CRM, çağrı kaydı, frontend i18n — Faz 7
+- Dış entegrasyon: API Gateway, webhook — Faz 8
+
+**Sonraki Öncelikli Adımlar:**
+1. Visual Studio'da debug ile runtime test (login, CRUD, SignalR)
+2. Gerçek SIP sunucuya bağlanma testi (arkadaştan destek)
+3. Runtime'da çıkan hataları düzeltme
+4. Faz 5 veya 7'ye geçiş (kullanıcı kararına göre)
+
+### 2026-02-10 - Görüntülü Görüşme Araştırması (Video Call)
+
+**Motivasyon:** Finans kurumları görüntülü görüşme talep ediyor (kimlik doğrulama, müşteri hizmetleri, uzaktan danışmanlık).
+
+#### Mevcut Altyapıyla Uyum
+- **SIP.js 0.21.2 video destekliyor.** Mevcut `sipClient.js`'de `video: false` → `video: true` yapılması yeterli.
+- Ek olarak `<video>` HTML elementleri ve `_setupRemoteMedia` güncellemesi gerekiyor.
+- Yani mevcut sesli arama altyapısı üzerine video eklenebilir, sıfırdan yazmaya gerek yok.
+
+#### Codec Seçimi
+- **H.264 zorunlu** — Tüm platformlarda (özellikle iOS/Safari) çalışan tek codec.
+- VP8 ikinci seçim (açık kaynak, lisans ücretsiz).
+- AV1 gelecek vaat ediyor ama şu an için erken (CPU gereksinimleri çok yüksek).
+
+#### Bant Genişliği
+| Kalite | Çözünürlük | Bitrate | Call Center Önerisi |
+|--------|-----------|---------|---------------------|
+| Düşük | 320x180 | 100-200 Kbps | Saha personeli (4G) |
+| Orta | 640x360 | 400-700 Kbps | Standart görüşme |
+| Yüksek | 1280x720 | 1-1.5 Mbps | Finans/kimlik doğrulama |
+
+#### Platform Durumu
+| Platform | Video Desteği | Güvenilirlik | Not |
+|----------|--------------|--------------|-----|
+| Web (Blazor WASM) | SIP.js + WebRTC | Yüksek | Mevcut yapı üzerine eklenir |
+| Windows (WPF Hybrid) | WebView2 + WebRTC | Yüksek | Kamera izni ayarı gerekli |
+| Android (MAUI) | Sorunlu | Orta | WebRTC host sorunu, workaround lazım |
+| iOS (MAUI) | H.264 zorunlu | Orta-Yüksek | CallKit entegrasyonu gerekebilir |
+
+#### Ekran Paylaşımı
+- `getDisplayMedia()` API ile tamamen client-side yapılabilir, sunucu değişikliği gerektirmez.
+- Kullanım: Agent → müşteriye ekran gösterme (teknik destek), müşteri → agent'a sorun gösterme.
+
+#### Grup/Konferans Video
+- **Basit (supervisor dinleme):** PBX conference bridge yeterli
+- **3-5 kişi:** LiveKit öneriliyor (.NET SDK var, kurulumu basit, simulcast + kayıt yerleşik)
+- **Büyük konferans:** mediasoup veya Janus
+
+#### Video Kayıt
+- **Client-side:** MediaRecorder API (basit ama güvenilir değil)
+- **Server-side:** Janus/LiveKit ile medya sunucu tarafında kayıt (finans için zorunlu — yasal uyum)
+
+#### SIP Sunucu Gereksinimleri
+- **Asterisk:** Passthrough modu (transcoding yok, iki uç aynı codec kullanmalı). Codec listesine h264,vp8 eklenmeli.
+- **FreeSWITCH:** MCU modu ile video konferans da destekler. mod_av gerekli.
+- **Cloud:** Telnyx (en kolay entegrasyon, SIP.js tabanlı), Twilio Video (ayrı ürün), Vonage Video API
+
+#### Yapılacaklar (Video Entegrasyonu İçin)
+1. `sipClient.js` — video constraint ekleme, `_setupRemoteMedia` güncelleme
+2. `index.html` — `<video id="remoteVideo">` + `<video id="localVideo" muted>` elementleri
+3. `VideoPanel.razor` — Uzak video (büyük) + lokal video (küçük, sağ altta)
+4. Ekran paylaşımı — `getDisplayMedia()` wrapper + UI butonu
+5. WPF Hybrid — WebView2 `PermissionRequested` event handler (kamera izni)
+6. SIP sunucu — Video codec yapılandırması
+7. Video kayıt — Finans için server-side kayıt (LiveKit/Janus)
+
+#### En Büyük Risk
+MAUI Blazor Hybrid'de (Android) WebRTC video tutarsız. Mobilde video için native katman veya WebRTCme framework gerekebilir.
+
+#### Mobil Uygulama Teknoloji Kararı (ÖNEMLİ)
+
+**Karar:** Mobil uygulama MAUI yerine **React Native** ile yazılacak.
+
+**Gerekçe:**
+- MAUI Blazor Hybrid'de WebRTC/video Android'de sorunlu (kamera erişimi, host güvenlik sorunu)
+- React Native ve Flutter'da WebRTC native çalışır — WebView kısıtlaması yok
+- Backend REST API + SignalR olduğu için mobil client herhangi bir teknolojiyle yazılabilir
+- Telnyx'in React Native SDK'sı mevcut (`newCall({ video: true })` ile video arama)
+
+**Yeni platform stratejisi:**
+| Platform | Teknoloji | Durum |
+|----------|-----------|-------|
+| Web | Blazor WebAssembly | Mevcut (Faz 2 tamamlandı) |
+| Windows | WPF Blazor Hybrid (MAUI değil) | Faz 5'te yapılacak |
+| **Mobil** | **React Native** | **Ayrı proje olarak yazılacak** |
+
+**Mobil uygulamanın backend bağlantısı:**
+- REST API → Aynı endpoint'ler (login, CRUD, portal)
+- SignalR → Aynı hub (gerçek zamanlı bildirimler)
+- SIP/WebRTC → Native kütüphane (react-native-webrtc veya flutter-webrtc)
+- Push notification → Yeni endpoint gerekecek (device token kayıt)
+- Video → Native WebRTC ile sorunsuz
+
+**Avantajlar:**
+- Mobili ayrı bir geliştirici paralel yazabilir (API hazır)
+- WebRTC/video/kamera native çalışır
+- CallKit (iOS) ve ConnectionService (Android) entegrasyonu kolay
+- Tek codebase ile Android + iOS
+
+**MAUI projesi kaldırılmayacak** — Windows masaüstü için hâlâ kullanılabilir. Sadece mobil taraf ayrı yazılacak.

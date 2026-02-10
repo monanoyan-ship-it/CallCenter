@@ -28,7 +28,21 @@
       "Bash(dotnet ef database drop:*)",
       "Bash(dotnet ef database update:*)",
       "Bash(dotnet ef migrations remove:*)",
-      "Bash(dotnet list:*)"
+      "Bash(dotnet list:*)",
+      "WebSearch",
+      "WebFetch(domain:azure.microsoft.com)",
+      "WebFetch(domain:telnyx.com)",
+      "WebFetch(domain:www.twilio.com)",
+      "WebFetch(domain:voip.ms)",
+      "WebFetch(domain:sipjs.com)",
+      "WebFetch(domain:jssip.net)",
+      "Bash(del /Q Migrations*.cs)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\src\\\\CallCenter.Data\\\\Migrations\\\\*.cs\" -Force)",
+      "Bash(Write-Output \"Migration files deleted\")",
+      "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" diff --stat)",
+      "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" log --oneline -5)",
+      "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" log --oneline -3)"
     ]
   }
 }
