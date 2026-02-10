@@ -42,7 +42,10 @@
       "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" status)",
       "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" diff --stat)",
       "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" log --oneline -5)",
-      "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" log --oneline -3)"
+      "Bash(git -C \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\" log --oneline -3)",
+      "Bash(\"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\src\\\\CallCenter.Web\\\\Components\\\\OrgTreeNode.razor.css\" << 'FILEEOF'\n.tree-node {\n    user-select: none;\n}\n\n.tree-node.inactive {\n    opacity: 0.5;\n}\n\n.tree-node-header {\n    display: flex;\n    align-items: center;\n    padding: 4px 8px;\n    border-radius: 6px;\n    cursor: pointer;\n    gap: 4px;\n    transition: background-color 0.15s;\n}\n\n.tree-node-header:hover {\n    background-color: rgba\\(var\\(--bs-primary-rgb\\), 0.08\\);\n}\n\n.tree-node.selected > .tree-node-header {\n    background-color: rgba\\(var\\(--bs-primary-rgb\\), 0.15\\);\n    font-weight: 600;\n}\n\n.tree-toggle {\n    border: none;\n    background: none;\n    padding: 0;\n    width: 18px;\n    font-size: 0.7rem;\n    color: var\\(--bs-secondary\\);\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.tree-toggle-placeholder {\n    width: 18px;\n    display: inline-block;\n}\n\n.tree-node-name {\n    font-size: 0.85rem;\n    white-space: nowrap;\n    overflow: hidden;\n    text-overflow: ellipsis;\n}\n\n.tree-children {\n    padding-left: 20px;\n    border-left: 1px solid rgba\\(var\\(--bs-secondary-rgb\\), 0.15\\);\n    margin-left: 9px;\n}\nFILEEOF)",
+      "WebFetch(domain:wiki.sipthor.net)",
+      "WebFetch(domain:webrtc.sipthor.net)"
     ]
   }
 }

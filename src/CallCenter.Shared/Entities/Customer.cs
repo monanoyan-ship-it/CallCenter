@@ -25,4 +25,7 @@ public class Customer
 
     // Musteriye ait SIP hesaplari
     public ICollection<SipAccount> SipAccounts { get; set; } = new List<SipAccount>();
+
+    // Musteriye ait organizasyon birimleri
+    public ICollection<CustomerOrganizationUnit> OrganizationUnits { get; set; } = new List<CustomerOrganizationUnit>();
 }

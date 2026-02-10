@@ -68,7 +68,9 @@ public class SipAccountService : ISipAccountService
                 IsDefault = s.IsDefault,
                 IsActive = s.IsActive,
                 CustomerId = s.CustomerId,
-                CustomerName = s.Customer.Name
+                CustomerName = s.Customer.Name,
+                OrganizationUnitId = s.OrganizationUnitId,
+                OrganizationUnitName = s.OrganizationUnit != null ? s.OrganizationUnit.Name : null
             })
             .ToListAsync();
 

@@ -12,6 +12,8 @@ public class UserTypeListDto
     public Guid Uid { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public int Level { get; set; }
+    public bool CanManageSubordinates { get; set; }
     public bool IsActive { get; set; }
     public int PersonnelCount { get; set; }
     public int PermissionCount { get; set; }
@@ -25,6 +27,9 @@ public class UserTypeCreateDto
 
     [MaxLength(500)]
     public string? Description { get; set; }
+
+    public int Level { get; set; } = 99;
+    public bool CanManageSubordinates { get; set; }
 }
 
 public class UserTypeUpdateDto
@@ -36,6 +41,8 @@ public class UserTypeUpdateDto
     [MaxLength(500)]
     public string? Description { get; set; }
 
+    public int Level { get; set; } = 99;
+    public bool CanManageSubordinates { get; set; }
     public bool IsActive { get; set; } = true;
 }
 
@@ -65,6 +72,10 @@ public class PortalPersonnelListDto
     public string Title { get; set; } = string.Empty;
     public int? UserTypeId { get; set; }
     public string? UserTypeName { get; set; }
+    public int? OrganizationUnitId { get; set; }
+    public string? OrganizationUnitName { get; set; }
+    public int? ReportsToPersonnelId { get; set; }
+    public string? ReportsToPersonnelName { get; set; }
     public bool IsActive { get; set; }
     public int PermissionCount { get; set; }
 }
@@ -92,6 +103,8 @@ public class PortalPersonnelCreateDto
     public string Title { get; set; } = string.Empty;
 
     public int? UserTypeId { get; set; }
+    public int? OrganizationUnitId { get; set; }
+    public int? ReportsToPersonnelId { get; set; }
 }
 
 public class PortalPersonnelUpdateDto
@@ -112,6 +125,8 @@ public class PortalPersonnelUpdateDto
     public string? Title { get; set; }
 
     public int? UserTypeId { get; set; }
+    public int? OrganizationUnitId { get; set; }
+    public int? ReportsToPersonnelId { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

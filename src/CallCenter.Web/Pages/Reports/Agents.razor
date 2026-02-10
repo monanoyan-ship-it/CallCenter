@@ -18,13 +18,8 @@
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small text-muted mb-1">Firma</label>
-                <select class="form-select form-select-sm" @bind="selectedCustomerId">
-                    <option value="0">Tumu</option>
-                    @foreach (var c in customers)
-                    {
-                        <option value="@c.Id">@c.Name</option>
-                    }
-                </select>
+                <SearchableSelect Items="customerItems" Value="@selectedCustomerIdStr"
+                                  ValueChanged="OnCustomerSelected" Placeholder="Tumu" />
             </div>
             <div class="col-md-3">
                 <label class="form-label small text-muted mb-1">Baslangic</label>
@@ -184,6 +179,16 @@ else if (report != null)
     private DateTime? toDate;
     private int currentPage = 1;
     private bool isLoading;
+
+    private List<SearchableSelect.SearchSelectItem> customerItems =>
+        customers.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList();
+
+    private string selectedCustomerIdStr => selectedCustomerId > 0 ? selectedCustomerId.ToString() : "";
+
+    private void OnCustomerSelected(string? val)
+    {
+        selectedCustomerId = int.TryParse(val, out var id) ? id : 0;
+    }
 
     protected override async Task OnInitializedAsync()
     {

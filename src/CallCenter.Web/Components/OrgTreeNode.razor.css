@@ -1,0 +1,57 @@
+.tree-node {
+    user-select: none;
+}
+
+.tree-node.inactive {
+    opacity: 0.5;
+}
+
+.tree-node-header {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    gap: 4px;
+    transition: background-color 0.15s;
+}
+
+.tree-node-header:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
+}
+
+.tree-node.selected > .tree-node-header {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    font-weight: 600;
+}
+
+.tree-toggle {
+    border: none;
+    background: none;
+    padding: 0;
+    width: 18px;
+    font-size: 0.7rem;
+    color: var(--bs-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tree-toggle-placeholder {
+    width: 18px;
+    display: inline-block;
+}
+
+.tree-node-name {
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-children {
+    padding-left: 20px;
+    border-left: 1px solid rgba(var(--bs-secondary-rgb), 0.15);
+    margin-left: 9px;
+}

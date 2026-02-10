@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<Language> Languages => Set<Language>();
     public DbSet<TranslationKey> TranslationKeys => Set<TranslationKey>();
     public DbSet<Translation> Translations => Set<Translation>();
+    public DbSet<CustomerOrganizationUnit> CustomerOrganizationUnits => Set<CustomerOrganizationUnit>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -111,6 +112,33 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // CustomerOrganizationUnit (organizasyon hiyerarsisi)
+        modelBuilder.Entity<CustomerOrganizationUnit>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.HasIndex(o => o.Uid).IsUnique();
+            e.Property(o => o.Name).HasMaxLength(200).IsRequired();
+            e.Property(o => o.Code).HasMaxLength(50);
+            e.Property(o => o.Address).HasMaxLength(500);
+            e.Property(o => o.Phone).HasMaxLength(20);
+            e.Property(o => o.Email).HasMaxLength(150);
+            e.HasIndex(o => new { o.CustomerId, o.Name, o.ParentId }).IsUnique();
+            e.HasOne(o => o.Customer)
+             .WithMany(c => c.OrganizationUnits)
+             .HasForeignKey(o => o.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            // Self-reference: ust birim
+            e.HasOne(o => o.Parent)
+             .WithMany(o => o.Children)
+             .HasForeignKey(o => o.ParentId)
+             .OnDelete(DeleteBehavior.Restrict);
+            // Yonetici personel (opsiyonel)
+            e.HasOne(o => o.ManagerPersonnel)
+             .WithMany()
+             .HasForeignKey(o => o.ManagerPersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
         // CustomerPersonnel.UserTypeId (opsiyonel FK — tip silinirse null olur)
         modelBuilder.Entity<CustomerPersonnel>(e =>
         {
@@ -123,6 +151,16 @@ public class AppDbContext : DbContext
             e.HasOne(cp => cp.UserType)
              .WithMany(ut => ut.Personnel)
              .HasForeignKey(cp => cp.UserTypeId)
+             .OnDelete(DeleteBehavior.SetNull);
+            // Organizasyon birimi (opsiyonel)
+            e.HasOne(cp => cp.OrganizationUnit)
+             .WithMany(o => o.Personnel)
+             .HasForeignKey(cp => cp.OrganizationUnitId)
+             .OnDelete(DeleteBehavior.SetNull);
+            // Ust yonetici (self-reference)
+            e.HasOne(cp => cp.ReportsToPersonnel)
+             .WithMany(cp => cp.Subordinates)
+             .HasForeignKey(cp => cp.ReportsToPersonnelId)
              .OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -149,6 +187,10 @@ public class AppDbContext : DbContext
              .WithMany(c => c.Queues)
              .HasForeignKey(q => q.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(q => q.OrganizationUnit)
+             .WithMany(o => o.Queues)
+             .HasForeignKey(q => q.OrganizationUnitId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // QueueAgent (many-to-many)
@@ -174,6 +216,10 @@ public class AppDbContext : DbContext
              .WithMany(c => c.SipAccounts)
              .HasForeignKey(s => s.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.OrganizationUnit)
+             .WithMany(o => o.SipAccounts)
+             .HasForeignKey(s => s.OrganizationUnitId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Language

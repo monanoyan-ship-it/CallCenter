@@ -176,19 +176,28 @@ public class TranslationManagementService : ITranslationManagementService
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
+        var rawItems = await query
             .OrderBy(tk => tk.Module).ThenBy(tk => tk.Key)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(tk => new TranslationKeyListDto
+            .Select(tk => new
             {
-                Id = tk.Id,
-                Key = tk.Key,
-                Module = tk.Module,
-                Description = tk.Description,
-                Values = tk.Translations.ToDictionary(t => t.LanguageCode, t => t.Value)
+                tk.Id,
+                tk.Key,
+                tk.Module,
+                tk.Description,
+                Translations = tk.Translations.Select(t => new { t.LanguageCode, t.Value })
             })
             .ToListAsync();
+
+        var items = rawItems.Select(tk => new TranslationKeyListDto
+        {
+            Id = tk.Id,
+            Key = tk.Key,
+            Module = tk.Module,
+            Description = tk.Description,
+            Values = tk.Translations.ToDictionary(t => t.LanguageCode, t => t.Value)
+        }).ToList();
 
         return new PagedResult<TranslationKeyListDto>
         {

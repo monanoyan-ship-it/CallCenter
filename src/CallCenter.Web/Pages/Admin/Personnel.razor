@@ -1,0 +1,210 @@
+@page "/admin/personnel"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Personel - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-person-badge me-2 text-primary"></i>Personel
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm" disabled="@(selectedCustomerId == 0)">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Personel
+    </button>
+</div>
+
+@* ─── FİRMA SEÇİCİ ─── *@
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <SearchableSelect Items="customerItems" Value="@selectedCustomerIdStr"
+                                  ValueChanged="OnCustomerSelected" Placeholder="-- Firma Seciniz --" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" @onclick="LoadData" disabled="@(selectedCustomerId == 0)">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ─── TABLO ─── *@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (selectedCustomerId == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-building fs-1 d-block mb-2 opacity-25"></i>
+                <span>Personeli goruntulemek icin bir firma seciniz.</span>
+            </div>
+        }
+        else if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (personnelList == null || personnelList.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-person-badge fs-1 d-block mb-2 opacity-25"></i>
+                <span>Personel bulunamadi.</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ad Soyad</th>
+                            <th>E-posta</th>
+                            <th>Unvan</th>
+                            <th>Kullanici Tipi</th>
+                            <th>Org Birim</th>
+                            <th>Ust Yonetici</th>
+                            <th class="text-center">Yetki</th>
+                            <th>Durum</th>
+                            <th style="width: 120px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in personnelList)
+                        {
+                            <tr class="@(!p.IsActive ? "table-secondary" : "")">
+                                <td class="fw-medium">@p.FullName</td>
+                                <td class="text-muted small">@p.Email</td>
+                                <td class="text-muted small">@p.Title</td>
+                                <td class="text-muted small">@(p.UserTypeName ?? "-")</td>
+                                <td class="text-muted small">@(p.OrganizationUnitName ?? "-")</td>
+                                <td class="text-muted small">@(p.ReportsToPersonnelName ?? "-")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning-subtle text-warning rounded-pill">@p.PermissionCount</span>
+                                </td>
+                                <td>
+                                    @if (p.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle"
+                                            @onclick="() => OpenEditForm(p)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
+                                            @onclick="() => ConfirmDeactivate(p)" disabled="@(!p.IsActive)">
+                                        <i class="bi bi-toggle-off"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<AdminPersonnelForm @ref="personnelForm" CustomerId="selectedCustomerId" OnSaved="LoadData" />
+
+<ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDeactivate"
+               Message="@($"'{deactivateTarget?.FullName}' personelini deaktive etmek istediginize emin misiniz?")" />
+
+@code {
+    private List<PortalPersonnelListDto>? personnelList;
+    private List<CustomerListDto>? customers;
+    private int selectedCustomerId;
+    private bool isLoading;
+    private AdminPersonnelForm personnelForm = null!;
+    private ConfirmDialog confirmDialog = null!;
+    private PortalPersonnelListDto? deactivateTarget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PagedResult<CustomerListDto>>("api/customers?page=1&pageSize=500");
+            customers = result?.Items;
+        }
+        catch { }
+    }
+
+    private List<SearchableSelect.SearchSelectItem> customerItems =>
+        customers?.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList() ?? new();
+
+    private string selectedCustomerIdStr => selectedCustomerId > 0 ? selectedCustomerId.ToString() : "";
+
+    private async Task OnCustomerSelected(string? val)
+    {
+        selectedCustomerId = int.TryParse(val, out var id) ? id : 0;
+        if (selectedCustomerId > 0) await LoadData();
+        else personnelList = null;
+    }
+
+    private async Task LoadData()
+    {
+        if (selectedCustomerId == 0) return;
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            personnelList = await Http.GetFromJsonAsync<List<PortalPersonnelListDto>>($"api/portal/personnel?customerId={selectedCustomerId}");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Veri yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenCreateForm()
+    {
+        personnelForm.OpenForCreate();
+    }
+
+    private void OpenEditForm(PortalPersonnelListDto p)
+    {
+        personnelForm.OpenForEdit(p);
+    }
+
+    private void ConfirmDeactivate(PortalPersonnelListDto p)
+    {
+        deactivateTarget = p;
+        confirmDialog.Show();
+    }
+
+    private async Task ExecuteDeactivate()
+    {
+        if (deactivateTarget == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/portal/personnel/{deactivateTarget.Id}?customerId={selectedCustomerId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Personel deaktive edildi.");
+                await LoadData();
+            }
+            else
+            {
+                Toast.ShowError("Islem basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+}

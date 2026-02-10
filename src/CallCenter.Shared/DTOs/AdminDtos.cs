@@ -174,6 +174,8 @@ public class QueueListDto
     public bool IsActive { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public int? OrganizationUnitId { get; set; }
+    public string? OrganizationUnitName { get; set; }
     public int AgentCount { get; set; }
 }
 
@@ -249,6 +251,8 @@ public class SipAccountListDto
     public bool IsActive { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public int? OrganizationUnitId { get; set; }
+    public string? OrganizationUnitName { get; set; }
 }
 
 public class SipAccountCreateDto

@@ -65,6 +65,7 @@ builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISettingService, SettingService>();
 builder.Services.AddScoped<ITranslationManagementService, TranslationManagementService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<ServiceFactory>();
 
 // SignalR
@@ -98,7 +99,16 @@ if (app.Environment.IsDevelopment())
     // Otomatik migration (development'ta)
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    try
+    {
+        await db.Database.MigrateAsync();
+    }
+    catch
+    {
+        // Migration history bozuksa DB'yi sıfırla ve tekrar uygula
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.MigrateAsync();
+    }
 }
 
 app.UseHttpsRedirection();

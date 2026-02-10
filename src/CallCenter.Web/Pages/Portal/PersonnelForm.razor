@@ -59,16 +59,8 @@
 
                         <div class="mb-3">
                             <label class="form-label small">Kullanici Tipi</label>
-                            <select class="form-select form-select-sm" @bind="selectedUserTypeId">
-                                <option value="0">-- Secilmedi --</option>
-                                @if (userTypes != null)
-                                {
-                                    @foreach (var ut in userTypes.Where(u => u.IsActive))
-                                    {
-                                        <option value="@ut.Id">@ut.Name (@ut.PermissionCount yetki)</option>
-                                    }
-                                }
-                            </select>
+                            <SearchableSelect Items="userTypeItems" Value="@selectedUserTypeIdStr"
+                                              ValueChanged="OnUserTypeSelected" Placeholder="-- Secilmedi --" />
                             @if (selectedUserTypeId > 0)
                             {
                                 var selected = userTypes?.FirstOrDefault(u => u.Id == selectedUserTypeId);
@@ -116,6 +108,17 @@
     private int editId;
     private int selectedUserTypeId;
     private List<UserTypeListDto>? userTypes;
+
+    private List<SearchableSelect.SearchSelectItem> userTypeItems =>
+        userTypes?.Where(u => u.IsActive)
+            .Select(ut => new SearchableSelect.SearchSelectItem(ut.Id.ToString(), ut.Name, $"{ut.PermissionCount} yetki")).ToList() ?? new();
+
+    private string selectedUserTypeIdStr => selectedUserTypeId > 0 ? selectedUserTypeId.ToString() : "";
+
+    private void OnUserTypeSelected(string? val)
+    {
+        selectedUserTypeId = int.TryParse(val, out var id) ? id : 0;
+    }
 
     private PersonnelFormModel formModel = new();
 

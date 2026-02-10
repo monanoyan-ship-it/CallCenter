@@ -33,13 +33,8 @@
                         {
                             <div class="mb-3">
                                 <label class="form-label small">Firma</label>
-                                <InputSelect class="form-select form-select-sm" @bind-Value="createModel.CustomerId">
-                                    <option value="0">-- Firma Sec --</option>
-                                    @foreach (var c in Customers)
-                                    {
-                                        <option value="@c.Id">@c.Name</option>
-                                    }
-                                </InputSelect>
+                                <SearchableSelect Items="customerItems" Value="@customerIdStr"
+                                                  ValueChanged="OnCustomerSelected" Placeholder="-- Firma Sec --" />
                                 <ValidationMessage For="@(() => createModel.CustomerId)" />
                             </div>
                         }
@@ -90,6 +85,16 @@
     private bool isActive = true;
 
     private QueueCreateDto createModel = new();
+
+    private List<SearchableSelect.SearchSelectItem> customerItems =>
+        Customers.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList();
+
+    private string customerIdStr => createModel.CustomerId > 0 ? createModel.CustomerId.ToString() : "";
+
+    private void OnCustomerSelected(string? val)
+    {
+        createModel.CustomerId = int.TryParse(val, out var id) ? id : 0;
+    }
 
     public void OpenForCreate()
     {

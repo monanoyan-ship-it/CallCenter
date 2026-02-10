@@ -1,0 +1,221 @@
+@page "/admin/usertypes"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Kullanici Tipleri - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-person-vcard me-2 text-primary"></i>Kullanici Tipleri
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm" disabled="@(selectedCustomerId == 0)">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Tip
+    </button>
+</div>
+
+@* ─── FİRMA SEÇİCİ ─── *@
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <SearchableSelect Items="customerItems" Value="@selectedCustomerIdStr"
+                                  ValueChanged="OnCustomerSelected" Placeholder="-- Firma Seciniz --" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" @onclick="LoadData" disabled="@(selectedCustomerId == 0)">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ─── TABLO ─── *@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (selectedCustomerId == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-building fs-1 d-block mb-2 opacity-25"></i>
+                <span>Kullanici tiplerini goruntulemek icin bir firma seciniz.</span>
+            </div>
+        }
+        else if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (userTypes == null || userTypes.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-person-vcard fs-1 d-block mb-2 opacity-25"></i>
+                <span>Kullanici tipi bulunamadi.</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tip Adi</th>
+                            <th>Aciklama</th>
+                            <th class="text-center">Seviye</th>
+                            <th class="text-center">Alt Yonetim</th>
+                            <th class="text-center">Personel</th>
+                            <th class="text-center">Yetki</th>
+                            <th>Durum</th>
+                            <th style="width: 120px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ut in userTypes)
+                        {
+                            <tr class="@(!ut.IsActive ? "table-secondary" : "")">
+                                <td class="fw-medium">@ut.Name</td>
+                                <td class="text-muted small">@(ut.Description ?? "-")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info rounded-pill">@ut.Level</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (ut.CanManageSubordinates)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-x-circle text-muted"></i>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill">@ut.PersonnelCount</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning-subtle text-warning rounded-pill">@ut.PermissionCount</span>
+                                </td>
+                                <td>
+                                    @if (ut.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle"
+                                            @onclick="() => OpenEditForm(ut)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
+                                            @onclick="() => ConfirmDeactivate(ut)" disabled="@(!ut.IsActive)">
+                                        <i class="bi bi-toggle-off"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<AdminUserTypeForm @ref="typeForm" CustomerId="selectedCustomerId" OnSaved="LoadData" />
+
+<ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDeactivate"
+               Message="@($"'{deactivateTarget?.Name}' tipini deaktive etmek istediginize emin misiniz?")" />
+
+@code {
+    private List<UserTypeListDto>? userTypes;
+    private List<CustomerListDto>? customers;
+    private int selectedCustomerId;
+    private bool isLoading;
+    private AdminUserTypeForm typeForm = null!;
+    private ConfirmDialog confirmDialog = null!;
+    private UserTypeListDto? deactivateTarget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PagedResult<CustomerListDto>>("api/customers?page=1&pageSize=500");
+            customers = result?.Items;
+        }
+        catch { }
+    }
+
+    private List<SearchableSelect.SearchSelectItem> customerItems =>
+        customers?.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList() ?? new();
+
+    private string selectedCustomerIdStr => selectedCustomerId > 0 ? selectedCustomerId.ToString() : "";
+
+    private async Task OnCustomerSelected(string? val)
+    {
+        selectedCustomerId = int.TryParse(val, out var id) ? id : 0;
+        if (selectedCustomerId > 0) await LoadData();
+        else userTypes = null;
+    }
+
+    private async Task LoadData()
+    {
+        if (selectedCustomerId == 0) return;
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            userTypes = await Http.GetFromJsonAsync<List<UserTypeListDto>>($"api/portal/usertypes?customerId={selectedCustomerId}");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Veri yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenCreateForm()
+    {
+        typeForm.OpenForCreate();
+    }
+
+    private void OpenEditForm(UserTypeListDto ut)
+    {
+        typeForm.OpenForEdit(ut);
+    }
+
+    private void ConfirmDeactivate(UserTypeListDto ut)
+    {
+        deactivateTarget = ut;
+        confirmDialog.Show();
+    }
+
+    private async Task ExecuteDeactivate()
+    {
+        if (deactivateTarget == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/portal/usertypes/{deactivateTarget.Id}?customerId={selectedCustomerId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Kullanici tipi deaktive edildi.");
+                await LoadData();
+            }
+            else
+            {
+                Toast.ShowError("Islem basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+}

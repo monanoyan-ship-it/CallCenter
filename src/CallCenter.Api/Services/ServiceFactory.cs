@@ -43,4 +43,7 @@ public class ServiceFactory
 
     public ITranslationManagementService CreateTranslationManagementService()
         => _sp.GetRequiredService<ITranslationManagementService>();
+
+    public IOrganizationService CreateOrganizationService()
+        => _sp.GetRequiredService<IOrganizationService>();
 }

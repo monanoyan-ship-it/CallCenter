@@ -20,6 +20,15 @@ public class CustomerPersonnel
     public int? UserTypeId { get; set; }
     public CustomerUserType? UserType { get; set; }
 
+    // Organizasyon birimi (opsiyonel)
+    public int? OrganizationUnitId { get; set; }
+    public CustomerOrganizationUnit? OrganizationUnit { get; set; }
+
+    // Ust yonetici (self-reference, opsiyonel)
+    public int? ReportsToPersonnelId { get; set; }
+    public CustomerPersonnel? ReportsToPersonnel { get; set; }
+    public ICollection<CustomerPersonnel> Subordinates { get; set; } = new List<CustomerPersonnel>();
+
     // Dinamik yetkiler (CustomerPersonnelPermission tablosu)
     public ICollection<CustomerPersonnelPermission> Permissions { get; set; } = new List<CustomerPersonnelPermission>();
 }

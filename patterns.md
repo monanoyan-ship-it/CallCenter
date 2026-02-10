@@ -818,6 +818,32 @@ Bu proje izole bir uygulama değil. Dış dünya ile iki yönlü bağlantı kura
 #### En Büyük Risk
 MAUI Blazor Hybrid'de (Android) WebRTC video tutarsız. Mobilde video için native katman veya WebRTCme framework gerekebilir.
 
+### 2026-02-10 - Görev 4.9: Müşteri Detay Sayfası (Tabbed Yönetim)
+
+**Amaç:** Admin firma oluşturduktan sonra tek yerden yönetim. Modül atama, personel oluşturma, kuyruk/SIP görüntüleme hepsi tek sayfada.
+
+**CustomerDetail.razor (/admin/customers/{id}):**
+- 5 sekme: Genel, Modüller, Personel, Kuyruklar, SIP Hesapları
+- **Genel**: Firma bilgileri inline EditForm (CustomerUpdateDto ile PUT)
+- **Modüller**: 14 kart, toggle switch ile aç/kapat (POST/DELETE api/customers/{id}/modules)
+- **Personel**: Portal'daki PersonnelForm ve PersonnelPermissionForm bileşenlerini yeniden kullanıyor (CustomerIdParam ile)
+- **Kuyruklar**: Read-only tablo, /admin/queues'a link
+- **SIP**: Read-only tablo, /admin/sip'e link
+- Lazy tab loading: Sekme ilk açıldığında veri yükleniyor
+
+**NavMenu Güncelleme:**
+- Müşteriler artık ayrı bir menü grubu (grup index 4)
+- Yönetim grubu: Kullanıcılar, Kuyruk Yapılandırması, SIP, Dil, Sistem (Müşteriler çıkarıldı)
+- GroupRoutes ayrımı: `admin/customers*` → grup 4, diğer `admin/*` → grup 3
+
+**Customers.razor Güncelleme:**
+- "Yönet" butonu eklendi (bi-sliders2 ikonu, /admin/customers/{id}'ye yönlendirir)
+- 4 buton sırası: Yönet, Portal, Düzenle, Sil
+
+**Yeni Dosyalar (2):** CustomerDetail.razor + CSS
+**Düzenlenen Dosyalar (2):** Customers.razor, NavMenu.razor
+**Build: 0 hata, 0 uyarı**
+
 #### Mobil Uygulama Teknoloji Kararı (ÖNEMLİ)
 
 **Karar:** Mobil uygulama MAUI yerine **React Native** ile yazılacak.
@@ -849,3 +875,113 @@ MAUI Blazor Hybrid'de (Android) WebRTC video tutarsız. Mobilde video için nati
 - Tek codebase ile Android + iOS
 
 **MAUI projesi kaldırılmayacak** — Windows masaüstü için hâlâ kullanılabilir. Sadece mobil taraf ayrı yazılacak.
+
+---
+
+## Görev 4.10 — Müşteri Organizasyon Hiyerarşisi (2026-02-10)
+
+Müşteri altında organizasyon ağacı, kullanıcı tipi hiyerarşisi ve personel raporlama zinciri eklendi.
+
+### Mimari Kararlar
+
+**Self-Referencing Ağaç Yapısı:**
+- `CustomerOrganizationUnit.ParentId` → sınırsız derinlik
+- `CustomerPersonnel.ReportsToPersonnelId` → amir-ast zinciri
+- İkisinde de BFS tabanlı cycle detection (oluşturma/güncelleme sırasında)
+- Delete: Çocuğu olan birim silinemez (Restrict), personnel FK'ları SetNull
+
+**TypeItem ile Birim Tipi:**
+- OrganizationUnitTypes: Region(1), Branch(2), Department(3), Unit(4), Team(5)
+- Her tipin ikonu ve CSS sınıfı var → ağaç görünümünde gösterilir
+
+**Kullanıcı Tipi Hiyerarşisi:**
+- `CustomerUserType.Level` (int, 1 = en yüksek) → seviye bazlı sıralama
+- `CanManageSubordinates` → alt personeli yönetebilir flag'i
+- `CanApprove` → Faz 2 placeholder (sadece alan, iş mantığı yok)
+
+**Unique Constraint:**
+- `(CustomerId, Name, ParentId)` → aynı isimde farklı üst birimlerde olabilir
+- PostgreSQL'de NULL != NULL → kök birimler arasında da aynı isim olabilir
+
+### Dosya Listesi
+
+**Yeni Dosyalar (~15):**
+| Dosya | Açıklama |
+|-------|----------|
+| Entities/CustomerOrganizationUnit.cs | Self-ref ağaç entity |
+| DTOs/OrganizationDtos.cs | List, Tree, Detail, Create, Update DTO'lar |
+| Services/Interfaces/IOrganizationService.cs | 7 metod interface |
+| Services/OrganizationService.cs | CRUD + ağaç build + cycle detection |
+| Controllers/OrganizationsController.cs | 7 endpoint, Admin/Supervisor auth |
+| Components/OrgTreeNode.razor + .css | Recursive ağaç component |
+| Pages/Admin/Organizations.razor | Ağaç görünümü + detay paneli |
+| Pages/Admin/OrganizationForm.razor | Create/Edit modal |
+| Pages/Admin/UserTypes.razor | Admin kullanıcı tipleri sayfası |
+| Pages/Admin/AdminUserTypeForm.razor | Create/Edit modal |
+| Pages/Admin/Personnel.razor | Admin personel sayfası |
+| Pages/Admin/AdminPersonnelForm.razor | Create/Edit modal (OrgUnit/ReportsTo) |
+| Migration: AddOrganizationHierarchy | Tablo + FK + index |
+
+**Düzenlenen Dosyalar (~14):**
+| Dosya | Değişiklik |
+|-------|-----------|
+| CustomerUserType.cs | +Level, +CanManageSubordinates, +CanApprove |
+| CustomerPersonnel.cs | +OrganizationUnitId, +ReportsToPersonnelId, +Subordinates nav |
+| Queue.cs | +OrganizationUnitId |
+| SipAccount.cs | +OrganizationUnitId |
+| Customer.cs | +OrganizationUnits nav |
+| TypeDefinitions.cs | +OrganizationUnitTypes class |
+| AppDbContext.cs | DbSet + FK configs |
+| PortalDtos.cs | UserType/Personnel DTO'lara yeni alanlar |
+| AdminDtos.cs | Queue/SipAccount DTO'lara OrgUnitId/Name |
+| ServiceFactory.cs | +CreateOrganizationService() |
+| Program.cs | +IOrganizationService DI |
+| PortalService.cs | UserType/Personnel CRUD güncelleme |
+| QueueService.cs | OrgUnitId/Name mapping |
+| SipAccountService.cs | OrgUnitId/Name mapping |
+| NavMenu.razor | +3 link (Organizasyonlar, Kullanıcı Tipleri, Personel) |
+| CustomerDetail.razor | +Organizasyon sekmesi (6. tab) |
+
+### Faz 2'ye Bırakılanlar
+- Level enforcement (runtime seviye kontrolü)
+- CanApprove mekanizması (onay iş akışı)
+- Toplu birim silme (cascading soft delete)
+
+### 2026-02-10 - Görev 4.11: SearchableSelect (Aranabilir Combobox) Componenti
+
+**Amaç:** 12+ dropdown'u aranabilir hale getirmek. Firma, personel, organizasyon birimi gibi potansiyel olarak çok kayıtlı listeler düz `<select>` ile kullanışsız.
+
+**SearchableSelect Component (2 yeni dosya):**
+- `Components/SearchableSelect.razor` + CSS
+- Parametreler: Items (SearchSelectItem listesi), Value, ValueChanged, Placeholder, SearchPlaceholder, AllowClear, Disabled
+- SearchSelectItem record: Value, Text, Subtitle (opsiyonel)
+- Overlay yaklaşımı ile click-outside kapatma (JS interop yok)
+- Case-insensitive arama (Text + Subtitle üzerinde Contains)
+- FocusAsync ile açıldığında otomatik arama inputuna odaklanma
+
+**Dönüştürülen dropdown'lar (10 dosya, 12 select):**
+- Sayfa filtreleri (5): Personnel, UserTypes, Organizations, Reports/Agents, Reports/Calls → firma seçici
+- Form modalleri (5): AdminPersonnelForm (3: UserType/OrgUnit/ReportsTo), OrganizationForm (2: ÜstBirim/Yönetici), QueueForm (1: Firma), SipAccountForm (1: Firma), Portal/PersonnelForm (1: UserType)
+
+**Dönüştürülmeyen küçük enum'lar:** Rol (4), Birim Tipi (5), Transport (4), Yön (3), Durum (5)
+
+**Build: 0 hata, 0 uyarı (tüm solution)**
+
+### 2026-02-10 - SIP/VoIP Sağlayıcı Demo Hesap Araştırması
+
+**Amaç:** Faz 3'teki SIP.js entegrasyonunu gerçek bir SIP sunucuya bağlayarak runtime'da test etmek.
+
+**SIP.js ile En Uyumlu Seçenekler (Öncelik Sırasıyla):**
+1. **OnSIP** — SIP.js'yi geliştiren firma! Ücretsiz developer hesabı, kredi kartı gerektirmez. **İlk test için en mantıklı.**
+2. **SignalWire** — FreeSWITCH'in yaratıcıları. Standart SIP over WebSocket, SIP.js doğrudan çalışır. $5 depozit.
+3. **Telnyx** — SDK zaten SIP.js tabanlı. $5 depozit + iş e-postası gerekli.
+4. **Asterisk (self-hosted)** — $5-10/ay VPS, tam kontrol, en yaygın.
+
+**Ücretsiz Test Sunucuları:**
+- OnSIP: Ücretsiz SIP hesabı, SIP.js birebir uyumlu
+- SIP2SIP.info: Ücretsiz, echo test (`echo@conference.sip2sip.info`)
+- sip5060.net: Test numaraları (echo, DTMF), hesap gerektirmez
+
+**Önerilmeyenler:** Bandwidth (WebRTC API kaldırıldı), VoIP.ms (WebSocket yok), 3CX Free (kapalı SIP stack, SIP.js çalışmaz)
+
+**Detaylı analiz:** `yol_haritasi.xml` → `<Arastirma konu="SIP/VoIP Saglayici Demo Hesaplari">`

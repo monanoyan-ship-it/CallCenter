@@ -19,4 +19,8 @@ public class SipAccount
     // Hangi musteriye ait (her SIP hesabi bir firmaya baglidir)
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
+
+    // Opsiyonel organizasyon birimi baglantisi
+    public int? OrganizationUnitId { get; set; }
+    public CustomerOrganizationUnit? OrganizationUnit { get; set; }
 }

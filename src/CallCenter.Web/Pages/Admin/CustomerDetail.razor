@@ -1,0 +1,798 @@
+@page "/admin/customers/{Id:int}"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+@using CallCenter.Web.Pages.Portal
+
+<PageTitle>Musteri Detay - Call Center</PageTitle>
+
+@* ─── HEADER ─── *@
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack" title="Geri">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h4 class="mb-0">
+            <i class="bi bi-building me-2 text-primary"></i>
+            @if (customer != null)
+            {
+                @customer.Name
+                @if (!customer.IsActive)
+                {
+                    <span class="badge bg-secondary-subtle text-secondary ms-2 fs-6">Pasif</span>
+                }
+            }
+            else if (isLoadingGeneral)
+            {
+                <span class="placeholder-glow"><span class="placeholder col-4"></span></span>
+            }
+        </h4>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-success btn-sm" @onclick="GoToPortal" title="Portal">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Portal
+        </button>
+    </div>
+</div>
+
+@* ─── TABS ─── *@
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "genel" ? "active" : "")" @onclick='() => SetTab("genel")'>
+            <i class="bi bi-info-circle me-1"></i>Genel
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "moduller" ? "active" : "")" @onclick='() => SetTab("moduller")'>
+            <i class="bi bi-grid-3x3-gap me-1"></i>Moduller
+            @if (modules != null)
+            {
+                <span class="badge bg-primary-subtle text-primary rounded-pill ms-1">@modules.Count(m => m.IsActive)</span>
+            }
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "personel" ? "active" : "")" @onclick='() => SetTab("personel")'>
+            <i class="bi bi-person-badge me-1"></i>Personel
+            @if (personnel != null)
+            {
+                <span class="badge bg-primary-subtle text-primary rounded-pill ms-1">@personnel.Count</span>
+            }
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "organizasyon" ? "active" : "")" @onclick='() => SetTab("organizasyon")'>
+            <i class="bi bi-diagram-3 me-1"></i>Organizasyon
+            @if (orgUnits != null)
+            {
+                <span class="badge bg-info-subtle text-info rounded-pill ms-1">@orgUnits.Count</span>
+            }
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "kuyruklar" ? "active" : "")" @onclick='() => SetTab("kuyruklar")'>
+            <i class="bi bi-people-fill me-1"></i>Kuyruklar
+            @if (queues != null)
+            {
+                <span class="badge bg-info-subtle text-info rounded-pill ms-1">@queues.Count</span>
+            }
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "sip" ? "active" : "")" @onclick='() => SetTab("sip")'>
+            <i class="bi bi-router-fill me-1"></i>SIP Hesaplari
+            @if (sipAccounts != null)
+            {
+                <span class="badge bg-warning-subtle text-warning rounded-pill ms-1">@sipAccounts.Count</span>
+            }
+        </button>
+    </li>
+</ul>
+
+@* ═══════════════════════════════════════════════════════════ *@
+@* GENEL SEKMESİ                                               *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "genel")
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            @if (isLoadingGeneral)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (customer != null)
+            {
+                <EditForm Model="@editModel" OnValidSubmit="SaveGeneral">
+                    <DataAnnotationsValidator />
+                    @if (!string.IsNullOrEmpty(generalError))
+                    {
+                        <div class="alert alert-danger py-2 small">@generalError</div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Firma Adi</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="editModel.Name" />
+                            <ValidationMessage For="@(() => editModel.Name)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Vergi No</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="editModel.TaxNumber" />
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small">Adres</label>
+                            <InputTextArea class="form-control form-control-sm" @bind-Value="editModel.Address" rows="2" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Telefon</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="editModel.Phone" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">E-posta</label>
+                            <InputText class="form-control form-control-sm" @bind-Value="editModel.Email" />
+                            <ValidationMessage For="@(() => editModel.Email)" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-2">
+                                <InputCheckbox class="form-check-input" @bind-Value="editModel.IsActive" />
+                                <label class="form-check-label small">Aktif</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm" disabled="@isSavingGeneral">
+                            @if (isSavingGeneral)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            <i class="bi bi-check-lg me-1"></i>Kaydet
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+}
+
+@* ═══════════════════════════════════════════════════════════ *@
+@* MODÜLLER SEKMESİ                                            *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "moduller")
+{
+    <div class="row g-3">
+        @if (isLoadingModules)
+        {
+            <div class="col-12 text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+        }
+        else if (modules != null)
+        {
+            @foreach (var mod in modules)
+            {
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="card h-100 @(mod.IsActive ? "border-success" : "border-0") shadow-sm">
+                        <div class="card-body text-center py-3 @(!mod.IsActive ? "opacity-50" : "")">
+                            <i class="bi @(mod.Icon ?? "bi-box") fs-2 @(mod.IsActive ? "text-success" : "text-muted")"></i>
+                            <h6 class="mt-2 mb-1">@mod.SystemName</h6>
+                            <small class="text-muted d-block mb-2">@mod.Description</small>
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       checked="@mod.IsActive"
+                                       disabled="@togglingModuleId.HasValue"
+                                       @onchange="(e) => ToggleModule(mod, (bool)(e.Value ?? false))" />
+                            </div>
+                            <small class="text-muted mt-1 d-block">@mod.Permissions.Count izin</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+}
+
+@* ═══════════════════════════════════════════════════════════ *@
+@* PERSONEL SEKMESİ                                            *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "personel")
+{
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-primary btn-sm" @onclick="OpenCreatePersonnel">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Personel
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (isLoadingPersonnel)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (personnel == null || personnel.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Personel bulunamadi</span>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Unvan</th>
+                                <th>Kullanici Tipi</th>
+                                <th class="text-center">Yetki</th>
+                                <th>Durum</th>
+                                <th style="width: 140px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in personnel)
+                            {
+                                <tr class="@(!item.IsActive ? "table-secondary" : "")">
+                                    <td class="fw-medium">@item.FullName</td>
+                                    <td class="text-muted small">@item.Email</td>
+                                    <td class="small">@item.Title</td>
+                                    <td>
+                                        @if (item.UserTypeName != null)
+                                        {
+                                            <span class="badge bg-info-subtle text-info">@item.UserTypeName</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill">@item.PermissionCount</span>
+                                    </td>
+                                    <td>
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Aktif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-info btn-sm me-1" title="Yetkiler"
+                                                @onclick="() => OpenPermissions(item)">
+                                            <i class="bi bi-shield-check"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
+                                                @onclick="() => OpenEditPersonnel(item)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
+                                                @onclick="() => ConfirmDeactivatePersonnel(item)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <PersonnelForm @ref="personnelForm" CustomerIdParam="@Id.ToString()" OnSaved="LoadPersonnel" />
+    <PersonnelPermissionForm @ref="permForm" CustomerIdParam="@Id.ToString()" OnSaved="LoadPersonnel" />
+    <ConfirmDialog @ref="personnelConfirmDialog" OnConfirm="ExecuteDeactivatePersonnel"
+                   Message="@($"'{deactivateTarget?.FullName}' personelini deaktive etmek istediginize emin misiniz?")" />
+}
+
+@* ═══════════════════════════════════════════════════════════ *@
+@* ORGANİZASYON SEKMESİ                                        *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "organizasyon")
+{
+    <div class="d-flex justify-content-end mb-2">
+        <a href="admin/organizations" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Organizasyon Yonetimine Git
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (isLoadingOrg)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (orgUnits == null || orgUnits.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-diagram-3 fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Organizasyon birimi bulunamadi</span>
+                    <div class="mt-2">
+                        <a href="admin/organizations" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i>Organizasyon Ekle
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Birim Adi</th>
+                                <th>Kod</th>
+                                <th>Tip</th>
+                                <th>Ust Birim</th>
+                                <th>Yonetici</th>
+                                <th class="text-center">Personel</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var o in orgUnits)
+                            {
+                                <tr class="@(!o.IsActive ? "table-secondary" : "")">
+                                    <td class="fw-medium">@o.Name</td>
+                                    <td class="text-muted small">@(o.Code ?? "-")</td>
+                                    <td>
+                                        @if (o.TypeIcon != null)
+                                        {
+                                            <i class="bi @o.TypeIcon me-1"></i>
+                                        }
+                                        <span class="small">@(o.TypeName ?? "-")</span>
+                                    </td>
+                                    <td class="text-muted small">@(o.ParentName ?? "-")</td>
+                                    <td class="text-muted small">@(o.ManagerName ?? "-")</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill">@o.PersonnelCount</span>
+                                    </td>
+                                    <td>
+                                        @if (o.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Aktif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* ═══════════════════════════════════════════════════════════ *@
+@* KUYRUKLAR SEKMESİ                                           *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "kuyruklar")
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (isLoadingQueues)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (queues == null || queues.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Kuyruk bulunamadi</span>
+                    <div class="mt-2">
+                        <a href="admin/queues" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i>Kuyruk Yapilandirmasina Git
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kuyruk Adi</th>
+                                <th>Aciklama</th>
+                                <th class="text-center">Temsilci</th>
+                                <th class="text-center">Maks. Bekleme</th>
+                                <th>Durum</th>
+                                <th style="width: 60px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in queues)
+                            {
+                                <tr class="@(!q.IsActive ? "table-secondary" : "")">
+                                    <td class="fw-medium">@q.Name</td>
+                                    <td class="text-muted small">@(q.Description ?? "-")</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill">@q.AgentCount</span>
+                                    </td>
+                                    <td class="text-center small text-muted">@q.MaxWaitTimeSeconds sn</td>
+                                    <td>
+                                        @if (q.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Aktif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="admin/queues" class="btn btn-outline-secondary btn-sm" title="Yapilandir">
+                                            <i class="bi bi-gear"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* ═══════════════════════════════════════════════════════════ *@
+@* SIP HESAPLARI SEKMESİ                                       *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "sip")
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (isLoadingSip)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (sipAccounts == null || sipAccounts.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-router fs-1 d-block mb-2 opacity-25"></i>
+                    <span>SIP hesabi bulunamadi</span>
+                    <div class="mt-2">
+                        <a href="admin/sip" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i>SIP Ayarlarina Git
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hesap Adi</th>
+                                <th>Sunucu</th>
+                                <th>Port</th>
+                                <th>Kullanici</th>
+                                <th>Transport</th>
+                                <th>Varsayilan</th>
+                                <th>Durum</th>
+                                <th style="width: 60px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sip in sipAccounts)
+                            {
+                                <tr class="@(!sip.IsActive ? "table-secondary" : "")">
+                                    <td class="fw-medium">@sip.Name</td>
+                                    <td class="text-muted small">@sip.Server</td>
+                                    <td class="text-muted small">@sip.Port</td>
+                                    <td class="small">@sip.Username</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@(sip.Transport ?? "UDP")</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (sip.IsDefault)
+                                        {
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (sip.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Aktif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="admin/sip" class="btn btn-outline-secondary btn-sm" title="Yapilandir">
+                                            <i class="bi bi-gear"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private string activeTab = "genel";
+
+    // ─── GENEL ───
+    private CustomerDetailDto? customer;
+    private CustomerUpdateDto editModel = new();
+    private bool isLoadingGeneral;
+    private bool isSavingGeneral;
+    private string? generalError;
+
+    // ─── MODULLER ───
+    private List<PortalModuleDto>? modules;
+    private bool isLoadingModules;
+    private int? togglingModuleId;
+
+    // ─── PERSONEL ───
+    private List<PortalPersonnelListDto>? personnel;
+    private bool isLoadingPersonnel;
+    private PersonnelForm personnelForm = null!;
+    private PersonnelPermissionForm permForm = null!;
+    private ConfirmDialog personnelConfirmDialog = null!;
+    private PortalPersonnelListDto? deactivateTarget;
+
+    // ─── KUYRUKLAR ───
+    private List<QueueListDto>? queues;
+    private bool isLoadingQueues;
+
+    // ─── ORGANİZASYON ───
+    private List<OrgUnitListDto>? orgUnits;
+    private bool isLoadingOrg;
+
+    // ─── SIP ───
+    private List<SipAccountListDto>? sipAccounts;
+    private bool isLoadingSip;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGeneral();
+    }
+
+    private async Task SetTab(string tab)
+    {
+        activeTab = tab;
+
+        switch (tab)
+        {
+            case "genel" when customer == null:
+                await LoadGeneral();
+                break;
+            case "moduller" when modules == null:
+                await LoadModules();
+                break;
+            case "personel" when personnel == null:
+                await LoadPersonnel();
+                break;
+            case "organizasyon" when orgUnits == null:
+                await LoadOrganizations();
+                break;
+            case "kuyruklar" when queues == null:
+                await LoadQueues();
+                break;
+            case "sip" when sipAccounts == null:
+                await LoadSip();
+                break;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // GENEL
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadGeneral()
+    {
+        isLoadingGeneral = true;
+        StateHasChanged();
+        try
+        {
+            customer = await Http.GetFromJsonAsync<CustomerDetailDto>($"api/customers/{Id}");
+            if (customer != null)
+            {
+                editModel = new CustomerUpdateDto
+                {
+                    Name = customer.Name,
+                    TaxNumber = customer.TaxNumber,
+                    Address = customer.Address,
+                    Phone = customer.Phone,
+                    Email = customer.Email,
+                    IsActive = customer.IsActive
+                };
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Veri yuklenemedi: {ex.Message}"); }
+        finally { isLoadingGeneral = false; }
+    }
+
+    private async Task SaveGeneral()
+    {
+        isSavingGeneral = true;
+        generalError = null;
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/customers/{Id}", editModel);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Musteri guncellendi.");
+                customer = await Http.GetFromJsonAsync<CustomerDetailDto>($"api/customers/{Id}");
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                generalError = error?.Message ?? "Guncelleme basarisiz.";
+            }
+        }
+        catch (Exception ex) { generalError = $"Hata: {ex.Message}"; }
+        finally { isSavingGeneral = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // MODULLER
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadModules()
+    {
+        isLoadingModules = true;
+        StateHasChanged();
+        try
+        {
+            modules = await Http.GetFromJsonAsync<List<PortalModuleDto>>($"api/portal/modules?customerId={Id}");
+        }
+        catch (Exception ex) { Toast.ShowError($"Moduller yuklenemedi: {ex.Message}"); }
+        finally { isLoadingModules = false; }
+    }
+
+    private async Task ToggleModule(PortalModuleDto mod, bool activate)
+    {
+        togglingModuleId = mod.Id;
+        StateHasChanged();
+
+        try
+        {
+            HttpResponseMessage response;
+            if (activate)
+            {
+                var request = new AssignModulesRequest { ModuleIds = new[] { mod.Id } };
+                response = await Http.PostAsJsonAsync($"api/customers/{Id}/modules", request);
+            }
+            else
+            {
+                response = await Http.DeleteAsync($"api/customers/{Id}/modules/{mod.Id}");
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess(activate ? $"{mod.SystemName} aktif edildi." : $"{mod.SystemName} deaktive edildi.");
+                await LoadModules();
+            }
+            else
+            {
+                Toast.ShowError("Modul guncelleme basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { togglingModuleId = null; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // PERSONEL
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadPersonnel()
+    {
+        isLoadingPersonnel = true;
+        StateHasChanged();
+        try
+        {
+            personnel = await Http.GetFromJsonAsync<List<PortalPersonnelListDto>>($"api/portal/personnel?customerId={Id}");
+        }
+        catch (Exception ex) { Toast.ShowError($"Personel yuklenemedi: {ex.Message}"); }
+        finally { isLoadingPersonnel = false; }
+    }
+
+    private void OpenCreatePersonnel() => personnelForm.OpenForCreate();
+    private void OpenEditPersonnel(PortalPersonnelListDto item) => personnelForm.OpenForEdit(item);
+    private void OpenPermissions(PortalPersonnelListDto item) => permForm.Open(item);
+
+    private void ConfirmDeactivatePersonnel(PortalPersonnelListDto item)
+    {
+        deactivateTarget = item;
+        personnelConfirmDialog.Show();
+    }
+
+    private async Task ExecuteDeactivatePersonnel()
+    {
+        if (deactivateTarget == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/portal/personnel/{deactivateTarget.Id}?customerId={Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Personel deaktive edildi.");
+                await LoadPersonnel();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ORGANİZASYON
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadOrganizations()
+    {
+        isLoadingOrg = true;
+        StateHasChanged();
+        try
+        {
+            orgUnits = await Http.GetFromJsonAsync<List<OrgUnitListDto>>($"api/organizations?customerId={Id}");
+        }
+        catch (Exception ex) { Toast.ShowError($"Organizasyon yuklenemedi: {ex.Message}"); }
+        finally { isLoadingOrg = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // KUYRUKLAR
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadQueues()
+    {
+        isLoadingQueues = true;
+        StateHasChanged();
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PagedResult<QueueListDto>>($"api/queues?customerId={Id}&pageSize=100");
+            queues = result?.Items ?? new();
+        }
+        catch (Exception ex) { Toast.ShowError($"Kuyruklar yuklenemedi: {ex.Message}"); }
+        finally { isLoadingQueues = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SIP
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadSip()
+    {
+        isLoadingSip = true;
+        StateHasChanged();
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PagedResult<SipAccountListDto>>($"api/sipaccounts?customerId={Id}&pageSize=100");
+            sipAccounts = result?.Items ?? new();
+        }
+        catch (Exception ex) { Toast.ShowError($"SIP hesaplari yuklenemedi: {ex.Message}"); }
+        finally { isLoadingSip = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // NAVİGASYON
+    // ═══════════════════════════════════════════════════
+
+    private void GoBack() => Nav.NavigateTo("admin/customers");
+    private void GoToPortal() => Nav.NavigateTo($"portal/dashboard?customerId={Id}");
+
+    private record ErrorMsg(string? Message);
+}

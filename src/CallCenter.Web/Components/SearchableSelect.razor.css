@@ -1,0 +1,118 @@
+.ss-wrapper {
+    position: relative;
+}
+
+.ss-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    background-color: var(--bs-body-bg);
+    cursor: pointer;
+    min-height: 31px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+    .ss-trigger:hover:not(.disabled) {
+        border-color: var(--bs-primary);
+    }
+
+    .ss-trigger.disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+.ss-placeholder {
+    color: var(--bs-secondary);
+}
+
+.ss-selected-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ss-clear {
+    flex-shrink: 0;
+    margin-left: 6px;
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--bs-secondary);
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+    .ss-clear:hover {
+        color: var(--bs-danger);
+    }
+
+.ss-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1049;
+    background: transparent;
+}
+
+.ss-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+    margin-top: 2px;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ss-search {
+    padding: 6px;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    flex-shrink: 0;
+}
+
+.ss-options {
+    overflow-y: auto;
+    max-height: 230px;
+}
+
+.ss-option {
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+    .ss-option:hover {
+        background-color: var(--bs-primary-bg-subtle);
+    }
+
+    .ss-option.selected {
+        background-color: var(--bs-primary-bg-subtle);
+        font-weight: 500;
+    }
+
+.ss-option-text {
+    font-size: 0.875rem;
+}
+
+.ss-subtitle {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+}
+
+.ss-empty {
+    text-align: center;
+    color: var(--bs-secondary);
+    padding: 16px 10px;
+    font-size: 0.875rem;
+}

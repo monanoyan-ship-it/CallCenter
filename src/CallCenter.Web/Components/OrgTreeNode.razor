@@ -1,0 +1,56 @@
+@using CallCenter.Shared.DTOs
+
+<div class="tree-node @(IsSelected ? "selected" : "") @(!Node.IsActive ? "inactive" : "")">
+    <div class="tree-node-header" @onclick="() => Select(Node)">
+        @if (Node.Children.Count > 0)
+        {
+            <button class="tree-toggle" @onclick="Toggle" @onclick:stopPropagation="true">
+                <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right")"></i>
+            </button>
+        }
+        else
+        {
+            <span class="tree-toggle-placeholder"></span>
+        }
+        <span class="badge @(Node.TypeCssClass ?? "bg-secondary") me-1" style="font-size: 0.65rem;">
+            <i class="bi @(Node.TypeIcon ?? "bi-folder")"></i>
+        </span>
+        <span class="tree-node-name">@Node.Name</span>
+        @if (Node.PersonnelCount > 0)
+        {
+            <span class="badge bg-primary-subtle text-primary rounded-pill ms-auto" style="font-size: 0.6rem;">
+                <i class="bi bi-people-fill me-1"></i>@Node.PersonnelCount
+            </span>
+        }
+    </div>
+
+    @if (isExpanded && Node.Children.Count > 0)
+    {
+        <div class="tree-children">
+            @foreach (var child in Node.Children.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name))
+            {
+                <OrgTreeNode Node="child" SelectedId="SelectedId" OnSelected="OnSelected" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public OrgUnitTreeDto Node { get; set; } = null!;
+    [Parameter] public int? SelectedId { get; set; }
+    [Parameter] public EventCallback<OrgUnitTreeDto> OnSelected { get; set; }
+
+    private bool isExpanded = true;
+
+    private bool IsSelected => SelectedId == Node.Id;
+
+    private void Toggle()
+    {
+        isExpanded = !isExpanded;
+    }
+
+    private async Task Select(OrgUnitTreeDto node)
+    {
+        await OnSelected.InvokeAsync(node);
+    }
+}

@@ -183,6 +183,36 @@
                 </div>
             </div>
 
+            @* ─── MÜŞTERİLER (Admin + Supervisor) ─── *@
+            @if (IsAdminOrSupervisor)
+            {
+                <div class="nav-group">
+                    <button class="nav-group-toggle" @onclick="() => ToggleGroup(4)">
+                        <i class="bi bi-building"></i>
+                        <span>Musteriler</span>
+                        <i class="bi bi-chevron-down chevron @(IsGroupOpen(4) ? "open" : "")"></i>
+                    </button>
+                    <div class="nav-group-items @(IsGroupOpen(4) ? "show" : "")">
+                        <NavLink class="nav-link" href="admin/customers">
+                            <i class="bi bi-list-ul"></i>
+                            <span>Musteri Listesi</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="admin/organizations">
+                            <i class="bi bi-diagram-3-fill"></i>
+                            <span>Organizasyonlar</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="admin/usertypes">
+                            <i class="bi bi-person-vcard"></i>
+                            <span>Kullanici Tipleri</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="admin/personnel">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Personel</span>
+                        </NavLink>
+                    </div>
+                </div>
+            }
+
             @* ─── YÖNETİM (Admin + Supervisor) ─── *@
             @if (IsAdminOrSupervisor)
             {
@@ -200,10 +230,6 @@
                                 <span>Kullanicilar</span>
                             </NavLink>
                         }
-                        <NavLink class="nav-link" href="admin/customers">
-                            <i class="bi bi-building"></i>
-                            <span>Musteriler</span>
-                        </NavLink>
                         <NavLink class="nav-link" href="admin/queues">
                             <i class="bi bi-diagram-3-fill"></i>
                             <span>Kuyruk Yapilandirmasi</span>
@@ -271,7 +297,8 @@
         { 0, new[] { "dialer", "calls/" } },
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/" } },
+        { 3, new[] { "admin/users", "admin/queues", "admin/sip", "admin/translations", "admin/settings" } },
+        { 4, new[] { "admin/customers", "admin/organizations", "admin/usertypes", "admin/personnel" } },
         { 10, new[] { "portal/" } }
     };
 

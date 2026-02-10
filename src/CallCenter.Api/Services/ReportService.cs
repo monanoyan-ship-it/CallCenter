@@ -32,9 +32,15 @@ public class ReportService : IReportService
             query = query.Where(c => c.AgentId.HasValue && customerAgentIds.Contains(c.AgentId.Value));
 
         if (from.HasValue)
-            query = query.Where(c => c.StartedAt >= from.Value.Date);
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc);
+            query = query.Where(c => c.StartedAt >= fromUtc);
+        }
         if (to.HasValue)
-            query = query.Where(c => c.StartedAt < to.Value.Date.AddDays(1));
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value.Date.AddDays(1), DateTimeKind.Utc);
+            query = query.Where(c => c.StartedAt < toUtc);
+        }
 
         if (directionId.HasValue && directionId.Value > 0)
             query = query.Where(c => c.DirectionId == directionId.Value);
@@ -117,9 +123,15 @@ public class ReportService : IReportService
 
         var callsQuery = _db.CallRecords.AsQueryable();
         if (from.HasValue)
-            callsQuery = callsQuery.Where(c => c.StartedAt >= from.Value.Date);
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc);
+            callsQuery = callsQuery.Where(c => c.StartedAt >= fromUtc);
+        }
         if (to.HasValue)
-            callsQuery = callsQuery.Where(c => c.StartedAt < to.Value.Date.AddDays(1));
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value.Date.AddDays(1), DateTimeKind.Utc);
+            callsQuery = callsQuery.Where(c => c.StartedAt < toUtc);
+        }
 
         var totalAgents = await agentsQuery.CountAsync();
 

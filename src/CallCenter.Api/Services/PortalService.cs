@@ -81,6 +81,8 @@ public class PortalService : IPortalService
                 Uid = ut.Uid,
                 Name = ut.Name,
                 Description = ut.Description,
+                Level = ut.Level,
+                CanManageSubordinates = ut.CanManageSubordinates,
                 IsActive = ut.IsActive,
                 PersonnelCount = ut.Personnel.Count(p => p.IsActive),
                 PermissionCount = ut.Permissions.Count
@@ -100,7 +102,9 @@ public class PortalService : IPortalService
         {
             CustomerId = customerId,
             Name = dto.Name,
-            Description = dto.Description
+            Description = dto.Description,
+            Level = dto.Level,
+            CanManageSubordinates = dto.CanManageSubordinates
         };
 
         _db.CustomerUserTypes.Add(entity);
@@ -112,6 +116,8 @@ public class PortalService : IPortalService
             Uid = entity.Uid,
             Name = entity.Name,
             Description = entity.Description,
+            Level = entity.Level,
+            CanManageSubordinates = entity.CanManageSubordinates,
             IsActive = entity.IsActive,
             PersonnelCount = 0,
             PermissionCount = 0
@@ -133,6 +139,8 @@ public class PortalService : IPortalService
 
         entity.Name = dto.Name;
         entity.Description = dto.Description;
+        entity.Level = dto.Level;
+        entity.CanManageSubordinates = dto.CanManageSubordinates;
         entity.IsActive = dto.IsActive;
         await _db.SaveChangesAsync();
 
@@ -213,6 +221,10 @@ public class PortalService : IPortalService
                 Title = p.Title,
                 UserTypeId = p.UserTypeId,
                 UserTypeName = p.UserType != null ? p.UserType.Name : null,
+                OrganizationUnitId = p.OrganizationUnitId,
+                OrganizationUnitName = p.OrganizationUnit != null ? p.OrganizationUnit.Name : null,
+                ReportsToPersonnelId = p.ReportsToPersonnelId,
+                ReportsToPersonnelName = p.ReportsToPersonnel != null ? p.ReportsToPersonnel.User.FullName : null,
                 IsActive = p.IsActive && p.User.IsActive,
                 PermissionCount = p.Permissions.Count(pp => pp.IsActive)
             })
@@ -253,6 +265,8 @@ public class PortalService : IPortalService
             CustomerId = customerId,
             Title = dto.Title,
             UserTypeId = dto.UserTypeId,
+            OrganizationUnitId = dto.OrganizationUnitId,
+            ReportsToPersonnelId = dto.ReportsToPersonnelId,
             IsActive = true
         };
         _db.CustomerPersonnel.Add(personnel);
@@ -306,6 +320,9 @@ public class PortalService : IPortalService
         {
             personnel.UserTypeId = dto.UserTypeId;
         }
+
+        personnel.OrganizationUnitId = dto.OrganizationUnitId;
+        personnel.ReportsToPersonnelId = dto.ReportsToPersonnelId;
 
         await _db.SaveChangesAsync();
         return (true, null);

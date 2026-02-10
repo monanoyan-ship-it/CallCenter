@@ -1,0 +1,171 @@
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+@if (isVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-vcard me-2"></i>
+                        @(isEdit ? "Tip Duzenle" : "Yeni Kullanici Tipi")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <EditForm Model="model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Tip Adi <span class="text-danger">*</span></label>
+                            <InputText class="form-control form-control-sm" @bind-Value="model.Name" />
+                            <ValidationMessage For="() => model.Name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Aciklama</label>
+                            <InputTextArea class="form-control form-control-sm" rows="2" @bind-Value="model.Description" />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Seviye (1 = en yuksek)</label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="model.Level" />
+                                <small class="text-muted">Dusuk sayi = daha yuksek yetki seviyesi.</small>
+                            </div>
+                            <div class="col-md-6 d-flex flex-column justify-content-center">
+                                <div class="form-check mt-3">
+                                    <InputCheckbox class="form-check-input" @bind-Value="model.CanManageSubordinates" />
+                                    <label class="form-check-label">Alt Yonetebilir</label>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" disabled checked="@false" />
+                                    <label class="form-check-label text-muted">Onay Verebilir <span class="badge bg-secondary-subtle text-secondary">Faz 2</span></label>
+                                </div>
+                            </div>
+                        </div>
+                        @if (isEdit)
+                        {
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
+                                <label class="form-check-label">Aktif</label>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="Close">Iptal</button>
+                        <button type="submit" class="btn btn-primary btn-sm" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            @(isEdit ? "Guncelle" : "Olustur")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int CustomerId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private FormModel model = new();
+    private bool isVisible;
+    private bool isEdit;
+    private bool isSaving;
+    private int? editId;
+
+    public void OpenForCreate()
+    {
+        isEdit = false;
+        editId = null;
+        model = new FormModel();
+        isVisible = true;
+        StateHasChanged();
+    }
+
+    public void OpenForEdit(UserTypeListDto ut)
+    {
+        isEdit = true;
+        editId = ut.Id;
+        model = new FormModel
+        {
+            Name = ut.Name,
+            Description = ut.Description,
+            Level = ut.Level,
+            CanManageSubordinates = ut.CanManageSubordinates,
+            IsActive = ut.IsActive
+        };
+        isVisible = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            HttpResponseMessage response;
+            if (isEdit)
+            {
+                var dto = new UserTypeUpdateDto
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    Level = model.Level,
+                    CanManageSubordinates = model.CanManageSubordinates,
+                    IsActive = model.IsActive
+                };
+                response = await Http.PutAsJsonAsync($"api/portal/usertypes/{editId}?customerId={CustomerId}", dto);
+            }
+            else
+            {
+                var dto = new UserTypeCreateDto
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    Level = model.Level,
+                    CanManageSubordinates = model.CanManageSubordinates
+                };
+                response = await Http.PostAsJsonAsync($"api/portal/usertypes?customerId={CustomerId}", dto);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess(isEdit ? "Tip guncellendi." : "Tip olusturuldu.");
+                Close();
+                await OnSaved.InvokeAsync();
+            }
+            else
+            {
+                Toast.ShowError("Islem basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Close()
+    {
+        isVisible = false;
+    }
+
+    private class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int Level { get; set; } = 99;
+        public bool CanManageSubordinates { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+}

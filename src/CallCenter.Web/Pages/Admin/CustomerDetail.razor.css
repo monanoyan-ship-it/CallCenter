@@ -1,0 +1,20 @@
+.nav-tabs .nav-link {
+    color: #6c757d;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+}
+
+.form-switch .form-check-input {
+    cursor: pointer;
+    width: 2.5em;
+    height: 1.25em;
+}
+
+.form-switch .form-check-input:disabled {
+    cursor: wait;
+    opacity: 0.5;
+}

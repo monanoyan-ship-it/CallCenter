@@ -46,6 +46,8 @@ public class QueueService : IQueueService
                 IsActive = q.IsActive,
                 CustomerId = q.CustomerId,
                 CustomerName = q.Customer.Name,
+                OrganizationUnitId = q.OrganizationUnitId,
+                OrganizationUnitName = q.OrganizationUnit != null ? q.OrganizationUnit.Name : null,
                 AgentCount = q.QueueAgents.Count
             })
             .ToListAsync();

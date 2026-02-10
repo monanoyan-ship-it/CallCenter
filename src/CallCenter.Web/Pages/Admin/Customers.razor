@@ -65,7 +65,7 @@
                             <th class="text-center">Kuyruk</th>
                             <th class="text-center">SIP</th>
                             <th>Durum</th>
-                            <th style="width: 130px;"></th>
+                            <th style="width: 170px;"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -95,11 +95,15 @@
                                     }
                                 </td>
                                 <td>
+                                    <button class="btn btn-outline-primary btn-sm me-1" title="Yonet"
+                                            @onclick="() => GoToDetail(customer)">
+                                        <i class="bi bi-sliders2"></i>
+                                    </button>
                                     <button class="btn btn-outline-success btn-sm me-1" title="Portal"
                                             @onclick="() => GoToPortal(customer)">
                                         <i class="bi bi-building"></i>
                                     </button>
-                                    <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(customer)">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -217,6 +221,11 @@
         {
             Toast.ShowError($"Hata: {ex.Message}");
         }
+    }
+
+    private void GoToDetail(CustomerListDto customer)
+    {
+        Nav.NavigateTo($"admin/customers/{customer.Id}");
     }
 
     private void GoToPortal(CustomerListDto customer)

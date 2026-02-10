@@ -18,26 +18,20 @@ public class TranslationService : ITranslationService
         _serviceProvider = serviceProvider;
     }
 
-    public string T(string key)
-    {
-        return T(key, CurrentLanguage);
-    }
-
-    public string T(string key, string languageCode)
+    public string T(string key, string? defaultText = null)
     {
         if (!_isLoaded)
         {
             ReloadCacheAsync().GetAwaiter().GetResult();
         }
 
-        if (_cache.TryGetValue(languageCode, out var translations))
+        if (_cache.TryGetValue(CurrentLanguage, out var translations))
         {
             if (translations.TryGetValue(key, out var value))
                 return value;
         }
 
-        // Fallback: key'in kendisini döndür (çeviri bulunamazsa)
-        return $"[{key}]";
+        return defaultText ?? $"[{key}]";
     }
 
     public async Task<Dictionary<string, string>> GetAllAsync(string languageCode)

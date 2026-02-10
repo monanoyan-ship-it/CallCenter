@@ -482,6 +482,152 @@
   </Gorev>
 
   <!-- ============================================================ -->
+  <!-- GÖREV 4.9: MÜŞTERİ DETAY SAYFASI                             -->
+  <!-- ============================================================ -->
+  <Gorev no="4.9" durum="tamamlandi" tamamlanma="2026-02-10">
+    <Ad>Musteri detay sayfasi (tabbed yonetim)</Ad>
+    <Detay>
+      Admin firma olusturduktan sonra tek yerden yonetim:
+      - /admin/customers/{id} route'u ile sekmeli detay sayfasi
+      - Genel sekmesi: Firma bilgileri inline form (duzenleme)
+      - Moduller sekmesi: 14 modul karti, toggle switch ile ac/kapat
+      - Personel sekmesi: Tablo + yeni personel + yetki atama (Portal bilesenlerini yeniden kullaniyor)
+      - Kuyruklar sekmesi: Firma bazli kuyruk listesi (read-only, /admin/queues'a link)
+      - SIP Hesaplari sekmesi: Firma bazli SIP listesi (read-only, /admin/sip'e link)
+      - Customers.razor'a "Yonet" butonu eklendi
+      - NavMenu'de Musteriler ayri bir grup menusu oldu (grup index 4)
+      - Yeni dosyalar: CustomerDetail.razor + CustomerDetail.razor.css
+      - Duzenlenen dosyalar: Customers.razor, NavMenu.razor
+      - Build: 0 hata, 0 uyari
+    </Detay>
+    <Riskler>
+      - Kuyruk ve SIP sekmeleri mevcut admin endpoint'leri kullaniyor (api/queues, api/sipaccounts). customerId filtresi ile calisir ama bu endpoint'lerin PagedResult donmesi bekleniyor — pageSize=100 ile getirildi, cok fazla kayit olursa sayfalama eklenmeli.
+      - Modul toggle islemi POST/DELETE ile yapiliyor (CustomerPermissionsController). Toplu toggle yok — her modul icin ayri API cagrisi.
+      - Personel sekmesinde Portal/PersonnelForm ve Portal/PersonnelPermissionForm bilesenlerini yeniden kullaniyor. Bu bilesenler CustomerIdParam alarak calisir — calismasi bekleniyor ama runtime test edilmedi.
+      - NavMenu'de GroupRoutes guncellendi: admin/ prefix'i artik sadece Yonetim menusunu degil, Musteriler menusunu de aciyor. admin/customers* icin grup 4, admin/users|queues|sip|translations|settings icin grup 3 ayrimi yapildi.
+      - Lazy tab loading: Her sekme ilk acildiginda veri yukleniyor (modules == null check). Sekme degistirildiginde cache'li veri gosterilir, yenileme yok. Kullanici baska yerden degisiklik yaparsa eski veri gorunebilir.
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GÖREV 4.10: ORGANİZASYON HİYERARŞİSİ                         -->
+  <!-- ============================================================ -->
+  <Gorev no="4.10" durum="tamamlandi" tamamlanma="2026-02-10">
+    <Ad>Musteri organizasyon hiyerarsisi + kullanici tipleri + personel yonetimi genisletme</Ad>
+    <Detay>
+      Musteri altinda sube/departman/ekip agaci, kullanici tip hiyerarsisi ve personel raporlama zinciri:
+
+      YENI ENTITY:
+      - CustomerOrganizationUnit: Self-referencing agac (ParentId), TypeId (Region/Branch/Department/Unit/Team), CustomerId FK, ManagerPersonnelId FK
+      - OrganizationUnitTypes TypeItem: Region(1), Branch(2), Department(3), Unit(4), Team(5)
+
+      MEVCUT ENTITY DEGISIKLIKLERI:
+      - CustomerUserType: +Level (int, 1=en yuksek), +CanManageSubordinates (bool), +CanApprove (bool, Faz 2 placeholder)
+      - CustomerPersonnel: +OrganizationUnitId (nullable FK), +ReportsToPersonnelId (self-reference, nullable FK)
+      - Queue: +OrganizationUnitId (nullable FK, SetNull)
+      - SipAccount: +OrganizationUnitId (nullable FK, SetNull)
+      - Customer: +OrganizationUnits nav property
+
+      BACKEND:
+      - IOrganizationService + OrganizationService: GetTree, GetList, GetById, Create, Update, Delete, GetPotentialParents
+      - OrganizationsController: 7 endpoint, [Authorize Admin/Supervisor]
+      - Dongusel iliskni kontrolu (BFS ile cycle detection)
+      - Cocugu olan birim silinemez kontrolu
+      - PortalService: UserType'a Level/CanManage, Personnel'e OrgUnit/ReportsTo eklendi
+      - QueueService/SipAccountService: OrgUnitId/Name mapping eklendi
+
+      DTO'LAR:
+      - OrganizationDtos.cs (yeni): OrgUnitListDto, OrgUnitTreeDto (recursive), OrgUnitDetailDto, OrgUnitCreateDto, OrgUnitUpdateDto
+      - PortalDtos.cs: UserType ve Personnel DTO'larina yeni alanlar
+      - AdminDtos.cs: Queue ve SipAccount DTO'larina OrgUnitId/Name
+
+      BLAZOR SAYFALARI:
+      - /admin/organizations: Agac gorunumu (OrgTreeNode component) + detay paneli + CRUD modal
+      - /admin/usertypes: Firma dropdown + tablo (Level, CanManage, PersonnelCount, PermissionCount)
+      - /admin/personnel: Firma dropdown + tablo (OrgUnit, ReportsTo kolonlari)
+      - OrgTreeNode.razor + CSS: Recursive agac component
+      - OrganizationForm.razor: Create/Edit modal (7 alan + tip/ust birim/yonetici dropdown)
+      - AdminUserTypeForm.razor: Create/Edit modal (Level, CanManage, CanApprove disabled)
+      - AdminPersonnelForm.razor: Create/Edit modal (OrgUnit, ReportsTo dropdown)
+      - CustomerDetail.razor: Organizasyon sekmesi eklendi (read-only tablo + link)
+      - NavMenu.razor: Musteriler grubuna 3 yeni link
+
+      MIGRATION:
+      - AddOrganizationHierarchy: CustomerOrganizationUnits tablosu + FK'lar + indexler
+      - Tum yeni FK'lar nullable → mevcut veriler etkilenmez
+
+      ~15 yeni dosya, ~14 duzenlenen dosya. Build: 0 hata, 0 uyari.
+    </Detay>
+    <Riskler>
+      - DONGUSEL ILISKI: ParentId ve ReportsToPersonnelId'de cycle kontrolu var ama sadece create/update sirasinda. Dogrudan DB manipulasyonu ile cycle olusturulabilir.
+      - DELETE BEHAVIOR: CustomerOrganizationUnit self-reference Restrict delete. Cocugu olan birim silinemez — UX'te uyari gosteriliyor. Ama alt birimleri tek tek silmek gerekiyor.
+      - UNIQUE CONSTRAINT: (CustomerId, Name, ParentId) unique. Ayni isimde farkli ust birimlerde birim olusturulabilir ama NULL ParentId'lerde PG davranisi dikkat edilmeli (PostgreSQL'de NULL != NULL, sorun yok).
+      - LEVEL ENFORCEMENT: Kullanici tipi seviyesi (Level) su an sadece veri. "Ust seviye alt seviyeyi yonetir" kurali runtime'da kontrol edilmiyor — Faz 2'ye birakildi.
+      - CAN APPROVE: Onay mekanizmasi sadece alan olarak mevcut (disabled checkbox). Hicbir is mantigi yok — Faz 2'ye birakildi.
+      - ADMIN VS PORTAL: Admin sayfalar (/admin/*) ve Portal sayfalar (/portal/*) ayni servis metodlarini kullaniyor ama farkli auth kontrol. Admin her firmayi yonetebilir, Portal sadece kendi firmasini. Bu fark controller seviyesinde kontrol ediliyor.
+      - RUNTIME TEST YAPILMADI: Tum duzenleme derleme seviyesinde dogrulanmis ama uygulama calistirilip test edilmemistir. Visual Studio'da debug modda test edilmeli.
+      - LAZY TAB LOADING: CustomerDetail'da organizasyon sekmesi ilk acildiginda yukleniyor. Diger sekmeler gibi cache'li — yenileme icin sayfa yenilenmeli.
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GÖREV 4.11: SEARCHABLE SELECT COMPONENTI                      -->
+  <!-- ============================================================ -->
+  <Gorev no="4.11" durum="tamamlandi" tamamlanma="2026-02-10">
+    <Ad>Aranabilir Combobox (SearchableSelect) Componenti</Ad>
+    <Detay>
+      Projede 12+ dropdown (select) ogesini aranabilir hale getirmek icin ozel component yazildi.
+      Kucuk enum'lar (3-5 secenek: Rol, Yon, Durum, Transport, Birim Tipi) donusturulmedi.
+
+      YENI DOSYALAR (2):
+      - Components/SearchableSelect.razor: Parametreler (Items, Value, ValueChanged, Placeholder, SearchPlaceholder, AllowClear, Disabled)
+      - Components/SearchableSelect.razor.css: Bootstrap uyumlu styling, overlay click-outside, dropdown shadow
+
+      DAVRANIS:
+      - Tikla → dropdown acilir, arama inputuna otomatik focus
+      - Yazdikca liste filtrelenir (case-insensitive, Text + Subtitle Contains)
+      - Secim yapilinca dropdown kapanir, ValueChanged tetiklenir
+      - Disari tikla → overlay div ile kapanir (JS interop yok)
+      - X butonu ile secimi temizler (AllowClear)
+      - SearchSelectItem record: Value, Text, Subtitle (opsiyonel alt bilgi)
+      - "Sonuc bulunamadi" bos state
+
+      DUZENLENEN DOSYALAR (10):
+      Sayfa filtreleri (5 dosya, firma secici):
+      - Pages/Admin/Personnel.razor
+      - Pages/Admin/UserTypes.razor
+      - Pages/Admin/Organizations.razor
+      - Pages/Reports/Agents.razor
+      - Pages/Reports/Calls.razor
+
+      Form modallari (5 dosya, 7 dropdown):
+      - Pages/Admin/AdminPersonnelForm.razor (3: UserType + OrgUnit + ReportsTo)
+      - Pages/Admin/OrganizationForm.razor (2: UstBirim + Yonetici)
+      - Pages/Admin/QueueForm.razor (1: Firma)
+      - Pages/Admin/SipAccountForm.razor (1: Firma)
+      - Pages/Portal/PersonnelForm.razor (1: UserType)
+
+      DONUSTURULMEMIS (kucuk enum'lar):
+      - UserForm.razor: Rol (4 secenek)
+      - OrganizationForm.razor: Birim Tipi (5 secenek)
+      - SipAccountForm.razor: Transport (4 secenek)
+      - Calls/History.razor: Yon (3), Durum (5)
+      - Reports/Calls.razor: Yon (5), Durum (5)
+
+      Toplam: 2 yeni dosya, 10 duzenlenen dosya, 12 select → SearchableSelect donusumu.
+      Build: 0 hata, 0 uyari (tum solution).
+    </Detay>
+    <Riskler>
+      - OVERLAY YAKLASIMI: Dropdown icerisindeki bir modal'da aciliginda overlay tum ekrani kaplar. Modal icerisinde SearchableSelect kullanildiginda z-index catismasi olabilir — test edilmeli. z-index 1050 ile Bootstrap modal (1055) altinda kalir, sorun olmamali ama edge case olabilir.
+      - PERFORMANS: Items listesi her render'da yeniden olusturuluyor (computed property). 500+ kayitli firma/personel listelerinde sik render'larda gereksiz allocation olabilir. Simdiki kullanim icin sorun degil ama cok buyuk listelerde virtualization (Virtualize component) eklenebilir.
+      - FOCUS ASYNC: OnAfterRenderAsync'te FocusAsync cagiriliyor. Blazor WASM'de ilk render'da bazen element hazir olmayabilir — try/catch ile korundu.
+      - EDITFORM ENTEGRASYONU: SearchableSelect EditForm icerisinde InputBase'den turetilmemis. Bu nedenle EditForm validation ile dogrudan entegre degil. Form submit sirasinda deger zaten model'e atanmis oluyor ama validation message SearchableSelect'e otomatik baglanmaz — ValidationMessage ayri tutuluyor.
+      - KEYBOARD NAVIGATION: Henuz ok tuslari ile secim yok. Tab ile arama inputuna gidilir ama listeyi ok tuslariyla gezmek icin ek islem gerekir. Ileride eklenebilir.
+      - RUNTIME TEST YAPILMADI: Derleme dogrulandi ama Visual Studio'da debug modda test edilmeli.
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
   <!-- FAZ 5: WINDOWS UYGULAMASI                                     -->
   <!-- ============================================================ -->
   <Faz no="5" ad="Windows Uygulamasi" durum="bekliyor">
@@ -649,5 +795,82 @@
     <Not tarih="2026-02-10">DURUM OZETI: Faz 1-4 tamamlandi. Backend + Web frontend altyapisi hazir. Runtime test henuz yapilmadi. SIP/VoIP entegrasyonu icin gercek bir SIP sunucu (Asterisk/FreeSWITCH/cloud) baglantisi gerekiyor — arkadastan yardim istenecek. Siradaki fazlar: 5 (Windows), 6 (Mobil), 7 (Ileri Ozellikler), 8 (Dis Entegrasyon).</Not>
     <Not tarih="2026-02-10">GORUNTULU GORUSME: Finans kurumlari icin video call destegi arastirildi. SIP.js 0.21.2 video destekliyor — mevcut altyapi uzerine eklenebilir. H.264 zorunlu codec (iOS uyumu). Ekran paylasimi getDisplayMedia ile mumkun. Grup video icin LiveKit oneriliyor. MAUI Android'de WebRTC sorunu var — en buyuk risk. Detaylar: patterns.md</Not>
     <Not tarih="2026-02-10">MOBIL KARAR: MAUI Blazor Hybrid yerine React Native ile ayri mobil uygulama yazilacak. Sebep: MAUI'de WebRTC/video sorunlu, native framework'lerde sorunsuz. Backend API hazir — mobil sadece client. MAUI Windows masaustu icin korunacak. Mobili ayri bir gelistirici paralel yazabilir.</Not>
+    <Not tarih="2026-02-10">Musteri Detay Sayfasi: /admin/customers/{id} — 5 sekmeli yonetim (Genel, Moduller, Personel, Kuyruklar, SIP). NavMenu'de Musteriler artik ayri bir grup menusu. Toggle switch ile modul ac/kapat. Personel yonetimi Portal bilesenlerini yeniden kullaniyor. Build: 0 hata, 0 uyari.</Not>
+    <Not tarih="2026-02-10">Gorev 4.10 tamamlandi: Musteri organizasyon hiyerarsisi. CustomerOrganizationUnit entity (self-ref agac), OrganizationUnitTypes TypeItem, CustomerUserType'a Level/CanManage, CustomerPersonnel'e OrgUnit/ReportsTo. 7 endpoint OrganizationsController, cycle detection (BFS), 7 yeni Blazor sayfasi/component (agac gorunumu, CRUD modaller), CustomerDetail'a 6. sekme (Organizasyon). ~15 yeni, ~14 duzenlenen dosya. Migration: AddOrganizationHierarchy. Build: 0 hata, 0 uyari.</Not>
+    <Not tarih="2026-02-10">Gorev 4.11 tamamlandi: SearchableSelect (Aranabilir Combobox) Componenti. 2 yeni dosya, 10 duzenlenen dosya, 12 select donusumu. Build: 0 hata, 0 uyari.</Not>
   </Notlar>
+
+  <!-- ============================================================ -->
+  <!-- ARASTIRMA: SIP/VoIP SAGLAYICI DEMO HESAPLARI                 -->
+  <!-- ============================================================ -->
+  <Arastirma tarih="2026-02-10" konu="SIP/VoIP Saglayici Demo Hesaplari">
+    <Ozet>
+      SIP.js ile test icin hangi saglayicilar ucretsiz demo/trial hesap sunuyor arastirildi.
+      Amac: Gercek bir SIP sunucuya baglanarak Faz 3'teki SIP.js entegrasyonunu runtime'da test etmek.
+    </Ozet>
+
+    <TicariSaglayicilar>
+      <Saglayici ad="Telnyx" trial="evet" kredi="$5" sipjs_uyumu="en_iyi" kk_gerekli="evet">
+        <Not>SDK SIP.js tabanli. Dogrudan SIP.js ile baglanti mumkun. $5 depozit + is e-postasi + KYC dogrulama gerekli.</Not>
+        <Link>https://telnyx.com/sign-up</Link>
+      </Saglayici>
+      <Saglayici ad="Twilio" trial="evet" kredi="~$15" sipjs_uyumu="sinirli" kk_gerekli="hayir">
+        <Not>Kendi SDK'si (twilio.js) kullaniyor. Dogrudan SIP.js destegi sinirli. Kredi karti gerektirmiyor.</Not>
+        <Link>https://www.twilio.com/try-twilio</Link>
+      </Saglayici>
+      <Saglayici ad="Vonage" trial="evet" kredi="~$10" sipjs_uyumu="sinirli" kk_gerekli="hayir">
+        <Not>vonage-client-sdk ile WebRTC. Dogrudan SIP.js destegi sinirli.</Not>
+        <Link>https://developer.vonage.com/</Link>
+      </Saglayici>
+      <Saglayici ad="Plivo" trial="evet" kredi="$5 (suresiz)" sipjs_uyumu="orta" kk_gerekli="hayir">
+        <Not>plivo-browser-sdk (JsSIP tabanli). WebRTC destekliyor. Kredi expire olmuyor.</Not>
+        <Link>https://www.plivo.com/request-trial/</Link>
+      </Saglayici>
+      <Saglayici ad="SignalWire" trial="evet" kredi="sinirli" sipjs_uyumu="iyi" kk_gerekli="hayir">
+        <Not>FreeSWITCH'in yaraticilari. STANDART SIP over WebSocket — SIP.js dogrudan calisir. $5 ile trial kaldirilir.</Not>
+        <Link>https://id.signalwire.com/onboarding</Link>
+      </Saglayici>
+      <Saglayici ad="Bandwidth" trial="satis_gerekli" sipjs_uyumu="yok" kk_gerekli="bilinmiyor">
+        <Not>WebRTC API Mayis 2023'te kaldirildi. ONERILMEZ.</Not>
+      </Saglayici>
+      <Saglayici ad="VoIP.ms" trial="hayir" kredi="$25 minimum" sipjs_uyumu="yok" kk_gerekli="evet">
+        <Not>WebSocket destegi yok. SIP.js ile dogrudan calisamaz. Kamailio proxy gerekir. ONERILMEZ.</Not>
+      </Saglayici>
+    </TicariSaglayicilar>
+
+    <SelfHostedPBX>
+      <Saglayici ad="Asterisk" ucretsiz="evet" sipjs_uyumu="evet">
+        <Not>mod_http_websocket ile WSS. $5-10/ay VPS'e kurulabilir. En yaygin ve en iyi belgelenmis secenek.</Not>
+      </Saglayici>
+      <Saglayici ad="FreeSWITCH" ucretsiz="evet" sipjs_uyumu="evet">
+        <Not>mod_verto veya WSS ile. SignalWire tarafindan maintain ediliyor. AWS Free Tier ile denenebilir.</Not>
+      </Saglayici>
+      <Saglayici ad="3CX Free" ucretsiz="evet" sipjs_uyumu="hayir">
+        <Not>Kapali SIP stack. Ucuncu parti WebRTC istemci KABUL ETMIYOR. Sadece kendi web client'i. ONERILMEZ.</Not>
+      </Saglayici>
+    </SelfHostedPBX>
+
+    <UcretsizTestSunuculari>
+      <Sunucu ad="OnSIP" sipjs_uyumu="en_iyi" kk_gerekli="hayir">
+        <Not>SIP.js'yi GELISTIREN FIRMA. Ucretsiz developer hesabi. SIP.js ile birebir uyumlu. ILK TEST ICIN EN MANTIKLI SECIM.</Not>
+        <Link>https://www.onsip.com/getonsip</Link>
+      </Sunucu>
+      <Sunucu ad="SIP2SIP.info" sipjs_uyumu="evet" kk_gerekli="hayir">
+        <Not>AG Projects. Ucretsiz SIP hesabi, WebRTC destekli. Echo testi: echo@conference.sip2sip.info</Not>
+        <Link>https://sip2sip.info/</Link>
+      </Sunucu>
+      <Sunucu ad="sip5060.net" sipjs_uyumu="kismi" kk_gerekli="hayir">
+        <Not>Test numaralarina arama (echo, DTMF). Hesap olusturma gerektirmez.</Not>
+        <Link>https://sip5060.net/test-calls/</Link>
+      </Sunucu>
+    </UcretsizTestSunuculari>
+
+    <Oneri>
+      ONCELIK SIRASI:
+      1. OnSIP — SIP.js'nin gelistiricisi, ucretsiz, kredi karti yok, dogrudan uyumlu. ILK TEST.
+      2. SignalWire — Standart SIP over WebSocket, SIP.js dogrudan calisir. $5 depozit.
+      3. Telnyx — SDK SIP.js tabanli. $5 depozit + is e-postasi gerekli.
+      4. Asterisk — Self-hosted, $5-10/ay VPS ile tam kontrol.
+    </Oneri>
+  </Arastirma>
 </Proje>

@@ -6,6 +6,9 @@ public class CustomerUserType
     public Guid Uid { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public int Level { get; set; } = 99; // 1 = en yuksek seviye
+    public bool CanManageSubordinates { get; set; }
+    public bool CanApprove { get; set; } // Faz 2 — simdilik sadece alan
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
