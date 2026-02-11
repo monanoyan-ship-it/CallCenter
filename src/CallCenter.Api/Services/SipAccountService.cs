@@ -27,8 +27,18 @@ public class SipAccountService : ISipAccountService
         if (sip == null) return null;
 
         var domain = sip.Domain ?? sip.Server;
-        var wsPort = sip.Transport?.ToUpper() == "WSS" ? sip.Port : 8089;
-        var wsUri = $"wss://{sip.Server}:{wsPort}/ws";
+
+        // WsUri: Ozel tanimlanmissa onu kullan, yoksa heuristic ile olustur
+        string wsUri;
+        if (!string.IsNullOrWhiteSpace(sip.WsUri))
+        {
+            wsUri = sip.WsUri;
+        }
+        else
+        {
+            var wsPort = sip.Transport?.ToUpper() == "WSS" ? sip.Port : 8089;
+            wsUri = $"wss://{sip.Server}:{wsPort}/ws";
+        }
 
         return new SipConnectionInfoDto
         {
@@ -65,6 +75,7 @@ public class SipAccountService : ISipAccountService
                 Port = s.Port,
                 Username = s.Username,
                 Transport = s.Transport,
+                WsUri = s.WsUri,
                 IsDefault = s.IsDefault,
                 IsActive = s.IsActive,
                 CustomerId = s.CustomerId,
@@ -98,6 +109,7 @@ public class SipAccountService : ISipAccountService
             s.Username,
             Password = "********",
             s.Transport,
+            s.WsUri,
             s.UseSrtp,
             s.IsDefault,
             s.IsActive,
@@ -127,6 +139,7 @@ public class SipAccountService : ISipAccountService
             Username = dto.Username,
             Password = dto.Password,
             Transport = dto.Transport,
+            WsUri = dto.WsUri,
             UseSrtp = dto.UseSrtp,
             IsDefault = dto.IsDefault,
             IsActive = true,
@@ -161,6 +174,7 @@ public class SipAccountService : ISipAccountService
         sip.Domain = dto.Domain;
         sip.Username = dto.Username;
         sip.Transport = dto.Transport;
+        sip.WsUri = dto.WsUri;
         sip.UseSrtp = dto.UseSrtp;
         sip.IsDefault = dto.IsDefault;
         sip.IsActive = dto.IsActive;

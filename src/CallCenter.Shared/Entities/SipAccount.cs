@@ -11,6 +11,12 @@ public class SipAccount
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string? Transport { get; set; } = "UDP";
+    /// <summary>
+    /// Ozel WebSocket URI. Doluysa dogrudan kullanilir.
+    /// Bossa otomatik olusturulur: wss://{Server}:{Port}/ws
+    /// Ornek: wss://edge.sip.onsip.com, wss://webrtc.sipthor.net
+    /// </summary>
+    public string? WsUri { get; set; }
     public bool UseSrtp { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; } = true;

@@ -247,6 +247,7 @@ public class SipAccountListDto
     public int Port { get; set; }
     public string Username { get; set; } = string.Empty;
     public string? Transport { get; set; }
+    public string? WsUri { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; }
     public int CustomerId { get; set; }
@@ -281,6 +282,9 @@ public class SipAccountCreateDto
     [StringLength(10)]
     public string? Transport { get; set; } = "UDP";
 
+    [StringLength(500)]
+    public string? WsUri { get; set; }
+
     public bool UseSrtp { get; set; }
     public bool IsDefault { get; set; }
 
@@ -312,6 +316,9 @@ public class SipAccountUpdateDto
 
     [StringLength(10)]
     public string? Transport { get; set; } = "UDP";
+
+    [StringLength(500)]
+    public string? WsUri { get; set; }
 
     public bool UseSrtp { get; set; }
     public bool IsDefault { get; set; }

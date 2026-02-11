@@ -73,6 +73,11 @@
                                 <label class="form-label small">Domain</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="model.Domain" placeholder="(opsiyonel)" />
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">WebSocket URI</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="model.WsUri" placeholder="wss://sip.example.com:8089/ws" />
+                                <div class="form-text small">Bos birakilirsa otomatik olusturulur: wss://sunucu:8089/ws</div>
+                            </div>
                         </div>
 
                         <hr class="my-3" />
@@ -186,6 +191,7 @@
             Port = sip.Port,
             Username = sip.Username,
             Transport = sip.Transport ?? "UDP",
+            WsUri = sip.WsUri,
             IsDefault = sip.IsDefault,
             CustomerId = sip.CustomerId,
             Password = "" // bos — degismez
@@ -221,6 +227,7 @@
                     Username = model.Username,
                     Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
                     Transport = model.Transport,
+                    WsUri = string.IsNullOrWhiteSpace(model.WsUri) ? null : model.WsUri,
                     UseSrtp = model.UseSrtp,
                     IsDefault = model.IsDefault,
                     IsActive = isActive

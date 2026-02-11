@@ -8,6 +8,13 @@ public class StartCallRequest
     public int? QueueId { get; set; }
 }
 
+/// <summary>Arama baslat response'u (Id + Uid)</summary>
+public class CallStartResult
+{
+    public int Id { get; set; }
+    public Guid Uid { get; set; }
+}
+
 /// <summary>Gelen arama request'i (PBX/webhook'tan)</summary>
 public class IncomingCallRequest
 {

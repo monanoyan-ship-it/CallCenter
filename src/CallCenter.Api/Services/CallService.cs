@@ -46,20 +46,19 @@ public class CallService : ICallService
             .ToListAsync();
     }
 
-    public async Task<object> GetActiveAsync(int userId)
+    public async Task<List<CallNotification>> GetActiveAsync(int userId)
     {
         return await _db.CallRecords
             .Where(c => c.AgentId == userId)
             .Where(c => CallStatuses.ActiveStatuses.Select(s => s.Id).Contains(c.StatusId))
             .OrderByDescending(c => c.StartedAt)
-            .Select(c => new
+            .Select(c => new CallNotification
             {
-                c.Id,
-                c.CallerNumber,
-                c.CalleeNumber,
-                c.DirectionId,
-                c.StatusId,
-                c.StartedAt,
+                CallId = c.Id,
+                CallerNumber = c.CallerNumber,
+                CalleeNumber = c.CalleeNumber,
+                DirectionId = c.DirectionId,
+                StatusId = c.StatusId,
                 QueueName = c.Queue != null ? c.Queue.Name : null
             })
             .ToListAsync();
@@ -116,8 +115,11 @@ public class CallService : ICallService
         }
         await _db.SaveChangesAsync();
 
-        // Hub'a bildir
-        await _hub.Clients.All.SendAsync("CallEnded", callId);
+        // Musteri grubunu bul (agent'in bagli oldugu firma)
+        var customerGroupName = await GetCustomerGroupNameAsync(userId);
+
+        // Hub'a bildir — musteri grubu + admin'ler
+        await SendToGroupAndAdminsAsync(customerGroupName, "CallEnded", callId);
 
         // Agent durumunu AfterCallWork yap
         var user = await _db.Users.FindAsync(userId);
@@ -126,7 +128,7 @@ public class CallService : ICallService
             user.StatusId = AgentStatuses.Ids.AfterCallWork;
             await _db.SaveChangesAsync();
 
-            await _hub.Clients.All.SendAsync("AgentStatusChanged", new AgentStatusUpdate
+            await SendToGroupAndAdminsAsync(customerGroupName, "AgentStatusChanged", new AgentStatusUpdate
             {
                 AgentId = user.Id,
                 AgentName = user.FullName,
@@ -136,6 +138,31 @@ public class CallService : ICallService
         }
 
         return (true, null);
+    }
+
+    public async Task<List<CallNotification>> GetQueuedAsync(int? customerId)
+    {
+        var query = _db.CallRecords
+            .Where(c => c.StatusId == CallStatuses.Ids.Queued);
+
+        // Firma bazli filtreleme
+        if (customerId.HasValue && customerId.Value > 0)
+        {
+            query = query.Where(c => c.Queue != null && c.Queue.CustomerId == customerId.Value);
+        }
+
+        return await query
+            .OrderBy(c => c.StartedAt) // en eski beklenen once
+            .Select(c => new CallNotification
+            {
+                CallId = c.Id,
+                CallerNumber = c.CallerNumber,
+                CalleeNumber = c.CalleeNumber,
+                DirectionId = c.DirectionId,
+                StatusId = c.StatusId,
+                QueueName = c.Queue != null ? c.Queue.Name : null
+            })
+            .ToListAsync();
     }
 
     public async Task<(bool Success, string? Error)> AnswerCallAsync(int callId)
@@ -170,6 +197,9 @@ public class CallService : ICallService
             var assignedAgentId = await _distribution.AssignCallToAgentAsync(request.QueueId.Value, call.Id);
             if (assignedAgentId == null)
             {
+                // Agent bulunamadi — kuyrukta beklet
+                call.StatusId = CallStatuses.Ids.Queued;
+                await _db.SaveChangesAsync();
                 return new { call.Id, call.Uid, Status = "Queued", Message = "Musait agent bulunamadi, kuyrukta bekliyor." };
             }
 
@@ -185,7 +215,44 @@ public class CallService : ICallService
             StatusId = CallStatuses.Ids.Ringing
         };
 
-        await _hub.Clients.All.SendAsync("IncomingCall", notification);
+        // Kuyruk varsa o kuyrugun musterisine, yoksa tum admin'lere bildir
+        string? groupName = null;
+        if (request.QueueId.HasValue)
+        {
+            var queueCustomerId = await _db.Queues
+                .Where(q => q.Id == request.QueueId.Value)
+                .Select(q => q.CustomerId)
+                .FirstOrDefaultAsync();
+            if (queueCustomerId > 0)
+                groupName = $"customer_{queueCustomerId}";
+        }
+
+        await SendToGroupAndAdminsAsync(groupName, "IncomingCall", notification);
         return new { call.Id, call.Uid, Status = "Broadcasting" };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // HELPER METODLAR
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>Agent'in bagli oldugu firmanin grup adini bulur.</summary>
+    private async Task<string?> GetCustomerGroupNameAsync(int userId)
+    {
+        var customerId = await _db.CustomerPersonnel
+            .Where(cp => cp.UserId == userId)
+            .Select(cp => cp.CustomerId)
+            .FirstOrDefaultAsync();
+
+        return customerId > 0 ? $"customer_{customerId}" : null;
+    }
+
+    /// <summary>Musteri grubuna ve admin grubuna ayni anda mesaj gonderir.</summary>
+    private async Task SendToGroupAndAdminsAsync(string? groupName, string method, object arg)
+    {
+        if (groupName != null)
+        {
+            await _hub.Clients.Group(groupName).SendAsync(method, arg);
+        }
+        await _hub.Clients.Group("admins").SendAsync(method, arg);
     }
 }

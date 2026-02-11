@@ -12,7 +12,14 @@
         <h5><i class="bi bi-telephone-inbound-fill me-2"></i>Aktif Aramalar</h5>
     </div>
 
-    @if (activeCalls.Count == 0)
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Aktif aramalar yukleniyor...</p>
+        </div>
+    }
+    else if (activeCalls.Count == 0)
     {
         <div class="empty-state">
             <i class="bi bi-telephone-x"></i>
@@ -94,6 +101,49 @@
             }
         </div>
     }
+
+    @* ─── Kuyrukta Bekleyenler ─── *@
+    @if (queuedCalls.Count > 0)
+    {
+        <div class="mt-4">
+            <h6 class="text-muted">
+                <i class="bi bi-hourglass-split me-1"></i>Kuyrukta Bekleyen Aramalar
+                <span class="badge bg-purple ms-1">@queuedCalls.Count</span>
+            </h6>
+            <div class="row g-3 mt-1">
+                @foreach (var call in queuedCalls)
+                {
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="call-card" style="border-left: 3px solid #6f42c1;">
+                            <div class="call-card-header">
+                                <span class="call-direction">
+                                    <i class="bi bi-telephone-inbound-fill text-success"></i> Gelen
+                                </span>
+                                <span class="badge bg-purple">
+                                    <i class="bi bi-hourglass-split me-1"></i>Kuyrukta
+                                </span>
+                            </div>
+                            <div class="call-card-body">
+                                <div class="caller-info">
+                                    <i class="bi bi-person-circle caller-avatar"></i>
+                                    <div>
+                                        <div class="caller-number">@call.CallerNumber</div>
+                                        <div class="callee-label">→ @call.CalleeNumber</div>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(call.QueueName))
+                                {
+                                    <div class="call-queue">
+                                        <i class="bi bi-people-fill me-1"></i>@call.QueueName
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @* ─── Transfer Dialog ─── *@
@@ -101,19 +151,48 @@
 
 @code {
     private List<CallNotification> activeCalls = new();
+    private List<CallNotification> queuedCalls = new();
 
     private static readonly Dictionary<string, string> StatusDisplayNames = new()
     {
         { "Ringing", "Caliyor" },
         { "InProgress", "Gorusmede" },
         { "OnHold", "Beklemede" },
-        { "Transferred", "Transfer" }
+        { "Transferred", "Transfer" },
+        { "Queued", "Kuyrukta" }
     };
 
-    protected override void OnInitialized()
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
     {
         HubService.OnIncomingCall += HandleIncomingCall;
         HubService.OnCallEnded += HandleCallEnded;
+
+        // Sayfa acildiginda aktif aramalari API'den yukle
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<CallNotification>>("api/calls/active");
+            if (result != null)
+            {
+                activeCalls = result;
+            }
+
+            // Kuyrukta bekleyen aramalari da yukle
+            var queued = await Http.GetFromJsonAsync<List<CallNotification>>("api/calls/queued");
+            if (queued != null)
+            {
+                queuedCalls = queued;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Aktif aramalar yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void HandleIncomingCall(CallNotification notification)

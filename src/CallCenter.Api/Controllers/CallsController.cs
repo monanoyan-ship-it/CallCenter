@@ -73,6 +73,14 @@ public class CallsController : ControllerBase
         return Ok();
     }
 
+    /// <summary>Kuyrukta bekleyen aramalar</summary>
+    [HttpGet("queued")]
+    public async Task<IActionResult> GetQueued([FromQuery] int? customerId = null)
+    {
+        var svc = _factory.CreateCallService();
+        return Ok(await svc.GetQueuedAsync(customerId));
+    }
+
     /// <summary>
     /// Gelen arama kaydı oluşturur ve uygun agent'a yönlendirir.
     /// PBX webhook veya SIP event'i tarafından çağrılabilir.

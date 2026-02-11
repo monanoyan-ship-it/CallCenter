@@ -70,14 +70,18 @@ public static class CallStatuses
     public static readonly TypeItem Completed = new(5, "Completed", "CallStatus.Completed", "Tamamlandi", "bi-check-circle-fill", "bg-success", 5);
     public static readonly TypeItem Missed = new(6, "Missed", "CallStatus.Missed", "Cevapsiz", "bi-telephone-x-fill", "bg-warning text-dark", 6);
     public static readonly TypeItem Failed = new(7, "Failed", "CallStatus.Failed", "Basarisiz", "bi-x-circle-fill", "bg-danger", 7);
+    public static readonly TypeItem Queued = new(8, "Queued", "CallStatus.Queued", "Kuyrukta bekliyor", "bi-hourglass-split", "bg-purple", 8);
 
-    public static IEnumerable<TypeItem> All => new[] { Ringing, InProgress, OnHold, Transferred, Completed, Missed, Failed };
+    public static IEnumerable<TypeItem> All => new[] { Ringing, InProgress, OnHold, Transferred, Completed, Missed, Failed, Queued };
     public static TypeItem Default => All.First(x => x.IsDefault);
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
     /// <summary>Aktif (devam eden) cagri durumlari</summary>
     public static IEnumerable<TypeItem> ActiveStatuses => new[] { Ringing, InProgress, OnHold };
+
+    /// <summary>Kuyrukta bekleyen aramalar dahil aktif durumlar</summary>
+    public static IEnumerable<TypeItem> ActiveAndQueuedStatuses => new[] { Ringing, InProgress, OnHold, Queued };
 
     /// <summary>Sonlanmis cagri durumlari</summary>
     public static IEnumerable<TypeItem> FinishedStatuses => new[] { Transferred, Completed, Missed, Failed };
@@ -91,6 +95,7 @@ public static class CallStatuses
         public const int Completed = 5;
         public const int Missed = 6;
         public const int Failed = 7;
+        public const int Queued = 8;
     }
 }
 

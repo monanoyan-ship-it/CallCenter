@@ -109,6 +109,7 @@
     private string sipStatusText = "Baglaniyor...";
     private System.Timers.Timer? callTimer;
     private DateTime callStartTime;
+    private int? currentCallId; // DB'deki arama kaydinin ID'si
 
     private readonly (string digit, string letters)[][] keypadRows = new[]
     {
@@ -197,11 +198,24 @@
         return InvokeAsync(StateHasChanged);
     }
 
-    private Task HandleCallAnswered()
+    private async Task HandleCallAnswered()
     {
         isCallStarting = false;
         statusMessage = $"{phoneNumber} ile gorusme baslatildi";
         statusClass = "text-success";
+
+        // DB'deki arama kaydini "cevaplandi" olarak isaretle
+        if (currentCallId.HasValue)
+        {
+            try
+            {
+                await Http.PutAsync($"api/calls/{currentCallId.Value}/answer", null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dialer] Arama cevaplandi kaydi yapilamadi: {ex.Message}");
+            }
+        }
 
         // Timer'i baslat
         callStartTime = DateTime.Now;
@@ -214,7 +228,7 @@
         };
         callTimer.Start();
 
-        return InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleCallEnded()
@@ -222,6 +236,20 @@
         StopTimer();
         isInCall = false;
         isCallStarting = false;
+
+        // DB'deki arama kaydini sonlandir
+        if (currentCallId.HasValue)
+        {
+            try
+            {
+                await Http.PutAsync($"api/calls/{currentCallId.Value}/end", null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dialer] Arama kaydi sonlandirilamadi: {ex.Message}");
+            }
+            currentCallId = null;
+        }
 
         statusMessage = $"Arama sonlandirildi ({callDuration})";
         statusClass = "text-muted";
@@ -290,18 +318,49 @@
         statusMessage = $"{phoneNumber} araniyor...";
         statusClass = "text-info";
 
-        // Agent durumunu InCall yap
-        await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+        try
+        {
+            // 1. Once API'ye arama kaydini olustur
+            var request = new StartCallRequest
+            {
+                CallerNumber = "me", // Agent kendisi
+                CalleeNumber = phoneNumber
+            };
+            var response = await Http.PostAsJsonAsync("api/calls/start", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CallStartResult>();
+                currentCallId = result?.Id;
+            }
+            else
+            {
+                Console.WriteLine("[Dialer] API arama kaydi olusturulamadi");
+            }
 
-        // SIP araması başlat
-        var success = await SipService.MakeCallAsync(phoneNumber);
-        if (!success)
+            // 2. SIP aramasini baslat
+            var success = await SipService.MakeCallAsync(phoneNumber);
+            if (!success)
+            {
+                // SIP baslatilamazsa DB kaydini da sonlandir
+                if (currentCallId.HasValue)
+                {
+                    await Http.PutAsync($"api/calls/{currentCallId.Value}/end", null);
+                    currentCallId = null;
+                }
+                isInCall = false;
+                isCallStarting = false;
+                statusMessage = "Arama baslatilamadi";
+                statusClass = "text-danger";
+                await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+            }
+        }
+        catch (Exception ex)
         {
             isInCall = false;
             isCallStarting = false;
-            statusMessage = "Arama baslatilamadi";
+            statusMessage = "Arama hatasi: " + ex.Message;
             statusClass = "text-danger";
-            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+            currentCallId = null;
         }
     }
 
@@ -329,8 +388,9 @@
 
     private async Task EndCall()
     {
+        // SIP kapatilinca HandleCallEnded event'i otomatik tetiklenecek
+        // orada DB kaydi da sonlandirilir
         await SipService.HangupAsync();
-        // HandleCallEnded event'i otomatik tetiklenecek
     }
 
     private void StopTimer()

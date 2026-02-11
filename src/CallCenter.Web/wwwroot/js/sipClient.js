@@ -233,6 +233,8 @@ window.sipClient = {
 
     /**
      * Aramayi bekletir (HOLD).
+     * SIP.js 0.21.x'te SIP.Web.holdModifier mevcut degil,
+     * bu yuzden SDP'yi dogrudan manipule ediyoruz.
      */
     holdCall: async function () {
         if (!this.currentSession || this.currentSession.state !== SIP.SessionState.Established) {
@@ -246,9 +248,9 @@ window.sipClient = {
                     if (sender.track) sender.track.enabled = false;
                 });
             }
-            // re-INVITE ile hold (SDP sendonly)
+            // re-INVITE ile hold (SDP sendonly) — custom modifier
             await this.currentSession.invite({
-                sessionDescriptionHandlerModifiers: [SIP.Web.holdModifier]
+                sessionDescriptionHandlerModifiers: [this._holdModifier.bind(this)]
             });
             this.isOnHold = true;
             console.log('[SipClient] Arama beklemede');
@@ -436,6 +438,23 @@ window.sipClient = {
     // ═══════════════════════════════════════════════════════════════
     // PRIVATE HELPER METODLAR
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Hold modifier — SDP'deki a=sendrecv satirlarini a=sendonly yapar.
+     * SIP.js 0.21.x'te SIP.Web.holdModifier mevcut olmadigi icin
+     * bu custom implementasyon kullanilir.
+     * @param {RTCSessionDescriptionInit} description - SDP description
+     * @returns {Promise<RTCSessionDescriptionInit>} Modified SDP
+     */
+    _holdModifier: function (description) {
+        if (description.sdp) {
+            description.sdp = description.sdp.replace(
+                /a=sendrecv/g,
+                'a=sendonly'
+            );
+        }
+        return Promise.resolve(description);
+    },
 
     /**
      * Gelen arama (INVITE) handler.
