@@ -1,0 +1,124 @@
+@inject CallCenter.Windows.Services.WindowsHubService HubService
+@inject CallCenter.Windows.Services.ISipService SipService
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+@implements IDisposable
+
+@if (incomingCall != null)
+{
+    <div class="incoming-call-overlay">
+        <div class="incoming-call-popup">
+            <div class="call-icon-wrapper">
+                <div class="call-ring-animation"></div>
+                <i class="bi bi-telephone-fill call-icon"></i>
+            </div>
+
+            <div class="caller-details">
+                <span class="call-label">Gelen Arama</span>
+                <span class="caller-number">@(incomingCall.CallerNumber)</span>
+                @if (!string.IsNullOrEmpty(incomingCall.QueueName))
+                {
+                    <span class="call-queue">
+                        <i class="bi bi-people-fill me-1"></i>@incomingCall.QueueName
+                    </span>
+                }
+            </div>
+
+            <div class="call-actions">
+                <button class="btn call-action-btn accept" @onclick="AcceptCall">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>Cevapla</span>
+                </button>
+                <button class="btn call-action-btn reject" @onclick="RejectCall">
+                    <i class="bi bi-telephone-x-fill"></i>
+                    <span>Reddet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private CallNotification? incomingCall;
+    private bool isSipCall;
+
+    protected override void OnInitialized()
+    {
+        HubService.OnIncomingCall += HandleIncomingCall;
+        HubService.OnCallEnded += HandleCallEnded;
+        SipService.OnIncomingCall += HandleSipIncomingCall;
+        SipService.OnCallEnded += HandleSipCallEnded;
+    }
+
+    private void HandleIncomingCall(CallNotification notification)
+    {
+        if (notification.StatusId == CallStatuses.Ids.Ringing)
+        {
+            incomingCall = notification;
+            isSipCall = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandleCallEnded(int callId)
+    {
+        if (incomingCall?.CallId == callId)
+        {
+            incomingCall = null;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task HandleSipIncomingCall(string callerUri, string callerDisplay)
+    {
+        incomingCall = new CallNotification
+        {
+            CallId = 0,
+            CallerNumber = !string.IsNullOrEmpty(callerDisplay) ? callerDisplay : callerUri,
+            StatusId = CallStatuses.Ids.Ringing
+        };
+        isSipCall = true;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleSipCallEnded()
+    {
+        if (isSipCall && incomingCall != null)
+        {
+            incomingCall = null;
+            return InvokeAsync(StateHasChanged);
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task AcceptCall()
+    {
+        if (incomingCall == null) return;
+
+        if (isSipCall)
+            await SipService.AnswerCallAsync();
+
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+        incomingCall = null;
+    }
+
+    private async Task RejectCall()
+    {
+        if (incomingCall == null) return;
+
+        if (isSipCall)
+            await SipService.HangupAsync();
+        else
+            await HubService.NotifyCallEndedAsync(incomingCall.CallId);
+
+        incomingCall = null;
+    }
+
+    public void Dispose()
+    {
+        HubService.OnIncomingCall -= HandleIncomingCall;
+        HubService.OnCallEnded -= HandleCallEnded;
+        SipService.OnIncomingCall -= HandleSipIncomingCall;
+        SipService.OnCallEnded -= HandleSipCallEnded;
+    }
+}

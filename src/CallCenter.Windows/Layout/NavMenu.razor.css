@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════
+   SIDEBAR HEADER (Logo + Brand)
+   ═══════════════════════════════════════════ */
+
+.sidebar-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    min-height: 3.5rem;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.brand:hover { color: #fff; text-decoration: none; }
+.brand i { font-size: 1.4rem; color: #60a5fa; }
+
+/* ═══════════════════════════════════════════
+   SIDEBAR BODY (Menu icerigi)
+   ═══════════════════════════════════════════ */
+
+.sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+}
+
+.sidebar-body::-webkit-scrollbar { width: 4px; }
+.sidebar-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+
+/* ─── Tekil menu ogesi ─── */
+
+.nav-item { padding: 0 0.5rem; margin-bottom: 0.125rem; }
+
+::deep .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+::deep .nav-link i { font-size: 1rem; width: 1.25rem; text-align: center; flex-shrink: 0; }
+::deep .nav-link:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+::deep .nav-link.active { color: #fff; background: rgba(96, 165, 250, 0.2); font-weight: 500; }
+::deep .nav-link.active i { color: #60a5fa; }
+
+/* ─── Grup basligi ─── */
+
+.nav-group { padding: 0 0.5rem; margin-bottom: 0.125rem; }
+
+.nav-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.nav-group-toggle i:first-child { font-size: 1rem; width: 1.25rem; text-align: center; flex-shrink: 0; }
+.nav-group-toggle span { flex: 1; }
+.nav-group-toggle:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+/* ─── Chevron (ok) animasyonu ─── */
+
+.chevron { font-size: 0.7rem; transition: transform 0.2s ease; opacity: 0.5; }
+.chevron.open { transform: rotate(180deg); }
+
+/* ─── Alt menu ogeleri ─── */
+
+.nav-group-items { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; padding-left: 0.5rem; }
+.nav-group-items.show { max-height: 500px; }
+.nav-group-items ::deep .nav-link { padding: 0.45rem 0.75rem 0.45rem 2.25rem; font-size: 0.825rem; }
+.nav-group-items ::deep .nav-link i { font-size: 0.875rem; }
+
+/* ═══════════════════════════════════════════
+   SIDEBAR FOOTER (Agent bilgisi)
+   ═══════════════════════════════════════════ */
+
+.sidebar-footer { border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 0.75rem; margin-top: auto; }
+.agent-status { padding: 0.5rem; border-radius: 8px; background: rgba(255, 255, 255, 0.05); }
+.agent-avatar { width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; margin-right: 0.625rem; flex-shrink: 0; }
+.agent-avatar i { font-size: 2rem; color: rgba(255, 255, 255, 0.6); }
+.agent-info { display: flex; flex-direction: column; min-width: 0; }
+.agent-name { color: #fff; font-size: 0.825rem; font-weight: 500; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-role { color: rgba(255, 255, 255, 0.5); font-size: 0.725rem; line-height: 1.2; }

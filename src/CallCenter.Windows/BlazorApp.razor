@@ -1,10 +1,22 @@
-<Router AppAssembly="@typeof(BlazorApp).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" />
-    </Found>
-    <NotFound>
-        <LayoutView>
-            <p>Sayfa bulunamadı.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+@using Microsoft.AspNetCore.Components.Authorization
+@using CallCenter.Windows.Components
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(BlazorApp).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <div class="text-center py-5">
+                    <h4>Sayfa bulunamadi</h4>
+                    <p class="text-muted">Aradiginiz sayfa mevcut degil.</p>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

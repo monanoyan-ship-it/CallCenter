@@ -1,0 +1,278 @@
+@page "/calls/active"
+@attribute [Authorize]
+@inject CallCenter.Windows.Services.WindowsHubService HubService
+@inject CallCenter.Windows.Services.ISipService SipService
+@inject HttpClient Http
+@using CallCenter.Shared.Enums
+@using CallCenter.Shared.DTOs
+@implements IDisposable
+
+<div class="active-calls-page">
+    <div class="page-header mb-3">
+        <h5><i class="bi bi-telephone-inbound-fill me-2"></i>Aktif Aramalar</h5>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Aktif aramalar yukleniyor...</p>
+        </div>
+    }
+    else if (activeCalls.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-telephone-x"></i>
+            <h6>Aktif arama yok</h6>
+            <p>Su an devam eden bir arama bulunmuyor.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var call in activeCalls)
+            {
+                var statusItem = CallStatuses.GetById(call.StatusId);
+                var dirItem = CallDirections.GetById(call.DirectionId);
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="call-card">
+                        <div class="call-card-header">
+                            <span class="call-direction">
+                                <i class="bi @(dirItem?.Icon ?? "bi-telephone-fill") @(dirItem?.CssClass ?? "")"></i>
+                                @(dirItem?.SystemName == "Inbound" ? "Gelen" : "Giden")
+                            </span>
+                            <span class="call-status-badge @(statusItem?.CssClass ?? "bg-secondary")">
+                                <i class="bi @(statusItem?.Icon ?? "bi-circle-fill") me-1"></i>
+                                @(StatusDisplayNames.TryGetValue(statusItem?.SystemName ?? "", out var sName) ? sName : statusItem?.SystemName ?? "")
+                            </span>
+                        </div>
+
+                        <div class="call-card-body">
+                            <div class="caller-info">
+                                <i class="bi bi-person-circle caller-avatar"></i>
+                                <div>
+                                    <div class="caller-number">@call.CallerNumber</div>
+                                    <div class="callee-label">→ @call.CalleeNumber</div>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(call.QueueName))
+                            {
+                                <div class="call-queue">
+                                    <i class="bi bi-people-fill me-1"></i>@call.QueueName
+                                </div>
+                            }
+                        </div>
+
+                        <div class="call-card-actions">
+                            @if (call.StatusId == CallStatuses.Ids.Ringing)
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="() => AnswerCall(call.CallId)">
+                                    <i class="bi bi-telephone-fill me-1"></i>Cevapla
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RejectCall(call.CallId)">
+                                    <i class="bi bi-telephone-x-fill me-1"></i>Reddet
+                                </button>
+                            }
+                            else if (call.StatusId == CallStatuses.Ids.InProgress)
+                            {
+                                <button class="btn btn-sm btn-warning" @onclick="() => HoldCall(call.CallId)">
+                                    <i class="bi bi-pause-circle-fill me-1"></i>Beklet
+                                </button>
+                                <button class="btn btn-sm btn-info" @onclick="() => TransferCall(call.CallId)">
+                                    <i class="bi bi-arrow-left-right me-1"></i>Transfer
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => EndCall(call.CallId)">
+                                    <i class="bi bi-telephone-x-fill me-1"></i>Kapat
+                                </button>
+                            }
+                            else if (call.StatusId == CallStatuses.Ids.OnHold)
+                            {
+                                <button class="btn btn-sm btn-success" @onclick="() => ResumeCall(call.CallId)">
+                                    <i class="bi bi-play-circle-fill me-1"></i>Devam
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => EndCall(call.CallId)">
+                                    <i class="bi bi-telephone-x-fill me-1"></i>Kapat
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (queuedCalls.Count > 0)
+    {
+        <div class="mt-4">
+            <h6 class="text-muted">
+                <i class="bi bi-hourglass-split me-1"></i>Kuyrukta Bekleyen Aramalar
+                <span class="badge bg-purple ms-1">@queuedCalls.Count</span>
+            </h6>
+            <div class="row g-3 mt-1">
+                @foreach (var call in queuedCalls)
+                {
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="call-card" style="border-left: 3px solid #6f42c1;">
+                            <div class="call-card-header">
+                                <span class="call-direction">
+                                    <i class="bi bi-telephone-inbound-fill text-success"></i> Gelen
+                                </span>
+                                <span class="badge bg-purple">
+                                    <i class="bi bi-hourglass-split me-1"></i>Kuyrukta
+                                </span>
+                            </div>
+                            <div class="call-card-body">
+                                <div class="caller-info">
+                                    <i class="bi bi-person-circle caller-avatar"></i>
+                                    <div>
+                                        <div class="caller-number">@call.CallerNumber</div>
+                                        <div class="callee-label">→ @call.CalleeNumber</div>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(call.QueueName))
+                                {
+                                    <div class="call-queue">
+                                        <i class="bi bi-people-fill me-1"></i>@call.QueueName
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<CallCenter.Windows.Components.TransferDialog IsVisible="showTransferDialog" OnClosed="CloseTransferDialog" OnTransferred="HandleTransferred" />
+
+@code {
+    private List<CallNotification> activeCalls = new();
+    private List<CallNotification> queuedCalls = new();
+
+    private static readonly Dictionary<string, string> StatusDisplayNames = new()
+    {
+        { "Ringing", "Caliyor" },
+        { "InProgress", "Gorusmede" },
+        { "OnHold", "Beklemede" },
+        { "Transferred", "Transfer" },
+        { "Queued", "Kuyrukta" }
+    };
+
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HubService.OnIncomingCall += HandleIncomingCall;
+        HubService.OnCallEnded += HandleCallEnded;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<CallNotification>>("api/calls/active");
+            if (result != null) activeCalls = result;
+
+            var queued = await Http.GetFromJsonAsync<List<CallNotification>>("api/calls/queued");
+            if (queued != null) queuedCalls = queued;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Aktif aramalar yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void HandleIncomingCall(CallNotification notification)
+    {
+        var existing = activeCalls.FirstOrDefault(c => c.CallId == notification.CallId);
+        if (existing != null)
+            existing.StatusId = notification.StatusId;
+        else
+            activeCalls.Add(notification);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCallEnded(int callId)
+    {
+        activeCalls.RemoveAll(c => c.CallId == callId);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AnswerCall(int callId)
+    {
+        var call = activeCalls.FirstOrDefault(c => c.CallId == callId);
+        if (call != null)
+        {
+            await SipService.AnswerCallAsync();
+            call.StatusId = CallStatuses.Ids.InProgress;
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+        }
+    }
+
+    private async Task RejectCall(int callId)
+    {
+        await SipService.HangupAsync();
+        activeCalls.RemoveAll(c => c.CallId == callId);
+        await HubService.NotifyCallEndedAsync(callId);
+    }
+
+    private async Task HoldCall(int callId)
+    {
+        var call = activeCalls.FirstOrDefault(c => c.CallId == callId);
+        if (call != null)
+        {
+            var success = await SipService.HoldAsync();
+            if (success) call.StatusId = CallStatuses.Ids.OnHold;
+        }
+    }
+
+    private async Task ResumeCall(int callId)
+    {
+        var call = activeCalls.FirstOrDefault(c => c.CallId == callId);
+        if (call != null)
+        {
+            var success = await SipService.UnholdAsync();
+            if (success) call.StatusId = CallStatuses.Ids.InProgress;
+        }
+    }
+
+    private int? transferCallId;
+    private bool showTransferDialog;
+
+    private void TransferCall(int callId)
+    {
+        transferCallId = callId;
+        showTransferDialog = true;
+    }
+
+    private void CloseTransferDialog()
+    {
+        showTransferDialog = false;
+        transferCallId = null;
+    }
+
+    private void HandleTransferred(bool success)
+    {
+        if (success && transferCallId.HasValue)
+            activeCalls.RemoveAll(c => c.CallId == transferCallId.Value);
+        showTransferDialog = false;
+        transferCallId = null;
+    }
+
+    private async Task EndCall(int callId)
+    {
+        await SipService.HangupAsync();
+        activeCalls.RemoveAll(c => c.CallId == callId);
+        await HubService.NotifyCallEndedAsync(callId);
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
+    }
+
+    public void Dispose()
+    {
+        HubService.OnIncomingCall -= HandleIncomingCall;
+        HubService.OnCallEnded -= HandleCallEnded;
+    }
+}

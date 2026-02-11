@@ -1,0 +1,114 @@
+@inject CallCenter.Windows.Services.ISipService SipService
+
+<div class="dropdown">
+    <button class="btn btn-link text-muted btn-audio-settings" title="Ses Ayarlari"
+            @onclick="ToggleDropdown" @onclick:stopPropagation="true">
+        <i class="bi bi-headset"></i>
+    </button>
+
+    @if (isOpen)
+    {
+        <div class="audio-backdrop" @onclick="CloseDropdown"></div>
+        <div class="audio-dropdown">
+            <div class="audio-dropdown-header">
+                <i class="bi bi-headset me-1"></i> Ses Ayarlari
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="text-center p-2">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                </div>
+            }
+            else
+            {
+                @if (microphones.Any())
+                {
+                    <div class="audio-section">
+                        <label class="audio-label">
+                            <i class="bi bi-mic-fill me-1"></i>Mikrofon
+                        </label>
+                        @foreach (var mic in microphones)
+                        {
+                            <div class="audio-device @(mic.DeviceIndex == selectedMicIndex ? "selected" : "")"
+                                 @onclick="() => SelectMic(mic.DeviceIndex)">
+                                <i class="bi @(mic.DeviceIndex == selectedMicIndex ? "bi-check-circle-fill text-success" : "bi-circle")"></i>
+                                <span>@mic.DeviceName</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (speakers.Any())
+                {
+                    <div class="audio-section">
+                        <label class="audio-label">
+                            <i class="bi bi-speaker-fill me-1"></i>Hoparlor
+                        </label>
+                        @foreach (var spk in speakers)
+                        {
+                            <div class="audio-device @(spk.DeviceIndex == selectedSpeakerIndex ? "selected" : "")"
+                                 @onclick="() => SelectSpeaker(spk.DeviceIndex)">
+                                <i class="bi @(spk.DeviceIndex == selectedSpeakerIndex ? "bi-check-circle-fill text-success" : "bi-circle")"></i>
+                                <span>@spk.DeviceName</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (!microphones.Any() && !speakers.Any())
+                {
+                    <div class="text-muted small p-2 text-center">
+                        Ses cihazi bulunamadi
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isOpen;
+    private bool isLoading;
+    private List<CallCenter.Windows.Models.AudioDeviceInfo> microphones = new();
+    private List<CallCenter.Windows.Models.AudioDeviceInfo> speakers = new();
+    private int selectedMicIndex = -1;
+    private int selectedSpeakerIndex = -1;
+
+    private async Task ToggleDropdown()
+    {
+        isOpen = !isOpen;
+        if (isOpen)
+            await LoadDevices();
+    }
+
+    private void CloseDropdown() => isOpen = false;
+
+    private async Task LoadDevices()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        microphones = await SipService.GetAudioInputDevicesAsync();
+        speakers = await SipService.GetAudioOutputDevicesAsync();
+
+        if (selectedMicIndex == -1 && microphones.Any())
+            selectedMicIndex = microphones.First().DeviceIndex;
+        if (selectedSpeakerIndex == -1 && speakers.Any())
+            selectedSpeakerIndex = speakers.First().DeviceIndex;
+
+        isLoading = false;
+    }
+
+    private async Task SelectMic(int deviceIndex)
+    {
+        selectedMicIndex = deviceIndex;
+        await SipService.SetAudioInputDeviceAsync(deviceIndex);
+    }
+
+    private async Task SelectSpeaker(int deviceIndex)
+    {
+        selectedSpeakerIndex = deviceIndex;
+        await SipService.SetAudioOutputDeviceAsync(deviceIndex);
+    }
+}

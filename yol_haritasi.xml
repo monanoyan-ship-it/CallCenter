@@ -630,25 +630,103 @@
   <!-- ============================================================ -->
   <!-- FAZ 5: WINDOWS UYGULAMASI                                     -->
   <!-- ============================================================ -->
-  <Faz no="5" ad="Windows Uygulamasi" durum="bekliyor">
-    <Gorev no="5.1" durum="bekliyor">
-      <Ad>Blazor Hybrid WPF projesi</Ad>
-      <Detay>WebView2 içinde Blazor UI çalıştırma, aynı web arayüzünü kullanma</Detay>
-    </Gorev>
-    <Gorev no="5.2" durum="bekliyor">
-      <Ad>Native Windows özellikleri</Ad>
+  <Faz no="5" ad="Windows Uygulamasi (Softphone)" durum="tamamlandi">
+    <Aciklama>
+      MicroSIP benzeri Windows masaustu softphone uygulamasi.
+      WPF + Blazor Hybrid + SIPSorcery (native C# SIP) + NAudio (ses I/O).
+      Web ile ayni backend API + SignalR hub kullanir.
+    </Aciklama>
+
+    <Gorev no="5.1" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>Altyapi, DI, Auth ve Ayarlar</Ad>
       <Detay>
-        - System tray ikonu
-        - Windows bildirimleri (toast)
-        - Otomatik başlatma (startup)
-        - Ses cihazı yönetimi (native)
-        - Kısayol tuşları
+        - NuGet: SIPSorcery 6.2.4, SIPSorceryMedia.Windows 8.0.14, NAudio 2.2.1, SignalR.Client, JWT, Authorization
+        - TFM: net10.0-windows10.0.17763 (SIPSorceryMedia.Windows uyumlulugu icin)
+        - SecureStorage: %LOCALAPPDATA%\CallCenter\storage.json
+        - WindowsAuthStateProvider, WindowsAuthService, WindowsAuthHeaderHandler
+        - MainWindow.xaml.cs: Tam DI konfigurasyonu
+        - BlazorApp.razor: CascadingAuthenticationState + AuthorizeRouteView
+        - wwwroot/index.html: Bootstrap 5.3.3 CDN + Icons
       </Detay>
     </Gorev>
-    <Gorev no="5.3" durum="bekliyor">
-      <Ad>Kurulum paketi</Ad>
-      <Detay>MSI veya MSIX installer, otomatik güncelleme</Detay>
+
+    <Gorev no="5.2" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>Login Sayfasi ve Sayfa Yapisi</Ad>
+      <Detay>Login, Dashboard, MainLayout, NavMenu, LoginLayout, Components — Web'den adapte edildi</Detay>
     </Gorev>
+
+    <Gorev no="5.3" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>SignalR Entegrasyonu</Ad>
+      <Detay>WindowsHubService — Web HubService'ten adapte, AutomaticReconnect</Detay>
+    </Gorev>
+
+    <Gorev no="5.4" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>SIPSorcery Native SIP Entegrasyonu</Ad>
+      <Detay>
+        - ISipService.cs (platform-agnostic interface)
+        - NativeSipService.cs (SIPSorcery + SIPSorceryMedia.Windows implementasyonu)
+        - WindowsAudioEndPoint ile gercek mikrofon/hoparlor
+        - AudioCodecsEnum.PCMU/PCMA codec'ler
+        - AcceptCall + Answer akisi (SIPServerUserAgent)
+        - Register, MakeCall, Answer, Hangup, Hold/Unhold, DTMF, BlindTransfer
+        - NAudio WaveInEvent/WaveOut ile ses cihazi listeleme
+        - AudioDeviceInfo model
+      </Detay>
+      <Riskler>
+        - SIPSorceryMedia.Windows net8.0-windows10.0.17763 hedefliyor, TFM guncellemesi gerekti
+        - Gercek SIP sunucu ile test edilmedi (runtime davranisi belirsiz)
+        - SIP over WebSocket (WSS) destegi NativeSipService'te henuz yok (sadece UDP/TCP/TLS)
+      </Riskler>
+    </Gorev>
+
+    <Gorev no="5.5" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>Agent Sayfalari (Dialer, Active Calls, History)</Ad>
+      <Detay>
+        - Dialer.razor + CSS: Tus takimi, SIP arama, DTMF, hold, timer, API kayit
+        - Calls/Active.razor: Aktif aramalar + kuyrukta bekleyenler, cevapla/reddet/beklet/transfer/kapat
+        - Calls/History.razor: Arama gecmisi, arama/filtreleme
+        - TransferDialog.razor: Blind transfer modal
+        - IncomingCallNotification.razor: Gelen arama popup (SignalR + SIP)
+        - AudioSettings.razor: Mikrofon/hoparlor secici (NAudio cihaz listeleme)
+        - MainLayout'a AudioSettings ve IncomingCallNotification eklendi
+      </Detay>
+    </Gorev>
+
+    <Gorev no="5.6" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>System Tray ve Windows Bildirimleri</Ad>
+      <Detay>
+        - Hardcodet.NotifyIcon.Wpf 1.1.0: System tray ikonu
+        - Microsoft.Toolkit.Uwp.Notifications 7.1.3: Windows toast bildirimleri
+        - SystemTrayService.cs: Tray ikon, sag tik menu, cift tik, minimize to tray
+        - Close to tray: Pencere kapatildiginda arka planda calisma
+        - ShowIncomingCallNotification: Gelen arama toast
+        - ShowNotification: Genel bildirim
+        - MainWindow.xaml.cs: SystemTrayService DI + Loaded event
+      </Detay>
+    </Gorev>
+
+    <Gorev no="5.7" durum="tamamlandi" tamamlanma="2026-02-11">
+      <Ad>Dagitim ve Kurulum</Ad>
+      <Detay>
+        - Properties/PublishProfiles/win-x64.pubxml: Self-contained, single-file, ReadyToRun
+        - Publish: dotnet publish -p:PublishProfile=win-x64
+        - Cikti: publish/win-x64/ (tek EXE)
+      </Detay>
+    </Gorev>
+
+    <Riskler>
+      - Runtime testi yapilmadi. Visual Studio'da debug ile test gerekiyor.
+      - Gercek SIP sunucu ile baglanti testi gerekiyor (Asterisk/FreeSWITCH/OnSIP).
+      - SIP over WebSocket (WSS) NativeSipService'te desteklenmiyor — sadece UDP/TCP/TLS.
+        Web projesi WSS kullaniyor, bazi SIP saglayicilar sadece WSS destekliyor.
+        Cozum: SIPSorcery SIPWebSocketChannel eklenebilir.
+      - System tray ikonu varsayilan Windows ikon kullaniyor — ozel ikon eklenebilir.
+      - Publish profili test edilmedi — dotnet publish komutu calistirilmadi.
+      - AudioSettings'te ses cihazi degistirmek mevcut aramayi etkilemez —
+        yeni aramalarda secili cihaz kullanilir.
+      - ToastNotificationManagerCompat.Uninstall() uygulama kapatilirken cagriliyor,
+        bu bazi durumlarda exception atabilir.
+    </Riskler>
   </Faz>
 
   <!-- ============================================================ -->
@@ -873,4 +951,129 @@
       4. Asterisk — Self-hosted, $5-10/ay VPS ile tam kontrol.
     </Oneri>
   </Arastirma>
+
+  <!-- ============================================================ -->
+  <!-- FAZ 5-PRE: RUNTIME HAZIRLIK (6 KRITIK DUZELTME)             -->
+  <!-- ============================================================ -->
+  <Gorev no="5.0" durum="tamamlandi" tamamlanma="2026-02-11">
+    <Ad>6 Kritik Sorun Duzeltmesi (SIP Arama Sistemi)</Ad>
+    <Detay>
+      Gercek SIP aramalari icin tespit edilen 6 kritik sorun duzeltildi:
+
+      1. SipAccount WsUri Alani + Migration:
+         - SipAccount entity'ye nullable WsUri property eklendi
+         - SipAccountService: WsUri doluysa dogrudan kullanilir, bossa wss://server:8089/ws heuristic
+         - AdminDtos: ListDto, CreateDto, UpdateDto'ya WsUri eklendi
+         - SipAccountForm.razor: WsUri input alani + yardim metni
+         - Migration: AddSipAccountWsUri (SipAccounts tablosuna WsUri text kolonu)
+
+      2. SIP.js holdModifier Hatasi:
+         - SIP.Web.holdModifier SIP.js 0.21.x'te mevcut degil
+         - sipClient.js'e custom _holdModifier fonksiyonu eklendi (SDP sendrecv → sendonly)
+         - holdCall() icinde SIP.Web.holdModifier → this._holdModifier.bind(this)
+
+      3. Active.razor Baslangic Yuklemesi:
+         - OnInitialized → OnInitializedAsync
+         - API'den GET api/calls/active ile aktif aramalar yukleniyor
+         - GET api/calls/queued ile kuyrukta bekleyenler yukleniyor
+         - Loading spinner eklendi
+         - ICallService.GetActiveAsync donush tipi object → List&lt;CallNotification&gt;
+
+      4. Dialer API Kayit Entegrasyonu:
+         - CallStartResult DTO eklendi (Id + Uid)
+         - StartCall: Once POST api/calls/start → CallId al → sonra SIP arama
+         - HandleCallAnswered: PUT api/calls/{callId}/answer
+         - HandleCallEnded: PUT api/calls/{callId}/end
+         - SIP basarisizsa DB kaydini da sonlandirir
+
+      5. Kuyrukta Bekleyen Aramalar:
+         - CallStatuses.Queued (Id=8) TypeItem eklendi
+         - CallService.GetQueuedAsync() metodu (firma bazli filtreleme)
+         - GET api/calls/queued endpoint
+         - IncomingCallAsync: agent bulunamazsa StatusId = Queued
+         - CallCenterHub.TryAssignQueuedCallAsync: Agent Available olunca kuyruktan otomatik atama
+         - Active.razor: "Kuyrukta Bekleyen Aramalar" bolumu
+
+      6. SignalR Broadcast → Customer Groups:
+         - CallCenterHub: OnConnectedAsync'te kullanici customer_{customerId} grubuna ekleniyor
+         - Admin'ler ayrica "admins" grubuna ekleniyor
+         - Tum Clients.All → Clients.Group(groupName) + Clients.Group("admins")
+         - SendToGroupAndAdminsAsync helper metodu
+         - GetGroupNameAsync: JWT claim veya CustomerPersonnel tablosu
+         - CallService: EndCallAsync ve IncomingCallAsync'de grup bazli broadcast
+    </Detay>
+    <DosyaListesi>
+      Duzenlenen: ~15 dosya
+      - Entities/SipAccount.cs
+      - DTOs/AdminDtos.cs, CallDtos.cs, SipConnectionDto.cs
+      - Services/SipAccountService.cs, CallService.cs
+      - Services/Interfaces/ICallService.cs
+      - Controllers/CallsController.cs
+      - Hubs/CallCenterHub.cs
+      - Enums/TypeDefinitions.cs
+      - Pages/Admin/SipAccountForm.razor
+      - Pages/Calls/Active.razor
+      - Pages/Dialer.razor
+      - wwwroot/js/sipClient.js
+      Yeni: 1 migration (AddSipAccountWsUri)
+    </DosyaListesi>
+    <Riskler>
+      - SIP2SIP.info SylkRTC protokolu kullaniyor, SIP.js ile WSS uyumlulugu kesin degildir. Test edilmeli.
+      - _holdModifier SDP manipulasyonu basit regex ile yapiyor. Bazi PBX'lerde farkli SDP formati olabilir.
+      - TryAssignQueuedCallAsync'te concurrency sorunu olabilir: Ayni anda 2 agent Available olursa ayni arama ikisine de atanabilir. Ileride lock/mutex gerekebilir.
+      - SignalR grup atamasi JWT claim'den CustomerId aliyor. Admin'lerin CustomerId claim'i yoksa GetGroupNameAsync CustomerPersonnel tablosuna dustuyor. Admin bir firmaya atanmamissa grup null donebilir.
+      - Dialer'da arama DB'ye kaydediliyor ama CallerNumber "me" olarak gidiyor. Gercek agent extension/numara bilgisi olmaliydi.
+      - Migration henuz veritabanina uygulanmadi. VS debug modda ilk calistirmada auto-migration yapacak.
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- ARAŞTIRMA: Düzenleyici Uyum (BDDK, KVKK, BTK, SPK, ISO 27001) -->
+  <!-- ============================================================ -->
+  <Arastirma konu="Duzenleyici Uyum - Bilgi Guvenligi" tarih="2026-02-11">
+    <Ozet>
+      Turkiye'deki BDDK, KVKK, BTK, SPK duzenleme ve ISO 27001 gereksinimlerinin call center projemize etkisi arastirildi.
+      Detayli bulgular patterns.md'de "Duzenleyici Uyum Arastirmasi" basliginda.
+    </Ozet>
+    <TemelBulgular>
+      1. BDDK: TLS+AES sifreleme, MFA, ISO 27001 sertifikasyonu, yillik pentest, 24 saat DR, veri siniflandirma zorunlu
+      2. KVKK: Audit log (min 3 yil), periyodik imha (max 6 ay aralik), aydinlatma metni, acik riza
+      3. BTK: VoIP yetkilendirme, erisim loglari 2 yil saklama, BGYS zorunlu, %3 ceza riski
+      4. SPK: Ses kaydi 3 yil, emir kayitlari 10 yil, goruntulu gorusme uctan uca sifreleme
+      5. SIP/VoIP: TLS (sinyallesme) + SRTP (medya) birlikte zorunlu, WSS zorunlu
+      6. Genel: Ses kayitlari 10 yil saklama (TTK md. 82)
+    </TemelBulgular>
+    <ProjeyeEtki oncelik="acil">
+      - SipAccount.Password sifrelenmeli (AES, simdi duz metin)
+      - Audit Log tablosu ve kayit mekanizmasi eklenmeli
+      - Cagri kaydi sifreli depolama eklenmeli (AES-256)
+      - MFA (TOTP) destegi eklenmeli (Admin/Supervisor)
+      - Sifre politikasi eklenmeli (uzunluk, karmasiklik, sure, tekrar engelleme)
+      - KVKK aydinlatma mesaji desteği eklenmeli
+    </ProjeyeEtki>
+    <ProjeyeEtki oncelik="orta-vadeli">
+      - Veri siniflandirma sistemi
+      - Periyodik imha mekanizmasi
+      - Pentest raporlama dashboardu
+      - Video kayit (server-side, SPK uyumu)
+      - IP kisitlama (SIP trunk)
+      - IS surekliligi / DR plani
+    </ProjeyeEtki>
+    <ProjeyeEtki oncelik="uzun-vadeli">
+      - ISO 27001 kontrol listesi ve kanit toplama
+      - BDDK BADES entegrasyonu
+      - COBIT uyum raporlama
+      - SIEM entegrasyonu
+    </ProjeyeEtki>
+    <Riskler>
+      - Mevcut SipAccount.Password duz metin saklanıyor. Regulasyona aykiri. Acil AES sifreleme gerekli.
+      - Audit log mekanizmasi henuz yok. BDDK ve KVKK uyumu icin zorunlu.
+      - Cagri kayit altyapisi henuz yok. SPK ve TTK uyumu icin ses kaydi + 10 yil saklama gerekli.
+      - MFA desteği yok. BDDK 2023/1 Genelge uyumu icin en azindan Admin/Supervisor icin gerekli.
+      - BTK VoIP yetkilendirme sureci arastirilmali — musteri mu yoksa biz mi yetkilendirilmeli?
+      - Veri siniflandirma yapilmamis — BDDK veri envanter zorunlulugu var.
+      - Arastirma web arama sonuclarina dayali. Yonetmeliklerin tam metinleri incelenip hukuk danismani gorusu alinmali.
+    </Riskler>
+  </Arastirma>
+
 </Proje>

@@ -1,0 +1,171 @@
+@inherits LayoutComponentBase
+@inject WindowsAuthService AuthService
+@inject WindowsHubService HubService
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+@using CallCenter.Shared.Enums
+@using CallCenter.Shared.DTOs
+
+<div class="app-layout">
+    @* ─── SOL PANEL ─── *@
+    <aside class="sidebar">
+        <NavMenu />
+    </aside>
+
+    @* ─── ANA ICERIK ─── *@
+    <div class="main-wrapper">
+        @* ─── UST BAR ─── *@
+        <header class="top-bar">
+            <div class="top-bar-content">
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    @* ─── DURUM DROPDOWN ─── *@
+                    <div class="status-dropdown-wrapper">
+                        <button class="status-badge @currentStatusCss" @onclick="ToggleStatusDropdown">
+                            <i class="bi @currentStatusIcon"></i>
+                            <span>@currentStatusText</span>
+                            <i class="bi bi-chevron-down status-chevron"></i>
+                        </button>
+                        @if (statusDropdownOpen)
+                        {
+                            <div class="status-dropdown-backdrop" @onclick="CloseStatusDropdown"></div>
+                            <div class="status-dropdown">
+                                @foreach (var status in AgentStatuses.Selectable)
+                                {
+                                    <button class="status-option @(status.Id == currentStatusId ? "active" : "")"
+                                            @onclick="() => ChangeStatus(status.Id)">
+                                        <i class="bi @status.Icon status-dot @status.CssClass"></i>
+                                        <span>@(StatusDisplayNames.TryGetValue(status.SystemName, out var name) ? name : status.SystemName)</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    @* ─── SignalR baglanti durumu ─── *@
+                    @if (!HubService.IsConnected)
+                    {
+                        <span class="connection-indicator" title="Sunucuya baglaniyor...">
+                            <i class="bi bi-wifi-off text-warning"></i>
+                        </span>
+                    }
+
+                    @* ─── SES CIHAZI AYARLARI ─── *@
+                    <AudioSettings />
+
+                    <button class="btn btn-link text-muted btn-logout" title="Cikis Yap" @onclick="HandleLogout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        @* ─── SAYFA ICERIGI ─── *@
+        <main class="main-content">
+            @Body
+        </main>
+    </div>
+
+    @* ─── GELEN ARAMA BILDIRIMI (Global) ─── *@
+    <IncomingCallNotification />
+
+    @* ─── TOAST BILDIRIMLERI (Global) ─── *@
+    <ToastNotification />
+</div>
+
+@code {
+    private bool statusDropdownOpen;
+    private int currentStatusId = AgentStatuses.Ids.Offline;
+
+    // Durum adlarini Turkce goster
+    private static readonly Dictionary<string, string> StatusDisplayNames = new()
+    {
+        { "Available", "Musait" },
+        { "Busy", "Mesgul" },
+        { "OnBreak", "Mola" },
+        { "Offline", "Cevrimdisi" },
+        { "InCall", "Aramada" },
+        { "AfterCallWork", "Arama Sonrasi" }
+    };
+
+    private string currentStatusCss => AgentStatuses.GetById(currentStatusId)?.CssClass ?? "offline";
+    private string currentStatusIcon => AgentStatuses.GetById(currentStatusId)?.Icon ?? "bi-circle-fill";
+    private string currentStatusText
+    {
+        get
+        {
+            var item = AgentStatuses.GetById(currentStatusId);
+            if (item == null) return "Cevrimdisi";
+            return StatusDisplayNames.TryGetValue(item.SystemName, out var name) ? name : item.SystemName;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // SignalR event'lerini dinle
+            HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
+            HubService.OnConnectionStateChanged += HandleConnectionStateChanged;
+
+            // Hub'a baglan
+            await HubService.ConnectAsync();
+
+            // Baglanti kurulduysa durum Available olur (Hub otomatik yapar)
+            if (HubService.IsConnected)
+            {
+                currentStatusId = AgentStatuses.Ids.Available;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void HandleAgentStatusChanged(AgentStatusUpdate update)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleConnectionStateChanged(Microsoft.AspNetCore.SignalR.Client.HubConnectionState state)
+    {
+        if (state == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
+        {
+            currentStatusId = AgentStatuses.Ids.Available;
+        }
+        else if (state == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected)
+        {
+            currentStatusId = AgentStatuses.Ids.Offline;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ChangeStatus(int statusId)
+    {
+        statusDropdownOpen = false;
+        currentStatusId = statusId;
+        await HubService.UpdateStatusAsync(statusId);
+    }
+
+    private void ToggleStatusDropdown()
+    {
+        statusDropdownOpen = !statusDropdownOpen;
+    }
+
+    private void CloseStatusDropdown()
+    {
+        statusDropdownOpen = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        await HubService.DisconnectAsync();
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/login", forceLoad: false);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
+        HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+    }
+}

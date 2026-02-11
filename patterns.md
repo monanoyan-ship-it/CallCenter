@@ -985,3 +985,242 @@ Müşteri altında organizasyon ağacı, kullanıcı tipi hiyerarşisi ve person
 **Önerilmeyenler:** Bandwidth (WebRTC API kaldırıldı), VoIP.ms (WebSocket yok), 3CX Free (kapalı SIP stack, SIP.js çalışmaz)
 
 **Detaylı analiz:** `yol_haritasi.xml` → `<Arastirma konu="SIP/VoIP Saglayici Demo Hesaplari">`
+
+### 2026-02-11 - Düzenleyici Uyum Araştırması (BDDK, KVKK, BTK, SPK, ISO 27001)
+
+**Amaç:** Call center projemizin finans, sigorta ve kurumsal müşterilere satılabilmesi için Türkiye'deki bilgi güvenliği düzenlemelerine uyum gereksinimlerinin tespiti.
+
+#### 1. BDDK — Bankaların Bilgi Sistemleri ve Elektronik Bankacılık Hizmetleri Hakkında Yönetmelik
+**Kaynak Yönetmelik:** 15 Mart 2020 tarihli Resmi Gazete (Yürürlük: 1 Temmuz 2020)
+
+**Şifreleme Gereksinimleri:**
+- **Data in Transit:** Tüm iletişimde güçlü şifreleme zorunlu (TLS 1.2 minimum, TLS 1.3 önerilir)
+- **Data at Rest:** AES-256 veya RSA-2048 ile disk/dosya/veritabanı şifreleme
+- Şifreleme gizli anahtarları ile doğrulama kodlarının imzalanması, inkar edilemezlik sağlanması
+- Finansal işlemlerde tek kullanımlık doğrulama kodları (tutar+alıcı bilgisine özel)
+
+**Kimlik Doğrulama (MFA):**
+- En az 2 bağımsız faktör (bilgi + sahiplik veya biyometrik)
+- BDDK 2023/1 sayılı Genelge: Elektronik bankacılıkta kimlik doğrulama ve işlem güvenliği kriterleri
+- Riskli işlemler için çok faktörlü kimlik doğrulama zorunluluğu (2025 itibarıyla)
+
+**Erişim Kontrolü:**
+- Rol tabanlı erişim kontrolü (RBAC) zorunlu
+- Hassas verilere erişimde yetki matrisi
+- Tüm sorgulamalar kayıt altında
+- Yurt dışına veri aktarımı sınırlandırması
+
+**Veri Sınıflandırma:**
+- Varlık envanteri ve veri envanteri hazırlama zorunluluğu
+- Güvenlik sınıfları ve erişim haklarının belirlenmesi
+- Varlık sınıflandırma kılavuzu hazırlama zorunluluğu
+- "Hassas veri" tanımı: Üçüncü taraflara açıklanması zarar verebilecek her türlü veri
+
+**Felaket Kurtarma / İş Sürekliliği:**
+- Birincil ve ikincil sistemler yurt içinde konumlandırılmalı
+- Birincil sistemler tamamen devre dışı kalsa bile en geç 24 saat içinde faaliyet sürdürülebilmeli
+- BS Süreklilik Komitesi kurulması zorunlu (İK, hukuk, iş birimleri, BS güvenlik temsilcileri)
+- BS Strateji Komitesi, BS Yönlendirme Komitesi, Bilgi Güvenliği Komitesi zorunlu
+
+**Penetrasyon Testi:**
+- Yılda en az 1 kez BDDK onaylı sızma testi zorunlu
+- İki aşama: temel + detaylı sızma testleri
+- Kapsam: İletişim altyapısı, DNS, etki alanı, e-posta, veritabanları, web/mobil uygulamalar, kablosuz ağlar, DDoS, sosyal mühendislik
+- Raporlar en geç 1 ay içinde BADES'e (Bağımsız Denetim Takip Sistemi) yüklenecek
+
+**ISO 27001 Zorunluluğu:**
+- BDDK ISO/IEC 27001 sertifikasyonunu zorunlu tutuyor
+- Bağımsız denetime tabi kuruluşlar tarafından denetlenip sertifikalandırılması gerekiyor
+- COBIT standartlarına uyum da zorunlu
+- Yılda en az 90 saat zorunlu personel eğitimi
+
+#### 2. KVKK — Kişisel Verilerin Korunması Kanunu (6698 sayılı)
+
+**Teknik Tedbirler:**
+- Şifreleme (mümkün olan her yerde ayrı ayrı anahtarlar)
+- Disk, dosya ve veritabanı şifreleme
+- Yetki matrisi oluşturma
+- Loglama (tüm erişim kayıtları)
+- SIEM ile log analizi
+- Politika ve eğitim
+
+**Log/Audit Trail:**
+- Silme, yok etme, anonimleştirme işlemleri kayıt altına alınmalı
+- Bu kayıtlar en az 3 yıl saklanmalı
+- Erişim logları tutulmalı ve bütünlüğü korunmalı
+
+**Veri Saklama ve İmha:**
+- Periyodik imha süresi en fazla 6 ay
+- Kişisel Veri Saklama ve İmha Politikası zorunlu
+- Veri sınıflandırma, saklama süreleri belirleme ve periyodik imha planı
+- Genel zamanaşımı (TTK): 10 yıl (ses kayıtları dahil)
+
+**Çağrı Merkezi Özeli:**
+- Ses kaydı alınması için açık rıza veya meşru hukuki dayanak gerekli
+- Aydınlatma metni zorunlu ("Güvenliğiniz için konuşmanız kayda alınıyor")
+- Kayıt transkriptleri veri sahibine maskelenerek paylaşılabilir
+- Çağrı merkezi verileri: müşteri ilişki yönetimi, şikayet takibi, iletişim, hukuki kayıt, müşteri güvenliği amaçları
+
+#### 3. BTK — Bilgi Teknolojileri ve İletişim Kurumu
+
+**Temel Yönetmelik:** Elektronik Haberleşme Sektöründe Şebeke ve Bilgi Güvenliği Yönetmeliği (13/07/2014, RG No: 29059)
+
+**VoIP/SIP Düzenlemeleri:**
+- VoIP hizmeti sunmak için BTK'ya bildirim/yetkilendirme zorunlu
+- 5809 sayılı Elektronik Haberleşme Kanunu kapsamında
+- Numara, frekans gibi kaynak tahsisi gerekiyorsa kullanım hakkı alınması zorunlu
+- Sektörel Siber Olaylara Müdahale Ekibi (Sektörel SOME) kapsamında bildirim yükümlülüğü
+
+**Log Tutma Yükümlülükleri:**
+- Kişisel verilere ve ilişkili sistemlere yapılan erişim kayıtları: 2 yıl saklama zorunlu
+- Erişim yetkili personelin tüm işlemleri detaylı kayıt altında
+- Bilgi güvenliği ihlal olayları kayıt altına alınıp değerlendirilecek
+- **Yaptırım:** Uymayanlar için net satışların %3'üne kadar idari para cezası
+
+**Güvenlik Gereksinimleri:**
+- Şebeke ve bilgi güvenliğinin sağlanması için BGYS (Bilgi Güvenliği Yönetim Sistemi) kurulması
+- İşletmecilerin uyacakları usul ve esaslar yönetmelikle belirlenmiş
+
+#### 4. SPK — Sermaye Piyasası Kurulu
+
+**Çağrı Kaydı Saklama Süreleri:**
+- Sözlü emir ses kayıtları: 3 yıl (emir tarihinden itibaren, önceki 2 yıldan uzatıldı)
+- Tüm emir formları, elektronik emirler, faks kayıtları: 10 yıl (önceki 5 yıldan uzatıldı)
+- Yatırım kuruluşları müşteri emirlerine ilişkin telefon kayıtlarını düzenli tutmak ve talep halinde SPK'ya sunmakla yükümlü
+
+**Görüntülü Görüşme Gereksinimleri (Uzaktan Kimlik Tespiti):**
+- Gerçek zamanlı ve kesintisiz yapılmalı
+- Görsel-işitsel iletişimin bütünlüğü ve gizliliği yeterli seviyede olmalı
+- Uçtan uca güvenli iletişim (end-to-end encryption)
+- Görüntü ve ses kalitesi tüm görüşme boyunca yeterli seviyede (kimlik tespitinde kısıtlama olmamalı)
+- Başvuru elektronik formla alınmalı, risk değerlendirmesi yapılmalı
+
+#### 5. SIP/VoIP Güvenlik Gereksinimleri (Endüstri Standartları)
+
+**SIP Sinyalleşme Güvenliği:**
+- TLS zorunlu (port 5061 şifreli, port 5060 şifresiz)
+- SIP başlıkları arayan/aranan numaraları ve kimlik doğrulama verileri içerir → TLS ile korunmalı
+- WSS (WebSocket Secure) zorunlu (tarayıcı tabanlı SIP.js bağlantıları için)
+
+**Medya Şifreleme:**
+- SRTP (Secure Real-time Transport Protocol) zorunlu
+- RTP ses/video akışlarını şifreler
+- SRTP'nin etkin kullanımı için TLS ön koşul
+- Üçüncü taraflar ses akışını deşifre edemez, değiştiremez, bozamaz
+
+**Call Center İçin Best Practice:**
+- Uçtan uca şifreleme: SRTP (medya) + TLS (sinyalleşme)
+- SIP trunk güvenliği: IP kısıtlama, güçlü kimlik doğrulama
+- SRTP + TLS birlikte kullanılmalı (biri diğerinin yerine geçmez)
+
+#### 6. Genel Saklama Süreleri Özeti
+
+| Veri Türü | Süre | Dayanak |
+|-----------|------|---------|
+| Ses kayıtları (genel) | 10 yıl | TTK md. 82, Bankacılık Kanunu md. 42 |
+| SPK sözlü emir kayıtları | 3 yıl | SPK Belge ve Kayıt Düzeni Tebliği |
+| SPK emir formları/dokümanlar | 10 yıl | SPK Belge ve Kayıt Düzeni Tebliği |
+| KVKK silme/imha kayıtları | 3 yıl | KVKK Yönetmeliği |
+| BTK erişim logları | 2 yıl | Şebeke ve Bilgi Güvenliği Yönetmeliği |
+| KVKK periyodik imha | Max 6 ay aralık | KVKK Yönetmeliği |
+
+#### 7. Projemize Etkisi — Teknik Uyum Gereksinimleri
+
+**Acil (MVP'de olmalı):**
+1. **TLS + SRTP**: SIP bağlantılarında TLS sinyalleşme + SRTP medya şifreleme (mevcut SipAccount.UseSrtp + Transport=TLS/WSS zaten var)
+2. **Audit Log**: Tüm kullanıcı işlemleri (login, CRUD, SIP, çağrı) için log tablosu ve kayıt mekanizması
+3. **Çağrı Kaydı Saklama**: Ses kayıtları için şifreli depolama (AES-256), metadata + dosya yolu + TTL
+4. **KVKK Aydınlatma**: Çağrı başlangıcında otomatik aydınlatma mesajı çalma desteği
+5. **MFA**: Admin ve Supervisor kullanıcılar için iki faktörlü kimlik doğrulama (TOTP)
+6. **Şifre Politikası**: Minimum uzunluk, karmaşıklık, süre aşımı, tekrar engelleme
+7. **SipAccount.Password Şifreleme**: Düz metin → AES şifreleme (Data at Rest)
+
+**Orta Vadeli (Faz 7-8):**
+1. **Veri Sınıflandırma**: Veri envanteri ve sınıflandırma sistemi
+2. **Periyodik İmha**: Süresi dolan kayıtların otomatik imha mekanizması
+3. **RBAC Genişletme**: Daha granüler erişim kontrolü
+4. **Penetrasyon Testi Raporlama**: Pentest sonuçları için dashboard
+5. **İş Sürekliliği**: DR planı, yedekleme, failover
+6. **Video Kayıt**: Server-side video kayıt (SPK uzaktan kimlik tespiti uyumu)
+7. **IP Kısıtlama**: SIP trunk erişiminde IP whitelist
+
+**Uzun Vadeli (Enterprise):**
+1. ISO 27001 sertifikasyon desteği (kontrol listesi, kanıt toplama)
+2. BDDK BADES entegrasyonu
+3. COBIT uyum raporlama
+4. Felaket kurtarma otomasyonu
+5. SIEM entegrasyonu (log'ların dış sisteme aktarımı)
+
+**Kaynaklar:**
+- [BDDK Bilgi Sistemleri Düzenlemeleri](https://www.bddk.org.tr/Mevzuat/Liste/134)
+- [BDDK Yönetmelik (Resmi Gazete)](https://www.resmigazete.gov.tr/eskiler/2020/03/20200315-10.htm)
+- [BDDK Kimlik Doğrulama Genelgesi 2023/1](https://www.bddk.org.tr/Mevzuat/DokumanGetir/1171)
+- [KVKK Veri Güvenliği Rehberi](https://www.kvkk.gov.tr/yayinlar/veri_guvenligi_rehberi.pdf)
+- [KVKK Saklama ve İmha Politikası](https://www.kvkk.gov.tr/Icerik/5386/KVKK-KISISEL-VERI-SAKLAMA-ve-IMHA-POLITIKASI)
+- [BTK Şebeke ve Bilgi Güvenliği Yönetmeliği](https://www.btk.gov.tr/sebeke-ve-bilgi-guvenligi-mevzuat)
+- [SPK Belge ve Kayıt Düzeni](https://www.procompliance.net/spknin-belge-ve-kayit-duzeni-tebligi-ne-getirdi/)
+- [SPK Uzaktan Kimlik Tespiti](https://legal.com.tr/blog/genel/araci-kurumlar-ve-portfoy-yonetim-sirketlerince-kullanilacak-uzaktan-kimlik-tespiti-yontemleri/)
+- [BDDK Penetrasyon Testi](https://www.nesilteknoloji.com/bddk-ile-uyumlu-sizma-testi-nedir/)
+- [Google Cloud BRSA Uyumu](https://cloud.google.com/security/compliance/brsa-turkey)
+- [Turkey BRSA Banking Regulation](https://cloud.google.com/security/compliance/brsa_banking_outsourcing_regulations_workspace_mapping)
+- [Çağrı Merkezi Yasal Sorumluluklar](https://bluecom.com.tr/cagri-merkezi-yasal-sorumluluklari-ve-mevzuat/)
+
+---
+
+### 2026-02-11 - Faz 5: Windows Softphone Uygulaması (Devam Ediyor)
+
+**Görev 5.1 (TAMAMLANDI): Altyapı, DI, Auth**
+- SecureStorage (dosya tabanlı) → localStorage yerine
+- WindowsAuthService, WindowsAuthStateProvider, WindowsAuthHeaderHandler
+- MainWindow.xaml.cs tam DI konfigürasyonu
+- NuGet: SIPSorcery 6.2.4, NAudio 2.2.1, SignalR.Client, JWT, Authorization
+- **SIPSorceryMedia.Windows .NET 10 ile UYUMSUZ** — NAudio direkt kullanıldı
+
+**Görev 5.2 (TAMAMLANDI): Login + Layout + Sayfalar**
+- Login, Dashboard, MainLayout, NavMenu, LoginLayout — Web'den adapte edildi
+- RedirectToLogin, ToastNotification, ToastService, WindowsPermissionService
+
+**Görev 5.3 (TAMAMLANDI): SignalR**
+- WindowsHubService — Web HubService'ten adapte
+- Build: 0 hata, 0 uyarı (5.1+5.2+5.3 sonrası)
+
+**Görev 5.4 (DEVAM EDİYOR): SIPSorcery Native SIP**
+- ISipService interface + NativeSipService.cs oluşturuldu
+- **8 BUILD HATASI VAR** — SIPSorcery 6.2.4 API yanlış kullanılmış
+
+**Kritik Bulgular:**
+1. `SIPSorceryMedia.Windows` sadece net6/net8 destekliyor → NAudio ile ses I/O yapılmalı
+2. `VoIPMediaSession` constructor'ı `MediaEndPoints` tipini almıyor (6.2.4'te yok)
+3. `AudioSourcesEnum.CaptureDevice` yok — sadece test kaynakları var (WhiteNoise, Silence, Music)
+4. `AudioCodecsEnum` tipi SIPSorcery 6.2.4'te mevcut değil
+5. `SIPUserAgent.Answer()` → 3 parametre alıyor: `(SIPServerUserAgent, IMediaSession, IPAddress)`
+6. Gelen arama akışı: `AcceptCall(SIPRequest)` ile SIPServerUserAgent oluşturulmalı
+
+**Görev 5.4 (TAMAMLANDI): SIPSorcery Native SIP — DÜZELTME**
+- SIPSorceryMedia.Windows 8.0.14 eklendi (TFM: net10.0-windows10.0.17763 ile uyumlu)
+- WindowsAudioEndPoint + AudioEncoder ile gerçek mikrofon/hoparlör
+- Answer(SIPServerUserAgent, IMediaSession) doğru imza kullanıldı
+- AcceptCall(sipRequest) ile gelen arama akışı düzeltildi
+- TakeOffHold() void dönüyor → async kaldırıldı
+- AudioCodecsEnum → SIPSorceryMedia.Abstractions namespace
+- 8 build hatası tamamen düzeltildi
+
+**Görev 5.5 (TAMAMLANDI): Agent Sayfaları**
+- Dialer.razor + CSS: Web'den adapte, ISipService.InitializeAsync(SipConnectionInfoDto) kullanır
+- Calls/Active.razor: Aktif aramalar + kuyrukta bekleyenler
+- Calls/History.razor: Arama geçmişi + filtreler
+- TransferDialog.razor: Blind transfer modal
+- IncomingCallNotification.razor: SignalR + SIP gelen arama popup
+- AudioSettings.razor: NAudio cihaz listeleme (DeviceIndex tabanlı, DeviceId değil)
+- MainLayout'a AudioSettings + IncomingCallNotification eklendi
+
+**Görev 5.6 (TAMAMLANDI): System Tray + Bildirimler**
+- Hardcodet.NotifyIcon.Wpf 1.1.0: System tray ikonu
+- Microsoft.Toolkit.Uwp.Notifications 7.1.3: Windows toast
+- SystemTrayService.cs: Tray, close-to-tray, double-click restore, gelen arama toast
+- MainWindow.xaml.cs: SystemTrayService DI + Loaded event
+
+**Görev 5.7 (TAMAMLANDI): Dağıtım**
+- Properties/PublishProfiles/win-x64.pubxml: Self-contained, single-file, ReadyToRun
+
+**FAZ 5 TAMAMLANDI — 0 hata, 0 uyarı (tüm 6 proje)**

@@ -1,0 +1,73 @@
+@inject ToastService ToastService
+@implements IDisposable
+
+@if (toasts.Count > 0)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+        @foreach (var toast in toasts)
+        {
+            <div class="toast show align-items-center text-bg-@GetBgClass(toast.Type) border-0"
+                 role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi @GetIcon(toast.Type) me-1"></i>
+                        @toast.Message
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            @onclick="() => RemoveToast(toast)"></button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<ToastMessage> toasts = new();
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += HandleShow;
+    }
+
+    private void HandleShow(ToastMessage message)
+    {
+        toasts.Add(message);
+        InvokeAsync(StateHasChanged);
+
+        // 4 saniye sonra otomatik kapat
+        var captured = message;
+        _ = Task.Delay(4000).ContinueWith(_ =>
+        {
+            toasts.Remove(captured);
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void RemoveToast(ToastMessage toast)
+    {
+        toasts.Remove(toast);
+    }
+
+    private static string GetBgClass(ToastType type) => type switch
+    {
+        ToastType.Success => "success",
+        ToastType.Error => "danger",
+        ToastType.Warning => "warning",
+        ToastType.Info => "info",
+        _ => "secondary"
+    };
+
+    private static string GetIcon(ToastType type) => type switch
+    {
+        ToastType.Success => "bi-check-circle-fill",
+        ToastType.Error => "bi-exclamation-triangle-fill",
+        ToastType.Warning => "bi-exclamation-circle-fill",
+        ToastType.Info => "bi-info-circle-fill",
+        _ => "bi-bell-fill"
+    };
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= HandleShow;
+    }
+}

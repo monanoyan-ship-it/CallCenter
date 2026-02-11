@@ -1,0 +1,88 @@
+@inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.ToastService Toast
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi bi-arrow-left-right me-2"></i>Arama Transfer
+                    </h6>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Transfer Hedefi</label>
+                        <input type="text" class="form-control" placeholder="Numara veya dahili..."
+                               @bind="transferTarget" @bind:event="oninput"
+                               @onkeydown="HandleKeyDown" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="text-danger small">@errorMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-secondary" @onclick="Close">Iptal</button>
+                    <button class="btn btn-sm btn-primary" @onclick="DoTransfer"
+                            disabled="@(string.IsNullOrWhiteSpace(transferTarget) || isTransferring)">
+                        <i class="bi bi-arrow-left-right me-1"></i>
+                        @(isTransferring ? "Transfer ediliyor..." : "Transfer Et")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClosed { get; set; }
+    [Parameter] public EventCallback<bool> OnTransferred { get; set; }
+
+    private string transferTarget = "";
+    private string errorMessage = "";
+    private bool isTransferring;
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(transferTarget))
+            _ = DoTransfer();
+        else if (e.Key == "Escape")
+            _ = Close();
+    }
+
+    private async Task DoTransfer()
+    {
+        if (string.IsNullOrWhiteSpace(transferTarget)) return;
+
+        isTransferring = true;
+        errorMessage = "";
+
+        var success = await SipService.TransferAsync(transferTarget);
+
+        if (success)
+        {
+            Toast.ShowSuccess("Arama transfer edildi");
+            await OnTransferred.InvokeAsync(true);
+            await Close();
+        }
+        else
+        {
+            errorMessage = "Transfer baslatilamadi. Hedef numarayi kontrol edin.";
+        }
+
+        isTransferring = false;
+    }
+
+    private async Task Close()
+    {
+        transferTarget = "";
+        errorMessage = "";
+        isTransferring = false;
+        await OnClosed.InvokeAsync();
+    }
+}

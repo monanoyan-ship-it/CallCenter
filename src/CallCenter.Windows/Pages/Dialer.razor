@@ -1,0 +1,344 @@
+@page "/dialer"
+@attribute [Authorize]
+@inject CallCenter.Windows.Services.WindowsHubService HubService
+@inject CallCenter.Windows.Services.ISipService SipService
+@inject HttpClient Http
+@inject CallCenter.Windows.Services.ToastService Toast
+@using CallCenter.Shared.Enums
+@using CallCenter.Shared.DTOs
+@implements IAsyncDisposable
+
+<div class="dialer-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-5">
+            <div class="dialer-card">
+                <div class="dialer-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-telephone-fill me-2"></i>Numara Cevirici</h5>
+                        <span class="badge @(SipService.IsRegistered ? "bg-success" : "bg-secondary") sip-badge">
+                            <i class="bi @(SipService.IsRegistered ? "bi-wifi" : "bi-wifi-off") me-1"></i>
+                            @(SipService.IsRegistered ? "SIP Kayitli" : sipStatusText)
+                        </span>
+                    </div>
+                </div>
+
+                @* Numara Gosterge *@
+                <div class="number-display">
+                    <input type="text" class="form-control number-input"
+                           @bind="phoneNumber" @bind:event="oninput"
+                           placeholder="Numara girin..."
+                           @onkeydown="HandleKeyDown" />
+                    @if (!string.IsNullOrEmpty(phoneNumber))
+                    {
+                        <button class="btn btn-link clear-btn" @onclick="ClearNumber">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    }
+                </div>
+
+                @* Tus Takimi *@
+                <div class="keypad">
+                    @foreach (var row in keypadRows)
+                    {
+                        <div class="keypad-row">
+                            @foreach (var key in row)
+                            {
+                                <button class="keypad-btn" @onclick="() => PressKey(key.digit)">
+                                    <span class="digit">@key.digit</span>
+                                    @if (!string.IsNullOrEmpty(key.letters))
+                                    {
+                                        <span class="letters">@key.letters</span>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* Arama Butonlari *@
+                <div class="call-actions">
+                    @if (!isInCall)
+                    {
+                        <button class="btn call-btn call-start"
+                                disabled="@(string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered || isCallStarting)"
+                                @onclick="StartCall">
+                            <i class="bi bi-telephone-fill"></i>
+                            <span>@(isCallStarting ? "Araniyor..." : "Ara")</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="in-call-actions">
+                            <button class="btn call-btn @(SipService.IsOnHold ? "call-resume" : "call-hold")"
+                                    @onclick="ToggleHold">
+                                <i class="bi @(SipService.IsOnHold ? "bi-play-circle-fill" : "bi-pause-circle-fill")"></i>
+                                <span>@(SipService.IsOnHold ? "Devam" : "Beklet")</span>
+                            </button>
+                            <button class="btn call-btn call-end" @onclick="EndCall">
+                                <i class="bi bi-telephone-x-fill"></i>
+                                <span>Kapat</span>
+                            </button>
+                        </div>
+                        <div class="call-timer mt-2">
+                            <i class="bi bi-clock"></i>
+                            <span>@callDuration</span>
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(statusMessage))
+                {
+                    <div class="status-message @statusClass">
+                        @statusMessage
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string phoneNumber = "";
+    private bool isInCall;
+    private bool isCallStarting;
+    private string statusMessage = "";
+    private string statusClass = "";
+    private string callDuration = "00:00";
+    private string sipStatusText = "Baglaniyor...";
+    private System.Timers.Timer? callTimer;
+    private DateTime callStartTime;
+    private int? currentCallId;
+
+    private readonly (string digit, string letters)[][] keypadRows = new[]
+    {
+        new[] { ("1", ""), ("2", "ABC"), ("3", "DEF") },
+        new[] { ("4", "GHI"), ("5", "JKL"), ("6", "MNO") },
+        new[] { ("7", "PQRS"), ("8", "TUV"), ("9", "WXYZ") },
+        new[] { ("*", ""), ("0", "+"), ("#", "") }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        SipService.OnRegistered += HandleSipRegistered;
+        SipService.OnRegistrationFailed += HandleSipRegistrationFailed;
+        SipService.OnCallAnswered += HandleCallAnswered;
+        SipService.OnCallEnded += HandleCallEnded;
+        SipService.OnCallFailed += HandleCallFailed;
+
+        if (SipService.IsRegistered)
+        {
+            sipStatusText = "SIP Kayitli";
+            return;
+        }
+
+        await InitializeSip();
+    }
+
+    private async Task InitializeSip()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/sipaccounts/my/connection");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                sipStatusText = "SIP Yok";
+                statusMessage = "SIP hesabi bulunamadi. Yonetici ile iletisime gecin.";
+                statusClass = "text-warning";
+                return;
+            }
+
+            var sipInfo = await response.Content.ReadFromJsonAsync<SipConnectionInfoDto>();
+            if (sipInfo == null)
+            {
+                sipStatusText = "SIP Hata";
+                return;
+            }
+
+            sipStatusText = "Kayit olunuyor...";
+            StateHasChanged();
+
+            // Windows'ta dogrudan SipConnectionInfoDto ile initialize
+            await SipService.InitializeAsync(sipInfo);
+        }
+        catch (Exception ex)
+        {
+            sipStatusText = "SIP Hata";
+            statusMessage = "SIP baglanti hatasi: " + ex.Message;
+            statusClass = "text-danger";
+        }
+    }
+
+    private Task HandleSipRegistered()
+    {
+        sipStatusText = "SIP Kayitli";
+        statusMessage = "";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleSipRegistrationFailed(string error)
+    {
+        sipStatusText = "SIP Hata";
+        statusMessage = "SIP kayit hatasi: " + error;
+        statusClass = "text-danger";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleCallAnswered()
+    {
+        isCallStarting = false;
+        statusMessage = $"{phoneNumber} ile gorusme baslatildi";
+        statusClass = "text-success";
+
+        if (currentCallId.HasValue)
+        {
+            try { await Http.PutAsync($"api/calls/{currentCallId.Value}/answer", null); }
+            catch { }
+        }
+
+        callStartTime = DateTime.Now;
+        callTimer = new System.Timers.Timer(1000);
+        callTimer.Elapsed += (s, e) =>
+        {
+            var elapsed = DateTime.Now - callStartTime;
+            callDuration = elapsed.ToString(@"mm\:ss");
+            InvokeAsync(StateHasChanged);
+        };
+        callTimer.Start();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleCallEnded()
+    {
+        StopTimer();
+        isInCall = false;
+        isCallStarting = false;
+
+        if (currentCallId.HasValue)
+        {
+            try { await Http.PutAsync($"api/calls/{currentCallId.Value}/end", null); }
+            catch { }
+            currentCallId = null;
+        }
+
+        statusMessage = $"Arama sonlandirildi ({callDuration})";
+        statusClass = "text-muted";
+        callDuration = "00:00";
+
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
+        await InvokeAsync(StateHasChanged);
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(5000);
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+        });
+    }
+
+    private Task HandleCallFailed(string error)
+    {
+        StopTimer();
+        isInCall = false;
+        isCallStarting = false;
+        statusMessage = "Arama basarisiz: " + error;
+        statusClass = "text-danger";
+        callDuration = "00:00";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void PressKey(string key)
+    {
+        phoneNumber += key;
+        if (isInCall && !isCallStarting)
+        {
+            _ = SipService.SendDtmfAsync(key);
+        }
+    }
+
+    private void ClearNumber() => phoneNumber = "";
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(phoneNumber) && !isInCall)
+            _ = StartCall();
+    }
+
+    private async Task StartCall()
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered) return;
+
+        isCallStarting = true;
+        isInCall = true;
+        statusMessage = $"{phoneNumber} araniyor...";
+        statusClass = "text-info";
+
+        try
+        {
+            var request = new StartCallRequest { CallerNumber = "me", CalleeNumber = phoneNumber };
+            var response = await Http.PostAsJsonAsync("api/calls/start", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CallStartResult>();
+                currentCallId = result?.Id;
+            }
+
+            var success = await SipService.MakeCallAsync(phoneNumber);
+            if (!success)
+            {
+                if (currentCallId.HasValue)
+                {
+                    await Http.PutAsync($"api/calls/{currentCallId.Value}/end", null);
+                    currentCallId = null;
+                }
+                isInCall = false;
+                isCallStarting = false;
+                statusMessage = "Arama baslatilamadi";
+                statusClass = "text-danger";
+                await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+            }
+        }
+        catch (Exception ex)
+        {
+            isInCall = false;
+            isCallStarting = false;
+            statusMessage = "Arama hatasi: " + ex.Message;
+            statusClass = "text-danger";
+            currentCallId = null;
+        }
+    }
+
+    private async Task ToggleHold()
+    {
+        if (SipService.IsOnHold)
+        {
+            var success = await SipService.UnholdAsync();
+            if (success) { statusMessage = $"{phoneNumber} ile gorusme devam ediyor"; statusClass = "text-success"; }
+        }
+        else
+        {
+            var success = await SipService.HoldAsync();
+            if (success) { statusMessage = "Arama beklemede..."; statusClass = "text-warning"; }
+        }
+    }
+
+    private async Task EndCall() => await SipService.HangupAsync();
+
+    private void StopTimer()
+    {
+        callTimer?.Stop();
+        callTimer?.Dispose();
+        callTimer = null;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        SipService.OnRegistered -= HandleSipRegistered;
+        SipService.OnRegistrationFailed -= HandleSipRegistrationFailed;
+        SipService.OnCallAnswered -= HandleCallAnswered;
+        SipService.OnCallEnded -= HandleCallEnded;
+        SipService.OnCallFailed -= HandleCallFailed;
+        StopTimer();
+        return ValueTask.CompletedTask;
+    }
+}
