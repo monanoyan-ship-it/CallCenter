@@ -66,4 +66,15 @@ public class CustomersController : ControllerBase
         if (!success) return NotFound(new { message = error });
         return NoContent();
     }
+
+    /// <summary>Musteri admin sifresini sifirla — yeni gecici sifre uretir</summary>
+    [HttpPost("{id}/reset-admin-password")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> ResetAdminPassword(int id)
+    {
+        var svc = _factory.CreateCustomerService();
+        var (success, tempPassword, error) = await svc.ResetAdminPasswordAsync(id);
+        if (!success) return BadRequest(new { message = error });
+        return Ok(new { password = tempPassword });
+    }
 }

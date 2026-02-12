@@ -10,10 +10,12 @@ namespace CallCenter.Api.Services;
 public class PortalService : IPortalService
 {
     private readonly AppDbContext _db;
+    private readonly AesEncryptionService _encryption;
 
-    public PortalService(AppDbContext db)
+    public PortalService(AppDbContext db, AesEncryptionService encryption)
     {
         _db = db;
+        _encryption = encryption;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -131,6 +133,20 @@ public class PortalService : IPortalService
         if (entity == null)
             return (false, "Kullanici tipi bulunamadi.");
 
+        // Varsayilan (seed) Yonetici tipi koruması:
+        // Musterinin ilk olusturulan UserType'i degistirilemez ve deaktif edilemez
+        var isDefault = await IsDefaultUserTypeAsync(customerId, id);
+        if (isDefault)
+        {
+            // Ad, aktiflik ve seviye degistirilemez
+            if (dto.Name != entity.Name)
+                return (false, "Varsayilan Yonetici tipinin adi degistirilemez.");
+            if (!dto.IsActive)
+                return (false, "Varsayilan Yonetici tipi deaktif edilemez.");
+            if (dto.Level != entity.Level)
+                return (false, "Varsayilan Yonetici tipinin seviyesi degistirilemez.");
+        }
+
         // Ayni isimde baska bir tip var mi?
         var duplicate = await _db.CustomerUserTypes
             .AnyAsync(ut => ut.CustomerId == customerId && ut.Name == dto.Name && ut.Id != id);
@@ -154,10 +170,29 @@ public class PortalService : IPortalService
         if (entity == null)
             return (false, "Kullanici tipi bulunamadi.");
 
+        // Varsayilan Yonetici tipi deaktif edilemez
+        if (await IsDefaultUserTypeAsync(customerId, id))
+            return (false, "Varsayilan Yonetici tipi deaktif edilemez.");
+
         entity.IsActive = false;
         await _db.SaveChangesAsync();
 
         return (true, null);
+    }
+
+    /// <summary>
+    /// Musterinin ilk olusturulan (seed) UserType'ini tespit eder.
+    /// CreateCustomerAdminAsync her zaman ilk UserType'i olusturur, bu "Yonetici" tipidir.
+    /// </summary>
+    private async Task<bool> IsDefaultUserTypeAsync(int customerId, int userTypeId)
+    {
+        var firstTypeId = await _db.CustomerUserTypes
+            .Where(ut => ut.CustomerId == customerId)
+            .OrderBy(ut => ut.Id)
+            .Select(ut => ut.Id)
+            .FirstOrDefaultAsync();
+
+        return firstTypeId == userTypeId;
     }
 
     public async Task<int[]> GetUserTypePermissionsAsync(int customerId, int id)
@@ -216,6 +251,7 @@ public class PortalService : IPortalService
             .Select(p => new PortalPersonnelListDto
             {
                 Id = p.Id,
+                UserName = p.User.UserName,
                 FullName = p.User.FullName,
                 Email = p.User.Email,
                 Title = p.Title,
@@ -281,6 +317,7 @@ public class PortalService : IPortalService
         return (true, new PortalPersonnelListDto
         {
             Id = personnel.Id,
+            UserName = user.UserName,
             FullName = user.FullName,
             Email = user.Email,
             Title = personnel.Title,
@@ -298,11 +335,31 @@ public class PortalService : IPortalService
         if (personnel == null)
             return (false, "Personel bulunamadi.");
 
+        // UserName unique kontrol (degistiyse)
+        if (!string.IsNullOrWhiteSpace(dto.UserName) && dto.UserName != personnel.User.UserName)
+        {
+            var userNameExists = await _db.Users
+                .AnyAsync(u => u.UserName == dto.UserName && u.Id != personnel.UserId);
+            if (userNameExists)
+                return (false, "Bu kullanici adi zaten kullaniliyor.");
+
+            personnel.User.UserName = dto.UserName;
+        }
+
         // Email unique kontrol
         var emailExists = await _db.Users
             .AnyAsync(u => u.Email == dto.Email && u.Id != personnel.UserId);
         if (emailExists)
             return (false, "Bu e-posta adresi zaten kullaniliyor.");
+
+        // Update ile deaktive edilmeye calisiliyorsa son admin kontrolu
+        if (!dto.IsActive && personnel.IsActive && personnel.IsCustomerAdmin)
+        {
+            var activeAdminCount = await _db.CustomerPersonnel
+                .CountAsync(p => p.CustomerId == customerId && p.IsCustomerAdmin && p.IsActive);
+            if (activeAdminCount <= 1)
+                return (false, "Firmada en az bir yonetici olmalidir. Son yonetici deaktive edilemez.");
+        }
 
         personnel.User.FullName = dto.FullName;
         personnel.User.Email = dto.Email;
@@ -335,6 +392,15 @@ public class PortalService : IPortalService
             .FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
         if (personnel == null)
             return (false, "Personel bulunamadi.");
+
+        // Son customer admin koruması — firmada en az 1 admin kalmali
+        if (personnel.IsCustomerAdmin)
+        {
+            var activeAdminCount = await _db.CustomerPersonnel
+                .CountAsync(p => p.CustomerId == customerId && p.IsCustomerAdmin && p.IsActive);
+            if (activeAdminCount <= 1)
+                return (false, "Firmada en az bir yonetici olmalidir. Son yonetici deaktive edilemez.");
+        }
 
         personnel.IsActive = false;
         personnel.User.IsActive = false;
@@ -492,7 +558,7 @@ public class PortalService : IPortalService
         if (!string.IsNullOrWhiteSpace(dto.Username))
             account.Username = dto.Username;
         if (!string.IsNullOrWhiteSpace(dto.Password))
-            account.Password = dto.Password;
+            account.Password = _encryption.Encrypt(dto.Password);
 
         if (dto.IsDefault == true)
         {

@@ -207,7 +207,8 @@ public class BackgroundSyncService
             DurationSeconds = record.DurationSeconds,
             AgentName = record.AgentName,
             QueueName = record.QueueName,
-            Notes = record.Notes
+            Notes = record.Notes,
+            RecordingFilePath = record.RecordingFilePath
         };
 
         var response = await _http.PostAsJsonAsync("api/calls/sync", syncDto);

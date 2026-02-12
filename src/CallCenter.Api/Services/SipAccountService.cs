@@ -10,10 +10,12 @@ namespace CallCenter.Api.Services;
 public class SipAccountService : ISipAccountService
 {
     private readonly AppDbContext _db;
+    private readonly AesEncryptionService _encryption;
 
-    public SipAccountService(AppDbContext db)
+    public SipAccountService(AppDbContext db, AesEncryptionService encryption)
     {
         _db = db;
+        _encryption = encryption;
     }
 
     public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, string displayName)
@@ -45,7 +47,7 @@ public class SipAccountService : ISipAccountService
             WsUri = wsUri,
             SipUri = $"sip:{sip.Username}@{domain}",
             AuthUsername = sip.Username,
-            AuthPassword = sip.Password,
+            AuthPassword = _encryption.Decrypt(sip.Password),
             DisplayName = displayName,
             Transport = "WSS",
             UseSrtp = sip.UseSrtp
@@ -137,7 +139,7 @@ public class SipAccountService : ISipAccountService
             Port = dto.Port,
             Domain = dto.Domain,
             Username = dto.Username,
-            Password = dto.Password,
+            Password = _encryption.Encrypt(dto.Password),
             Transport = dto.Transport,
             WsUri = dto.WsUri,
             UseSrtp = dto.UseSrtp,
@@ -181,7 +183,7 @@ public class SipAccountService : ISipAccountService
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {
-            sip.Password = dto.Password;
+            sip.Password = _encryption.Encrypt(dto.Password);
         }
 
         await _db.SaveChangesAsync();

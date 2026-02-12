@@ -46,7 +46,13 @@ public partial class MainWindow : Window
         services.AddSingleton(sp =>
         {
             var handler = sp.GetRequiredService<Services.WindowsAuthHeaderHandler>();
-            handler.InnerHandler = new HttpClientHandler();
+            handler.InnerHandler = new HttpClientHandler
+            {
+#if DEBUG
+                // Development ortaminda self-signed sertifikayi kabul et
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+#endif
+            };
             return new HttpClient(handler) { BaseAddress = new Uri(apiBaseUrl) };
         });
 

@@ -15,6 +15,7 @@ public class WindowsAuthService
     private readonly WindowsAuthStateProvider _authStateProvider;
 
     private const string TokenKey = "auth_token";
+    private const string RefreshTokenKey = "auth_refresh_token";
     private const string FullNameKey = "auth_fullname";
     private const string RoleKey = "auth_role";
 
@@ -43,6 +44,7 @@ public class WindowsAuthService
 
             // Token ve bilgileri SecureStorage'a kaydet
             await _storage.SetAsync(TokenKey, loginResponse.Token);
+            await _storage.SetAsync(RefreshTokenKey, loginResponse.RefreshToken);
             await _storage.SetAsync(FullNameKey, loginResponse.FullName);
             await _storage.SetAsync(RoleKey, loginResponse.Role);
 
@@ -57,9 +59,68 @@ public class WindowsAuthService
         }
     }
 
+    /// <summary>
+    /// Refresh token ile yeni access token alir. Basarili olursa yeni token'lari kaydeder.
+    /// </summary>
+    public async Task<bool> TryRefreshTokenAsync()
+    {
+        try
+        {
+            var refreshToken = await _storage.GetAsync(RefreshTokenKey);
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return false;
+
+            var response = await _http.PostAsJsonAsync("api/auth/refresh", new RefreshTokenRequest { RefreshToken = refreshToken });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await ForceLogoutAsync();
+                return false;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<RefreshTokenResponse>();
+            if (result == null)
+                return false;
+
+            // Yeni token'lari kaydet
+            await _storage.SetAsync(TokenKey, result.Token);
+            await _storage.SetAsync(RefreshTokenKey, result.RefreshToken);
+
+            // Auth state'i guncelle
+            _authStateProvider.NotifyUserAuthentication(result.Token);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task LogoutAsync()
     {
+        // Server'daki refresh token'i iptal et
+        try
+        {
+            var refreshToken = await _storage.GetAsync(RefreshTokenKey);
+            if (!string.IsNullOrWhiteSpace(refreshToken))
+            {
+                await _http.PostAsJsonAsync("api/auth/revoke", new RefreshTokenRequest { RefreshToken = refreshToken });
+            }
+        }
+        catch
+        {
+            // Revoke basarisiz olsa bile logout devam etsin
+        }
+
+        await ForceLogoutAsync();
+    }
+
+    /// <summary>Sadece local storage temizler, server'a istek gitmez.</summary>
+    private async Task ForceLogoutAsync()
+    {
         await _storage.RemoveAsync(TokenKey);
+        await _storage.RemoveAsync(RefreshTokenKey);
         await _storage.RemoveAsync(FullNameKey);
         await _storage.RemoveAsync(RoleKey);
 

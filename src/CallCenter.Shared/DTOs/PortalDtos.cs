@@ -67,6 +67,7 @@ public class SetUserTypePermissionsRequest
 public class PortalPersonnelListDto
 {
     public int Id { get; set; }
+    public string UserName { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
@@ -109,6 +110,9 @@ public class PortalPersonnelCreateDto
 
 public class PortalPersonnelUpdateDto
 {
+    [MaxLength(50)]
+    public string? UserName { get; set; }
+
     [Required(ErrorMessage = "Ad soyad zorunludur.")]
     [MaxLength(100)]
     public string FullName { get; set; } = string.Empty;

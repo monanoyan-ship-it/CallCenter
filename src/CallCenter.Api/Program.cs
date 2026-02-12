@@ -14,7 +14,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"]!;
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException(
+        "Jwt:Key yapilandirilmamis. appsettings.Development.json veya environment variable (Jwt__Key) ekleyin.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -48,6 +50,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // Services
+builder.Services.AddSingleton<AesEncryptionService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<CallDistributionService>();
 builder.Services.AddSingleton<CallCenter.Shared.Services.ITranslationService, TranslationService>();

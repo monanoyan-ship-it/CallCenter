@@ -42,6 +42,9 @@ public class CallSyncPushRequest
     public string? AgentName { get; set; }
     public string? QueueName { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>Musterinin lokal makinesindeki ses kaydi dosya yolu (ses dosyasi gonderilmez, sadece path bilgisi)</summary>
+    public string? RecordingFilePath { get; set; }
 }
 
 /// <summary>Backend'in sync push'a verdigi yanit</summary>

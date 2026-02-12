@@ -70,6 +70,24 @@ public class CustomerService : ICustomerService
 
         if (c == null) return null;
 
+        // Admin personeli bul (IsCustomerAdmin=true)
+        var adminPersonnel = c.Personnel.FirstOrDefault(p => p.IsCustomerAdmin);
+        CustomerAdminInfoDto? adminInfo = null;
+        if (adminPersonnel != null)
+        {
+            adminInfo = new CustomerAdminInfoDto
+            {
+                PersonnelId = adminPersonnel.Id,
+                UserId = adminPersonnel.User.Id,
+                UserName = adminPersonnel.User.UserName,
+                FullName = adminPersonnel.User.FullName,
+                Email = adminPersonnel.User.Email,
+                Title = adminPersonnel.Title,
+                LastLoginAt = adminPersonnel.User.LastLoginAt,
+                IsActive = adminPersonnel.User.IsActive
+            };
+        }
+
         return new CustomerDetailDto
         {
             Id = c.Id,
@@ -85,7 +103,8 @@ public class CustomerService : ICustomerService
                 Id = p.Id,
                 FullName = p.User.FullName,
                 Title = p.Title
-            }).ToList()
+            }).ToList(),
+            AdminInfo = adminInfo
         };
     }
 
@@ -274,6 +293,23 @@ public class CustomerService : ICustomerService
         await _db.SaveChangesAsync();
 
         return (true, null);
+    }
+
+    /// <summary>Musteri admin kullanicisinin sifresini sifirla</summary>
+    public async Task<(bool Success, string? TempPassword, string? Error)> ResetAdminPasswordAsync(int customerId)
+    {
+        var admin = await _db.CustomerPersonnel
+            .Include(p => p.User)
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.IsCustomerAdmin);
+
+        if (admin == null)
+            return (false, null, "Bu musterinin admin kullanicisi bulunamadi.");
+
+        var tempPassword = GenerateTemporaryPassword();
+        admin.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+        await _db.SaveChangesAsync();
+
+        return (true, tempPassword, null);
     }
 
     // ═══════════════════════════════════════════════════════════

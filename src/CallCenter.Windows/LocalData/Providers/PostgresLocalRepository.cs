@@ -28,18 +28,38 @@ public class PostgresLocalRepository : ILocalRepository
     // ═══════════════════════════════════════
 
     /// <summary>
-    /// Connection string gecerli mi? Veritabanina baglanip SELECT 1 yapar.
+    /// PostgreSQL sunucusuna baglanabilir mi?
+    /// Hedef database henuz yoksa postgres default DB'sine baglanarak sunucuyu test eder.
     /// Ayarlar ekranindaki "Baglanti Test Et" butonu bunu cagirir.
     /// </summary>
     public async Task<bool> TestConnectionAsync()
     {
         try
         {
+            // Once hedef DB'ye baglanmayi dene
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync();
             await using var cmd = new NpgsqlCommand("SELECT 1", conn);
             await cmd.ExecuteScalarAsync();
             return true;
+        }
+        catch (NpgsqlException ex) when (ex.SqlState == "3D000") // database does not exist
+        {
+            // Database yok ama sunucu erisim var mi? postgres DB'sine baglan
+            try
+            {
+                var builder = new NpgsqlConnectionStringBuilder(_connectionString);
+                builder.Database = "postgres";
+                await using var conn = new NpgsqlConnection(builder.ToString());
+                await conn.OpenAsync();
+                await using var cmd = new NpgsqlCommand("SELECT 1", conn);
+                await cmd.ExecuteScalarAsync();
+                return true; // sunucu erisilebilir, DB "Tablolari Olustur" ile yaratilacak
+            }
+            catch
+            {
+                return false;
+            }
         }
         catch
         {
@@ -48,11 +68,16 @@ public class PostgresLocalRepository : ILocalRepository
     }
 
     /// <summary>
-    /// Tablolari olusturur (yoksa). Migration sistemi yok —
-    /// CREATE TABLE IF NOT EXISTS ile ilk calistirmada tablolar yaratilir.
+    /// Once database'i olusturur (yoksa), sonra tablolari olusturur.
+    /// Migration sistemi yok — CREATE DATABASE + CREATE TABLE IF NOT EXISTS ile calısır.
+    /// Ayarlar ekranındaki "Tablolari Olustur" butonu bunu cagirir.
     /// </summary>
     public async Task InitializeAsync()
     {
+        // ── 1) Database yoksa olustur ──
+        await EnsureDatabaseExistsAsync();
+
+        // ── 2) Tablolari olustur ──
         await using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
@@ -339,6 +364,45 @@ public class PostgresLocalRepository : ILocalRepository
     // ═══════════════════════════════════════
     // YARDIMCI METODLAR
     // ═══════════════════════════════════════
+
+    /// <summary>
+    /// Connection string'den database adini parse edip, yoksa olusturur.
+    /// postgres default DB'sine baglanir → CREATE DATABASE yapar.
+    /// Zaten varsa hata vermez (IF NOT EXISTS mantigi).
+    /// </summary>
+    private async Task EnsureDatabaseExistsAsync()
+    {
+        // Connection string'den database adini cikar
+        var builder = new NpgsqlConnectionStringBuilder(_connectionString);
+        var targetDb = builder.Database;
+
+        if (string.IsNullOrWhiteSpace(targetDb))
+            return; // database adi yoksa birsey yapma
+
+        // postgres (default) DB'sine baglan
+        builder.Database = "postgres";
+        var adminConnStr = builder.ToString();
+
+        await using var conn = new NpgsqlConnection(adminConnStr);
+        await conn.OpenAsync();
+
+        // Database var mi kontrol et
+        await using var checkCmd = new NpgsqlCommand(
+            "SELECT 1 FROM pg_database WHERE datname = @dbName", conn);
+        checkCmd.Parameters.AddWithValue("dbName", targetDb);
+        var exists = await checkCmd.ExecuteScalarAsync();
+
+        if (exists == null)
+        {
+            // Database yok — olustur
+            // NOT: CREATE DATABASE parametrize edilemez, string interpolation kullaniyoruz.
+            // SQL injection riski yok cunku deger kullanicinin kendi ayar ekranindan geliyor.
+            var safeName = targetDb.Replace("\"", "\"\""); // cift tirnak escape
+            await using var createCmd = new NpgsqlCommand(
+                $"CREATE DATABASE \"{safeName}\"", conn);
+            await createCmd.ExecuteNonQueryAsync();
+        }
+    }
 
     /// <summary>
     /// NpgsqlCommand'a LocalCallRecord parametrelerini ekler.

@@ -40,9 +40,9 @@
         - AgentStatus (müsait, meşgul, mola, offline)
       </Detay>
       <Riskler>
-        - Migration henüz oluşturulmadı. İlk çalıştırmada "dotnet ef migrations add Initial" gerekecek.
+        - [KAPANDI] Migration olusturuldu ve uygulandi (M.5 gorevi ile DB sifirlandi)
         - Seed data'daki admin şifresi (admin123) her build'de farklı hash üretir çünkü BCrypt salt kullanır. Bu migration'da sabit kalacak ama dikkat edilmeli.
-        - SipAccount.Password düz metin olarak saklanıyor. Production'da şifrelenmeli (AES veya DataProtection API).
+        - [KAPANDI] SipAccount.Password artik AES-256-CBC ile sifreleniyor (G.1 gorevi)
       </Riskler>
     </Gorev>
     <Gorev no="1.3" durum="tamamlandi" tamamlanma="2026-02-09">
@@ -50,8 +50,8 @@
       <Detay>Login, Register, Token yönetimi, Rol bazlı yetkilendirme</Detay>
       <Riskler>
         - Register endpoint henüz YOK. Şu an sadece login var. Kullanıcı ekleme admin panelinden yapılacak.
-        - JWT Key appsettings.json'da düz metin. Production'da environment variable veya User Secrets kullanılmalı.
-        - Token refresh mekanizması yok. Token süresi dolduğunda tekrar login gerekecek.
+        - [KAPANDI] JWT Key artik appsettings.json'dan cikarildi, Development.json + environment variable kullaniliyor (G.1 gorevi)
+        - [KAPANDI] Token refresh mekanizmasi eklendi (G.2 gorevi). Access token suresi dolunca refresh token ile otomatik yenileme.
       </Riskler>
     </Gorev>
     <Gorev no="1.4" durum="tamamlandi" tamamlanma="2026-02-09">
@@ -103,7 +103,7 @@
         - DbContext'te Uid alanlarına unique index eklendi
       </Detay>
       <Riskler>
-        - Mevcut veritabanı varsa migration'lar çakışacak. Temiz DB gerekli.
+        - [KAPANDI] DB sifirlandi ve migration'lar temiz uygulandi (M.5 gorevi)
         - Uid alanı bazı entity'lerde (Translation, TranslationKey) yok - bunlar dahili tablolar, dışarıya expose edilmiyor.
       </Riskler>
     </Gorev>
@@ -1100,7 +1100,7 @@
       - TryAssignQueuedCallAsync'te concurrency sorunu olabilir: Ayni anda 2 agent Available olursa ayni arama ikisine de atanabilir. Ileride lock/mutex gerekebilir.
       - SignalR grup atamasi JWT claim'den CustomerId aliyor. Admin'lerin CustomerId claim'i yoksa GetGroupNameAsync CustomerPersonnel tablosuna dustuyor. Admin bir firmaya atanmamissa grup null donebilir.
       - Dialer'da arama DB'ye kaydediliyor ama CallerNumber "me" olarak gidiyor. Gercek agent extension/numara bilgisi olmaliydi.
-      - Migration henuz veritabanina uygulanmadi. VS debug modda ilk calistirmada auto-migration yapacak.
+      - [KAPANDI] Migration veritabanina uygulandi (M.5 gorevi ile DB sifirlandi ve tum migration'lar uygulandi)
     </Riskler>
   </Gorev>
 
@@ -1143,7 +1143,7 @@
       - SIEM entegrasyonu
     </ProjeyeEtki>
     <Riskler>
-      - Mevcut SipAccount.Password duz metin saklanıyor. Regulasyona aykiri. Acil AES sifreleme gerekli.
+      - [KAPANDI] SipAccount.Password artik AES-256-CBC ile sifreleniyor (G.1 gorevi). Regulasyon riski kapandi.
       - Audit log mekanizmasi henuz yok. BDDK ve KVKK uyumu icin zorunlu.
       - Cagri kayit altyapisi henuz yok. SPK ve TTK uyumu icin ses kaydi + 10 yil saklama gerekli.
       - MFA desteği yok. BDDK 2023/1 Genelge uyumu icin en azindan Admin/Supervisor icin gerekli.
@@ -1193,8 +1193,175 @@
       - Connection string SecureStorage'da sifresiz (dosya bazli JSON). DPAPI ile sifreleme eklenebilir
       - Lokal DB sema migration sistemi yok — sadece CREATE IF NOT EXISTS (versiyon degisimlerinde manuel mudahale gerekebilir)
       - Cift yazim tutarsizligi riski: lokal yazilir ama backend push basarisiz olursa web raporlari gecici olarak eksik kalir (BackgroundSyncService ile retry)
-      - CustomerPersonnel.IsCustomerAdmin icin migration dosyasi henuz olusturulmadi (EF migration gerekli)
-      - A.7: CustomerDetail admin bilgi karti (UI) henuz yapilmadi — bir sonraki gorevde tamamlanabilir
+      - [KAPANDI] CustomerPersonnel.IsCustomerAdmin migration'i olusturuldu ve uygulandi (AddIsCustomerAdmin + M.5 DB sifirlama)
+      - [KAPANDI] A.7: CustomerDetail admin bilgi karti tamamlandi (Gorev 5.10)
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GOREV 5.10: MODUL SISTEMI WINDOWS + KORUMA + ADMIN KART      -->
+  <!-- ============================================================ -->
+  <Gorev no="5.10" durum="tamamlandi" tamamlanma="2026-02-12">
+    <Ad>Windows Modul Sistemi + UserType Koruma + Admin Bilgi Karti + Recording Sync</Ad>
+    <Detay>
+      1. Windows NavMenu Modul Kontrolu
+        - NavMenu.razor'a HasModule() kontrolleri eklendi
+        - Arama → Calls(2), Kuyruklar → Queues(5), Raporlar → Reports(3)||CallRecords(10)
+        - Ayarlar → SipSettings(9)||Settings(6), Yonetim → rol bazli (degismedi)
+        - Admin rolu HasModule() her zaman true doner — tum menuler acik
+        - Alt menuler de ayri modullere bagli (Lokal Raporlar → CallRecords, SIP → SipSettings)
+
+      2. Sayfa Bazli Modul Guard'lari
+        - Dialer.razor → Calls modulu yoksa /dashboard'a yonlendir
+        - LocalReports.razor → CallRecords modulu guard
+        - LocalDbSettings.razor → Settings modulu guard
+        - SipSettings.razor → SipSettings modulu guard (OnInitialized → OnInitializedAsync cevirildi)
+
+      3. UserType "Yonetici" Default Koruma
+        - IsDefaultUserTypeAsync() — musterinin ilk olusturulan UserType'ini ID bazli tespit eder
+        - UpdateUserTypeAsync — ad, aktiflik, seviye degistirilemez
+        - DeactivateUserTypeAsync — deaktif edilemez
+        - Kullanici talebi: "bunu guncelletmeyelim kaldirtmayalim de aktif ettirmeyelim"
+
+      4. CustomerDetail Admin Bilgi Karti (A.7 — onceki gorevden kalan)
+        - CustomerAdminInfoDto eklendi (UserName, FullName, Email, LastLoginAt, IsActive)
+        - CustomerService.GetByIdAsync — IsCustomerAdmin personelden admin bilgisi dolduruluyor
+        - ResetAdminPasswordAsync — gecici sifre uretir, BCrypt hash'ler
+        - POST /api/customers/{id}/reset-admin-password — sadece Admin rolu erisebilir
+        - CustomerDetail.razor — Genel sekmesinde admin bilgi karti + Sifre Sifirla butonu
+        - Gecici sifre ekranda bir kez gosteriliyor (user-select-all ile kopyalanabilir)
+
+      5. Recording Path Sync
+        - CallSyncPushRequest'e RecordingFilePath eklendi
+        - CallRecord entity'sine RecordingFilePath eklendi
+        - BackgroundSyncService — sync sirasinda path bilgisi gonderiliyor
+        - CallService.SyncPushAsync — hem create hem update'te path kaydediliyor
+    </Detay>
+    <Riskler>
+      - [KAPANDI] CallRecord.RecordingFilePath migration'i olusturuldu ve uygulandi (AddRecordingFilePath_SipPasswordExpand + M.5 DB sifirlama)
+      - IsDefaultUserType en dusuk ID bazli kontrol yapiyor. DB'de manuel ID manipulasyonu yapilirsa yanlis calisabilir
+      - Admin sifre sifirlama: gecici sifre ekranda bir kez gosteriliyor, kalici olarak kaydedilmiyor. Unutulursa tekrar sifirlanmasi gerekir
+      - Sayfa guard'lari PermService.LoadAsync() cagiriyor — eger JWT token suresi dolmussa guard calismaz, login sayfasina yonlendirme [Authorize] attribute'u ile saglanir
+      - Windows NavMenu'da Supervisor icin HasModule permission bazli calisiyor — eger musterinin permission atamasi eksikse Supervisor bile menu gorememez
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GUVENLIK: SipAccount AES Sifreleme + JWT/Config Guvenligi    -->
+  <!-- ============================================================ -->
+  <Gorev no="G.1" durum="tamamlandi" tamamlanma="2026-02-12">
+    <Ad>SipAccount.Password AES Sifreleme + appsettings Hassas Veri Guvenligi</Ad>
+    <Detay>
+      1. AES-256-CBC Sifreleme Servisi
+        - AesEncryptionService.cs olusturuldu (Singleton)
+        - SHA256 ile key turetimi (configuration key'den 32-byte)
+        - IV her encrypt'te rastgele uretilir, ciphertext'in basina eklenir
+        - Decrypt geriye uyumlu: eski duz metin verileri detect eder (FormatException, CryptographicException catch)
+
+      2. SipAccountService Entegrasyonu
+        - Constructor'a AesEncryptionService inject edildi
+        - CreateAsync: dto.Password → _encryption.Encrypt() ile DB'ye yaziliyor
+        - UpdateAsync: dto.Password → _encryption.Encrypt() ile DB'ye yaziliyor
+        - GetMyConnectionAsync: sip.Password → _encryption.Decrypt() ile client'a duz metin gonderiliyor
+        - GetByIdAsync: Password zaten "********" olarak maskeleniyor (degisiklik yok)
+
+      3. PortalService Entegrasyonu
+        - Constructor'a AesEncryptionService inject edildi
+        - UpdateSipAccountAsync: dto.Password → _encryption.Encrypt() ile DB'ye yaziliyor
+
+      4. appsettings.json Hassas Veri Temizligi
+        - appsettings.json'dan JWT Key, ConnectionString, Encryption Key cikarildi (bos string)
+        - appsettings.Development.json'a tasindi (gitignore'da)
+        - appsettings.Production.json pattern'i eklendi (gitignore'da)
+        - Production'da environment variable kullanilacak (Jwt__Key, ConnectionStrings__DefaultConnection, Encryption__Key)
+
+      5. JWT Key Null-Check
+        - Program.cs: Jwt:Key yoksa InvalidOperationException firlatir, anlamli hata mesaji verir
+
+      6. DI Kaydi
+        - builder.Services.AddSingleton&lt;AesEncryptionService&gt;() — Program.cs'e eklendi
+    </Detay>
+    <Riskler>
+      - Mevcut DB'deki duz metin SIP sifreleri Decrypt ile geriye uyumlu okunacak (degisiklik yok). Ancak yeni kaydedilen/guncellenen sifreler AES ile sifrelenecek — karma durum olusacak, zamanla tumu sifreli olacak
+      - Encryption:Key degisirse mevcut sifreli veriler cozulemez — key yedeklenmeli
+      - appsettings.Development.json gitignore'da: yeni gelistirici bu dosyayi manuel olusturmali (README/wiki gerekli)
+      - AesEncryptionService Singleton: configuration degisirse restart gerekli (hot-reload desteklenmiyor)
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- EF MIGRATION: Birikmi Degisikliklerin DB'ye Yansitilmasi     -->
+  <!-- ============================================================ -->
+  <Gorev no="M.5" durum="tamamlandi" tamamlanma="2026-02-12">
+    <Ad>EF Migration: AddRecordingFilePath_SipPasswordExpand + DB Sifirlama</Ad>
+    <Detay>
+      1. Yeni Migration Olusturuldu
+        - Adi: AddRecordingFilePath_SipPasswordExpand
+        - CallRecords.RecordingFilePath (text, nullable) — yeni kolon
+        - SipAccounts.Password varchar(256) → varchar(512) — AES sifreli degerler icin genisletildi
+        - AppDbContext'te HasMaxLength(256) → HasMaxLength(512) guncellendi
+
+      2. DB Sifirlandi
+        - CallCenterDB drop edildi (dotnet ef database drop --force)
+        - 5 migration sirayla uygulandi:
+          a) InitialCreate (tablolar + seed data)
+          b) AddOrganizationHierarchy (OrgUnit + FK'lar)
+          c) AddSipAccountWsUri (WsUri kolonu)
+          d) AddIsCustomerAdmin (IsCustomerAdmin kolonu)
+          e) AddRecordingFilePath_SipPasswordExpand (RecordingFilePath + Password genisletme)
+        - Seed data: admin/1123Azs+-, tr/en dilleri, ceviriler, sistem ayarlari
+
+      3. Onceki Risk Kapandi
+        - "EF Migration olusturulmadi" riski artik gecersiz — tum entity degisiklikleri migration'a eklendi
+    </Detay>
+    <Riskler>
+      - DB sifirlandigi icin development'ta eklenmis tum test verileri silindi (musteriler, SIP hesaplari, personel vb.)
+      - Production'da bu migration ALTER TABLE olarak calisiyor — downtime yok, veri kaybi yok
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GUVENLIK G.2: JWT Refresh Token Mekanizmasi                  -->
+  <!-- ============================================================ -->
+  <Gorev no="G.2" durum="tamamlandi" tamamlanma="2026-02-12">
+    <Ad>JWT Refresh Token Mekanizmasi (Access + Refresh Token Rotation)</Ad>
+    <Detay>
+      1. RefreshToken Entity + Migration
+        - RefreshToken.cs: Token, ExpiresAt, RevokedAt, ReplacedByToken, UserId
+        - AppDbContext: DbSet + config (unique Token index, UserId FK, computed prop'lar Ignore)
+        - Migration: AddRefreshTokens — RefreshTokens tablosu olusturuldu
+
+      2. Backend (API)
+        - TokenService.GenerateRefreshToken() — 64 byte kriptografik random, 7 gun sureli (Jwt:RefreshExpireDays)
+        - AuthService.LoginAsync — refresh token uretir, DB'ye kaydeder, LoginResponse'a ekler
+        - AuthService.RefreshAsync — eski token'i revoke eder, yeni access+refresh token pair uretir (rotation)
+        - AuthService.RevokeAsync — logout'ta refresh token'i iptal eder
+        - RevokeDescendantTokensAsync — calinti token tespitinde tum zinciri iptal eder
+        - AuthController: POST /api/auth/refresh + POST /api/auth/revoke
+
+      3. DTO Guncellemeleri
+        - LoginResponse.RefreshToken eklendi
+        - RefreshTokenRequest, RefreshTokenResponse DTO'lari eklendi
+
+      4. Web Client
+        - AuthService: login'de refresh token localStorage'a kaydet, logout'ta server revoke + temizle
+        - AuthService.TryRefreshTokenAsync() — refresh endpoint'i cagir, yeni token'lari kaydet
+        - AuthHeaderHandler: 401 donerse otomatik refresh dene, basariliysa istegi tekrarla
+        - Sonsuz dongu koruması: _isRefreshing flag, /auth/refresh ve /auth/login istekleri haric
+
+      5. Windows Client
+        - WindowsAuthService: Web ile ayni pattern, SecureStorage kullanarak
+        - WindowsAuthHeaderHandler: Web ile ayni 401-refresh-retry pattern
+
+      6. Configuration
+        - appsettings.json: Jwt:RefreshExpireDays = 7 (varsayilan)
+    </Detay>
+    <Riskler>
+      - RefreshToken DB'de saklandigi icin DB erisimi yoksa refresh calismiyor (API down = full logout)
+      - Refresh token rotation calinti tespit mekanizmasi recursive — cok uzun zincirde StackOverflow riski (pratikte dusuk)
+      - RefreshTokens tablosu zamanla buyuyecek — periyodik cleanup (suresi dolmus/revoke edilmis token'lari sil) eklenmeli
+      - Web'de refresh token localStorage'da — XSS saldirisinda erisilebilir. HttpOnly cookie'ye tasima daha guvenli olur (ileri faz)
+      - Concurrent refresh istekleri race condition olusturabilir — ilk gelen kazanir, ikinci "revoke edilmis" hatasina duser
     </Riskler>
   </Gorev>
 

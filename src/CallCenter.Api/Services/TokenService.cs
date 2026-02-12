@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -17,7 +18,7 @@ public class TokenService
     }
 
     /// <summary>
-    /// JWT token olusturur.
+    /// JWT access token olusturur.
     /// activePermissionTypeIds: Musteri kullanicisi icin aktif yetki tipi ID'leri (virgul ile ayrilmis claim)
     /// </summary>
     public string GenerateToken(User user, CustomerPersonnel? customerPersonnel = null, IEnumerable<int>? activePermissionTypeIds = null)
@@ -68,5 +69,21 @@ public class TokenService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// Kriptografik olarak guvenli refresh token uretir.
+    /// </summary>
+    public RefreshToken GenerateRefreshToken(int userId)
+    {
+        var refreshExpireDays = int.Parse(_config["Jwt:RefreshExpireDays"] ?? "7");
+
+        return new RefreshToken
+        {
+            Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            ExpiresAt = DateTime.UtcNow.AddDays(refreshExpireDays),
+            CreatedAt = DateTime.UtcNow,
+            UserId = userId
+        };
     }
 }

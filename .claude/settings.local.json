@@ -52,7 +52,10 @@
       "WebFetch(domain:deepwiki.com)",
       "WebFetch(domain:www.nuget.org)",
       "Bash(findstr:*)",
-      "Bash(dotnet restore:*)"
+      "Bash(dotnet restore:*)",
+      "Bash(git checkout:*)",
+      "Bash(Get-ChildItem -Recurse -Directory -Filter bin)",
+      "Bash(powershell -Command \"Get-ChildItem -Recurse -Directory -Filter bin | Remove-Item -Recurse -Force; Get-ChildItem -Recurse -Directory -Filter obj | Remove-Item -Recurse -Force; Write-Host ''bin/obj klasorleri temizlendi''\")"
     ]
   }
 }

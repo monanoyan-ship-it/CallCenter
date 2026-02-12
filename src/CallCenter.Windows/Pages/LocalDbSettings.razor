@@ -3,6 +3,9 @@
 @inject CallCenter.Windows.LocalData.ILocalRepository LocalRepo
 @inject CallCenter.Windows.Services.SecureStorage Storage
 @inject CallCenter.Windows.Services.ToastService Toast
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject NavigationManager NavigationManager
+@using CallCenter.Shared.Enums
 
 <div class="container-fluid py-3">
     <div class="row justify-content-center">
@@ -18,44 +21,114 @@
                     <div class="alert alert-info d-flex align-items-start mb-4">
                         <i class="bi bi-info-circle-fill me-2 mt-1"></i>
                         <div>
-                            <strong>Lokal DB Nedir?</strong><br/>
+                            <strong>Lokal Veritabani</strong><br/>
                             Cagri kayitlari ve ses kaydi metadata'si musterinin kendi veritabaninda tutulur.
-                            Backend'e sadece ozet bilgiler (metadata) senkronlanir.
-                            Ses dosyalari asla disari cikmaz — lokal diskte kalir.
+                            Backend'e sadece ozet bilgiler senkronlanir. Ses dosyalari asla disari cikmaz.
                         </div>
                     </div>
 
-                    @* ─── DB Tipi Secimi ─── *@
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">
-                            <i class="bi bi-server me-1"></i>Veritabani Tipi
+                    @* ─── Aktif / Devre Disi Toggle ─── *@
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" id="dbEnabledSwitch"
+                               checked="@isEnabled" @onchange="OnToggleEnabled" />
+                        <label class="form-check-label fw-bold" for="dbEnabledSwitch">
+                            Lokal veritabanini kullan
                         </label>
-                        <select class="form-select" @bind="dbType">
-                            <option value="">(Devre Disi — Lokal DB kullanma)</option>
-                            @foreach (var type in CallCenter.Windows.LocalData.LocalRepositoryFactory.SupportedTypes)
-                            {
-                                <option value="@type">@type</option>
-                            }
-                        </select>
-                        <div class="form-text">
-                            Desteklenen: PostgreSQL, Microsoft SQL Server, MongoDB
-                        </div>
                     </div>
 
-                    @* ─── Connection String ─── *@
-                    @if (!string.IsNullOrEmpty(dbType))
+                    @if (isEnabled)
                     {
+                        @* ─── Veritabani Tipi Secimi ─── *@
                         <div class="mb-3">
                             <label class="form-label fw-bold">
-                                <i class="bi bi-link-45deg me-1"></i>Baglanti Dizesi (Connection String)
+                                <i class="bi bi-server me-1"></i>Veritabani Tipi
                             </label>
-                            <textarea class="form-control font-monospace" rows="3"
-                                      @bind="connectionString" @bind:event="oninput"
-                                      placeholder="@GetPlaceholder()"></textarea>
-                            <div class="form-text">
-                                @GetConnectionStringHelp()
-                            </div>
+                            <select class="form-select" @bind="selectedDbType">
+                                @foreach (var dbType in CallCenter.Windows.LocalData.LocalRepositoryFactory.SupportedTypes)
+                                {
+                                    <option value="@dbType">@dbType</option>
+                                }
+                            </select>
                         </div>
+
+                        @if (selectedDbType == "PostgreSQL")
+                        {
+                            @* ─── PostgreSQL Baglanti Bilgileri (form alanlari) ─── *@
+                            <div class="row g-3 mb-3">
+                                <div class="col-8">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-hdd-network me-1"></i>Sunucu (Host)
+                                    </label>
+                                    <input type="text" class="form-control" @bind="pgHost" @bind:event="oninput"
+                                           placeholder="localhost" />
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-hash me-1"></i>Port
+                                    </label>
+                                    <input type="number" class="form-control" @bind="pgPort" @bind:event="oninput"
+                                           placeholder="5432" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-database me-1"></i>Veritabani Adi
+                                </label>
+                                <input type="text" class="form-control" @bind="pgDatabase" @bind:event="oninput"
+                                       placeholder="callcenter_local" />
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-person-fill me-1"></i>Kullanici Adi
+                                    </label>
+                                    <input type="text" class="form-control" @bind="pgUsername" @bind:event="oninput"
+                                           placeholder="postgres" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-key-fill me-1"></i>Sifre
+                                    </label>
+                                    <input type="password" class="form-control" @bind="pgPassword" @bind:event="oninput"
+                                           placeholder="••••••••" />
+                                </div>
+                            </div>
+
+                            @* ─── Connection String Onizleme ─── *@
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">
+                                    <i class="bi bi-code-slash me-1"></i>Baglanti Dizesi (otomatik olusturulur)
+                                </label>
+                                <div class="form-control bg-light font-monospace small text-muted"
+                                     style="word-break: break-all; min-height: 2.5rem; padding-top: 0.5rem;">
+                                    @BuildPgConnectionString()
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @* ─── MSSQL / MongoDB — Ham Connection String ─── *@
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-code-slash me-1"></i>Baglanti Dizesi (Connection String)
+                                </label>
+                                <textarea class="form-control font-monospace" rows="3"
+                                          @bind="rawConnectionString" @bind:event="oninput"
+                                          placeholder="@GetConnectionStringPlaceholder()"></textarea>
+                                <div class="form-text">
+                                    @if (selectedDbType == "MSSQL")
+                                    {
+                                        <span>Ornek: <code>Server=localhost;Database=callcenter_local;User Id=sa;Password=123;TrustServerCertificate=true</code></span>
+                                    }
+                                    else if (selectedDbType == "MongoDB")
+                                    {
+                                        <span>Ornek: <code>mongodb://localhost:27017/callcenter_local</code></span>
+                                    }
+                                </div>
+                            </div>
+                        }
 
                         @* ─── Ses Kaydi Klasoru ─── *@
                         <div class="mb-3">
@@ -72,7 +145,8 @@
 
                         @* ─── Test ve Olustur Butonlari ─── *@
                         <div class="d-flex gap-2 mb-3">
-                            <button class="btn btn-outline-primary" @onclick="TestConnection" disabled="@isTesting">
+                            <button class="btn btn-outline-primary" @onclick="TestConnection"
+                                    disabled="@(isTesting || !HasRequiredFields())">
                                 <i class="bi @(isTesting ? "bi-hourglass-split" : "bi-plug-fill") me-1"></i>
                                 @(isTesting ? "Test ediliyor..." : "Baglantiyi Test Et")
                             </button>
@@ -134,10 +208,20 @@
     private const string ConnectionStringKey = "local_db_connection";
     private const string RecordingPathKey = "recording_base_path";
 
-    // ── Form alanlari ──
-    private string dbType = "";
-    private string connectionString = "";
+    // ── Genel ──
+    private bool isEnabled;
+    private string selectedDbType = "PostgreSQL";
     private string recordingBasePath = "";
+
+    // ── PostgreSQL form alanlari ──
+    private string pgHost = "localhost";
+    private string pgPort = "5432";
+    private string pgDatabase = "callcenter_local";
+    private string pgUsername = "postgres";
+    private string pgPassword = "";
+
+    // ── MSSQL / MongoDB — ham connection string ──
+    private string rawConnectionString = "";
 
     // ── Durum ──
     private bool isTesting;
@@ -153,21 +237,137 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Modul guard: Settings modulu yoksa dashboard'a yonlendir
+        await PermService.LoadAsync();
+        if (!PermService.HasModule(PortalModules.Ids.Settings))
+        {
+            NavigationManager.NavigateTo("/dashboard");
+            return;
+        }
+
         // Mevcut ayarlari yukle
-        dbType = await Storage.GetAsync(DbTypeKey) ?? "";
-        connectionString = await Storage.GetAsync(ConnectionStringKey) ?? "";
+        var savedType = await Storage.GetAsync(DbTypeKey) ?? "";
+        var savedConn = await Storage.GetAsync(ConnectionStringKey) ?? "";
         recordingBasePath = await Storage.GetAsync(RecordingPathKey) ?? "";
+
+        // Kayitli DB tipi varsa sec
+        if (!string.IsNullOrWhiteSpace(savedType) && !string.IsNullOrWhiteSpace(savedConn))
+        {
+            isEnabled = true;
+            selectedDbType = savedType;
+
+            if (savedType == "PostgreSQL")
+            {
+                ParsePgConnectionString(savedConn);
+            }
+            else
+            {
+                rawConnectionString = savedConn;
+            }
+        }
     }
 
     /// <summary>
-    /// Veritabanina baglanti testi yapar.
-    /// Gercek bir SELECT 1 (SQL) veya ping (MongoDB) calistirir.
+    /// Kayitli PostgreSQL connection string'i form alanlarina ayirir.
+    /// Ornek: "Host=localhost;Port=5432;Database=callcenter_local;Username=postgres;Password=abc"
+    /// </summary>
+    private void ParsePgConnectionString(string connStr)
+    {
+        var parts = connStr.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length != 2) continue;
+
+            var key = kv[0].Trim();
+            var value = kv[1].Trim();
+
+            switch (key.ToLowerInvariant())
+            {
+                case "host":
+                case "server":
+                    pgHost = value;
+                    break;
+                case "port":
+                    pgPort = value;
+                    break;
+                case "database":
+                case "db":
+                    pgDatabase = value;
+                    break;
+                case "username":
+                case "user id":
+                case "uid":
+                    pgUsername = value;
+                    break;
+                case "password":
+                case "pwd":
+                    pgPassword = value;
+                    break;
+            }
+        }
+    }
+
+    /// <summary>PostgreSQL form alanlarindan Npgsql connection string olusturur</summary>
+    private string BuildPgConnectionString()
+    {
+        var port = string.IsNullOrWhiteSpace(pgPort) ? "5432" : pgPort;
+        return $"Host={pgHost};Port={port};Database={pgDatabase};Username={pgUsername};Password={pgPassword}";
+    }
+
+    /// <summary>Secili DB tipine gore aktif connection string'i dondurur</summary>
+    private string GetActiveConnectionString()
+    {
+        return selectedDbType == "PostgreSQL"
+            ? BuildPgConnectionString()
+            : rawConnectionString;
+    }
+
+    /// <summary>Secili DB tipine gore placeholder gosterir</summary>
+    private string GetConnectionStringPlaceholder()
+    {
+        return selectedDbType switch
+        {
+            "MSSQL" => "Server=localhost;Database=callcenter_local;User Id=sa;Password=...",
+            "MongoDB" => "mongodb://localhost:27017/callcenter_local",
+            _ => ""
+        };
+    }
+
+    /// <summary>Zorunlu alanlar dolu mu?</summary>
+    private bool HasRequiredFields()
+    {
+        if (selectedDbType == "PostgreSQL")
+        {
+            return !string.IsNullOrWhiteSpace(pgHost)
+                && !string.IsNullOrWhiteSpace(pgDatabase)
+                && !string.IsNullOrWhiteSpace(pgUsername);
+        }
+        // MSSQL / MongoDB icin connection string bos olmamali
+        return !string.IsNullOrWhiteSpace(rawConnectionString);
+    }
+
+    private void OnToggleEnabled(ChangeEventArgs e)
+    {
+        isEnabled = (bool)(e.Value ?? false);
+        // Devre disi yapilinca test durumunu sifirla
+        if (!isEnabled)
+        {
+            connectionTested = false;
+            connectionStatus = null;
+        }
+    }
+
+    /// <summary>
+    /// Secili DB tipine gore baglanti testi yapar.
     /// </summary>
     private async Task TestConnection()
     {
-        if (string.IsNullOrWhiteSpace(connectionString))
+        if (!HasRequiredFields())
         {
-            connectionStatus = "Baglanti dizesi bos olamaz!";
+            connectionStatus = selectedDbType == "PostgreSQL"
+                ? "Sunucu, veritabani adi ve kullanici adi zorunludur!"
+                : "Baglanti dizesi zorunludur!";
             connectionSuccess = false;
             return;
         }
@@ -178,14 +378,15 @@
 
         try
         {
-            var testRepo = CallCenter.Windows.LocalData.LocalRepositoryFactory.Create(dbType, connectionString);
+            var connStr = GetActiveConnectionString();
+            var testRepo = CallCenter.Windows.LocalData.LocalRepositoryFactory.Create(selectedDbType, connStr);
             var success = await testRepo.TestConnectionAsync();
 
             connectionTested = success;
             connectionSuccess = success;
             connectionStatus = success
-                ? $"{dbType} baglantisi basarili!"
-                : $"{dbType} baglantisi basarisiz. Connection string'i kontrol edin.";
+                ? $"{selectedDbType} baglantisi basarili!"
+                : $"Baglanti basarisiz. {selectedDbType} ayarlarini kontrol edin.";
         }
         catch (Exception ex)
         {
@@ -200,8 +401,7 @@
     }
 
     /// <summary>
-    /// Tablolari/koleksiyonlari ve index'leri olusturur.
-    /// Zaten varsa hata vermez (CREATE IF NOT EXISTS).
+    /// Tablolari/koleksiyonlari olusturur.
     /// </summary>
     private async Task InitializeTables()
     {
@@ -210,16 +410,19 @@
 
         try
         {
-            var repo = CallCenter.Windows.LocalData.LocalRepositoryFactory.Create(dbType, connectionString);
+            var connStr = GetActiveConnectionString();
+            var repo = CallCenter.Windows.LocalData.LocalRepositoryFactory.Create(selectedDbType, connStr);
             await repo.InitializeAsync();
 
-            connectionStatus = "Tablolar basariyla olusturuldu!";
+            connectionStatus = selectedDbType == "MongoDB"
+                ? "Koleksiyonlar ve index'ler basariyla olusturuldu!"
+                : "Tablolar basariyla olusturuldu!";
             connectionSuccess = true;
-            Toast.ShowSuccess("Lokal DB tablolari olusturuldu");
+            Toast.ShowSuccess($"Lokal DB ({selectedDbType}) hazir");
         }
         catch (Exception ex)
         {
-            connectionStatus = $"Tablo olusturma hatasi: {ex.Message}";
+            connectionStatus = $"Olusturma hatasi: {ex.Message}";
             connectionSuccess = false;
         }
         finally
@@ -240,25 +443,26 @@
 
         try
         {
-            if (string.IsNullOrEmpty(dbType))
+            if (!isEnabled)
             {
                 // DB devre disi — tum ayarlari temizle
                 await Storage.RemoveAsync(DbTypeKey);
                 await Storage.RemoveAsync(ConnectionStringKey);
                 await Storage.RemoveAsync(RecordingPathKey);
+                Toast.ShowSuccess("Lokal veritabani devre disi birakildi.");
             }
             else
             {
-                await Storage.SetAsync(DbTypeKey, dbType);
-                await Storage.SetAsync(ConnectionStringKey, connectionString);
+                await Storage.SetAsync(DbTypeKey, selectedDbType);
+                await Storage.SetAsync(ConnectionStringKey, GetActiveConnectionString());
 
                 if (!string.IsNullOrWhiteSpace(recordingBasePath))
                     await Storage.SetAsync(RecordingPathKey, recordingBasePath);
                 else
                     await Storage.RemoveAsync(RecordingPathKey);
-            }
 
-            Toast.ShowSuccess("Ayarlar kaydedildi. Degisikliklerin uygulanmasi icin uygulamayi yeniden baslatin.");
+                Toast.ShowSuccess($"Ayarlar kaydedildi ({selectedDbType}). Degisikliklerin uygulanmasi icin uygulamayi yeniden baslatin.");
+            }
         }
         catch (Exception ex)
         {
@@ -269,22 +473,4 @@
             isSaving = false;
         }
     }
-
-    /// <summary>DB tipine gore ornek connection string gosterir</summary>
-    private string GetPlaceholder() => dbType switch
-    {
-        "PostgreSQL" => "Host=localhost;Port=5432;Database=callcenter_local;Username=postgres;Password=...",
-        "MSSQL" => "Server=localhost;Database=callcenter_local;Trusted_Connection=true;TrustServerCertificate=true",
-        "MongoDB" => "mongodb://localhost:27017/callcenter_local",
-        _ => ""
-    };
-
-    /// <summary>DB tipine gore yardim metni gosterir</summary>
-    private string GetConnectionStringHelp() => dbType switch
-    {
-        "PostgreSQL" => "Ornek: Host=sunucu;Port=5432;Database=veritabani;Username=kullanici;Password=sifre",
-        "MSSQL" => "Ornek: Server=sunucu;Database=veritabani;Trusted_Connection=true veya User Id=...;Password=...",
-        "MongoDB" => "Ornek: mongodb://kullanici:sifre@sunucu:27017/veritabani",
-        _ => ""
-    };
 }

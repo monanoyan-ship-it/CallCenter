@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<Translation> Translations => Set<Translation>();
     public DbSet<CustomerOrganizationUnit> CustomerOrganizationUnits => Set<CustomerOrganizationUnit>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -209,7 +210,7 @@ public class AppDbContext : DbContext
             e.Property(s => s.Name).HasMaxLength(100).IsRequired();
             e.Property(s => s.Server).HasMaxLength(200).IsRequired();
             e.Property(s => s.Username).HasMaxLength(100).IsRequired();
-            e.Property(s => s.Password).HasMaxLength(256).IsRequired();
+            e.Property(s => s.Password).HasMaxLength(512).IsRequired();
             e.Property(s => s.Domain).HasMaxLength(200);
             e.Property(s => s.Transport).HasMaxLength(10);
             e.HasOne(s => s.Customer)
@@ -261,6 +262,23 @@ public class AppDbContext : DbContext
             e.Property(s => s.Group).HasMaxLength(50).IsRequired();
             e.Property(s => s.ValueType).HasMaxLength(20).IsRequired();
             e.Property(s => s.Description).HasMaxLength(500);
+        });
+
+        // RefreshToken
+        modelBuilder.Entity<RefreshToken>(e =>
+        {
+            e.HasKey(rt => rt.Id);
+            e.Property(rt => rt.Token).HasMaxLength(256).IsRequired();
+            e.HasIndex(rt => rt.Token).IsUnique();
+            e.HasIndex(rt => rt.UserId);
+            e.HasOne(rt => rt.User)
+             .WithMany()
+             .HasForeignKey(rt => rt.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            // Computed kolonlar EF'e bildirilir (DB'de kolon yok)
+            e.Ignore(rt => rt.IsExpired);
+            e.Ignore(rt => rt.IsRevoked);
+            e.Ignore(rt => rt.IsActive);
         });
 
         // =============================================

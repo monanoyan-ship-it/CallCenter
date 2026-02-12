@@ -26,4 +26,25 @@ public class AuthController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpPost("refresh")]
+    public async Task<ActionResult<RefreshTokenResponse>> Refresh(RefreshTokenRequest request)
+    {
+        var svc = _factory.CreateAuthService();
+        var (success, response, error) = await svc.RefreshAsync(request.RefreshToken);
+
+        if (!success)
+            return Unauthorized(new { message = error });
+
+        return Ok(response);
+    }
+
+    [HttpPost("revoke")]
+    public async Task<ActionResult> Revoke(RefreshTokenRequest request)
+    {
+        var svc = _factory.CreateAuthService();
+        await svc.RevokeAsync(request.RefreshToken);
+
+        return Ok(new { message = "Token iptal edildi." });
+    }
 }

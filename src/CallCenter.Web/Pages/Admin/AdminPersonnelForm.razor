@@ -18,16 +18,27 @@
                     <DataAnnotationsValidator />
                     <div class="modal-body">
                         <div class="row g-3">
-                            @if (!isEdit)
-                            {
-                                <div class="col-md-6">
-                                    <label class="form-label">Kullanici Adi <span class="text-danger">*</span></label>
-                                    <InputText class="form-control form-control-sm" @bind-Value="model.UserName" />
-                                </div>
-                            }
                             <div class="col-md-6">
                                 <label class="form-label">Ad Soyad <span class="text-danger">*</span></label>
-                                <InputText class="form-control form-control-sm" @bind-Value="model.FullName" />
+                                <InputText class="form-control form-control-sm" @bind-Value="model.FullName"
+                                           @oninput="OnFullNameInput" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    Kullanici Adi <span class="text-danger">*</span>
+                                    @if (!isEdit && !userNameManuallyEdited)
+                                    {
+                                        <span class="badge bg-info-subtle text-info ms-1" style="font-size: 0.65rem;">otomatik</span>
+                                    }
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <InputText class="form-control form-control-sm font-monospace" @bind-Value="model.UserName"
+                                               @oninput="OnUserNameInput" />
+                                    <button type="button" class="btn btn-outline-secondary" title="Ad Soyad'dan yeniden olustur"
+                                            @onclick="RegenerateUserName">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">E-posta <span class="text-danger">*</span></label>
@@ -92,6 +103,8 @@
     private bool isEdit;
     private bool isSaving;
     private int? editId;
+    private string editUserName = ""; // Duzenleme modunda readonly gosterim icin
+    private bool userNameManuallyEdited; // Kullanici elle degistirdiyse otomatik uretme
     private List<UserTypeListDto>? userTypes;
     private List<OrgUnitListDto>? orgUnits;
     private List<PortalPersonnelListDto>? allPersonnel;
@@ -114,6 +127,8 @@
     {
         isEdit = false;
         editId = null;
+        editUserName = "";
+        userNameManuallyEdited = false;
         model = new FormModel();
         await LoadDropdowns();
         isVisible = true;
@@ -124,8 +139,11 @@
     {
         isEdit = true;
         editId = p.Id;
+        editUserName = p.UserName;
+        userNameManuallyEdited = false;
         model = new FormModel
         {
+            UserName = p.UserName,
             FullName = p.FullName,
             Email = p.Email,
             Title = p.Title,
@@ -137,6 +155,78 @@
         await LoadDropdowns();
         isVisible = true;
         StateHasChanged();
+    }
+
+    // ── UserName otomatik uretici ──
+
+    /// <summary>
+    /// Ad Soyad inputundan tetiklenir.
+    /// Kullanici elle UserName degistirmediyse otomatik uretir.
+    /// Ornek: "Ahmet Yilmaz" → "ahmet.yilmaz"
+    /// </summary>
+    private void OnFullNameInput(ChangeEventArgs e)
+    {
+        var fullName = e.Value?.ToString() ?? "";
+        model.FullName = fullName;
+
+        if (!isEdit && !userNameManuallyEdited)
+        {
+            model.UserName = GenerateUserName(fullName);
+        }
+    }
+
+    /// <summary>
+    /// Kullanici UserName alanina elle yazarsa otomatik uretimi durdur.
+    /// </summary>
+    private void OnUserNameInput(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString() ?? "";
+        model.UserName = val;
+        userNameManuallyEdited = !string.IsNullOrWhiteSpace(val);
+    }
+
+    /// <summary>
+    /// Yeniden olustur butonuna basinca otomatik moda don + yeniden uret.
+    /// </summary>
+    private void RegenerateUserName()
+    {
+        userNameManuallyEdited = false;
+        model.UserName = GenerateUserName(model.FullName);
+    }
+
+    /// <summary>
+    /// Ad Soyad'dan kullanici adi uretir.
+    /// - Kucuk harfe cevirir
+    /// - Turkce karakterleri ASCII'ye donusturur (ş→s, ü→u, ö→o, ç→c, ğ→g, ı→i, İ→i)
+    /// - Bosluklari noktaya cevirir
+    /// - Alfanumerik + nokta disindaki karakterleri temizler
+    /// - Ornek: "Ahmet Yılmaz" → "ahmet.yilmaz"
+    /// </summary>
+    private static string GenerateUserName(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "";
+
+        var result = fullName.Trim().ToLowerInvariant();
+
+        // Turkce karakter donusumu
+        result = result
+            .Replace('ş', 's').Replace('ç', 'c').Replace('ğ', 'g')
+            .Replace('ü', 'u').Replace('ö', 'o').Replace('ı', 'i')
+            .Replace('Ş', 's').Replace('Ç', 'c').Replace('Ğ', 'g')
+            .Replace('Ü', 'u').Replace('Ö', 'o').Replace('İ', 'i')
+            .Replace('â', 'a').Replace('î', 'i').Replace('û', 'u');
+
+        // Bosluklari noktaya cevir, birden fazla boslugu tek noktaya dusur
+        var parts = result.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        result = string.Join(".", parts);
+
+        // Sadece alfanumerik ve nokta birak
+        result = new string(result.Where(c => char.IsLetterOrDigit(c) || c == '.').ToArray());
+
+        // Bastaki/sondaki noktalari temizle
+        result = result.Trim('.');
+
+        return result;
     }
 
     private async Task LoadDropdowns()
@@ -177,9 +267,10 @@
             {
                 var dto = new PortalPersonnelUpdateDto
                 {
+                    UserName = model.UserName,
                     FullName = model.FullName,
                     Email = model.Email,
-                    Password = model.Password,
+                    Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
                     Title = model.Title,
                     UserTypeId = model.UserTypeId,
                     OrganizationUnitId = model.OrganizationUnitId,
@@ -212,7 +303,8 @@
             }
             else
             {
-                Toast.ShowError("Islem basarisiz.");
+                var errorText = await response.Content.ReadAsStringAsync();
+                Toast.ShowError(string.IsNullOrWhiteSpace(errorText) ? "Islem basarisiz." : errorText);
             }
         }
         catch (Exception ex)

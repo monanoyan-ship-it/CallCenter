@@ -2,7 +2,10 @@
 @attribute [Authorize]
 @inject CallCenter.Windows.Services.ISipService SipService
 @inject CallCenter.Windows.Services.ToastService Toast
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject NavigationManager NavigationManager
 @using CallCenter.Windows.Models
+@using CallCenter.Shared.Enums
 
 <div class="sip-settings-page">
     <div class="page-header mb-3">
@@ -161,8 +164,16 @@
     private string stunServer = "";
     private string ringtonePath = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        // Modul guard: SipSettings modulu yoksa dashboard'a yonlendir
+        await PermService.LoadAsync();
+        if (!PermService.HasModule(PortalModules.Ids.SipSettings))
+        {
+            NavigationManager.NavigateTo("/dashboard");
+            return;
+        }
+
         availableCodecs = SipService.GetAvailableCodecs();
         stunServer = SipService.StunServer ?? "";
         ringtonePath = SipService.RingtonePath ?? "";

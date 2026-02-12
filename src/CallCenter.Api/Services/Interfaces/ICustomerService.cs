@@ -10,6 +10,7 @@ public interface ICustomerService
     Task<int> CreateAsync(CustomerCreateDto dto);
     Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto);
     Task<(bool Success, string? Error)> DeleteAsync(int id);
+    Task<(bool Success, string? TempPassword, string? Error)> ResetAdminPasswordAsync(int customerId);
 
     // CustomerPermissions — Modules
     Task<object?> GetCustomerModulesAsync(int customerId);

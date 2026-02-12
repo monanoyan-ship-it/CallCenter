@@ -253,6 +253,8 @@ public class CallService : ICallService
             existing.EndedAt = request.EndedAt;
             existing.DurationSeconds = request.DurationSeconds;
             existing.Notes = request.Notes;
+            if (!string.IsNullOrEmpty(request.RecordingFilePath))
+                existing.RecordingFilePath = request.RecordingFilePath;
             await _db.SaveChangesAsync();
 
             return new CallSyncPushResponse { Id = existing.Id, IsNew = false };
@@ -273,7 +275,8 @@ public class CallService : ICallService
             EndedAt = request.EndedAt,
             DurationSeconds = request.DurationSeconds,
             AgentId = userId,
-            Notes = request.Notes
+            Notes = request.Notes,
+            RecordingFilePath = request.RecordingFilePath
         };
 
         // Kuyruk adi varsa eslestir

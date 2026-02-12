@@ -5,6 +5,8 @@
 @inject HttpClient Http
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject CallCenter.Windows.Services.CallSyncService CallSync
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject NavigationManager NavigationManager
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
 @using CallCenter.Windows.Models
@@ -220,6 +222,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Modul guard: Calls modulu yoksa dashboard'a yonlendir
+        await PermService.LoadAsync();
+        if (!PermService.HasModule(PortalModules.Ids.Calls))
+        {
+            NavigationManager.NavigateTo("/dashboard");
+            return;
+        }
+
         SipService.OnRegistered += HandleSipRegistered;
         SipService.OnRegistrationFailed += HandleSipRegistrationFailed;
         SipService.OnCallAnswered += HandleCallAnswered;

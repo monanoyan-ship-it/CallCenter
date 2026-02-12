@@ -17,6 +17,9 @@ public class CallRecord
     public string? Notes { get; set; }
     public string? RecordingUrl { get; set; }
 
+    /// <summary>Musterinin lokal makinesindeki ses kaydi dosya yolu (ses gonderilmez, path bilgisi)</summary>
+    public string? RecordingFilePath { get; set; }
+
     public int? AgentId { get; set; }
     public User? Agent { get; set; }
 

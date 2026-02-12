@@ -1133,7 +1133,7 @@ Müşteri altında organizasyon ağacı, kullanıcı tipi hiyerarşisi ve person
 4. **KVKK Aydınlatma**: Çağrı başlangıcında otomatik aydınlatma mesajı çalma desteği
 5. **MFA**: Admin ve Supervisor kullanıcılar için iki faktörlü kimlik doğrulama (TOTP)
 6. **Şifre Politikası**: Minimum uzunluk, karmaşıklık, süre aşımı, tekrar engelleme
-7. **SipAccount.Password Şifreleme**: Düz metin → AES şifreleme (Data at Rest)
+7. ~~**SipAccount.Password Şifreleme**: Düz metin → AES şifreleme (Data at Rest)~~ ✅ **TAMAMLANDI** (G.1 görevi)
 
 **Orta Vadeli (Faz 7-8):**
 1. **Veri Sınıflandırma**: Veri envanteri ve sınıflandırma sistemi
@@ -1389,5 +1389,169 @@ Müşteri altında organizasyon ağacı, kullanıcı tipi hiyerarşisi ve person
 - `LocalReportService` → ILocalRepository üzerinden lokal DB'den istatistik + kayıt çeker
 - `LocalReports.razor` → Tarih filtresi, KPI kartları, çağrı tablosu, senkronizasyon durumu
 - NavMenu'de "Raporlar" grubu altında "Lokal Raporlar" linki
+
+**Build: 0 hata, 0 uyarı**
+
+---
+
+## Görev 5.10: Windows Modül Sistemi + UserType Koruma + Admin Bilgi Kartı (2026-02-12)
+
+### 1. Windows NavMenu Modül Kontrolü
+
+**Problem:** NavMenu'da `WindowsPermissionService` inject edilip `LoadAsync()` çağrılıyor ama `HasModule()` hiçbir yerde kullanılmıyor. Tüm menüler herkese açık.
+
+**Çözüm:** Her menü grubuna `@if (PermService.HasModule(PortalModules.Ids.X))` eklendi:
+- Arama → Calls(2), Kuyruklar → Queues(5)
+- Raporlar → Reports(3) || CallRecords(10) — alt menüler de ayrı kontrollü
+- Ayarlar → SipSettings(9) || Settings(6) — alt menüler ayrı
+- Admin rolu → HasModule() her zaman true döner, değişiklik yok
+- `@using CallCenter.Shared.Enums` eklendi
+
+### 2. Sayfa Bazlı Modül Guard'ları
+
+**Karar:** Sadece NavMenu'yu gizlemek yetmez, URL ile doğrudan erişim de engellenecek.
+
+**Eklenen guard'lar (OnInitializedAsync başına):**
+- `Dialer.razor` → Calls modülü yoksa `/dashboard`'a yönlendir
+- `LocalReports.razor` → CallRecords modülü guard
+- `LocalDbSettings.razor` → Settings modülü guard
+- `SipSettings.razor` → SipSettings modülü guard (OnInitialized → OnInitializedAsync'e çevrildi)
+
+**Pattern:** `await PermService.LoadAsync(); if (!PermService.HasModule(X)) { NavigationManager.NavigateTo("/dashboard"); return; }`
+
+### 3. UserType "Yönetici" Default Koruma
+
+**Kullanıcı talebi:** "bunu güncelletmeyelim kaldırtmayalım da aktif ettirmeyelim"
+
+**Çözüm:** `IsDefaultUserTypeAsync(customerId, userTypeId)` — müşterinin en düşük ID'li UserType'ını seed (varsayılan) kabul eder.
+- `UpdateUserTypeAsync` → ad, aktiflik, seviye değiştirilemez
+- `DeactivateUserTypeAsync` → deaktif edilemez
+
+### 4. CustomerDetail Admin Bilgi Kartı (A.7)
+
+**Önceki görevden kalan eksik.** Tamamlandı:
+- `CustomerAdminInfoDto` → UserName, FullName, Email, LastLoginAt, IsActive
+- `CustomerService.GetByIdAsync` → IsCustomerAdmin olan personelden admin bilgisini dolduruyor
+- `ResetAdminPasswordAsync` → `GenerateTemporaryPassword()` ile geçici şifre, BCrypt hash
+- `POST /api/customers/{id}/reset-admin-password` → sadece Admin rolü erişebilir
+- `CustomerDetail.razor` → Genel sekmesinde koyu kartla admin bilgisi + "Şifre Sıfırla" butonu
+- Geçici şifre ekranda `user-select-all` ile kopyalanabilir gösteriliyor
+
+### 5. Recording Path Sync
+
+**Problem:** `BackgroundSyncService` sync sırasında `RecordingFilePath` bilgisini backend'e göndermiyordu.
+
+**Çözüm:**
+- `CallSyncPushRequest.RecordingFilePath` eklendi (DTO)
+- `CallRecord.RecordingFilePath` eklendi (Entity) — ✅ Migration oluşturuldu ve uygulandı (M.5)
+- `BackgroundSyncService` → sync DTO'suna path eklendi
+- `CallService.SyncPushAsync` → hem create hem update'te path kaydediliyor
+
+**Build: 0 hata, 0 uyarı**
+
+---
+
+## Güvenlik Düzeltmeleri (G.1) — 2026-02-12
+
+### 1. SipAccount.Password AES-256-CBC Şifreleme
+
+**Problem:** SIP hesap şifreleri DB'de düz metin (plaintext) saklanıyordu.
+
+**Çözüm:** `AesEncryptionService` (Singleton) oluşturuldu:
+- `Encryption:Key` configuration'dan okunur → SHA256 ile 32-byte AES key türetilir
+- `Encrypt(plainText)`: AES-CBC + rastgele IV → `Base64(IV + ciphertext)`
+- `Decrypt(cipherText)`: Geriye uyumlu — eski düz metin verileri detect eder (FormatException/CryptographicException catch)
+
+**Entegrasyon noktaları:**
+- `SipAccountService.CreateAsync` → `_encryption.Encrypt(dto.Password)`
+- `SipAccountService.UpdateAsync` → `_encryption.Encrypt(dto.Password)`
+- `SipAccountService.GetMyConnectionAsync` → `_encryption.Decrypt(sip.Password)`
+- `PortalService.UpdateSipAccountAsync` → `_encryption.Encrypt(dto.Password)`
+- `SipAccountService.GetByIdAsync` → zaten `"********"` maskeli, dokunulmadı
+
+**DI:** `builder.Services.AddSingleton<AesEncryptionService>()` — Program.cs
+
+### 2. appsettings.json Hassas Veri Güvenliği
+
+**Problem:** JWT Key, ConnectionString, Encryption Key appsettings.json'da düz metin — git'e commit'leniyordu.
+
+**Çözüm:**
+- `appsettings.json` → tüm hassas değerler boş string yapıldı (şablon)
+- `appsettings.Development.json` → gerçek dev değerleri buraya taşındı
+- `.gitignore` → `**/appsettings.Development.json` ve `**/appsettings.Production.json` eklendi
+- `Program.cs` → `Jwt:Key` null-check + anlamlı hata mesajı
+
+**Production pattern:** Environment variable kullanılacak (`Jwt__Key`, `ConnectionStrings__DefaultConnection`, `Encryption__Key`)
+
+**Build: 0 hata, 0 uyarı**
+
+---
+
+## EF Migration (M.5) — 2026-02-12
+
+### AddRecordingFilePath_SipPasswordExpand
+
+**Kapsam:**
+- `CallRecords.RecordingFilePath` (text, nullable) — yeni kolon eklendi
+- `SipAccounts.Password` varchar(256) → varchar(512) — AES şifreli değerler daha uzun olduğu için genişletildi
+- `AppDbContext` → `HasMaxLength(512)` güncellendi
+
+**DB Sıfırlama:**
+- CallCenterDB drop + 5 migration sırasıyla uygulandı
+- Seed data otomatik oluşturuldu (admin/1123Azs+-, diller, çeviriler, ayarlar)
+- Önceki "EF Migration oluşturulmadı" riski kapandı
+
+**Migration listesi (güncel):**
+1. `InitialCreate` — tüm tablolar + seed
+2. `AddOrganizationHierarchy` — OrgUnit hiyerarşisi
+3. `AddSipAccountWsUri` — WsUri kolonu
+4. `AddIsCustomerAdmin` — IsCustomerAdmin kolonu
+5. `AddRecordingFilePath_SipPasswordExpand` — RecordingFilePath + Password genişletme
+6. `AddRefreshTokens` — RefreshTokens tablosu (token rotation)
+
+**Build: 0 hata, 0 uyarı**
+
+---
+
+## JWT Refresh Token Mekanizması (G.2) — 2026-02-12
+
+### Mimari: Access Token + Refresh Token Rotation
+
+**Önceki durum:** Access token süresi dolunca kullanıcı yeniden login olmak zorundaydı (8 saat).
+
+**Yeni akış:**
+1. Login → `access_token` (8 saat) + `refresh_token` (7 gün) döner
+2. Access token dolunca → `POST /api/auth/refresh` ile yeni pair alınır
+3. Her refresh'te eski refresh token revoke, yeni üretilir (**rotation**)
+4. Logout → `POST /api/auth/revoke` ile refresh token iptal edilir
+
+### Backend
+
+**RefreshToken Entity:**
+- `Token` (unique, 64-byte random Base64), `ExpiresAt`, `RevokedAt`, `ReplacedByToken`, `UserId`
+- Computed: `IsExpired`, `IsRevoked`, `IsActive`
+
+**Güvenlik:**
+- **Token rotation:** Her refresh'te eski token revoke → yeni üretilir
+- **Çalıntı tespit:** Revoke edilmiş token kullanılırsa → tüm zincir iptal (`RevokeDescendantTokensAsync`)
+- **Firma/kullanıcı aktiflik kontrolü:** Refresh sırasında da kontrol edilir
+- **Permission güncelleme:** Refresh'te güncel yetkilerle yeni access token üretilir
+
+### Client (Web + Windows)
+
+**AuthHeaderHandler 401 auto-refresh pattern:**
+```
+Request → 401? → TryRefresh → Başarılı? → Request tekrarla (yeni token)
+                              Başarısız? → Logout
+```
+- `_isRefreshing` flag: sonsuz döngü engelleme
+- `/auth/refresh` ve `/auth/login` istekleri hariç tutulur
+
+**Storage:**
+- Web: `localStorage` (`auth_token`, `auth_refresh_token`)
+- Windows: `SecureStorage` (DPAPI şifreli)
+
+### Configuration
+- `Jwt:RefreshExpireDays` = 7 (appsettings.json)
 
 **Build: 0 hata, 0 uyarı**

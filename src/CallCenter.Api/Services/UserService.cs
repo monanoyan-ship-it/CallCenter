@@ -126,6 +126,15 @@ public class UserService : IUserService
         if (UserRoles.GetById(dto.RoleId) == null)
             return (false, "Gecersiz rol.");
 
+        // Son admin koruması — rolu degistiriliyorsa veya deaktive ediliyorsa
+        if (user.RoleId == UserRoles.Ids.Admin && (dto.RoleId != UserRoles.Ids.Admin || !dto.IsActive))
+        {
+            var activeAdminCount = await _db.Users
+                .CountAsync(u => u.RoleId == UserRoles.Ids.Admin && u.IsActive);
+            if (activeAdminCount <= 1)
+                return (false, "Sistemde en az bir admin olmalidir. Son adminin rolu degistirilemez veya deaktive edilemez.");
+        }
+
         user.FullName = dto.FullName;
         user.Email = dto.Email;
         user.RoleId = dto.RoleId;
@@ -148,6 +157,15 @@ public class UserService : IUserService
 
         var user = await _db.Users.FindAsync(id);
         if (user == null) return (false, "Kullanici bulunamadi.");
+
+        // Son aktif admin koruması — sistemde en az 1 admin kalmali
+        if (user.RoleId == UserRoles.Ids.Admin)
+        {
+            var activeAdminCount = await _db.Users
+                .CountAsync(u => u.RoleId == UserRoles.Ids.Admin && u.IsActive);
+            if (activeAdminCount <= 1)
+                return (false, "Sistemde en az bir admin olmalidir. Son admin silinemez.");
+        }
 
         user.IsActive = false;
         await _db.SaveChangesAsync();

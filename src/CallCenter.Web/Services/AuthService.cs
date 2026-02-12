@@ -11,6 +11,7 @@ public class AuthService
     private readonly JwtAuthStateProvider _authStateProvider;
 
     private const string TokenKey = "auth_token";
+    private const string RefreshTokenKey = "auth_refresh_token";
     private const string FullNameKey = "auth_fullname";
     private const string RoleKey = "auth_role";
 
@@ -39,6 +40,7 @@ public class AuthService
 
             // Token ve bilgileri localStorage'a kaydet
             await _js.InvokeVoidAsync("localStorage.setItem", TokenKey, loginResponse.Token);
+            await _js.InvokeVoidAsync("localStorage.setItem", RefreshTokenKey, loginResponse.RefreshToken);
             await _js.InvokeVoidAsync("localStorage.setItem", FullNameKey, loginResponse.FullName);
             await _js.InvokeVoidAsync("localStorage.setItem", RoleKey, loginResponse.Role);
 
@@ -53,9 +55,69 @@ public class AuthService
         }
     }
 
+    /// <summary>
+    /// Refresh token ile yeni access token alir. Basarili olursa yeni token'lari kaydeder.
+    /// </summary>
+    public async Task<bool> TryRefreshTokenAsync()
+    {
+        try
+        {
+            var refreshToken = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshTokenKey);
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return false;
+
+            var response = await _http.PostAsJsonAsync("api/auth/refresh", new RefreshTokenRequest { RefreshToken = refreshToken });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Refresh basarisiz — logout
+                await ForceLogoutAsync();
+                return false;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<RefreshTokenResponse>();
+            if (result == null)
+                return false;
+
+            // Yeni token'lari kaydet
+            await _js.InvokeVoidAsync("localStorage.setItem", TokenKey, result.Token);
+            await _js.InvokeVoidAsync("localStorage.setItem", RefreshTokenKey, result.RefreshToken);
+
+            // Auth state'i guncelle
+            _authStateProvider.NotifyUserAuthentication(result.Token);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task LogoutAsync()
     {
+        // Server'daki refresh token'i iptal et
+        try
+        {
+            var refreshToken = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshTokenKey);
+            if (!string.IsNullOrWhiteSpace(refreshToken))
+            {
+                await _http.PostAsJsonAsync("api/auth/revoke", new RefreshTokenRequest { RefreshToken = refreshToken });
+            }
+        }
+        catch
+        {
+            // Revoke basarisiz olsa bile logout devam etsin
+        }
+
+        await ForceLogoutAsync();
+    }
+
+    /// <summary>Sadece local storage temizler, server'a istek gitmez.</summary>
+    private async Task ForceLogoutAsync()
+    {
         await _js.InvokeVoidAsync("localStorage.removeItem", TokenKey);
+        await _js.InvokeVoidAsync("localStorage.removeItem", RefreshTokenKey);
         await _js.InvokeVoidAsync("localStorage.removeItem", FullNameKey);
         await _js.InvokeVoidAsync("localStorage.removeItem", RoleKey);
 

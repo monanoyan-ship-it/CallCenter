@@ -7,6 +7,10 @@ obj/
 *.sln.docstates
 .vs/
 
+## Hassas yapilandirma dosyalari (JWT Key, DB sifresi, AES Key)
+**/appsettings.Development.json
+**/appsettings.Production.json
+
 ## NuGet
 *.nupkg
 **/[Pp]ackages/*
