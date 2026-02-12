@@ -1,14 +1,17 @@
 using System.Net.Http;
 using System.Windows;
+using CallCenter.Windows.LocalData;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CallCenter.Windows;
 
 public partial class MainWindow : Window
 {
     private Services.SystemTrayService? _trayService;
+    private Services.HotkeyService? _hotkeyService;
 
     public MainWindow()
     {
@@ -59,13 +62,44 @@ public partial class MainWindow : Window
         // SIP (native SIPSorcery)
         services.AddSingleton<Services.ISipService, Services.NativeSipService>();
 
+        // Contacts (lokal rehber)
+        services.AddSingleton<Services.ContactService>();
+
+        // Hotkeys (global kisayollar)
+        _hotkeyService = new Services.HotkeyService();
+        services.AddSingleton(_hotkeyService);
+
         // System Tray
         _trayService = new Services.SystemTrayService();
         services.AddSingleton(_trayService);
 
+        // ── Lokal DB + Cift Yazim ──
+        // SecureStorage'dan DB ayarlarini oku ve dogru provider'i olustur
+        services.AddLogging();
+        services.AddSingleton<ILocalRepository>(sp =>
+        {
+            var storage = sp.GetRequiredService<Services.SecureStorage>();
+            var dbType = storage.GetAsync("local_db_type").GetAwaiter().GetResult();
+            var connStr = storage.GetAsync("local_db_connection").GetAwaiter().GetResult();
+            return LocalRepositoryFactory.Create(dbType, connStr);
+        });
+        services.AddSingleton<Services.CallSyncService>();
+        services.AddSingleton<Services.BackgroundSyncService>();
+        services.AddSingleton<Services.LocalReportService>();
+
         blazorWebView.Services = services.BuildServiceProvider();
 
-        // System Tray'i pencere yuklendikten sonra baslat
-        Loaded += (s, e) => _trayService.Initialize(this);
+        var serviceProvider = blazorWebView.Services as ServiceProvider;
+
+        // System Tray, Hotkeys ve BackgroundSync'i pencere yuklendikten sonra baslat
+        Loaded += (s, e) =>
+        {
+            _trayService.Initialize(this);
+            _hotkeyService.Initialize(this);
+
+            // Arka plan senkronizasyonunu baslat (lokal DB → backend push)
+            var bgSync = serviceProvider?.GetService<Services.BackgroundSyncService>();
+            bgSync?.StartAsync();
+        };
     }
 }

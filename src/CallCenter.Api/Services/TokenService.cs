@@ -42,9 +42,18 @@ public class TokenService
             claims.Add(new Claim("CustomerId", customerPersonnel.CustomerId.ToString()));
             claims.Add(new Claim("CustomerPersonnelId", customerPersonnel.Id.ToString()));
 
-            // Aktif yetki tipi ID'leri virgülle ayrılmış string olarak
-            if (activePermissionTypeIds != null)
+            // Musteri admin'i ise ozel claim ekle — tum izinlere sahip
+            if (customerPersonnel.IsCustomerAdmin)
             {
+                claims.Add(new Claim("IsCustomerAdmin", "true"));
+
+                // Tum izin ID'lerini claim'e yaz (NavMenu/PermissionService icin)
+                var allPermIds = string.Join(",", CustomerPermissionTypes.All.Select(p => p.Id));
+                claims.Add(new Claim("CustomerPermissions", allPermIds));
+            }
+            else if (activePermissionTypeIds != null)
+            {
+                // Normal kullanici: Aktif yetki tipi ID'leri virgülle ayrılmış string olarak
                 var permissionIds = string.Join(",", activePermissionTypeIds);
                 claims.Add(new Claim("CustomerPermissions", permissionIds));
             }

@@ -105,7 +105,7 @@ public class CustomerService : ICustomerService
         _db.Customers.Add(customer);
         await _db.SaveChangesAsync();
 
-        // Varsayilan portal modullerini otomatik ata
+        // ── 1. Varsayilan portal modullerini otomatik ata ──
         foreach (var module in PortalModules.Defaults)
         {
             _db.CustomerPortalModules.Add(new CustomerPortalModule
@@ -118,7 +118,135 @@ public class CustomerService : ICustomerService
         }
         await _db.SaveChangesAsync();
 
+        // ── 2. Musteri admin kullanicisini otomatik olustur ──
+        await CreateCustomerAdminAsync(customer);
+
         return customer.Id;
+    }
+
+    /// <summary>
+    /// Yeni musteri icin otomatik admin kullanicisi olusturur.
+    ///
+    /// Akis:
+    /// 1. "Yonetici" adinda CustomerUserType olustur (Level=1, tum izinler)
+    /// 2. User olustur (CustomerUser rolu, gecici sifre)
+    /// 3. CustomerPersonnel olustur (IsCustomerAdmin=true)
+    /// 4. Tum portal izinlerini personele ata
+    /// </summary>
+    private async Task CreateCustomerAdminAsync(Customer customer)
+    {
+        // --- Adim 1: Musteri icin "Yonetici" kullanici tipi olustur ---
+        var adminType = new CustomerUserType
+        {
+            Name = "Yönetici",
+            Description = "Müşteri yönetici tipi — tüm izinlere sahip",
+            Level = 1, // En yuksek seviye
+            CanManageSubordinates = true,
+            CanApprove = true,
+            CustomerId = customer.Id,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.CustomerUserTypes.Add(adminType);
+        await _db.SaveChangesAsync();
+
+        // --- Adim 2: User olustur (login icin) ---
+        // Kullanici adi: firma adindan kisa bir slug + "_admin"
+        // Ornek: "Acme Teknoloji" → "acme_admin"
+        var slug = new string(customer.Name
+            .ToLowerInvariant()
+            .Replace(" ", "")
+            .Where(c => char.IsLetterOrDigit(c))
+            .Take(20)
+            .ToArray());
+        var userName = $"{slug}_admin";
+
+        // Ayni username varsa numara ekle (acme_admin2, acme_admin3...)
+        var counter = 1;
+        var baseUserName = userName;
+        while (await _db.Users.AnyAsync(u => u.UserName == userName))
+        {
+            counter++;
+            userName = $"{baseUserName}{counter}";
+        }
+
+        // Gecici sifre: 12 karakter rastgele
+        var tempPassword = GenerateTemporaryPassword();
+
+        var adminUser = new User
+        {
+            UserName = userName,
+            FullName = $"{customer.Name} Yönetici",
+            Email = customer.Email ?? $"{userName}@placeholder.local",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
+            RoleId = UserRoles.Ids.CustomerUser,
+            StatusId = AgentStatuses.Ids.Offline,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.Users.Add(adminUser);
+        await _db.SaveChangesAsync();
+
+        // --- Adim 3: CustomerPersonnel olustur (IsCustomerAdmin=true) ---
+        var adminPersonnel = new CustomerPersonnel
+        {
+            UserId = adminUser.Id,
+            CustomerId = customer.Id,
+            Title = "Müşteri Yöneticisi",
+            UserTypeId = adminType.Id,
+            IsCustomerAdmin = true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.CustomerPersonnel.Add(adminPersonnel);
+        await _db.SaveChangesAsync();
+
+        // --- Adim 4: Tum portal izinlerini personele ata ---
+        foreach (var permType in CustomerPermissionTypes.All)
+        {
+            _db.CustomerPersonnelPermissions.Add(new CustomerPersonnelPermission
+            {
+                PersonnelId = adminPersonnel.Id,
+                PermissionTypeId = permType.Id,
+                ScopeId = PermissionScopes.Ids.Customer,
+                IsActive = true,
+                Description = "Otomatik atanan yönetici izni",
+                CreatedByUserId = 1 // System Admin
+            });
+        }
+        await _db.SaveChangesAsync();
+
+        // NOT: Admin kullanici bilgileri (userName + tempPassword)
+        // CustomerDetail sayfasinda gosterilecek.
+        // Simdilik Console'a yazalim — ileride response'a eklenecek.
+        Console.WriteLine($"[CUSTOMER-ADMIN] Musteri '{customer.Name}' icin admin olusturuldu: {userName} / {tempPassword}");
+    }
+
+    /// <summary>Gecici sifre uretir: buyuk+kucuk harf + rakam + ozel karakter, 12 karakter.</summary>
+    private static string GenerateTemporaryPassword()
+    {
+        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string lower = "abcdefghjkmnpqrstuvwxyz";
+        const string digits = "23456789";
+        const string special = "!@#$%&*+-";
+        var rng = new Random();
+
+        // En az 1 buyuk, 1 kucuk, 1 rakam, 1 ozel
+        var chars = new List<char>
+        {
+            upper[rng.Next(upper.Length)],
+            lower[rng.Next(lower.Length)],
+            digits[rng.Next(digits.Length)],
+            special[rng.Next(special.Length)]
+        };
+
+        // Kalanini karistir
+        var all = upper + lower + digits + special;
+        for (int i = 0; i < 8; i++)
+            chars.Add(all[rng.Next(all.Length)]);
+
+        // Sifreyi karistir
+        return new string(chars.OrderBy(_ => rng.Next()).ToArray());
     }
 
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto)

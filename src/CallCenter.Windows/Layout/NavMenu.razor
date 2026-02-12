@@ -43,6 +43,10 @@
                     <i class="bi bi-clock-history"></i>
                     <span>Arama Gecmisi</span>
                 </NavLink>
+                <NavLink class="nav-link" href="contacts">
+                    <i class="bi bi-person-vcard-fill"></i>
+                    <span>Rehber</span>
+                </NavLink>
             </div>
         </div>
 
@@ -80,6 +84,29 @@
                 <NavLink class="nav-link" href="reports/agents">
                     <i class="bi bi-person-lines-fill"></i>
                     <span>Temsilci Performansi</span>
+                </NavLink>
+                <NavLink class="nav-link" href="reports/local">
+                    <i class="bi bi-database-fill-check"></i>
+                    <span>Lokal Raporlar</span>
+                </NavLink>
+            </div>
+        </div>
+
+        @* ─── AYARLAR ─── *@
+        <div class="nav-group">
+            <button class="nav-group-toggle" @onclick="() => ToggleGroup(4)">
+                <i class="bi bi-sliders"></i>
+                <span>Ayarlar</span>
+                <i class="bi bi-chevron-down chevron @(IsGroupOpen(4) ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(IsGroupOpen(4) ? "show" : "")">
+                <NavLink class="nav-link" href="sip-settings">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>SIP Ayarlari</span>
+                </NavLink>
+                <NavLink class="nav-link" href="local-db-settings">
+                    <i class="bi bi-database-fill"></i>
+                    <span>Lokal Veritabani</span>
                 </NavLink>
             </div>
         </div>
@@ -157,7 +184,8 @@
         { 0, new[] { "dialer", "calls/" } },
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/" } }
+        { 3, new[] { "admin/" } },
+        { 4, new[] { "sip-settings", "local-db-settings" } }
     };
 
     protected override void OnInitialized()

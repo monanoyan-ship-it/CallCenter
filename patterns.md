@@ -1224,3 +1224,170 @@ Müşteri altında organizasyon ağacı, kullanıcı tipi hiyerarşisi ve person
 - Properties/PublishProfiles/win-x64.pubxml: Self-contained, single-file, ReadyToRun
 
 **FAZ 5 TAMAMLANDI — 0 hata, 0 uyarı (tüm 6 proje)**
+
+### 2026-02-12 - Görev 5.8: MicroSIP Feature Parity + GSM Gateway Desteği
+
+**Amaç:** MicroSIP'in yapabildiği her şeyi Windows softphone'da yapabilir hale getirmek. GSM Gateway (GoIP/Dinstar) üzerinden SIM kartlı aramalara destek.
+
+**ISipService Genişletme (~60 yeni metod/property):**
+- Attended Transfer: `AttendedTransferAsync(target)` → `CompleteAttendedTransferAsync()` / `CancelAttendedTransferAsync()`
+- Multi-Line: 4 eşzamanlı hat (`GetLinesAsync`, `SwitchLineAsync`, `MakeCallOnNewLineAsync`)
+- DND (Rahatsız Etme): `SetDnd(bool)` — gelen aramalar BusyHere ile reddedilir
+- Auto-Answer: `SetAutoAnswer(bool)` — gelen aramalar otomatik cevaplanır
+- Mute: `MuteAsync()` / `UnmuteAsync()` + `IsMuted`, `OnMuteChanged` event
+- Volume: `MicrophoneVolume`, `SpeakerVolume` + setter'lar (0.0-1.0 float)
+- Recording: `StartRecordingAsync()` / `StopRecordingAsync()` — RTP→G.711 mu-law decode→WAV
+- Codec Yönetimi: `GetAvailableCodecs()`, `GetEnabledCodecs()`, `SetEnabledCodecs()`
+- SRTP: `IsSrtpEnabled`, `SetSrtp(bool)`
+- STUN/ICE: `StunServer`, `SetStunServer(string?)`
+- Voicemail (MWI): `VoicemailCount`, `DialVoicemailAsync()`, `OnVoicemailCountChanged` event
+- Ringtone: `RingtonePath`, `SetRingtone(string?)` — NAudio AudioFileReader + LoopStream
+- Line Events: `OnLineChanged` event — hat durumu değiştiğinde UI güncellenir
+
+**NativeSipService Tam Yeniden Yazım (~1130 satır):**
+- `CallLine` inner class: Her hat için SIPUserAgent, VoIPMediaSession, timer, durum bilgisi
+- `CallLine[4]` dizisi + `_activeLineIndex` ile çoklu hat yönetimi
+- Hat değiştirmede otomatik hold/unhold
+- Attended transfer: Kaynak hattı hold → hedef hatta arama → Complete/Cancel
+- MWI: SIP NOTIFY mesajlarından "Voice-Message:" header parse
+- Recording: `OnRtpPacketReceived` event → codec-aware decode → PCM16 → WaveFileWriter
+- `LoopStream`: NAudio WaveStream subclass, zil sesi döngüsü
+- `AudioCodecDecoder`: PCMU + PCMA + G.722 → PCM16 decode (mu-law tablo, A-law tablo, SB-ADPCM)
+- DND: `HandleIncomingInvite` → BusyHere response
+- Auto-Answer: `HandleIncomingInvite` → otomatik cevaplama
+
+**Yeni Modeller (3 dosya):**
+- `Models/LineInfo.cs`: Hat durum modeli (LineState enum: Idle/Ringing/Connecting/Connected/OnHold/TransferPending)
+- `Models/CodecInfo.cs`: Codec bilgi modeli (Name, PayloadType, SampleRate, IsEnabled, Priority)
+- `Models/Contact.cs`: Yerel rehber kişi modeli (Id, Name, Number, Company, Email, IsFavorite)
+
+**TransferDialog (Yeniden Yazım):**
+- Blind + Attended transfer toggle
+- Attended: Hedef ara → bağlanınca "Tamamla" veya "İptal" butonları
+- `isAttendedInProgress` durumu ile 2 aşamalı UI
+
+**Dialer.razor (Yeniden Yazım):**
+- 4 hat göstergesi (renk kodlu: yeşil=aktif, turuncu=hold, kırmızı=çalıyor, gri=boş)
+- DND, Auto-Answer, Mute, Recording toggle butonları
+- Voicemail badge (sayaç)
+- Mikrofon + hoparlör ses seviyesi slider'ları
+- Yeni hatta arama butonu
+- Transfer dialog entegrasyonu
+
+**ContactService + Contacts.razor (Yerel Rehber):**
+- `%LOCALAPPDATA%\CallCenter\contacts.json` dosyasında saklama
+- CRUD: Add, Update, Delete, Search, GetFavorites, ToggleFavorite
+- Contacts.razor: Arama, favori filtre, kişi ekleme/düzenleme modalı, rehberden arama
+
+**SipSettings.razor (SIP Ayarları Sayfası):**
+- Codec seçimi (PCMU, PCMA, G722 checkbox'ları)
+- SRTP toggle
+- STUN sunucu adresi input
+- Zil sesi dosya yolu input
+- GSM Gateway kurulum rehberi (3 adım: Gateway al → SIM tak → SIP hesap ekle)
+
+**HotkeyService (Global Klavye Kısayolları):**
+- Win32 `RegisterHotKey` / `UnregisterHotKey` P/Invoke
+- Varsayılan kısayollar: Ctrl+F1=Cevapla, Ctrl+F2=Kapat, Ctrl+F3=Beklet, Ctrl+F4=Sessiz, Ctrl+F5=DND
+- WPF Window'un HwndSource'una WndProc hook
+- Event'ler: OnAnswerHotkey, OnHangupHotkey, OnHoldHotkey, OnMuteHotkey, OnDndHotkey
+
+**NavMenu + DI Güncellemeleri:**
+- NavMenu: "Rehber" (Contacts) linki Arama grubuna, "SIP Ayarları" standalone link
+- MainWindow.xaml.cs: ContactService + HotkeyService DI kaydı
+
+**Build: 0 hata, 0 uyarı (tüm solution)**
+
+**GSM Gateway Yaklaşımı:**
+- Özel kod gerektirmez — standart SIP trunking
+- GoIP/Dinstar gibi GSM gateway cihazları SIP sunucu gibi davranır
+- Kullanıcı gateway'in IP adresini SIP hesap bilgilerine girer
+- Call Center uygulaması normal SIP araması yapar → gateway GSM'e yönlendirir
+- SipSettings sayfasında kurulum rehberi eklendi
+
+**Dosya Özeti:**
+- Yeniden yazılan: ISipService.cs, NativeSipService.cs, TransferDialog.razor, Dialer.razor
+- Yeni dosyalar: LineInfo.cs, CodecInfo.cs, Contact.cs, ContactService.cs, Contacts.razor, SipSettings.razor, HotkeyService.cs
+- Düzenlenen: NavMenu.razor, MainWindow.xaml.cs
+- Toplam: ~13 dosya (7 yeni, 6 yeniden yazılan/düzenlenen)
+
+### 2026-02-12 - Codec-Aware Recording Düzeltmesi
+
+**Sorun:** Recording sadece PCMU (G.711 mu-law) codec ile doğru çalışıyordu. PCMA veya G.722 kullanıldığında bozuk ses kaydediliyordu.
+
+**Çözüm — MuLawDecoder → AudioCodecDecoder:**
+- `MuLawDecoder` sınıfı `AudioCodecDecoder`'a genişletildi
+- **A-law decode tablosu** eklendi (PCMA, payload type 8, 8kHz) — mu-law'a benzer ama farklı bit manipülasyonu (XOR 0x55)
+- **G.722 SB-ADPCM decoder** eklendi (payload type 9, 16kHz) — alt-bant + üst-bant ADPCM + QMF sentez
+- `Decode(byte[] payload, int payloadType)` — payload type'a göre doğru decoder'ı seçer
+- `GetSampleRate(int payloadType)` — G.722=16000Hz, diğerleri=8000Hz
+
+**StartRecordingAsync Değişiklikleri:**
+- `DetectActiveCodecPayloadType()` metodu eklendi — aktif aramanın SDP'sinden negotiated codec'i tespit eder
+- WaveFormat artık codec'e göre doğru sample rate kullanır (8000 veya 16000 Hz)
+- `_recordingPayloadType` field eklendi
+
+**OnRtpPacketForRecording Değişiklikleri:**
+- RTP header'daki payload type okunuyor
+- Dynamic PT (96+) durumunda recording başlatılırken tespit edilen codec'e fallback
+- `AudioCodecDecoder.Decode()` ile codec-aware decode
+
+**Build: 0 hata, 0 uyarı**
+
+**Kalan Risk:** G.722 decoder basitleştirilmiş implementasyon. Karmaşık ses sinyallerinde hafif kalite kaybı olabilir ama konuşma kaydı için yeterlidir.
+
+---
+
+## Görev 5.9: Müşteri Admin Rolü + Lokal DB + Çift Yazım (2026-02-12)
+
+### A: Müşteri Admin Rolü (Backend + Web)
+
+**Karar:** Yeni bir sistem rolü yerine `CustomerPersonnel.IsCustomerAdmin` flag'i eklendi. Bu flag true olan kullanıcı kendi müşterisi kapsamında tüm izinlere sahip. Sadece system admin atayabilir.
+
+**Değişiklikler:**
+- `CustomerPersonnel.cs` → `IsCustomerAdmin` bool property
+- `TokenService.cs` → JWT'ye `"IsCustomerAdmin": "true"` claim + tüm izin ID'leri
+- `PortalController.cs` → `HasPermission()`: `IsAdmin || IsCustomerAdmin || claim_check`
+- `PermissionService.cs` (Web) → `IsCustomerAdmin` property + kontrol
+- `CustomerService.cs` → `CreateCustomerAdminAsync()` — müşteri oluşturulunca otomatik admin oluşturur
+- `AuthService.cs` → Customer.IsActive kontrolü (aktif değilse login engellenir)
+
+### B: Lokal DB Altyapısı (Windows)
+
+**Karar:** Repository pattern + provider factory. Her veritabanı tipi (PG, MSSQL, MongoDB) aynı `ILocalRepository` interface'ini implemente eder. DB ayarlanmamışsa `NullLocalRepository` (no-op) kullanılır.
+
+**Dosya yapısı:**
+- `LocalData/Entities/` → LocalCallRecord, LocalRecording, LocalCallStats
+- `LocalData/ILocalRepository.cs` → Interface
+- `LocalData/Providers/` → PostgresLocalRepository, MssqlLocalRepository, MongoLocalRepository, NullLocalRepository
+- `LocalData/LocalRepositoryFactory.cs` → DB tipine göre doğru provider'ı oluşturur
+
+**Neden EF Core değil?** Hafif tutmak için raw SQL/driver kullanıldı. MongoDB doğası gereği EF Core ile uyumsuz.
+
+**NuGet eklenen:** Npgsql, Microsoft.Data.SqlClient, MongoDB.Driver
+
+### C: Çift Yazım Mekanizması
+
+**Karar:** Her çağrı önce lokal DB'ye yazılır (güvenilir, anında), sonra backend API'ye push edilir (arka planda). Push başarısız olursa `BackgroundSyncService` 60 saniyede bir retry yapar.
+
+**Servisler:**
+- `CallSyncService` — Dialer'dan çağrılır, hem lokal hem backend'e yazar
+- `BackgroundSyncService` — PeriodicTimer ile senkronlanmamış kayıtları backend'e push eder
+
+**Backend tarafı:** `POST /api/calls/sync` endpoint'i eklendi. Uid bazlı idempotent — aynı Uid tekrar gelirse günceller, yeni oluşturmaz.
+
+**DTO'lar:** `CallSyncPushRequest` ve `CallSyncPushResponse` Shared projesinde
+
+### D: Ayarlar Ekranı
+
+- `LocalDbSettings.razor` → DB tipi seçimi, connection string, test butonu, tablo oluşturma
+- `MainWindow.xaml.cs` → DI kaydı: SecureStorage'dan okur, LocalRepositoryFactory ile oluşturur
+- `NavMenu.razor` → "Ayarlar" grubu altında SIP Ayarları + Lokal Veritabanı
+
+### E: Lokal Raporlama
+
+- `LocalReportService` → ILocalRepository üzerinden lokal DB'den istatistik + kayıt çeker
+- `LocalReports.razor` → Tarih filtresi, KPI kartları, çağrı tablosu, senkronizasyon durumu
+- NavMenu'de "Raporlar" grubu altında "Lokal Raporlar" linki
+
+**Build: 0 hata, 0 uyarı**

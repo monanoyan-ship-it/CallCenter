@@ -29,6 +29,14 @@ public class AuthService : IAuthService
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return (false, null, "Kullanıcı adı veya şifre hatalı.");
 
+        // Musteri kullanicisiysa firma aktiflik kontrolu
+        if (user.CustomerPersonnel != null)
+        {
+            var customer = await _db.Customers.FindAsync(user.CustomerPersonnel.CustomerId);
+            if (customer == null || !customer.IsActive)
+                return (false, null, "Müşteri hesabı aktif değil.");
+        }
+
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 

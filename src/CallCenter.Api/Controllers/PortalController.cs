@@ -27,6 +27,9 @@ public class PortalController : ControllerBase
 
     private bool IsAdmin => User.IsInRole("Admin");
 
+    /// <summary>Musteri admin'i mi? (kendi musterisi icin tum izinler)</summary>
+    private bool IsCustomerAdmin => User.FindFirstValue("IsCustomerAdmin") == "true";
+
     /// <summary>
     /// Admin ise ?customerId parametresinden, CustomerUser ise JWT claim'den customerId alir.
     /// </summary>
@@ -40,11 +43,11 @@ public class PortalController : ControllerBase
     }
 
     /// <summary>
-    /// Admin muaf, CustomerUser icin JWT claim kontrolu.
+    /// System Admin ve CustomerAdmin muaf, normal CustomerUser icin JWT claim kontrolu.
     /// </summary>
     private bool HasPermission(int permTypeId)
     {
-        if (IsAdmin) return true;
+        if (IsAdmin || IsCustomerAdmin) return true;
 
         var perms = User.FindFirstValue("CustomerPermissions");
         if (string.IsNullOrEmpty(perms)) return false;

@@ -1,0 +1,290 @@
+@page "/local-db-settings"
+@attribute [Authorize]
+@inject CallCenter.Windows.LocalData.ILocalRepository LocalRepo
+@inject CallCenter.Windows.Services.SecureStorage Storage
+@inject CallCenter.Windows.Services.ToastService Toast
+
+<div class="container-fluid py-3">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <i class="bi bi-database-fill me-2"></i>
+                    <h5 class="mb-0">Lokal Veritabani Ayarlari</h5>
+                </div>
+
+                <div class="card-body">
+                    @* ─── Aciklama ─── *@
+                    <div class="alert alert-info d-flex align-items-start mb-4">
+                        <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                        <div>
+                            <strong>Lokal DB Nedir?</strong><br/>
+                            Cagri kayitlari ve ses kaydi metadata'si musterinin kendi veritabaninda tutulur.
+                            Backend'e sadece ozet bilgiler (metadata) senkronlanir.
+                            Ses dosyalari asla disari cikmaz — lokal diskte kalir.
+                        </div>
+                    </div>
+
+                    @* ─── DB Tipi Secimi ─── *@
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-server me-1"></i>Veritabani Tipi
+                        </label>
+                        <select class="form-select" @bind="dbType">
+                            <option value="">(Devre Disi — Lokal DB kullanma)</option>
+                            @foreach (var type in CallCenter.Windows.LocalData.LocalRepositoryFactory.SupportedTypes)
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </select>
+                        <div class="form-text">
+                            Desteklenen: PostgreSQL, Microsoft SQL Server, MongoDB
+                        </div>
+                    </div>
+
+                    @* ─── Connection String ─── *@
+                    @if (!string.IsNullOrEmpty(dbType))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-link-45deg me-1"></i>Baglanti Dizesi (Connection String)
+                            </label>
+                            <textarea class="form-control font-monospace" rows="3"
+                                      @bind="connectionString" @bind:event="oninput"
+                                      placeholder="@GetPlaceholder()"></textarea>
+                            <div class="form-text">
+                                @GetConnectionStringHelp()
+                            </div>
+                        </div>
+
+                        @* ─── Ses Kaydi Klasoru ─── *@
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-folder-fill me-1"></i>Ses Kaydi Klasoru
+                            </label>
+                            <input type="text" class="form-control font-monospace"
+                                   @bind="recordingBasePath" @bind:event="oninput"
+                                   placeholder="@defaultRecordingPath" />
+                            <div class="form-text">
+                                Ses dosyalari bu klasorde saklanir. Bos birakilirsa varsayilan kullanilir.
+                            </div>
+                        </div>
+
+                        @* ─── Test ve Olustur Butonlari ─── *@
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-outline-primary" @onclick="TestConnection" disabled="@isTesting">
+                                <i class="bi @(isTesting ? "bi-hourglass-split" : "bi-plug-fill") me-1"></i>
+                                @(isTesting ? "Test ediliyor..." : "Baglantiyi Test Et")
+                            </button>
+                            <button class="btn btn-outline-success" @onclick="InitializeTables"
+                                    disabled="@(isInitializing || !connectionTested)">
+                                <i class="bi @(isInitializing ? "bi-hourglass-split" : "bi-table") me-1"></i>
+                                @(isInitializing ? "Olusturuluyor..." : "Tablolari Olustur")
+                            </button>
+                        </div>
+
+                        @* ─── Baglanti Durumu ─── *@
+                        @if (connectionStatus != null)
+                        {
+                            <div class="alert @(connectionSuccess ? "alert-success" : "alert-danger") d-flex align-items-center">
+                                <i class="bi @(connectionSuccess ? "bi-check-circle-fill" : "bi-x-circle-fill") me-2"></i>
+                                @connectionStatus
+                            </div>
+                        }
+                    }
+
+                    @* ─── Mevcut Durum ─── *@
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="bi bi-info-square-fill me-1"></i>Mevcut Durum
+                            </h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge @(LocalRepo.IsConfigured ? "bg-success" : "bg-secondary")">
+                                    @(LocalRepo.IsConfigured ? "Aktif" : "Devre Disi")
+                                </span>
+                                @if (LocalRepo.IsConfigured)
+                                {
+                                    <span class="text-muted">Lokal DB baglantisi aktif — kayitlar lokal + backend'e yaziliyor</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Lokal DB yok — kayitlar sadece backend'e yaziliyor</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ─── Kaydet Butonu ─── *@
+                <div class="card-footer d-flex justify-content-end">
+                    <button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">
+                        <i class="bi bi-check-lg me-1"></i>
+                        @(isSaving ? "Kaydediliyor..." : "Kaydet")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // ── SecureStorage anahtarlari ──
+    private const string DbTypeKey = "local_db_type";
+    private const string ConnectionStringKey = "local_db_connection";
+    private const string RecordingPathKey = "recording_base_path";
+
+    // ── Form alanlari ──
+    private string dbType = "";
+    private string connectionString = "";
+    private string recordingBasePath = "";
+
+    // ── Durum ──
+    private bool isTesting;
+    private bool isInitializing;
+    private bool isSaving;
+    private bool connectionTested;
+    private bool connectionSuccess;
+    private string? connectionStatus;
+
+    private readonly string defaultRecordingPath = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "CallCenter", "Recordings");
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Mevcut ayarlari yukle
+        dbType = await Storage.GetAsync(DbTypeKey) ?? "";
+        connectionString = await Storage.GetAsync(ConnectionStringKey) ?? "";
+        recordingBasePath = await Storage.GetAsync(RecordingPathKey) ?? "";
+    }
+
+    /// <summary>
+    /// Veritabanina baglanti testi yapar.
+    /// Gercek bir SELECT 1 (SQL) veya ping (MongoDB) calistirir.
+    /// </summary>
+    private async Task TestConnection()
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            connectionStatus = "Baglanti dizesi bos olamaz!";
+            connectionSuccess = false;
+            return;
+        }
+
+        isTesting = true;
+        connectionStatus = null;
+        StateHasChanged();
+
+        try
+        {
+            var testRepo = CallCenter.Windows.LocalData.LocalRepositoryFactory.Create(dbType, connectionString);
+            var success = await testRepo.TestConnectionAsync();
+
+            connectionTested = success;
+            connectionSuccess = success;
+            connectionStatus = success
+                ? $"{dbType} baglantisi basarili!"
+                : $"{dbType} baglantisi basarisiz. Connection string'i kontrol edin.";
+        }
+        catch (Exception ex)
+        {
+            connectionTested = false;
+            connectionSuccess = false;
+            connectionStatus = $"Baglanti hatasi: {ex.Message}";
+        }
+        finally
+        {
+            isTesting = false;
+        }
+    }
+
+    /// <summary>
+    /// Tablolari/koleksiyonlari ve index'leri olusturur.
+    /// Zaten varsa hata vermez (CREATE IF NOT EXISTS).
+    /// </summary>
+    private async Task InitializeTables()
+    {
+        isInitializing = true;
+        StateHasChanged();
+
+        try
+        {
+            var repo = CallCenter.Windows.LocalData.LocalRepositoryFactory.Create(dbType, connectionString);
+            await repo.InitializeAsync();
+
+            connectionStatus = "Tablolar basariyla olusturuldu!";
+            connectionSuccess = true;
+            Toast.ShowSuccess("Lokal DB tablolari olusturuldu");
+        }
+        catch (Exception ex)
+        {
+            connectionStatus = $"Tablo olusturma hatasi: {ex.Message}";
+            connectionSuccess = false;
+        }
+        finally
+        {
+            isInitializing = false;
+        }
+    }
+
+    /// <summary>
+    /// Ayarlari SecureStorage'a kaydeder.
+    /// Not: Uygulamanin yeniden baslatilmasi gerekir —
+    /// DI container'daki ILocalRepository degismez.
+    /// </summary>
+    private async Task SaveSettings()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (string.IsNullOrEmpty(dbType))
+            {
+                // DB devre disi — tum ayarlari temizle
+                await Storage.RemoveAsync(DbTypeKey);
+                await Storage.RemoveAsync(ConnectionStringKey);
+                await Storage.RemoveAsync(RecordingPathKey);
+            }
+            else
+            {
+                await Storage.SetAsync(DbTypeKey, dbType);
+                await Storage.SetAsync(ConnectionStringKey, connectionString);
+
+                if (!string.IsNullOrWhiteSpace(recordingBasePath))
+                    await Storage.SetAsync(RecordingPathKey, recordingBasePath);
+                else
+                    await Storage.RemoveAsync(RecordingPathKey);
+            }
+
+            Toast.ShowSuccess("Ayarlar kaydedildi. Degisikliklerin uygulanmasi icin uygulamayi yeniden baslatin.");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Kaydetme hatasi: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    /// <summary>DB tipine gore ornek connection string gosterir</summary>
+    private string GetPlaceholder() => dbType switch
+    {
+        "PostgreSQL" => "Host=localhost;Port=5432;Database=callcenter_local;Username=postgres;Password=...",
+        "MSSQL" => "Server=localhost;Database=callcenter_local;Trusted_Connection=true;TrustServerCertificate=true",
+        "MongoDB" => "mongodb://localhost:27017/callcenter_local",
+        _ => ""
+    };
+
+    /// <summary>DB tipine gore yardim metni gosterir</summary>
+    private string GetConnectionStringHelp() => dbType switch
+    {
+        "PostgreSQL" => "Ornek: Host=sunucu;Port=5432;Database=veritabani;Username=kullanici;Password=sifre",
+        "MSSQL" => "Ornek: Server=sunucu;Database=veritabani;Trusted_Connection=true veya User Id=...;Password=...",
+        "MongoDB" => "Ornek: mongodb://kullanici:sifre@sunucu:27017/veritabani",
+        _ => ""
+    };
+}

@@ -232,6 +232,74 @@ public class CallService : ICallService
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // SYNC PUSH (Windows uygulamasindan lokal DB senkronizasyonu)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Windows uygulamasinin BackgroundSyncService'i tarafindan cagirilir.
+    /// Uid bazli idempotent: ayni Uid ile gelen kayit varsa gunceller, yoksa yeni olusturur.
+    /// Boylece ayni cagri birden fazla push edilse bile duplike olmaz.
+    /// </summary>
+    public async Task<CallSyncPushResponse> SyncPushAsync(int userId, CallSyncPushRequest request)
+    {
+        // Uid ile mevcut kaydi ara
+        var existing = await _db.CallRecords.FirstOrDefaultAsync(c => c.Uid == request.Uid);
+
+        if (existing != null)
+        {
+            // ── Mevcut kaydi guncelle (idempotent upsert) ──
+            existing.StatusId = MapStatusNameToId(request.Status);
+            existing.AnsweredAt = request.AnsweredAt;
+            existing.EndedAt = request.EndedAt;
+            existing.DurationSeconds = request.DurationSeconds;
+            existing.Notes = request.Notes;
+            await _db.SaveChangesAsync();
+
+            return new CallSyncPushResponse { Id = existing.Id, IsNew = false };
+        }
+
+        // ── Yeni kayit olustur ──
+        var call = new CallRecord
+        {
+            Uid = request.Uid,
+            CallerNumber = request.CallerNumber,
+            CalleeNumber = request.CalleeNumber,
+            DirectionId = request.Direction == "Inbound"
+                ? CallDirections.Ids.Inbound
+                : CallDirections.Ids.Outbound,
+            StatusId = MapStatusNameToId(request.Status),
+            StartedAt = request.StartedAt,
+            AnsweredAt = request.AnsweredAt,
+            EndedAt = request.EndedAt,
+            DurationSeconds = request.DurationSeconds,
+            AgentId = userId,
+            Notes = request.Notes
+        };
+
+        // Kuyruk adi varsa eslestir
+        if (!string.IsNullOrEmpty(request.QueueName))
+        {
+            var queue = await _db.Queues.FirstOrDefaultAsync(q => q.Name == request.QueueName);
+            if (queue != null) call.QueueId = queue.Id;
+        }
+
+        _db.CallRecords.Add(call);
+        await _db.SaveChangesAsync();
+
+        return new CallSyncPushResponse { Id = call.Id, IsNew = true };
+    }
+
+    /// <summary>
+    /// Lokal DB'deki string status adini backend'teki int StatusId'ye donusturur.
+    /// Ornek: "Completed" → 5, "Missed" → 6
+    /// </summary>
+    private static int MapStatusNameToId(string statusName)
+    {
+        var status = CallStatuses.GetBySystemName(statusName);
+        return status?.Id ?? CallStatuses.Ids.Completed;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // HELPER METODLAR
     // ═══════════════════════════════════════════════════════════════
 

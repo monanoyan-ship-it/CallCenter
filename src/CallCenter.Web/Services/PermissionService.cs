@@ -15,6 +15,7 @@ public class PermissionService
     private bool _loaded;
 
     public bool IsAdmin { get; private set; }
+    public bool IsCustomerAdmin { get; private set; }
     public int? CustomerId { get; private set; }
 
     public PermissionService(AuthenticationStateProvider authState)
@@ -32,6 +33,7 @@ public class PermissionService
         if (user.Identity?.IsAuthenticated != true) return;
 
         IsAdmin = user.IsInRole("Admin");
+        IsCustomerAdmin = user.FindFirst("IsCustomerAdmin")?.Value == "true";
 
         var customerIdClaim = user.FindFirst("CustomerId")?.Value;
         CustomerId = customerIdClaim != null && int.TryParse(customerIdClaim, out var cid) ? cid : null;
@@ -49,17 +51,17 @@ public class PermissionService
         _loaded = true;
     }
 
-    /// <summary>Tekil izin kontrolu. Admin her zaman true doner.</summary>
+    /// <summary>Tekil izin kontrolu. System Admin ve CustomerAdmin her zaman true doner.</summary>
     public bool HasPermission(int permTypeId)
     {
-        if (IsAdmin) return true;
+        if (IsAdmin || IsCustomerAdmin) return true;
         return _permissions.Contains(permTypeId);
     }
 
-    /// <summary>Moduldeki herhangi bir izne sahip mi? Admin her zaman true.</summary>
+    /// <summary>Moduldeki herhangi bir izne sahip mi? System Admin ve CustomerAdmin her zaman true.</summary>
     public bool HasModule(int moduleId)
     {
-        if (IsAdmin) return true;
+        if (IsAdmin || IsCustomerAdmin) return true;
         var modulePerms = CustomerPermissionTypes.GetByModule(moduleId);
         return modulePerms.Any(p => _permissions.Contains(p.Id));
     }

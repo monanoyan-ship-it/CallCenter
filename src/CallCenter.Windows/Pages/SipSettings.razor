@@ -1,0 +1,207 @@
+@page "/sip-settings"
+@attribute [Authorize]
+@inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.ToastService Toast
+@using CallCenter.Windows.Models
+
+<div class="sip-settings-page">
+    <div class="page-header mb-3">
+        <h5><i class="bi bi-gear-fill me-2"></i>SIP Ayarlari</h5>
+    </div>
+
+    <div class="row g-3">
+        @* ─── Codec Ayarlari ─── *@
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="bi bi-soundwave me-2"></i>Ses Codec'leri</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2">SIP aramalari icin kullanilacak codec'leri secin:</p>
+                    @foreach (var codec in availableCodecs)
+                    {
+                        <div class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" id="codec_@codec.Name"
+                                   checked="@codec.IsEnabled"
+                                   @onchange="(e) => ToggleCodec(codec.Name, (bool)(e.Value ?? false))" />
+                            <label class="form-check-label small" for="codec_@codec.Name">
+                                <strong>@codec.Name</strong>
+                                <span class="text-muted">— @codec.SampleRate Hz (PT @codec.PayloadType)</span>
+                            </label>
+                        </div>
+                    }
+                    <button class="btn btn-sm btn-primary mt-2" @onclick="SaveCodecs">
+                        <i class="bi bi-check me-1"></i>Codec Uygula
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* ─── Guvenlik Ayarlari ─── *@
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Guvenlik</h6>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="srtpSwitch"
+                               checked="@SipService.IsSrtpEnabled"
+                               @onchange="ToggleSrtp" />
+                        <label class="form-check-label" for="srtpSwitch">
+                            SRTP (Sifrelenmis Ses)
+                        </label>
+                        <div class="text-muted small">Ses verilerini sifreler. PBX'in SRTP desteklemesi gerekir.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ─── NAT/STUN Ayarlari ─── *@
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="bi bi-globe me-2"></i>NAT / STUN</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small">STUN Sunucusu</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="stun.l.google.com:19302"
+                               @bind="stunServer" />
+                        <div class="text-muted small mt-1">NAT arkasindaysaniz STUN sunucusu gerekli olabilir.</div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveStun">
+                        <i class="bi bi-check me-1"></i>STUN Uygula
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* ─── Zil Sesi Ayarlari ─── *@
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="bi bi-music-note-beamed me-2"></i>Zil Sesi</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Zil Sesi Dosyasi (.wav, .mp3)</label>
+                        <input type="text" class="form-control form-control-sm"
+                               placeholder="C:\...\ringtone.wav"
+                               @bind="ringtonePath" />
+                        <div class="text-muted small mt-1">
+                            Bos birakilirsa varsayilan sistem sesi kullanilir.
+                            @if (!string.IsNullOrEmpty(SipService.RingtonePath))
+                            {
+                                <br/><span class="text-success">Mevcut: @SipService.RingtonePath</span>
+                            }
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveRingtone">
+                        <i class="bi bi-check me-1"></i>Zil Sesi Uygula
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* ─── GSM Gateway ─── *@
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header py-2 bg-info bg-opacity-10">
+                    <h6 class="mb-0"><i class="bi bi-sim me-2"></i>GSM Gateway (SIM Kart Erisimi)</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        GSM Gateway cihazlari (GoIP, Dinstar vb.) ile SIM kart uzerinden mobil/sabit hat aramalari yapabilirsiniz.
+                        Gateway cihazinin SIP sunucu bilgilerini admin panelinden SIP hesabi olarak ekleyin.
+                    </p>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body py-2 text-center">
+                                    <i class="bi bi-router text-primary" style="font-size: 1.5rem;"></i>
+                                    <div class="small mt-1"><strong>1. Gateway Kur</strong></div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">GoIP/Dinstar cihazini aga bagla</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body py-2 text-center">
+                                    <i class="bi bi-sim text-success" style="font-size: 1.5rem;"></i>
+                                    <div class="small mt-1"><strong>2. SIM Tak</strong></div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">SIM karti cihaza yerlestir</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body py-2 text-center">
+                                    <i class="bi bi-telephone-plus text-info" style="font-size: 1.5rem;"></i>
+                                    <div class="small mt-1"><strong>3. SIP Hesabi Ekle</strong></div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Gateway IP'sini SIP hesabina tanimla</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info small py-2 mt-2 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Gateway'in SIP sunucusu olarak kaydedildikten sonra,
+                        Dialer'dan normal SIP araması gibi GSM hattindan arama yapabilirsiniz.
+                        Prefix kurali (ornegin 0 ile baslayan numaralar GSM'e yonlendir) PBX tarafinda yapilir.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CodecInfo> availableCodecs = new();
+    private string stunServer = "";
+    private string ringtonePath = "";
+
+    protected override void OnInitialized()
+    {
+        availableCodecs = SipService.GetAvailableCodecs();
+        stunServer = SipService.StunServer ?? "";
+        ringtonePath = SipService.RingtonePath ?? "";
+    }
+
+    private void ToggleCodec(string name, bool enabled)
+    {
+        var codec = availableCodecs.FirstOrDefault(c => c.Name == name);
+        if (codec != null) codec.IsEnabled = enabled;
+    }
+
+    private void SaveCodecs()
+    {
+        var enabled = availableCodecs.Where(c => c.IsEnabled).Select(c => c.Name).ToList();
+        if (enabled.Count == 0)
+        {
+            Toast.ShowWarning("En az bir codec secili olmali");
+            return;
+        }
+        SipService.SetEnabledCodecs(enabled);
+        Toast.ShowSuccess("Codec ayarlari guncellendi (yeni aramalarda gecerli)");
+    }
+
+    private void ToggleSrtp(ChangeEventArgs e)
+    {
+        var enabled = (bool)(e.Value ?? false);
+        SipService.SetSrtp(enabled);
+        Toast.ShowInfo(enabled ? "SRTP aktif" : "SRTP kapatildi");
+    }
+
+    private void SaveStun()
+    {
+        SipService.SetStunServer(string.IsNullOrWhiteSpace(stunServer) ? null : stunServer);
+        Toast.ShowSuccess("STUN ayari guncellendi");
+    }
+
+    private void SaveRingtone()
+    {
+        SipService.SetRingtone(string.IsNullOrWhiteSpace(ringtonePath) ? null : ringtonePath);
+        Toast.ShowSuccess("Zil sesi ayari guncellendi");
+    }
+}

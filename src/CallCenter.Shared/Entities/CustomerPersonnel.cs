@@ -6,6 +6,7 @@ public class CustomerPersonnel
     public Guid Uid { get; set; } = Guid.NewGuid();
     public string Title { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public bool IsCustomerAdmin { get; set; } // Musteri yoneticisi — tum izinlere sahip, sadece system admin atayabilir
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Her CustomerPersonnel bir User'a bağlı (login için)

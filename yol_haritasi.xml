@@ -714,6 +714,79 @@
       </Detay>
     </Gorev>
 
+    <Gorev no="5.8" durum="tamamlandi" tamamlanma="2026-02-12">
+      <Ad>MicroSIP Feature Parity + GSM Gateway Destegi</Ad>
+      <Detay>
+        MicroSIP'in tum ozelliklerini Windows softphone'a tasima:
+
+        ISIPSERVICE GENISLETME (~60 yeni metod/property):
+        - Attended Transfer (2 asamali: hold → ara → tamamla/iptal)
+        - Multi-Line (4 eszamanli hat, hat degistirme, otomatik hold)
+        - DND (Rahatsiz Etme — gelen arama BusyHere ile reddedilir)
+        - Auto-Answer (gelen aramalar otomatik cevaplanir)
+        - Mute/Unmute + IsMuted + OnMuteChanged event
+        - Volume (mikrofon/hoparlor 0.0-1.0)
+        - Recording (RTP → G.711 mu-law decode → WAV)
+        - Codec yonetimi (PCMU, PCMA, G722 — RestrictFormats)
+        - SRTP toggle
+        - STUN/ICE server ayari
+        - Voicemail (MWI — SIP NOTIFY parse, badge sayac)
+        - Ringtone (NAudio AudioFileReader + LoopStream)
+        - Line events (OnLineChanged)
+
+        NATIVESIPSERVICE YENIDEN YAZIM (~1130 satir):
+        - CallLine inner class (SIPUserAgent + VoIPMediaSession per line)
+        - CallLine[4] dizisi + _activeLineIndex
+        - AudioCodecDecoder static class (PCMU + PCMA + G.722 decode)
+        - LoopStream WaveStream subclass (ringtone loop)
+        - HandleIncomingInvite: DND, multi-line, auto-answer, ringtone
+
+        YENI MODELLER:
+        - LineInfo.cs (LineState enum: Idle/Ringing/Connecting/Connected/OnHold/TransferPending)
+        - CodecInfo.cs (Name, PayloadType, SampleRate, IsEnabled, Priority)
+        - Contact.cs (Id, Name, Number, Company, Email, IsFavorite)
+
+        YENI/GUNCELLENEN SAYFALAR:
+        - TransferDialog.razor: Blind + Attended transfer toggle, 2 asamali UI
+        - Dialer.razor: 4 hat gostergesi, DND/AutoAnswer/Mute/Recording toggle, volume slider, voicemail badge
+        - ContactService.cs + Contacts.razor: Yerel rehber (JSON), CRUD, arama, favoriler
+        - SipSettings.razor: Codec, SRTP, STUN, ringtone, GSM Gateway rehberi
+        - HotkeyService.cs: Win32 RegisterHotKey (Ctrl+F1-F5)
+        - NavMenu.razor: Rehber + SIP Ayarlari linkleri
+        - MainWindow.xaml.cs: ContactService + HotkeyService DI
+
+        GSM GATEWAY: Ozel kod gerektirmez — standart SIP trunking. GoIP/Dinstar gibi cihazlarin
+        IP adresini SIP hesap bilgilerine girilir. SipSettings'te kurulum rehberi eklendi.
+
+        ~13 dosya (7 yeni, 6 yeniden yazilan/duzenlenen). Build: 0 hata, 0 uyari.
+      </Detay>
+      <Riskler>
+        - ATTENDED TRANSFER: SIPSorcery AttendedTransfer(dialogue) API'si kullaniliyor. Bazi PBX'lerde
+          REFER with Replaces yerine re-INVITE beklenebilir. Runtime'da test edilmeli.
+        - MULTI-LINE: 4 hat limiti sabit kodlanmis. Hat degistirmede hold/unhold zamanlama sorunu olabilir
+          (hold komutu gonderilmeden diger hat aktif edilirse ses carpismasi).
+        - RECORDING: AudioCodecDecoder ile PCMU/PCMA/G.722 destegi eklendi (COZULDU).
+          G.722 decoder basitlestirilmis implementasyon — karisik sinyallerde hafif kalite kaybi olabilir.
+          DetectActiveCodecPayloadType() ile SDP'den codec tespit ediliyor.
+        - HOTKEY SERVICE: Win32 RegisterHotKey baska uygulamalarla cakisabilir. Ayni kisayol baska
+          uygulama tarafindan kayitliysa RegisterHotKey false doner ama hata kullaniciya gosterilmiyor.
+        - MWI (VOICEMAIL): SIP NOTIFY "Voice-Message:" header'i parse ediliyor. Bazi PBX'ler farkli
+          header veya Subscribe/Notify mekanizmasi kullanabilir. Test edilmeli.
+        - RINGTONE: NAudio AudioFileReader WAV/MP3/OGG destekliyor ama dosya formatina gore runtime
+          hatasi verebilir. Desteklenmeyen format icin hata mesaji yok — sessiz kaliyor.
+        - DND/AUTO-ANSWER: Uygulama kapanip acildiginda bu ayarlar sifirlanir (persist etmiyor).
+          SecureStorage'a kaydetme eklenmeli.
+        - CONTACTS: JSON dosya tabanlı. Eslzamanli erisimde dosya kilitleme yok. Tek kullanici icin
+          sorun degil ama multi-instance calistirmada veri kaybi olabilir.
+        - VOLUME: SetMicrophoneVolume/SetSpeakerVolume sadece aktif aramanin medya oturumunu etkiler.
+          Yeni aramada varsayilan seviyeye doner.
+        - HOTKEY-SIP BAGLANTISI: HotkeyService event'leri tanimli ama henuz SipService aksiyonlarina
+          baglanmadi. MainLayout veya ozel bir component'te baglanmali.
+        - CODEC RESTRICT: SetEnabledCodecs NativeSipService'te _enabledCodecNames listesini guncelliyor
+          ama mevcut aramayi etkilemiyor — sadece sonraki aramada gecerli.
+      </Riskler>
+    </Gorev>
+
     <Riskler>
       - Runtime testi yapilmadi. Visual Studio'da debug ile test gerekiyor.
       - Gercek SIP sunucu ile baglanti testi gerekiyor (Asterisk/FreeSWITCH/OnSIP).
@@ -726,6 +799,9 @@
         yeni aramalarda secili cihaz kullanilir.
       - ToastNotificationManagerCompat.Uninstall() uygulama kapatilirken cagriliyor,
         bu bazi durumlarda exception atabilir.
+      - HotkeyService event'leri (OnAnswerHotkey vb.) SipService aksiyonlarina baglanmadi.
+        MainLayout veya ozel component'te baglanti yapilmali.
+      - DND ve Auto-Answer ayarlari persist etmiyor. Uygulama yeniden baslatildiginda sifirlanir.
     </Riskler>
   </Faz>
 
@@ -876,6 +952,7 @@
     <Not tarih="2026-02-10">Musteri Detay Sayfasi: /admin/customers/{id} — 5 sekmeli yonetim (Genel, Moduller, Personel, Kuyruklar, SIP). NavMenu'de Musteriler artik ayri bir grup menusu. Toggle switch ile modul ac/kapat. Personel yonetimi Portal bilesenlerini yeniden kullaniyor. Build: 0 hata, 0 uyari.</Not>
     <Not tarih="2026-02-10">Gorev 4.10 tamamlandi: Musteri organizasyon hiyerarsisi. CustomerOrganizationUnit entity (self-ref agac), OrganizationUnitTypes TypeItem, CustomerUserType'a Level/CanManage, CustomerPersonnel'e OrgUnit/ReportsTo. 7 endpoint OrganizationsController, cycle detection (BFS), 7 yeni Blazor sayfasi/component (agac gorunumu, CRUD modaller), CustomerDetail'a 6. sekme (Organizasyon). ~15 yeni, ~14 duzenlenen dosya. Migration: AddOrganizationHierarchy. Build: 0 hata, 0 uyari.</Not>
     <Not tarih="2026-02-10">Gorev 4.11 tamamlandi: SearchableSelect (Aranabilir Combobox) Componenti. 2 yeni dosya, 10 duzenlenen dosya, 12 select donusumu. Build: 0 hata, 0 uyari.</Not>
+    <Not tarih="2026-02-12">Gorev 5.8 tamamlandi: MicroSIP Feature Parity + GSM Gateway. ISipService ~60 yeni metod/property, NativeSipService ~1130 satir yeniden yazim. Multi-line (4 hat), attended transfer, DND, auto-answer, mute, volume, recording, codec yonetimi, SRTP, STUN, voicemail (MWI), ringtone, yerel rehber (ContactService+Contacts.razor), SIP ayarlari sayfasi, global hotkeys (Win32). GSM Gateway standart SIP trunking ile — ozel kod yok. ~13 dosya, build: 0 hata, 0 uyari.</Not>
   </Notlar>
 
   <!-- ============================================================ -->
@@ -1075,5 +1152,50 @@
       - Arastirma web arama sonuclarina dayali. Yonetmeliklerin tam metinleri incelenip hukuk danismani gorusu alinmali.
     </Riskler>
   </Arastirma>
+
+  <!-- ============================================================ -->
+  <!-- GOREV 5.9: MUSTERI ADMIN + LOKAL DB + CIFT YAZIM             -->
+  <!-- ============================================================ -->
+  <Gorev no="5.9" durum="tamamlandi" tamamlanma="2026-02-12">
+    <Ad>Musteri Admin Rolu + Lokal DB + Cift Yazim Mimarisi</Ad>
+    <Detay>
+      A: Musteri Admin Rolu (Backend + Web)
+        - CustomerPersonnel.IsCustomerAdmin flag eklendi
+        - JWT'ye IsCustomerAdmin claim eklendi, tum izinler otomatik
+        - PortalController + PermissionService guncellendi
+        - Musteri olusturulunca otomatik admin olusturuluyor
+        - AuthService'e Customer.IsActive kontrolu eklendi
+
+      B: Lokal DB Altyapisi (Windows)
+        - ILocalRepository interface + 4 provider (PG, MSSQL, MongoDB, Null)
+        - LocalCallRecord, LocalRecording, LocalCallStats entity'leri
+        - LocalRepositoryFactory — DB tipine gore dogru provider
+        - NuGet: Npgsql, Microsoft.Data.SqlClient, MongoDB.Driver
+
+      C: Cift Yazim Mekanizmasi
+        - CallSyncService — her cagri hem lokal hem backend'e yazilir
+        - BackgroundSyncService — 60 sn periyodik retry (senkronlanmamis kayitlar)
+        - POST /api/calls/sync — Uid bazli idempotent push endpoint
+        - Dialer.razor guncellendi (CallSyncService uzerinden calisiyor)
+
+      D: Ayarlar Ekrani + DI
+        - LocalDbSettings.razor — DB tipi, connection string, test, tablo olusturma
+        - MainWindow.xaml.cs — ILocalRepository + CallSyncService + BackgroundSyncService DI
+        - NavMenu — "Ayarlar" grubu: SIP + Lokal Veritabani
+
+      E: Lokal Raporlama
+        - LocalReportService — lokal DB'den istatistik + kayit
+        - LocalReports.razor — tarih filtresi, KPI kartlari, cagri tablosu
+        - NavMenu — "Raporlar" grubuna "Lokal Raporlar" eklendi
+    </Detay>
+    <Riskler>
+      - MongoDB Driver ~5MB ekler, publish boyutu artar
+      - Connection string SecureStorage'da sifresiz (dosya bazli JSON). DPAPI ile sifreleme eklenebilir
+      - Lokal DB sema migration sistemi yok — sadece CREATE IF NOT EXISTS (versiyon degisimlerinde manuel mudahale gerekebilir)
+      - Cift yazim tutarsizligi riski: lokal yazilir ama backend push basarisiz olursa web raporlari gecici olarak eksik kalir (BackgroundSyncService ile retry)
+      - CustomerPersonnel.IsCustomerAdmin icin migration dosyasi henuz olusturulmadi (EF migration gerekli)
+      - A.7: CustomerDetail admin bilgi karti (UI) henuz yapilmadi — bir sonraki gorevde tamamlanabilir
+    </Riskler>
+  </Gorev>
 
 </Proje>

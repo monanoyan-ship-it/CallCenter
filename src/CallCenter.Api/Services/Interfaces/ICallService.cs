@@ -12,4 +12,10 @@ public interface ICallService
     Task<(bool Success, string? Error)> AnswerCallAsync(int callId);
     Task<List<CallNotification>> GetQueuedAsync(int? customerId);
     Task<object> IncomingCallAsync(IncomingCallRequest request);
+
+    /// <summary>
+    /// Windows uygulamasindan gelen senkronizasyon push'u.
+    /// Uid bazli idempotent: ayni Uid varsa gunceller, yoksa yeni olusturur.
+    /// </summary>
+    Task<CallSyncPushResponse> SyncPushAsync(int userId, CallSyncPushRequest request);
 }

@@ -1,0 +1,274 @@
+@page "/reports/local"
+@attribute [Authorize]
+@inject CallCenter.Windows.Services.LocalReportService ReportService
+@inject CallCenter.Windows.Services.ToastService Toast
+
+<div class="container-fluid py-3">
+    <div class="row">
+        <div class="col-12">
+            <h5 class="mb-3">
+                <i class="bi bi-bar-chart-fill me-2"></i>Lokal Raporlar
+            </h5>
+
+            @if (!ReportService.IsAvailable)
+            {
+                @* ─── DB yapilandirilmamis uyarisi ─── *@
+                <div class="alert alert-warning d-flex align-items-start">
+                    <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                    <div>
+                        <strong>Lokal veritabani yapilandirilmamis!</strong><br/>
+                        Lokal raporlari goruntuleyebilmek icin
+                        <a href="local-db-settings">Lokal Veritabani Ayarlari</a>
+                        sayfasindan bir veritabani tanimlayin.
+                    </div>
+                </div>
+            }
+            else
+            {
+                @* ─── Tarih Filtresi ─── *@
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-auto">
+                                <label class="form-label small fw-bold">Baslangic</label>
+                                <input type="date" class="form-control form-control-sm"
+                                       @bind="dateFrom" />
+                            </div>
+                            <div class="col-auto">
+                                <label class="form-label small fw-bold">Bitis</label>
+                                <input type="date" class="form-control form-control-sm"
+                                       @bind="dateTo" />
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-primary btn-sm" @onclick="LoadReport" disabled="@isLoading">
+                                    <i class="bi bi-search me-1"></i>
+                                    @(isLoading ? "Yukleniyor..." : "Raporla")
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" @onclick="() => SetQuickRange(0)">Bugun</button>
+                                    <button class="btn btn-outline-secondary" @onclick="() => SetQuickRange(7)">Son 7 Gun</button>
+                                    <button class="btn btn-outline-secondary" @onclick="() => SetQuickRange(30)">Son 30 Gun</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ─── KPI Kartlari ─── *@
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="card shadow-sm text-center">
+                            <div class="card-body">
+                                <div class="fs-3 fw-bold text-primary">@stats.TotalCalls</div>
+                                <div class="text-muted small">Toplam Arama</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card shadow-sm text-center">
+                            <div class="card-body">
+                                <div class="fs-3 fw-bold text-success">@stats.AnsweredCalls</div>
+                                <div class="text-muted small">Cevaplanan</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card shadow-sm text-center">
+                            <div class="card-body">
+                                <div class="fs-3 fw-bold text-warning">@stats.MissedCalls</div>
+                                <div class="text-muted small">Cevapsiz</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card shadow-sm text-center">
+                            <div class="card-body">
+                                <div class="fs-3 fw-bold text-info">@FormatDuration(stats.AvgDurationSeconds)</div>
+                                <div class="text-muted small">Ort. Sure</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ─── Cagri Listesi Tablosu ─── *@
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-table me-1"></i>Cagri Kayitlari</span>
+                        <span class="badge bg-secondary">Sayfa @currentPage</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Yon</th>
+                                        <th>Arayan</th>
+                                        <th>Aranan</th>
+                                        <th>Durum</th>
+                                        <th>Sure</th>
+                                        <th>Temsilci</th>
+                                        <th>Senkron</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (callRecords.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                                Kayit bulunamadi
+                                            </td>
+                                        </tr>
+                                    }
+                                    @foreach (var record in callRecords)
+                                    {
+                                        <tr>
+                                            <td class="small">@record.StartedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                            <td>
+                                                <i class="bi @(record.Direction == "Inbound" ? "bi-telephone-inbound-fill text-success" : "bi-telephone-outbound-fill text-primary")"></i>
+                                            </td>
+                                            <td class="font-monospace small">@record.CallerNumber</td>
+                                            <td class="font-monospace small">@record.CalleeNumber</td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(record.Status)">
+                                                    @GetStatusText(record.Status)
+                                                </span>
+                                            </td>
+                                            <td class="small">@FormatDuration(record.DurationSeconds)</td>
+                                            <td class="small">@(record.AgentName ?? "-")</td>
+                                            <td>
+                                                @if (record.IsSyncedToBackend)
+                                                {
+                                                    <i class="bi bi-cloud-check-fill text-success" title="Senkronlandi"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-cloud-slash-fill text-warning" title="Bekliyor"></i>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @if (callRecords.Count >= pageSize)
+                    {
+                        <div class="card-footer d-flex justify-content-between">
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(currentPage <= 1)">
+                                <i class="bi bi-chevron-left"></i> Onceki
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage">
+                                Sonraki <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private DateTime dateFrom = DateTime.Today.AddDays(-7);
+    private DateTime dateTo = DateTime.Today;
+    private bool isLoading;
+    private int currentPage = 1;
+    private const int pageSize = 25;
+
+    private CallCenter.Windows.LocalData.Entities.LocalCallStats stats = new();
+    private List<CallCenter.Windows.LocalData.Entities.LocalCallRecord> callRecords = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ReportService.IsAvailable)
+        {
+            await LoadReport();
+        }
+    }
+
+    private async Task LoadReport()
+    {
+        isLoading = true;
+        currentPage = 1;
+        StateHasChanged();
+
+        try
+        {
+            // Bitis tarihini gunun sonuna kadar genislet
+            var toEnd = dateTo.Date.AddDays(1).AddSeconds(-1);
+
+            stats = await ReportService.GetCallStatsAsync(dateFrom.Date, toEnd);
+            callRecords = await ReportService.GetCallRecordsAsync(dateFrom.Date, toEnd, currentPage, pageSize);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Rapor yukleme hatasi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SetQuickRange(int days)
+    {
+        dateTo = DateTime.Today;
+        dateFrom = days == 0 ? DateTime.Today : DateTime.Today.AddDays(-days);
+        _ = LoadReport();
+    }
+
+    private async Task PrevPage()
+    {
+        if (currentPage <= 1) return;
+        currentPage--;
+        await LoadCallRecords();
+    }
+
+    private async Task NextPage()
+    {
+        currentPage++;
+        await LoadCallRecords();
+    }
+
+    private async Task LoadCallRecords()
+    {
+        var toEnd = dateTo.Date.AddDays(1).AddSeconds(-1);
+        callRecords = await ReportService.GetCallRecordsAsync(dateFrom.Date, toEnd, currentPage, pageSize);
+    }
+
+    // ─── Yardimci metodlar ───
+
+    private static string FormatDuration(double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.TotalHours >= 1
+            ? ts.ToString(@"h\:mm\:ss")
+            : ts.ToString(@"mm\:ss");
+    }
+
+    private static string FormatDuration(int seconds) => FormatDuration((double)seconds);
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        "Completed" => "bg-success",
+        "Missed" => "bg-warning text-dark",
+        "Failed" => "bg-danger",
+        "InProgress" => "bg-primary",
+        "Ringing" => "bg-info",
+        _ => "bg-secondary"
+    };
+
+    private static string GetStatusText(string status) => status switch
+    {
+        "Completed" => "Tamamlandi",
+        "Missed" => "Cevapsiz",
+        "Failed" => "Basarisiz",
+        "InProgress" => "Devam Ediyor",
+        "Ringing" => "Caliyor",
+        _ => status
+    };
+}

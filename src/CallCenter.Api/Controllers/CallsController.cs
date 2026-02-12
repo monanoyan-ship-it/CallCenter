@@ -92,6 +92,19 @@ public class CallsController : ControllerBase
         return Ok(await svc.IncomingCallAsync(request));
     }
 
+    /// <summary>
+    /// Windows uygulamasindan lokal DB senkronizasyonu.
+    /// BackgroundSyncService periyodik olarak senkronlanmamis kayitlari buraya push eder.
+    /// Uid bazli idempotent: ayni Uid tekrar gelirse gunceller, yeni olusturmaz.
+    /// </summary>
+    [HttpPost("sync")]
+    public async Task<IActionResult> SyncPush([FromBody] CallSyncPushRequest request)
+    {
+        var svc = _factory.CreateCallService();
+        var result = await svc.SyncPushAsync(GetUserId(), request);
+        return Ok(result);
+    }
+
     private int GetUserId()
     {
         return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
