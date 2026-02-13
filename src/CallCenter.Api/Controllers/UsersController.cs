@@ -9,14 +9,9 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
-public class UsersController : ControllerBase
+public class UsersController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public UsersController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public UsersController(ServiceFactory factory) : base(factory) { }
 
     /// <summary>Sayfalamali kullanici listesi</summary>
     [HttpGet]
@@ -26,7 +21,7 @@ public class UsersController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] int? roleId = null)
     {
-        var svc = _factory.CreateUserService();
+        var svc = Factory.CreateUserService();
         return Ok(await svc.GetAllAsync(page, pageSize, search, roleId));
     }
 
@@ -34,7 +29,7 @@ public class UsersController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<UserListDto>> GetById(int id)
     {
-        var svc = _factory.CreateUserService();
+        var svc = Factory.CreateUserService();
         var result = await svc.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "Kullanici bulunamadi." });
         return Ok(result);
@@ -44,9 +39,13 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(UserCreateDto dto)
     {
-        var svc = _factory.CreateUserService();
+        var svc = Factory.CreateUserService();
         var (success, id, error) = await svc.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Create", "User", id.ToString(),
+            $"Kullanici olusturuldu: '{dto.UserName}'");
+
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
 
@@ -54,13 +53,17 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, UserUpdateDto dto)
     {
-        var svc = _factory.CreateUserService();
+        var svc = Factory.CreateUserService();
         var (success, error) = await svc.UpdateAsync(id, dto);
         if (!success)
         {
             if (error == "Kullanici bulunamadi.") return NotFound(new { message = error });
             return BadRequest(new { message = error });
         }
+
+        await AuditCrudAsync("Update", "User", id.ToString(),
+            $"Kullanici guncellendi: ID={id}");
+
         return NoContent();
     }
 
@@ -69,13 +72,17 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> Delete(int id)
     {
         var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var svc = _factory.CreateUserService();
+        var svc = Factory.CreateUserService();
         var (success, error) = await svc.DeleteAsync(id, currentUserId);
         if (!success)
         {
             if (error == "Kullanici bulunamadi.") return NotFound(new { message = error });
             return BadRequest(new { message = error });
         }
+
+        await AuditCrudAsync("Delete", "User", id.ToString(),
+            $"Kullanici silindi (deaktif): ID={id}");
+
         return NoContent();
     }
 }

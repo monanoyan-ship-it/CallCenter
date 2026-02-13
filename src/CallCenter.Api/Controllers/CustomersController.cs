@@ -8,14 +8,9 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin,Supervisor")]
-public class CustomersController : ControllerBase
+public class CustomersController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public CustomersController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public CustomersController(ServiceFactory factory) : base(factory) { }
 
     /// <summary>Sayfalamali musteri listesi</summary>
     [HttpGet]
@@ -24,7 +19,7 @@ public class CustomersController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] string? search = null)
     {
-        var svc = _factory.CreateCustomerService();
+        var svc = Factory.CreateCustomerService();
         return Ok(await svc.GetAllAsync(page, pageSize, search));
     }
 
@@ -32,7 +27,7 @@ public class CustomersController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<CustomerDetailDto>> GetById(int id)
     {
-        var svc = _factory.CreateCustomerService();
+        var svc = Factory.CreateCustomerService();
         var result = await svc.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "Musteri bulunamadi." });
         return Ok(result);
@@ -42,8 +37,12 @@ public class CustomersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(CustomerCreateDto dto)
     {
-        var svc = _factory.CreateCustomerService();
+        var svc = Factory.CreateCustomerService();
         var id = await svc.CreateAsync(dto);
+
+        await AuditCrudAsync("Create", "Customer", id.ToString(),
+            $"Musteri olusturuldu: '{dto.Name}'");
+
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
 
@@ -51,9 +50,13 @@ public class CustomersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, CustomerUpdateDto dto)
     {
-        var svc = _factory.CreateCustomerService();
+        var svc = Factory.CreateCustomerService();
         var (success, error) = await svc.UpdateAsync(id, dto);
         if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Update", "Customer", id.ToString(),
+            $"Musteri guncellendi: ID={id}");
+
         return NoContent();
     }
 
@@ -61,9 +64,13 @@ public class CustomersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var svc = _factory.CreateCustomerService();
+        var svc = Factory.CreateCustomerService();
         var (success, error) = await svc.DeleteAsync(id);
         if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Delete", "Customer", id.ToString(),
+            $"Musteri silindi (deaktif): ID={id}");
+
         return NoContent();
     }
 
@@ -72,9 +79,13 @@ public class CustomersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> ResetAdminPassword(int id)
     {
-        var svc = _factory.CreateCustomerService();
+        var svc = Factory.CreateCustomerService();
         var (success, tempPassword, error) = await svc.ResetAdminPasswordAsync(id);
         if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("PasswordReset", "Customer", id.ToString(),
+            $"Musteri admin sifresi sifirlandi: ID={id}");
+
         return Ok(new { password = tempPassword });
     }
 }

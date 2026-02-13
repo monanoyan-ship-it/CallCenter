@@ -10,14 +10,9 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/portal")]
 [Authorize(Roles = "Admin,CustomerUser")]
-public class PortalController : ControllerBase
+public class PortalController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public PortalController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public PortalController(ServiceFactory factory) : base(factory) { }
 
     // ═══════════════════════════════════════════════════════════════
     // HELPERS
@@ -65,7 +60,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var result = await service.GetDashboardAsync(cid.Value);
         return Ok(result);
     }
@@ -83,7 +78,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         return Ok(await service.GetUserTypesAsync(cid.Value));
     }
 
@@ -96,9 +91,14 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, result) = await service.CreateUserTypeAsync(cid.Value, dto);
-        return success ? Ok(result) : BadRequest(new { message = (string)result });
+        if (!success) return BadRequest(new { message = (string)result });
+
+        await AuditCrudAsync("Create", "UserType", result?.ToString(),
+            $"Kullanici tipi olusturuldu: '{dto.Name}'", customerId: cid);
+
+        return Ok(result);
     }
 
     [HttpPut("usertypes/{id}")]
@@ -110,9 +110,14 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.UpdateUserTypeAsync(cid.Value, id, dto);
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Update", "UserType", id.ToString(),
+            $"Kullanici tipi guncellendi: ID={id}", customerId: cid);
+
+        return NoContent();
     }
 
     [HttpDelete("usertypes/{id}")]
@@ -124,9 +129,14 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.DeactivateUserTypeAsync(cid.Value, id);
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Deactivate", "UserType", id.ToString(),
+            $"Kullanici tipi deaktif edildi: ID={id}", customerId: cid);
+
+        return NoContent();
     }
 
     [HttpGet("usertypes/{id}/permissions")]
@@ -138,7 +148,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         return Ok(await service.GetUserTypePermissionsAsync(cid.Value, id));
     }
 
@@ -151,9 +161,15 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.SetUserTypePermissionsAsync(cid.Value, id, request.PermissionTypeIds);
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("UpdatePermissions", "UserType", id.ToString(),
+            $"Kullanici tipi yetkileri guncellendi: ID={id}, izinler=[{string.Join(",", request.PermissionTypeIds)}]",
+            customerId: cid);
+
+        return NoContent();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -169,7 +185,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         return Ok(await service.GetPersonnelAsync(cid.Value));
     }
 
@@ -182,9 +198,14 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, result) = await service.CreatePersonnelAsync(cid.Value, dto, GetUserId());
-        return success ? Ok(result) : BadRequest(new { message = (string)result });
+        if (!success) return BadRequest(new { message = (string)result });
+
+        await AuditCrudAsync("Create", "Personnel", result?.ToString(),
+            $"Personel olusturuldu: '{dto.FullName}' ({dto.UserName})", customerId: cid);
+
+        return Ok(result);
     }
 
     [HttpPut("personnel/{id}")]
@@ -196,9 +217,14 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.UpdatePersonnelAsync(cid.Value, id, dto);
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Update", "Personnel", id.ToString(),
+            $"Personel guncellendi: ID={id}", customerId: cid);
+
+        return NoContent();
     }
 
     [HttpDelete("personnel/{id}")]
@@ -210,9 +236,14 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.DeactivatePersonnelAsync(cid.Value, id);
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Deactivate", "Personnel", id.ToString(),
+            $"Personel deaktif edildi: ID={id}", customerId: cid);
+
+        return NoContent();
     }
 
     [HttpGet("personnel/{id}/permissions")]
@@ -224,7 +255,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         return Ok(await service.GetPersonnelPermissionsAsync(cid.Value, id));
     }
 
@@ -237,9 +268,15 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.SetPersonnelPermissionsAsync(cid.Value, id, request.PermissionTypeIds, request.ScopeId, GetUserId());
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("UpdatePermissions", "Personnel", id.ToString(),
+            $"Personel yetkileri guncellendi: ID={id}, izinler=[{string.Join(",", request.PermissionTypeIds)}]",
+            customerId: cid);
+
+        return NoContent();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -252,7 +289,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         return Ok(await service.GetModulesAsync(cid.Value));
     }
 
@@ -269,7 +306,7 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         return Ok(await service.GetSipAccountsAsync(cid.Value));
     }
 
@@ -282,8 +319,13 @@ public class PortalController : ControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = _factory.CreatePortalService();
+        var service = Factory.CreatePortalService();
         var (success, error) = await service.UpdateSipAccountAsync(cid.Value, id, dto);
-        return success ? NoContent() : BadRequest(new { message = error });
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Update", "SipAccount", id.ToString(),
+            $"Portal SIP hesabi guncellendi: ID={id}", customerId: cid);
+
+        return NoContent();
     }
 }

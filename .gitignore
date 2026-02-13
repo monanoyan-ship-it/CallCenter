@@ -7,9 +7,6 @@ obj/
 *.sln.docstates
 .vs/
 
-## Hassas yapilandirma dosyalari (Production secret'lari)
-**/appsettings.Production.json
-
 ## NuGet
 *.nupkg
 **/[Pp]ackages/*
@@ -41,6 +38,3 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
-
-## Secrets (production'da kullanılacak gerçek ayarlar)
-appsettings.Production.json

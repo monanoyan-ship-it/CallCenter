@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<CustomerOrganizationUnit> CustomerOrganizationUnits => Set<CustomerOrganizationUnit>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -279,6 +280,30 @@ public class AppDbContext : DbContext
             e.Ignore(rt => rt.IsExpired);
             e.Ignore(rt => rt.IsRevoked);
             e.Ignore(rt => rt.IsActive);
+        });
+
+        // AuditLog (KVKK / BDDK uyumlu denetim kaydi)
+        modelBuilder.Entity<AuditLog>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Category).HasMaxLength(50).IsRequired();
+            e.Property(a => a.Action).HasMaxLength(50).IsRequired();
+            e.Property(a => a.UserName).HasMaxLength(100);
+            e.Property(a => a.EntityType).HasMaxLength(100);
+            e.Property(a => a.EntityId).HasMaxLength(50);
+            e.Property(a => a.Description).HasMaxLength(1000).IsRequired();
+            e.Property(a => a.IpAddress).HasMaxLength(50);
+            e.Property(a => a.UserAgent).HasMaxLength(500);
+            // Performans: sik sorgulanan kolonlara index
+            e.HasIndex(a => a.CreatedAt);
+            e.HasIndex(a => a.Category);
+            e.HasIndex(a => a.UserId);
+            e.HasIndex(a => a.CustomerId);
+            e.HasIndex(a => new { a.EntityType, a.EntityId });
+            // FK YOK — PostgreSQL partitioned tablolarda FK desteklenmiyor
+            // UserId ve CustomerId sadece bilgi amacli (snapshot), referential integrity gerekmiyor
+            e.Ignore(a => a.User);
+            e.Ignore(a => a.Customer);
         });
 
         // =============================================

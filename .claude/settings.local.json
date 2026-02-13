@@ -55,7 +55,10 @@
       "Bash(dotnet restore:*)",
       "Bash(git checkout:*)",
       "Bash(Get-ChildItem -Recurse -Directory -Filter bin)",
-      "Bash(powershell -Command \"Get-ChildItem -Recurse -Directory -Filter bin | Remove-Item -Recurse -Force; Get-ChildItem -Recurse -Directory -Filter obj | Remove-Item -Recurse -Force; Write-Host ''bin/obj klasorleri temizlendi''\")"
+      "Bash(powershell -Command \"Get-ChildItem -Recurse -Directory -Filter bin | Remove-Item -Recurse -Force; Get-ChildItem -Recurse -Directory -Filter obj | Remove-Item -Recurse -Force; Write-Host ''bin/obj klasorleri temizlendi''\")",
+      "Bash(dotnet ef migrations list:*)",
+      "Bash(psql:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\":*)"
     ]
   }
 }

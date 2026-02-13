@@ -9,20 +9,15 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CallsController : ControllerBase
+public class CallsController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public CallsController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public CallsController(ServiceFactory factory) : base(factory) { }
 
     /// <summary>Arama gecmisi (tamamlanmis aramalar)</summary>
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         return Ok(await svc.GetHistoryAsync(GetUserId(), page, pageSize));
     }
 
@@ -30,7 +25,7 @@ public class CallsController : ControllerBase
     [HttpGet("active")]
     public async Task<IActionResult> GetActive()
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         return Ok(await svc.GetActiveAsync(GetUserId()));
     }
 
@@ -38,8 +33,12 @@ public class CallsController : ControllerBase
     [HttpPost("start")]
     public async Task<IActionResult> StartCall([FromBody] StartCallRequest request)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         var (id, uid) = await svc.StartCallAsync(GetUserId(), request);
+
+        await AuditCrudAsync("Create", "CallRecord", id.ToString(),
+            $"Arama baslatildi: {request.CalleeNumber}");
+
         return Ok(new { Id = id, Uid = uid });
     }
 
@@ -47,9 +46,13 @@ public class CallsController : ControllerBase
     [HttpPut("{callId}/hold")]
     public async Task<IActionResult> HoldCall(int callId)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         var (success, error) = await svc.HoldCallAsync(callId);
         if (!success) return NotFound();
+
+        await AuditCrudAsync("Hold", "CallRecord", callId.ToString(),
+            $"Arama bekletildi: ID={callId}");
+
         return Ok();
     }
 
@@ -57,9 +60,13 @@ public class CallsController : ControllerBase
     [HttpPut("{callId}/end")]
     public async Task<IActionResult> EndCall(int callId)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         var (success, error) = await svc.EndCallAsync(callId, GetUserId());
         if (!success) return NotFound();
+
+        await AuditCrudAsync("End", "CallRecord", callId.ToString(),
+            $"Arama sonlandirildi: ID={callId}");
+
         return Ok();
     }
 
@@ -67,9 +74,13 @@ public class CallsController : ControllerBase
     [HttpPut("{callId}/answer")]
     public async Task<IActionResult> AnswerCall(int callId)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         var (success, error) = await svc.AnswerCallAsync(callId);
         if (!success) return NotFound();
+
+        await AuditCrudAsync("Answer", "CallRecord", callId.ToString(),
+            $"Arama cevaplandi: ID={callId}");
+
         return Ok();
     }
 
@@ -77,19 +88,24 @@ public class CallsController : ControllerBase
     [HttpGet("queued")]
     public async Task<IActionResult> GetQueued([FromQuery] int? customerId = null)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         return Ok(await svc.GetQueuedAsync(customerId));
     }
 
     /// <summary>
-    /// Gelen arama kaydı oluşturur ve uygun agent'a yönlendirir.
-    /// PBX webhook veya SIP event'i tarafından çağrılabilir.
+    /// Gelen arama kaydi olusturur ve uygun agent'a yonlendirir.
+    /// PBX webhook veya SIP event'i tarafindan cagrilabilir.
     /// </summary>
     [HttpPost("incoming")]
     public async Task<IActionResult> IncomingCall([FromBody] IncomingCallRequest request)
     {
-        var svc = _factory.CreateCallService();
-        return Ok(await svc.IncomingCallAsync(request));
+        var svc = Factory.CreateCallService();
+        var result = await svc.IncomingCallAsync(request);
+
+        await AuditCrudAsync("Incoming", "CallRecord", null,
+            $"Gelen arama: {request.CallerNumber} -> kuyruk {request.QueueId}");
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -100,8 +116,12 @@ public class CallsController : ControllerBase
     [HttpPost("sync")]
     public async Task<IActionResult> SyncPush([FromBody] CallSyncPushRequest request)
     {
-        var svc = _factory.CreateCallService();
+        var svc = Factory.CreateCallService();
         var result = await svc.SyncPushAsync(GetUserId(), request);
+
+        await AuditCrudAsync("Sync", "CallRecord", request.Uid.ToString(),
+            $"Cagri sync: {request.CallerNumber} -> {request.CalleeNumber}");
+
         return Ok(result);
     }
 

@@ -8,65 +8,63 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
-public class TranslationsController : ControllerBase
+public class TranslationsController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public TranslationsController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public TranslationsController(ServiceFactory factory) : base(factory) { }
 
     /// <summary>
-    /// Tüm çevirileri belirtilen dilde JSON olarak döndürür (frontend için)
+    /// Tum cevirileri belirtilen dilde JSON olarak dondurur (frontend icin)
     /// </summary>
     [HttpGet("{languageCode}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetAll(string languageCode)
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         return Ok(await svc.GetAllTranslationsAsync(languageCode));
     }
 
     /// <summary>
-    /// Tüm çevirileri XML olarak indir
+    /// Tum cevirileri XML olarak indir
     /// </summary>
     [HttpGet("export/xml")]
     public async Task<IActionResult> ExportXml()
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         var bytes = await svc.ExportXmlAsync();
         return File(bytes, "application/xml", "translations.xml");
     }
 
     /// <summary>
-    /// XML dosyasından çevirileri yükle (mevcut olanları güncelle, olmayanları ekle)
+    /// XML dosyasindan cevirileri yukle (mevcut olanlari guncelle, olmayanlari ekle)
     /// </summary>
     [HttpPost("import/xml")]
     public async Task<IActionResult> ImportXml(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest(new { message = "Dosya seçilmedi." });
+            return BadRequest(new { message = "Dosya secilmedi." });
 
         using var stream = file.OpenReadStream();
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         var (success, message) = await svc.ImportXmlAsync(stream, User.Identity?.Name);
 
         if (!success)
             return BadRequest(new { message });
 
+        await AuditCrudAsync("Import", "Translation", null,
+            $"Ceviri XML import edildi: {file.FileName}");
+
         return Ok(new { message });
     }
 
     /// <summary>
-    /// Cache'i yenile (moderatör DB'den değiştirirse)
+    /// Cache'i yenile (moderator DB'den degistirirse)
     /// </summary>
     [HttpPost("reload-cache")]
     public async Task<IActionResult> ReloadCache()
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         await svc.ReloadCacheAsync();
-        return Ok(new { message = "Çeviri önbelleği yenilendi." });
+        return Ok(new { message = "Ceviri onbellegi yenilendi." });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -77,7 +75,7 @@ public class TranslationsController : ControllerBase
     [HttpGet("languages")]
     public async Task<ActionResult<List<LanguageDto>>> GetLanguages()
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         return Ok(await svc.GetLanguagesAsync());
     }
 
@@ -89,7 +87,7 @@ public class TranslationsController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? module = null)
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         return Ok(await svc.GetKeysAsync(page, pageSize, search, module));
     }
 
@@ -97,9 +95,13 @@ public class TranslationsController : ControllerBase
     [HttpPost("keys")]
     public async Task<ActionResult> CreateKey(TranslationKeyCreateDto dto)
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         var (success, id, error) = await svc.CreateKeyAsync(dto, User.Identity?.Name);
         if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Create", "TranslationKey", id.ToString(),
+            $"Ceviri key'i olusturuldu: '{dto.Key}' ({dto.Module})");
+
         return Ok(new { id });
     }
 
@@ -107,9 +109,13 @@ public class TranslationsController : ControllerBase
     [HttpPut("keys/{id}")]
     public async Task<ActionResult> UpdateKey(int id, TranslationKeyUpdateDto dto)
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         var (success, error) = await svc.UpdateKeyAsync(id, dto, User.Identity?.Name);
         if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Update", "TranslationKey", id.ToString(),
+            $"Ceviri key'i guncellendi: ID={id}");
+
         return NoContent();
     }
 
@@ -117,9 +123,13 @@ public class TranslationsController : ControllerBase
     [HttpDelete("keys/{id}")]
     public async Task<ActionResult> DeleteKey(int id)
     {
-        var svc = _factory.CreateTranslationManagementService();
+        var svc = Factory.CreateTranslationManagementService();
         var (success, error) = await svc.DeleteKeyAsync(id);
         if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Delete", "TranslationKey", id.ToString(),
+            $"Ceviri key'i silindi: ID={id}");
+
         return NoContent();
     }
 }

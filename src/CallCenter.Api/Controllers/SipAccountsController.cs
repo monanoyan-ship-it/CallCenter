@@ -9,19 +9,14 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class SipAccountsController : ControllerBase
+public class SipAccountsController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public SipAccountsController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public SipAccountsController(ServiceFactory factory) : base(factory) { }
 
     /// <summary>
-    /// Agent'ın müşterisinin default SIP hesabının bağlantı bilgilerini döndürür.
-    /// WebSocket URI otomatik oluşturulur: wss://server:port/ws
-    /// Tüm authenticated kullanıcılar erişebilir.
+    /// Agent'in musterisinin default SIP hesabinin baglanti bilgilerini dondurur.
+    /// WebSocket URI otomatik olusturulur: wss://server:port/ws
+    /// Tum authenticated kullanicilar erisebilir.
     /// </summary>
     [HttpGet("my/connection")]
     public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection()
@@ -29,15 +24,15 @@ public class SipAccountsController : ControllerBase
         var customerIdClaim = User.FindFirstValue("CustomerId");
         if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
         {
-            return BadRequest(new { message = "Müşteri bilgisi bulunamadı. Lütfen tekrar giriş yapın." });
+            return BadRequest(new { message = "Musteri bilgisi bulunamadi. Lutfen tekrar giris yapin." });
         }
 
         var displayName = User.FindFirstValue(ClaimTypes.GivenName) ?? "User";
-        var svc = _factory.CreateSipAccountService();
+        var svc = Factory.CreateSipAccountService();
         var result = await svc.GetMyConnectionAsync(customerId, displayName);
 
         if (result == null)
-            return NotFound(new { message = "Firmanıza ait aktif SIP hesabı bulunamadı." });
+            return NotFound(new { message = "Firmaniza ait aktif SIP hesabi bulunamadi." });
 
         return Ok(result);
     }
@@ -50,7 +45,7 @@ public class SipAccountsController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] int? customerId = null)
     {
-        var svc = _factory.CreateSipAccountService();
+        var svc = Factory.CreateSipAccountService();
         return Ok(await svc.GetAllAsync(page, pageSize, customerId));
     }
 
@@ -59,7 +54,7 @@ public class SipAccountsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GetById(int id)
     {
-        var svc = _factory.CreateSipAccountService();
+        var svc = Factory.CreateSipAccountService();
         var result = await svc.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "SIP hesabi bulunamadi." });
         return Ok(result);
@@ -70,9 +65,13 @@ public class SipAccountsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Create(SipAccountCreateDto dto)
     {
-        var svc = _factory.CreateSipAccountService();
+        var svc = Factory.CreateSipAccountService();
         var (success, id, error) = await svc.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Create", "SipAccount", id.ToString(),
+            $"SIP hesabi olusturuldu: '{dto.Name}' (server: {dto.Server})", customerId: dto.CustomerId);
+
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
 
@@ -81,9 +80,13 @@ public class SipAccountsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Update(int id, SipAccountUpdateDto dto)
     {
-        var svc = _factory.CreateSipAccountService();
+        var svc = Factory.CreateSipAccountService();
         var (success, error) = await svc.UpdateAsync(id, dto);
         if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Update", "SipAccount", id.ToString(),
+            $"SIP hesabi guncellendi: ID={id}");
+
         return NoContent();
     }
 
@@ -92,9 +95,13 @@ public class SipAccountsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Delete(int id)
     {
-        var svc = _factory.CreateSipAccountService();
+        var svc = Factory.CreateSipAccountService();
         var (success, error) = await svc.DeleteAsync(id);
         if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Delete", "SipAccount", id.ToString(),
+            $"SIP hesabi silindi: ID={id}");
+
         return NoContent();
     }
 }

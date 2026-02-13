@@ -9,19 +9,14 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class AgentsController : ControllerBase
+public class AgentsController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public AgentsController(ServiceFactory factory)
-    {
-        _factory = factory;
-    }
+    public AgentsController(ServiceFactory factory) : base(factory) { }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var svc = _factory.CreateAgentService();
+        var svc = Factory.CreateAgentService();
         return Ok(await svc.GetAllAsync());
     }
 
@@ -29,9 +24,13 @@ public class AgentsController : ControllerBase
     public async Task<IActionResult> UpdateStatus([FromBody] int newStatusId)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var svc = _factory.CreateAgentService();
+        var svc = Factory.CreateAgentService();
         var (success, error) = await svc.UpdateStatusAsync(userId, newStatusId);
         if (!success) return BadRequest(error);
+
+        await AuditCrudAsync("StatusChange", "User", userId.ToString(),
+            $"Agent durum degisikligi: StatusId={newStatusId}");
+
         return Ok();
     }
 
@@ -43,7 +42,7 @@ public class AgentsController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
-        var svc = _factory.CreateAgentService();
+        var svc = Factory.CreateAgentService();
         return Ok(await svc.GetMyQueuesAsync(userId, role, customerId));
     }
 
@@ -51,7 +50,7 @@ public class AgentsController : ControllerBase
     public async Task<IActionResult> GetCurrentAgent()
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var svc = _factory.CreateAgentService();
+        var svc = Factory.CreateAgentService();
         var result = await svc.GetCurrentAgentAsync(userId);
         if (result == null) return NotFound();
         return Ok(result);

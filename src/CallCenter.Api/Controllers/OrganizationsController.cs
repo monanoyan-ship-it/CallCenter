@@ -8,16 +8,14 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin,Supervisor")]
-public class OrganizationsController : ControllerBase
+public class OrganizationsController : AuditableControllerBase
 {
-    private readonly ServiceFactory _factory;
-
-    public OrganizationsController(ServiceFactory factory) => _factory = factory;
+    public OrganizationsController(ServiceFactory factory) : base(factory) { }
 
     [HttpGet("tree")]
     public async Task<IActionResult> GetTree([FromQuery] int customerId)
     {
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var tree = await svc.GetTreeAsync(customerId);
         return Ok(tree);
     }
@@ -25,7 +23,7 @@ public class OrganizationsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] int customerId)
     {
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var list = await svc.GetListAsync(customerId);
         return Ok(list);
     }
@@ -33,7 +31,7 @@ public class OrganizationsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id, [FromQuery] int customerId)
     {
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var detail = await svc.GetByIdAsync(customerId, id);
         if (detail == null) return NotFound();
         return Ok(detail);
@@ -44,9 +42,13 @@ public class OrganizationsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var (success, result) = await svc.CreateAsync(customerId, dto);
         if (!success) return BadRequest(new { error = result });
+
+        await AuditCrudAsync("Create", "OrganizationUnit", result?.ToString(),
+            $"Organizasyon birimi olusturuldu: '{dto.Name}'", customerId: customerId);
+
         return Ok(result);
     }
 
@@ -55,25 +57,33 @@ public class OrganizationsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var (success, error) = await svc.UpdateAsync(customerId, id, dto);
         if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Update", "OrganizationUnit", id.ToString(),
+            $"Organizasyon birimi guncellendi: ID={id}", customerId: customerId);
+
         return Ok();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int customerId)
     {
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var (success, error) = await svc.DeleteAsync(customerId, id);
         if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Delete", "OrganizationUnit", id.ToString(),
+            $"Organizasyon birimi silindi: ID={id}", customerId: customerId);
+
         return Ok();
     }
 
     [HttpGet("parents")]
     public async Task<IActionResult> GetPotentialParents([FromQuery] int customerId, [FromQuery] int? excludeId)
     {
-        var svc = _factory.CreateOrganizationService();
+        var svc = Factory.CreateOrganizationService();
         var list = await svc.GetPotentialParentsAsync(customerId, excludeId);
         return Ok(list);
     }

@@ -46,4 +46,7 @@ public class ServiceFactory
 
     public IOrganizationService CreateOrganizationService()
         => _sp.GetRequiredService<IOrganizationService>();
+
+    public IAuditService CreateAuditService()
+        => _sp.GetRequiredService<IAuditService>();
 }

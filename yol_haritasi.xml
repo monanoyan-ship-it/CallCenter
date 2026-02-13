@@ -1122,7 +1122,7 @@
     </TemelBulgular>
     <ProjeyeEtki oncelik="acil">
       - SipAccount.Password sifrelenmeli (AES, simdi duz metin)
-      - Audit Log tablosu ve kayit mekanizmasi eklenmeli
+      - [KAPANDI] Audit Log tablosu ve kayit mekanizmasi eklendi (G.3 gorevi)
       - Cagri kaydi sifreli depolama eklenmeli (AES-256)
       - MFA (TOTP) destegi eklenmeli (Admin/Supervisor)
       - Sifre politikasi eklenmeli (uzunluk, karmasiklik, sure, tekrar engelleme)
@@ -1144,7 +1144,7 @@
     </ProjeyeEtki>
     <Riskler>
       - [KAPANDI] SipAccount.Password artik AES-256-CBC ile sifreleniyor (G.1 gorevi). Regulasyon riski kapandi.
-      - Audit log mekanizmasi henuz yok. BDDK ve KVKK uyumu icin zorunlu.
+      - [KAPANDI] Audit log mekanizmasi eklendi (G.3 gorevi). AuditLog entity + IAuditService + 12 controller entegrasyonu.
       - Cagri kayit altyapisi henuz yok. SPK ve TTK uyumu icin ses kaydi + 10 yil saklama gerekli.
       - MFA desteği yok. BDDK 2023/1 Genelge uyumu icin en azindan Admin/Supervisor icin gerekli.
       - BTK VoIP yetkilendirme sureci arastirilmali — musteri mu yoksa biz mi yetkilendirilmeli?
@@ -1362,6 +1362,85 @@
       - RefreshTokens tablosu zamanla buyuyecek — periyodik cleanup (suresi dolmus/revoke edilmis token'lari sil) eklenmeli
       - Web'de refresh token localStorage'da — XSS saldirisinda erisilebilir. HttpOnly cookie'ye tasima daha guvenli olur (ileri faz)
       - Concurrent refresh istekleri race condition olusturabilir — ilk gelen kazanir, ikinci "revoke edilmis" hatasina duser
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GOREV G.3: AUDIT LOG SISTEMI (KVKK/BDDK)                    -->
+  <!-- ============================================================ -->
+  <Gorev no="G.3" durum="tamamlandi" tamamlanma="2026-02-13">
+    <Ad>Audit Log Sistemi — KVKK/BDDK Uyumu</Ad>
+    <Detay>
+      KVKK (min 3 yil saklama) ve BDDK denetim zorunluluklari icin tam audit log altyapisi.
+
+      1. AuditLog Entity (Shared/Entities/AuditLog.cs)
+        - PK: long Id (bigint — yuksek hacim icin)
+        - Category: Auth, User, Customer, Queue, SipAccount, CallRecord, SystemSetting, UserType, Personnel, Permission, OrganizationUnit, Translation
+        - Action: Login, LoginFailed, Logout, Refresh, RefreshFailed, Revoke, Create, Update, Delete, Deactivate, PasswordReset, StatusChange, AssignAgent, RemoveAgent, AssignModules, DeactivateModule, AssignPermissions, UpdatePermissions, RemovePermission, Hold, End, Answer, Incoming, Sync, Import
+        - UserId + UserName (snapshot)
+        - EntityType + EntityId
+        - Description (kisa aciklama)
+        - OldValues / NewValues (JSON)
+        - IpAddress + UserAgent (HTTP metadata)
+        - CustomerId (coklu musteri izolasyonu)
+        - CreatedAt (UTC)
+        - Index'ler: CreatedAt, Category, UserId, CustomerId, (EntityType+EntityId) composite
+
+      2. IAuditService + AuditService (Scoped)
+        - LogAsync(AuditEntry) — genel
+        - LogAuthAsync() — auth olaylari
+        - LogCrudAsync() — CRUD olaylari
+
+      3. AuditableControllerBase
+        - ControllerBase extension: CurrentUserId, CurrentUserName, ClientIp, ClientUserAgent otomatik
+        - AuditAuthAsync() ve AuditCrudAsync() kolaylik metotlari
+        - 12 controller bu base class'a migrate edildi
+
+      4. Controller Entegrasyonu
+        - AuthController: Login, LoginFailed, Refresh, RefreshFailed, Revoke
+        - CustomersController: Create, Update, Delete, PasswordReset
+        - UsersController: Create, Update, Delete
+        - QueuesController: Create, Update, Delete, AssignAgent, RemoveAgent
+        - SipAccountsController: Create, Update, Delete
+        - SettingsController: Create, Update, Delete
+        - CallsController: Create (start), Hold, End, Answer, Incoming, Sync
+        - OrganizationsController: Create, Update, Delete
+        - AgentsController: StatusChange
+        - PortalController: UserType CRUD, Personnel CRUD, Permission updates, SIP update
+        - TranslationsController: Create/Update/Delete key, Import XML
+        - CustomerPermissionsController: AssignModules, DeactivateModule, AssignPermissions, UpdatePermission, RemovePermission
+        - SupervisorController ve ReportsController: read-only, audit haric
+
+      5. EF Migration: AddAuditLogs (7. migration, DB sifirlandi)
+
+      6. Table Partitioning (8. migration: AuditLogsPartitioning)
+        - PostgreSQL PARTITION BY RANGE ("CreatedAt") — aylik partition'lar
+        - FK kaldirildi (partitioned tabloda desteklenmiyor) → User, Customer Ignore edildi
+        - Composite PK: ("Id", "CreatedAt") — partition key PK'nin parcasi
+        - Ilk partition'lar: 2026_01..2026_06 + default
+        - 3 PostgreSQL fonksiyon:
+          a) create_audit_partitions(months_ahead) — gelecek aylarin partition'larini olustur
+          b) drop_old_audit_partitions(retention_months) — KVKK 3 yil suresi dolmuslari sil
+          c) maintain_audit_partitions() — tek cagriyla ikisini de calistir
+        - DB sifirlandi, 8 migration sirasiyla uygulandi
+
+      7. AuditPartitionMaintenanceService (BackgroundService)
+        - Uygulama acikken arka planda calisir
+        - Baslangicta 30sn bekler (diger servisler ayaga kalksin)
+        - Her 24 saatte bir maintain_audit_partitions() cagrilir
+        - IServiceScopeFactory ile scoped DbContext olusturur
+        - Hata olursa loglar, uygulama capraz etkilenmez
+
+      **Build: 0 hata, 0 uyari**
+    </Detay>
+    <Riskler>
+      - [KAPANDI] AuditLogs tablosu buyume sorunu → Table partitioning uygulanildi (G.3 adim 6)
+      - [KAPANDI] maintain_audit_partitions() zamanlama → AuditPartitionMaintenanceService (BackgroundService) eklendi, 24 saatte bir otomatik calisir
+      - Simdiki audit sadece basarili islemleri logluyor. Service-level hata/exception audit'i (try-catch icinde) henuz yok
+      - OldValues/NewValues JSON alanlari henuz kullanilmiyor — controller'lar sadece description ile logluyor. Detayli diff icin service katmaninda degisiklik gerekir
+      - Audit log query/goruntuleme UI'si henuz yok — admin panelinde "Audit Log" sayfasi eklenmeli
+      - IP adresi reverse proxy arkasinda X-Forwarded-For olabilir — middleware ile dogru IP alinmali
+      - Partitioned tabloda FK yok — referential integrity uygulanamaz, UserId/CustomerId orphan olabilir (audit icin kabul edilebilir)
     </Riskler>
   </Gorev>
 
