@@ -1510,6 +1510,7 @@ Müşteri altında organizasyon ağacı, kullanıcı tipi hiyerarşisi ve person
 6. `AddRefreshTokens` — RefreshTokens tablosu (token rotation)
 7. `AddAuditLogs` — AuditLogs tablosu (KVKK/BDDK denetim)
 8. `AuditLogsPartitioning` — AuditLogs tablo partitioning + bakım fonksiyonları
+9. `AddPasswordPolicyAndRecordingEncryption` — Şifre politikası + kayıt şifreleme
 
 **Build: 0 hata, 0 uyari**
 
@@ -1634,3 +1635,125 @@ Tek tabloda 100M+ satir → sorgu performansi duser, index maintenance maliyetli
 **DB Sifirlama:** CallCenterDB drop + 8 migration sirasiyla uygulandi.
 
 **Build: 0 hata, 0 uyari**
+
+---
+
+## Çağrı Kaydı Şifreli Saklama (G.4) — 2026-02-13
+
+### Mimari: AES-256-CBC Stream Bazlı Dosya Şifreleme
+
+**Önceki durum:** WAV dosyaları plaintext olarak diskte saklanıyordu.
+
+**Yeni durum:**
+- `FileEncryptionService` (Shared/Services) — static class, stream bazlı AES-256-CBC
+- Dosya formatı: `[16 byte IV][AES-CBC ciphertext]` (binary, Base64 yok)
+- Buffer: 80KB okuma/yazma (büyük dosyalar için memory-efficient)
+- Key: `Encryption:Key` config'inden SHA256 ile türetilir (mevcut AesEncryptionService ile aynı kaynak)
+- Shared projede: Hem Windows client hem backend (gelecekte) kullanacak
+
+**NativeSipService entegrasyonu:**
+- `StopRecordingAsync()`: WAV kapatılır → .enc'ye şifrelenir → orijinal WAV silinir
+- `_recordingWavPath` ile WAV yolu takip edilir, sonuç `.enc` olarak güncellenir
+- Şifreleme başarısız olursa WAV korunur (fallback)
+
+**Metadata genişlemesi:**
+- `CallRecord`: RecordingFileHash (SHA-256), RecordingFileSize, IsRecordingEncrypted, RecordingRetentionDate
+- `LocalRecording`: FileHash, IsEncrypted, RetentionDate
+- `CallSyncPushRequest`: Aynı alanlar DTO'ya eklendi
+
+**TTL (Saklama süresi):**
+- TTK md. 82: 10 yıl varsayılan (`security.recording_retention_years` ayarı)
+- `RecordingCleanupService`: Uygulama başlangıcında çalışır, süresi dolan dosyaları siler
+
+**Lokal DB tablo genişlemesi:**
+- `local_recordings` tablosuna 3 yeni kolon: `file_hash`, `is_encrypted`, `retention_date`
+- Tüm provider'lar güncellendi (Postgres, MSSQL, MongoDB)
+- `ILocalRepository`'ye `GetExpiredRecordingsAsync()` ve `DeleteRecordingAsync()` eklendi
+
+---
+
+## Şifre Politikası (G.5) — 2026-02-13
+
+### Mimari: Merkezi IPasswordPolicyService
+
+**Önceki durum:** Min 6 char, karmaşıklık yok, lockout yok, geçmiş kontrolü yok, System.Random ile geçici şifre.
+
+**Yeni durum:**
+
+**Şifre karmaşıklığı (ValidatePassword):**
+- Min 8 karakter
+- En az 1 büyük harf, 1 küçük harf, 1 rakam, 1 özel karakter (!@#$%^&*+-_)
+
+**Şifre geçmişi (PasswordHistory entity):**
+- Son 5 şifre BCrypt hash olarak saklanır
+- `IsPasswordReusedAsync`: Yeni şifre son 5'le karşılaştırılır (BCrypt.Verify)
+- `RecordPasswordAsync`: Başarılı değişiklik sonrası geçmişe kaydedilir
+
+**Hesap kilitleme (AuthService lockout):**
+- 5 ardışık başarısız deneme → 15 dakika hesap kilitleme
+- Başarılı giriş → sayaç sıfırlanır
+- `FailedLoginCount`, `LockedUntil` User entity'sinde
+
+**Zorunlu şifre değişikliği:**
+- `MustChangePassword` flag'i (geçici şifreyle giriş)
+- `LoginResponse`'a `MustChangePassword` eklendi
+- `POST /api/auth/change-password` endpoint'i (Authorize)
+
+**Güvenli geçici şifre:**
+- `RandomNumberGenerator.GetInt32` + Fisher-Yates shuffle
+- System.Random yerine kriptografik güvenli üretim
+- CustomerService, PortalService'te kullanılıyor
+
+**Entegrasyon noktaları:**
+| Servis | Değişiklik |
+|--------|-----------|
+| AuthService | Lockout + ChangePasswordAsync |
+| UserService | ValidatePassword + RecordPassword (Create/Update) |
+| CustomerService | SecureTemporaryPassword + MustChangePassword |
+| PortalService | ValidatePassword + RecordPassword (Create/Update) |
+
+**DI:** `builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>()`
+
+### EF Migration: AddPasswordPolicyAndRecordingEncryption (9. migration, DB sifirlandi)
+
+**User tablosu:** +4 kolon (PasswordChangedAt, FailedLoginCount, LockedUntil, MustChangePassword)
+**CallRecords tablosu:** +4 kolon (RecordingFileHash, RecordingFileSize, IsRecordingEncrypted, RecordingRetentionDate)
+**PasswordHistories:** Yeni tablo (Id, UserId, PasswordHash, CreatedAt) + index (UserId+CreatedAt)
+**SystemSettings seed:** password_min_length 6→8, +password_history_count=5, +recording_retention_years=10
+
+**DB Sifirlama:** CallCenterDB drop + 9 migration sirasiyla uygulandi.
+
+**Build: 0 hata, 0 uyari**
+
+---
+
+## MustChangePassword Frontend Yönlendirmesi (G.6) — 2026-02-14
+
+### Problem
+Backend `LoginResponse.MustChangePassword` flag'ini dönüyordu ama frontend (Web + Windows) bu flag'i kontrol etmiyordu. Yeni oluşturulan veya şifresi sıfırlanan kullanıcılar geçici şifreyle sistemi normal kullanabiliyordu.
+
+### Çözüm
+
+**AuthService (Web + Windows):**
+- `LoginResult` record'una `bool MustChangePassword` eklendi
+- `LoginAsync`: Flag true ise storage'a `"must_change_pw"` = `"true"` kaydeder
+- `ChangePasswordAsync`: `POST /api/auth/change-password` çağrısı + başarılı ise flag temizleme
+
+**Login.razor (Web + Windows):**
+- `result.MustChangePassword` true → `/change-password`, false → `/dashboard`
+
+**ChangePassword.razor (Web + Windows):**
+- `@page "/change-password"`, `LoginLayout`, `[Authorize]`
+- Form: Mevcut Şifre + Yeni Şifre + Yeni Şifre Tekrar
+- Client-side: eşleşme kontrolü, mevcut şifreyle aynı olamaz
+- Server-side: politika kontrolü (G.5'teki kurallar)
+- Başarılı → flag temizle → 1.5s sonra /dashboard
+- Amber (turuncu) tema — login'den görsel ayrım
+
+**MainLayout koruması (Web + Windows):**
+- `OnAfterRenderAsync` başında `must_change_pw` kontrolü
+- Flag `"true"` ise `/change-password`'a zorla yönlendir
+- URL'ye başka sayfa yazılsa bile yakalanır
+
+**Dosyalar:** 4 yeni (2x ChangePassword.razor + CSS), 6 düzenlenen
+**Build: 0 hata, 0 uyarı**

@@ -55,6 +55,7 @@ public class NativeSipService : ISipService
     // ─── Recording ───
     private WaveFileWriter? _waveWriter;
     private bool _isRecording;
+    private string? _recordingWavPath; // Sifrelemeden onceki WAV yolu
     private int _recordingPayloadType; // Aktif codec: 0=PCMU, 8=PCMA, 9=G722
 
     // ─── Voicemail (MWI) ───
@@ -68,11 +69,17 @@ public class NativeSipService : ISipService
     private WaveOutEvent? _ringtonePlayer;
     private AudioFileReader? _ringtoneReader;
 
+    // ─── Recording sifreleme ───
+    private string? _encryptionKey;
+
     public NativeSipService()
     {
         for (int i = 0; i < MaxLines; i++)
             _lines[i] = new CallLine { Index = i };
     }
+
+    /// <summary>Kayit sifreleme anahtarini ayarla (DI veya config'den).</summary>
+    public void SetEncryptionKey(string key) => _encryptionKey = key;
 
     // ═══════════════════════════════════════════════════
     // STATE
@@ -593,6 +600,7 @@ public class NativeSipService : ISipService
             int sampleRate = AudioCodecDecoder.GetSampleRate(_recordingPayloadType);
 
             _waveWriter = new WaveFileWriter(path, new WaveFormat(sampleRate, 16, 1));
+            _recordingWavPath = path;
             _isRecording = true;
 
             Console.WriteLine($"[SIP] Recording baslatildi — codec PT={_recordingPayloadType}, sampleRate={sampleRate}Hz, dosya={path}");
@@ -637,9 +645,9 @@ public class NativeSipService : ISipService
         return 0;
     }
 
-    public Task<bool> StopRecordingAsync()
+    public async Task<bool> StopRecordingAsync()
     {
-        if (!_isRecording) return Task.FromResult(false);
+        if (!_isRecording) return false;
 
         try
         {
@@ -652,12 +660,37 @@ public class NativeSipService : ISipService
             _waveWriter?.Dispose();
             _waveWriter = null;
             _isRecording = false;
-            return Task.FromResult(true);
+
+            // WAV dosyasini AES-256 ile sifrele
+            if (!string.IsNullOrEmpty(_recordingWavPath) && File.Exists(_recordingWavPath))
+            {
+                try
+                {
+                    var encPath = Path.ChangeExtension(_recordingWavPath, ".enc");
+                    var key = CallCenter.Shared.Services.FileEncryptionService.DeriveKey(
+                        _encryptionKey ?? "DefaultEncryptionKey");
+                    await CallCenter.Shared.Services.FileEncryptionService.EncryptFileAsync(
+                        _recordingWavPath, encPath, key);
+
+                    // Orijinal WAV'i sil — sadece sifreli .enc kalsin
+                    File.Delete(_recordingWavPath);
+                    _recordingWavPath = encPath;
+
+                    Console.WriteLine($"[SIP] Recording sifrelendi: {encPath}");
+                }
+                catch (Exception encEx)
+                {
+                    Console.WriteLine($"[SIP] Recording sifreleme hatasi (WAV korundu): {encEx.Message}");
+                    // Sifreleme basarisiz olursa WAV oldugu gibi kalir
+                }
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[SIP] Recording durdurulamadi: {ex.Message}");
-            return Task.FromResult(false);
+            return false;
         }
     }
 

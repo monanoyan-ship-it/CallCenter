@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -282,6 +283,18 @@ public class AppDbContext : DbContext
             e.Ignore(rt => rt.IsActive);
         });
 
+        // PasswordHistory (sifre tekrar kullanim engelleme)
+        modelBuilder.Entity<PasswordHistory>(e =>
+        {
+            e.HasKey(ph => ph.Id);
+            e.Property(ph => ph.PasswordHash).HasMaxLength(256).IsRequired();
+            e.HasIndex(ph => new { ph.UserId, ph.CreatedAt });
+            e.HasOne(ph => ph.User)
+             .WithMany(u => u.PasswordHistories)
+             .HasForeignKey(ph => ph.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // AuditLog (KVKK / BDDK uyumlu denetim kaydi)
         modelBuilder.Entity<AuditLog>(e =>
         {
@@ -433,7 +446,9 @@ public class AppDbContext : DbContext
             (10, "security.max_login_attempts", "5", "security", "int", "Maks hatali giris denemesi", true),
             (11, "security.lockout_minutes", "15", "security", "int", "Hesap kilitleme suresi (dk)", true),
             (12, "security.token_expire_minutes", "480", "security", "int", "JWT token suresi (dk)", true),
-            (13, "security.password_min_length", "6", "security", "int", "Minimum sifre uzunlugu", true),
+            (13, "security.password_min_length", "8", "security", "int", "Minimum sifre uzunlugu", true),
+            (14, "security.password_history_count", "5", "security", "int", "Son kac sifre tekrar kullanilamaz", true),
+            (15, "security.recording_retention_years", "10", "security", "int", "Ses kaydi saklama suresi (yil) — TTK md. 82", true),
 
             // SIP
             (20, "sip.default_transport", "UDP", "sip", "string", "Varsayilan SIP transport", true),

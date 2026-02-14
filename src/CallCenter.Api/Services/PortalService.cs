@@ -11,11 +11,13 @@ public class PortalService : IPortalService
 {
     private readonly AppDbContext _db;
     private readonly AesEncryptionService _encryption;
+    private readonly IPasswordPolicyService _passwordPolicy;
 
-    public PortalService(AppDbContext db, AesEncryptionService encryption)
+    public PortalService(AppDbContext db, AesEncryptionService encryption, IPasswordPolicyService passwordPolicy)
     {
         _db = db;
         _encryption = encryption;
+        _passwordPolicy = passwordPolicy;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -280,19 +282,29 @@ public class PortalService : IPortalService
         if (emailExists)
             return (false, "Bu e-posta adresi zaten kullaniliyor.");
 
+        // Sifre politikasi kontrolu
+        var (isValid, errors) = _passwordPolicy.ValidatePassword(dto.Password);
+        if (!isValid)
+            return (false, string.Join(" ", errors));
+
         // User olustur
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
         var user = new User
         {
             UserName = dto.UserName,
             FullName = dto.FullName,
             Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            PasswordHash = passwordHash,
             RoleId = UserRoles.Ids.CustomerUser,
             StatusId = AgentStatuses.Ids.Offline,
-            IsActive = true
+            IsActive = true,
+            PasswordChangedAt = DateTime.UtcNow
         };
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
+
+        // Sifre gecmisine kaydet
+        await _passwordPolicy.RecordPasswordAsync(user.Id, passwordHash);
 
         // CustomerPersonnel olustur
         var personnel = new CustomerPersonnel
@@ -370,7 +382,22 @@ public class PortalService : IPortalService
             personnel.Title = dto.Title;
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
-            personnel.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        {
+            var (pwValid, pwErrors) = _passwordPolicy.ValidatePassword(dto.Password);
+            if (!pwValid)
+                return (false, string.Join(" ", pwErrors));
+
+            if (await _passwordPolicy.IsPasswordReusedAsync(personnel.UserId, dto.Password))
+                return (false, "Bu şifre daha önce kullanılmış. Farklı bir şifre seçiniz.");
+
+            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            personnel.User.PasswordHash = newHash;
+            personnel.User.PasswordChangedAt = DateTime.UtcNow;
+
+            // SaveChanges sonrasi gecmise kaydet (asagida)
+            await _db.SaveChangesAsync();
+            await _passwordPolicy.RecordPasswordAsync(personnel.UserId, newHash);
+        }
 
         // UserType degistiyse guncelle
         if (dto.UserTypeId != personnel.UserTypeId)

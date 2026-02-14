@@ -3,6 +3,7 @@
 @inject WindowsHubService HubService
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject SecureStorage Storage
 @implements IAsyncDisposable
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -104,6 +105,14 @@
     {
         if (firstRender)
         {
+            // MustChangePassword kontrolu — sifre degistirme zorunluysa baska sayfaya erisim yok
+            var mustChange = await Storage.GetAsync("must_change_pw");
+            if (mustChange == "true")
+            {
+                NavigationManager.NavigateTo("/change-password", forceLoad: false);
+                return;
+            }
+
             // SignalR event'lerini dinle
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
             HubService.OnConnectionStateChanged += HandleConnectionStateChanged;

@@ -23,6 +23,8 @@ public class NullLocalRepository : ILocalRepository
 
     public Task SaveRecordingMetadataAsync(LocalRecording recording) => Task.CompletedTask;
     public Task<List<LocalRecording>> GetRecordingsAsync(Guid? callRecordUid, int page, int pageSize) => Task.FromResult(new List<LocalRecording>());
+    public Task<List<LocalRecording>> GetExpiredRecordingsAsync() => Task.FromResult(new List<LocalRecording>());
+    public Task DeleteRecordingAsync(Guid uid) => Task.CompletedTask;
 
     public Task<LocalCallStats> GetStatsAsync(DateTime from, DateTime to) => Task.FromResult(new LocalCallStats());
 }

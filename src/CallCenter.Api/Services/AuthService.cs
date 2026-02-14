@@ -12,6 +12,9 @@ public class AuthService : IAuthService
     private readonly TokenService _tokenService;
     private readonly IConfiguration _config;
 
+    private const int MaxFailedAttempts = 5;
+    private const int LockoutMinutes = 15;
+
     public AuthService(AppDbContext db, TokenService tokenService, IConfiguration config)
     {
         _db = db;
@@ -21,13 +24,49 @@ public class AuthService : IAuthService
 
     public async Task<(bool Success, LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
     {
+        // IsActive filtresi kaldirildi — kilitleme/aktiflik ayri kontrol edilecek
         var user = await _db.Users
             .Include(u => u.CustomerPersonnel)
                 .ThenInclude(cp => cp!.Permissions)
-            .FirstOrDefaultAsync(u => u.UserName == request.UserName && u.IsActive);
+            .FirstOrDefaultAsync(u => u.UserName == request.UserName);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Kullanici bulunamadi — generic hata (username enumeration engelleme)
+        if (user == null)
             return (false, null, "Kullanıcı adı veya şifre hatalı.");
+
+        // Hesap aktif mi?
+        if (!user.IsActive)
+            return (false, null, "Kullanıcı hesabı aktif değil.");
+
+        // Hesap kilitli mi?
+        if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
+        {
+            var remaining = (int)(user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;
+            return (false, null, $"Hesap kilitli. {remaining} dakika sonra tekrar deneyin.");
+        }
+
+        // Sifre dogru mu?
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        {
+            // Basarisiz deneme sayisini artir
+            user.FailedLoginCount++;
+
+            if (user.FailedLoginCount >= MaxFailedAttempts)
+            {
+                user.LockedUntil = DateTime.UtcNow.AddMinutes(LockoutMinutes);
+                user.FailedLoginCount = 0; // Kilit sonrasi sifirla
+                await _db.SaveChangesAsync();
+                return (false, null, $"Çok fazla hatalı deneme. Hesap {LockoutMinutes} dakika kilitlendi.");
+            }
+
+            await _db.SaveChangesAsync();
+            return (false, null, "Kullanıcı adı veya şifre hatalı.");
+        }
+
+        // Basarili giris — sayaclari sifirla
+        user.FailedLoginCount = 0;
+        user.LockedUntil = null;
+        user.LastLoginAt = DateTime.UtcNow;
 
         // Musteri kullanicisiysa firma aktiflik kontrolu
         if (user.CustomerPersonnel != null)
@@ -36,8 +75,6 @@ public class AuthService : IAuthService
             if (customer == null || !customer.IsActive)
                 return (false, null, "Müşteri hesabı aktif değil.");
         }
-
-        user.LastLoginAt = DateTime.UtcNow;
 
         // Musteri personelinin aktif yetkilerini filtrele
         IEnumerable<int>? activePermissionIds = null;
@@ -69,8 +106,42 @@ public class AuthService : IAuthService
             RefreshToken = refreshToken.Token,
             FullName = user.FullName,
             Role = roleName,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes),
+            MustChangePassword = user.MustChangePassword
         }, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(int userId, ChangePasswordRequest request, IPasswordPolicyService policyService)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null)
+            return (false, "Kullanıcı bulunamadı.");
+
+        // Mevcut sifre dogrula
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            return (false, "Mevcut şifre hatalı.");
+
+        // Yeni sifre politikasini kontrol et
+        var (isValid, errors) = policyService.ValidatePassword(request.NewPassword);
+        if (!isValid)
+            return (false, string.Join(" ", errors));
+
+        // Sifre gecmisi kontrolu
+        if (await policyService.IsPasswordReusedAsync(userId, request.NewPassword))
+            return (false, "Bu şifre daha önce kullanılmış. Farklı bir şifre seçiniz.");
+
+        // Yeni sifre hash'le ve kaydet
+        var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.PasswordHash = newHash;
+        user.PasswordChangedAt = DateTime.UtcNow;
+        user.MustChangePassword = false;
+
+        await _db.SaveChangesAsync();
+
+        // Sifre gecmisine kaydet
+        await policyService.RecordPasswordAsync(userId, newHash);
+
+        return (true, null);
     }
 
     public async Task<(bool Success, RefreshTokenResponse? Response, string? Error)> RefreshAsync(string refreshToken)

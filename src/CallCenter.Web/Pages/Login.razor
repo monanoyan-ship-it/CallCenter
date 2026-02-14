@@ -82,7 +82,8 @@
 
             if (result.Success)
             {
-                NavigationManager.NavigateTo("/dashboard", forceLoad: false);
+                var target = result.MustChangePassword ? "/change-password" : "/dashboard";
+                NavigationManager.NavigateTo(target, forceLoad: false);
             }
             else
             {

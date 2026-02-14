@@ -213,15 +213,26 @@ public class CallSyncService
                     var fileInfo = new FileInfo(recordingFilePath);
                     if (fileInfo.Exists)
                     {
+                        var isEncrypted = fileInfo.Extension.Equals(".enc", StringComparison.OrdinalIgnoreCase);
+                        string? fileHash = null;
+                        try
+                        {
+                            fileHash = await CallCenter.Shared.Services.FileEncryptionService.ComputeFileHashAsync(recordingFilePath);
+                        }
+                        catch { /* Hash hesaplanamadiysa null kalir */ }
+
                         var recording = new LocalRecording
                         {
                             CallRecordUid = uid,
                             FilePath = recordingFilePath,
                             FileSize = fileInfo.Length,
-                            Format = fileInfo.Extension.TrimStart('.').ToLowerInvariant()
+                            Format = fileInfo.Extension.TrimStart('.').ToLowerInvariant(),
+                            FileHash = fileHash,
+                            IsEncrypted = isEncrypted,
+                            RetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
                         };
                         await _localRepo.SaveRecordingMetadataAsync(recording);
-                        _logger.LogInformation("Ses kaydi metadata kaydedildi: {Path}", recordingFilePath);
+                        _logger.LogInformation("Ses kaydi metadata kaydedildi: {Path} (sifreli={Encrypted})", recordingFilePath, isEncrypted);
                     }
                 }
                 catch (Exception ex)

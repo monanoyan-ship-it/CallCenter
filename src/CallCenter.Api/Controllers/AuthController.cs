@@ -1,5 +1,7 @@
 using CallCenter.Api.Services;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Api.Controllers;
@@ -8,7 +10,12 @@ namespace CallCenter.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : AuditableControllerBase
 {
-    public AuthController(ServiceFactory factory) : base(factory) { }
+    private readonly IPasswordPolicyService _passwordPolicy;
+
+    public AuthController(ServiceFactory factory, IPasswordPolicyService passwordPolicy) : base(factory)
+    {
+        _passwordPolicy = passwordPolicy;
+    }
 
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
@@ -55,5 +62,25 @@ public class AuthController : AuditableControllerBase
 
         await AuditAuthAsync("Revoke", "Refresh token iptal edildi.");
         return Ok(new { message = "Token iptal edildi." });
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<ActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        if (CurrentUserId == null)
+            return Unauthorized();
+
+        var svc = Factory.CreateAuthService();
+        var (success, error) = await svc.ChangePasswordAsync(CurrentUserId.Value, request, _passwordPolicy);
+
+        if (!success)
+        {
+            await AuditAuthAsync("PasswordChangeFailed", $"Sifre degistirme basarisiz: {error}");
+            return BadRequest(new { message = error });
+        }
+
+        await AuditAuthAsync("PasswordChange", "Sifre basariyla degistirildi.");
+        return Ok(new { message = "Şifre başarıyla değiştirildi." });
     }
 }

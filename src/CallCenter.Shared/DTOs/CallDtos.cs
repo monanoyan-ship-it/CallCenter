@@ -45,6 +45,18 @@ public class CallSyncPushRequest
 
     /// <summary>Musterinin lokal makinesindeki ses kaydi dosya yolu (ses dosyasi gonderilmez, sadece path bilgisi)</summary>
     public string? RecordingFilePath { get; set; }
+
+    /// <summary>Kayit dosyasinin SHA-256 hash'i</summary>
+    public string? RecordingFileHash { get; set; }
+
+    /// <summary>Kayit dosya boyutu (byte)</summary>
+    public long? RecordingFileSize { get; set; }
+
+    /// <summary>Kayit AES-256 ile sifrelenmis mi?</summary>
+    public bool IsRecordingEncrypted { get; set; }
+
+    /// <summary>Kayit saklama son tarihi (TTK md. 82)</summary>
+    public DateTime? RecordingRetentionDate { get; set; }
 }
 
 /// <summary>Backend'in sync push'a verdigi yanit</summary>

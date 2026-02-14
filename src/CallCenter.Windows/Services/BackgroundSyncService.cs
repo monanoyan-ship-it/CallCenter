@@ -208,7 +208,9 @@ public class BackgroundSyncService
             AgentName = record.AgentName,
             QueueName = record.QueueName,
             Notes = record.Notes,
-            RecordingFilePath = record.RecordingFilePath
+            RecordingFilePath = record.RecordingFilePath,
+            IsRecordingEncrypted = record.RecordingFilePath?.EndsWith(".enc", StringComparison.OrdinalIgnoreCase) ?? false,
+            RecordingRetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
         };
 
         var response = await _http.PostAsJsonAsync("api/calls/sync", syncDto);

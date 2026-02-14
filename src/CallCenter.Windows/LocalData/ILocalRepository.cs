@@ -59,6 +59,12 @@ public interface ILocalRepository
     /// <summary>Bir cagriya ait ses kayitlari veya tumu</summary>
     Task<List<LocalRecording>> GetRecordingsAsync(Guid? callRecordUid, int page, int pageSize);
 
+    /// <summary>Saklama suresi dolmus ses kayitlarini getir (RetentionDate &lt; UtcNow)</summary>
+    Task<List<LocalRecording>> GetExpiredRecordingsAsync();
+
+    /// <summary>Ses kaydi metadata'sini sil (dosya temizleme sonrasi)</summary>
+    Task DeleteRecordingAsync(Guid uid);
+
     // ═══════════════════════════════════════
     // ISTATISTIKLER (lokal raporlama icin)
     // ═══════════════════════════════════════

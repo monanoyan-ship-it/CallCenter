@@ -17,7 +17,14 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
 
+    // Sifre politikasi alanlari
+    public DateTime? PasswordChangedAt { get; set; }
+    public int FailedLoginCount { get; set; }
+    public DateTime? LockedUntil { get; set; }
+    public bool MustChangePassword { get; set; }
+
     public ICollection<CallRecord> CallRecords { get; set; } = new List<CallRecord>();
+    public ICollection<PasswordHistory> PasswordHistories { get; set; } = new List<PasswordHistory>();
 
     // Musteri kullanicilari icin (RoleId == CustomerUser ise dolu)
     public CustomerPersonnel? CustomerPersonnel { get; set; }

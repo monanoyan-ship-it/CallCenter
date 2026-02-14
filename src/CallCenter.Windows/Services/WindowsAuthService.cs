@@ -51,7 +51,11 @@ public class WindowsAuthService
             // Auth state'i guncelle
             _authStateProvider.NotifyUserAuthentication(loginResponse.Token);
 
-            return new LoginResult(true, null);
+            // MustChangePassword flag'ini kaydet
+            if (loginResponse.MustChangePassword)
+                await _storage.SetAsync("must_change_pw", "true");
+
+            return new LoginResult(true, null, loginResponse.MustChangePassword);
         }
         catch (Exception ex)
         {
@@ -142,7 +146,30 @@ public class WindowsAuthService
         return await _storage.GetAsync(RoleKey);
     }
 
+    public async Task<ChangePasswordResult> ChangePasswordAsync(ChangePasswordRequest request)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/auth/change-password", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                return new ChangePasswordResult(false, error?.Message ?? "Sifre degistirme basarisiz.");
+            }
+
+            // Flag'i temizle
+            await _storage.RemoveAsync("must_change_pw");
+            return new ChangePasswordResult(true, null);
+        }
+        catch (Exception ex)
+        {
+            return new ChangePasswordResult(false, $"Baglanti hatasi: {ex.Message}");
+        }
+    }
+
     // Yardimci siniflar
-    public record LoginResult(bool Success, string? ErrorMessage);
+    public record LoginResult(bool Success, string? ErrorMessage, bool MustChangePassword = false);
+    public record ChangePasswordResult(bool Success, string? ErrorMessage);
     private record ErrorResponse(string? Message);
 }

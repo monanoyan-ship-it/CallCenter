@@ -47,7 +47,11 @@ public class AuthService
             // Auth state'i guncelle
             _authStateProvider.NotifyUserAuthentication(loginResponse.Token);
 
-            return new LoginResult(true, null);
+            // MustChangePassword flag'ini kaydet
+            if (loginResponse.MustChangePassword)
+                await _js.InvokeVoidAsync("localStorage.setItem", "must_change_pw", "true");
+
+            return new LoginResult(true, null, loginResponse.MustChangePassword);
         }
         catch (Exception ex)
         {
@@ -139,7 +143,30 @@ public class AuthService
         return await _js.InvokeAsync<string?>("localStorage.getItem", RoleKey);
     }
 
+    public async Task<ChangePasswordResult> ChangePasswordAsync(ChangePasswordRequest request)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/auth/change-password", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                return new ChangePasswordResult(false, error?.Message ?? "Sifre degistirme basarisiz.");
+            }
+
+            // Flag'i temizle
+            await _js.InvokeVoidAsync("localStorage.removeItem", "must_change_pw");
+            return new ChangePasswordResult(true, null);
+        }
+        catch (Exception ex)
+        {
+            return new ChangePasswordResult(false, $"Baglanti hatasi: {ex.Message}");
+        }
+    }
+
     // Yardimci siniflar
-    public record LoginResult(bool Success, string? ErrorMessage);
+    public record LoginResult(bool Success, string? ErrorMessage, bool MustChangePassword = false);
+    public record ChangePasswordResult(bool Success, string? ErrorMessage);
     private record ErrorResponse(string? Message);
 }

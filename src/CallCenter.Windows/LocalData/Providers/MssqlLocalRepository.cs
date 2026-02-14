@@ -92,10 +92,14 @@ public class MssqlLocalRepository : ILocalRepository
                     file_size        BIGINT        NOT NULL DEFAULT 0,
                     format           NVARCHAR(10)  NOT NULL DEFAULT 'wav',
                     duration_seconds INT           NOT NULL DEFAULT 0,
-                    created_at       DATETIME2     NOT NULL DEFAULT GETUTCDATE()
+                    created_at       DATETIME2     NOT NULL DEFAULT GETUTCDATE(),
+                    file_hash        NVARCHAR(128) NULL,
+                    is_encrypted     BIT           NOT NULL DEFAULT 0,
+                    retention_date   DATETIME2     NULL
                 );
 
                 CREATE INDEX idx_recordings_call_uid ON local_recordings(call_record_uid);
+                CREATE INDEX idx_recordings_retention ON local_recordings(retention_date) WHERE retention_date IS NOT NULL;
             END
             """, conn);
         await cmdRecs.ExecuteNonQueryAsync();
@@ -246,9 +250,11 @@ public class MssqlLocalRepository : ILocalRepository
 
         await using var cmd = new SqlCommand("""
             INSERT INTO local_recordings
-                (uid, call_record_uid, file_path, file_size, format, duration_seconds, created_at)
+                (uid, call_record_uid, file_path, file_size, format, duration_seconds, created_at,
+                 file_hash, is_encrypted, retention_date)
             VALUES
-                (@uid, @callUid, @path, @size, @format, @duration, @created)
+                (@uid, @callUid, @path, @size, @format, @duration, @created,
+                 @fileHash, @encrypted, @retention)
             """, conn);
 
         cmd.Parameters.AddWithValue("@uid", recording.Uid);
@@ -258,6 +264,9 @@ public class MssqlLocalRepository : ILocalRepository
         cmd.Parameters.AddWithValue("@format", recording.Format);
         cmd.Parameters.AddWithValue("@duration", recording.DurationSeconds);
         cmd.Parameters.AddWithValue("@created", recording.CreatedAt);
+        cmd.Parameters.AddWithValue("@fileHash", (object?)recording.FileHash ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@encrypted", recording.IsEncrypted);
+        cmd.Parameters.AddWithValue("@retention", (object?)recording.RetentionDate ?? DBNull.Value);
 
         await cmd.ExecuteNonQueryAsync();
     }
@@ -285,18 +294,46 @@ public class MssqlLocalRepository : ILocalRepository
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            list.Add(new LocalRecording
-            {
-                Uid = reader.GetGuid(reader.GetOrdinal("uid")),
-                CallRecordUid = reader.GetGuid(reader.GetOrdinal("call_record_uid")),
-                FilePath = reader.GetString(reader.GetOrdinal("file_path")),
-                FileSize = reader.GetInt64(reader.GetOrdinal("file_size")),
-                Format = reader.GetString(reader.GetOrdinal("format")),
-                DurationSeconds = reader.GetInt32(reader.GetOrdinal("duration_seconds")),
-                CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at"))
-            });
+            list.Add(MapRecording(reader));
         }
         return list;
+    }
+
+    /// <summary>
+    /// Saklama suresi dolmus ses kayitlarini getirir.
+    /// </summary>
+    public async Task<List<LocalRecording>> GetExpiredRecordingsAsync()
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand("""
+            SELECT * FROM local_recordings
+            WHERE retention_date IS NOT NULL AND retention_date < @now
+            """, conn);
+        cmd.Parameters.AddWithValue("@now", DateTime.UtcNow);
+
+        var list = new List<LocalRecording>();
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            list.Add(MapRecording(reader));
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Ses kaydi metadata'sini siler.
+    /// </summary>
+    public async Task DeleteRecordingAsync(Guid uid)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand(
+            "DELETE FROM local_recordings WHERE uid = @uid", conn);
+        cmd.Parameters.AddWithValue("@uid", uid);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     // ═══════════════════════════════════════
@@ -392,6 +429,40 @@ public class MssqlLocalRepository : ILocalRepository
             BackendCallId = reader.IsDBNull(reader.GetOrdinal("backend_call_id"))
                 ? null : reader.GetInt32(reader.GetOrdinal("backend_call_id"))
         };
+    }
+
+    private static LocalRecording MapRecording(SqlDataReader reader)
+    {
+        var rec = new LocalRecording
+        {
+            Uid = reader.GetGuid(reader.GetOrdinal("uid")),
+            CallRecordUid = reader.GetGuid(reader.GetOrdinal("call_record_uid")),
+            FilePath = reader.GetString(reader.GetOrdinal("file_path")),
+            FileSize = reader.GetInt64(reader.GetOrdinal("file_size")),
+            Format = reader.GetString(reader.GetOrdinal("format")),
+            DurationSeconds = reader.GetInt32(reader.GetOrdinal("duration_seconds")),
+            CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at"))
+        };
+
+        var ordFileHash = TryGetOrdinal(reader, "file_hash");
+        if (ordFileHash >= 0 && !reader.IsDBNull(ordFileHash))
+            rec.FileHash = reader.GetString(ordFileHash);
+
+        var ordEncrypted = TryGetOrdinal(reader, "is_encrypted");
+        if (ordEncrypted >= 0)
+            rec.IsEncrypted = reader.GetBoolean(ordEncrypted);
+
+        var ordRetention = TryGetOrdinal(reader, "retention_date");
+        if (ordRetention >= 0 && !reader.IsDBNull(ordRetention))
+            rec.RetentionDate = reader.GetDateTime(ordRetention);
+
+        return rec;
+    }
+
+    private static int TryGetOrdinal(SqlDataReader reader, string name)
+    {
+        try { return reader.GetOrdinal(name); }
+        catch { return -1; }
     }
 
     private static async Task<List<LocalCallRecord>> ReadCallRecordListAsync(SqlCommand cmd)

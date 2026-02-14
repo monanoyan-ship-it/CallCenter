@@ -255,6 +255,13 @@ public class CallService : ICallService
             existing.Notes = request.Notes;
             if (!string.IsNullOrEmpty(request.RecordingFilePath))
                 existing.RecordingFilePath = request.RecordingFilePath;
+            if (!string.IsNullOrEmpty(request.RecordingFileHash))
+                existing.RecordingFileHash = request.RecordingFileHash;
+            if (request.RecordingFileSize.HasValue)
+                existing.RecordingFileSize = request.RecordingFileSize;
+            existing.IsRecordingEncrypted = request.IsRecordingEncrypted;
+            if (request.RecordingRetentionDate.HasValue)
+                existing.RecordingRetentionDate = request.RecordingRetentionDate;
             await _db.SaveChangesAsync();
 
             return new CallSyncPushResponse { Id = existing.Id, IsNew = false };
@@ -276,7 +283,11 @@ public class CallService : ICallService
             DurationSeconds = request.DurationSeconds,
             AgentId = userId,
             Notes = request.Notes,
-            RecordingFilePath = request.RecordingFilePath
+            RecordingFilePath = request.RecordingFilePath,
+            RecordingFileHash = request.RecordingFileHash,
+            RecordingFileSize = request.RecordingFileSize,
+            IsRecordingEncrypted = request.IsRecordingEncrypted,
+            RecordingRetentionDate = request.RecordingRetentionDate
         };
 
         // Kuyruk adi varsa eslestir

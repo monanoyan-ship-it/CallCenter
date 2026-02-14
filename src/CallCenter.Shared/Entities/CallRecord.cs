@@ -20,6 +20,18 @@ public class CallRecord
     /// <summary>Musterinin lokal makinesindeki ses kaydi dosya yolu (ses gonderilmez, path bilgisi)</summary>
     public string? RecordingFilePath { get; set; }
 
+    /// <summary>Kayit dosyasinin SHA-256 hash'i (butunluk dogrulamasi)</summary>
+    public string? RecordingFileHash { get; set; }
+
+    /// <summary>Kayit dosya boyutu (byte)</summary>
+    public long? RecordingFileSize { get; set; }
+
+    /// <summary>Kayit dosyasi AES-256 ile sifrelenmis mi?</summary>
+    public bool IsRecordingEncrypted { get; set; }
+
+    /// <summary>Kayit saklama son tarihi (TTK md. 82: 10 yil)</summary>
+    public DateTime? RecordingRetentionDate { get; set; }
+
     public int? AgentId { get; set; }
     public User? Agent { get; set; }
 

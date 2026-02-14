@@ -70,6 +70,7 @@ builder.Services.AddScoped<ISettingService, SettingService>();
 builder.Services.AddScoped<ITranslationManagementService, TranslationManagementService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 builder.Services.AddScoped<ServiceFactory>();
 
 // Background Services

@@ -49,7 +49,7 @@ public class UserCreateDto
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Sifre zorunludur.")]
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "Sifre en az 6 karakter olmalidir.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Sifre en az 8 karakter olmalidir.")]
     public string Password { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Rol secimi zorunludur.")]
@@ -70,7 +70,7 @@ public class UserUpdateDto
     [StringLength(150)]
     public string Email { get; set; } = string.Empty;
 
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "Sifre en az 6 karakter olmalidir.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Sifre en az 8 karakter olmalidir.")]
     public string? Password { get; set; }
 
     [Required(ErrorMessage = "Rol secimi zorunludur.")]

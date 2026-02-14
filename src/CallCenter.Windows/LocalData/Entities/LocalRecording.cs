@@ -26,4 +26,13 @@ public class LocalRecording
 
     /// <summary>Kayit olusturulma zamani</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Dosyanin SHA-256 hash'i</summary>
+    public string? FileHash { get; set; }
+
+    /// <summary>Dosya AES-256 ile sifrelenmis mi?</summary>
+    public bool IsEncrypted { get; set; }
+
+    /// <summary>Saklama son tarihi (TTK md. 82: 10 yil)</summary>
+    public DateTime? RetentionDate { get; set; }
 }

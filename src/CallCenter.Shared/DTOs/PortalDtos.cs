@@ -97,7 +97,7 @@ public class PortalPersonnelCreateDto
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Sifre zorunludur.")]
-    [MinLength(6, ErrorMessage = "Sifre en az 6 karakter olmalidir.")]
+    [MinLength(8, ErrorMessage = "Sifre en az 8 karakter olmalidir.")]
     public string Password { get; set; } = string.Empty;
 
     [MaxLength(100)]
@@ -122,7 +122,7 @@ public class PortalPersonnelUpdateDto
     [MaxLength(150)]
     public string Email { get; set; } = string.Empty;
 
-    [MinLength(6, ErrorMessage = "Sifre en az 6 karakter olmalidir.")]
+    [MinLength(8, ErrorMessage = "Sifre en az 8 karakter olmalidir.")]
     public string? Password { get; set; }
 
     [MaxLength(100)]

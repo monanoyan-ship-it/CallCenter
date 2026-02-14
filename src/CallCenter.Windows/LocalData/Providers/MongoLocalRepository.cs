@@ -176,7 +176,10 @@ public class MongoLocalRepository : ILocalRepository
             { "file_size", recording.FileSize },
             { "format", recording.Format },
             { "duration_seconds", recording.DurationSeconds },
-            { "created_at", recording.CreatedAt }
+            { "created_at", recording.CreatedAt },
+            { "file_hash", recording.FileHash != null ? (BsonValue)recording.FileHash : BsonNull.Value },
+            { "is_encrypted", recording.IsEncrypted },
+            { "retention_date", recording.RetentionDate.HasValue ? (BsonValue)recording.RetentionDate.Value : BsonNull.Value }
         };
         await collection.InsertOneAsync(doc);
     }
@@ -197,16 +200,31 @@ public class MongoLocalRepository : ILocalRepository
             .Limit(pageSize)
             .ToListAsync();
 
-        return docs.Select(doc => new LocalRecording
-        {
-            Uid = Guid.Parse(doc["_id"].AsString),
-            CallRecordUid = Guid.Parse(doc["call_record_uid"].AsString),
-            FilePath = doc["file_path"].AsString,
-            FileSize = doc["file_size"].ToInt64(),
-            Format = doc["format"].AsString,
-            DurationSeconds = doc["duration_seconds"].ToInt32(),
-            CreatedAt = doc["created_at"].ToUniversalTime()
-        }).ToList();
+        return docs.Select(DocumentToRecording).ToList();
+    }
+
+    /// <summary>
+    /// Saklama suresi dolmus ses kayitlarini getirir.
+    /// </summary>
+    public async Task<List<LocalRecording>> GetExpiredRecordingsAsync()
+    {
+        var collection = GetRecordingCollection();
+        var filter = Builders<BsonDocument>.Filter.Lt("retention_date", DateTime.UtcNow)
+                   & Builders<BsonDocument>.Filter.Ne("retention_date", BsonNull.Value);
+
+        var docs = await collection.Find(filter).ToListAsync();
+
+        return docs.Select(DocumentToRecording).ToList();
+    }
+
+    /// <summary>
+    /// Ses kaydi metadata'sini siler.
+    /// </summary>
+    public async Task DeleteRecordingAsync(Guid uid)
+    {
+        var collection = GetRecordingCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", uid.ToString());
+        await collection.DeleteOneAsync(filter);
     }
 
     // ═══════════════════════════════════════
@@ -332,6 +350,35 @@ public class MongoLocalRepository : ILocalRepository
             { "last_sync_attempt", r.LastSyncAttempt.HasValue ? (BsonValue)r.LastSyncAttempt.Value : BsonNull.Value },
             { "backend_call_id", r.BackendCallId.HasValue ? (BsonValue)r.BackendCallId.Value : BsonNull.Value }
         };
+    }
+
+    /// <summary>
+    /// BsonDocument → LocalRecording donusumu.
+    /// Yeni alanlar yoksa varsayilan degerler kullanilir (geriye uyumluluk).
+    /// </summary>
+    private static LocalRecording DocumentToRecording(BsonDocument doc)
+    {
+        var rec = new LocalRecording
+        {
+            Uid = Guid.Parse(doc["_id"].AsString),
+            CallRecordUid = Guid.Parse(doc["call_record_uid"].AsString),
+            FilePath = doc["file_path"].AsString,
+            FileSize = doc["file_size"].ToInt64(),
+            Format = doc["format"].AsString,
+            DurationSeconds = doc["duration_seconds"].ToInt32(),
+            CreatedAt = doc["created_at"].ToUniversalTime()
+        };
+
+        if (doc.Contains("file_hash") && !doc["file_hash"].IsBsonNull)
+            rec.FileHash = doc["file_hash"].AsString;
+
+        if (doc.Contains("is_encrypted"))
+            rec.IsEncrypted = doc["is_encrypted"].ToBoolean();
+
+        if (doc.Contains("retention_date") && !doc["retention_date"].IsBsonNull)
+            rec.RetentionDate = doc["retention_date"].ToUniversalTime();
+
+        return rec;
     }
 
     /// <summary>

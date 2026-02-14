@@ -10,10 +10,12 @@ namespace CallCenter.Api.Services;
 public class CustomerService : ICustomerService
 {
     private readonly AppDbContext _db;
+    private readonly IPasswordPolicyService _passwordPolicy;
 
-    public CustomerService(AppDbContext db)
+    public CustomerService(AppDbContext db, IPasswordPolicyService passwordPolicy)
     {
         _db = db;
+        _passwordPolicy = passwordPolicy;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -189,22 +191,28 @@ public class CustomerService : ICustomerService
             userName = $"{baseUserName}{counter}";
         }
 
-        // Gecici sifre: 12 karakter rastgele
-        var tempPassword = GenerateTemporaryPassword();
+        // Gecici sifre: kriptografik olarak guvenli
+        var tempPassword = _passwordPolicy.GenerateSecureTemporaryPassword();
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
 
         var adminUser = new User
         {
             UserName = userName,
             FullName = $"{customer.Name} Yönetici",
             Email = customer.Email ?? $"{userName}@placeholder.local",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
+            PasswordHash = passwordHash,
             RoleId = UserRoles.Ids.CustomerUser,
             StatusId = AgentStatuses.Ids.Offline,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            PasswordChangedAt = DateTime.UtcNow,
+            MustChangePassword = true
         };
         _db.Users.Add(adminUser);
         await _db.SaveChangesAsync();
+
+        // Sifre gecmisine kaydet
+        await _passwordPolicy.RecordPasswordAsync(adminUser.Id, passwordHash);
 
         // --- Adim 3: CustomerPersonnel olustur (IsCustomerAdmin=true) ---
         var adminPersonnel = new CustomerPersonnel
@@ -239,33 +247,6 @@ public class CustomerService : ICustomerService
         // CustomerDetail sayfasinda gosterilecek.
         // Simdilik Console'a yazalim — ileride response'a eklenecek.
         Console.WriteLine($"[CUSTOMER-ADMIN] Musteri '{customer.Name}' icin admin olusturuldu: {userName} / {tempPassword}");
-    }
-
-    /// <summary>Gecici sifre uretir: buyuk+kucuk harf + rakam + ozel karakter, 12 karakter.</summary>
-    private static string GenerateTemporaryPassword()
-    {
-        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        const string lower = "abcdefghjkmnpqrstuvwxyz";
-        const string digits = "23456789";
-        const string special = "!@#$%&*+-";
-        var rng = new Random();
-
-        // En az 1 buyuk, 1 kucuk, 1 rakam, 1 ozel
-        var chars = new List<char>
-        {
-            upper[rng.Next(upper.Length)],
-            lower[rng.Next(lower.Length)],
-            digits[rng.Next(digits.Length)],
-            special[rng.Next(special.Length)]
-        };
-
-        // Kalanini karistir
-        var all = upper + lower + digits + special;
-        for (int i = 0; i < 8; i++)
-            chars.Add(all[rng.Next(all.Length)]);
-
-        // Sifreyi karistir
-        return new string(chars.OrderBy(_ => rng.Next()).ToArray());
     }
 
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto)
@@ -305,9 +286,15 @@ public class CustomerService : ICustomerService
         if (admin == null)
             return (false, null, "Bu musterinin admin kullanicisi bulunamadi.");
 
-        var tempPassword = GenerateTemporaryPassword();
-        admin.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+        var tempPassword = _passwordPolicy.GenerateSecureTemporaryPassword();
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+        admin.User.PasswordHash = passwordHash;
+        admin.User.PasswordChangedAt = DateTime.UtcNow;
+        admin.User.MustChangePassword = true;
         await _db.SaveChangesAsync();
+
+        // Sifre gecmisine kaydet
+        await _passwordPolicy.RecordPasswordAsync(admin.User.Id, passwordHash);
 
         return (true, tempPassword, null);
     }

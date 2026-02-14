@@ -9,10 +9,12 @@ namespace CallCenter.Api.Services;
 public class UserService : IUserService
 {
     private readonly AppDbContext _db;
+    private readonly IPasswordPolicyService _passwordPolicy;
 
-    public UserService(AppDbContext db)
+    public UserService(AppDbContext db, IPasswordPolicyService passwordPolicy)
     {
         _db = db;
+        _passwordPolicy = passwordPolicy;
     }
 
     public async Task<PagedResult<UserListDto>> GetAllAsync(int page, int pageSize, string? search, int? roleId)
@@ -97,20 +99,31 @@ public class UserService : IUserService
         if (UserRoles.GetById(dto.RoleId) == null)
             return (false, null, "Gecersiz rol.");
 
+        // Sifre politikasi kontrolu
+        var (isValid, errors) = _passwordPolicy.ValidatePassword(dto.Password);
+        if (!isValid)
+            return (false, null, string.Join(" ", errors));
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
         var user = new Shared.Entities.User
         {
             UserName = dto.UserName,
             FullName = dto.FullName,
             Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            PasswordHash = passwordHash,
             RoleId = dto.RoleId,
             Extension = dto.Extension,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            PasswordChangedAt = DateTime.UtcNow
         };
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
+
+        // Sifre gecmisine kaydet
+        await _passwordPolicy.RecordPasswordAsync(user.Id, passwordHash);
 
         return (true, user.Id, null);
     }
@@ -143,7 +156,22 @@ public class UserService : IUserService
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            // Sifre politikasi kontrolu
+            var (isValid, errors) = _passwordPolicy.ValidatePassword(dto.Password);
+            if (!isValid)
+                return (false, string.Join(" ", errors));
+
+            // Sifre gecmisi kontrolu
+            if (await _passwordPolicy.IsPasswordReusedAsync(id, dto.Password))
+                return (false, "Bu şifre daha önce kullanılmış. Farklı bir şifre seçiniz.");
+
+            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            user.PasswordHash = newHash;
+            user.PasswordChangedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            await _passwordPolicy.RecordPasswordAsync(id, newHash);
+            return (true, null);
         }
 
         await _db.SaveChangesAsync();

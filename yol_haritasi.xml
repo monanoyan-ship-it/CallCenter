@@ -1123,9 +1123,9 @@
     <ProjeyeEtki oncelik="acil">
       - SipAccount.Password sifrelenmeli (AES, simdi duz metin)
       - [KAPANDI] Audit Log tablosu ve kayit mekanizmasi eklendi (G.3 gorevi)
-      - Cagri kaydi sifreli depolama eklenmeli (AES-256)
+      - [KAPANDI] Cagri kaydi sifreli depolama eklendi (G.4 gorevi). AES-256-CBC stream sifreleme + TTL temizlik.
       - MFA (TOTP) destegi eklenmeli (Admin/Supervisor)
-      - Sifre politikasi eklenmeli (uzunluk, karmasiklik, sure, tekrar engelleme)
+      - [KAPANDI] Sifre politikasi eklendi (G.5 gorevi). Min 8 char, karmasiklik, lockout, gecmis, guvenli gecici sifre.
       - KVKK aydinlatma mesaji desteği eklenmeli
     </ProjeyeEtki>
     <ProjeyeEtki oncelik="orta-vadeli">
@@ -1145,8 +1145,9 @@
     <Riskler>
       - [KAPANDI] SipAccount.Password artik AES-256-CBC ile sifreleniyor (G.1 gorevi). Regulasyon riski kapandi.
       - [KAPANDI] Audit log mekanizmasi eklendi (G.3 gorevi). AuditLog entity + IAuditService + 12 controller entegrasyonu.
-      - Cagri kayit altyapisi henuz yok. SPK ve TTK uyumu icin ses kaydi + 10 yil saklama gerekli.
-      - MFA desteği yok. BDDK 2023/1 Genelge uyumu icin en azindan Admin/Supervisor icin gerekli.
+      - [KAPANDI] Cagri kaydi sifreli depolama eklendi (G.4 gorevi). AES-256-CBC + SHA-256 hash + 10 yil TTL + RecordingCleanupService.
+      - [KAPANDI] Sifre politikasi eklendi (G.5 gorevi). IPasswordPolicyService + lockout (5 deneme/15dk) + gecmis (son 5) + RandomNumberGenerator.
+      - MFA desteği yok. BDDK 2023/1 Genelge uyumu icin en azindan Admin/Supervisor icin gerekli. [ERTELENDI — canliya alma oncesinde yapilacak]
       - BTK VoIP yetkilendirme sureci arastirilmali — musteri mu yoksa biz mi yetkilendirilmeli?
       - Veri siniflandirma yapilmamis — BDDK veri envanter zorunlulugu var.
       - Arastirma web arama sonuclarina dayali. Yonetmeliklerin tam metinleri incelenip hukuk danismani gorusu alinmali.
@@ -1441,6 +1442,165 @@
       - Audit log query/goruntuleme UI'si henuz yok — admin panelinde "Audit Log" sayfasi eklenmeli
       - IP adresi reverse proxy arkasinda X-Forwarded-For olabilir — middleware ile dogru IP alinmali
       - Partitioned tabloda FK yok — referential integrity uygulanamaz, UserId/CustomerId orphan olabilir (audit icin kabul edilebilir)
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GOREV G.4: CAGRI KAYDI SIFRELI SAKLAMA (AES-256)             -->
+  <!-- ============================================================ -->
+  <Gorev no="G.4" durum="tamamlandi" tamamlanma="2026-02-13">
+    <Ad>Cagri Kaydi Sifreli Saklama — AES-256-CBC + TTL</Ad>
+    <Detay>
+      KVKK/BDDK/SPK/TTK uyumu icin ses kayit dosyalari diskte sifrelenmis olarak saklanir.
+
+      1. FileEncryptionService (Shared/Services)
+        - Static class, stream bazli AES-256-CBC sifreleme
+        - Dosya formati: [16 byte IV][AES-CBC ciphertext] (binary)
+        - 80KB buffer ile memory-efficient akis
+        - EncryptFileAsync, DecryptFileAsync, DecryptToStreamAsync, ComputeFileHashAsync
+        - Key: Encryption:Key config'inden SHA256 ile turetilir
+
+      2. NativeSipService Entegrasyonu (Windows)
+        - StopRecordingAsync: WAV → .enc sifreleme + orijinal WAV silme
+        - SetEncryptionKey() ile key atama
+        - Sifreleme basarisiz olursa WAV korunur (fallback)
+
+      3. CallRecord + LocalRecording Entity Genislemesi
+        - CallRecord: +RecordingFileHash, +RecordingFileSize, +IsRecordingEncrypted, +RecordingRetentionDate
+        - LocalRecording: +FileHash, +IsEncrypted, +RetentionDate
+
+      4. CallSyncService + BackgroundSyncService Metadata
+        - CallSyncPushRequest'e yeni alanlar eklendi
+        - Backend sync'te metadata kaydedilir
+
+      5. Lokal DB Tablo Genislemesi
+        - local_recordings: +file_hash, +is_encrypted, +retention_date
+        - ILocalRepository: +GetExpiredRecordingsAsync(), +DeleteRecordingAsync()
+        - Tum provider'lar guncellendi (PostgreSQL, MSSQL, MongoDB, Null)
+
+      6. RecordingCleanupService (Windows)
+        - Uygulama basladiginda bir kez calisir
+        - RetentionDate &lt; UtcNow olan dosyalari + metadata'yi siler
+        - TTK md. 82: Varsayilan 10 yil saklama suresi
+
+      7. EF Migration: AddPasswordPolicyAndRecordingEncryption (9. migration)
+        - CallRecords tablosuna 4 yeni kolon
+        - SystemSettings seed: recording_retention_years=10
+
+      **Build: 0 hata, 0 uyari**
+    </Detay>
+    <Riskler>
+      - Sifreleme key'i SecureStorage'da saklanir ama uygulama memory'de tutar. RAM dump ile key alinabilir — uretimde DPAPI entegrasyonu dusunulmeli
+      - Dosya sifreleme sira disi kapanmalarda (crash) WAV silinmeden kalabilir — uygulama basladiginda orphan WAV kontrolu eklenmeli
+      - DecryptToStreamAsync tum dosyayi memory'e yukler — cok buyuk dosyalar icin (1GB+) streaming decrypt gerekebilir
+      - Backend tarafinda dosya upload/download henuz yok — sadece metadata senkronlanir. Ileride dosya transferi gerekirse endpoint eklenmeli
+      - Lokal DB'deki mevcut kayitlar (eski) yeni kolonlara sahip degil — ALTER TABLE ile kolon eklenmeli (InitializeAsync guncellemesi yapildi ama mevcut tablolara ALTER uygulanmaz)
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GOREV G.5: SIFRE POLITIKASI (KURUMSAL)                       -->
+  <!-- ============================================================ -->
+  <Gorev no="G.5" durum="tamamlandi" tamamlanma="2026-02-13">
+    <Ad>Sifre Politikasi — Karmasiklik + Lockout + Gecmis + Guvenli Gecici Sifre</Ad>
+    <Detay>
+      KVKK/BDDK uyumu icin kurumsal seviye sifre politikasi.
+
+      1. IPasswordPolicyService + PasswordPolicyService
+        - ValidatePassword: Min 8 char, 1 buyuk, 1 kucuk, 1 rakam, 1 ozel karakter
+        - IsPasswordReusedAsync: Son 5 sifre BCrypt.Verify ile kontrol
+        - RecordPasswordAsync: Basarili degisiklik sonrasi gecmise kaydet
+        - GenerateSecureTemporaryPassword: RandomNumberGenerator + Fisher-Yates shuffle
+
+      2. User Entity Genislemesi
+        - +PasswordChangedAt (DateTime?): Son sifre degisiklik tarihi
+        - +FailedLoginCount (int): Ardisik basarisiz deneme sayisi
+        - +LockedUntil (DateTime?): Kilitleme bitis zamani
+        - +MustChangePassword (bool): Zorunlu sifre degisikligi flag'i
+
+      3. PasswordHistory Entity (Yeni)
+        - Id, UserId, PasswordHash (BCrypt), CreatedAt
+        - Index: UserId+CreatedAt (performans)
+        - FK cascade delete (kullanici silinince gecmis de silinir)
+
+      4. AuthService Lockout Entegrasyonu
+        - 5 ardisik basarisiz deneme → 15 dk hesap kilitleme
+        - Basarili giris → FailedLoginCount=0, LockedUntil=null
+        - MustChangePassword → LoginResponse'da bildirilir
+
+      5. POST /api/auth/change-password Endpoint
+        - [Authorize] — sadece login olmus kullanicilar
+        - Mevcut sifreyi dogrula + yeni sifreyi validate + gecmis kontrol
+        - MustChangePassword=false + PasswordChangedAt=UtcNow
+        - Audit log: "PasswordChange"
+
+      6. Servis Entegrasyonlari
+        - UserService: CreateAsync/UpdateAsync → ValidatePassword + RecordPassword
+        - CustomerService: SecureTemporaryPassword + MustChangePassword=true
+        - PortalService: CreatePersonnelAsync/UpdatePersonnelAsync → ValidatePassword + RecordPassword
+
+      7. DTO Guncellemeleri
+        - AdminDtos: MinLength 6→8
+        - PortalDtos: MinLength 6→8
+        - LoginResponse: +MustChangePassword
+        - ChangePasswordRequest: Yeni DTO
+
+      8. EF Migration: AddPasswordPolicyAndRecordingEncryption (9. migration)
+        - Users: +4 kolon
+        - PasswordHistories: Yeni tablo
+        - SystemSettings seed: password_min_length 6→8, password_history_count=5
+
+      **Build: 0 hata, 0 uyari**
+    </Detay>
+    <Riskler>
+      - Lockout sayaci sunucu yeniden baslatildiginda sifirlanmaz (DB'de saklanir) — dogru davranis
+      - BCrypt.Verify ile 5 sifre gecmisi kontrolu yavas olabilir (~500ms) — asenkron ve sadece sifre degisiminde calisir, kabul edilebilir
+      - MustChangePassword icin frontend (Blazor) redirect'i henuz yok — login sonrasi /change-password sayfasina yonlendirme eklenmeli
+      - Sifre politikasi kuralları code'da hardcoded — ileride SystemSettings'den okunarak dinamik hale getirilebilir
+      - GenerateSecureTemporaryPassword her zaman 12 karakter — minimum politikaya uygun ama kurumsal standartlar farkli isteyebilir
+      - PasswordChangedAt max-age sifre suresi dolma kontrolu (ornegin 90 gun) henuz yok — ileride middleware ile eklenebilir
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GOREV G.6: MUSTCHANGEPASSWORD FRONTEND YONLENDIRMESI         -->
+  <!-- ============================================================ -->
+  <Gorev no="G.6" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>MustChangePassword Frontend Yonlendirmesi (Web + Windows)</Ad>
+    <Detay>
+      Yeni olusturulan veya sifresi sifirlanan kullanicilar (MustChangePassword=true) artik
+      login sonrasi /change-password sayfasina zorla yonlendiriliyor.
+
+      1. AuthService Guncellemesi (Web + Windows)
+        - LoginResult record'una MustChangePassword eklendi
+        - LoginAsync: MustChangePassword=true ise storage'a "must_change_pw"="true" kaydeder
+        - ChangePasswordAsync: API cagrisi + basarili ise flag temizleme
+
+      2. Login.razor Yonlendirmesi (Web + Windows)
+        - result.MustChangePassword → /change-password, degilse /dashboard
+
+      3. ChangePassword.razor (Web + Windows)
+        - LoginLayout uzerinde, [Authorize], turuncu tema (amber gradient)
+        - Form: Mevcut Sifre + Yeni Sifre + Yeni Sifre Tekrar
+        - Client-side: esleme kontrolu, mevcut sifre ile ayni olamaz
+        - Server-side: politika kontrolu (min 8, buyuk/kucuk/rakam/ozel)
+        - Basarili → flag temizle → 1.5s sonra /dashboard'a yonlendir
+        - Sifre politikasi bilgi kutusu
+
+      4. MainLayout Korumasi (Web + Windows)
+        - OnAfterRenderAsync basinda must_change_pw kontrolu
+        - Flag "true" ise /change-password'a zorla yonlendir
+        - URL'ye baska sayfa yazilsa bile MainLayout yakalar
+
+      Yeni dosyalar: 4 (2x ChangePassword.razor + 2x .css)
+      Duzenlenen dosyalar: 6 (2x AuthService, 2x Login.razor, 2x MainLayout.razor)
+      Build: 0 hata, 0 uyari (tum solution)
+    </Detay>
+    <Riskler>
+      - MainLayout korumasi sadece firstRender'da calisiyor. Kullanici sayfa icinde NavigateTo ile dolasirsa tekrar tetiklenmez — ama ChangePassword sayfasi LoginLayout kullandigindan MainLayout render edilmez, sorun yok
+      - MustChangePassword flag localStorage/SecureStorage'da saklanir. Kullanici storage temizlerse flag kaybolur ama backend hala MustChangePassword=true tutar — sonraki login'de tekrar yonlendirilir
+      - Refresh token ile yenilenen oturumlarda MustChangePassword bilgisi RefreshTokenResponse'ta yok — ama storage'daki flag hala durur, sorun olmaz
+      - ChangePassword sayfasi [Authorize] ile korunuyor — token suresi dolmussa once login gerekir, sonra tekrar /change-password'a yonlendirilir
     </Riskler>
   </Gorev>
 
