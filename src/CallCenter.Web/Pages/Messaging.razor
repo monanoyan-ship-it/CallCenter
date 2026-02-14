@@ -1,0 +1,236 @@
+@page "/messaging"
+@using CallCenter.Shared.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="container-fluid">
+    <div class="row" style="height: calc(100vh - 120px);">
+        <!-- Sol: Konusma Listesi -->
+        <div class="col-md-4 col-lg-3 border-end p-0 d-flex flex-column">
+            <div class="p-3 border-bottom bg-light">
+                <h6 class="mb-2"><i class="bi bi-chat-dots"></i> Mesajlar</h6>
+                <input type="text" class="form-control form-control-sm" placeholder="Kisi ara..."
+                       @bind="_searchText" @bind:event="oninput" />
+            </div>
+
+            <div class="flex-grow-1 overflow-auto">
+                @if (_conversations == null)
+                {
+                    <div class="text-center p-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    </div>
+                }
+                else if (!_conversations.Any())
+                {
+                    <div class="text-center text-muted p-3">
+                        <i class="bi bi-chat-square-text" style="font-size: 2rem;"></i>
+                        <p class="mt-2">Henuz mesaj yok</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var conv in FilteredConversations)
+                    {
+                        <div class="p-2 border-bottom conversation-item @(conv.UserId == _selectedUserId ? "bg-primary bg-opacity-10" : "")"
+                             style="cursor: pointer;" @onclick="() => SelectConversation(conv.UserId)">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge rounded-pill @GetStatusBadge(conv.StatusId)">&nbsp;</span>
+                                    <div>
+                                        <strong class="d-block small">@conv.UserName</strong>
+                                        @if (!string.IsNullOrEmpty(conv.UserExtension))
+                                        {
+                                            <small class="text-muted">Dahili: @conv.UserExtension</small>
+                                        }
+                                    </div>
+                                </div>
+                                @if (conv.UnreadCount > 0)
+                                {
+                                    <span class="badge bg-danger rounded-pill">@conv.UnreadCount</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(conv.LastMessageContent))
+                            {
+                                <small class="text-muted d-block mt-1 text-truncate">@conv.LastMessageContent</small>
+                            }
+                            @if (conv.LastMessageAt.HasValue)
+                            {
+                                <small class="text-muted" style="font-size: 0.7rem;">@conv.LastMessageAt.Value.ToString("dd.MM HH:mm")</small>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Sag: Chat Alani -->
+        <div class="col-md-8 col-lg-9 p-0 d-flex flex-column">
+            @if (_selectedUserId == null)
+            {
+                <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted">
+                    <div class="text-center">
+                        <i class="bi bi-chat-left-text" style="font-size: 3rem;"></i>
+                        <p class="mt-2">Bir konusma secin veya yeni mesaj gonderin</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Chat Header -->
+                <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>@_selectedUserName</strong>
+                        <small class="text-muted ms-2">@_selectedUserExtension</small>
+                    </div>
+                </div>
+
+                <!-- Mesajlar -->
+                <div class="flex-grow-1 overflow-auto p-3" id="messagesContainer">
+                    @if (_messages == null)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var msg in _messages)
+                        {
+                            var isMine = msg.SenderUserId != _selectedUserId;
+                            <div class="d-flex @(isMine ? "justify-content-end" : "justify-content-start") mb-2">
+                                <div class="@(isMine ? "bg-primary text-white" : "bg-light") rounded-3 p-2 px-3"
+                                     style="max-width: 70%; word-break: break-word;">
+                                    <div class="small">@msg.Content</div>
+                                    <div class="@(isMine ? "text-white-50" : "text-muted")" style="font-size: 0.65rem;">
+                                        @msg.SentAt.ToString("HH:mm")
+                                        @if (isMine && msg.IsRead)
+                                        {
+                                            <i class="bi bi-check2-all ms-1"></i>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Mesaj Gonderme -->
+                <div class="p-3 border-top">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Mesajinizi yazin..."
+                               @bind="_newMessage" @bind:event="oninput"
+                               @onkeydown="HandleKeyDown" />
+                        <button class="btn btn-primary" @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(_newMessage)">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ConversationSummaryDto>? _conversations;
+    private List<InstantMessageDto>? _messages;
+    private int? _selectedUserId;
+    private string? _selectedUserName;
+    private string? _selectedUserExtension;
+    private string _searchText = "";
+    private string _newMessage = "";
+
+    private IEnumerable<ConversationSummaryDto> FilteredConversations =>
+        _conversations?.Where(c =>
+            string.IsNullOrEmpty(_searchText) ||
+            c.UserName.Contains(_searchText, StringComparison.OrdinalIgnoreCase)) ?? Enumerable.Empty<ConversationSummaryDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConversations();
+    }
+
+    private async Task LoadConversations()
+    {
+        try
+        {
+            _conversations = await Http.GetFromJsonAsync<List<ConversationSummaryDto>>("api/messaging/conversations");
+        }
+        catch
+        {
+            _conversations = new();
+        }
+    }
+
+    private async Task SelectConversation(int userId)
+    {
+        _selectedUserId = userId;
+        var conv = _conversations?.FirstOrDefault(c => c.UserId == userId);
+        _selectedUserName = conv?.UserName;
+        _selectedUserExtension = conv?.UserExtension;
+
+        await LoadMessages(userId);
+
+        // Okunmamis mesajlari isaretle
+        try
+        {
+            await Http.PostAsync($"api/messaging/conversation/{userId}/read-all", null);
+            if (conv != null) conv.UnreadCount = 0;
+        }
+        catch { }
+    }
+
+    private async Task LoadMessages(int otherUserId)
+    {
+        try
+        {
+            _messages = await Http.GetFromJsonAsync<List<InstantMessageDto>>(
+                $"api/messaging/conversation/{otherUserId}");
+        }
+        catch
+        {
+            _messages = new();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_newMessage) || _selectedUserId == null) return;
+
+        var req = new SendMessageRequest
+        {
+            ReceiverUserId = _selectedUserId,
+            Content = _newMessage.Trim()
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/messaging/send", req);
+            if (response.IsSuccessStatusCode)
+            {
+                _newMessage = "";
+                await LoadMessages(_selectedUserId.Value);
+                await LoadConversations();
+            }
+        }
+        catch { }
+    }
+
+    private async Task HandleKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private static string GetStatusBadge(int statusId) => statusId switch
+    {
+        2 => "bg-success",  // Available
+        3 => "bg-danger",   // Busy
+        4 => "bg-warning",  // OnBreak
+        5 => "bg-danger",   // InCall
+        _ => "bg-secondary"  // Offline
+    };
+}

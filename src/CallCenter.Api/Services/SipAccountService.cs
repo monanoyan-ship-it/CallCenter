@@ -57,7 +57,11 @@ public class SipAccountService : ISipAccountService
             TurnUsername = sip.TurnUsername,
             TurnPassword = !string.IsNullOrWhiteSpace(sip.TurnPassword)
                 ? _encryption.Decrypt(sip.TurnPassword)
-                : null
+                : null,
+            // Codec tercihleri
+            PreferredCodecs = sip.PreferredCodecs,
+            JitterBufferMinMs = sip.JitterBufferMinMs,
+            JitterBufferMaxMs = sip.JitterBufferMaxMs
         };
     }
 
@@ -92,7 +96,10 @@ public class SipAccountService : ISipAccountService
                 CustomerId = s.CustomerId,
                 CustomerName = s.Customer.Name,
                 OrganizationUnitId = s.OrganizationUnitId,
-                OrganizationUnitName = s.OrganizationUnit != null ? s.OrganizationUnit.Name : null
+                OrganizationUnitName = s.OrganizationUnit != null ? s.OrganizationUnit.Name : null,
+                PreferredCodecs = s.PreferredCodecs,
+                JitterBufferMinMs = s.JitterBufferMinMs,
+                JitterBufferMaxMs = s.JitterBufferMaxMs
             })
             .ToListAsync();
 
@@ -126,6 +133,9 @@ public class SipAccountService : ISipAccountService
             s.TurnServer,
             s.TurnUsername,
             TurnPassword = "********",
+            s.PreferredCodecs,
+            s.JitterBufferMinMs,
+            s.JitterBufferMaxMs,
             s.IsDefault,
             s.IsActive,
             s.CustomerId,
@@ -161,6 +171,9 @@ public class SipAccountService : ISipAccountService
             TurnUsername = dto.TurnUsername,
             TurnPassword = !string.IsNullOrWhiteSpace(dto.TurnPassword)
                 ? _encryption.Encrypt(dto.TurnPassword) : null,
+            PreferredCodecs = dto.PreferredCodecs,
+            JitterBufferMinMs = dto.JitterBufferMinMs,
+            JitterBufferMaxMs = dto.JitterBufferMaxMs,
             IsDefault = dto.IsDefault,
             IsActive = true,
             CustomerId = dto.CustomerId,
@@ -203,6 +216,9 @@ public class SipAccountService : ISipAccountService
         {
             sip.TurnPassword = _encryption.Encrypt(dto.TurnPassword);
         }
+        sip.PreferredCodecs = dto.PreferredCodecs;
+        sip.JitterBufferMinMs = dto.JitterBufferMinMs;
+        sip.JitterBufferMaxMs = dto.JitterBufferMaxMs;
         sip.IsDefault = dto.IsDefault;
         sip.IsActive = dto.IsActive;
 

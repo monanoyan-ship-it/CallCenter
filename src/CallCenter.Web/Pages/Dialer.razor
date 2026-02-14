@@ -75,6 +75,11 @@
                                 <i class="bi @(SipService.IsOnHold ? "bi-play-circle-fill" : "bi-pause-circle-fill")"></i>
                                 <span>@(SipService.IsOnHold ? "Devam" : "Beklet")</span>
                             </button>
+                            <button class="btn call-btn @(isVideoEnabled ? "call-hold" : "call-start")" style="background: #6f42c1;"
+                                    @onclick="ToggleVideo" title="@(isVideoEnabled ? "Video Kapat" : "Video Ac")">
+                                <i class="bi @(isVideoEnabled ? "bi-camera-video-off-fill" : "bi-camera-video-fill")"></i>
+                                <span>Video</span>
+                            </button>
                             <button class="btn call-btn call-end" @onclick="EndCall">
                                 <i class="bi bi-telephone-x-fill"></i>
                                 <span>Kapat</span>
@@ -103,6 +108,7 @@
     private string phoneNumber = "";
     private bool isInCall;
     private bool isCallStarting;
+    private bool isVideoEnabled;
     private string statusMessage = "";
     private string statusClass = "";
     private string callDuration = "00:00";
@@ -172,7 +178,10 @@
                 sipInfo.StunServer,
                 sipInfo.TurnServer,
                 sipInfo.TurnUsername,
-                sipInfo.TurnPassword);
+                sipInfo.TurnPassword,
+                sipInfo.PreferredCodecs,
+                sipInfo.JitterBufferMinMs,
+                sipInfo.JitterBufferMaxMs);
         }
         catch (Exception ex)
         {
@@ -390,8 +399,23 @@
         }
     }
 
+    private async Task ToggleVideo()
+    {
+        try
+        {
+            isVideoEnabled = await SipService.ToggleVideoAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = "Video hatasi: " + ex.Message;
+            statusClass = "text-danger";
+        }
+    }
+
     private async Task EndCall()
     {
+        isVideoEnabled = false;
         // SIP kapatilinca HandleCallEnded event'i otomatik tetiklenecek
         // orada DB kaydi da sonlandirilir
         await SipService.HangupAsync();

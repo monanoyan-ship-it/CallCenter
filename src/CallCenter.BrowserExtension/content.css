@@ -1,0 +1,47 @@
+/* Click-to-Dial telefon numarasi stili */
+.ctd-link {
+    color: #0d6efd;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+    position: relative;
+    transition: color 0.15s ease;
+}
+
+.ctd-link:hover {
+    color: #0a58ca;
+    text-decoration: underline solid;
+}
+
+.ctd-link::before {
+    content: '\260E'; /* Telefon unicode */
+    margin-right: 2px;
+    font-size: 0.85em;
+}
+
+/* Bildirim */
+.ctd-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    color: #fff;
+    z-index: 2147483647;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.3s ease;
+}
+
+.ctd-notification-success {
+    background: #198754;
+}
+
+.ctd-notification-error {
+    background: #dc3545;
+}
+
+.ctd-notification-fadeout {
+    opacity: 0;
+}

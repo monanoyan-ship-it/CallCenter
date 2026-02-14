@@ -1934,4 +1934,272 @@
     </Riskler>
   </Gorev>
 
+  <!-- ============================================================ -->
+  <!-- SPRINT 3: SES KALİTESİ + CODEC + i18n (Zoiper Parite)        -->
+  <!-- ============================================================ -->
+
+  <Gorev no="S3.1" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Opus Codec + AudioCodecs Enum + SipAccount Codec Tercihleri</Ad>
+    <Detay>
+      - AudioCodecs TypeDefinitions: PCMU(1), PCMA(2), G722(3), Opus(4), G726(5), Speex(6), iLBC(7)
+      - SipAccount entity: PreferredCodecs (JSON array), JitterBufferMinMs, JitterBufferMaxMs alanlari
+      - SipConnectionInfoDto + AdminDtos (List/Create/Update): Codec ve jitter buffer alanlari
+      - SipAccountService: CRUD mapping + ConnectionInfo'ya codec bilgileri
+      - Windows: Concentus NuGet (Opus decoder/encoder), AudioCodecDecoder'a DecodeOpus eklendi
+      - Windows: GetAvailableCodecs genisletildi: Opus(PT111), G726(PT2), Speex(PT97), iLBC(PT98)
+      - Web: sipClient.js SDP codec priority (setCodecPreferences API), jitterBufferTarget ayari
+      - Web: SipService.InitializeAsync'e preferredCodecs, jitterBufferMinMs, jitterBufferMaxMs parametreleri
+      - Dialer.razor + MainLayout.razor: Codec/jitter parametreleri SipService'e geciriliyor
+      - Migration: AddSipAccountCodecPreferences
+    </Detay>
+    <Riskler>
+      - Concentus managed Opus — native Opus'a gore yavaslar, ancak .NET 10'da JIT optimize eder
+      - Speex/iLBC/G.726 Windows tarafinda SIPSorcery tarafindan desteklenir ama codec register otomatik degil
+      - setCodecPreferences API tum tarayicilarda desteklenmeyebilir (Chrome 94+, Firefox 98+)
+      - Opus PT 111 dynamic payload type — bazi SIP proxy'ler farkli PT kullanabilir
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S3.2" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Jitter Buffer + PLC + Network Change Detection + Inband DTMF</Ad>
+    <Detay>
+      - Windows: JitterBuffer min/max ayarlari (SipAccount'tan), NativeSipService.SetJitterBuffer()
+      - Windows: Opus'ta built-in PLC (Concentus), PCMU/PCMA icin repeat-last-frame fallback
+      - Windows: NetworkChange.NetworkAvailabilityChanged + NetworkAddressChanged → SIP re-register
+      - Windows: Inband DTMF GenerateInbandDtmfTone() — dual-tone PCM16 ureticisi (ITU-T Q.23)
+      - Web: RTCRtpReceiver.jitterBufferTarget ayari
+      - Web: window online/offline + navigator.connection change → SIP re-register
+      - Web: sendInbandDtmf() — Web Audio API OscillatorNode ile dual-tone DTMF
+    </Detay>
+    <Riskler>
+      - Ag degisikliginde re-register 2-3sn gecikmelidir — agi stabilize olmadan register basarisiz olabilir
+      - Inband DTMF eski PBX'ler icin — cogu modern PBX RFC 2833 destekler, inband nadiren gerekir
+      - jitterBufferTarget tum tarayicilarda desteklenmeyebilir (Chrome 88+ experimental)
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S3.3" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Coklu Dil Frontend Entegrasyonu (TranslationService + LanguageSelector)</Ad>
+    <Detay>
+      - TranslationService (Web): API'den dil paketi ceker, cache'ler, T(key, default) metodu
+      - LanguageSelector.razor: Dropdown component (TR/EN/DE/AR/RU), localStorage tercih saklama
+      - MainLayout.razor: LanguageSelector ust bar'a eklendi (logout'tan once)
+      - Program.cs: TranslationService DI kaydi (Scoped)
+      - Backend GET /api/translations/{languageCode} endpoint'i zaten mevcut + AllowAnonymous
+    </Detay>
+    <Riskler>
+      - Mevcut sayfalar hala hardcoded Turkce — T() donusumu ilerleyen sprint'lerde yapilacak
+      - Dil paketi buyuk olabilir — lazy loading veya modul bazli yukleme dusunulebilir
+      - RTL (Arapca) icin CSS direction ayari gerekir — henuz yapilmadi
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- SPRINT 4: MEDYA SUNUCUSU + CONFERENCE + MONITORING + MESSAGING -->
+  <!-- ============================================================ -->
+
+  <Gorev no="S4.1" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Janus Gateway Servis Altyapisi</Ad>
+    <Detay>
+      - JanusModels.cs: Janus REST API modelleri (JanusResponse, AudioBridge request/response)
+      - IJanusService.cs: Interface (session, AudioBridge, monitoring metotlari)
+      - JanusService.cs: HttpClient tabanli Janus REST API client
+      - docker-compose.yml: Janus container (canyan/janus-gateway), port mapping
+      - Program.cs: JanusConfig + HttpClient DI kaydi
+      - appsettings.Development.json: Janus konfigurasyonu
+    </Detay>
+    <Riskler>
+      - Janus Docker imaji guncellemelerinde API degisikligi olabilir
+      - RTP port araligi (10000-10200) firewall'da acik olmali
+      - Janus erisilemedigi durumda DB-only fallback mode calisiyor
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S4.2" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Gercek Konferans — Janus AudioBridge Entegrasyonu</Ad>
+    <Detay>
+      - ConferenceService: IJanusService + ILogger inject edildi
+      - CreateRoomAsync: Janus session → plugin attach → AudioBridge room create
+      - EndRoomAsync: Janus room destroy + session destroy
+      - MuteParticipantAsync: Janus ConfigureParticipant (mute/unmute)
+      - RemoveParticipantAsync: Janus LeaveAudioBridgeRoom
+      - MediaServerRoomId format: "sessionId:handleId:janusRoomId"
+      - Janus erisilemezse DB-only mod devam eder (graceful fallback)
+    </Detay>
+    <Riskler>
+      - MediaServerRoomId string parse hatasi (format degisirse)
+      - Janus session timeout durumunda orphan room olusabilir
+      - Konferans kapatilmadan uygulama kapanirsa Janus room temizlenmez
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S4.3" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Silent Monitoring + Whisper + Barge-In (Gercek Ses)</Ad>
+    <Detay>
+      - MonitoringService: IJanusService + ILogger inject edildi
+      - StartMonitoringAsync: Janus session → AudioBridge room → mod'a gore katilim
+      - Silent: JoinAsListener (muted=true, sadece dinler)
+      - Whisper: JoinAsListener + SwitchToWhisper (unmute, ses agent'a gider)
+      - Barge-In: JoinAudioBridgeRoom (tam katilimci, unmute)
+      - ChangeModeAsync: Janus ConfigureParticipant ile mute/unmute
+      - StopMonitoringAsync: Leave room + destroy room + destroy session
+      - CallMonitoringSession.MediaServerSessionId alani eklendi
+    </Detay>
+    <Riskler>
+      - Whisper implementasyonu basitlestirildi (supervisor sesi herkese gider)
+      - Gercek whisper icin Janus AudioBridge room izolasyonu veya forward plugin gerekir
+      - Monitoring odasi aramanin AudioBridge odasindan ayri — ses bridge'lenmeli
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S4.4" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>SIP Presence (SUBSCRIBE/NOTIFY)</Ad>
+    <Detay>
+      - SipPresenceStatuses enum: RFC 3863 PIDF + RFC 4480 RPID eslestirmesi
+      - AgentStatuses ↔ SIP Presence bidirectional mapping
+      - NativeSipService: EnablePresence, UpdatePresenceFromAgentStatus
+      - PublishPresence: SIP PUBLISH (RFC 3903), PIDF XML body
+      - SubscribeBuddyPresence: SIP SUBSCRIBE (BLF — Busy Lamp Field)
+      - HandleIncomingNotify: SIP NOTIFY parse, buddy presence guncelleme
+      - CallCenterHub: UpdatePresenceFromSip, GetUserPresence, SipPresenceChanged event
+      - OnBuddyPresenceChanged event (Windows client icin)
+    </Detay>
+    <Riskler>
+      - SIP PUBLISH destegi tum PBX'lerde olmayabilir (Asterisk'te limitli)
+      - PIDF XML basit string contains ile parse ediliyor — robust parser gerekebilir
+      - Presence refresh (periodic PUBLISH/SUBSCRIBE) henuz yok
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S4.5" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Instant Messaging (SIP MESSAGE + SignalR)</Ad>
+    <Detay>
+      - InstantMessage entity: Sender, Receiver, Content, MessageType, IsRead, CustomerId
+      - MessageTypes enum: Text, System, File
+      - MessagingService: Send, GetConversation, GetConversations, MarkAsRead, UnreadCount
+      - MessagingController: REST API (send, conversation, conversations, read, unread-count)
+      - CallCenterHub: SendInstantMessage, NotifyMessageRead, NotifyTyping (SignalR)
+      - Messaging.razor: Tam chat UI (konusma listesi + mesaj alani + gonderme)
+      - AppDbContext: InstantMessages DbSet + OnModelCreating konfigurasyonu
+      - NavMenu: Mesajlar linki eklendi
+      - Migration: AddInstantMessagingAndMonitoringMediaSession
+    </Detay>
+    <Riskler>
+      - GetConversationsAsync tum mesajlari cekiyor — buyuk veri setlerinde performans sorunu
+      - Dosya mesaji (File type) henuz implementasyon yok — sadece enum tanimli
+      - SIP MESSAGE entegrasyonu (PBX ↔ SignalR bridge) henuz yok — opsiyonel
+      - Chat UI'da real-time guncelleme SignalR event listener henuz bagli degil (sayfa yenileme gerekli)
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S5.1" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Video Codec Destegi (H.264 + VP8)</Ad>
+    <Detay>
+      - VideoCodecs enum: VP8=1, H264=2, VP9=3 (WebSupported + WindowsSupported)
+      - sipClient.js: toggleVideo (getUserMedia video), _setupRemoteMedia video track ayirma
+      - sipClient.js: _stopLocalVideo, isVideoEnabled metotlari
+      - SipService.cs: IsVideoEnabled, ToggleVideoAsync, OnVideoToggled/OnRemoteVideoStarted/OnVideoError events
+      - Dialer.razor: Video toggle butonu (bi-camera-video-fill ikonu)
+      - index.html: remoteVideo + localVideo HTML5 video elementleri
+    </Detay>
+    <Riskler>
+      - H.264 codec tarayiciya bagli — Safari destekler ama Firefox'ta limitli
+      - VP8/VP9 encoder performansi dusuk donanımda sorun olabilir
+      - Video reinvite (SDP renegotiation) SIP server uyumlulugu test edilmeli
+      - Local video preview icin getUserMedia izin istegi kullaniciya gorunur
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S5.2" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Video Konferans (Janus VideoRoom)</Ad>
+    <Detay>
+      - JanusModels.cs: VideoRoomCreateRequest, JoinPublisher/Subscriber, Leave, Destroy modelleri
+      - IJanusService: CreateVideoRoomAsync, DestroyVideoRoomAsync, JoinAsPublisher/Subscriber, LeaveVideoRoom
+      - JanusService: VideoRoom REST API implementasyonu (SFU modu)
+      - Max 6 katilimci, VP8+H264+VP9 codec, 512kbps bitrate, FIR her 10 saniye
+      - Kayit destegi (record + rec_dir parametreleri)
+    </Detay>
+    <Riskler>
+      - VideoRoom UI (VideoConference.razor) henuz olusturulmadi — sadece backend API hazir
+      - SFU modu N*(N-1) stream gerektirir — 6 kisi icin 30 stream (bant genisligi yogun)
+      - Janus VideoRoom plugin WebSocket event handling (new publisher/unpublish) henuz yok
+      - Simulcast/SVC destegi eklenmedi — dusuk bant genisliginde kalite sorunu
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S5.3" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Auto-Provisioning (HTTP/HTTPS)</Ad>
+    <Detay>
+      - ProvisioningDtos: ProvisioningConfigDto (SIP + codec + STUN/TURN + UI ayarlari)
+      - IProvisioningService: CreateProvisioningUrl, GetConfig, GetMyConfig interface
+      - ProvisioningService: Token-based one-time provisioning (ConcurrentDictionary, URL-safe Base64)
+      - ProvisioningController: POST /create (admin), GET /config?token= (anonymous), GET /my (auth)
+      - SipAccount'tan otomatik config olusturma (SIP credentials + codec preferences)
+    </Detay>
+    <Riskler>
+      - Token store ConcurrentDictionary (in-memory) — API restart'ta tum tokenlar kaybolur
+      - Token expiry check yok — olusturulan token sonsuza kadar gecerli
+      - Multi-instance deployment'ta ConcurrentDictionary calismaz (distributed cache gerekir)
+      - HTTPS zorunlulugu yok — HTTP uzerinden credentials acik gider
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S5.4" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Click-to-Dial Browser Extension (Chrome)</Ad>
+    <Detay>
+      - manifest.json: Manifest V3, activeTab + contextMenus + storage izinleri
+      - content.js: Telefon numarasi regex algilama, MutationObserver ile dinamik icerik
+      - content.css: Algilanan numaralar icin stil (hover efekti, bildirim)
+      - background.js: Context menu (sag tik → Ara), settings storage
+      - popup.html + popup.js: API URL + JWT token ayarlari, hizli arama
+      - API call ile arama baslatma, fallback olarak callto:// URL scheme
+    </Detay>
+    <Riskler>
+      - Chrome Web Store'a publish edilmedi — sadece developer mode ile yuklenebilir
+      - Firefox/Edge uyumlulugu test edilmedi (Manifest V3 farkli olabilir)
+      - Telefon numarasi regex false positive verebilir (ozellikle uzun sayilar iceren metinlerde)
+      - JWT token popup'ta duz metin olarak saklanir — guvenlik riski
+      - Content script tum sayfalarda calisir — performans etkisi olabilir
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S5.5" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>LDAP Contact Service + CSV Import</Ad>
+    <Detay>
+      - Contact entity: Name, Phone, Email, Company, LdapDn, Source, OwnerId, CustomerId
+      - ContactSources enum: Manual=1, LDAP=2, CSV=3
+      - ContactDtos: CRUD + CsvImportRequest/Result + LdapConfigDto/SyncResult
+      - ContactService: GetAll, GetById, Create, Update, Delete, ImportFromCsv, SyncFromLdap
+      - ContactController: REST API (CRUD + POST import/csv + POST sync/ldap)
+      - ImportFromCsv: ParseCsvLine ile RFC 4180 uyumlu CSV parse (quoted fields)
+      - SyncFromLdap: Stub implementasyon (System.DirectoryServices.Protocols gerekli)
+      - AppDbContext: Contacts DbSet + OnModelCreating index konfigurasyonu
+      - Migration: AddContactsTable
+    </Detay>
+    <Riskler>
+      - LDAP sync stub — gercek LDAP entegrasyonu System.DirectoryServices.Protocols NuGet gerektirir
+      - CSV import buytuk dosyalarda bellek sorunu olabilir (streaming parser yok)
+      - Contact arama (gelen aramada caller ID eslestirme) henuz yok
+      - Contacts UI sayfasi (Contacts.razor) henuz olusturulmadi
+      - LDAP baglanti bilgileri sifrelenmeden saklanabilir
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S5.6" durum="tamamlandi" tamamlanma="2026-02-15">
+    <Ad>Callto:// URL Protocol Handler (Windows)</Ad>
+    <Detay>
+      - UrlProtocolHandler static class: RegisterProtocols, UnregisterProtocols, IsRegistered
+      - callto://, tel://, sip:// protokolleri HKCU\Software\Classes altinda (admin gerektirmez)
+      - ParsePhoneNumber: callto:/tel: numarasi temizleme, sip: URI olarak birakma
+      - CleanNumber: URL decode + // prefix temizleme + sadece rakam/+/*/#
+      - Registry kaydi: DefaultIcon + shell\open\command
+    </Detay>
+    <Riskler>
+      - Named pipe entegrasyonu yok — uygulama aciksa ikinci instance acilir
+      - Linux/macOS destegi yok (sadece Windows Registry)
+      - Diger uygulamalar (Skype, Teams) ayni protokolleri kaydetmis olabilir — cakisma
+      - Admin yetkisi olmadan HKCU'ya yazilabiliyor ama bazi kurumsal ortamlarda kisitli olabilir
+    </Riskler>
+  </Gorev>
+
 </Proje>

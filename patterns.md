@@ -2038,3 +2038,215 @@ Zoiper ile karşılaştırma yapıldı, 20+ eksik özellik tespit edildi. 5 spri
 
 **Migration: AddCustomerStorageConfig**
 **Build: 0 hata, 0 uyarı (Cloud Storage)**
+
+---
+
+## 2026-02-15: Sprint 3 — Ses Kalitesi + Codec + i18n (Zoiper Parite)
+
+### Zoiper Parite Sprint Planı
+Zoiper 5 PRO ile karşılaştırma yapıldı, 24 eksik özellik tespit edildi:
+- Sprint 3 (tamamlandı): Opus/G726/Speex/iLBC codec, jitter buffer, PLC, network detection, inband DTMF, i18n
+- Sprint 4 (bekliyor): Janus Gateway medya sunucusu, gerçek konferans/monitoring/presence, messaging
+- Sprint 5 (bekliyor): Video (H.264/VP8), auto-provisioning, click-to-dial, LDAP/CSV contacts, callto://
+
+### Karar: Opus Codec (Concentus NuGet)
+- Windows: `Concentus 2.2.2` managed Opus codec (pure C#, native gerekmiyor)
+- Deprecated API uyarıları pragma ile bastırıldı (OpusCodecFactory henüz .NET 10'da stabil değil)
+- Opus PT=111 (dynamic), 48kHz mono, 6-510kbps adaptif
+- Web: Opus zaten WebRTC varsayılan codec'i, SDP setCodecPreferences ile sıralama
+
+### Karar: AudioCodecs TypeDefinitions
+- 7 codec: PCMU(1), PCMA(2), G722(3), Opus(4), G726(5), Speex(6), iLBC(7)
+- Varsayılan sıra: Opus > G722 > PCMU > PCMA
+- WebSupported: Opus, G722, PCMU, PCMA (tarayıcı kısıtlaması)
+- WindowsSupported: Hepsi
+
+### Karar: Codec Preference Storage
+- SipAccount.PreferredCodecs: JSON array string `["opus","g722","pcmu"]`
+- Her SipAccount bağımsız codec sıralamasına sahip
+- SipConnectionInfoDto aracılığıyla client'a iletiliyor
+- Web: sipClient.js → RTCRtpTransceiver.setCodecPreferences()
+- Windows: NativeSipService._enabledCodecNames → RestrictFormats
+
+### Karar: Network Change Detection
+- Windows: System.Net.NetworkInformation.NetworkChange eventi → 2-3sn delay sonra re-register
+- Web: window online/offline + navigator.connection change → 2sn delay sonra register retry
+- Her iki platformda da re-register öncesi stabilizasyon bekleme süresi var
+
+### Yeni/Değişen Dosyalar (Sprint 3):
+- `Shared/Enums/TypeDefinitions.cs` — AudioCodecs static class
+- `Shared/Entities/SipAccount.cs` — PreferredCodecs, JitterBufferMinMs, JitterBufferMaxMs
+- `Shared/DTOs/SipConnectionDto.cs` — Codec ve jitter buffer alanları
+- `Shared/DTOs/AdminDtos.cs` — SipAccountListDto/Create/Update codec alanları
+- `Api/Services/SipAccountService.cs` — Codec DTO mapping
+- `Windows/CallCenter.Windows.csproj` — Concentus 2.2.2 NuGet
+- `Windows/Services/NativeSipService.cs` — Opus decoder/encoder, ek codec listesi, network change, inband DTMF, jitter buffer
+- `Web/wwwroot/js/sipClient.js` — Codec priority, jitter buffer, network detection, inband DTMF
+- `Web/Services/SipService.cs` — InitializeAsync codec parametreleri, network detection başlatma
+- `Web/Pages/Dialer.razor` — Codec/jitter parametreleri geçişi
+- `Web/Layout/MainLayout.razor` — Codec/jitter parametreleri + LanguageSelector component
+- `Web/Services/TranslationService.cs` — Frontend çeviri servisi (T() metodu, cache, dil değiştirme)
+- `Web/Components/LanguageSelector.razor` — Dil seçici dropdown (TR/EN/DE/AR/RU)
+- `Web/Program.cs` — TranslationService DI kaydı
+- `Data/Migrations/AddSipAccountCodecPreferences`
+
+**Migration: AddSipAccountCodecPreferences**
+**Build: 0 hata, 0 uyarı (Sprint 3)**
+
+---
+
+### Sprint 4: Medya Sunucusu + Conference + Monitoring + Messaging (2026-02-15)
+
+**Medya Sunucusu Kararı:** Janus Gateway seçildi (LiveKit ve FreeSWITCH yerine)
+- Lightweight, WebRTC-native
+- AudioBridge plugin: ses karıştırma (konferans + monitoring)
+- VideoRoom plugin: SFU video konferans (Sprint 5)
+- SIP plugin: SIP ↔ WebRTC bridge
+- Docker deployment, REST + WebSocket API
+
+**S4.1 — Janus Gateway Servis Altyapısı:**
+- `JanusModels.cs`: REST API request/response modelleri
+- `IJanusService.cs`: Session, AudioBridge, Monitoring interface
+- `JanusService.cs`: HttpClient + JsonSerializer, graceful error handling
+- `docker-compose.yml`: canyan/janus-gateway container
+- Janus erişilemezse DB-only fallback mode (mevcut işlevsellik korunur)
+
+**S4.2 — Gerçek Konferans (AudioBridge):**
+- ConferenceService'e IJanusService + ILogger inject
+- MediaServerRoomId format: `"sessionId:handleId:janusRoomId"`
+- Create → Janus session → plugin attach → room create
+- End → room destroy → session destroy
+- Mute/Unmute/Leave → Janus ConfigureParticipant/LeaveRoom
+
+**S4.3 — Silent Monitoring + Whisper + Barge-In:**
+- MonitoringService'e IJanusService + ILogger inject
+- Silent: JoinAsListener (muted=true)
+- Whisper: JoinAsListener + SwitchToWhisper (supervisor unmute)
+- Barge-In: JoinAudioBridgeRoom (tam katılımcı)
+- CallMonitoringSession.MediaServerSessionId alanı eklendi
+- **NOT:** Whisper basitleştirildi — gerçek whisper için room izolasyonu gerekir
+
+**S4.4 — SIP Presence (SUBSCRIBE/NOTIFY):**
+- SipPresenceStatuses: RFC 3863 PIDF + RFC 4480 RPID
+- Bidirectional mapping: AgentStatuses ↔ SIP Presence
+- NativeSipService: PUBLISH (durum yayınla), SUBSCRIBE (BLF), NOTIFY (parse)
+- CallCenterHub: UpdatePresenceFromSip, GetUserPresence, SipPresenceChanged event
+
+**S4.5 — Instant Messaging:**
+- InstantMessage entity + MessageTypes enum (Text, System, File)
+- MessagingService: CRUD + conversation management
+- MessagingController: REST API endpoints
+- CallCenterHub: SendInstantMessage, NotifyMessageRead, NotifyTyping (SignalR)
+- Messaging.razor: Sol panel konuşma listesi + sağ panel chat UI
+- NavMenu'ye "Mesajlar" linki eklendi
+
+**Sprint 4 Yeni Dosyalar:**
+- `Api/Services/MediaServer/JanusModels.cs`
+- `Api/Services/MediaServer/IJanusService.cs`
+- `Api/Services/MediaServer/JanusService.cs`
+- `Api/Services/Interfaces/IMessagingService.cs`
+- `Api/Services/MessagingService.cs`
+- `Api/Controllers/MessagingController.cs`
+- `Shared/Entities/InstantMessage.cs`
+- `Shared/DTOs/MessagingDtos.cs`
+- `Web/Pages/Messaging.razor`
+
+**Sprint 4 Değiştirilen Dosyalar:**
+- `Api/Services/ConferenceService.cs` — Janus entegrasyonu
+- `Api/Services/MonitoringService.cs` — Janus entegrasyonu
+- `Api/Hubs/CallCenterHub.cs` — Presence + Messaging SignalR events
+- `Api/Program.cs` — MessagingService DI + Janus DI
+- `Shared/Enums/TypeDefinitions.cs` — MessageTypes + SipPresenceStatuses
+- `Shared/Entities/CallMonitoringSession.cs` — MediaServerSessionId alanı
+- `Windows/Services/NativeSipService.cs` — SIP Presence metotları
+- `Data/AppDbContext.cs` — InstantMessages DbSet
+- `Web/Layout/NavMenu.razor` — Mesajlar linki
+- `docker-compose.yml` — Janus container
+
+**Migration: AddInstantMessagingAndMonitoringMediaSession**
+**Build: 0 hata, 0 uyarı (Sprint 4)**
+
+### Sprint 5: Video + Provisioning + Entegrasyonlar (2026-02-15)
+
+**S5.1 — Video Codec Desteği (H.264 + VP8):**
+- VideoCodecs enum: VP8=1, H264=2, VP9=3 (WebSupported/WindowsSupported bayrakları)
+- sipClient.js: toggleVideo(), _setupRemoteMedia video track ayrımı, _stopLocalVideo()
+- SipService.cs: IsVideoEnabled, ToggleVideoAsync, video event'ları (JSInvokable)
+- Dialer.razor: Video toggle butonu (mor renk, camera-video ikonu)
+- index.html: remoteVideo + localVideo `<video>` elementleri (display:none varsayılan)
+
+**S5.2 — Video Konferans (Janus VideoRoom):**
+- JanusModels.cs: VideoRoom request/response modelleri (Create, JoinPublisher, JoinSubscriber, Leave, Destroy)
+- IJanusService + JanusService: VideoRoom CRUD + publisher/subscriber join/leave
+- SFU modeli: Max 6 katılımcı, VP8+H264+VP9, 512kbps bitrate
+- **NOT:** VideoConference.razor UI henüz oluşturulmadı — sadece backend API hazır
+
+**S5.3 — Auto-Provisioning (HTTP/HTTPS):**
+- Token-based one-time provisioning: URL-safe Base64 token → SIP config
+- ProvisioningService: ConcurrentDictionary<token, sipAccountId> in-memory store
+- ProvisioningController: POST /create (admin), GET /config?token= (anonymous), GET /my (auth)
+- Config içeriği: SIP credentials, codec preferences, STUN/TURN, UI settings
+
+**S5.4 — Click-to-Dial Browser Extension:**
+- Chrome Extension (Manifest V3): content script + background + popup
+- content.js: Telefon numarası regex algılama, MutationObserver (SPA uyumlu)
+- background.js: Context menu (sağ tık → "Bu numarayı ara"), chrome.storage
+- popup.js: API URL + JWT ayarları, hızlı arama
+- Arama: API POST → fallback callto:// URL scheme
+
+**S5.5 — LDAP Contact Service + CSV Import:**
+- Contact entity: Name, Phone, Email, Company, LdapDn, Source, OwnerId
+- ContactSources enum: Manual=1, LDAP=2, CSV=3
+- ContactService: CRUD + ImportFromCsv (RFC 4180 uyumlu CSV parse) + SyncFromLdap (stub)
+- ContactController: REST API (CRUD + import/csv + sync/ldap)
+- **NOT:** LDAP stub — gerçek entegrasyon System.DirectoryServices.Protocols gerektirir
+
+**S5.6 — Callto:// URL Protocol Handler:**
+- UrlProtocolHandler: callto://, tel://, sip:// protokolleri Windows Registry'ye kayıt
+- HKCU\Software\Classes altında (admin yetkisi gerektirmez)
+- ParsePhoneNumber: URL decode + temizleme, SIP URI ayrı tutulur
+- **NOT:** Named pipe entegrasyonu yok — uygulama açıksa ikinci instance açılır
+
+**Sprint 5 Yeni Dosyalar:**
+- `BrowserExtension/manifest.json` (Chrome Manifest V3)
+- `BrowserExtension/content.js` + `content.css` (telefon algılama)
+- `BrowserExtension/background.js` (context menu + settings)
+- `BrowserExtension/popup.html` + `popup.js` (ayarlar + hızlı arama)
+- `Api/Controllers/ProvisioningController.cs`
+- `Api/Services/Interfaces/IProvisioningService.cs`
+- `Api/Services/ProvisioningService.cs`
+- `Api/Controllers/ContactController.cs`
+- `Api/Services/ContactService.cs`
+- `Shared/Entities/Contact.cs`
+- `Shared/DTOs/ProvisioningDtos.cs`
+- `Shared/DTOs/ContactDtos.cs`
+- `Windows/Services/UrlProtocolHandler.cs`
+
+**Sprint 5 Değiştirilen Dosyalar:**
+- `Shared/Enums/TypeDefinitions.cs` — VideoCodecs + ContactSources enum
+- `Web/wwwroot/js/sipClient.js` — Video stream yönetimi
+- `Web/wwwroot/index.html` — Video elementleri
+- `Web/Services/SipService.cs` — Video desteği
+- `Web/Pages/Dialer.razor` — Video toggle butonu
+- `Api/Services/MediaServer/JanusModels.cs` — VideoRoom modelleri
+- `Api/Services/MediaServer/IJanusService.cs` — VideoRoom interface
+- `Api/Services/MediaServer/JanusService.cs` — VideoRoom implementasyonu
+- `Api/Program.cs` — ProvisioningService + ContactService DI
+- `Data/AppDbContext.cs` — Contacts DbSet
+
+**Migration: AddContactsTable**
+**Build: 0 hata, 0 uyarı (Sprint 5)**
+
+---
+
+### Zoiper Parite Tamamlandı (Sprint 1-5 Özet)
+
+| Sprint | Tarih | Kapsam |
+|--------|-------|--------|
+| S1 | 2026-02-13 | NAT/ICE, AEC, RFC 2833 DTMF, SIP INFO fallback, Call Forwarding |
+| S2 | 2026-02-14 | TURN/ICE config, Conference/Monitoring altyapı, Supervisor UI, Cloud Storage |
+| S3 | 2026-02-14 | Opus/Speex/iLBC/G.726 codec, jitter buffer, PLC, codec priority, network detection, inband DTMF, çoklu dil |
+| S4 | 2026-02-15 | Janus Gateway, gerçek konferans (AudioBridge), monitoring (Silent/Whisper/Barge), SIP Presence, Instant Messaging |
+| S5 | 2026-02-15 | Video (H.264/VP8/VP9), VideoRoom SFU, auto-provisioning, click-to-dial extension, LDAP/CSV contacts, callto:// handler |
+
+**Toplam:** 24 Zoiper özelliği (G.729 hariç — lisanslı) implement edildi.

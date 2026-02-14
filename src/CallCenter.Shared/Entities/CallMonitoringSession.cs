@@ -25,4 +25,7 @@ public class CallMonitoringSession
 
     /// <summary>Supervisor notlari</summary>
     public string? Notes { get; set; }
+
+    /// <summary>Janus medya sunucusu oturum bilgisi (sessionId:handleId:roomId formatinda)</summary>
+    public string? MediaServerSessionId { get; set; }
 }

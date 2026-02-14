@@ -40,4 +40,15 @@ public class SipConnectionInfoDto
 
     /// <summary>TURN kimlik doğrulama şifresi</summary>
     public string? TurnPassword { get; set; }
+
+    // ─── Codec Tercihleri ───
+
+    /// <summary>Codec oncelik sirasi JSON array: ["opus","g722","pcmu","pcma"]. Bos ise varsayilan.</summary>
+    public string? PreferredCodecs { get; set; }
+
+    /// <summary>Jitter buffer minimum gecikme (ms). 0 = varsayilan.</summary>
+    public int JitterBufferMinMs { get; set; }
+
+    /// <summary>Jitter buffer maksimum gecikme (ms). 0 = varsayilan.</summary>
+    public int JitterBufferMaxMs { get; set; }
 }

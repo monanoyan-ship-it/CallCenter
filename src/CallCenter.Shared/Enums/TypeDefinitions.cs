@@ -498,6 +498,151 @@ public static class MonitoringModes
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SES CODEC'LERİ (Audio Codecs)
+// ═══════════════════════════════════════════════════════════════
+
+public static class AudioCodecs
+{
+    public static readonly TypeItem PCMU = new(1, "PCMU", "AudioCodec.PCMU", "G.711 µ-law (8kHz, 64kbps)", "bi-soundwave", "bg-secondary", 1);
+    public static readonly TypeItem PCMA = new(2, "PCMA", "AudioCodec.PCMA", "G.711 A-law (8kHz, 64kbps)", "bi-soundwave", "bg-secondary", 2);
+    public static readonly TypeItem G722 = new(3, "G722", "AudioCodec.G722", "G.722 Wideband (16kHz, 64kbps)", "bi-soundwave", "bg-info", 3);
+    public static readonly TypeItem Opus = new(4, "Opus", "AudioCodec.Opus", "Opus (8-48kHz, 6-510kbps, adaptif)", "bi-soundwave", "bg-success", 4, isDefault: true);
+    public static readonly TypeItem G726 = new(5, "G726", "AudioCodec.G726", "G.726 ADPCM (8kHz, 32kbps)", "bi-soundwave", "bg-secondary", 5);
+    public static readonly TypeItem Speex = new(6, "Speex", "AudioCodec.Speex", "Speex (8-32kHz, degisken)", "bi-soundwave", "bg-warning text-dark", 6);
+    public static readonly TypeItem ILBC = new(7, "iLBC", "AudioCodec.iLBC", "iLBC (8kHz, 13.3/15.2kbps)", "bi-soundwave", "bg-dark", 7);
+
+    public static IEnumerable<TypeItem> All => new[] { PCMU, PCMA, G722, Opus, G726, Speex, ILBC };
+    public static TypeItem Default => All.First(x => x.IsDefault);
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+    public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
+
+    /// <summary>Varsayilan codec oncelik sirasi (en yuksek kalite once)</summary>
+    public static IEnumerable<TypeItem> DefaultPriority => new[] { Opus, G722, PCMU, PCMA };
+
+    /// <summary>Web (WebRTC) tarafinda desteklenen codec'ler</summary>
+    public static IEnumerable<TypeItem> WebSupported => new[] { Opus, G722, PCMU, PCMA };
+
+    /// <summary>Windows (SIPSorcery) tarafinda desteklenen codec'ler</summary>
+    public static IEnumerable<TypeItem> WindowsSupported => All;
+
+    public static class Ids
+    {
+        public const int PCMU = 1;
+        public const int PCMA = 2;
+        public const int G722 = 3;
+        public const int Opus = 4;
+        public const int G726 = 5;
+        public const int Speex = 6;
+        public const int ILBC = 7;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VİDEO CODEC'LERİ (Video Codecs)
+// ═══════════════════════════════════════════════════════════════
+
+public static class VideoCodecs
+{
+    public static readonly TypeItem VP8 = new(1, "VP8", "VideoCodec.VP8", "VP8 (WebRTC varsayilan, 720p)", "bi-camera-video", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem H264 = new(2, "H264", "VideoCodec.H264", "H.264/AVC (yuksek uyumluluk)", "bi-camera-video-fill", "bg-primary", 2);
+    public static readonly TypeItem VP9 = new(3, "VP9", "VideoCodec.VP9", "VP9 (verimli, yuksek kalite)", "bi-camera-video", "bg-info", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { VP8, H264, VP9 };
+    public static TypeItem Default => All.First(x => x.IsDefault);
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+    public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
+
+    /// <summary>Web (WebRTC) tarafinda desteklenen video codec'ler</summary>
+    public static IEnumerable<TypeItem> WebSupported => All;
+
+    /// <summary>Windows (SIPSorcery) tarafinda desteklenen video codec'ler</summary>
+    public static IEnumerable<TypeItem> WindowsSupported => new[] { VP8, H264 };
+
+    public static class Ids
+    {
+        public const int VP8 = 1;
+        public const int H264 = 2;
+        public const int VP9 = 3;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESAJ TİPLERİ (Instant Messaging)
+// ═══════════════════════════════════════════════════════════════
+
+public static class MessageTypes
+{
+    public static readonly TypeItem Text = new(1, "Text", "MessageType.Text", "Metin mesaji", "bi-chat-dots", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem System = new(2, "System", "MessageType.System", "Sistem mesaji", "bi-info-circle", "bg-secondary", 2);
+    public static readonly TypeItem File = new(3, "File", "MessageType.File", "Dosya mesaji", "bi-paperclip", "bg-info", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Text, System, File };
+    public static TypeItem Default => All.First(x => x.IsDefault);
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Text = 1;
+        public const int System = 2;
+        public const int File = 3;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIP PRESENCE DURUMLARI (RFC 3856 / RFC 4480)
+// AgentStatuses ile eslestirilmis SIP presence durumlari
+// ═══════════════════════════════════════════════════════════════
+
+public static class SipPresenceStatuses
+{
+    // RFC 3863 PIDF basic status + RFC 4480 RPID activities
+    public static readonly TypeItem Offline = new(1, "closed", "SipPresence.Offline", "Cevrimdisi (closed)", "bi-circle", "offline", 1);
+    public static readonly TypeItem Online = new(2, "open", "SipPresence.Online", "Cevrimici (open)", "bi-circle-fill", "online", 2, isDefault: true);
+    public static readonly TypeItem Busy = new(3, "busy", "SipPresence.Busy", "Mesgul (busy)", "bi-circle-fill", "busy", 3);
+    public static readonly TypeItem Away = new(4, "away", "SipPresence.Away", "Uzakta (away)", "bi-circle-fill", "break", 4);
+    public static readonly TypeItem OnThePhone = new(5, "on-the-phone", "SipPresence.OnThePhone", "Aramada (on-the-phone)", "bi-telephone-fill", "busy", 5);
+    public static readonly TypeItem DoNotDisturb = new(6, "dnd", "SipPresence.DND", "Rahatsiz etmeyin (DND)", "bi-slash-circle-fill", "busy", 6);
+
+    public static IEnumerable<TypeItem> All => new[] { Offline, Online, Busy, Away, OnThePhone, DoNotDisturb };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+    public static TypeItem? GetBySipStatus(string sipStatus) => All.FirstOrDefault(x => x.SystemName == sipStatus);
+
+    /// <summary>AgentStatuses ID → SIP Presence durumu eslestirmesi</summary>
+    public static TypeItem FromAgentStatus(int agentStatusId) => agentStatusId switch
+    {
+        1 => Offline,      // AgentStatuses.Offline → closed
+        2 => Online,       // AgentStatuses.Available → open
+        3 => Busy,         // AgentStatuses.Busy → busy
+        4 => Away,         // AgentStatuses.OnBreak → away
+        5 => OnThePhone,   // AgentStatuses.InCall → on-the-phone
+        6 => DoNotDisturb, // AgentStatuses.AfterCallWork → dnd
+        _ => Offline
+    };
+
+    /// <summary>SIP Presence durumu → AgentStatuses ID eslestirmesi</summary>
+    public static int ToAgentStatusId(string sipStatus) => sipStatus switch
+    {
+        "closed" => AgentStatuses.Ids.Offline,
+        "open" => AgentStatuses.Ids.Available,
+        "busy" => AgentStatuses.Ids.Busy,
+        "away" => AgentStatuses.Ids.OnBreak,
+        "on-the-phone" => AgentStatuses.Ids.InCall,
+        "dnd" => AgentStatuses.Ids.AfterCallWork,
+        _ => AgentStatuses.Ids.Offline
+    };
+
+    public static class Ids
+    {
+        public const int Offline = 1;
+        public const int Online = 2;
+        public const int Busy = 3;
+        public const int Away = 4;
+        public const int OnThePhone = 5;
+        public const int DoNotDisturb = 6;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DEPOLAMA SAĞLAYICILARI (Cloud Storage Providers)
 // ═══════════════════════════════════════════════════════════════
 
@@ -520,5 +665,26 @@ public static class StorageProviders
         public const int YandexDisk = 3;
         public const int AmazonS3 = 4;
         public const int MinIO = 5;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REHBER KAYNAKLARI (Contact Sources)
+// ═══════════════════════════════════════════════════════════════
+
+public static class ContactSources
+{
+    public static readonly TypeItem Manual = new(1, "Manual", "ContactSource.Manual", "Manuel eklendi", "bi-person-plus", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem LDAP = new(2, "LDAP", "ContactSource.LDAP", "LDAP/Active Directory", "bi-diagram-3-fill", "bg-info", 2);
+    public static readonly TypeItem CSV = new(3, "CSV", "ContactSource.CSV", "CSV dosyasindan icerildi", "bi-filetype-csv", "bg-success", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Manual, LDAP, CSV };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Manual = 1;
+        public const int LDAP = 2;
+        public const int CSV = 3;
     }
 }

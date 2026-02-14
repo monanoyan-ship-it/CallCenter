@@ -1,0 +1,71 @@
+@using CallCenter.Web.Services
+@inject TranslationService Translation
+@inject IJSRuntime JS
+
+<div class="language-selector dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+            data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-translate"></i>
+        <span class="ms-1">@GetLanguageLabel(Translation.CurrentLanguage)</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        @foreach (var lang in _languages)
+        {
+            <li>
+                <button class="dropdown-item @(Translation.CurrentLanguage == lang.Code ? "active" : "")"
+                        @onclick="() => ChangeLanguage(lang.Code)">
+                    <span class="me-2">@lang.Flag</span> @lang.Name
+                </button>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    private record LanguageInfo(string Code, string Name, string Flag);
+
+    private readonly List<LanguageInfo> _languages = new()
+    {
+        new("tr", "Türkçe", "🇹🇷"),
+        new("en", "English", "🇬🇧"),
+        new("de", "Deutsch", "🇩🇪"),
+        new("ar", "العربية", "🇸🇦"),
+        new("ru", "Русский", "🇷🇺")
+    };
+
+    private string GetLanguageLabel(string code)
+    {
+        var lang = _languages.FirstOrDefault(l => l.Code == code);
+        return lang?.Code.ToUpperInvariant() ?? code.ToUpperInvariant();
+    }
+
+    private async Task ChangeLanguage(string code)
+    {
+        await Translation.ChangeLanguageAsync(code);
+        // localStorage'a kaydet
+        await JS.InvokeVoidAsync("localStorage.setItem", "preferredLanguage", code);
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // localStorage'dan tercih edilen dili oku
+        try
+        {
+            var savedLang = await JS.InvokeAsync<string?>("localStorage.getItem", "preferredLanguage");
+            if (!string.IsNullOrEmpty(savedLang) && savedLang != Translation.CurrentLanguage)
+            {
+                await Translation.ChangeLanguageAsync(savedLang);
+            }
+            else if (!Translation.IsLoaded)
+            {
+                await Translation.LoadAsync("tr"); // Varsayilan dil
+            }
+        }
+        catch
+        {
+            if (!Translation.IsLoaded)
+                await Translation.LoadAsync("tr");
+        }
+    }
+}

@@ -30,9 +30,10 @@ public class SipService : IAsyncDisposable
         _js = js;
     }
 
-    /// <summary>SIP client'ı başlatır ve register olur. TURN/ICE parametreleri opsiyonel.</summary>
+    /// <summary>SIP client'ı başlatır ve register olur. TURN/ICE ve codec parametreleri opsiyonel.</summary>
     public async Task<bool> InitializeAsync(string wsUri, string sipUri, string authUser, string authPass, string displayName,
-        string? stunServer = null, string? turnServer = null, string? turnUsername = null, string? turnPassword = null)
+        string? stunServer = null, string? turnServer = null, string? turnUsername = null, string? turnPassword = null,
+        string? preferredCodecs = null, int jitterBufferMinMs = 0, int jitterBufferMaxMs = 0)
     {
         _dotNetRef ??= DotNetObjectReference.Create(this);
 
@@ -41,7 +42,15 @@ public class SipService : IAsyncDisposable
             var result = await _js.InvokeAsync<bool>(
                 "sipClient.initialize",
                 wsUri, sipUri, authUser, authPass, displayName, _dotNetRef,
-                stunServer, turnServer, turnUsername, turnPassword);
+                stunServer, turnServer, turnUsername, turnPassword,
+                preferredCodecs, jitterBufferMinMs, jitterBufferMaxMs);
+
+            // Ag degisikligi algılamayı baslat
+            if (result)
+            {
+                await _js.InvokeVoidAsync("sipClient.startNetworkDetection");
+            }
+
             return result;
         }
         catch (Exception ex)
@@ -201,6 +210,32 @@ public class SipService : IAsyncDisposable
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // VIDEO YONETIMI
+    // ═══════════════════════════════════════════════════════════════
+
+    public bool IsVideoEnabled { get; private set; }
+
+    public event Func<bool, Task>? OnVideoToggled;    // true=acildi, false=kapandi
+    public event Func<Task>? OnRemoteVideoStarted;
+    public event Func<string, Task>? OnVideoError;
+
+    /// <summary>Video'yu acar/kapatir (toggle).</summary>
+    public async Task<bool> ToggleVideoAsync()
+    {
+        try
+        {
+            var result = await _js.InvokeAsync<bool>("sipClient.toggleVideo");
+            IsVideoEnabled = result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SipService] ToggleVideo hatasi: {ex.Message}");
+            return false;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // JS → C# CALLBACK'LER ([JSInvokable])
     // ═══════════════════════════════════════════════════════════════
 
@@ -259,6 +294,29 @@ public class SipService : IAsyncDisposable
         IsOnHold = false;
         if (OnCallFailed != null)
             await OnCallFailed.Invoke(error);
+    }
+
+    [JSInvokable("OnVideoToggled")]
+    public async Task JsOnVideoToggled(bool enabled)
+    {
+        IsVideoEnabled = enabled;
+        if (OnVideoToggled != null)
+            await OnVideoToggled.Invoke(enabled);
+    }
+
+    [JSInvokable("OnRemoteVideoStarted")]
+    public async Task JsOnRemoteVideoStarted(string _)
+    {
+        if (OnRemoteVideoStarted != null)
+            await OnRemoteVideoStarted.Invoke();
+    }
+
+    [JSInvokable("OnVideoError")]
+    public async Task JsOnVideoError(string error)
+    {
+        IsVideoEnabled = false;
+        if (OnVideoError != null)
+            await OnVideoError.Invoke(error);
     }
 
     // ═══════════════════════════════════════════════════════════════

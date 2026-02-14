@@ -32,6 +32,8 @@ public class AppDbContext : DbContext
     public DbSet<ConferenceParticipant> ConferenceParticipants => Set<ConferenceParticipant>();
     public DbSet<CallMonitoringSession> CallMonitoringSessions => Set<CallMonitoringSession>();
     public DbSet<CustomerStorageConfig> CustomerStorageConfigs => Set<CustomerStorageConfig>();
+    public DbSet<InstantMessage> InstantMessages => Set<InstantMessage>();
+    public DbSet<Contact> Contacts => Set<Contact>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -413,6 +415,47 @@ public class AppDbContext : DbContext
              .WithMany(c => c.StorageConfigs)
              .HasForeignKey(c => c.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // InstantMessage (anlik mesajlasma)
+        modelBuilder.Entity<InstantMessage>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => m.Uid).IsUnique();
+            e.Property(m => m.Content).IsRequired();
+            e.HasIndex(m => new { m.SenderUserId, m.ReceiverUserId, m.SentAt });
+            e.HasIndex(m => new { m.ReceiverUserId, m.IsRead }); // Okunmamis mesajlar icin
+            e.HasOne(m => m.SenderUser)
+             .WithMany()
+             .HasForeignKey(m => m.SenderUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.ReceiverUser)
+             .WithMany()
+             .HasForeignKey(m => m.ReceiverUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Customer)
+             .WithMany()
+             .HasForeignKey(m => m.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Contact (rehber)
+        modelBuilder.Entity<Contact>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.Property(c => c.FullName).IsRequired().HasMaxLength(200);
+            e.Property(c => c.PhoneNumber).IsRequired().HasMaxLength(50);
+            e.HasIndex(c => new { c.OwnerUserId, c.FullName });
+            e.HasIndex(c => c.PhoneNumber);
+            e.HasOne(c => c.OwnerUser)
+             .WithMany()
+             .HasForeignKey(c => c.OwnerUserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Customer)
+             .WithMany()
+             .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // =============================================

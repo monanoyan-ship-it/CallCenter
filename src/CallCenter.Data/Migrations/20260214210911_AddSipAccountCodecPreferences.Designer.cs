@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214210911_AddSipAccountCodecPreferences")]
+    partial class AddSipAccountCodecPreferences
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,9 +167,6 @@ namespace CallCenter.Data.Migrations
 
                     b.Property<DateTime?>("EndedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("MediaServerSessionId")
-                        .HasColumnType("text");
 
                     b.Property<int>("ModeId")
                         .HasColumnType("integer");
@@ -368,80 +368,6 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ConferenceRooms");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.Contact", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Company")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Department")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("text");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("IsFavorite")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("LdapDn")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("OwnerUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PhoneNumber2")
-                        .HasColumnType("text");
-
-                    b.Property<int>("SourceId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("Uid")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("PhoneNumber");
-
-                    b.HasIndex("Uid")
-                        .IsUnique();
-
-                    b.HasIndex("OwnerUserId", "FullName");
-
-                    b.ToTable("Contacts");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Customer", b =>
@@ -828,56 +754,6 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerUserTypePermissions");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.InstantMessage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("MessageTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("ReceiverUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SenderUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("Uid")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("Uid")
-                        .IsUnique();
-
-                    b.HasIndex("ReceiverUserId", "IsRead");
-
-                    b.HasIndex("SenderUserId", "ReceiverUserId", "SentAt");
-
-                    b.ToTable("InstantMessages");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Language", b =>
@@ -2352,23 +2228,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.Contact", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CallCenter.Shared.Entities.User", "OwnerUser")
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("OwnerUser");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.CustomerOrganizationUnit", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
@@ -2495,31 +2354,6 @@ namespace CallCenter.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("UserType");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.InstantMessage", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CallCenter.Shared.Entities.User", "ReceiverUser")
-                        .WithMany()
-                        .HasForeignKey("ReceiverUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CallCenter.Shared.Entities.User", "SenderUser")
-                        .WithMany()
-                        .HasForeignKey("SenderUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("ReceiverUser");
-
-                    b.Navigation("SenderUser");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.PasswordHistory", b =>

@@ -266,6 +266,9 @@ public class SipAccountListDto
     public string? WsUri { get; set; }
     public string? StunServer { get; set; }
     public string? TurnServer { get; set; }
+    public string? PreferredCodecs { get; set; }
+    public int JitterBufferMinMs { get; set; }
+    public int JitterBufferMaxMs { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; }
     public int CustomerId { get; set; }
@@ -316,6 +319,12 @@ public class SipAccountCreateDto
     [StringLength(256)]
     public string? TurnPassword { get; set; }
 
+    // Codec tercihleri
+    /// <summary>Codec oncelik sirasi, JSON array: ["opus","g722","pcmu","pcma"]. Bos ise varsayilan.</summary>
+    public string? PreferredCodecs { get; set; }
+    public int JitterBufferMinMs { get; set; }
+    public int JitterBufferMaxMs { get; set; }
+
     [Required(ErrorMessage = "Firma secimi zorunludur.")]
     public int CustomerId { get; set; }
 }
@@ -361,6 +370,11 @@ public class SipAccountUpdateDto
     public string? TurnUsername { get; set; }
     [StringLength(256)]
     public string? TurnPassword { get; set; }
+
+    // Codec tercihleri
+    public string? PreferredCodecs { get; set; }
+    public int JitterBufferMinMs { get; set; }
+    public int JitterBufferMaxMs { get; set; }
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { width: 320px; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; }
+        h3 { margin: 0 0 12px; color: #333; font-size: 16px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+        input:focus { border-color: #0d6efd; outline: none; }
+        button { width: 100%; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-primary { background: #0d6efd; color: white; }
+        .btn-primary:hover { background: #0a58ca; }
+        .status { font-size: 11px; margin-top: 8px; padding: 6px; border-radius: 4px; display: none; }
+        .status-success { background: #d4edda; color: #155724; display: block; }
+        .status-error { background: #f8d7da; color: #721c24; display: block; }
+        .divider { border-top: 1px solid #eee; margin: 12px 0; }
+        .info { font-size: 11px; color: #999; }
+    </style>
+</head>
+<body>
+    <h3>&#9742; Click to Dial</h3>
+
+    <div class="form-group">
+        <label>Call Center API URL</label>
+        <input type="text" id="apiUrl" placeholder="https://callcenter.example.com">
+    </div>
+
+    <div class="form-group">
+        <label>JWT Token</label>
+        <input type="password" id="authToken" placeholder="Bearer token">
+    </div>
+
+    <button class="btn-primary" id="saveBtn">Kaydet</button>
+    <div class="status" id="status"></div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+        <label>Hizli Arama</label>
+        <input type="text" id="quickDial" placeholder="Numara girin...">
+    </div>
+    <button class="btn-primary" id="dialBtn">Ara</button>
+
+    <div class="divider"></div>
+    <p class="info">Sayfadaki telefon numaralari otomatik tiklanabilir hale gelir.</p>
+
+    <script src="popup.js"></script>
+</body>
+</html>

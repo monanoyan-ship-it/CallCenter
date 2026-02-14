@@ -1,4 +1,5 @@
 using CallCenter.Api.Services.Interfaces;
+using CallCenter.Api.Services.MediaServer;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -10,8 +11,15 @@ namespace CallCenter.Api.Services;
 public class ConferenceService : IConferenceService
 {
     private readonly AppDbContext _db;
+    private readonly IJanusService _janus;
+    private readonly ILogger<ConferenceService> _logger;
 
-    public ConferenceService(AppDbContext db) => _db = db;
+    public ConferenceService(AppDbContext db, IJanusService janus, ILogger<ConferenceService> logger)
+    {
+        _db = db;
+        _janus = janus;
+        _logger = logger;
+    }
 
     public async Task<ConferenceRoomDto> CreateRoomAsync(CreateConferenceRequest req, int createdByUserId, int? customerId)
     {
@@ -23,6 +31,46 @@ public class ConferenceService : IConferenceService
             CustomerId = customerId ?? req.CustomerId,
             MaxParticipants = req.MaxParticipants
         };
+
+        // ─── Janus AudioBridge oda olusturma ───
+        try
+        {
+            var janusAvailable = await _janus.IsAvailableAsync();
+            if (janusAvailable)
+            {
+                var sessionId = await _janus.CreateSessionAsync();
+                if (sessionId.HasValue)
+                {
+                    var handleId = await _janus.AttachPluginAsync(sessionId.Value, "janus.plugin.audiobridge");
+                    if (handleId.HasValue)
+                    {
+                        // Janus room ID olarak DB oda ID'si yerine benzersiz long kullan
+                        long janusRoomId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        var created = await _janus.CreateAudioBridgeRoomAsync(
+                            sessionId.Value, handleId.Value, janusRoomId,
+                            req.Name, record: true);
+
+                        if (created)
+                        {
+                            room.MediaServerRoomId = $"{sessionId.Value}:{handleId.Value}:{janusRoomId}";
+                            _logger.LogInformation("Janus AudioBridge odasi olusturuldu: {RoomId}", janusRoomId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Janus AudioBridge oda olusturulamadi, DB-only mod devam ediyor");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Janus Gateway erisilemez, konferans DB-only modda olusturuluyor");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Janus AudioBridge entegrasyonu basarisiz, DB-only mod devam ediyor");
+        }
 
         // Olusturan kisiyi Host olarak ekle
         room.Participants.Add(new ConferenceParticipant
@@ -96,9 +144,31 @@ public class ConferenceService : IConferenceService
     public async Task<(bool Success, string? Error)> RemoveParticipantAsync(int roomId, int participantId)
     {
         var participant = await _db.ConferenceParticipants
+            .Include(p => p.ConferenceRoom)
             .FirstOrDefaultAsync(p => p.Id == participantId && p.ConferenceRoomId == roomId);
 
         if (participant == null) return (false, "Katilimci bulunamadi");
+
+        // ─── Janus AudioBridge katilimciyi cikar ───
+        var mediaRoomId = participant.ConferenceRoom?.MediaServerRoomId;
+        if (!string.IsNullOrEmpty(mediaRoomId))
+        {
+            try
+            {
+                var parts = mediaRoomId.Split(':');
+                if (parts.Length == 3 &&
+                    long.TryParse(parts[0], out var sessionId) &&
+                    long.TryParse(parts[1], out var handleId))
+                {
+                    await _janus.LeaveAudioBridgeRoomAsync(sessionId, handleId);
+                    _logger.LogInformation("Janus katilimci cikarildi: {ParticipantId}", participantId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Janus leave basarisiz: {ParticipantId}", participantId);
+            }
+        }
 
         participant.StatusId = ConferenceParticipantStatuses.Ids.Kicked;
         participant.LeftAt = DateTime.UtcNow;
@@ -110,9 +180,31 @@ public class ConferenceService : IConferenceService
     public async Task<(bool Success, string? Error)> MuteParticipantAsync(int roomId, int participantId, bool mute)
     {
         var participant = await _db.ConferenceParticipants
+            .Include(p => p.ConferenceRoom)
             .FirstOrDefaultAsync(p => p.Id == participantId && p.ConferenceRoomId == roomId);
 
         if (participant == null) return (false, "Katilimci bulunamadi");
+
+        // ─── Janus AudioBridge mute/unmute ───
+        var mediaRoomId = participant.ConferenceRoom?.MediaServerRoomId;
+        if (!string.IsNullOrEmpty(mediaRoomId))
+        {
+            try
+            {
+                var parts = mediaRoomId.Split(':');
+                if (parts.Length == 3 &&
+                    long.TryParse(parts[0], out var sessionId) &&
+                    long.TryParse(parts[1], out var handleId))
+                {
+                    await _janus.ConfigureParticipantAsync(sessionId, handleId, muted: mute);
+                    _logger.LogInformation("Janus katilimci {Action}: {ParticipantId}", mute ? "muted" : "unmuted", participantId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Janus mute/unmute basarisiz: {ParticipantId}", participantId);
+            }
+        }
 
         participant.IsMuted = mute;
         if (mute)
@@ -132,6 +224,28 @@ public class ConferenceService : IConferenceService
 
         if (room == null) return (false, "Oda bulunamadi");
         if (room.StatusId != ConferenceStatuses.Ids.Active) return (false, "Oda zaten sonlanmis");
+
+        // ─── Janus AudioBridge oda silme ───
+        if (!string.IsNullOrEmpty(room.MediaServerRoomId))
+        {
+            try
+            {
+                var parts = room.MediaServerRoomId.Split(':');
+                if (parts.Length == 3 &&
+                    long.TryParse(parts[0], out var sessionId) &&
+                    long.TryParse(parts[1], out var handleId) &&
+                    long.TryParse(parts[2], out var janusRoomId))
+                {
+                    await _janus.DestroyAudioBridgeRoomAsync(sessionId, handleId, janusRoomId);
+                    await _janus.DestroySessionAsync(sessionId);
+                    _logger.LogInformation("Janus AudioBridge odasi silindi: {RoomId}", janusRoomId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Janus AudioBridge oda silme basarisiz: {RoomId}", room.MediaServerRoomId);
+            }
+        }
 
         room.StatusId = ConferenceStatuses.Ids.Ended;
         room.EndedAt = DateTime.UtcNow;

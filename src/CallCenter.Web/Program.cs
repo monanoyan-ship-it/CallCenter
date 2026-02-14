@@ -37,6 +37,9 @@ builder.Services.AddScoped<HubService>();
 // SIP/VoIP servisi (SIP.js JS Interop wrapper)
 builder.Services.AddScoped<SipService>();
 
+// Coklu dil (Translation) servisi
+builder.Services.AddScoped<TranslationService>();
+
 // Toast bildirim servisi
 builder.Services.AddScoped<ToastService>();
 

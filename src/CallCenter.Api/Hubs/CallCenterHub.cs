@@ -265,6 +265,135 @@ public class CallCenterHub : Hub
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // SIP PRESENCE SENKRONIZASYONU
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// SIP Presence bildirimi geldiginde (Windows client'tan) agent durumunu gunceller.
+    /// Windows client SIP NOTIFY aldiginda bu metodu cagirir.
+    /// </summary>
+    public async Task UpdatePresenceFromSip(string sipUri, string presenceStatus)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        // SIP presence → AgentStatuses eslestirmesi
+        int agentStatusId = SipPresenceStatuses.ToAgentStatusId(presenceStatus);
+
+        var user = await _db.Users.FindAsync(userId.Value);
+        if (user == null) return;
+
+        var groupName = await GetGroupNameAsync(userId.Value);
+
+        user.StatusId = agentStatusId;
+        await _db.SaveChangesAsync();
+
+        var statusItem = AgentStatuses.GetById(agentStatusId);
+        var statusUpdate = new AgentStatusUpdate
+        {
+            AgentId = user.Id,
+            AgentName = user.FullName,
+            StatusId = agentStatusId,
+            StatusName = statusItem?.SystemName ?? "Unknown"
+        };
+
+        await SendToGroupAndAdminsAsync(groupName, "AgentStatusChanged", statusUpdate);
+
+        // SIP presence bilgisini de ayrica yayinla (BLF kullanan client'lar icin)
+        await SendToGroupAndAdminsAsync(groupName, "SipPresenceChanged", new
+        {
+            UserId = userId.Value,
+            SipUri = sipUri,
+            PresenceStatus = presenceStatus,
+            AgentStatusId = agentStatusId,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
+    /// Belirli bir kullanicinin SIP presence bilgisini sorgular.
+    /// BLF (Busy Lamp Field) icin.
+    /// </summary>
+    public async Task<object?> GetUserPresence(int targetUserId)
+    {
+        var user = await _db.Users.FindAsync(targetUserId);
+        if (user == null) return null;
+
+        var sipPresence = SipPresenceStatuses.FromAgentStatus(user.StatusId);
+        return new
+        {
+            UserId = user.Id,
+            FullName = user.FullName,
+            Extension = user.Extension,
+            AgentStatusId = user.StatusId,
+            SipPresenceStatus = sipPresence.SystemName,
+            SipPresenceDescription = sipPresence.Description
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // INSTANT MESSAGING (Anlik Mesajlasma)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Anlık mesaj gonder — SignalR ile real-time delivery.
+    /// Client tarafinda mesaj gonderildiginde bu metot cagirilir.
+    /// </summary>
+    public async Task SendInstantMessage(int receiverUserId, string content)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        var sender = await _db.Users.FindAsync(userId.Value);
+        if (sender == null) return;
+
+        // Mesaji aliciya ve gonderene real-time ilet
+        var messageEvent = new
+        {
+            SenderUserId = userId.Value,
+            SenderName = sender.FullName,
+            ReceiverUserId = receiverUserId,
+            Content = content,
+            SentAt = DateTime.UtcNow
+        };
+
+        // Aliciya bildir
+        await Clients.User(receiverUserId.ToString()).SendAsync("NewInstantMessage", messageEvent);
+
+        // Gonderene de onay (baska cihazda aciksa senkron)
+        await Clients.User(userId.Value.ToString()).SendAsync("InstantMessageSent", messageEvent);
+    }
+
+    /// <summary>Mesaj okundu bildirimi (typing indicator benzeri)</summary>
+    public async Task NotifyMessageRead(int senderUserId, int messageId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        var notification = new MessageReadNotification
+        {
+            MessageId = messageId,
+            ReadByUserId = userId.Value,
+            ReadAt = DateTime.UtcNow
+        };
+
+        await Clients.User(senderUserId.ToString()).SendAsync("MessageRead", notification);
+    }
+
+    /// <summary>Yazıyor bildirimi (typing indicator)</summary>
+    public async Task NotifyTyping(int receiverUserId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        await Clients.User(receiverUserId.ToString()).SendAsync("UserTyping", new
+        {
+            UserId = userId.Value,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // MONITORING (Arama Izleme)
     // ═══════════════════════════════════════════════════════════════
 

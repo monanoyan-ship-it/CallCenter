@@ -2,6 +2,7 @@ using System.Text;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Services;
 using CallCenter.Api.Services.CloudStorage;
+using CallCenter.Api.Services.MediaServer;
 using CallCenter.Api.Services.Interfaces;
 using CallCenter.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -76,8 +77,16 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ICallForwardingService, CallForwardingService>();
 builder.Services.AddScoped<IConferenceService, ConferenceService>();
 builder.Services.AddScoped<IMonitoringService, MonitoringService>();
+builder.Services.AddScoped<IMessagingService, MessagingService>();
+builder.Services.AddScoped<IProvisioningService, ProvisioningService>();
+builder.Services.AddScoped<ContactService>();
 builder.Services.AddSingleton<CloudStorageFactory>();
 builder.Services.AddScoped<ICloudStorageService, CloudStorageService>();
+
+// Janus Gateway (Media Server)
+builder.Services.Configure<JanusConfig>(builder.Configuration.GetSection("Janus"));
+builder.Services.AddHttpClient<IJanusService, JanusService>();
+
 builder.Services.AddScoped<ServiceFactory>();
 
 // Background Services

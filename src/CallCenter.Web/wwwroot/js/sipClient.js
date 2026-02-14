@@ -17,6 +17,13 @@ window.sipClient = {
     isRegistered: false,
     isOnHold: false,
     remoteAudio: null,
+    remoteVideo: null,          // Remote video element
+    localVideo: null,           // Local video preview element
+    localVideoStream: null,     // Local video MediaStream
+    videoEnabled: false,        // Video aktif mi
+    preferredCodecs: null,      // Codec oncelik sirasi: ["opus","g722","pcmu","pcma"]
+    jitterBufferTarget: 0,      // Jitter buffer hedef gecikme (ms). 0 = varsayilan.
+    _networkListenerActive: false,
 
     /**
      * SIP client'i baslatir ve register olur.
@@ -32,7 +39,8 @@ window.sipClient = {
      * @param {string|null} turnPassword - TURN sifresi
      */
     initialize: async function (wsUri, sipUri, authUser, authPass, displayName, dotNetRef,
-        stunServer, turnServer, turnUsername, turnPassword) {
+        stunServer, turnServer, turnUsername, turnPassword,
+        preferredCodecsJson, jitterBufferMinMs, jitterBufferMaxMs) {
         try {
             this.dotNetRef = dotNetRef;
             this.remoteAudio = document.getElementById('remoteAudio');
@@ -52,6 +60,20 @@ window.sipClient = {
             // ICE sunuculari olustur (STUN + TURN)
             const iceServers = this._buildIceServers(stunServer, turnServer, turnUsername, turnPassword);
             console.log('[SipClient] ICE sunuculari:', iceServers.length > 0 ? iceServers : 'varsayilan');
+
+            // Codec tercihleri
+            if (preferredCodecsJson) {
+                try {
+                    this.preferredCodecs = JSON.parse(preferredCodecsJson);
+                    console.log('[SipClient] Codec tercihleri:', this.preferredCodecs);
+                } catch (e) {
+                    console.warn('[SipClient] Codec JSON parse hatasi:', e);
+                    this.preferredCodecs = null;
+                }
+            }
+
+            // Jitter buffer ayari
+            this.jitterBufferTarget = jitterBufferMaxMs || 0;
 
             this.userAgent = new SIP.UserAgent({
                 uri: uri,
@@ -575,27 +597,145 @@ window.sipClient = {
     },
 
     /**
-     * Uzak tarafin sesini <audio> elementine baglar.
+     * Uzak tarafin ses ve video akislarini ilgili elementlere baglar.
      */
     _setupRemoteMedia: function (session) {
         const sdh = session.sessionDescriptionHandler;
         if (!sdh || !sdh.peerConnection) return;
 
         const pc = sdh.peerConnection;
-        const remoteStream = new MediaStream();
+        const remoteAudioStream = new MediaStream();
+        const remoteVideoStream = new MediaStream();
 
         pc.getReceivers().forEach(receiver => {
             if (receiver.track) {
-                remoteStream.addTrack(receiver.track);
+                if (receiver.track.kind === 'audio') {
+                    remoteAudioStream.addTrack(receiver.track);
+
+                    // Jitter buffer ayari (destekleniyorsa)
+                    if (this.jitterBufferTarget > 0 && receiver.jitterBufferTarget !== undefined) {
+                        receiver.jitterBufferTarget = this.jitterBufferTarget;
+                        console.log('[SipClient] Jitter buffer hedefi:', this.jitterBufferTarget, 'ms');
+                    }
+                } else if (receiver.track.kind === 'video') {
+                    remoteVideoStream.addTrack(receiver.track);
+                    console.log('[SipClient] Remote video track alindi');
+                }
             }
         });
 
+        // Codec oncelik sirasi uygula (SDP munging)
+        if (this.preferredCodecs && this.preferredCodecs.length > 0) {
+            this._applyCodecPriority(pc);
+        }
+
         if (this.remoteAudio) {
-            this.remoteAudio.srcObject = remoteStream;
+            this.remoteAudio.srcObject = remoteAudioStream;
             this.remoteAudio.play().catch(err => {
                 console.warn('[SipClient] Audio play hatasi:', err);
             });
         }
+
+        // Remote video elementine bagla
+        this.remoteVideo = document.getElementById('remoteVideo');
+        if (this.remoteVideo && remoteVideoStream.getTracks().length > 0) {
+            this.remoteVideo.srcObject = remoteVideoStream;
+            this.remoteVideo.play().catch(err => {
+                console.warn('[SipClient] Video play hatasi:', err);
+            });
+            this._notifyDotNet('OnRemoteVideoStarted', null);
+        }
+    },
+
+    // ═══════════════════════════════════════════════════
+    // VIDEO YONETIMI
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * Video'yu acar veya kapatir (toggle).
+     * Aktif arama sirasinda video track ekler/cikarir.
+     */
+    toggleVideo: async function () {
+        if (!this.currentSession) {
+            console.warn('[SipClient] Aktif arama yok, video toggle yapilamaz');
+            return false;
+        }
+
+        const sdh = this.currentSession.sessionDescriptionHandler;
+        if (!sdh || !sdh.peerConnection) return false;
+
+        const pc = sdh.peerConnection;
+
+        if (this.videoEnabled) {
+            // Video kapat
+            this._stopLocalVideo(pc);
+            this.videoEnabled = false;
+            this._notifyDotNet('OnVideoToggled', false);
+            console.log('[SipClient] Video kapatildi');
+        } else {
+            // Video ac
+            try {
+                const videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { max: 30 } }
+                });
+
+                this.localVideoStream = videoStream;
+                const videoTrack = videoStream.getVideoTracks()[0];
+
+                // PeerConnection'a video track ekle
+                pc.addTrack(videoTrack, videoStream);
+
+                // Local video preview
+                this.localVideo = document.getElementById('localVideo');
+                if (this.localVideo) {
+                    this.localVideo.srcObject = videoStream;
+                    this.localVideo.play().catch(() => {});
+                }
+
+                // Renegotiate SDP (video track eklendi)
+                if (sdh.sendReinvite) {
+                    await sdh.sendReinvite();
+                }
+
+                this.videoEnabled = true;
+                this._notifyDotNet('OnVideoToggled', true);
+                console.log('[SipClient] Video acildi');
+            } catch (err) {
+                console.error('[SipClient] Video acma hatasi:', err);
+                this._notifyDotNet('OnVideoError', err.message || 'Kamera erisim hatasi');
+                return false;
+            }
+        }
+        return this.videoEnabled;
+    },
+
+    /**
+     * Local video stream'i durdurur ve PeerConnection'dan cikarir.
+     */
+    _stopLocalVideo: function (pc) {
+        if (this.localVideoStream) {
+            this.localVideoStream.getTracks().forEach(track => track.stop());
+            this.localVideoStream = null;
+        }
+
+        if (this.localVideo) {
+            this.localVideo.srcObject = null;
+        }
+
+        // PeerConnection'dan video sender'i cikar
+        if (pc) {
+            const videoSenders = pc.getSenders().filter(s => s.track && s.track.kind === 'video');
+            videoSenders.forEach(sender => {
+                pc.removeTrack(sender);
+            });
+        }
+    },
+
+    /**
+     * Video durumunu dondurur.
+     */
+    isVideoEnabled: function () {
+        return this.videoEnabled;
     },
 
     /**
@@ -608,6 +748,175 @@ window.sipClient = {
             } catch (err) {
                 console.error('[SipClient] C# callback hatasi (' + methodName + '):', err);
             }
+        }
+    },
+
+    // ═══════════════════════════════════════════════════
+    // CODEC PRIORITY (SDP Munging)
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * WebRTC transceiver codec oncelik sirasini ayarlar.
+     * Tarayici destekledigi codec'ler arasindan bizim tercihlerimize gore siralar.
+     * @param {RTCPeerConnection} pc
+     */
+    _applyCodecPriority: function (pc) {
+        if (!pc || !this.preferredCodecs) return;
+
+        try {
+            const transceivers = pc.getTransceivers();
+            for (const transceiver of transceivers) {
+                if (transceiver.receiver && transceiver.receiver.track &&
+                    transceiver.receiver.track.kind === 'audio') {
+
+                    // setCodecPreferences destekleniyor mu?
+                    if (typeof transceiver.setCodecPreferences !== 'function') {
+                        console.log('[SipClient] setCodecPreferences desteklenmiyor — SDP munging atlanıyor');
+                        return;
+                    }
+
+                    const capabilities = RTCRtpReceiver.getCapabilities('audio');
+                    if (!capabilities || !capabilities.codecs) return;
+
+                    const preferredOrder = this.preferredCodecs.map(c => c.toLowerCase());
+                    const sorted = [...capabilities.codecs].sort((a, b) => {
+                        const aName = (a.mimeType || '').split('/')[1]?.toLowerCase() || '';
+                        const bName = (b.mimeType || '').split('/')[1]?.toLowerCase() || '';
+                        const aIdx = preferredOrder.indexOf(aName);
+                        const bIdx = preferredOrder.indexOf(bName);
+                        const aPrio = aIdx >= 0 ? aIdx : 999;
+                        const bPrio = bIdx >= 0 ? bIdx : 999;
+                        return aPrio - bPrio;
+                    });
+
+                    transceiver.setCodecPreferences(sorted);
+                    console.log('[SipClient] Codec oncelik sirasi uygulandi:', preferredOrder);
+                }
+            }
+        } catch (err) {
+            console.warn('[SipClient] Codec onceligi ayarlanamadi:', err);
+        }
+    },
+
+    // ═══════════════════════════════════════════════════
+    // NETWORK CHANGE DETECTION
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * Ag degisikligini dinler (online/offline + connection change).
+     * Baglanti kesilirse SIP re-register yapar.
+     */
+    startNetworkDetection: function () {
+        if (this._networkListenerActive) return;
+        this._networkListenerActive = true;
+
+        this._onOnline = () => {
+            console.log('[SipClient] Ag baglantisi geldi — re-register...');
+            if (this.registerer && !this.isRegistered) {
+                setTimeout(async () => {
+                    try {
+                        await this.registerer.register();
+                        console.log('[SipClient] Ag degisikligi sonrasi re-register baslatildi');
+                    } catch (err) {
+                        console.error('[SipClient] Re-register hatasi:', err);
+                    }
+                }, 2000); // Ag stabilize olsun
+            }
+        };
+
+        this._onOffline = () => {
+            console.log('[SipClient] Ag baglantisi kesildi');
+            this.isRegistered = false;
+            this._notifyDotNet('OnRegistrationFailed', 'Ag baglantisi kesildi');
+        };
+
+        this._onConnectionChange = () => {
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (conn) {
+                console.log('[SipClient] Ag tipi degisti:', conn.effectiveType, 'downlink:', conn.downlink);
+            }
+        };
+
+        window.addEventListener('online', this._onOnline);
+        window.addEventListener('offline', this._onOffline);
+        if (navigator.connection) {
+            navigator.connection.addEventListener('change', this._onConnectionChange);
+        }
+
+        console.log('[SipClient] Ag degisikligi algilama baslatildi');
+    },
+
+    stopNetworkDetection: function () {
+        if (!this._networkListenerActive) return;
+        this._networkListenerActive = false;
+
+        window.removeEventListener('online', this._onOnline);
+        window.removeEventListener('offline', this._onOffline);
+        if (navigator.connection && this._onConnectionChange) {
+            navigator.connection.removeEventListener('change', this._onConnectionChange);
+        }
+    },
+
+    // ═══════════════════════════════════════════════════
+    // INBAND DTMF (Audio tone injection)
+    // ═══════════════════════════════════════════════════
+
+    /**
+     * DTMF frekans tablosu (ITU-T Q.23)
+     */
+    _dtmfFrequencies: {
+        '1': [697, 1209], '2': [697, 1336], '3': [697, 1477], 'A': [697, 1633],
+        '4': [770, 1209], '5': [770, 1336], '6': [770, 1477], 'B': [770, 1633],
+        '7': [852, 1209], '8': [852, 1336], '9': [852, 1477], 'C': [852, 1633],
+        '*': [941, 1209], '0': [941, 1336], '#': [941, 1477], 'D': [941, 1633]
+    },
+
+    /**
+     * Inband DTMF: Web Audio API ile dual-tone DTMF sinyali uretir.
+     * Eski PBX'lerle uyumluluk icin (RFC 2833 desteklemeyen).
+     * @param {string} digit - DTMF rakam (0-9, *, #, A-D)
+     * @param {number} durationMs - Ton suresi (ms, varsayilan 100)
+     */
+    sendInbandDtmf: function (digit, durationMs) {
+        if (!this.currentSession) return;
+        const freqs = this._dtmfFrequencies[digit.toUpperCase()];
+        if (!freqs) return;
+
+        durationMs = durationMs || 100;
+
+        try {
+            const sdh = this.currentSession.sessionDescriptionHandler;
+            if (!sdh || !sdh.peerConnection) return;
+
+            const audioCtx = new AudioContext();
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc1.type = 'sine';
+            osc1.frequency.value = freqs[0];
+            osc2.type = 'sine';
+            osc2.frequency.value = freqs[1];
+            gainNode.gain.value = 0.3; // %30 volume
+
+            // MediaStreamDestination araciligiyla ses akisina mix
+            const dest = audioCtx.createMediaStreamDestination();
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+            gainNode.connect(dest);
+
+            osc1.start();
+            osc2.start();
+
+            setTimeout(() => {
+                osc1.stop();
+                osc2.stop();
+                audioCtx.close();
+            }, durationMs);
+
+            console.log('[SipClient] Inband DTMF gonderildi:', digit, freqs);
+        } catch (err) {
+            console.warn('[SipClient] Inband DTMF hatasi:', err);
         }
     }
 };

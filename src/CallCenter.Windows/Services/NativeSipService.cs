@@ -1,7 +1,11 @@
 using System.IO;
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Text.Json;
 using CallCenter.Shared.DTOs;
 using CallCenter.Windows.Models;
+using Concentus.Enums;
+using Concentus.Structs;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using SIPSorcery.Media;
@@ -42,7 +46,16 @@ public class NativeSipService : ISipService
     private float _speakerVolume = 1.0f;
 
     // ─── Codec ───
-    private List<string> _enabledCodecNames = new() { "PCMU", "PCMA", "G722" };
+    private List<string> _enabledCodecNames = new() { "OPUS", "G722", "PCMU", "PCMA" };
+    private OpusDecoder? _opusDecoder;
+    private OpusEncoder? _opusEncoder;
+
+    // ─── Jitter Buffer ───
+    private int _jitterBufferMinMs;
+    private int _jitterBufferMaxMs;
+
+    // ─── Network Change Detection ───
+    private bool _networkListenerActive;
 
     // ─── Ozellikler ───
     private bool _dndEnabled;
@@ -64,6 +77,11 @@ public class NativeSipService : ISipService
     // ─── Voicemail (MWI) ───
     private int _voicemailCount;
     private string? _voicemailNumber;
+
+    // ─── SIP Presence (SUBSCRIBE/NOTIFY) ───
+    private readonly Dictionary<string, string> _buddyPresence = new(); // SIP URI → presence status
+    private bool _presenceEnabled;
+    private string? _currentPresenceStatus; // "open", "closed", "busy", etc.
 
     // ─── Attended Transfer ───
     private int? _transferSourceLineIndex;
@@ -121,6 +139,7 @@ public class NativeSipService : ISipService
     public event Func<int, Task>? OnLineChanged;
     public event Func<bool, Task>? OnMuteChanged;
     public event Func<int, Task>? OnVoicemailCountChanged;
+    public event Func<string, string, Task>? OnBuddyPresenceChanged; // (sipUri, presenceStatus)
 
     // ═══════════════════════════════════════════════════
     // INITIALIZE & REGISTER
@@ -749,10 +768,45 @@ public class NativeSipService : ISipService
     {
         return new List<CodecInfo>
         {
-            new() { Name = "PCMU", PayloadType = 0, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("PCMU"), Priority = 0 },
-            new() { Name = "PCMA", PayloadType = 8, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("PCMA"), Priority = 1 },
-            new() { Name = "G722", PayloadType = 9, SampleRate = 16000, IsEnabled = _enabledCodecNames.Contains("G722"), Priority = 2 },
+            new() { Name = "OPUS", PayloadType = 111, SampleRate = 48000, IsEnabled = _enabledCodecNames.Contains("OPUS"), Priority = 0 },
+            new() { Name = "G722", PayloadType = 9, SampleRate = 16000, IsEnabled = _enabledCodecNames.Contains("G722"), Priority = 1 },
+            new() { Name = "PCMU", PayloadType = 0, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("PCMU"), Priority = 2 },
+            new() { Name = "PCMA", PayloadType = 8, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("PCMA"), Priority = 3 },
+            new() { Name = "G726", PayloadType = 2, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("G726"), Priority = 4 },
+            new() { Name = "SPEEX", PayloadType = 97, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("SPEEX"), Priority = 5 },
+            new() { Name = "ILBC", PayloadType = 98, SampleRate = 8000, IsEnabled = _enabledCodecNames.Contains("ILBC"), Priority = 6 },
         };
+    }
+
+    /// <summary>SipAccount'tan gelen codec tercihlerini uygular (JSON array).</summary>
+    public void ApplyCodecPreferences(string? preferredCodecsJson)
+    {
+        if (string.IsNullOrWhiteSpace(preferredCodecsJson)) return;
+        try
+        {
+            var codecs = JsonSerializer.Deserialize<List<string>>(preferredCodecsJson);
+            if (codecs != null && codecs.Count > 0)
+            {
+                _enabledCodecNames = codecs.Select(c => c.ToUpperInvariant()).ToList();
+            }
+        }
+        catch { /* Gecersiz JSON — varsayilani koru */ }
+    }
+
+    /// <summary>Jitter buffer parametrelerini ayarlar.</summary>
+    public void SetJitterBuffer(int minMs, int maxMs)
+    {
+        _jitterBufferMinMs = minMs;
+        _jitterBufferMaxMs = maxMs;
+    }
+
+    /// <summary>Opus decoder/encoder'i baslat.</summary>
+    private void EnsureOpusInitialized()
+    {
+#pragma warning disable CS0618 // Concentus managed fallback — native desteklenmiyor
+        _opusDecoder ??= new OpusDecoder(48000, 1);
+        _opusEncoder ??= new OpusEncoder(48000, 1, OpusApplication.OPUS_APPLICATION_VOIP);
+#pragma warning restore CS0618
     }
 
     public List<CodecInfo> GetEnabledCodecs()
@@ -779,6 +833,112 @@ public class NativeSipService : ISipService
         _turnServer = turnServer;
         _turnUsername = turnUsername;
         _turnPassword = turnPassword;
+    }
+
+    // ═══════════════════════════════════════════════════
+    // NETWORK CHANGE DETECTION
+    // ═══════════════════════════════════════════════════
+
+    /// <summary>
+    /// Ag degisikligini dinler. Baglanti kesilirse SIP re-register yapar.
+    /// </summary>
+    public void StartNetworkChangeDetection()
+    {
+        if (_networkListenerActive) return;
+        _networkListenerActive = true;
+
+        NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
+        NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
+        Console.WriteLine("[SIP] Ag degisikligi algilama baslatildi.");
+    }
+
+    public void StopNetworkChangeDetection()
+    {
+        if (!_networkListenerActive) return;
+        _networkListenerActive = false;
+
+        NetworkChange.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
+        NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
+    }
+
+    private async void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e)
+    {
+        Console.WriteLine($"[SIP] Ag durumu degisti: {(e.IsAvailable ? "bagli" : "baglanti yok")}");
+        if (e.IsAvailable && _sipTransport != null && _regAgent != null)
+        {
+            // Ag geldi — yeniden register ol
+            await Task.Delay(2000); // Ag stabilizasyonu icin bekle
+            try
+            {
+                _regAgent.Stop();
+                await Task.Delay(500);
+                _regAgent.Start();
+                Console.WriteLine("[SIP] Ag degisikligi sonrasi re-register baslatildi.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIP] Re-register hatasi: {ex.Message}");
+            }
+        }
+    }
+
+    private async void OnNetworkAddressChanged(object? sender, EventArgs e)
+    {
+        Console.WriteLine("[SIP] Ag adresi degisti — re-register planlanıyor...");
+        if (_sipTransport != null && _regAgent != null)
+        {
+            await Task.Delay(3000); // Adres degisikligi stabilize olsun
+            try
+            {
+                _regAgent.Stop();
+                await Task.Delay(500);
+                _regAgent.Start();
+                Console.WriteLine("[SIP] Adres degisikligi sonrasi re-register baslatildi.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIP] Re-register hatasi: {ex.Message}");
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // INBAND DTMF
+    // ═══════════════════════════════════════════════════
+
+    /// <summary>DTMF frekans tablosu (ITU-T Q.23)</summary>
+    private static readonly Dictionary<char, (int Low, int High)> DtmfFrequencies = new()
+    {
+        { '1', (697, 1209) }, { '2', (697, 1336) }, { '3', (697, 1477) }, { 'A', (697, 1633) },
+        { '4', (770, 1209) }, { '5', (770, 1336) }, { '6', (770, 1477) }, { 'B', (770, 1633) },
+        { '7', (852, 1209) }, { '8', (852, 1336) }, { '9', (852, 1477) }, { 'C', (852, 1633) },
+        { '*', (941, 1209) }, { '0', (941, 1336) }, { '#', (941, 1477) }, { 'D', (941, 1633) },
+    };
+
+    /// <summary>
+    /// Inband DTMF: Audio stream icerisine DTMF tone enjekte eder.
+    /// Eski PBX'lerle uyumluluk icin kullanilir (RFC 2833 desteklemeyen sistemler).
+    /// </summary>
+    public byte[] GenerateInbandDtmfTone(char digit, int sampleRate = 8000, int durationMs = 100)
+    {
+        if (!DtmfFrequencies.TryGetValue(char.ToUpper(digit), out var freqs))
+            return Array.Empty<byte>();
+
+        int numSamples = sampleRate * durationMs / 1000;
+        var pcm = new byte[numSamples * 2]; // 16-bit PCM
+
+        for (int i = 0; i < numSamples; i++)
+        {
+            double t = (double)i / sampleRate;
+            // Dual-tone: iki sinüs dalgası toplami
+            double sample = 0.5 * Math.Sin(2 * Math.PI * freqs.Low * t)
+                          + 0.5 * Math.Sin(2 * Math.PI * freqs.High * t);
+            short s16 = (short)(sample * short.MaxValue * 0.7); // %70 volume
+            pcm[i * 2] = (byte)(s16 & 0xFF);
+            pcm[i * 2 + 1] = (byte)(s16 >> 8);
+        }
+
+        return pcm;
     }
 
     // ═══════════════════════════════════════════════════
@@ -1116,11 +1276,192 @@ public class NativeSipService : ISipService
     }
 
     // ═══════════════════════════════════════════════════
+    // SIP PRESENCE (SUBSCRIBE/NOTIFY — RFC 3856)
+    // ═══════════════════════════════════════════════════
+
+    /// <summary>
+    /// SIP Presence özelligini etkinlestirir ve mevcut durumu yayinlar.
+    /// Register sonrasi cagirilmalidir.
+    /// </summary>
+    public void EnablePresence()
+    {
+        _presenceEnabled = true;
+        // Varsayilan: online (open)
+        PublishPresence("open");
+    }
+
+    /// <summary>
+    /// Agent durumu degistiginde SIP Presence'i gunceller.
+    /// AgentStatuses ID alir ve SIP PIDF durumuna cevirir.
+    /// </summary>
+    public void UpdatePresenceFromAgentStatus(int agentStatusId)
+    {
+        if (!_presenceEnabled || _sipTransport == null || _config == null) return;
+
+        // AgentStatuses → SIP Presence eslestirmesi
+        var sipStatus = agentStatusId switch
+        {
+            1 => "closed",      // Offline
+            2 => "open",        // Available
+            3 => "busy",        // Busy
+            4 => "away",        // OnBreak
+            5 => "on-the-phone", // InCall
+            6 => "busy",        // AfterCallWork → busy (DND)
+            _ => "closed"
+        };
+
+        PublishPresence(sipStatus);
+    }
+
+    /// <summary>
+    /// SIP PUBLISH ile kendi presence durumunu yayinlar (RFC 3903).
+    /// PIDF (Presence Information Data Format — RFC 3863) XML body gonderir.
+    /// </summary>
+    private void PublishPresence(string sipStatus)
+    {
+        if (_sipTransport == null || _config == null) return;
+        _currentPresenceStatus = sipStatus;
+
+        try
+        {
+            var sipUri = SIPURI.ParseSIPURI(_config.SipUri);
+            if (sipUri == null) return;
+
+            // RFC 3863 PIDF XML body
+            string pidfXml = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<presence xmlns=""urn:ietf:params:xml:ns:pidf""
+          xmlns:dm=""urn:ietf:params:xml:ns:pidf:data-model""
+          xmlns:rpid=""urn:ietf:params:xml:ns:pidf:rpid""
+          entity=""{_config.SipUri}"">
+  <tuple id=""t1"">
+    <status>
+      <basic>{(sipStatus == "closed" ? "closed" : "open")}</basic>
+    </status>
+    <note>{_config.DisplayName} - {sipStatus}</note>
+  </tuple>
+  <dm:person id=""p1"">
+    <rpid:activities>
+      <rpid:{GetRpidActivity(sipStatus)}/>
+    </rpid:activities>
+  </dm:person>
+</presence>";
+
+            // SIP PUBLISH request olustur
+            var publishReq = SIPRequest.GetRequest(
+                SIPMethodsEnum.PUBLISH,
+                sipUri,
+                new SIPToHeader(null, sipUri, null),
+                new SIPFromHeader(_config.DisplayName, new SIPURI(_config.AuthUsername, sipUri.Host, null), null));
+
+            publishReq.Header.ContentType = "application/pidf+xml";
+            publishReq.Header.Expires = 3600;
+            publishReq.Header.Event = "presence";
+            publishReq.Body = pidfXml;
+
+            _ = _sipTransport.SendRequestAsync(publishReq);
+        }
+        catch
+        {
+            // Presence publish basarisiz olursa sessizce devam et
+        }
+    }
+
+    /// <summary>
+    /// Belirli bir SIP URI'nin presence bilgisini almak icin SUBSCRIBE gonderir (BLF — Busy Lamp Field).
+    /// </summary>
+    public void SubscribeBuddyPresence(string buddySipUri)
+    {
+        if (_sipTransport == null || _config == null || !_presenceEnabled) return;
+
+        try
+        {
+            var fromUri = SIPURI.ParseSIPURI(_config.SipUri);
+            var toUri = SIPURI.ParseSIPURI(buddySipUri);
+            if (fromUri == null || toUri == null) return;
+
+            var subscribeReq = SIPRequest.GetRequest(
+                SIPMethodsEnum.SUBSCRIBE,
+                toUri,
+                new SIPToHeader(null, toUri, null),
+                new SIPFromHeader(_config.DisplayName, fromUri, null));
+
+            subscribeReq.Header.Expires = 3600;
+            subscribeReq.Header.Event = "presence";
+            subscribeReq.Header.Accept = "application/pidf+xml";
+
+            _ = _sipTransport.SendRequestAsync(subscribeReq);
+
+            // Buddy listesine ekle (ilk durum: bilinmiyor)
+            _buddyPresence[buddySipUri] = "unknown";
+        }
+        catch
+        {
+            // Subscribe basarisiz olursa sessizce devam et
+        }
+    }
+
+    /// <summary>
+    /// Gelen SIP NOTIFY mesajini isler ve buddy presence bilgisini gunceller.
+    /// InitializeAsync icinde SIPTransport.SIPRequestInEvent'e baglanmalidir.
+    /// </summary>
+    public void HandleIncomingNotify(SIPRequest notifyReq)
+    {
+        if (notifyReq.Method != SIPMethodsEnum.NOTIFY) return;
+        if (notifyReq.Header.Event != "presence") return;
+
+        try
+        {
+            var fromUri = notifyReq.Header.From.FromURI.ToString();
+            var body = notifyReq.Body;
+
+            if (string.IsNullOrEmpty(body)) return;
+
+            // Basit XML parse — <basic>open</basic> veya <basic>closed</basic>
+            string presence = "unknown";
+            if (body.Contains("<basic>open</basic>"))
+                presence = "open";
+            else if (body.Contains("<basic>closed</basic>"))
+                presence = "closed";
+
+            // RPID activities kontrolu
+            if (body.Contains("rpid:busy"))
+                presence = "busy";
+            else if (body.Contains("rpid:away"))
+                presence = "away";
+            else if (body.Contains("rpid:on-the-phone"))
+                presence = "on-the-phone";
+
+            _buddyPresence[fromUri] = presence;
+            OnBuddyPresenceChanged?.Invoke(fromUri, presence);
+        }
+        catch
+        {
+            // NOTIFY parse basarisiz olursa sessizce devam et
+        }
+    }
+
+    /// <summary>Tum buddy'lerin presence bilgisini dondurur.</summary>
+    public IReadOnlyDictionary<string, string> GetBuddyPresences() => _buddyPresence;
+
+    /// <summary>Kendi mevcut SIP presence durumunu dondurur.</summary>
+    public string? GetCurrentPresence() => _currentPresenceStatus;
+
+    private static string GetRpidActivity(string sipStatus) => sipStatus switch
+    {
+        "busy" => "busy",
+        "away" => "away",
+        "on-the-phone" => "on-the-phone",
+        "dnd" => "busy",
+        _ => "unknown"
+    };
+
+    // ═══════════════════════════════════════════════════
     // DISPOSE
     // ═══════════════════════════════════════════════════
 
     public ValueTask DisposeAsync()
     {
+        StopNetworkChangeDetection();
         StopRingtone();
 
         for (int i = 0; i < MaxLines; i++)
@@ -1167,7 +1508,7 @@ public class NativeSipService : ISipService
 }
 
 // ═══════════════════════════════════════════════════
-// HELPER: Codec-aware audio decoder (PCMU + PCMA + G.722)
+// HELPER: Codec-aware audio decoder (PCMU + PCMA + G.722 + Opus)
 // ═══════════════════════════════════════════════════
 
 internal static class AudioCodecDecoder
@@ -1217,9 +1558,12 @@ internal static class AudioCodecDecoder
 
     public static short ALawToLinear(byte aLaw) => ALawTable[aLaw];
 
+    // ── Opus decoder (lazy init, thread-safe degil — recording thread'de kullanilir) ──
+    private static OpusDecoder? _opusDecoderStatic;
+
     /// <summary>
     /// RTP payload type'a gore ses verisini PCM16'ya decode eder.
-    /// PT 0 = PCMU (mu-law, 8kHz), PT 8 = PCMA (A-law, 8kHz), PT 9 = G.722 (ADPCM, 16kHz).
+    /// PT 0 = PCMU, PT 8 = PCMA, PT 9 = G.722, PT 111 = Opus.
     /// </summary>
     public static byte[] Decode(byte[] payload, int payloadType)
     {
@@ -1228,12 +1572,18 @@ internal static class AudioCodecDecoder
             0 => DecodeMuLaw(payload),
             8 => DecodeALaw(payload),
             9 => DecodeG722(payload),
+            111 => DecodeOpus(payload),
             _ => DecodeMuLaw(payload) // fallback: mu-law
         };
     }
 
-    /// <summary>Payload type'a gore sample rate doner. G.722 = 16000, digerleri = 8000.</summary>
-    public static int GetSampleRate(int payloadType) => payloadType == 9 ? 16000 : 8000;
+    /// <summary>Payload type'a gore sample rate doner.</summary>
+    public static int GetSampleRate(int payloadType) => payloadType switch
+    {
+        9 => 16000,     // G.722
+        111 => 48000,   // Opus
+        _ => 8000       // PCMU, PCMA, G.726, Speex, iLBC
+    };
 
     private static byte[] DecodeMuLaw(byte[] payload)
     {
@@ -1255,6 +1605,33 @@ internal static class AudioCodecDecoder
             short sample = ALawTable[payload[i]];
             pcm[i * 2] = (byte)(sample & 0xFF);
             pcm[i * 2 + 1] = (byte)(sample >> 8);
+        }
+        return pcm;
+    }
+
+    /// <summary>
+    /// Opus decoder (Concentus managed). 48kHz mono.
+    /// PLC (Packet Loss Concealment): null payload gonderildiginde
+    /// Concentus codec kendi PLC algoritmasini uygular.
+    /// </summary>
+    private static byte[] DecodeOpus(byte[] payload)
+    {
+#pragma warning disable CS0618 // Concentus managed fallback
+        _opusDecoderStatic ??= new OpusDecoder(48000, 1);
+#pragma warning restore CS0618
+
+        // Opus frame → PCM16 (48kHz, mono)
+        // Max frame: 120ms = 5760 samples
+        var pcmShort = new short[5760];
+#pragma warning disable CS0618
+        int samples = _opusDecoderStatic.Decode(payload, 0, payload.Length, pcmShort, 0, pcmShort.Length, false);
+#pragma warning restore CS0618
+
+        var pcm = new byte[samples * 2];
+        for (int i = 0; i < samples; i++)
+        {
+            pcm[i * 2] = (byte)(pcmShort[i] & 0xFF);
+            pcm[i * 2 + 1] = (byte)(pcmShort[i] >> 8);
         }
         return pcm;
     }

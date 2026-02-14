@@ -61,6 +61,9 @@
                         </span>
                     }
 
+                    @* ─── Dil Secici ─── *@
+                    <LanguageSelector />
+
                     <button class="btn btn-link text-muted btn-logout" title="Cikis Yap" @onclick="HandleLogout">
                         <i class="bi bi-box-arrow-right"></i>
                     </button>
@@ -162,7 +165,10 @@
                 sipInfo.StunServer,
                 sipInfo.TurnServer,
                 sipInfo.TurnUsername,
-                sipInfo.TurnPassword);
+                sipInfo.TurnPassword,
+                sipInfo.PreferredCodecs,
+                sipInfo.JitterBufferMinMs,
+                sipInfo.JitterBufferMaxMs);
         }
         catch (Exception ex)
         {

@@ -61,6 +61,22 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # --- Janus Gateway (WebRTC Media Server) ---
+  janus:
+    image: canyan/janus-gateway:latest
+    container_name: callcenter-janus
+    ports:
+      - "8088:8088"     # REST API
+      - "8089:8089"     # REST API (HTTPS)
+      - "8188:8188"     # WebSocket
+      - "8189:8189"     # WebSocket (Secure)
+      - "10000-10200:10000-10200/udp"  # RTP media ports
+    volumes:
+      - janus_recordings:/tmp/janus-recordings
+    environment:
+      - JANUS_NAT_1_1_MAPPING=${JANUS_PUBLIC_IP:-}
+    restart: unless-stopped
+
   # --- Web (Blazor WASM + Nginx) ---
   web:
     build:
@@ -75,4 +91,6 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  janus_recordings:
     driver: local

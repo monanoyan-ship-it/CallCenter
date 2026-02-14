@@ -35,6 +35,9 @@
     <script src="js/sipClient.js"></script>
     <!-- Gizli audio elementi: Uzak tarafin sesi buradan calinir -->
     <audio id="remoteAudio" autoplay></audio>
+    <!-- Video elementleri: Gorunurluk Blazor tarafindan kontrol edilir -->
+    <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+    <video id="localVideo" autoplay playsinline muted style="display:none;"></video>
 
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>
