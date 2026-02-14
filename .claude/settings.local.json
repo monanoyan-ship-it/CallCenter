@@ -58,7 +58,15 @@
       "Bash(powershell -Command \"Get-ChildItem -Recurse -Directory -Filter bin | Remove-Item -Recurse -Force; Get-ChildItem -Recurse -Directory -Filter obj | Remove-Item -Recurse -Force; Write-Host ''bin/obj klasorleri temizlendi''\")",
       "Bash(dotnet ef migrations list:*)",
       "Bash(psql:*)",
-      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\":*)"
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\":*)",
+      "WebFetch(domain:www.zoiper.com)",
+      "Bash(dotnet msbuild:*)",
+      "Bash(git log:*)",
+      "WebFetch(domain:127.0.0.1)",
+      "Bash(curl:*)",
+      "Bash(node -e:*)",
+      "Bash(node:*)",
+      "Bash(python:*)"
     ]
   }
 }
