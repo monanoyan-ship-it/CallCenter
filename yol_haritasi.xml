@@ -1730,4 +1730,208 @@
     </Riskler>
   </Gorev>
 
+  <!-- ============================================================ -->
+  <!-- SPRINT 1: NAT VE SES KALİTESİ (Zoiper Parite)               -->
+  <!-- ============================================================ -->
+
+  <Gorev no="S1.1" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>TURN/ICE Destegi</Ad>
+    <Detay>
+      - SipConnectionInfoDto'ya StunServer, TurnServer, TurnUsername, TurnPassword eklendi
+      - SipAccount entity'sine STUN/TURN alanlari eklendi (TurnPassword AES sifreli)
+      - SipAccountService: GetMyConnectionAsync, GetAllAsync, CreateAsync, UpdateAsync TURN destekli
+      - AdminDtos: SipAccountListDto, SipAccountCreateDto, SipAccountUpdateDto TURN alanlari
+      - Web sipClient.js: _buildIceServers() helper, peerConnectionConfiguration.iceServers
+      - Web SipService.cs: InitializeAsync TURN parametreleri eklendi
+      - Web Dialer.razor + MainLayout.razor: TURN params gecisi
+      - Windows ISipService.cs: TurnServer, TurnUsername, SetIceServers interface
+      - Windows NativeSipService.cs: STUN discovery (STUNClient.GetPublicIPEndPoint), ContactHost ayari
+      - EF Migration: AddSipAccountTurnIce
+      - AppDbContext: StunServer, TurnServer, TurnUsername, TurnPassword fluent config
+    </Detay>
+    <Riskler>
+      - SIPSorcery'de tam TURN relay destegi sinirli — STUN binding ile public IP discovery yapiliyor, TURN relay icin ek gelistirme gerekebilir
+      - Windows NativeSipService STUN discovery senkron — ilk baglantida kisa gecikme olabilir
+      - TURN credential'lar DB'de AES sifrelenmis ama rotation mekanizmasi yok
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S1.2" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Echo Cancellation / Noise Suppression / Auto Gain Control</Ad>
+    <Detay>
+      - Web sipClient.js: Tum getUserMedia cagirilarina echoCancellation, noiseSuppression, autoGainControl eklendi
+      - initialize(), makeCall(), answerCall() audio constraints guncellendi
+      - Windows: WASAPI (WindowsAudioEndPoint) OS seviyesinde AEC sagliyor, ek DSP pipeline eklenmedi
+      - WebRTC jitter buffer otomatik (adaptive) — ek is yok
+    </Detay>
+    <Riskler>
+      - Windows tarafinda yazilim AEC yok — donanim/OS AEC'e bagimli
+      - Bazi tarayicilarda AEC performansi farkli olabilir (ozellikle Firefox)
+      - Headset kullanilmazsa hoparlor+mikrofon yakin mesafede echo olusilabilir
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S1.3" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>DTMF RFC 2833 (In-band) Destegi</Ad>
+    <Detay>
+      - Web sipClient.js: sendDtmf() RFC 2833 once dener (sdh.sendDtmf), basarisiz olursa SIP INFO fallback
+      - Windows NativeSipService: SIPSorcery SIPUserAgent.SendDtmf() zaten RFC 2833 kullaniyor
+      - Her iki platform icin otomatik fallback mekanizmasi
+    </Detay>
+    <Riskler>
+      - SIP.js 0.21.x'te sdh.sendDtmf() bazi WebRTC baglantilarda desteklenmeyebilir — SIP INFO fallback mevcut
+      - PBX tarafinda RFC 2833 negotiate edilmezse DTMF calismayabilir
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S1.4" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Call Forwarding Kurallari</Ad>
+    <Detay>
+      - Entity: CallForwardingRule (UserId, ForwardType, Destination, IsActive, Priority, TimeoutSeconds)
+      - ForwardTypes sabitleri: Always=1, Busy=2, NoAnswer=3, Offline=4
+      - User entity'sine CallForwardingRules navigation property eklendi
+      - ICallForwardingService + CallForwardingService: CRUD + GetForwardDestinationAsync
+      - CallForwardingController: CRUD endpoints + yetki kontrolu (agent kendi kuralini yonetebilir)
+      - CallDistributionService: ICallForwardingService entegrasyonu, Always forwarding kontrolu
+      - ServiceFactory + Program.cs DI kaydi
+      - AdminDtos: CallForwardingRuleDto, CreateDto, UpdateDto
+      - Web: CallForwarding.razor admin sayfasi (tablo, modal CRUD, tip badge'leri)
+      - NavMenu: Arama Yonlendirme linki + GroupRoutes
+      - EF Migration: AddCallForwardingRules
+      - AppDbContext: CallForwardingRule fluent config (index, FK, constraints)
+    </Detay>
+    <Riskler>
+      - SIP 302 redirect handling Web tarafinda implement edilmedi — PBX/proxy seviyesinde yapilmali
+      - NoAnswer timeout mekanizmasi uygulama seviyesinde degil, PBX ile entegre edilmeli
+      - Busy/Offline forwarding: agent durumu SignalR ile guncelleniyor, gercek SIP 486/480 response handle edilmiyor
+      - Windows app'te SIP 302 handling NativeSipService'e eklenmedi — ileri gelistirme
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- SPRINT 2: SUPERVISOR DASHBOARD + CONFERENCE/MONITORING        -->
+  <!-- ============================================================ -->
+
+  <Gorev no="S2.1" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>TypeDefinitions + Entity'ler (Conference, Monitoring)</Ad>
+    <Detay>
+      - TypeDefinitions.cs: ConferenceStatuses, ConferenceParticipantRoles, ConferenceParticipantStatuses, MonitoringModes
+      - Entity: ConferenceRoom.cs (Id, Uid, Name, StatusId, CreatedByUserId, CustomerId, MaxParticipants, MediaServerRoomId)
+      - Entity: ConferenceParticipant.cs (ConferenceRoomId, UserId, ExternalNumber, RoleId, StatusId, IsMuted)
+      - Entity: CallMonitoringSession.cs (CallRecordId, SupervisorId, ModeId, Notes, StartedAt, EndedAt, IsActive)
+    </Detay>
+    <Riskler>
+      - Entity'ler DB-only: gercek konferans sesi ve ses izleme medya sunucusu (Asterisk/FreeSWITCH/Janus) gerektirir
+      - MediaServerRoomId alani bos kalacak — medya sunucusu entegrasyonu Sprint 3-4'te planlanmistir
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S2.2" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>DTO'lar + AppDbContext + Migration</Ad>
+    <Detay>
+      - ConferenceDtos.cs: ConferenceRoomDto, ConferenceParticipantDto, CreateConferenceRequest, AddParticipantRequest
+      - MonitoringDtos.cs: MonitoringSessionDto, StartMonitoringRequest, MonitorableCallDto
+      - SupervisorDtos.cs genisletme: DashboardKpiUpdate, QueueStatusUpdate, ConferenceParticipantEvent, MonitoringEvent, MonitoringStoppedEvent
+      - AppDbContext: 3 yeni DbSet + fluent config (ConferenceRooms, ConferenceParticipants, CallMonitoringSessions)
+      - Migration: AddConferenceAndMonitoring
+    </Detay>
+    <Riskler>Yok. Build basarili, migration olusturuldu.</Riskler>
+  </Gorev>
+
+  <Gorev no="S2.3" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Service + Controller (Conference, Monitoring)</Ad>
+    <Detay>
+      - IConferenceService + ConferenceService: CRUD, katilimci yonetimi, mute, oda kapatma
+      - IMonitoringService + MonitoringService: Start/Stop/ChangeMode, GetMonitorableCalls, GetActiveSessions
+      - ConferenceController: rooms CRUD, participants, mute, end (Admin/Supervisor)
+      - MonitoringController: start, stop, mode, active, monitorable calls (Admin/Supervisor)
+      - DI + ServiceFactory kayitlari
+    </Detay>
+    <Riskler>
+      - Conference/Monitoring API'leri sadece DB kaydi yapar — gercek ses islemi yok
+      - MonitoringService.GetMonitorableCalls InProgress durumundaki aramalari listeler — CallStatuses.Ids.InProgress (2) dogru oldugundan emin olunmali
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S2.4" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>SignalR Hub + HubService genisleme</Ad>
+    <Detay>
+      - CallCenterHub: GetAllAgentStatuses (dashboard), JoinConferenceRoom, LeaveConferenceRoom, NotifyMonitoringStarted, NotifyMonitoringStopped
+      - HubService (Web): Dashboard/Conference/Monitoring event handler kayitlari + invoke metotlari
+      - AgentStatuses GetById() client-side evaluate (LINQ-to-SQL'de static metot calismaz)
+    </Detay>
+    <Riskler>
+      - GetAllAgentStatuses tum kullanicilari cevirir — buyuk ortamlarda pagination gerekebilir
+      - Conference/Monitoring SignalR event'leri DB kaydi yapar ama gercek ses akisi yok
+    </Riskler>
+  </Gorev>
+
+  <Gorev no="S2.5" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Supervisor Dashboard UI + BLF Panel + NavMenu + Monitoring UI</Ad>
+    <Detay>
+      - BlfPanel.razor + .razor.css: Agent durum kartlari grid layout, renk kodlamasi (AgentStatuses ID'lere gore)
+      - Supervisor/Dashboard.razor: 6 KPI kart, BLF paneli, kuyruk ozetleri, son aramalar tablosu, SignalR push + 30sn polling hibrit
+      - Supervisor/Monitoring.razor: Aktif izleme oturumlari, izlenebilir aramalar, Dinle/Fisilda/Katil butonlari, medya sunucusu uyarisi
+      - NavMenu.razor: Supervisor grubu (group 6), Dashboard + Arama Izleme linkleri, GroupRoutes guncelleme
+    </Detay>
+    <Riskler>
+      - Dashboard verisi SupervisorController endpoint'lerinden gelir — bu API'ler Sprint 1 oncesinde yazilmisti, uyum test edilmeli
+      - BLF renk eslestirmesi AgentStatuses.Ids'e gore hardcoded — yeni durum eklenirse BlfPanel guncellenmeli
+      - Monitoring UI gercek ses islemi yapamaz — medya sunucusu kurulmadan sadece DB kaydi olusturur
+      - Timer-based polling (15sn/30sn) dispose edilmezse memory leak olusabilir — IDisposable implement edildi
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- BULUT DEPOLAMA SOYUTLAMA KATMANI                              -->
+  <!-- ============================================================ -->
+
+  <Gorev no="S2.6" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Cloud Storage Abstraction Layer — Altyapi + Provider'lar + Admin UI</Ad>
+    <Detay>
+      Musteriler arama kayitlarini (ses/goruntu) kendi sectikleri bulut depolama servisinde tutacak.
+      Sunucumuzda dosya tutulmayacak. Strategy Pattern + Factory Pattern.
+
+      Desteklenen Provider'lar:
+      - Google Drive (OAuth2, refresh token)
+      - OneDrive / 365 (Microsoft Graph, ClientSecretCredential)
+      - Yandex Disk (REST API, OAuth token)
+      - Amazon S3 (AccessKey/SecretKey, pre-signed URL)
+      - MinIO (S3 uyumlu, ForcePathStyle)
+
+      Yapilan Isler:
+      - TypeDefinitions: StorageProviders (GoogleDrive=1, OneDrive=2, YandexDisk=3, AmazonS3=4, MinIO=5)
+      - CustomerStorageConfig entity (CustomerId, ProviderTypeId, EncryptedCredentials, BasePath, IsActive, IsDefault, test bilgileri)
+      - Customer.StorageConfigs nav property
+      - ICloudStorageProvider interface (Upload/Download/Delete/Exists/GetDownloadUrl/TestConnection)
+      - StorageDtos (List/Detail/Create/Update, provider-specific credential alanlari)
+      - AppDbContext fluent config + unique filtered index (CustomerId+IsDefault)
+      - Migration: AddCustomerStorageConfig
+      - NuGet: AWSSDK.S3, Google.Apis.Drive.v3, Microsoft.Graph, Azure.Identity
+      - CredentialModels (S3, Google, OneDrive, Yandex)
+      - S3StorageProvider (Amazon S3 + MinIO, ForcePathStyle farki)
+      - GoogleDriveStorageProvider (OAuth2 refresh token, folder creation)
+      - OneDriveStorageProvider (Microsoft Graph, small/large file upload)
+      - YandexDiskStorageProvider (REST API, recursive folder creation)
+      - CloudStorageFactory (AES decrypt → provider olusturma)
+      - ICloudStorageService + CloudStorageService (Config CRUD, Upload/Download/Delete, credential masking)
+      - CloudStorageController (API: configs CRUD, test, providers listesi)
+      - ServiceFactory + Program.cs DI kayitlari
+      - StorageConfig.razor (Admin UI: config listesi, create/edit modal, provider-specific form, test butonu)
+      - NavMenu: "Depolama Ayarlari" linki (admin/storage, Yonetim grubu)
+    </Detay>
+    <Riskler>
+      - OAuth2 refresh token expire olabilir — admin bilgilendirme mekanizmasi yok henuz
+      - Buyuk dosyalar icin multipart/resumable upload sadece Google Drive'da implement edildi, diger provider'larda basit upload
+      - OneDrive large file session 4MB siniri — dosya boyutu hesabi runtime'da yapilmali
+      - Yandex Disk REST API rate limit'e takılabilir — retry mekanizmasi yok
+      - Google Drive folder ID cache'lenmedi — her upload'da folder arama sorgusu yapiliyor
+      - S3 pre-signed URL expiry suresi client tarafindan kontrol edilemiyor
+      - NuGet paketleri .NET 10 preview ile test edilmedi (uyumluluk riski)
+      - CallRecord → CustomerStorageConfig iliskisi henuz kurulmadi (Agent→CustomerPersonnel→Customer zinciri ile cekilecek)
+      - Credential masking sadece API response'da — loglarda sifresiz gorunebilir
+      - MinIO endpoint dogrulamasi yok — yanlis URL girilirse anlasilmasi zor hata mesaji
+    </Riskler>
+  </Gorev>
+
 </Proje>

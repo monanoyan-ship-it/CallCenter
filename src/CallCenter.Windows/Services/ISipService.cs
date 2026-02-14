@@ -81,7 +81,10 @@ public interface ISipService : IAsyncDisposable
 
     // ─── STUN/ICE/NAT ───
     string? StunServer { get; }
+    string? TurnServer { get; }
+    string? TurnUsername { get; }
     void SetStunServer(string? stunServer);
+    void SetIceServers(string? stunServer, string? turnServer, string? turnUsername, string? turnPassword);
 
     // ─── Audio Devices ───
     Task<List<AudioDeviceInfo>> GetAudioInputDevicesAsync();

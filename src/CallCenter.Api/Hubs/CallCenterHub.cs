@@ -183,6 +183,143 @@ public class CallCenterHub : Hub
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // SUPERVISOR DASHBOARD
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Tum agent durumlarini getirir (Dashboard ilk yukleme).
+    /// Supervisor/Admin rolundeki kullanicilar icin.
+    /// </summary>
+    public async Task<List<AgentStatusDto>> GetAllAgentStatuses()
+    {
+        var userId = GetUserId();
+        if (userId == null) return new();
+
+        var user = await _db.Users.FindAsync(userId.Value);
+        if (user == null || (user.RoleId != UserRoles.Ids.Admin && user.RoleId != UserRoles.Ids.Supervisor))
+            return new();
+
+        var users = await _db.Users
+            .Where(u => u.IsActive)
+            .Select(u => new { u.Id, u.FullName, u.Extension, u.RoleId, u.StatusId })
+            .ToListAsync();
+
+        var agents = users.Select(u =>
+        {
+            var role = UserRoles.GetById(u.RoleId);
+            var status = AgentStatuses.GetById(u.StatusId);
+            return new AgentStatusDto
+            {
+                Id = u.Id,
+                FullName = u.FullName,
+                Extension = u.Extension,
+                RoleId = u.RoleId,
+                RoleName = role?.SystemName ?? "",
+                StatusId = u.StatusId,
+                StatusName = status?.SystemName ?? "",
+                StatusCss = status?.CssClass ?? "",
+                StatusIcon = status?.Icon ?? ""
+            };
+        }).ToList();
+
+        return agents;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONFERENCE (Konferans Odasi)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>Konferans odasina katilim bildirimi (SignalR grup).</summary>
+    public async Task JoinConferenceRoom(int roomId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        var groupName = $"conference_{roomId}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+
+        await Clients.Group(groupName).SendAsync("ConferenceParticipantJoined", new
+        {
+            RoomId = roomId,
+            UserId = userId.Value,
+            JoinedAt = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>Konferans odasindan ayrilma bildirimi.</summary>
+    public async Task LeaveConferenceRoom(int roomId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        var groupName = $"conference_{roomId}";
+
+        await Clients.Group(groupName).SendAsync("ConferenceParticipantLeft", new
+        {
+            RoomId = roomId,
+            UserId = userId.Value,
+            LeftAt = DateTime.UtcNow
+        });
+
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MONITORING (Arama Izleme)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Arama izleme baslatildiginda agent ve supervisor'lara bildirim gonderir.
+    /// NOT: Gercek ses izleme medya sunucusu gerektirir — bu sadece durum bildirimi.
+    /// </summary>
+    public async Task NotifyMonitoringStarted(int callId, int supervisorId, int modeId)
+    {
+        var supervisor = await _db.Users.FindAsync(supervisorId);
+        var modeName = MonitoringModes.GetById(modeId)?.SystemName ?? "Unknown";
+
+        var notification = new
+        {
+            CallId = callId,
+            SupervisorId = supervisorId,
+            SupervisorName = supervisor?.FullName ?? "",
+            ModeId = modeId,
+            ModeName = modeName,
+            StartedAt = DateTime.UtcNow
+        };
+
+        // Agent'a bildir (izlendigini bilmeli — Silent modda bile kayit var)
+        var call = await _db.CallRecords.FindAsync(callId);
+        if (call?.AgentId != null)
+        {
+            await Clients.User(call.AgentId.Value.ToString())
+                .SendAsync("MonitoringStarted", notification);
+        }
+
+        // Admin grubuna bildir
+        await Clients.Group("admins").SendAsync("MonitoringStarted", notification);
+    }
+
+    /// <summary>Arama izleme durduruldugunda bildirim.</summary>
+    public async Task NotifyMonitoringStopped(int callId, int supervisorId)
+    {
+        var notification = new
+        {
+            CallId = callId,
+            SupervisorId = supervisorId,
+            StoppedAt = DateTime.UtcNow
+        };
+
+        var call = await _db.CallRecords.FindAsync(callId);
+        if (call?.AgentId != null)
+        {
+            await Clients.User(call.AgentId.Value.ToString())
+                .SendAsync("MonitoringStopped", notification);
+        }
+
+        await Clients.Group("admins").SendAsync("MonitoringStopped", notification);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // HELPER METODLAR
     // ═══════════════════════════════════════════════════════════════
 

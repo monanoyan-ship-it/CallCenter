@@ -52,4 +52,16 @@ public class ServiceFactory
 
     public IAuditLogService CreateAuditLogService()
         => _sp.GetRequiredService<IAuditLogService>();
+
+    public ICallForwardingService CreateCallForwardingService()
+        => _sp.GetRequiredService<ICallForwardingService>();
+
+    public IConferenceService CreateConferenceService()
+        => _sp.GetRequiredService<IConferenceService>();
+
+    public IMonitoringService CreateMonitoringService()
+        => _sp.GetRequiredService<IMonitoringService>();
+
+    public ICloudStorageService CreateCloudStorageService()
+        => _sp.GetRequiredService<ICloudStorageService>();
 }

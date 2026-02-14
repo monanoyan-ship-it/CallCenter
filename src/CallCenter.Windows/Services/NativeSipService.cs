@@ -50,6 +50,9 @@ public class NativeSipService : ISipService
     private bool _muted;
     private bool _srtpEnabled;
     private string? _stunServer;
+    private string? _turnServer;
+    private string? _turnUsername;
+    private string? _turnPassword;
     private string? _ringtonePath;
 
     // ─── Recording ───
@@ -98,6 +101,8 @@ public class NativeSipService : ISipService
     public float SpeakerVolume => _speakerVolume;
     public bool IsSrtpEnabled => _srtpEnabled;
     public string? StunServer => _stunServer;
+    public string? TurnServer => _turnServer;
+    public string? TurnUsername => _turnUsername;
     public int VoicemailCount => _voicemailCount;
     public string? RingtonePath => _ringtonePath;
 
@@ -127,6 +132,12 @@ public class NativeSipService : ISipService
         {
             _config = config;
 
+            // ICE/TURN bilgilerini config'den al
+            if (!string.IsNullOrEmpty(config.StunServer) || !string.IsNullOrEmpty(config.TurnServer))
+            {
+                SetIceServers(config.StunServer, config.TurnServer, config.TurnUsername, config.TurnPassword);
+            }
+
             var sipUri = SIPURI.ParseSIPURI(config.SipUri);
             if (sipUri == null)
             {
@@ -135,13 +146,6 @@ public class NativeSipService : ISipService
             }
 
             _sipTransport = new SIPTransport();
-
-            // STUN ayari
-            if (!string.IsNullOrEmpty(_stunServer))
-            {
-                // SIPSorcery STUN destegi: STUNUri set edilir, NAT discovery icin kullanilir
-                // Transport bazinda STUN client SIPSorcery'de SIPTransport.STUNRequestTimeout ile desteklenir
-            }
 
             // Transport kanali
             var transport = config.Transport?.ToUpperInvariant() ?? "UDP";
@@ -156,6 +160,30 @@ public class NativeSipService : ISipService
                 default: // UDP
                     _sipTransport.AddSIPChannel(new SIPUDPChannel(new IPEndPoint(IPAddress.Any, 0)));
                     break;
+            }
+
+            // STUN ile NAT arkasindaki public IP'yi kesfet
+            if (!string.IsNullOrEmpty(_stunServer))
+            {
+                try
+                {
+                    var stunAddr = _stunServer!.Replace("stun:", "").Replace("stuns:", "");
+                    var stunParts = stunAddr.Split(':');
+                    var stunHost = stunParts[0];
+                    var stunPort = stunParts.Length > 1 && int.TryParse(stunParts[1], out var p) ? p : 3478;
+
+                    var publicEp = STUNClient.GetPublicIPEndPoint(stunHost, stunPort);
+                    if (publicEp != null)
+                    {
+                        // SIPTransport contact header'inda public IP kullan
+                        _sipTransport.ContactHost = publicEp.Address.ToString();
+                        Console.WriteLine($"[NativeSipService] STUN public address: {publicEp}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[NativeSipService] STUN discovery hatasi: {ex.Message}");
+                }
             }
 
             // Registration
@@ -744,6 +772,14 @@ public class NativeSipService : ISipService
     public void SetSrtp(bool enabled) => _srtpEnabled = enabled;
 
     public void SetStunServer(string? stunServer) => _stunServer = stunServer;
+
+    public void SetIceServers(string? stunServer, string? turnServer, string? turnUsername, string? turnPassword)
+    {
+        _stunServer = stunServer;
+        _turnServer = turnServer;
+        _turnUsername = turnUsername;
+        _turnPassword = turnPassword;
+    }
 
     // ═══════════════════════════════════════════════════
     // AUDIO DEVICES

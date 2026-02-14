@@ -27,6 +27,11 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+    public DbSet<CallForwardingRule> CallForwardingRules => Set<CallForwardingRule>();
+    public DbSet<ConferenceRoom> ConferenceRooms => Set<ConferenceRoom>();
+    public DbSet<ConferenceParticipant> ConferenceParticipants => Set<ConferenceParticipant>();
+    public DbSet<CallMonitoringSession> CallMonitoringSessions => Set<CallMonitoringSession>();
+    public DbSet<CustomerStorageConfig> CustomerStorageConfigs => Set<CustomerStorageConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -215,6 +220,10 @@ public class AppDbContext : DbContext
             e.Property(s => s.Password).HasMaxLength(512).IsRequired();
             e.Property(s => s.Domain).HasMaxLength(200);
             e.Property(s => s.Transport).HasMaxLength(10);
+            e.Property(s => s.StunServer).HasMaxLength(200);
+            e.Property(s => s.TurnServer).HasMaxLength(200);
+            e.Property(s => s.TurnUsername).HasMaxLength(100);
+            e.Property(s => s.TurnPassword).HasMaxLength(512);
             e.HasOne(s => s.Customer)
              .WithMany(c => c.SipAccounts)
              .HasForeignKey(s => s.CustomerId)
@@ -317,6 +326,93 @@ public class AppDbContext : DbContext
             // UserId ve CustomerId sadece bilgi amacli (snapshot), referential integrity gerekmiyor
             e.Ignore(a => a.User);
             e.Ignore(a => a.Customer);
+        });
+
+        // CallForwardingRule (arama yonlendirme kurali)
+        modelBuilder.Entity<CallForwardingRule>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.HasIndex(f => f.Uid).IsUnique();
+            e.Property(f => f.Destination).HasMaxLength(200).IsRequired();
+            e.Property(f => f.Description).HasMaxLength(500);
+            e.HasIndex(f => new { f.UserId, f.ForwardType, f.IsActive });
+            e.HasOne(f => f.User)
+             .WithMany(u => u.CallForwardingRules)
+             .HasForeignKey(f => f.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(f => f.Customer)
+             .WithMany()
+             .HasForeignKey(f => f.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ConferenceRoom (konferans odasi)
+        modelBuilder.Entity<ConferenceRoom>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.Property(c => c.Name).HasMaxLength(100).IsRequired();
+            e.Property(c => c.MediaServerRoomId).HasMaxLength(200);
+            e.HasIndex(c => c.StatusId);
+            e.HasOne(c => c.CreatedByUser)
+             .WithMany()
+             .HasForeignKey(c => c.CreatedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Customer)
+             .WithMany()
+             .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ConferenceParticipant (konferans katilimcisi)
+        modelBuilder.Entity<ConferenceParticipant>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.ExternalNumber).HasMaxLength(200);
+            e.HasOne(p => p.ConferenceRoom)
+             .WithMany(r => r.Participants)
+             .HasForeignKey(p => p.ConferenceRoomId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.User)
+             .WithMany()
+             .HasForeignKey(p => p.UserId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // CallMonitoringSession (arama izleme oturumu)
+        modelBuilder.Entity<CallMonitoringSession>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => m.Uid).IsUnique();
+            e.Property(m => m.Notes).HasMaxLength(1000);
+            e.HasIndex(m => m.CallRecordId);
+            e.HasIndex(m => m.SupervisorId);
+            e.HasOne(m => m.CallRecord)
+             .WithMany()
+             .HasForeignKey(m => m.CallRecordId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.Supervisor)
+             .WithMany()
+             .HasForeignKey(m => m.SupervisorId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // CustomerStorageConfig (bulut depolama yapilandirmasi)
+        modelBuilder.Entity<CustomerStorageConfig>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.Property(c => c.EncryptedCredentials).IsRequired();
+            e.Property(c => c.BasePath).HasMaxLength(500);
+            e.Property(c => c.LastTestError).HasMaxLength(2000);
+            // Musteri basina tek default config
+            e.HasIndex(c => new { c.CustomerId, c.IsDefault })
+             .HasFilter("\"IsDefault\" = true")
+             .IsUnique();
+            e.HasOne(c => c.Customer)
+             .WithMany(c => c.StorageConfigs)
+             .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // =============================================

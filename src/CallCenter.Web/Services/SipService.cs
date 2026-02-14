@@ -30,8 +30,9 @@ public class SipService : IAsyncDisposable
         _js = js;
     }
 
-    /// <summary>SIP client'ı başlatır ve register olur.</summary>
-    public async Task<bool> InitializeAsync(string wsUri, string sipUri, string authUser, string authPass, string displayName)
+    /// <summary>SIP client'ı başlatır ve register olur. TURN/ICE parametreleri opsiyonel.</summary>
+    public async Task<bool> InitializeAsync(string wsUri, string sipUri, string authUser, string authPass, string displayName,
+        string? stunServer = null, string? turnServer = null, string? turnUsername = null, string? turnPassword = null)
     {
         _dotNetRef ??= DotNetObjectReference.Create(this);
 
@@ -39,7 +40,8 @@ public class SipService : IAsyncDisposable
         {
             var result = await _js.InvokeAsync<bool>(
                 "sipClient.initialize",
-                wsUri, sipUri, authUser, authPass, displayName, _dotNetRef);
+                wsUri, sipUri, authUser, authPass, displayName, _dotNetRef,
+                stunServer, turnServer, turnUsername, turnPassword);
             return result;
         }
         catch (Exception ex)

@@ -406,3 +406,119 @@ public static class PermissionScopes
         public const int Customer = 3;
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// KONFERANS DURUMLARI
+// ═══════════════════════════════════════════════════════════════
+
+public static class ConferenceStatuses
+{
+    public static readonly TypeItem Active = new(1, "Active", "Conference.Active", "Aktif konferans", "bi-people-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem Ended = new(2, "Ended", "Conference.Ended", "Sonlandi", "bi-check-circle-fill", "bg-secondary", 2);
+    public static readonly TypeItem Cancelled = new(3, "Cancelled", "Conference.Cancelled", "Iptal edildi", "bi-x-circle-fill", "bg-danger", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Active, Ended, Cancelled };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Active = 1;
+        public const int Ended = 2;
+        public const int Cancelled = 3;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KONFERANS KATILIMCI ROLLERİ
+// ═══════════════════════════════════════════════════════════════
+
+public static class ConferenceParticipantRoles
+{
+    public static readonly TypeItem Host = new(1, "Host", "ConfRole.Host", "Konferans sahibi", "bi-star-fill", "bg-warning text-dark", 1);
+    public static readonly TypeItem Participant = new(2, "Participant", "ConfRole.Participant", "Katilimci", "bi-person-fill", "bg-primary", 2, isDefault: true);
+    public static readonly TypeItem Listener = new(3, "Listener", "ConfRole.Listener", "Dinleyici (sessiz izleme)", "bi-ear-fill", "bg-info", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Host, Participant, Listener };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Host = 1;
+        public const int Participant = 2;
+        public const int Listener = 3;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KONFERANS KATILIMCI DURUMLARI
+// ═══════════════════════════════════════════════════════════════
+
+public static class ConferenceParticipantStatuses
+{
+    public static readonly TypeItem Invited = new(1, "Invited", "ConfPart.Invited", "Davet edildi", "bi-envelope-fill", "bg-info", 1);
+    public static readonly TypeItem Joining = new(2, "Joining", "ConfPart.Joining", "Katiliyor", "bi-hourglass-split", "bg-warning text-dark", 2);
+    public static readonly TypeItem Joined = new(3, "Joined", "ConfPart.Joined", "Katildi", "bi-check-circle-fill", "bg-success", 3, isDefault: true);
+    public static readonly TypeItem Left = new(4, "Left", "ConfPart.Left", "Ayrildi", "bi-box-arrow-right", "bg-secondary", 4);
+    public static readonly TypeItem Muted = new(5, "Muted", "ConfPart.Muted", "Sessiz", "bi-mic-mute-fill", "bg-warning text-dark", 5);
+    public static readonly TypeItem Kicked = new(6, "Kicked", "ConfPart.Kicked", "Cikarildi", "bi-x-circle-fill", "bg-danger", 6);
+
+    public static IEnumerable<TypeItem> All => new[] { Invited, Joining, Joined, Left, Muted, Kicked };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Invited = 1;
+        public const int Joining = 2;
+        public const int Joined = 3;
+        public const int Left = 4;
+        public const int Muted = 5;
+        public const int Kicked = 6;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// İZLEME (MONITORING) MODLARI
+// ═══════════════════════════════════════════════════════════════
+
+public static class MonitoringModes
+{
+    public static readonly TypeItem Silent = new(1, "Silent", "Monitor.Silent", "Sessiz dinleme", "bi-ear-fill", "bg-info", 1, isDefault: true);
+    public static readonly TypeItem Whisper = new(2, "Whisper", "Monitor.Whisper", "Fisildama (sadece agent duyar)", "bi-chat-dots-fill", "bg-warning text-dark", 2);
+    public static readonly TypeItem Barge = new(3, "Barge", "Monitor.Barge", "Aramaya katilma (herkes duyar)", "bi-megaphone-fill", "bg-danger", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Silent, Whisper, Barge };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Silent = 1;
+        public const int Whisper = 2;
+        public const int Barge = 3;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEPOLAMA SAĞLAYICILARI (Cloud Storage Providers)
+// ═══════════════════════════════════════════════════════════════
+
+public static class StorageProviders
+{
+    public static readonly TypeItem GoogleDrive = new(1, "GoogleDrive", "StorageProvider.GoogleDrive", "Google Drive", "bi-google", "bg-danger", 1);
+    public static readonly TypeItem OneDrive = new(2, "OneDrive", "StorageProvider.OneDrive", "Microsoft OneDrive", "bi-microsoft", "bg-primary", 2);
+    public static readonly TypeItem YandexDisk = new(3, "YandexDisk", "StorageProvider.YandexDisk", "Yandex Disk", "bi-cloud-fill", "bg-warning text-dark", 3);
+    public static readonly TypeItem AmazonS3 = new(4, "AmazonS3", "StorageProvider.AmazonS3", "Amazon S3", "bi-cloud-arrow-up-fill", "bg-warning", 4);
+    public static readonly TypeItem MinIO = new(5, "MinIO", "StorageProvider.MinIO", "MinIO (S3 uyumlu)", "bi-hdd-rack-fill", "bg-dark", 5);
+
+    public static IEnumerable<TypeItem> All => new[] { GoogleDrive, OneDrive, YandexDisk, AmazonS3, MinIO };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+    public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
+
+    public static class Ids
+    {
+        public const int GoogleDrive = 1;
+        public const int OneDrive = 2;
+        public const int YandexDisk = 3;
+        public const int AmazonS3 = 4;
+        public const int MinIO = 5;
+    }
+}

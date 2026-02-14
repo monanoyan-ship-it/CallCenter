@@ -95,6 +95,104 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.CallForwardingRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ForwardType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "ForwardType", "IsActive");
+
+                    b.ToTable("CallForwardingRules");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CallMonitoringSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CallRecordId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ModeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SupervisorId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CallRecordId");
+
+                    b.HasIndex("SupervisorId");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.ToTable("CallMonitoringSessions");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.CallRecord", b =>
                 {
                     b.Property<int>("Id")
@@ -173,6 +271,100 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("CallRecords");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.ConferenceParticipant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConferenceRoomId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ExternalNumber")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsMuted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LeftAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConferenceRoomId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ConferenceParticipants");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.ConferenceRoom", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MaxParticipants")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MediaServerRoomId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.ToTable("ConferenceRooms");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Customer", b =>
@@ -429,6 +621,65 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerPortalModules");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CustomerStorageConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BasePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EncryptedCredentials")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastTestError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool?>("LastTestSuccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastTestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ProviderTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId", "IsDefault")
+                        .IsUnique()
+                        .HasFilter("\"IsDefault\" = true");
+
+                    b.ToTable("CustomerStorageConfigs");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CustomerUserType", b =>
@@ -714,9 +965,25 @@ namespace CallCenter.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("StunServer")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Transport")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("TurnPassword")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("TurnServer")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TurnUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<Guid>("Uid")
                         .HasColumnType("uuid");
@@ -1861,6 +2128,43 @@ namespace CallCenter.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.CallForwardingRule", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CallCenter.Shared.Entities.User", "User")
+                        .WithMany("CallForwardingRules")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CallMonitoringSession", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CallRecord", "CallRecord")
+                        .WithMany()
+                        .HasForeignKey("CallRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.User", "Supervisor")
+                        .WithMany()
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CallRecord");
+
+                    b.Navigation("Supervisor");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.CallRecord", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.User", "Agent")
@@ -1874,6 +2178,42 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("Agent");
 
                     b.Navigation("Queue");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.ConferenceParticipant", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.ConferenceRoom", "ConferenceRoom")
+                        .WithMany("Participants")
+                        .HasForeignKey("ConferenceRoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ConferenceRoom");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.ConferenceRoom", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CustomerOrganizationUnit", b =>
@@ -1964,6 +2304,17 @@ namespace CallCenter.Data.Migrations
                 {
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany("PortalModules")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CustomerStorageConfig", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany("StorageConfigs")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2089,6 +2440,11 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("TranslationKey");
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.ConferenceRoom", b =>
+                {
+                    b.Navigation("Participants");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.Customer", b =>
                 {
                     b.Navigation("OrganizationUnits");
@@ -2100,6 +2456,8 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("Queues");
 
                     b.Navigation("SipAccounts");
+
+                    b.Navigation("StorageConfigs");
 
                     b.Navigation("UserTypes");
                 });
@@ -2148,6 +2506,8 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.User", b =>
                 {
+                    b.Navigation("CallForwardingRules");
+
                     b.Navigation("CallRecords");
 
                     b.Navigation("CustomerPersonnel");

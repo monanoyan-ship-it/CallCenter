@@ -50,7 +50,14 @@ public class SipAccountService : ISipAccountService
             AuthPassword = _encryption.Decrypt(sip.Password),
             DisplayName = displayName,
             Transport = "WSS",
-            UseSrtp = sip.UseSrtp
+            UseSrtp = sip.UseSrtp,
+            // TURN/ICE NAT traversal
+            StunServer = sip.StunServer,
+            TurnServer = sip.TurnServer,
+            TurnUsername = sip.TurnUsername,
+            TurnPassword = !string.IsNullOrWhiteSpace(sip.TurnPassword)
+                ? _encryption.Decrypt(sip.TurnPassword)
+                : null
         };
     }
 
@@ -78,6 +85,8 @@ public class SipAccountService : ISipAccountService
                 Username = s.Username,
                 Transport = s.Transport,
                 WsUri = s.WsUri,
+                StunServer = s.StunServer,
+                TurnServer = s.TurnServer,
                 IsDefault = s.IsDefault,
                 IsActive = s.IsActive,
                 CustomerId = s.CustomerId,
@@ -113,6 +122,10 @@ public class SipAccountService : ISipAccountService
             s.Transport,
             s.WsUri,
             s.UseSrtp,
+            s.StunServer,
+            s.TurnServer,
+            s.TurnUsername,
+            TurnPassword = "********",
             s.IsDefault,
             s.IsActive,
             s.CustomerId,
@@ -143,6 +156,11 @@ public class SipAccountService : ISipAccountService
             Transport = dto.Transport,
             WsUri = dto.WsUri,
             UseSrtp = dto.UseSrtp,
+            StunServer = dto.StunServer,
+            TurnServer = dto.TurnServer,
+            TurnUsername = dto.TurnUsername,
+            TurnPassword = !string.IsNullOrWhiteSpace(dto.TurnPassword)
+                ? _encryption.Encrypt(dto.TurnPassword) : null,
             IsDefault = dto.IsDefault,
             IsActive = true,
             CustomerId = dto.CustomerId,
@@ -178,6 +196,13 @@ public class SipAccountService : ISipAccountService
         sip.Transport = dto.Transport;
         sip.WsUri = dto.WsUri;
         sip.UseSrtp = dto.UseSrtp;
+        sip.StunServer = dto.StunServer;
+        sip.TurnServer = dto.TurnServer;
+        sip.TurnUsername = dto.TurnUsername;
+        if (!string.IsNullOrWhiteSpace(dto.TurnPassword))
+        {
+            sip.TurnPassword = _encryption.Encrypt(dto.TurnPassword);
+        }
         sip.IsDefault = dto.IsDefault;
         sip.IsActive = dto.IsActive;
 

@@ -1,0 +1,380 @@
+@page "/supervisor/dashboard"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject HubService HubService
+@implements IDisposable
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+@using CallCenter.Web.Components
+
+<PageTitle>Supervisor Dashboard - Call Center</PageTitle>
+
+@* ─── BASLIK ─── *@
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-eye-fill me-2 text-info"></i>Supervisor Dashboard
+    </h4>
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small mb-0">Firma:</label>
+        <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
+            <option value="0">Tumu</option>
+            @foreach (var c in customers)
+            {
+                <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
+            }
+        </select>
+        @if (isLoading)
+        {
+            <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        }
+        <button class="btn btn-sm btn-outline-secondary" @onclick="RefreshDashboard" title="Yenile">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+</div>
+
+@if (data == null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-info" role="status"></div>
+        <p class="text-muted mt-2">Dashboard yukleniyor...</p>
+    </div>
+}
+else
+{
+    @* ─── KPI KARTLARI ─── *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Aktif Arama</div>
+                    <div class="fs-3 fw-bold text-danger">@data.ActiveCallCount</div>
+                    <i class="bi bi-telephone-fill text-danger"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Musait Agent</div>
+                    <div class="fs-3 fw-bold text-success">@data.AvailableAgentCount</div>
+                    <i class="bi bi-person-check-fill text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Kuyrukta</div>
+                    <div class="fs-3 fw-bold text-warning">@data.QueueWaitingCount</div>
+                    <i class="bi bi-hourglass-split text-warning"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Bugun Toplam</div>
+                    <div class="fs-3 fw-bold text-primary">@data.TodayTotalCallCount</div>
+                    <i class="bi bi-bar-chart-fill text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Cevaplanan</div>
+                    <div class="fs-3 fw-bold text-info">@data.TodayAnsweredCount</div>
+                    <i class="bi bi-check-circle-fill text-info"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Kacirilmis</div>
+                    <div class="fs-3 fw-bold text-secondary">@data.TodayMissedCount</div>
+                    <i class="bi bi-telephone-x-fill text-secondary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── BLF PANEL (Agent Durumlari) ─── *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
+            <h6 class="mb-0"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Agent Durumlari (BLF)</h6>
+            <span class="badge bg-secondary">@(allAgents?.Count ?? 0) agent</span>
+        </div>
+        <div class="card-body">
+            <BlfPanel Agents="@filteredAgents" OnAgentClicked="OnAgentClicked" />
+        </div>
+    </div>
+
+    @* ─── KUYRUK OZETLERI ─── *@
+    @if (data.QueueSummaries.Any())
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-collection me-2"></i>Kuyruk Durumlari</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var q in data.QueueSummaries)
+                    {
+                        <div class="col-md-6 col-lg-4 col-xl-3">
+                            <div class="card h-100 @(q.IsActive ? "" : "opacity-50")">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-2">
+                                        <i class="bi bi-collection me-1"></i>@q.Name
+                                    </h6>
+                                    <div class="d-flex justify-content-between text-muted small">
+                                        <span><i class="bi bi-hourglass me-1"></i>Bekleyen: <strong class="text-warning">@q.WaitingCount</strong></span>
+                                        <span><i class="bi bi-telephone me-1"></i>Aktif: <strong class="text-danger">@q.ActiveCount</strong></span>
+                                    </div>
+                                    <div class="text-muted small mt-1">
+                                        <i class="bi bi-people me-1"></i>Agent: <strong>@q.AgentCount</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ─── SON ARAMALAR TABLOSU ─── *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
+            <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Son Aramalar</h6>
+            <span class="badge bg-secondary">@data.RecentCalls.Count arama</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Yon</th>
+                            <th>Arayan</th>
+                            <th>Aranan</th>
+                            <th>Agent</th>
+                            <th>Kuyruk</th>
+                            <th>Durum</th>
+                            <th>Sure</th>
+                            <th>Zaman</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var call in data.RecentCalls)
+                        {
+                            <tr>
+                                <td>
+                                    @if (call.DirectionId == CallDirections.Ids.Inbound)
+                                    {
+                                        <i class="bi bi-telephone-inbound-fill text-success" title="Gelen"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-telephone-outbound-fill text-primary" title="Giden"></i>
+                                    }
+                                </td>
+                                <td class="small">@call.CallerNumber</td>
+                                <td class="small">@call.CalleeNumber</td>
+                                <td class="small">@(call.AgentName ?? "-")</td>
+                                <td class="small">@(call.QueueName ?? "-")</td>
+                                <td><span class="badge bg-@GetCallStatusBadge(call.StatusId)">@call.StatusName</span></td>
+                                <td class="small">@FormatDuration(call.DurationSeconds)</td>
+                                <td class="small text-muted">@call.StartedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardResponse? data;
+    private List<CustomerSimpleDto> customers = new();
+    private List<AgentStatusDto>? allAgents;
+    private List<AgentStatusDto>? filteredAgents;
+    private int selectedCustomerId;
+    private bool isLoading;
+    private System.Timers.Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // SignalR event'leri
+        HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
+        HubService.OnDashboardKpiUpdated += HandleKpiUpdated;
+        HubService.OnQueueStatusUpdated += HandleQueueUpdated;
+
+        // Musteri listesi + dashboard verisi
+        await LoadCustomersAsync();
+        await LoadDashboardAsync();
+        await LoadAgentStatusesAsync();
+
+        // 30 sn polling (hibrit: SignalR push + polling fallback)
+        _refreshTimer = new System.Timers.Timer(30_000);
+        _refreshTimer.Elapsed += async (_, _) =>
+        {
+            await LoadDashboardAsync();
+            await InvokeAsync(StateHasChanged);
+        };
+        _refreshTimer.Start();
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+            customers = list ?? new();
+        }
+        catch { /* Supervisor degilse 403 alabilir */ }
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var url = selectedCustomerId > 0
+                ? $"api/supervisor/dashboard?customerId={selectedCustomerId}"
+                : "api/supervisor/dashboard";
+            data = await Http.GetFromJsonAsync<DashboardResponse>(url);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SupervisorDashboard] Veri alinamadi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadAgentStatusesAsync()
+    {
+        try
+        {
+            if (HubService.IsConnected)
+            {
+                allAgents = await HubService.GetAllAgentStatusesAsync();
+            }
+            else
+            {
+                // Fallback: dashboard'daki agent listesini kullan
+                allAgents = data?.Agents;
+            }
+            FilterAgents();
+        }
+        catch { allAgents = data?.Agents; FilterAgents(); }
+    }
+
+    private void FilterAgents()
+    {
+        filteredAgents = allAgents;
+        // Ileride customerId filtreleme eklenebilir
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            selectedCustomerId = id;
+            await LoadDashboardAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RefreshDashboard()
+    {
+        await LoadDashboardAsync();
+        await LoadAgentStatusesAsync();
+    }
+
+    // ─── SignalR Event Handlers ───
+
+    private void HandleAgentStatusChanged(AgentStatusUpdate update)
+    {
+        if (allAgents != null)
+        {
+            var existing = allAgents.FirstOrDefault(a => a.Id == update.AgentId);
+            if (existing != null)
+            {
+                existing.StatusId = update.StatusId;
+                existing.StatusName = update.StatusName;
+            }
+            FilterAgents();
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleKpiUpdated(DashboardKpiUpdate kpi)
+    {
+        if (data != null)
+        {
+            data.ActiveCallCount = kpi.ActiveCallCount;
+            data.AvailableAgentCount = kpi.AvailableAgentCount;
+            data.QueueWaitingCount = kpi.QueueWaitingCount;
+            data.TodayTotalCallCount = kpi.TodayTotalCallCount;
+            data.TodayAnsweredCount = kpi.TodayAnsweredCount;
+            data.TodayMissedCount = kpi.TodayMissedCount;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleQueueUpdated(QueueStatusUpdate queue)
+    {
+        if (data != null)
+        {
+            var existing = data.QueueSummaries.FirstOrDefault(q => q.Id == queue.QueueId);
+            if (existing != null)
+            {
+                existing.WaitingCount = queue.WaitingCount;
+                existing.ActiveCount = queue.ActiveCount;
+                existing.AgentCount = queue.AgentCount;
+            }
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAgentClicked(int agentId)
+    {
+        // Ileride: monitoring baslatma, profil gosterme vs.
+    }
+
+    // ─── Helpers ───
+
+    private string GetCallStatusBadge(int statusId) => statusId switch
+    {
+        1 => "primary",   // Ringing
+        2 => "success",   // Answered
+        3 => "secondary", // Ended
+        4 => "danger",    // Missed
+        5 => "warning",   // Queued
+        6 => "info",      // Transferred
+        _ => "secondary"
+    };
+
+    private string FormatDuration(int seconds)
+    {
+        if (seconds <= 0) return "-";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0
+            ? $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes:D2}:{ts.Seconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Stop();
+        _refreshTimer?.Dispose();
+        HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
+        HubService.OnDashboardKpiUpdated -= HandleKpiUpdated;
+        HubService.OnQueueStatusUpdated -= HandleQueueUpdated;
+    }
+}

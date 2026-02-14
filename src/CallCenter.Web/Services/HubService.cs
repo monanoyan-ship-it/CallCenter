@@ -19,6 +19,18 @@ public class HubService : IAsyncDisposable
     public event Action<int>? OnCallEnded;
     public event Action<HubConnectionState>? OnConnectionStateChanged;
 
+    // ─── Dashboard Events ───
+    public event Action<DashboardKpiUpdate>? OnDashboardKpiUpdated;
+    public event Action<QueueStatusUpdate>? OnQueueStatusUpdated;
+
+    // ─── Conference Events ───
+    public event Action<ConferenceParticipantEvent>? OnConferenceParticipantJoined;
+    public event Action<ConferenceParticipantEvent>? OnConferenceParticipantLeft;
+
+    // ─── Monitoring Events ───
+    public event Action<MonitoringEvent>? OnMonitoringStarted;
+    public event Action<MonitoringStoppedEvent>? OnMonitoringStopped;
+
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
@@ -61,6 +73,39 @@ public class HubService : IAsyncDisposable
         _connection.On<int>("CallEnded", callId =>
         {
             OnCallEnded?.Invoke(callId);
+        });
+
+        // Dashboard events
+        _connection.On<DashboardKpiUpdate>("DashboardKpiUpdated", update =>
+        {
+            OnDashboardKpiUpdated?.Invoke(update);
+        });
+
+        _connection.On<QueueStatusUpdate>("QueueStatusUpdated", update =>
+        {
+            OnQueueStatusUpdated?.Invoke(update);
+        });
+
+        // Conference events
+        _connection.On<ConferenceParticipantEvent>("ConferenceParticipantJoined", e =>
+        {
+            OnConferenceParticipantJoined?.Invoke(e);
+        });
+
+        _connection.On<ConferenceParticipantEvent>("ConferenceParticipantLeft", e =>
+        {
+            OnConferenceParticipantLeft?.Invoke(e);
+        });
+
+        // Monitoring events
+        _connection.On<MonitoringEvent>("MonitoringStarted", e =>
+        {
+            OnMonitoringStarted?.Invoke(e);
+        });
+
+        _connection.On<MonitoringStoppedEvent>("MonitoringStopped", e =>
+        {
+            OnMonitoringStopped?.Invoke(e);
         });
 
         _connection.Reconnecting += _ =>
@@ -129,6 +174,34 @@ public class HubService : IAsyncDisposable
         if (_connection?.State == HubConnectionState.Connected)
         {
             await _connection.InvokeAsync("NotifyCallEnded", callId);
+        }
+    }
+
+    /// <summary>Tum agent durumlarini getirir (Dashboard ilk yukleme).</summary>
+    public async Task<List<AgentStatusDto>> GetAllAgentStatusesAsync()
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+        {
+            return await _connection.InvokeAsync<List<AgentStatusDto>>("GetAllAgentStatuses");
+        }
+        return new();
+    }
+
+    /// <summary>Konferans odasina katil (SignalR grubu).</summary>
+    public async Task JoinConferenceRoomAsync(int roomId)
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+        {
+            await _connection.InvokeAsync("JoinConferenceRoom", roomId);
+        }
+    }
+
+    /// <summary>Konferans odasindan ayril.</summary>
+    public async Task LeaveConferenceRoomAsync(int roomId)
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+        {
+            await _connection.InvokeAsync("LeaveConferenceRoom", roomId);
         }
     }
 

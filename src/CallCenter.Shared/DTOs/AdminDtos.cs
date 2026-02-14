@@ -264,6 +264,8 @@ public class SipAccountListDto
     public string Username { get; set; } = string.Empty;
     public string? Transport { get; set; }
     public string? WsUri { get; set; }
+    public string? StunServer { get; set; }
+    public string? TurnServer { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; }
     public int CustomerId { get; set; }
@@ -304,6 +306,16 @@ public class SipAccountCreateDto
     public bool UseSrtp { get; set; }
     public bool IsDefault { get; set; }
 
+    // TURN/ICE
+    [StringLength(200)]
+    public string? StunServer { get; set; }
+    [StringLength(200)]
+    public string? TurnServer { get; set; }
+    [StringLength(100)]
+    public string? TurnUsername { get; set; }
+    [StringLength(256)]
+    public string? TurnPassword { get; set; }
+
     [Required(ErrorMessage = "Firma secimi zorunludur.")]
     public int CustomerId { get; set; }
 }
@@ -339,6 +351,16 @@ public class SipAccountUpdateDto
     public bool UseSrtp { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; } = true;
+
+    // TURN/ICE
+    [StringLength(200)]
+    public string? StunServer { get; set; }
+    [StringLength(200)]
+    public string? TurnServer { get; set; }
+    [StringLength(100)]
+    public string? TurnUsername { get; set; }
+    [StringLength(256)]
+    public string? TurnPassword { get; set; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -464,4 +486,64 @@ public class AuditLogDetailDto
     public string? UserAgent { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? CustomerId { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CALL FORWARDING (ARAMA YÖNLENDİRME)
+// ═══════════════════════════════════════════════════════════════
+
+public class CallForwardingRuleDto
+{
+    public int Id { get; set; }
+    public Guid Uid { get; set; }
+    public int UserId { get; set; }
+    public string? UserName { get; set; }
+    public int? CustomerId { get; set; }
+    public int ForwardType { get; set; }
+    public string ForwardTypeName { get; set; } = string.Empty;
+    public string Destination { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public int Priority { get; set; }
+    public int TimeoutSeconds { get; set; }
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CallForwardingRuleCreateDto
+{
+    [Required]
+    public int UserId { get; set; }
+
+    public int? CustomerId { get; set; }
+
+    [Required]
+    [Range(1, 4, ErrorMessage = "ForwardType 1-4 arasi olmali (Always, Busy, NoAnswer, Offline)")]
+    public int ForwardType { get; set; }
+
+    [Required]
+    [StringLength(200, MinimumLength = 1)]
+    public string Destination { get; set; } = string.Empty;
+
+    public bool IsActive { get; set; } = true;
+    public int Priority { get; set; }
+    public int TimeoutSeconds { get; set; } = 20;
+
+    [StringLength(500)]
+    public string? Description { get; set; }
+}
+
+public class CallForwardingRuleUpdateDto
+{
+    [Range(1, 4, ErrorMessage = "ForwardType 1-4 arasi olmali")]
+    public int? ForwardType { get; set; }
+
+    [StringLength(200, MinimumLength = 1)]
+    public string? Destination { get; set; }
+
+    public bool? IsActive { get; set; }
+    public int? Priority { get; set; }
+    public int? TimeoutSeconds { get; set; }
+
+    [StringLength(500)]
+    public string? Description { get; set; }
 }

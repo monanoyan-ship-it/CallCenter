@@ -25,6 +25,7 @@ public class User
 
     public ICollection<CallRecord> CallRecords { get; set; } = new List<CallRecord>();
     public ICollection<PasswordHistory> PasswordHistories { get; set; } = new List<PasswordHistory>();
+    public ICollection<CallForwardingRule> CallForwardingRules { get; set; } = new List<CallForwardingRule>();
 
     // Musteri kullanicilari icin (RoleId == CustomerUser ise dolu)
     public CustomerPersonnel? CustomerPersonnel { get; set; }

@@ -26,8 +26,13 @@ window.sipClient = {
      * @param {string} authPass - SIP sifresi
      * @param {string} displayName - Arayan adi
      * @param {object} dotNetRef - Blazor DotNetObjectReference (C# callback icin)
+     * @param {string|null} stunServer - STUN sunucu (ornek: stun:stun.l.google.com:19302)
+     * @param {string|null} turnServer - TURN sunucu (ornek: turn:turn.example.com:3478)
+     * @param {string|null} turnUsername - TURN kullanici adi
+     * @param {string|null} turnPassword - TURN sifresi
      */
-    initialize: async function (wsUri, sipUri, authUser, authPass, displayName, dotNetRef) {
+    initialize: async function (wsUri, sipUri, authUser, authPass, displayName, dotNetRef,
+        stunServer, turnServer, turnUsername, turnPassword) {
         try {
             this.dotNetRef = dotNetRef;
             this.remoteAudio = document.getElementById('remoteAudio');
@@ -44,6 +49,10 @@ window.sipClient = {
                 return false;
             }
 
+            // ICE sunuculari olustur (STUN + TURN)
+            const iceServers = this._buildIceServers(stunServer, turnServer, turnUsername, turnPassword);
+            console.log('[SipClient] ICE sunuculari:', iceServers.length > 0 ? iceServers : 'varsayilan');
+
             this.userAgent = new SIP.UserAgent({
                 uri: uri,
                 authorizationUsername: authUser,
@@ -53,7 +62,17 @@ window.sipClient = {
                     server: wsUri
                 },
                 sessionDescriptionHandlerFactoryOptions: {
-                    constraints: { audio: true, video: false }
+                    constraints: {
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        },
+                        video: false
+                    },
+                    peerConnectionConfiguration: iceServers.length > 0
+                        ? { iceServers: iceServers }
+                        : undefined
                 },
                 logLevel: 'warn'
             });
@@ -143,7 +162,14 @@ window.sipClient = {
 
             const inviter = new SIP.Inviter(this.userAgent, targetUri, {
                 sessionDescriptionHandlerOptions: {
-                    constraints: { audio: true, video: false }
+                    constraints: {
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        },
+                        video: false
+                    }
                 }
             });
 
@@ -175,7 +201,14 @@ window.sipClient = {
         try {
             await this.currentSession.accept({
                 sessionDescriptionHandlerOptions: {
-                    constraints: { audio: true, video: false }
+                    constraints: {
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        },
+                        video: false
+                    }
                 }
             });
             console.log('[SipClient] Arama kabul edildi');
@@ -288,6 +321,7 @@ window.sipClient = {
 
     /**
      * DTMF tonu gonderir.
+     * Oncelik: RFC 2833 (RTP telephone-event), basarisizsa SIP INFO fallback.
      * @param {string} tone - DTMF karakteri (0-9, *, #)
      */
     sendDtmf: function (tone) {
@@ -296,6 +330,17 @@ window.sipClient = {
         }
 
         try {
+            // Yontem 1: RFC 2833 (in-band, RTP telephone-event) — tercih edilen
+            const sdh = this.currentSession.sessionDescriptionHandler;
+            if (sdh && typeof sdh.sendDtmf === 'function') {
+                const sent = sdh.sendDtmf(tone);
+                if (sent) {
+                    console.log('[SipClient] DTMF (RFC 2833) gonderildi:', tone);
+                    return true;
+                }
+            }
+
+            // Yontem 2: SIP INFO fallback
             this.currentSession.info({
                 requestOptions: {
                     body: {
@@ -305,7 +350,7 @@ window.sipClient = {
                     }
                 }
             });
-            console.log('[SipClient] DTMF gonderildi:', tone);
+            console.log('[SipClient] DTMF (SIP INFO) gonderildi:', tone);
             return true;
         } catch (err) {
             console.error('[SipClient] DTMF hatasi:', err);
@@ -438,6 +483,28 @@ window.sipClient = {
     // ═══════════════════════════════════════════════════════════════
     // PRIVATE HELPER METODLAR
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * ICE sunucu dizisi olusturur (STUN + TURN).
+     * Bos parametreler atlanir.
+     * @returns {Array} RTCIceServer dizisi
+     */
+    _buildIceServers: function (stunServer, turnServer, turnUsername, turnPassword) {
+        const servers = [];
+
+        if (stunServer) {
+            servers.push({ urls: stunServer });
+        }
+
+        if (turnServer) {
+            const turnConfig = { urls: turnServer };
+            if (turnUsername) turnConfig.username = turnUsername;
+            if (turnPassword) turnConfig.credential = turnPassword;
+            servers.push(turnConfig);
+        }
+
+        return servers;
+    },
 
     /**
      * Hold modifier — SDP'deki a=sendrecv satirlarini a=sendonly yapar.

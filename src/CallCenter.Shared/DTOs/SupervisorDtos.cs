@@ -103,3 +103,59 @@ public class QueueLiveAgentDto
     public string? Extension { get; set; }
     public int StatusId { get; set; }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD REAL-TIME DTO'LAR (SignalR push)
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Dashboard KPI guncellemesi (kuyruk degisikligi veya arama olayi sonrasi)</summary>
+public class DashboardKpiUpdate
+{
+    public int ActiveCallCount { get; set; }
+    public int AvailableAgentCount { get; set; }
+    public int QueueWaitingCount { get; set; }
+    public int TodayTotalCallCount { get; set; }
+    public int TodayAnsweredCount { get; set; }
+    public int TodayMissedCount { get; set; }
+}
+
+/// <summary>Kuyruk durum guncellemesi (bekleyen/aktif sayilari degistiginde)</summary>
+public class QueueStatusUpdate
+{
+    public int QueueId { get; set; }
+    public string QueueName { get; set; } = string.Empty;
+    public int WaitingCount { get; set; }
+    public int ActiveCount { get; set; }
+    public int AgentCount { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIGNALR EVENT DTO'LAR
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Konferans katilimci olayi (Join/Leave)</summary>
+public class ConferenceParticipantEvent
+{
+    public int RoomId { get; set; }
+    public int UserId { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+/// <summary>Izleme baslatildi olayi</summary>
+public class MonitoringEvent
+{
+    public int CallId { get; set; }
+    public int SupervisorId { get; set; }
+    public string SupervisorName { get; set; } = string.Empty;
+    public int ModeId { get; set; }
+    public string ModeName { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+}
+
+/// <summary>Izleme durduruldu olayi</summary>
+public class MonitoringStoppedEvent
+{
+    public int CallId { get; set; }
+    public int SupervisorId { get; set; }
+    public DateTime StoppedAt { get; set; }
+}

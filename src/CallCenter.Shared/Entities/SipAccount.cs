@@ -18,6 +18,17 @@ public class SipAccount
     /// </summary>
     public string? WsUri { get; set; }
     public bool UseSrtp { get; set; }
+
+    // ─── TURN/ICE NAT Traversal ───
+    /// <summary>STUN sunucu (ornek: stun:stun.l.google.com:19302)</summary>
+    public string? StunServer { get; set; }
+    /// <summary>TURN sunucu (ornek: turn:turn.example.com:3478)</summary>
+    public string? TurnServer { get; set; }
+    /// <summary>TURN kullanici adi</summary>
+    public string? TurnUsername { get; set; }
+    /// <summary>TURN sifresi (sifrelenmis olarak saklanir)</summary>
+    public string? TurnPassword { get; set; }
+
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -1,0 +1,57 @@
+@* BLF (Busy Lamp Field) Paneli - Agent durum kartlari *@
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+@if (Agents == null || !Agents.Any())
+{
+    <div class="text-center text-muted py-3">
+        <i class="bi bi-person-x fs-4"></i>
+        <p class="small mb-0 mt-1">Agent bulunamadi</p>
+    </div>
+}
+else
+{
+    <div class="blf-grid">
+        @foreach (var agent in Agents)
+        {
+            var statusItem = AgentStatuses.GetById(agent.StatusId);
+            var statusColor = GetStatusColor(agent.StatusId);
+            var statusIcon = statusItem?.Icon ?? "bi-question-circle";
+
+            <div class="blf-card @(agent.StatusId == AgentStatuses.Ids.Available ? "blf-available" : agent.StatusId == AgentStatuses.Ids.InCall || agent.StatusId == AgentStatuses.Ids.Busy ? "blf-oncall" : agent.StatusId == AgentStatuses.Ids.Offline ? "blf-offline" : "blf-other")"
+                 @onclick="() => OnAgentClicked.InvokeAsync(agent.Id)"
+                 title="@agent.FullName - @agent.StatusName">
+                <div class="blf-indicator" style="background-color: @statusColor;"></div>
+                <div class="blf-info">
+                    <div class="blf-name" title="@agent.FullName">@agent.FullName</div>
+                    <div class="blf-ext">
+                        @if (!string.IsNullOrEmpty(agent.Extension))
+                        {
+                            <i class="bi bi-telephone-fill me-1"></i>@agent.Extension
+                        }
+                    </div>
+                    <div class="blf-status">
+                        <i class="bi @statusIcon me-1"></i>
+                        <span>@agent.StatusName</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public List<AgentStatusDto>? Agents { get; set; }
+    [Parameter] public EventCallback<int> OnAgentClicked { get; set; }
+
+    private string GetStatusColor(int statusId) => statusId switch
+    {
+        1 => "#6c757d", // Offline - Gri
+        2 => "#198754", // Available - Yesil
+        3 => "#dc3545", // Busy - Kirmizi
+        4 => "#ffc107", // OnBreak - Sari
+        5 => "#fd7e14", // InCall - Turuncu
+        6 => "#0d6efd", // AfterCallWork - Mavi
+        _ => "#adb5bd"
+    };
+}

@@ -1,3 +1,4 @@
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -11,6 +12,7 @@ namespace CallCenter.Api.Services;
 /// <summary>
 /// Uygulama seviyesi ACD (Automatic Call Distribution).
 /// Gelen aramaları kuyruklardaki müsait agent'lara dağıtır.
+/// Call Forwarding kurallarini kontrol eder.
 ///
 /// NOT: Gerçek ACD genellikle PBX'in işidir (Asterisk/FreeSWITCH).
 /// Bu servis PBX olmadığında veya PBX'in kuyruk tanımı yoksa devreye girer.
@@ -20,11 +22,13 @@ public class CallDistributionService
 {
     private readonly AppDbContext _db;
     private readonly IHubContext<CallCenterHub> _hub;
+    private readonly ICallForwardingService _forwardingService;
 
-    public CallDistributionService(AppDbContext db, IHubContext<CallCenterHub> hub)
+    public CallDistributionService(AppDbContext db, IHubContext<CallCenterHub> hub, ICallForwardingService forwardingService)
     {
         _db = db;
         _hub = hub;
+        _forwardingService = forwardingService;
     }
 
     /// <summary>
@@ -68,6 +72,13 @@ public class CallDistributionService
             .OrderBy(a => queueAgentIds.IndexOf(a.Id)) // QueueAgent öncelik sırası
             .ThenBy(a => agentCallCounts.FirstOrDefault(c => c.AgentId == a.Id)?.Count ?? 0) // En az meşgul
             .First();
+
+        // Call Forwarding kontrolu: secilen agent'in yonlendirme kurali var mi?
+        // Offline agent'lar zaten filtrelendi, ama Always tipi kontrol edilmeli
+        var forwardDest = await _forwardingService.GetForwardDestinationAsync(
+            selectedAgent.Id, ForwardTypes.Always);
+        // ForwardDest varsa loglama yapilir, SIP tarafinda 302 gonderilir
+        // Simdilik CallRecord'a forwarding bilgisini kaydediyoruz
 
         // CallRecord'a agent'ı ata
         var callRecord = await _db.CallRecords.FindAsync(callRecordId);

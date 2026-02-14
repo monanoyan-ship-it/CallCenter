@@ -26,4 +26,18 @@ public class SipConnectionInfoDto
 
     /// <summary>SRTP kullanılsın mı</summary>
     public bool UseSrtp { get; set; }
+
+    // ─── TURN/ICE NAT Traversal ───
+
+    /// <summary>STUN sunucu adresi (örnek: stun:stun.l.google.com:19302)</summary>
+    public string? StunServer { get; set; }
+
+    /// <summary>TURN sunucu adresi (örnek: turn:turn.example.com:3478)</summary>
+    public string? TurnServer { get; set; }
+
+    /// <summary>TURN kimlik doğrulama kullanıcı adı</summary>
+    public string? TurnUsername { get; set; }
+
+    /// <summary>TURN kimlik doğrulama şifresi</summary>
+    public string? TurnPassword { get; set; }
 }

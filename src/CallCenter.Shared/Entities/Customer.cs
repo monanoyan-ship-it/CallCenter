@@ -28,4 +28,7 @@ public class Customer
 
     // Musteriye ait organizasyon birimleri
     public ICollection<CustomerOrganizationUnit> OrganizationUnits { get; set; } = new List<CustomerOrganizationUnit>();
+
+    // Musteriye ait bulut depolama yapilandirmalari
+    public ICollection<CustomerStorageConfig> StorageConfigs { get; set; } = new List<CustomerStorageConfig>();
 }

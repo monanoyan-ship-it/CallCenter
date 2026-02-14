@@ -1871,3 +1871,170 @@ docker compose up --build -d
 
 **Dosyalar:** 7 yeni, 3 düzenlenen
 **Build: 0 hata, 0 uyarı**
+
+---
+
+## 2026-02-14: Sprint 1 — NAT/ICE, Ses Kalitesi, DTMF, Call Forwarding
+
+### Zoiper Parite Çalışması
+Zoiper ile karşılaştırma yapıldı, 20+ eksik özellik tespit edildi. 5 sprint planı oluşturuldu (~10 hafta).
+**Modüler satış modeli**: Windows app bağımsız, Web app bağımsız, birlikte = tam paket.
+
+### S1.1 TURN/ICE Desteği
+- **Karar:** TURN credential'lar SipAccount entity'sinde saklanıyor (SystemSettings'te değil). Her müşterinin farklı TURN sunucusu olabilir.
+- **Web:** SIP.js `peerConnectionConfiguration.iceServers` dizisine STUN+TURN eklendi. `_buildIceServers()` helper.
+- **Windows:** SIPSorcery `STUNClient.GetPublicIPEndPoint()` ile NAT discovery. `SIPTransport.ContactHost` güncellendi. Tam TURN relay SIPSorcery'de sınırlı.
+- **API:** SipConnectionInfoDto + SipAccount entity 4 yeni alan (StunServer, TurnServer, TurnUsername, TurnPassword). TurnPassword AES şifreli.
+- **Migration:** AddSipAccountTurnIce
+
+### S1.2 Echo Cancellation / Noise Suppression
+- **Web:** `getUserMedia` constraints: `echoCancellation: true, noiseSuppression: true, autoGainControl: true` tüm audio paths'e (initialize, makeCall, answerCall).
+- **Windows:** WASAPI (`WindowsAudioEndPoint`) OS seviyesinde AEC sağlıyor. Ek NuGet/DSP eklenmedi.
+- **Karar:** Windows'ta yazılım AEC eklemek karmaşık, OS/donanım AEC yeterli. İleri sprint'te WebRTC-VAD NuGet düşünülebilir.
+
+### S1.3 DTMF RFC 2833
+- **Web:** `sendDtmf()` önce `sdh.sendDtmf()` (RFC 2833) dener, başarısızsa SIP INFO fallback.
+- **Windows:** SIPSorcery `SIPUserAgent.SendDtmf()` zaten RFC 2833. Değişiklik gerekmedi.
+
+### S1.4 Call Forwarding
+- **Entity:** `CallForwardingRule` — UserId, ForwardType (Always/Busy/NoAnswer/Offline), Destination, IsActive, Priority, TimeoutSeconds
+- **Pattern:** Factory+Service → `ICallForwardingService`, `CallForwardingService`, `ServiceFactory.CreateCallForwardingService()`
+- **Controller:** `CallForwardingController` — CRUD + yetki (agent kendi kuralını yönetir, admin/supervisor herkesinkini).
+- **ACD Entegrasyonu:** `CallDistributionService` → `ICallForwardingService.GetForwardDestinationAsync()` kontrolü
+- **UI:** `CallForwarding.razor` admin sayfası — tablo, modal CRUD, ForwardType badge'leri
+- **NavMenu:** "Arama Yönlendirme" linki + GroupRoutes
+- **Migration:** AddCallForwardingRules
+- **SIP 302:** Web/Windows tarafında implement edilmedi — PBX/proxy seviyesinde yapılmalı (ileri sprint).
+
+### Dosya Değişiklikleri
+**Yeni (7):**
+- `Shared/Entities/CallForwardingRule.cs`
+- `Api/Services/Interfaces/ICallForwardingService.cs`
+- `Api/Services/CallForwardingService.cs`
+- `Api/Controllers/CallForwardingController.cs`
+- `Web/Pages/Admin/CallForwarding.razor`
+- `Data/Migrations/AddSipAccountTurnIce`
+- `Data/Migrations/AddCallForwardingRules`
+
+**Düzenlenen (15+):**
+- `Shared/DTOs/SipConnectionDto.cs` — TURN alanları
+- `Shared/DTOs/AdminDtos.cs` — SipAccount TURN + CallForwarding DTOs
+- `Shared/Entities/SipAccount.cs` — TURN alanları
+- `Shared/Entities/User.cs` — CallForwardingRules nav property
+- `Api/Services/SipAccountService.cs` — TURN CRUD
+- `Api/Services/CallDistributionService.cs` — Forwarding entegrasyonu
+- `Api/Services/ServiceFactory.cs` — CreateCallForwardingService
+- `Api/Program.cs` — DI kayıt
+- `Data/AppDbContext.cs` — DbSet + fluent configs
+- `Web/wwwroot/js/sipClient.js` — ICE config + AEC/NS/AGC + DTMF RFC 2833
+- `Web/Services/SipService.cs` — TURN params
+- `Web/Pages/Dialer.razor` — TURN params geçişi
+- `Web/Layout/MainLayout.razor` — TURN params geçişi
+- `Web/Layout/NavMenu.razor` — CallForwarding link + GroupRoutes
+- `Windows/Services/ISipService.cs` — TURN interface
+- `Windows/Services/NativeSipService.cs` — STUN discovery + TURN fields
+
+**Build: 0 hata, 0 uyarı (Sprint 1)**
+
+## 2026-02-14: Sprint 2 — Supervisor Dashboard + Conference/Monitoring Altyapısı
+
+### Karar: Conference/Monitoring Stratejisi
+- Gerçek konferans (3+ taraf ses karıştırma), Whisper, Barge-In ve Silent Monitoring **medya sunucusu** gerektirir
+- SIPSorcery 6.2.4'te konferans API'si yok, SIP.js 0.21.2 tek çağrı oturumu tutuyor
+- **Sprint 2 stratejisi:** API altyapısı + DB entity'ler hazırlandı, gerçek ses işlemi Sprint 3-4'te medya sunucusu ile
+- Dashboard UI + BLF paneli tam işlevsel (mevcut SupervisorController endpoint'lerini tüketiyor)
+
+### Karar: GetAllAgentStatuses Hub Metodu
+- LINQ-to-SQL'de static metot (TypeItem.GetById) çalışmaz → anonim tip ile DB'den çek, client-side map et
+- Tüm aktif kullanıcıları döner — büyük ortamlar için pagination gerekebilir
+
+### Karar: BLF Renk Kodlaması
+- AgentStatuses.Ids'e göre hardcoded: Offline=Gri, Available=Yeşil, Busy/InCall=Kırmızı, OnBreak=Sarı, AfterCallWork=Mavi
+- CSS class'ları: blf-available, blf-oncall, blf-offline, blf-other
+
+### Karar: Dashboard Real-time Güncelleme
+- Hibrit yaklaşım: SignalR push (anlık) + 30sn polling (fallback)
+- Monitoring sayfası: 15sn polling
+- Timer'lar IDisposable ile temizleniyor
+
+### Yeni/Değişen Dosyalar (Sprint 2):
+- `Shared/Enums/TypeDefinitions.cs` — ConferenceStatuses, ConferenceParticipantRoles, ConferenceParticipantStatuses, MonitoringModes
+- `Shared/Entities/ConferenceRoom.cs` — Konferans odası entity
+- `Shared/Entities/ConferenceParticipant.cs` — Katılımcı entity
+- `Shared/Entities/CallMonitoringSession.cs` — İzleme oturumu entity
+- `Shared/DTOs/ConferenceDtos.cs` — Conference DTO'ları
+- `Shared/DTOs/MonitoringDtos.cs` — Monitoring DTO'ları
+- `Shared/DTOs/SupervisorDtos.cs` — DashboardKpiUpdate, QueueStatusUpdate, SignalR event DTO'ları eklendi
+- `Data/AppDbContext.cs` — 3 yeni DbSet + fluent config
+- `Api/Services/Interfaces/IConferenceService.cs` — Conference interface
+- `Api/Services/ConferenceService.cs` — Conference implementasyon
+- `Api/Services/Interfaces/IMonitoringService.cs` — Monitoring interface
+- `Api/Services/MonitoringService.cs` — Monitoring implementasyon
+- `Api/Controllers/ConferenceController.cs` — Conference API
+- `Api/Controllers/MonitoringController.cs` — Monitoring API
+- `Api/Hubs/CallCenterHub.cs` — GetAllAgentStatuses, JoinConference, LeaveConference, Monitoring bildirim metotları
+- `Api/Services/ServiceFactory.cs` — CreateConferenceService, CreateMonitoringService
+- `Api/Program.cs` — DI kayıtları
+- `Web/Services/HubService.cs` — Dashboard/Conference/Monitoring event handler'ları + invoke metotları
+- `Web/Components/BlfPanel.razor` + `.razor.css` — BLF component
+- `Web/Pages/Supervisor/Dashboard.razor` — Supervisor dashboard sayfası
+- `Web/Pages/Supervisor/Monitoring.razor` — Arama izleme sayfası
+- `Web/Layout/NavMenu.razor` — Supervisor grubu (group 6) + route'lar
+
+**Migration: AddConferenceAndMonitoring**
+**Build: 0 hata, 0 uyarı (Sprint 2)**
+
+---
+
+## Cloud Storage Abstraction Layer (2026-02-14)
+
+### Mimari Karar: Strategy + Factory Pattern
+- `ICloudStorageProvider` arayüzü → her provider (S3, Google, OneDrive, Yandex) ayrı implementasyon
+- `CloudStorageFactory` → müşterinin DB config'ine göre doğru provider'ı üretir
+- Credentials AES-256 ile şifreli tek JSON kolonu (`EncryptedCredentials`) — yeni provider eklendiğinde schema değişikliği gerekmez
+- Her müşteri birden fazla config tanımlayabilir, biri `IsDefault` olarak işaretlenir
+
+### Provider Detayları
+| Provider | Auth Yöntemi | Özel Notlar |
+|----------|-------------|-------------|
+| Amazon S3 | AccessKey/SecretKey | Pre-signed URL desteği |
+| MinIO | AccessKey/SecretKey | S3 uyumlu, `ForcePathStyle=true` farkı |
+| Google Drive | OAuth2 refresh token | Folder auto-create, resumable upload |
+| OneDrive | ClientSecret + OAuth2 | Graph API, 4MB altı/üstü ayrı upload |
+| Yandex Disk | OAuth token | REST API (WebDAV değil), 2-adımlı upload |
+
+### Güvenlik
+- Credentials DB'de AES-256 şifreli (mevcut `AesEncryptionService`)
+- API response'larda credential masking: Secret/Token/Key alanları "XXXX****XXXX"
+- OAuth state parametresi ile CSRF koruması planlandı
+- Admin/SettingsManage yetkisi gerekli
+
+### Build Sorunları ve Çözümleri
+- OneDrive `ItemWithPath` → `Root.ItemWithPath` olmalı (GraphServiceClient API)
+- `LogAuditAsync` yok → `AuditCrudAsync` (AuditableControllerBase'deki gerçek metot)
+- `ICloudStorageProvider` IDisposable değil → using yerine try/finally + `if (provider is IDisposable d) d.Dispose()`
+
+### Yeni/Değişen Dosyalar (Cloud Storage):
+- `Shared/Enums/TypeDefinitions.cs` — StorageProviders eklendi
+- `Shared/Entities/CustomerStorageConfig.cs` — Yeni entity
+- `Shared/Entities/Customer.cs` — StorageConfigs nav property
+- `Shared/DTOs/StorageDtos.cs` — List/Detail/Create/Update DTO'ları
+- `Shared/Interfaces/ICloudStorageProvider.cs` — Provider arayüzü + StorageUploadResult
+- `Data/AppDbContext.cs` — CustomerStorageConfigs DbSet + fluent config
+- `Api/CallCenter.Api.csproj` — AWSSDK.S3, Google.Apis.Drive.v3, Microsoft.Graph, Azure.Identity
+- `Api/Services/CloudStorage/CredentialModels.cs` — Provider credential sınıfları
+- `Api/Services/CloudStorage/S3StorageProvider.cs` — S3 + MinIO
+- `Api/Services/CloudStorage/GoogleDriveStorageProvider.cs` — Google Drive
+- `Api/Services/CloudStorage/OneDriveStorageProvider.cs` — OneDrive/365
+- `Api/Services/CloudStorage/YandexDiskStorageProvider.cs` — Yandex Disk
+- `Api/Services/CloudStorage/CloudStorageFactory.cs` — Factory
+- `Api/Services/Interfaces/ICloudStorageService.cs` — Business logic interface
+- `Api/Services/CloudStorageService.cs` — Full implementasyon
+- `Api/Controllers/CloudStorageController.cs` — API endpoints
+- `Api/Services/ServiceFactory.cs` — CreateCloudStorageService eklendi
+- `Api/Program.cs` — CloudStorageFactory Singleton + ICloudStorageService Scoped
+- `Web/Pages/Admin/StorageConfig.razor` — Admin UI (config listesi, form, test)
+- `Web/Layout/NavMenu.razor` — "Depolama Ayarlari" linki + GroupRoutes güncelleme
+
+**Migration: AddCustomerStorageConfig**
+**Build: 0 hata, 0 uyarı (Cloud Storage)**
