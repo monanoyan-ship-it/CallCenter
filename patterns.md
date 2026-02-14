@@ -1757,3 +1757,117 @@ Backend `LoginResponse.MustChangePassword` flag'ini dönüyordu ama frontend (We
 
 **Dosyalar:** 4 yeni (2x ChangePassword.razor + CSS), 6 düzenlenen
 **Build: 0 hata, 0 uyarı**
+
+---
+
+## Audit Log Görüntüleme Sayfası (G.7) — 2026-02-14
+
+### Problem
+G.3'te audit log altyapısı (entity, service, 12 controller entegrasyonu, PostgreSQL partitioning) oluşturulmuştu ama admin panelinde bu logları görüntülemek için UI yoktu. KVKK/BDDK denetim zorunluluğu gereği admin'ler tüm işlemleri takip edebilmeli.
+
+### Backend
+
+**DTO'lar (AdminDtos.cs):**
+- `AuditLogListDto`: Kompakt — liste için (OldValues/NewValues yok)
+- `AuditLogDetailDto`: Detay modalı için (tüm alanlar dahil)
+
+**Service:**
+- `IAuditLogService` + `AuditLogService`: IQueryable zincirleme filtreleme
+- Filtreler: category, action, search (UserName/Description), dateFrom, dateTo, customerId
+- `GetCategoriesAsync()` / `GetActionsAsync()`: DISTINCT sorguları (dropdown doldurma)
+- ServiceFactory + Program.cs DI kaydı
+
+**Controller:**
+- `AuditLogsController`: `[Authorize(Roles = "Admin")]`, ControllerBase (AuditableControllerBase değil)
+- 4 endpoint: GET list (sayfalı+filtreli), GET detail, GET categories, GET actions
+
+### Frontend (AuditLogs.razor)
+
+**Filtre kartı:**
+- Metin arama (UserName/Description)
+- Kategori dropdown (API'den distinct değerler)
+- Aksiyon dropdown (seçili kategoriye göre filtrelenir)
+- Tarih aralığı (dateFrom + dateTo)
+
+**Tablo:**
+- Satır renklendirme: Auth hataları → kırmızı, Delete → kırmızı, Create → yeşil
+- Badge'ler: Category (mor), Action (mavi), EntityType (turuncu)
+- Detay butonu → modal
+
+**Detay modalı:**
+- Tüm alanlar (UserAgent, IpAddress dahil)
+- OldValues/NewValues: JSON formatında `<pre>` tag ile gösterim
+
+**NavMenu:**
+- Yönetim grubuna "Denetim Kayıtları" eklendi (bi-journal-text, admin/auditlogs)
+- GroupRoutes dictionary güncellendi
+
+**Dosyalar:** 4 yeni (IAuditLogService, AuditLogService, AuditLogs.razor, .css), 4 düzenlenen
+**Build: 0 hata, 0 uyarı**
+
+---
+
+## Docker Compose — Dağıtık Test Ortamı (D.1) — 2026-02-14
+
+### Problem
+Proje dağıtık mimariye sahip (API + Web + Windows App) ama tüm bileşenler localhost'ta çalışıyor. Bambaşka bir PC'de Docker ile test ortamı kurulması gerekiyordu.
+
+### Mimari
+```
+[Sunucu PC — Docker Compose]
+  db  (postgres:17)     → port 5432
+  api (aspnet:10.0)     → port 8080
+  web (nginx:alpine)    → port 80 (WASM + API proxy)
+
+[Test PC]
+  Windows App → http://sunucu-ip:8080
+  Browser     → http://sunucu-ip
+```
+
+### Docker Dosyaları
+
+**API Dockerfile** (multi-stage):
+- Stage 1: SDK → restore (cache) + publish
+- Stage 2: aspnet:10.0 runtime, non-root user, port 8080
+
+**Web Dockerfile** (WASM + Nginx):
+- Stage 1: SDK → Blazor WASM publish
+- Stage 2: nginx:alpine → statik serve + API reverse proxy
+
+**Nginx Config:**
+- `/api/` → API container proxy
+- `/hubs/` → WebSocket proxy (SignalR — Upgrade headers)
+- `/` → SPA fallback (index.html)
+- Gzip, cache headers, proxy timeout
+
+### API Değişiklikleri
+
+**CORS dinamik:**
+```csharp
+// Cors:AllowAll=true → tüm origin'lere izin (Docker/test)
+// Cors:Origins → config array (production)
+// Varsayılan: localhost development portları
+```
+
+**AUTO_MIGRATE:**
+- `Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true"` → Development dışında da migration
+- Docker'da ilk kurulumda DB boş, migration otomatik uygulanır
+
+**HTTPS Redirect:**
+- Sadece Development'ta — Docker'da Nginx arkasında HTTP kullanılır
+
+### Web Değişiklikleri
+- `wwwroot/appsettings.json`: `ApiBaseUrl: ""` (boş = aynı origin)
+- `Program.cs`: Boş URL → `builder.HostEnvironment.BaseAddress` (Nginx proxy üzerinden)
+
+### Kullanım
+```bash
+git clone ... && cd callcenter
+cp .env.example .env
+docker compose up --build -d
+# Browser: http://sunucu-ip
+# Windows App: ApiBaseUrl = http://sunucu-ip:8080
+```
+
+**Dosyalar:** 7 yeni, 3 düzenlenen
+**Build: 0 hata, 0 uyarı**

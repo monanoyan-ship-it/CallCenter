@@ -1,3 +1,6 @@
+## Docker secrets
+.env
+
 ## .NET
 bin/
 obj/

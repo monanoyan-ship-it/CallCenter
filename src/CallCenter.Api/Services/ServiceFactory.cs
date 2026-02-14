@@ -49,4 +49,7 @@ public class ServiceFactory
 
     public IAuditService CreateAuditService()
         => _sp.GetRequiredService<IAuditService>();
+
+    public IAuditLogService CreateAuditLogService()
+        => _sp.GetRequiredService<IAuditLogService>();
 }

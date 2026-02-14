@@ -1,0 +1,78 @@
+# ============================================================
+# CallCenter — Docker Compose
+# ============================================================
+# Kullanim:
+#   docker compose up --build -d
+#
+# Servisler:
+#   db  — PostgreSQL 17 (veri kalici, named volume)
+#   api — ASP.NET Core API (merkez)
+#   web — Blazor WASM + Nginx (UI + API proxy)
+#
+# Erisim:
+#   Web UI:  http://sunucu-ip
+#   API:     http://sunucu-ip:8080
+#   DB:      sunucu-ip:5432 (disaridan erisim gerekirse)
+# ============================================================
+
+services:
+
+  # --- PostgreSQL ---
+  db:
+    image: postgres:17
+    container_name: callcenter-db
+    environment:
+      POSTGRES_DB: CallCenterDB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1123Azs+-}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # --- API ---
+  api:
+    build:
+      context: .
+      dockerfile: src/CallCenter.Api/Dockerfile
+    container_name: callcenter-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - AUTO_MIGRATE=true
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=CallCenterDB;Username=postgres;Password=${DB_PASSWORD:-1123Azs+-}
+      - Jwt__Key=${JWT_KEY:-CallCenter_SuperSecret_Key_2026_Min32Chars!!}
+      - Jwt__Issuer=CallCenter.Api
+      - Jwt__Audience=CallCenter.Clients
+      - Jwt__ExpireMinutes=480
+      - Jwt__RefreshExpireDays=7
+      - Encryption__Key=${ENCRYPTION_KEY:-CallCenter_AES_Encryption_Key_2026_Prod!!}
+      # CORS: Windows app disaridan baglanacak — tum origin'lere izin ver (test ortami)
+      - Cors__AllowAll=true
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Web (Blazor WASM + Nginx) ---
+  web:
+    build:
+      context: .
+      dockerfile: src/CallCenter.Web/Dockerfile
+    container_name: callcenter-web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local

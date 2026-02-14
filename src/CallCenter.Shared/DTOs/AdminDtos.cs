@@ -429,3 +429,39 @@ public class SystemSettingCreateDto
     [StringLength(500)]
     public string? Description { get; set; }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIT LOG
+// ═══════════════════════════════════════════════════════════════
+
+public class AuditLogListDto
+{
+    public long Id { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string? UserName { get; set; }
+    public string? EntityType { get; set; }
+    public string? EntityId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? IpAddress { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int? CustomerId { get; set; }
+}
+
+public class AuditLogDetailDto
+{
+    public long Id { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public int? UserId { get; set; }
+    public string? UserName { get; set; }
+    public string? EntityType { get; set; }
+    public string? EntityId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? OldValues { get; set; }
+    public string? NewValues { get; set; }
+    public string? IpAddress { get; set; }
+    public string? UserAgent { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int? CustomerId { get; set; }
+}

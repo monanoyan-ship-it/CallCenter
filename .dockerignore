@@ -1,0 +1,31 @@
+# Build artifacts
+**/bin/
+**/obj/
+
+# IDE
+**/.vs/
+**/.vscode/
+**/.idea/
+*.user
+*.suo
+
+# Git
+.git/
+.gitignore
+
+# Docker (kendi kendini kopyalama)
+docker-compose*.yml
+.env
+.env.*
+
+# Docs
+*.md
+*.xml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Windows app (Docker'da build edilmez)
+src/CallCenter.Windows/
+src/CallCenter.Mobile/

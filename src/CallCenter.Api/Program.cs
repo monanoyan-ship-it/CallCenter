@@ -71,6 +71,7 @@ builder.Services.AddScoped<ITranslationManagementService, TranslationManagementS
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ServiceFactory>();
 
 // Background Services
@@ -85,26 +86,45 @@ builder.Services.AddControllers();
 // OpenAPI / Swagger
 builder.Services.AddOpenApi();
 
-// CORS - Blazor WebAssembly için
+// CORS - Blazor WebAssembly + Docker/Windows App icin
+var allowAllCors = builder.Configuration["Cors:AllowAll"] == "true";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", policy =>
     {
-        policy.WithOrigins("https://localhost:7242", "http://localhost:5123")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        if (allowAllCors)
+        {
+            // Docker/Test ortami: tum origin'lere izin ver
+            // (Windows app farkli IP'den baglanacak)
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            // Development: sadece bilinen origin'ler
+            var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                ?? new[] { "https://localhost:7242", "http://localhost:5123" };
+            policy.WithOrigins(origins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
 });
 
 var app = builder.Build();
 
-// Development: Swagger + Auto migrate
-if (app.Environment.IsDevelopment())
+// OpenAPI (Development + Docker)
+if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
 {
     app.MapOpenApi();
+}
 
-    // Otomatik migration (development'ta)
+// Otomatik migration (Development veya Docker/test ortami)
+if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
+{
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
@@ -119,7 +139,12 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseHttpsRedirection();
+// HTTPS redirect — sadece Development ortaminda
+// Docker'da Nginx arkasinda HTTP kullanilir, redirect gereksiz
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowBlazor");
 app.UseAuthentication();
 app.UseAuthorization();

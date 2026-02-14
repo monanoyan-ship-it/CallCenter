@@ -1604,4 +1604,130 @@
     </Riskler>
   </Gorev>
 
+  <!-- ============================================================ -->
+  <!-- GOREV G.7: AUDIT LOG GORUNTULEME SAYFASI (ADMIN UI)          -->
+  <!-- ============================================================ -->
+  <Gorev no="G.7" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Audit Log Goruntuleme Sayfasi (Admin Paneli)</Ad>
+    <Detay>
+      G.3'te olusturulan audit log altyapisi (AuditLog entity, IAuditService, AuditableControllerBase,
+      12 controller entegrasyonu, PostgreSQL table partitioning) icin admin panelinde goruntuleme UI'i eklendi.
+      KVKK/BDDK denetim zorunlulugu geregi admin'ler tum islemleri takip edebilir.
+
+      1. Backend — DTO + Service + Controller
+        - AuditLogListDto: Id, Category, Action, UserName, EntityType, EntityId, Description, IpAddress, CreatedAt, CustomerId
+        - AuditLogDetailDto: + OldValues, NewValues, UserAgent, UserId (modal detay icin)
+        - IAuditLogService: GetAllAsync (sayfali + filtreli), GetByIdAsync, GetCategoriesAsync, GetActionsAsync
+        - AuditLogService: IQueryable zincirleme filtreleme, search (UserName/Description Contains), tarih araligi, OrderByDescending(CreatedAt)
+        - AuditLogsController: 4 endpoint (GET list, GET detail, GET categories, GET actions), [Authorize(Roles="Admin")]
+        - ControllerBase kullanildi (AuditableControllerBase degil — audit sayfasi kendisi audit'e tabi degil)
+        - ServiceFactory + Program.cs DI kaydi
+
+      2. Frontend — AuditLogs.razor
+        - Filtre karti: Metin arama, Kategori dropdown, Aksiyon dropdown (kategoriye gore filtrelenir), Tarih araligi (dateFrom + dateTo)
+        - Tablo: CreatedAt, Category, Action, UserName, EntityType, EntityId, Description, IpAddress
+        - Satir renklendirme: Auth hatalari (LoginFailed, RefreshFailed) kirmizi, Delete kirmizi, Create yesil
+        - Badge'ler: Category (mor), Action (mavi), EntityType (turuncu)
+        - Detay modali: Tum alanlar + OldValues/NewValues JSON formatinda pre tag ile gosterim
+        - Sayfalama: Mevcut Pagination bileseni, pageSize=50
+        - CSS: Satir renklendirme, JSON blok stili, modal backdrop
+
+      3. NavMenu Guncellemesi
+        - Yonetim grubuna (grup 3) "Denetim Kayitlari" linki eklendi
+        - Ikon: bi-journal-text, href: admin/auditlogs
+        - Sadece Admin rolune gorunur (IsAdmin if blogu icinde)
+        - GroupRoutes dictionary'sine "admin/auditlogs" eklendi (otomatik menu acilmasi)
+
+      Yeni dosyalar: 4 (IAuditLogService, AuditLogService, AuditLogs.razor, AuditLogs.razor.css)
+      Duzenlenen dosyalar: 4 (AdminDtos.cs, ServiceFactory.cs, Program.cs, NavMenu.razor)
+      Build: 0 hata, 0 uyari (tum solution)
+    </Detay>
+    <Riskler>
+      - Audit log tablosu partitioned — cok buyuk tarih araliginda sorgu yavas olabilir. Varsayilan pageSize=50 ve OrderByDescending(CreatedAt) ile son kayitlar hizli gelir
+      - OldValues/NewValues JSON string olarak saklanir — bazi kayitlarda cok buyuk olabilir, modal'da pre tag scrollable
+      - Kategori ve Aksiyon dropdown'lari DISTINCT sorgusu ile doldurulur — kayit sayisi arttikca yavaslar, ileride cache eklenebilir
+      - search filtresi UserName ve Description uzerinde LIKE sorgusu — buyuk veri setlerinde index gerekebilir
+      - Audit log silme/temizleme mekanizmasi yok — partition maintenance background service sadece yeni partition olusturur, eski partition'lar manuel silinmeli
+      - CustomerUser rolu audit log'lara erisemez — sadece Admin rolu, ileride Supervisor icin okuma yetkisi eklenebilir
+    </Riskler>
+  </Gorev>
+
+  <!-- ============================================================ -->
+  <!-- GOREV D.1: DOCKER COMPOSE — DAGITIK TEST ORTAMI              -->
+  <!-- ============================================================ -->
+  <Gorev no="D.1" durum="tamamlandi" tamamlanma="2026-02-14">
+    <Ad>Docker Compose ile Dagitik Test Ortami</Ad>
+    <Detay>
+      Bambasba bir PC'de Docker ile tum backend calisacak, test PC'sinden Windows app ile baglanilacak.
+      Gelistirme makinesi dahil degil — tamamen bagimsiz test ortami.
+
+      Mimari:
+        [Sunucu PC — Docker Compose]
+          PostgreSQL container (port 5432)
+          API container (port 8080)
+          Nginx container (port 80) → Web UI + API reverse proxy
+        [Test PC]
+          Windows App → http://sunucu-ip:8080
+          Browser → http://sunucu-ip
+
+      1. API Dockerfile (multi-stage build)
+        - Stage 1 (SDK): restore + publish (layer cache icin ayri adimlar)
+        - Stage 2 (aspnet:10.0 runtime): ~200MB image, non-root user
+        - Port 8080 (ASP.NET Core container default)
+
+      2. Web Dockerfile (Blazor WASM + Nginx)
+        - Stage 1 (SDK): Blazor WASM publish → statik dosyalar
+        - Stage 2 (nginx:alpine): Statik serve + API reverse proxy
+
+      3. Nginx Konfigurasyonu
+        - /api/ → API container'a reverse proxy
+        - /hubs/ → API container'a WebSocket proxy (SignalR)
+        - / → Blazor WASM SPA fallback (index.html)
+        - /openapi/ → API container'a proxy (Swagger)
+        - Gzip, cache, proxy timeout ayarlari
+
+      4. Docker Compose (3 servis)
+        - db: postgres:17, healthcheck, named volume
+        - api: multi-stage build, env vars ile config, AUTO_MIGRATE=true
+        - web: WASM + Nginx, port 80
+        - .env dosyasindan secret'lar
+
+      5. API Guncellemeleri
+        - CORS: Cors__AllowAll=true ile tum origin'lere izin (Docker/test)
+        - CORS: Cors__Origins config array destegi (production icin)
+        - AUTO_MIGRATE env var: Development disinda da migration calismasi
+        - HTTPS redirect sadece Development'ta (Docker'da HTTP)
+        - OpenAPI Development + AUTO_MIGRATE ortamlarinda acik
+
+      6. Web Guncellemeleri
+        - wwwroot/appsettings.json: ApiBaseUrl bos → ayni origin
+        - Program.cs: Bos ApiBaseUrl → HostEnvironment.BaseAddress (Nginx proxy)
+
+      7. Destek Dosyalari
+        - .dockerignore: bin, obj, .vs, Windows/Mobile projeleri haric
+        - .env.example: DB_PASSWORD, JWT_KEY, ENCRYPTION_KEY ornekleri
+        - .gitignore: .env eklendi
+
+      Yeni dosyalar: 7 (2x Dockerfile, nginx.conf, docker-compose.yml, .dockerignore, .env.example, Web appsettings.json)
+      Duzenlenen dosyalar: 3 (API Program.cs, Web Program.cs, .gitignore)
+      Build: 0 hata, 0 uyari (tum solution)
+
+      Kullanim:
+        git clone → cp .env.example .env → docker compose up --build -d
+        Browser: http://sunucu-ip → Web login
+        Windows App: ApiBaseUrl = http://sunucu-ip:8080
+    </Detay>
+    <Riskler>
+      - .NET 10 Docker SDK image buyuk (~800MB download) — sadece build stage, runtime ~200MB
+      - PostgreSQL data volume kalici — docker compose down -v ile silinir, dikkat
+      - AUTO_MIGRATE production'da riskli — test ortami icin kabul edilebilir, production'da CI/CD pipeline ile migration uygulanmali
+      - HTTP kullaniliyor (HTTPS yok) — test ortami icin yeterli, production'da Let's Encrypt + certbot veya Traefik eklenmeli
+      - SignalR WebSocket proxy Nginx'te ek header gerektirir — nginx.conf'ta Upgrade/Connection header'lari eklendi
+      - Windows app self-signed SSL kaldirmasi HTTP'de gereksiz — Docker API HTTP uzerinden erisilebilir
+      - Cors AllowAll=true guvenlik riski — sadece test/Docker ortaminda kullanilmali, production'da spesifik origin'ler belirtilmeli
+      - Docker Hub'dan .NET 10 image cekmek icin internet baglantisi gerekli — ilk build sirasinda
+      - Blazor WASM _framework/ dosyalari buyuk olabilir (~15-30MB) — Nginx gzip ile sikistiriliyor
+    </Riskler>
+  </Gorev>
+
 </Proje>

@@ -8,8 +8,13 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// API base URL (development: API ayri portta calisir)
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7147";
+// API base URL
+// - Development: API ayri portta calisir (https://localhost:7147)
+// - Docker/Nginx: Bos veya null → ayni origin uzerinden proxy ile erisim
+var configuredUrl = builder.Configuration["ApiBaseUrl"];
+var apiBaseUrl = string.IsNullOrWhiteSpace(configuredUrl)
+    ? builder.HostEnvironment.BaseAddress.TrimEnd('/')
+    : configuredUrl;
 
 // Auth servisleri
 builder.Services.AddScoped<JwtAuthStateProvider>();
