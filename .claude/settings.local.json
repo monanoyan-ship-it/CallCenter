@@ -67,7 +67,18 @@
       "Bash(node -e:*)",
       "Bash(node:*)",
       "Bash(python:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(dotnet publish:*)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter log --oneline -10)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter status --short)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter diff --stat HEAD)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python3:*)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter status)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter diff HEAD)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter log --oneline -5)",
+      "Bash(git -C /c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter add:*)"
     ]
   }
 }

@@ -1,0 +1,31 @@
+# ============================================================
+# Docker Compose Override — Mevcut PostgreSQL Kullanımı
+# ============================================================
+# Hedef PC'de zaten PostgreSQL kuruluysa bu dosya aktif olur.
+# Docker'daki db servisini devre dışı bırakır, mevcut PgSQL'e bağlanır.
+#
+# Kullanım:
+#   docker compose up --build -d
+#   (override otomatik yüklenir)
+#
+# NOT: host.docker.internal Windows Docker Desktop'ta çalışır.
+#      Linux'ta --add-host=host.docker.internal:host-gateway gerekir.
+# ============================================================
+
+services:
+  db:
+    profiles: ["disabled"]  # DB container'ı başlatılmaz
+
+  api:
+    depends_on: {}  # db bağımlılığını kaldır
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - AUTO_MIGRATE=true
+      - ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=CallCenterDB;Username=postgres;Password=${DB_PASSWORD:-1123Azs+-}
+      - Jwt__Key=${JWT_KEY:-CallCenter_SuperSecret_Key_2026_Min32Chars!!}
+      - Jwt__Issuer=CallCenter.Api
+      - Jwt__Audience=CallCenter.Clients
+      - Jwt__ExpireMinutes=480
+      - Jwt__RefreshExpireDays=7
+      - Encryption__Key=${ENCRYPTION_KEY:-CallCenter_AES_Encryption_Key_2026_Prod!!}
+      - Cors__AllowAll=true

@@ -48,10 +48,8 @@ public partial class MainWindow : Window
             var handler = sp.GetRequiredService<Services.WindowsAuthHeaderHandler>();
             handler.InnerHandler = new HttpClientHandler
             {
-#if DEBUG
-                // Development ortaminda self-signed sertifikayi kabul et
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-#endif
+                // HTTP ve self-signed sertifika destegi (test/on-premise ortami)
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
             };
             return new HttpClient(handler) { BaseAddress = new Uri(apiBaseUrl) };
         });
