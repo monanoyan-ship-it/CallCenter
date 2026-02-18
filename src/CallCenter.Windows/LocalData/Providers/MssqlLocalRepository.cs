@@ -103,6 +103,44 @@ public class MssqlLocalRepository : ILocalRepository
             END
             """, conn);
         await cmdRecs.ExecuteNonQueryAsync();
+
+        // ── SIP Hesaplari tablosu ──
+        await using var cmdSipAccounts = new SqlCommand("""
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'local_sip_accounts')
+            BEGIN
+                CREATE TABLE local_sip_accounts (
+                    id                      INT PRIMARY KEY IDENTITY(1,1),
+                    uid                     UNIQUEIDENTIFIER NOT NULL UNIQUE,
+                    name                    NVARCHAR(200) NOT NULL DEFAULT '',
+                    server                  NVARCHAR(200) NOT NULL DEFAULT '',
+                    port                    INT NOT NULL DEFAULT 5060,
+                    domain                  NVARCHAR(200) NULL,
+                    username                NVARCHAR(200) NOT NULL DEFAULT '',
+                    password                NVARCHAR(500) NOT NULL DEFAULT '',
+                    transport               NVARCHAR(20) DEFAULT 'UDP',
+                    ws_uri                  NVARCHAR(500) NULL,
+                    use_srtp                BIT NOT NULL DEFAULT 0,
+                    stun_server             NVARCHAR(300) NULL,
+                    turn_server             NVARCHAR(300) NULL,
+                    turn_username           NVARCHAR(200) NULL,
+                    turn_password           NVARCHAR(500) NULL,
+                    preferred_codecs        NVARCHAR(MAX) NULL,
+                    jitter_buffer_min_ms    INT NOT NULL DEFAULT 0,
+                    jitter_buffer_max_ms    INT NOT NULL DEFAULT 0,
+                    is_default              BIT NOT NULL DEFAULT 0,
+                    is_active               BIT NOT NULL DEFAULT 1,
+                    created_at              DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                    is_synced_to_backend    BIT NOT NULL DEFAULT 0,
+                    last_sync_attempt       DATETIME2 NULL,
+                    backend_sip_account_id  INT NULL
+                );
+
+                CREATE INDEX idx_sip_accounts_uid ON local_sip_accounts(uid);
+                CREATE INDEX idx_sip_accounts_is_default ON local_sip_accounts(is_default);
+                CREATE INDEX idx_sip_accounts_is_synced ON local_sip_accounts(is_synced_to_backend);
+            END
+            """, conn);
+        await cmdSipAccounts.ExecuteNonQueryAsync();
     }
 
     // ═══════════════════════════════════════
@@ -472,6 +510,295 @@ public class MssqlLocalRepository : ILocalRepository
         while (await reader.ReadAsync())
         {
             list.Add(MapCallRecord(reader));
+        }
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SIP HESAPLARI — CRUD METODLARI
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Yeni bir SIP hesabi ekler (INSERT).
+    /// </summary>
+    public async Task SaveSipAccountAsync(LocalSipAccount account)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand("""
+            INSERT INTO local_sip_accounts
+                (uid, name, server, port, domain, username, password, transport,
+                 ws_uri, use_srtp, stun_server, turn_server, turn_username, turn_password,
+                 preferred_codecs, jitter_buffer_min_ms, jitter_buffer_max_ms,
+                 is_default, is_active, created_at, is_synced_to_backend, last_sync_attempt,
+                 backend_sip_account_id)
+            VALUES
+                (@uid, @name, @server, @port, @domain, @username, @password, @transport,
+                 @wsUri, @useSrtp, @stunServer, @turnServer, @turnUsername, @turnPassword,
+                 @preferredCodecs, @jitterMinMs, @jitterMaxMs,
+                 @isDefault, @isActive, @createdAt, @isSynced, @lastSync,
+                 @backendSipAccountId)
+            """, conn);
+
+        AddSipAccountParams(cmd, account);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Varolan SIP hesabini gunceller (UPDATE).
+    /// </summary>
+    public async Task UpdateSipAccountAsync(LocalSipAccount account)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand("""
+            UPDATE local_sip_accounts SET
+                name = @name,
+                server = @server,
+                port = @port,
+                domain = @domain,
+                username = @username,
+                password = @password,
+                transport = @transport,
+                ws_uri = @wsUri,
+                use_srtp = @useSrtp,
+                stun_server = @stunServer,
+                turn_server = @turnServer,
+                turn_username = @turnUsername,
+                turn_password = @turnPassword,
+                preferred_codecs = @preferredCodecs,
+                jitter_buffer_min_ms = @jitterMinMs,
+                jitter_buffer_max_ms = @jitterMaxMs,
+                is_default = @isDefault,
+                is_active = @isActive,
+                is_synced_to_backend = @isSynced,
+                last_sync_attempt = @lastSync,
+                backend_sip_account_id = @backendSipAccountId
+            WHERE uid = @uid
+            """, conn);
+
+        AddSipAccountParams(cmd, account);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Guid Uid ile SIP hesabini getirir.
+    /// </summary>
+    public async Task<LocalSipAccount?> GetSipAccountByUidAsync(Guid uid)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand(
+            "SELECT * FROM local_sip_accounts WHERE uid = @uid", conn);
+        cmd.Parameters.AddWithValue("@uid", uid);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync()) return null;
+
+        return MapSipAccount(reader);
+    }
+
+    /// <summary>
+    /// int Id ile SIP hesabini getirir.
+    /// </summary>
+    public async Task<LocalSipAccount?> GetSipAccountByIdAsync(int id)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand(
+            "SELECT * FROM local_sip_accounts WHERE id = @id", conn);
+        cmd.Parameters.AddWithValue("@id", id);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync()) return null;
+
+        return MapSipAccount(reader);
+    }
+
+    /// <summary>
+    /// Tum SIP hesaplarini sayfalanmis olarak getirir.
+    /// </summary>
+    public async Task<List<LocalSipAccount>> GetAllSipAccountsAsync(int page = 1, int pageSize = 50)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand("""
+            SELECT * FROM local_sip_accounts
+            ORDER BY name ASC
+            OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+            """, conn);
+        cmd.Parameters.AddWithValue("@limit", pageSize);
+        cmd.Parameters.AddWithValue("@offset", (page - 1) * pageSize);
+
+        return await ReadSipAccountListAsync(cmd);
+    }
+
+    /// <summary>
+    /// Varsayilan SIP hesabini getirir (IsDefault = 1).
+    /// </summary>
+    public async Task<LocalSipAccount?> GetDefaultSipAccountAsync()
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand(
+            "SELECT TOP(1) * FROM local_sip_accounts WHERE is_default = 1", conn);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync()) return null;
+
+        return MapSipAccount(reader);
+    }
+
+    /// <summary>
+    /// SIP hesabini siler.
+    /// </summary>
+    public async Task DeleteSipAccountAsync(int id)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand(
+            "DELETE FROM local_sip_accounts WHERE id = @id", conn);
+        cmd.Parameters.AddWithValue("@id", id);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Backend'e senkronize edilmemis SIP hesaplarini getirir.
+    /// </summary>
+    public async Task<List<LocalSipAccount>> GetUnsyncedSipAccountsAsync(int limit = 50)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand("""
+            SELECT TOP(@limit) * FROM local_sip_accounts
+            WHERE is_synced_to_backend = 0
+            ORDER BY created_at ASC
+            """, conn);
+        cmd.Parameters.AddWithValue("@limit", limit);
+
+        return await ReadSipAccountListAsync(cmd);
+    }
+
+    /// <summary>
+    /// SIP hesabini "backend'e senkronize edildi" olarak isaretle.
+    /// </summary>
+    public async Task MarkSipAccountAsSyncedAsync(Guid uid, int? backendSipAccountId = null)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new SqlCommand("""
+            UPDATE local_sip_accounts SET
+                is_synced_to_backend = 1,
+                last_sync_attempt = @now,
+                backend_sip_account_id = @backendId
+            WHERE uid = @uid
+            """, conn);
+        cmd.Parameters.AddWithValue("@uid", uid);
+        cmd.Parameters.AddWithValue("@now", DateTime.UtcNow);
+        cmd.Parameters.AddWithValue("@backendId", (object?)backendSipAccountId ?? DBNull.Value);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // YARDIMCI METODLAR — SIP HESAPLARI
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// SqlCommand'a LocalSipAccount parametrelerini ekler.
+    /// Insert ve Update icin ortak kullanilir.
+    /// </summary>
+    private static void AddSipAccountParams(SqlCommand cmd, LocalSipAccount account)
+    {
+        cmd.Parameters.AddWithValue("@uid", account.Uid);
+        cmd.Parameters.AddWithValue("@name", account.Name);
+        cmd.Parameters.AddWithValue("@server", account.Server);
+        cmd.Parameters.AddWithValue("@port", account.Port);
+        cmd.Parameters.AddWithValue("@domain", (object?)account.Domain ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@username", account.Username);
+        cmd.Parameters.AddWithValue("@password", account.Password);
+        cmd.Parameters.AddWithValue("@transport", (object?)account.Transport ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@wsUri", (object?)account.WsUri ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@useSrtp", account.UseSrtp);
+        cmd.Parameters.AddWithValue("@stunServer", (object?)account.StunServer ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@turnServer", (object?)account.TurnServer ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@turnUsername", (object?)account.TurnUsername ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@turnPassword", (object?)account.TurnPassword ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@preferredCodecs", (object?)account.PreferredCodecs ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@jitterMinMs", account.JitterBufferMinMs);
+        cmd.Parameters.AddWithValue("@jitterMaxMs", account.JitterBufferMaxMs);
+        cmd.Parameters.AddWithValue("@isDefault", account.IsDefault);
+        cmd.Parameters.AddWithValue("@isActive", account.IsActive);
+        cmd.Parameters.AddWithValue("@createdAt", account.CreatedAt);
+        cmd.Parameters.AddWithValue("@isSynced", account.IsSyncedToBackend);
+        cmd.Parameters.AddWithValue("@lastSync", (object?)account.LastSyncAttempt ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@backendSipAccountId", (object?)account.BackendSipAccountId ?? DBNull.Value);
+    }
+
+    /// <summary>
+    /// SqlDataReader'dan LocalSipAccount olusturur.
+    /// </summary>
+    private static LocalSipAccount MapSipAccount(SqlDataReader reader)
+    {
+        return new LocalSipAccount
+        {
+            Id = reader.GetInt32(reader.GetOrdinal("id")),
+            Uid = reader.GetGuid(reader.GetOrdinal("uid")),
+            Name = reader.GetString(reader.GetOrdinal("name")),
+            Server = reader.GetString(reader.GetOrdinal("server")),
+            Port = reader.GetInt32(reader.GetOrdinal("port")),
+            Domain = reader.IsDBNull(reader.GetOrdinal("domain"))
+                ? null : reader.GetString(reader.GetOrdinal("domain")),
+            Username = reader.GetString(reader.GetOrdinal("username")),
+            Password = reader.GetString(reader.GetOrdinal("password")),
+            Transport = reader.IsDBNull(reader.GetOrdinal("transport"))
+                ? null : reader.GetString(reader.GetOrdinal("transport")),
+            WsUri = reader.IsDBNull(reader.GetOrdinal("ws_uri"))
+                ? null : reader.GetString(reader.GetOrdinal("ws_uri")),
+            UseSrtp = reader.GetBoolean(reader.GetOrdinal("use_srtp")),
+            StunServer = reader.IsDBNull(reader.GetOrdinal("stun_server"))
+                ? null : reader.GetString(reader.GetOrdinal("stun_server")),
+            TurnServer = reader.IsDBNull(reader.GetOrdinal("turn_server"))
+                ? null : reader.GetString(reader.GetOrdinal("turn_server")),
+            TurnUsername = reader.IsDBNull(reader.GetOrdinal("turn_username"))
+                ? null : reader.GetString(reader.GetOrdinal("turn_username")),
+            TurnPassword = reader.IsDBNull(reader.GetOrdinal("turn_password"))
+                ? null : reader.GetString(reader.GetOrdinal("turn_password")),
+            PreferredCodecs = reader.IsDBNull(reader.GetOrdinal("preferred_codecs"))
+                ? null : reader.GetString(reader.GetOrdinal("preferred_codecs")),
+            JitterBufferMinMs = reader.GetInt32(reader.GetOrdinal("jitter_buffer_min_ms")),
+            JitterBufferMaxMs = reader.GetInt32(reader.GetOrdinal("jitter_buffer_max_ms")),
+            IsDefault = reader.GetBoolean(reader.GetOrdinal("is_default")),
+            IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
+            CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
+            IsSyncedToBackend = reader.GetBoolean(reader.GetOrdinal("is_synced_to_backend")),
+            LastSyncAttempt = reader.IsDBNull(reader.GetOrdinal("last_sync_attempt"))
+                ? null : reader.GetDateTime(reader.GetOrdinal("last_sync_attempt")),
+            BackendSipAccountId = reader.IsDBNull(reader.GetOrdinal("backend_sip_account_id"))
+                ? null : reader.GetInt32(reader.GetOrdinal("backend_sip_account_id"))
+        };
+    }
+
+    /// <summary>
+    /// SqlCommand'i calistirip LocalSipAccount listesine donusturur.
+    /// </summary>
+    private static async Task<List<LocalSipAccount>> ReadSipAccountListAsync(SqlCommand cmd)
+    {
+        var list = new List<LocalSipAccount>();
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            list.Add(MapSipAccount(reader));
         }
         return list;
     }

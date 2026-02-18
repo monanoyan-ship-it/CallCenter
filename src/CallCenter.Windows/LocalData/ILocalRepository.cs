@@ -71,4 +71,35 @@ public interface ILocalRepository
 
     /// <summary>Tarih araliginda istatistik ozeti</summary>
     Task<LocalCallStats> GetStatsAsync(DateTime from, DateTime to);
+
+    // ═══════════════════════════════════════
+    // SIP HESAPLARI (GATEWAY)
+    // ═══════════════════════════════════════
+
+    /// <summary>Yeni SIP hesabi (gateway) ekle</summary>
+    Task SaveSipAccountAsync(LocalSipAccount account);
+
+    /// <summary>Mevcut SIP hesabini guncelle</summary>
+    Task UpdateSipAccountAsync(LocalSipAccount account);
+
+    /// <summary>Uid ile SIP hesabi getir</summary>
+    Task<LocalSipAccount?> GetSipAccountByUidAsync(Guid uid);
+
+    /// <summary>ID ile SIP hesabi getir</summary>
+    Task<LocalSipAccount?> GetSipAccountByIdAsync(int id);
+
+    /// <summary>Tum SIP hesaplarini getir (sayfalanmis)</summary>
+    Task<List<LocalSipAccount>> GetAllSipAccountsAsync(int page = 1, int pageSize = 50);
+
+    /// <summary>Varsayilan (IsDefault = true) SIP hesabini getir</summary>
+    Task<LocalSipAccount?> GetDefaultSipAccountAsync();
+
+    /// <summary>SIP hesabini sil</summary>
+    Task DeleteSipAccountAsync(int id);
+
+    /// <summary>Backend'e henuz senkronlanmamis SIP hesaplari getir</summary>
+    Task<List<LocalSipAccount>> GetUnsyncedSipAccountsAsync(int limit = 50);
+
+    /// <summary>SIP hesabini "senkronlandi" olarak isaretle</summary>
+    Task MarkSipAccountAsSyncedAsync(Guid uid, int? backendSipAccountId = null);
 }

@@ -27,4 +27,15 @@ public class NullLocalRepository : ILocalRepository
     public Task DeleteRecordingAsync(Guid uid) => Task.CompletedTask;
 
     public Task<LocalCallStats> GetStatsAsync(DateTime from, DateTime to) => Task.FromResult(new LocalCallStats());
+
+    // SIP HESAPLARI — STUB METODLAR (DB yok, yapmiyor)
+    public Task SaveSipAccountAsync(LocalSipAccount account) => Task.CompletedTask;
+    public Task UpdateSipAccountAsync(LocalSipAccount account) => Task.CompletedTask;
+    public Task<LocalSipAccount?> GetSipAccountByUidAsync(Guid uid) => Task.FromResult<LocalSipAccount?>(null);
+    public Task<LocalSipAccount?> GetSipAccountByIdAsync(int id) => Task.FromResult<LocalSipAccount?>(null);
+    public Task<List<LocalSipAccount>> GetAllSipAccountsAsync(int page = 1, int pageSize = 50) => Task.FromResult(new List<LocalSipAccount>());
+    public Task<LocalSipAccount?> GetDefaultSipAccountAsync() => Task.FromResult<LocalSipAccount?>(null);
+    public Task DeleteSipAccountAsync(int id) => Task.CompletedTask;
+    public Task<List<LocalSipAccount>> GetUnsyncedSipAccountsAsync(int limit = 50) => Task.FromResult(new List<LocalSipAccount>());
+    public Task MarkSipAccountAsSyncedAsync(Guid uid, int? backendSipAccountId = null) => Task.CompletedTask;
 }

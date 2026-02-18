@@ -85,6 +85,15 @@ public partial class MainWindow : Window
             var storage = sp.GetRequiredService<Services.SecureStorage>();
             var dbType = storage.GetAsync("local_db_type").GetAwaiter().GetResult();
             var connStr = storage.GetAsync("local_db_connection").GetAwaiter().GetResult();
+            
+            // DEBUG: Eger bos ise varsayilan PostgreSQL'i kullan (son test)
+            if (string.IsNullOrWhiteSpace(dbType) || string.IsNullOrWhiteSpace(connStr))
+            {
+                dbType = "PostgreSQL";
+                connStr = "Host=localhost;Port=5432;Database=callcenter;Username=postgres;Password=1123Azs+-";
+                System.Diagnostics.Debug.WriteLine("⚠ Using default PostgreSQL connection (hardcoded)");
+            }
+            
             return LocalRepositoryFactory.Create(dbType, connStr);
         });
         services.AddSingleton<Services.CallSyncService>();
@@ -96,12 +105,29 @@ public partial class MainWindow : Window
         var serviceProvider = blazorWebView.Services as ServiceProvider;
 
         // System Tray, Hotkeys ve BackgroundSync'i pencere yuklendikten sonra baslat
-        Loaded += (s, e) =>
+        Loaded += async (s, e) =>
         {
             _trayService.Initialize(this);
             _hotkeyService.Initialize(this);
 
+            // Lokal DB tablolarini initialize et — BEFORE anything accesses the DB
+            var localRepo = serviceProvider?.GetService<ILocalRepository>();
+            if (localRepo != null)
+            {
+                try
+                {
+                    await localRepo.InitializeAsync();
+                    System.Diagnostics.Debug.WriteLine("✓ Lokal DB initialized successfully");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"✗ Lokal DB initialization ERROR: {ex.GetType().Name}: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"  Stack: {ex.StackTrace}");
+                }
+            }
+
             // Arka plan senkronizasyonunu baslat (lokal DB → backend push)
+            // AFTER DB is initialized
             var bgSync = serviceProvider?.GetService<Services.BackgroundSyncService>();
             bgSync?.StartAsync();
         };

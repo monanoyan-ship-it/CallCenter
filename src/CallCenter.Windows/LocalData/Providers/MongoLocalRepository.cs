@@ -29,6 +29,7 @@ public class MongoLocalRepository : ILocalRepository
     // Koleksiyon isimleri — sabit, degismez
     private const string CallRecordsCollection = "call_records";
     private const string RecordingsCollection = "recordings";
+    private const string SipAccountsCollection = "sip_accounts";
 
     public MongoLocalRepository(string connectionString)
     {
@@ -82,6 +83,20 @@ public class MongoLocalRepository : ILocalRepository
             new CreateIndexModel<BsonDocument>(
                 Builders<BsonDocument>.IndexKeys.Ascending("call_record_uid"),
                 new CreateIndexOptions { Name = "idx_call_record_uid" })
+        ]);
+
+        // ── SIP hesaplari index'leri ──
+        var sipAccounts = db.GetCollection<BsonDocument>(SipAccountsCollection);
+        await sipAccounts.Indexes.CreateManyAsync([
+            new CreateIndexModel<BsonDocument>(
+                Builders<BsonDocument>.IndexKeys.Ascending("uid"),
+                new CreateIndexOptions { Name = "idx_uid", Unique = true }),
+            new CreateIndexModel<BsonDocument>(
+                Builders<BsonDocument>.IndexKeys.Ascending("is_default"),
+                new CreateIndexOptions { Name = "idx_is_default" }),
+            new CreateIndexModel<BsonDocument>(
+                Builders<BsonDocument>.IndexKeys.Ascending("is_synced_to_backend"),
+                new CreateIndexOptions { Name = "idx_is_synced" })
         ]);
     }
 
@@ -406,5 +421,200 @@ public class MongoLocalRepository : ILocalRepository
             LastSyncAttempt = doc["last_sync_attempt"].IsBsonNull ? null : doc["last_sync_attempt"].ToUniversalTime(),
             BackendCallId = doc["backend_call_id"].IsBsonNull ? null : doc["backend_call_id"].ToInt32()
         };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SIP HESAPLARI — CRUD METODLARI
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Yeni bir SIP hesabi ekler (INSERT).
+    /// </summary>
+    public async Task SaveSipAccountAsync(LocalSipAccount account)
+    {
+        var collection = GetSipAccountCollection();
+        var doc = SipAccountToDocument(account);
+        await collection.InsertOneAsync(doc);
+    }
+
+    /// <summary>
+    /// Varolan SIP hesabini gunceller (UPDATE).
+    /// </summary>
+    public async Task UpdateSipAccountAsync(LocalSipAccount account)
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", account.Uid.ToString());
+        var doc = SipAccountToDocument(account);
+        await collection.ReplaceOneAsync(filter, doc, new ReplaceOptions { IsUpsert = false });
+    }
+
+    /// <summary>
+    /// Guid Uid ile SIP hesabini getirir.
+    /// </summary>
+    public async Task<LocalSipAccount?> GetSipAccountByUidAsync(Guid uid)
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", uid.ToString());
+        var doc = await collection.Find(filter).FirstOrDefaultAsync();
+        return doc == null ? null : DocumentToSipAccount(doc);
+    }
+
+    /// <summary>
+    /// int Id ile SIP hesabini getirir.
+    /// </summary>
+    public async Task<LocalSipAccount?> GetSipAccountByIdAsync(int id)
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("id", id);
+        var doc = await collection.Find(filter).FirstOrDefaultAsync();
+        return doc == null ? null : DocumentToSipAccount(doc);
+    }
+
+    /// <summary>
+    /// Tum SIP hesaplarini sayfalanmis olarak getirir.
+    /// </summary>
+    public async Task<List<LocalSipAccount>> GetAllSipAccountsAsync(int page = 1, int pageSize = 50)
+    {
+        var collection = GetSipAccountCollection();
+        var docs = await collection
+            .Find(Builders<BsonDocument>.Filter.Empty)
+            .Sort(Builders<BsonDocument>.Sort.Ascending("name"))
+            .Skip((page - 1) * pageSize)
+            .Limit(pageSize)
+            .ToListAsync();
+
+        return docs.Select(DocumentToSipAccount).ToList();
+    }
+
+    /// <summary>
+    /// Varsayilan SIP hesabini getirir (IsDefault = true).
+    /// </summary>
+    public async Task<LocalSipAccount?> GetDefaultSipAccountAsync()
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("is_default", true);
+        var doc = await collection.Find(filter).FirstOrDefaultAsync();
+        return doc == null ? null : DocumentToSipAccount(doc);
+    }
+
+    /// <summary>
+    /// SIP hesabini siler.
+    /// </summary>
+    public async Task DeleteSipAccountAsync(int id)
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("id", id);
+        await collection.DeleteOneAsync(filter);
+    }
+
+    /// <summary>
+    /// Backend'e senkronize edilmemis SIP hesaplarini getirir.
+    /// </summary>
+    public async Task<List<LocalSipAccount>> GetUnsyncedSipAccountsAsync(int limit = 50)
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("is_synced_to_backend", false);
+        var docs = await collection
+            .Find(filter)
+            .Sort(Builders<BsonDocument>.Sort.Ascending("created_at"))
+            .Limit(limit)
+            .ToListAsync();
+
+        return docs.Select(DocumentToSipAccount).ToList();
+    }
+
+    /// <summary>
+    /// SIP hesabini "backend'e senkronize edildi" olarak isaretle.
+    /// </summary>
+    public async Task MarkSipAccountAsSyncedAsync(Guid uid, int? backendSipAccountId = null)
+    {
+        var collection = GetSipAccountCollection();
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", uid.ToString());
+        var update = Builders<BsonDocument>.Update
+            .Set("is_synced_to_backend", true)
+            .Set("last_sync_attempt", DateTime.UtcNow)
+            .Set("backend_sip_account_id", backendSipAccountId.HasValue ? (BsonValue)backendSipAccountId.Value : BsonNull.Value);
+
+        await collection.UpdateOneAsync(filter, update);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // YARDIMCI METODLAR — SIP HESAPLARI
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// LocalSipAccount → BsonDocument donusumu.
+    /// </summary>
+    private static BsonDocument SipAccountToDocument(LocalSipAccount account)
+    {
+        return new BsonDocument
+        {
+            { "_id", account.Uid.ToString() },
+            { "id", account.Id },
+            { "name", account.Name },
+            { "server", account.Server },
+            { "port", account.Port },
+            { "domain", account.Domain != null ? (BsonValue)account.Domain : BsonNull.Value },
+            { "username", account.Username },
+            { "password", account.Password },
+            { "transport", account.Transport != null ? (BsonValue)account.Transport : BsonNull.Value },
+            { "ws_uri", account.WsUri != null ? (BsonValue)account.WsUri : BsonNull.Value },
+            { "use_srtp", account.UseSrtp },
+            { "stun_server", account.StunServer != null ? (BsonValue)account.StunServer : BsonNull.Value },
+            { "turn_server", account.TurnServer != null ? (BsonValue)account.TurnServer : BsonNull.Value },
+            { "turn_username", account.TurnUsername != null ? (BsonValue)account.TurnUsername : BsonNull.Value },
+            { "turn_password", account.TurnPassword != null ? (BsonValue)account.TurnPassword : BsonNull.Value },
+            { "preferred_codecs", account.PreferredCodecs != null ? (BsonValue)account.PreferredCodecs : BsonNull.Value },
+            { "jitter_buffer_min_ms", account.JitterBufferMinMs },
+            { "jitter_buffer_max_ms", account.JitterBufferMaxMs },
+            { "is_default", account.IsDefault },
+            { "is_active", account.IsActive },
+            { "created_at", account.CreatedAt },
+            { "is_synced_to_backend", account.IsSyncedToBackend },
+            { "last_sync_attempt", account.LastSyncAttempt.HasValue ? (BsonValue)account.LastSyncAttempt.Value : BsonNull.Value },
+            { "backend_sip_account_id", account.BackendSipAccountId.HasValue ? (BsonValue)account.BackendSipAccountId.Value : BsonNull.Value }
+        };
+    }
+
+    /// <summary>
+    /// BsonDocument → LocalSipAccount donusumu.
+    /// </summary>
+    private static LocalSipAccount DocumentToSipAccount(BsonDocument doc)
+    {
+        return new LocalSipAccount
+        {
+            Id = doc.Contains("id") ? doc["id"].ToInt32() : 0,
+            Uid = Guid.Parse(doc["_id"].AsString),
+            Name = doc["name"].AsString,
+            Server = doc["server"].AsString,
+            Port = doc["port"].ToInt32(),
+            Domain = doc["domain"].IsBsonNull ? null : doc["domain"].AsString,
+            Username = doc["username"].AsString,
+            Password = doc["password"].AsString,
+            Transport = doc["transport"].IsBsonNull ? null : doc["transport"].AsString,
+            WsUri = doc["ws_uri"].IsBsonNull ? null : doc["ws_uri"].AsString,
+            UseSrtp = doc["use_srtp"].ToBoolean(),
+            StunServer = doc["stun_server"].IsBsonNull ? null : doc["stun_server"].AsString,
+            TurnServer = doc["turn_server"].IsBsonNull ? null : doc["turn_server"].AsString,
+            TurnUsername = doc["turn_username"].IsBsonNull ? null : doc["turn_username"].AsString,
+            TurnPassword = doc["turn_password"].IsBsonNull ? null : doc["turn_password"].AsString,
+            PreferredCodecs = doc["preferred_codecs"].IsBsonNull ? null : doc["preferred_codecs"].AsString,
+            JitterBufferMinMs = doc["jitter_buffer_min_ms"].ToInt32(),
+            JitterBufferMaxMs = doc["jitter_buffer_max_ms"].ToInt32(),
+            IsDefault = doc["is_default"].ToBoolean(),
+            IsActive = doc["is_active"].ToBoolean(),
+            CreatedAt = doc["created_at"].ToUniversalTime(),
+            IsSyncedToBackend = doc["is_synced_to_backend"].ToBoolean(),
+            LastSyncAttempt = doc["last_sync_attempt"].IsBsonNull ? null : doc["last_sync_attempt"].ToUniversalTime(),
+            BackendSipAccountId = doc["backend_sip_account_id"].IsBsonNull ? null : doc["backend_sip_account_id"].ToInt32()
+        };
+    }
+
+    /// <summary>
+    /// SIP hesaplari koleksiyonunu getir.
+    /// </summary>
+    private IMongoCollection<BsonDocument> GetSipAccountCollection()
+    {
+        return GetDatabase().GetCollection<BsonDocument>(SipAccountsCollection);
     }
 }
