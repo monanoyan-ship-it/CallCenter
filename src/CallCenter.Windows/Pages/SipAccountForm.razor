@@ -142,6 +142,51 @@
                                 <label class="form-label small">TURN Sunucusu</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="model.TurnServer" placeholder="turn.example.com:3478" />
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">TURN Kullanici Adi</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="model.TurnUsername" placeholder="" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">TURN Sifresi</label>
+                                <InputText type="password" class="form-control form-control-sm" @bind-Value="model.TurnPassword" />
+                            </div>
+                        </div>
+
+                        <hr class="my-3" />
+                        <h6 class="small text-muted mb-3"><i class="bi bi-soundwave me-1"></i>Codec Tercihleri (Opsiyonel)</h6>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small">Codec Oncelik Sirasi</label>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="codecOpus" checked="@IsCodecSelected(CodecOpus)" @onchange="ToggleOpus" />
+                                        <label class="form-check-label small" for="codecOpus">Opus</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="codecG722" checked="@IsCodecSelected(CodecG722)" @onchange="ToggleG722" />
+                                        <label class="form-check-label small" for="codecG722">G.722</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="codecPcmu" checked="@IsCodecSelected(CodecPcmu)" @onchange="TogglePcmu" />
+                                        <label class="form-check-label small" for="codecPcmu">PCMU (G.711u)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="codecPcma" checked="@IsCodecSelected(CodecPcma)" @onchange="TogglePcma" />
+                                        <label class="form-check-label small" for="codecPcma">PCMA (G.711a)</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Jitter Buffer Min (ms)</label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="model.JitterBufferMinMs" />
+                                <div class="form-text small">0 = varsayilan</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Jitter Buffer Max (ms)</label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="model.JitterBufferMaxMs" />
+                                <div class="form-text small">0 = varsayilan</div>
+                            </div>
                         </div>
                         }
                     </div>
@@ -179,6 +224,44 @@
     private bool showDeleteConfirm;
 
     private LocalSipAccount model = new();
+    private List<string> selectedCodecs = new();
+
+    private const string CodecOpus = "opus";
+    private const string CodecG722 = "g722";
+    private const string CodecPcmu = "pcmu";
+    private const string CodecPcma = "pcma";
+
+    private void ToggleOpus(ChangeEventArgs e) => ToggleCodec(CodecOpus, (bool)e.Value!);
+    private void ToggleG722(ChangeEventArgs e) => ToggleCodec(CodecG722, (bool)e.Value!);
+    private void TogglePcmu(ChangeEventArgs e) => ToggleCodec(CodecPcmu, (bool)e.Value!);
+    private void TogglePcma(ChangeEventArgs e) => ToggleCodec(CodecPcma, (bool)e.Value!);
+
+    private bool IsCodecSelected(string codec) => selectedCodecs.Contains(codec);
+
+    private void ToggleCodec(string codec, bool selected)
+    {
+        if (selected && !selectedCodecs.Contains(codec))
+            selectedCodecs.Add(codec);
+        else if (!selected)
+            selectedCodecs.Remove(codec);
+
+        model.PreferredCodecs = selectedCodecs.Count > 0
+            ? System.Text.Json.JsonSerializer.Serialize(selectedCodecs)
+            : null;
+    }
+
+    private void LoadCodecsFromModel()
+    {
+        selectedCodecs = new();
+        if (!string.IsNullOrWhiteSpace(model.PreferredCodecs))
+        {
+            try
+            {
+                selectedCodecs = System.Text.Json.JsonSerializer.Deserialize<List<string>>(model.PreferredCodecs) ?? new();
+            }
+            catch { selectedCodecs = new(); }
+        }
+    }
 
     public void OpenForCreate()
     {
@@ -191,6 +274,7 @@
             IsActive = true,
             Uid = Guid.NewGuid()
         };
+        LoadCodecsFromModel();
         errorMessage = null;
         isVisible = true;
         StateHasChanged();
@@ -215,11 +299,17 @@
             UseSrtp = sip.UseSrtp,
             StunServer = sip.StunServer,
             TurnServer = sip.TurnServer,
+            TurnUsername = sip.TurnUsername,
+            TurnPassword = sip.TurnPassword,
+            PreferredCodecs = sip.PreferredCodecs,
+            JitterBufferMinMs = sip.JitterBufferMinMs,
+            JitterBufferMaxMs = sip.JitterBufferMaxMs,
             IsDefault = sip.IsDefault,
             IsActive = sip.IsActive,
             IsSyncedToBackend = sip.IsSyncedToBackend,
             CreatedAt = sip.CreatedAt
         };
+        LoadCodecsFromModel();
         errorMessage = null;
         isVisible = true;
         StateHasChanged();

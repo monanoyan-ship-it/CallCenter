@@ -3,6 +3,7 @@
 @inject ILocalRepository LocalRepo
 @inject ToastService Toast
 @inject HttpClient HttpClient
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
 @using CallCenter.Windows.LocalData.Entities
 @using CallCenter.Windows.LocalData
 @using CallCenter.Shared.DTOs
@@ -269,7 +270,7 @@
                             JitterBufferMinMs = account.JitterBufferMinMs,
                             JitterBufferMaxMs = account.JitterBufferMaxMs,
                             IsDefault = account.IsDefault,
-                            CustomerId = 1 // TODO: Gerçek CustomerId'yi al
+                            CustomerId = PermService.CustomerId ?? 0
                         };
 
                         var response = await HttpClient.PostAsJsonAsync("/api/sipaccounts", createDto);

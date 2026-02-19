@@ -28,7 +28,7 @@ public class LocalSipAccount
     /// <summary>SIP kullanici adi</summary>
     public string Username { get; set; } = string.Empty;
 
-    /// <summary>SIP sifresi (sifrelenmis olarak saklanir)</summary>
+    /// <summary>SIP sifresi. TODO: Lokal DB'de DPAPI (ProtectedData.Protect/Unprotect) ile sifrelenmeli.</summary>
     public string Password { get; set; } = string.Empty;
 
     /// <summary>Transport turu: UDP, TCP, TLS, WSS</summary>
@@ -54,7 +54,7 @@ public class LocalSipAccount
     /// <summary>TURN kullanici adi</summary>
     public string? TurnUsername { get; set; }
 
-    /// <summary>TURN sifresi (sifrelenmis olarak saklanir)</summary>
+    /// <summary>TURN sifresi. TODO: Lokal DB'de DPAPI ile sifrelenmeli.</summary>
     public string? TurnPassword { get; set; }
 
     // ─── Codec Tercihleri ───

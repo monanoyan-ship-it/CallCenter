@@ -123,9 +123,22 @@ public class PostgresLocalRepository : ILocalRepository
             );
 
             CREATE INDEX IF NOT EXISTS idx_recordings_call_uid ON local_recordings(call_record_uid);
-            CREATE INDEX IF NOT EXISTS idx_recordings_retention ON local_recordings(retention_date) WHERE retention_date IS NOT NULL;
             """, conn);
         await cmdRecs.ExecuteNonQueryAsync();
+
+        // ── Mevcut tablolara sonradan eklenen kolonlar (schema evolution) ──
+        await using var cmdAlter = new NpgsqlCommand("""
+            ALTER TABLE local_recordings ADD COLUMN IF NOT EXISTS file_hash TEXT;
+            ALTER TABLE local_recordings ADD COLUMN IF NOT EXISTS is_encrypted BOOLEAN NOT NULL DEFAULT FALSE;
+            ALTER TABLE local_recordings ADD COLUMN IF NOT EXISTS retention_date TIMESTAMP;
+            """, conn);
+        await cmdAlter.ExecuteNonQueryAsync();
+
+        // ── Kolonlar eklendikten sonra index olustur ──
+        await using var cmdRecsIdx = new NpgsqlCommand("""
+            CREATE INDEX IF NOT EXISTS idx_recordings_retention ON local_recordings(retention_date) WHERE retention_date IS NOT NULL;
+            """, conn);
+        await cmdRecsIdx.ExecuteNonQueryAsync();
 
         // ── SIP Hesaplari tablosu ──
         await using var cmdSipAccounts = new NpgsqlCommand("""
