@@ -34,8 +34,16 @@ public class WindowsAuthService
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                return new LoginResult(false, error?.Message ?? "Giris basarisiz.");
+                try
+                {
+                    var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    return new LoginResult(false, error?.Message ?? "Giris basarisiz.");
+                }
+                catch
+                {
+                    var raw = await response.Content.ReadAsStringAsync();
+                    return new LoginResult(false, $"Giris basarisiz (HTTP {(int)response.StatusCode}). {raw}");
+                }
             }
 
             var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
@@ -57,9 +65,13 @@ public class WindowsAuthService
 
             return new LoginResult(true, null, loginResponse.MustChangePassword);
         }
+        catch (HttpRequestException ex)
+        {
+            return new LoginResult(false, $"Sunucuya ulasilamadi: {ex.Message}");
+        }
         catch (Exception ex)
         {
-            return new LoginResult(false, $"Baglanti hatasi: {ex.Message}");
+            return new LoginResult(false, $"Beklenmeyen hata: {ex.GetType().Name} — {ex.Message}");
         }
     }
 
