@@ -174,10 +174,16 @@ public class CustomerService : ICustomerService
         // --- Adim 2: User olustur (login icin) ---
         // Kullanici adi: firma adindan kisa bir slug + "_admin"
         // Ornek: "Acme Teknoloji" → "acme_admin"
-        var slug = new string(customer.Name
+        var slugSource = customer.Name
+            .Replace('ı', 'i').Replace('ş', 's').Replace('ç', 'c')
+            .Replace('ğ', 'g').Replace('ü', 'u').Replace('ö', 'o')
+            .Replace('İ', 'i').Replace('Ş', 's').Replace('Ç', 'c')
+            .Replace('Ğ', 'g').Replace('Ü', 'u').Replace('Ö', 'o')
+            .Replace('â', 'a').Replace('î', 'i').Replace('û', 'u')
             .ToLowerInvariant()
-            .Replace(" ", "")
-            .Where(c => char.IsLetterOrDigit(c))
+            .Replace(" ", "");
+        var slug = new string(slugSource
+            .Where(c => c >= 'a' && c <= 'z' || c >= '0' && c <= '9')
             .Take(20)
             .ToArray());
         var userName = $"{slug}_admin";

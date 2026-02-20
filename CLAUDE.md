@@ -1,35 +1,88 @@
 # Call Center Projesi - Claude Talimatları
 
-## Her Oturumda Yapılacak
-- **ClaudeManager rehberini oku** (tüm kurallar, hatalar, tercihler, yol haritası tek seferde):
-  - `curl -s "http://127.0.0.1:41847/api/guide?cwd=c:/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter"`
-- Mevcut durumu anlamadan kod yazılmayacak.
+## KESİN EMİRLER
 
-## Proje Bilgisi
-- **Solution**: `CallCenter.slnx` (.NET 10, slnx formatı)
-- **DB**: PostgreSQL (localhost:5432, callcenter)
-- **Admin**: admin / admin123
-- **Repo**: https://github.com/monanoyan-ship-it/CallCenter (private)
+### 1. ClaudeManager ZORUNLU
+Her oturumun İLK işi ClaudeManager rehberini okumaktır. Rehber okunmadan KOD YAZILMAZ.
+```
+curl -s "http://127.0.0.1:41847/api/guide?cwd=c:/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter"
+```
+Rehberdeki tüm kurallar, hatalar ve tercihler bu oturumda GEÇERLİDİR.
 
-## ClaudeManager API (http://127.0.0.1:41847, project_id: 15)
+### 2. ClaudeManager'a Yazma ZORUNLU
+- Yeni kural/hata/tercih öğrenildiğinde → **Pattern** olarak kaydet
+- Yeni hesap/API key/şifre oluşturulduğunda → **Notes'a** hemen yaz
+- Günlük bilgi (kredi, domain, deploy vb.) → **Journal'a** yaz
+- Görev tamamlandığında → **Risk raporu** görev kaydına ekle
+
+### 3. Rehber Okunamazsa
+ClaudeManager'a erişilemiyorsa kullanıcıyı bilgilendir ve onay almadan devam etme.
+
+---
+
+## ClaudeManager Kullanım Kılavuzu
+
+**Base URL:** `http://127.0.0.1:41847` | **project_id:** `15`
 
 ### Okuma
-- Rehber (tek seferde her şey): `GET /api/guide?cwd=PROJE_YOLU`
-- Pattern'ler: `GET /api/projects/15/patterns`
-- Yol haritası: `GET /api/projects/15/roadmap`
-- Notlar (hesap bilgileri, key'ler, config): `GET /api/projects/15/notes`
-- Günlük: `GET /api/projects/15/journal`
-- Arama: `GET /api/search?q=TERIM&project=15`
-- Analitik: `GET /api/projects/15/analytics`
+| Ne | Endpoint |
+|----|----------|
+| Rehber (her şey tek seferde) | `GET /api/guide?cwd=PROJE_YOLU` |
+| Kurallar/hatalar/tercihler | `GET /api/projects/15/patterns` |
+| Yol haritası | `GET /api/projects/15/roadmap` |
+| Notlar (hesap, key, config) | `GET /api/projects/15/notes` |
+| Günlük | `GET /api/projects/15/journal` |
+| Arama | `GET /api/search?q=TERIM&project=15` |
+| Analitik | `GET /api/projects/15/analytics` |
 
 ### Yazma
-- Pattern (sadece rule|mistake|preference): `POST /api/patterns` + `PUT/DELETE /api/patterns/ID`
-- Not: `POST /api/projects/15/notes` + `PUT/DELETE /api/notes/ID`
-- Günlük: `POST /api/projects/15/journal` + `PUT/DELETE /api/journal/ID`
-- Görev ekle: `POST /api/phases/FAZ_ID/tasks`
-- Görev güncelle: `PUT /api/tasks/GOREV_ID`
+| Ne | Endpoint | Tipler |
+|----|----------|--------|
+| Pattern | `POST /api/patterns` | rule, mistake, preference |
+| Pattern güncelle/sil | `PUT/DELETE /api/patterns/ID` | |
+| Not | `POST /api/projects/15/notes` | category: teknik |
+| Not güncelle/sil | `PUT/DELETE /api/notes/ID` | |
+| Günlük | `POST /api/projects/15/journal` | category: genel, teknik, karar, arastirma |
+| Günlük güncelle/sil | `PUT/DELETE /api/journal/ID` | |
+| Görev ekle | `POST /api/phases/FAZ_ID/tasks` | |
+| Görev güncelle | `PUT /api/tasks/GOREV_ID` | |
 
 ### Ne Nereye Yazılır
-- **rule/mistake/preference** → Pattern (kalıcı kurallar, hatalar, tercihler)
-- **Hesap bilgileri, API key, şifre, config** → Notes (category: teknik)
-- **Günlük nitelikli bilgi** (kredi, domain, vize, deploy) → Journal
+- **Kalıcı kural** → Pattern (type: rule)
+- **Yapılan hata, ders** → Pattern (type: mistake)
+- **Kullanıcı tercihi** → Pattern (type: preference)
+- **Hesap bilgisi, API key, şifre, config** → Notes (category: teknik)
+- **Günlük bilgi** (kredi, domain, vize, deploy) → Journal
+- **Görev riski/eksiği** → `PUT /api/tasks/ID` (risks alanı)
+
+### Doğru Kullanım Örnekleri
+
+Yeni kural kaydet:
+```
+curl -X POST http://127.0.0.1:41847/api/patterns -H "Content-Type: application/json" \
+  -d '{"project_id":15,"type":"rule","title":"BASLIK","description":"ACIKLAMA"}'
+```
+
+Hata kaydet:
+```
+curl -X POST http://127.0.0.1:41847/api/patterns -H "Content-Type: application/json" \
+  -d '{"project_id":15,"type":"mistake","title":"BASLIK","description":"ACIKLAMA"}'
+```
+
+Not kaydet (hesap/key/config):
+```
+curl -X POST http://127.0.0.1:41847/api/projects/15/notes -H "Content-Type: application/json" \
+  -d '{"title":"BASLIK","content":"ICERIK","category":"teknik"}'
+```
+
+Günlük girişi:
+```
+curl -X POST http://127.0.0.1:41847/api/projects/15/journal -H "Content-Type: application/json" \
+  -d '{"title":"BASLIK","content":"ICERIK","category":"teknik"}'
+```
+
+Görev risk raporu:
+```
+curl -X PUT http://127.0.0.1:41847/api/tasks/GOREV_ID -H "Content-Type: application/json" \
+  -d '{"status":"completed","risks":"OLASI RISKLER VE EKSIKLER"}'
+```
