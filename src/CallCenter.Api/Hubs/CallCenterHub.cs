@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using CallCenter.Api.Services;
 using CallCenter.Data;
@@ -12,6 +13,8 @@ namespace CallCenter.Api.Hubs;
 [Authorize]
 public class CallCenterHub : Hub
 {
+    private static readonly ConcurrentDictionary<int, GatewayHealthUpdate> _gatewayStates = new();
+
     private readonly AppDbContext _db;
     private readonly CallDistributionService _distribution;
 
@@ -83,6 +86,15 @@ public class CallCenterHub : Hub
                 };
 
                 await SendToGroupAndAdminsAsync(groupName, "AgentStatusChanged", statusUpdate);
+
+                // Gateway durumunu "kayit disi" olarak guncelle
+                if (_gatewayStates.TryGetValue(user.Id, out var gwState))
+                {
+                    gwState.IsRegistered = false;
+                    gwState.ErrorMessage = "Agent baglantisi kesildi";
+                    gwState.Timestamp = DateTime.UtcNow;
+                    await SendToGroupAndAdminsAsync(groupName, "GatewayHealthChanged", gwState);
+                }
             }
         }
 
@@ -391,6 +403,49 @@ public class CallCenterHub : Hub
             UserId = userId.Value,
             Timestamp = DateTime.UtcNow
         });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // GATEWAY HEALTH (SIP Gateway Saglik Monitoru)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Windows client SIP register/unregister oldugunda bu metodu cagirir.
+    /// AgentId ve AgentName JWT'den doldurulur (client tarafindan gonderilenleri override eder).
+    /// </summary>
+    public async Task UpdateGatewayHealth(GatewayHealthUpdate update)
+    {
+        var userId = GetUserId();
+        if (userId == null) return;
+
+        var user = await _db.Users.FindAsync(userId.Value);
+        if (user == null) return;
+
+        // JWT'den doldur — client manipulasyonunu engelle
+        update.AgentId = user.Id;
+        update.AgentName = user.FullName;
+        update.Timestamp = DateTime.UtcNow;
+
+        // In-memory state guncelle
+        _gatewayStates[user.Id] = update;
+
+        var groupName = await GetGroupNameAsync(userId.Value);
+        await SendToGroupAndAdminsAsync(groupName, "GatewayHealthChanged", update);
+    }
+
+    /// <summary>
+    /// Sayfa acildiginda mevcut gateway durumlarini doner (Supervisor/Admin only).
+    /// </summary>
+    public List<GatewayHealthUpdate> GetAllGatewayStatuses()
+    {
+        var userId = GetUserId();
+        if (userId == null) return new();
+
+        var roleClaim = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+        if (roleClaim != "Admin" && roleClaim != "Supervisor")
+            return new();
+
+        return _gatewayStates.Values.ToList();
     }
 
     // ═══════════════════════════════════════════════════════════════

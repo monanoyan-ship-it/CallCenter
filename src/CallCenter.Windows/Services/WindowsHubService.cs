@@ -133,6 +133,15 @@ public class WindowsHubService : IAsyncDisposable
         }
     }
 
+    /// <summary>Gateway (SIP) saglik durumunu hub'a bildirir.</summary>
+    public async Task UpdateGatewayHealthAsync(GatewayHealthUpdate update)
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+        {
+            await _connection.InvokeAsync("UpdateGatewayHealth", update);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_connection != null)

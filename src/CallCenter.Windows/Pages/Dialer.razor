@@ -5,6 +5,7 @@
 @inject HttpClient Http
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject CallCenter.Windows.Services.CallSyncService CallSync
+@inject CallCenter.Windows.LocalData.ILocalRepository LocalRepo
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
 @inject NavigationManager NavigationManager
 @using CallCenter.Shared.Enums
@@ -253,22 +254,33 @@
     {
         try
         {
-            var response = await Http.GetAsync("api/sipaccounts/my/connection");
+            var account = await LocalRepo.GetDefaultSipAccountAsync();
 
-            if (!response.IsSuccessStatusCode)
+            if (account == null)
             {
                 sipStatusText = "SIP Yok";
-                statusMessage = "SIP hesabi bulunamadi. Yonetici ile iletisime gecin.";
+                statusMessage = "Gateway tanimli degil. Gateway Yonetimi sayfasindan ekleyin.";
                 statusClass = "text-warning";
                 return;
             }
 
-            var sipInfo = await response.Content.ReadFromJsonAsync<SipConnectionInfoDto>();
-            if (sipInfo == null)
+            var sipInfo = new SipConnectionInfoDto
             {
-                sipStatusText = "SIP Hata";
-                return;
-            }
+                SipUri = $"sip:{account.Username}@{account.Server}",
+                WsUri = account.WsUri ?? $"wss://{account.Server}:8089/ws",
+                AuthUsername = account.Username,
+                AuthPassword = account.Password,
+                DisplayName = account.Name,
+                Transport = account.Transport ?? "UDP",
+                UseSrtp = account.UseSrtp,
+                StunServer = account.StunServer,
+                TurnServer = account.TurnServer,
+                TurnUsername = account.TurnUsername,
+                TurnPassword = account.TurnPassword,
+                PreferredCodecs = account.PreferredCodecs,
+                JitterBufferMinMs = account.JitterBufferMinMs,
+                JitterBufferMaxMs = account.JitterBufferMaxMs
+            };
 
             sipStatusText = "Kayit olunuyor...";
             StateHasChanged();
@@ -285,19 +297,42 @@
 
     // ─── SIP Event Handlers ───
 
-    private Task HandleSipRegistered()
+    private async Task HandleSipRegistered()
     {
         sipStatusText = "SIP Kayitli";
         statusMessage = "";
-        return InvokeAsync(StateHasChanged);
+
+        // Gateway saglik bilgisini hub'a bildir
+        var account = await LocalRepo.GetDefaultSipAccountAsync();
+        await HubService.UpdateGatewayHealthAsync(new GatewayHealthUpdate
+        {
+            IsRegistered = true,
+            GatewayName = account?.Name,
+            SipServer = account?.Server,
+            Transport = account?.Transport ?? "UDP"
+        });
+
+        await InvokeAsync(StateHasChanged);
     }
 
-    private Task HandleSipRegistrationFailed(string error)
+    private async Task HandleSipRegistrationFailed(string error)
     {
         sipStatusText = "SIP Hata";
         statusMessage = "SIP kayit hatasi: " + error;
         statusClass = "text-danger";
-        return InvokeAsync(StateHasChanged);
+
+        // Gateway hata bilgisini hub'a bildir
+        var account = await LocalRepo.GetDefaultSipAccountAsync();
+        await HubService.UpdateGatewayHealthAsync(new GatewayHealthUpdate
+        {
+            IsRegistered = false,
+            GatewayName = account?.Name,
+            SipServer = account?.Server,
+            Transport = account?.Transport ?? "UDP",
+            ErrorMessage = error
+        });
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleCallAnswered()

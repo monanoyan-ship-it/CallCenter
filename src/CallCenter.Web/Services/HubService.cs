@@ -31,6 +31,9 @@ public class HubService : IAsyncDisposable
     public event Action<MonitoringEvent>? OnMonitoringStarted;
     public event Action<MonitoringStoppedEvent>? OnMonitoringStopped;
 
+    // ─── Gateway Health Events ───
+    public event Action<GatewayHealthUpdate>? OnGatewayHealthChanged;
+
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
@@ -108,6 +111,12 @@ public class HubService : IAsyncDisposable
             OnMonitoringStopped?.Invoke(e);
         });
 
+        // Gateway health events
+        _connection.On<GatewayHealthUpdate>("GatewayHealthChanged", update =>
+        {
+            OnGatewayHealthChanged?.Invoke(update);
+        });
+
         _connection.Reconnecting += _ =>
         {
             OnConnectionStateChanged?.Invoke(HubConnectionState.Reconnecting);
@@ -183,6 +192,16 @@ public class HubService : IAsyncDisposable
         if (_connection?.State == HubConnectionState.Connected)
         {
             return await _connection.InvokeAsync<List<AgentStatusDto>>("GetAllAgentStatuses");
+        }
+        return new();
+    }
+
+    /// <summary>Tum gateway durumlarini getirir (sayfa ilk yukleme).</summary>
+    public async Task<List<GatewayHealthUpdate>> GetAllGatewayStatusesAsync()
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+        {
+            return await _connection.InvokeAsync<List<GatewayHealthUpdate>>("GetAllGatewayStatuses");
         }
         return new();
     }
