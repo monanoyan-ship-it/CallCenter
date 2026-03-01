@@ -1,6 +1,8 @@
+using System.IO;
 using System.Net.Http;
 using System.Windows;
 using CallCenter.Windows.LocalData;
+using CallCenter.Windows.LocalData.Providers;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,24 +79,14 @@ public partial class MainWindow : Window
         _trayService = new Services.SystemTrayService();
         services.AddSingleton(_trayService);
 
-        // ── Lokal DB + Cift Yazim ──
-        // SecureStorage'dan DB ayarlarini oku ve dogru provider'i olustur
+        // ── Lokal Dosya Deposu + Cift Yazim ──
         services.AddLogging();
         services.AddSingleton<ILocalRepository>(sp =>
         {
-            var storage = sp.GetRequiredService<Services.SecureStorage>();
-            var dbType = storage.GetAsync("local_db_type").GetAwaiter().GetResult();
-            var connStr = storage.GetAsync("local_db_connection").GetAwaiter().GetResult();
-            
-            // DEBUG: Eger bos ise varsayilan PostgreSQL'i kullan (son test)
-            if (string.IsNullOrWhiteSpace(dbType) || string.IsNullOrWhiteSpace(connStr))
-            {
-                dbType = "PostgreSQL";
-                connStr = "Host=localhost;Port=5432;Database=callcenter;Username=postgres;Password=1123Azs+-";
-                System.Diagnostics.Debug.WriteLine("⚠ Using default PostgreSQL connection (hardcoded)");
-            }
-            
-            return LocalRepositoryFactory.Create(dbType, connStr);
+            var basePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "CallCenter", "Data");
+            return new FileLocalRepository(basePath);
         });
         services.AddSingleton<Services.CallSyncService>();
         services.AddSingleton<Services.BackgroundSyncService>();

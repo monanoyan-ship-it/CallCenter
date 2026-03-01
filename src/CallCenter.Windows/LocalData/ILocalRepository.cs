@@ -3,14 +3,13 @@ using CallCenter.Windows.LocalData.Entities;
 namespace CallCenter.Windows.LocalData;
 
 /// <summary>
-/// Lokal veritabani erisim katmani.
-/// Her veritabani tipi (PostgreSQL, MSSQL, MongoDB) bu interface'i implemente eder.
-/// DB ayarlanmamissa NullLocalRepository (no-op) kullanilir.
+/// Lokal veri erisim katmani.
+/// FileLocalRepository (JSON dosya) veya NullLocalRepository (no-op) kullanilir.
 ///
 /// Kullanim:
-///   var repo = LocalRepositoryFactory.Create("PostgreSQL", connectionString);
-///   await repo.InitializeAsync();  // tablolari olustur
-///   await repo.SaveCallRecordAsync(record);  // cagri kaydet
+///   var repo = LocalRepositoryFactory.Create(basePath);
+///   await repo.InitializeAsync();
+///   await repo.SaveCallRecordAsync(record);
 /// </summary>
 public interface ILocalRepository
 {
@@ -48,6 +47,9 @@ public interface ILocalRepository
 
     /// <summary>Kaydı "senkronlandi" olarak isaretle</summary>
     Task MarkAsSyncedAsync(Guid uid, int? backendCallId = null);
+
+    /// <summary>Cagri kaydini ve iliskili ses kaydi metadata'sini lokalden sil (sync sonrasi temizlik)</summary>
+    Task DeleteCallRecordAsync(Guid uid);
 
     // ═══════════════════════════════════════
     // SES KAYITLARI

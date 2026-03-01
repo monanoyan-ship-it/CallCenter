@@ -106,6 +106,7 @@ public class BackgroundSyncService
             try
             {
                 await SyncUnsyncedRecordsAsync(ct);
+                await CleanupSyncedRecordsAsync();
             }
             catch (OperationCanceledException)
             {
@@ -155,7 +156,8 @@ public class BackgroundSyncService
 
                 if (backendCallId.HasValue)
                 {
-                    await _localRepo.MarkAsSyncedAsync(record.Uid, backendCallId.Value);
+                    // Sync basarili → lokalden sil (write-ahead buffer pattern)
+                    await _localRepo.DeleteCallRecordAsync(record.Uid);
                     successCount++;
                 }
                 else
@@ -225,5 +227,35 @@ public class BackgroundSyncService
             response.StatusCode, record.Uid);
         return null;
     }
+    /// <summary>
+    /// CallSyncService tarafindan realtime push ile sync edilmis
+    /// tamamlanmis/cevapsiz kayitlari lokalden temizler.
+    /// (StartCallAsync basarili push yapar → IsSyncedToBackend=true,
+    ///  ama kayit devam eder. Arama bittiginde burada temizlenir.)
+    /// </summary>
+    private async Task CleanupSyncedRecordsAsync()
+    {
+        try
+        {
+            // Sync edilmis + tamamlanmis/cevapsiz kayitlari bul
+            var syncedRecords = await _localRepo.GetCallRecordsAsync(null, null, 1, 500);
+            var toDelete = syncedRecords
+                .Where(r => r.IsSyncedToBackend && r.Status is "Completed" or "Missed" or "Failed")
+                .ToList();
+
+            foreach (var record in toDelete)
+            {
+                await _localRepo.DeleteCallRecordAsync(record.Uid);
+            }
+
+            if (toDelete.Count > 0)
+            {
+                _logger.LogInformation("{Count} sync edilmis kayit lokalden temizlendi", toDelete.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Sync edilmis kayit temizleme hatasi");
+        }
+    }
 }
-// DTO'lar Shared projesinde: CallSyncPushRequest, CallSyncPushResponse (CallDtos.cs)

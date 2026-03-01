@@ -20,6 +20,7 @@ public class NullLocalRepository : ILocalRepository
     public Task<List<LocalCallRecord>> GetCallRecordsAsync(DateTime? from, DateTime? to, int page, int pageSize) => Task.FromResult(new List<LocalCallRecord>());
     public Task<List<LocalCallRecord>> GetUnsyncedRecordsAsync(int limit = 50) => Task.FromResult(new List<LocalCallRecord>());
     public Task MarkAsSyncedAsync(Guid uid, int? backendCallId = null) => Task.CompletedTask;
+    public Task DeleteCallRecordAsync(Guid uid) => Task.CompletedTask;
 
     public Task SaveRecordingMetadataAsync(LocalRecording recording) => Task.CompletedTask;
     public Task<List<LocalRecording>> GetRecordingsAsync(Guid? callRecordUid, int page, int pageSize) => Task.FromResult(new List<LocalRecording>());

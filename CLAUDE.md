@@ -20,9 +20,9 @@ ClaudeManager'a erişilemiyorsa kullanıcıyı bilgilendir ve onay almadan devam
 
 ---
 
-## ClaudeManager Kullanım Kılavuzu
+## ClaudeManager v2.0 Kullanım Kılavuzu
 
-**Base URL:** `http://127.0.0.1:41847` | **project_id:** `15`
+**Base URL:** `http://127.0.0.1:41847` | **project_id:** `15` | **Version:** `2.0.0`
 
 ### Okuma
 | Ne | Endpoint |
@@ -30,22 +30,34 @@ ClaudeManager'a erişilemiyorsa kullanıcıyı bilgilendir ve onay almadan devam
 | Rehber (her şey tek seferde) | `GET /api/guide?cwd=PROJE_YOLU` |
 | Kurallar/hatalar/tercihler | `GET /api/projects/15/patterns` |
 | Yol haritası | `GET /api/projects/15/roadmap` |
+| Yol haritası özet | `GET /api/projects/15/roadmap/summary` |
+| Yol haritası istatistik | `GET /api/projects/15/roadmap/stats` |
 | Notlar (hesap, key, config) | `GET /api/projects/15/notes` |
 | Günlük | `GET /api/projects/15/journal` |
+| Session'lar | `GET /api/projects/15/sessions?page=1&limit=20` |
+| Prompt geçmişi | `GET /api/projects/15/prompts?page=1&limit=10` |
+| Tool kullanımları | `GET /api/projects/15/tool-uses?page=1&limit=20` |
 | Arama | `GET /api/search?q=TERIM&project=15` |
-| Analitik | `GET /api/projects/15/analytics` |
+| Analitik | `GET /api/projects/15/analytics?days=30` |
+| Sağlık kontrolü | `GET /health` |
+| Proje dışa aktar | `GET /api/projects/15/export` |
 
 ### Yazma
 | Ne | Endpoint | Tipler |
 |----|----------|--------|
 | Pattern | `POST /api/patterns` | rule, mistake, preference |
 | Pattern güncelle/sil | `PUT/DELETE /api/patterns/ID` | |
-| Not | `POST /api/projects/15/notes` | category: teknik |
+| Not | `POST /api/projects/15/notes` | category: teknik, genel, karar, todo |
 | Not güncelle/sil | `PUT/DELETE /api/notes/ID` | |
+| Not sabitle | `PUT /api/notes/ID` | `{"is_pinned": 1}` |
 | Günlük | `POST /api/projects/15/journal` | category: genel, teknik, karar, arastirma |
 | Günlük güncelle/sil | `PUT/DELETE /api/journal/ID` | |
+| Faz ekle | `POST /api/projects/15/phases` | |
+| Faz güncelle/sil | `PUT/DELETE /api/phases/FAZ_ID` | |
 | Görev ekle | `POST /api/phases/FAZ_ID/tasks` | |
-| Görev güncelle | `PUT /api/tasks/GOREV_ID` | |
+| Görev güncelle/sil | `PUT/DELETE /api/tasks/GOREV_ID` | |
+| Roadmap XML import | `POST /api/projects/15/roadmap/import` | XML body |
+| Proje birleştir | `POST /api/projects/merge` | |
 
 ### Ne Nereye Yazılır
 - **Kalıcı kural** → Pattern (type: rule)
@@ -54,6 +66,13 @@ ClaudeManager'a erişilemiyorsa kullanıcıyı bilgilendir ve onay almadan devam
 - **Hesap bilgisi, API key, şifre, config** → Notes (category: teknik)
 - **Günlük bilgi** (kredi, domain, vize, deploy) → Journal
 - **Görev riski/eksiği** → `PUT /api/tasks/ID` (risks alanı)
+
+### Hooks (Otomatik Takip)
+ClaudeManager 4 hook ile oturumları otomatik takip eder:
+- **SessionStart**: Oturum başlangıcı kaydı + context injection
+- **UserPromptSubmit**: Her prompt kaydı + benzer istek uyarısı
+- **PostToolUse** (Edit/Write/Bash): Tool kullanım takibi
+- **SessionEnd**: Oturum kapanış kaydı
 
 ### Doğru Kullanım Örnekleri
 
@@ -85,4 +104,16 @@ Görev risk raporu:
 ```
 curl -X PUT http://127.0.0.1:41847/api/tasks/GOREV_ID -H "Content-Type: application/json" \
   -d '{"status":"completed","risks":"OLASI RISKLER VE EKSIKLER"}'
+```
+
+Faz ekle:
+```
+curl -X POST http://127.0.0.1:41847/api/projects/15/phases -H "Content-Type: application/json" \
+  -d '{"phase_no":"X","title":"FAZ_BASLIGI","sort_order":99}'
+```
+
+Not sabitle:
+```
+curl -X PUT http://127.0.0.1:41847/api/notes/NOT_ID -H "Content-Type: application/json" \
+  -d '{"is_pinned":1}'
 ```

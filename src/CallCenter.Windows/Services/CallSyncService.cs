@@ -195,6 +195,8 @@ public class CallSyncService
                         record.DurationSeconds = (int)(record.EndedAt.Value - record.AnsweredAt.Value).TotalSeconds;
                     }
                     record.RecordingFilePath = recordingFilePath;
+                    // Re-sync zorunlu: guncellenmis veri (sure, kayit) backend'e push edilmeli
+                    record.IsSyncedToBackend = false;
                     await _localRepo.UpdateCallRecordAsync(record);
                     _logger.LogInformation("Lokal kayit guncellendi: {Uid}, Sure: {Duration}s",
                         uid, record.DurationSeconds);
@@ -274,6 +276,8 @@ public class CallSyncService
                 {
                     record.Status = "Missed";
                     record.EndedAt = DateTime.UtcNow;
+                    // Re-sync zorunlu: BackgroundSync tam veriyi push edip lokalden silecek
+                    record.IsSyncedToBackend = false;
                     await _localRepo.UpdateCallRecordAsync(record);
                 }
             }
