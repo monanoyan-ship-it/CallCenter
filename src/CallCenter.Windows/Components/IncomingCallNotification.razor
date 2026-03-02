@@ -1,10 +1,27 @@
 @inject CallCenter.Windows.Services.WindowsHubService HubService
 @inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.IncomingCallPipelineService Pipeline
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 @implements IDisposable
 
-@if (incomingCall != null)
+@if (ivrActive)
+{
+    <div class="incoming-call-overlay">
+        <div class="incoming-call-popup ivr-mode">
+            <div class="call-icon-wrapper">
+                <div class="call-ring-animation ivr"></div>
+                <i class="bi bi-diagram-3-fill call-icon"></i>
+            </div>
+
+            <div class="caller-details">
+                <span class="call-label">IVR Aktif</span>
+                <span class="caller-number">DTMF bekleniyor...</span>
+            </div>
+        </div>
+    </div>
+}
+else if (incomingCall != null)
 {
     <div class="incoming-call-overlay">
         <div class="incoming-call-popup">
@@ -41,13 +58,21 @@
 @code {
     private CallNotification? incomingCall;
     private bool isSipCall;
+    private bool ivrActive;
 
     protected override void OnInitialized()
     {
         HubService.OnIncomingCall += HandleIncomingCall;
         HubService.OnCallEnded += HandleCallEnded;
+
+        // SIP gelen arama artik Pipeline uzerinden yonetiliyor
         SipService.OnIncomingCall += HandleSipIncomingCall;
         SipService.OnCallEnded += HandleSipCallEnded;
+
+        // Pipeline event'leri
+        Pipeline.OnShowIncomingCallPopup += HandlePipelineShowPopup;
+        Pipeline.OnIvrRouteSelected += HandleIvrRouteSelected;
+        Pipeline.OnIvrFallback += HandleIvrFallback;
     }
 
     private void HandleIncomingCall(CallNotification notification)
@@ -69,7 +94,16 @@
         }
     }
 
-    private Task HandleSipIncomingCall(string callerUri, string callerDisplay)
+    private async Task HandleSipIncomingCall(string callerUri, string callerDisplay)
+    {
+        // Pipeline'a yonlendir — IVR kontrolu yapacak
+        await Pipeline.HandleIncomingCallAsync(callerUri, callerDisplay);
+        ivrActive = Pipeline.IsIvrActive;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Pipeline IVR olmadığında popup göstermemizi ister</summary>
+    private Task HandlePipelineShowPopup(string callerUri, string callerDisplay)
     {
         incomingCall = new CallNotification
         {
@@ -78,6 +112,34 @@
             StatusId = CallStatuses.Ids.Ringing
         };
         isSipCall = true;
+        ivrActive = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>IVR secenege gore yonlendirme tamamlandi</summary>
+    private async Task HandleIvrRouteSelected(int? queueId, string? extension, string? holdMusicPath)
+    {
+        ivrActive = false;
+
+        // Kuyruga yonlendirme varsa — transfer et
+        if (!string.IsNullOrEmpty(extension))
+        {
+            await SipService.BlindTransferAsync(extension);
+        }
+        else if (queueId.HasValue)
+        {
+            // Kuyruk transferi — agent atanana kadar hold muzigi cal
+            // TODO: CallDistributionService uzerinden kuyruk yonlendirmesi
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>IVR timeout/fallback — varsayilan kuyruga yonlendir</summary>
+    private Task HandleIvrFallback()
+    {
+        ivrActive = false;
+        // TODO: Varsayilan kuyruga yonlendir
         return InvokeAsync(StateHasChanged);
     }
 
@@ -86,6 +148,12 @@
         if (isSipCall && incomingCall != null)
         {
             incomingCall = null;
+            ivrActive = false;
+            return InvokeAsync(StateHasChanged);
+        }
+        if (ivrActive)
+        {
+            ivrActive = false;
             return InvokeAsync(StateHasChanged);
         }
         return Task.CompletedTask;
@@ -120,5 +188,8 @@
         HubService.OnCallEnded -= HandleCallEnded;
         SipService.OnIncomingCall -= HandleSipIncomingCall;
         SipService.OnCallEnded -= HandleSipCallEnded;
+        Pipeline.OnShowIncomingCallPopup -= HandlePipelineShowPopup;
+        Pipeline.OnIvrRouteSelected -= HandleIvrRouteSelected;
+        Pipeline.OnIvrFallback -= HandleIvrFallback;
     }
 }

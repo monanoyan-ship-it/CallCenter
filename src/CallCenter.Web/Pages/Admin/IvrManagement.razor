@@ -1,0 +1,792 @@
+@page "/admin/ivr"
+@attribute [Authorize(Roles = "Admin,Supervisor")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-telephone-inbound-fill me-2"></i>IVR / Karsilama Yonetimi</h4>
+</div>
+
+@* ─── Firma Secimi ─── *@
+<div class="row g-2 align-items-center mb-3">
+    <div class="col-md-4">
+        <SearchableSelect Items="customerItems" Value="@selectedCustomerIdStr"
+                          ValueChanged="OnCustomerSelected" Placeholder="-- Firma Seciniz --" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAllData" disabled="@(selectedCustomerId == 0)">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+</div>
+
+@if (selectedCustomerId > 0)
+{
+    @* ─── Tabs ─── *@
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 0 ? "active" : "")" @onclick="() => activeTab = 0">
+                <i class="bi bi-megaphone-fill me-1"></i>Karsilama
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 1 ? "active" : "")" @onclick="() => activeTab = 1">
+                <i class="bi bi-diagram-3-fill me-1"></i>IVR Menu
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 2 ? "active" : "")" @onclick="() => activeTab = 2">
+                <i class="bi bi-music-note-beamed me-1"></i>Bekleme Muzigi
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 3 ? "active" : "")" @onclick="() => activeTab = 3">
+                <i class="bi bi-clock-fill me-1"></i>Mesai Saatleri
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 4 ? "active" : "")" @onclick="() => activeTab = 4">
+                <i class="bi bi-calendar-event-fill me-1"></i>Tatiller
+            </button>
+        </li>
+    </ul>
+
+    @* ─── Tab Content ─── *@
+    @if (isLoading)
+    {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    }
+    else
+    {
+        @switch (activeTab)
+        {
+            case 0:
+                @RenderGreetingsTab();
+                break;
+            case 1:
+                @RenderIvrMenusTab();
+                break;
+            case 2:
+                @RenderHoldMusicTab();
+                break;
+            case 3:
+                @RenderBusinessHoursTab();
+                break;
+            case 4:
+                @RenderHolidaysTab();
+                break;
+        }
+    }
+}
+else
+{
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-building opacity-25" style="font-size: 3rem;"></i>
+        <p class="mt-2">Bir firma seciniz</p>
+    </div>
+}
+
+@* ─── Confirm Dialog ─── *@
+<ConfirmDialog @ref="confirmDialog" Title="Silme Onay" Message="@confirmMessage" OnConfirm="ExecuteDelete" />
+
+@code {
+    // ═══════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════
+
+    private int activeTab;
+    private int selectedCustomerId;
+    private bool isLoading;
+    private List<CustomerListDto>? customers;
+
+    // Tab data
+    private List<GreetingMessageDto>? greetings;
+    private List<IvrMenuDto>? ivrMenus;
+    private List<HoldMusicDto>? holdMusics;
+    private List<BusinessHoursDto>? businessHours;
+    private List<HolidayDto>? holidays;
+
+    // Forms
+    private bool showGreetingForm;
+    private string greetingFormName = "";
+    private string greetingFormType = "business_hours";
+
+    private bool showMenuForm;
+    private string menuFormName = "";
+    private int menuFormGreetingId;
+    private int menuFormMaxRetries = 3;
+    private int menuFormTimeout = 5;
+    private List<CreateIvrMenuOptionRequest> menuFormOptions = new();
+
+    private bool showHolidayForm;
+    private string holidayFormName = "";
+    private DateOnly holidayFormDate = DateOnly.FromDateTime(DateTime.Today);
+    private bool holidayFormRecurring;
+
+    // Delete
+    private ConfirmDialog confirmDialog = null!;
+    private string confirmMessage = "";
+    private Func<Task>? pendingDeleteAction;
+
+    // ═══════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PagedResult<CustomerListDto>>("api/customers?page=1&pageSize=500");
+            customers = result?.Items;
+        }
+        catch { }
+    }
+
+    private List<SearchableSelect.SearchSelectItem> customerItems =>
+        customers?.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList() ?? new();
+
+    private string selectedCustomerIdStr => selectedCustomerId > 0 ? selectedCustomerId.ToString() : "";
+
+    private async Task OnCustomerSelected(string? val)
+    {
+        selectedCustomerId = int.TryParse(val, out var id) ? id : 0;
+        if (selectedCustomerId > 0) await LoadAllData();
+    }
+
+    private async Task LoadAllData()
+    {
+        if (selectedCustomerId == 0) return;
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var t1 = Http.GetFromJsonAsync<List<GreetingMessageDto>>($"api/ivr/greetings?customerId={selectedCustomerId}");
+            var t2 = Http.GetFromJsonAsync<List<IvrMenuDto>>($"api/ivr/menus?customerId={selectedCustomerId}");
+            var t3 = Http.GetFromJsonAsync<List<HoldMusicDto>>($"api/ivr/hold-music?customerId={selectedCustomerId}");
+            var t4 = Http.GetFromJsonAsync<List<BusinessHoursDto>>($"api/ivr/business-hours?customerId={selectedCustomerId}");
+            var t5 = Http.GetFromJsonAsync<List<HolidayDto>>($"api/ivr/holidays?customerId={selectedCustomerId}");
+
+            await Task.WhenAll(t1, t2, t3, t4, t5);
+
+            greetings = t1.Result;
+            ivrMenus = t2.Result;
+            holdMusics = t3.Result;
+            businessHours = t4.Result;
+            holidays = t5.Result;
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Veri yuklenemedi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // GREETING TAB
+    // ═══════════════════════════════════════════
+
+    private RenderFragment RenderGreetingsTab() => __builder =>
+    {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Karsilama Mesajlari</h6>
+            <button class="btn btn-sm btn-primary" @onclick="() => showGreetingForm = true">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Ekle
+            </button>
+        </div>
+
+        @if (showGreetingForm)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <label class="form-label">Ad</label>
+                            <input class="form-control form-control-sm" @bind="greetingFormName" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tip</label>
+                            <select class="form-select form-select-sm" @bind="greetingFormType">
+                                <option value="business_hours">Mesai Saati</option>
+                                <option value="after_hours">Mesai Disi</option>
+                                <option value="holiday">Tatil</option>
+                                <option value="custom">Ozel</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end gap-1">
+                            <button class="btn btn-sm btn-success" @onclick="CreateGreeting">Kaydet</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => showGreetingForm = false">Iptal</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead><tr><th>Ad</th><th>Tip</th><th>Ses Dosyasi</th><th>Durum</th><th></th></tr></thead>
+                <tbody>
+                    @if (greetings?.Count > 0)
+                    {
+                        @foreach (var g in greetings)
+                        {
+                            <tr>
+                                <td class="fw-medium">@g.Name</td>
+                                <td><span class="badge bg-info-subtle text-info">@g.Type</span></td>
+                                <td>@(g.AudioFileName ?? "-")</td>
+                                <td>
+                                    <span class="badge @(g.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")">
+                                        @(g.IsActive ? "Aktif" : "Pasif")
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDeleteGreeting(g)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="text-muted text-center">Henuz karsilama mesaji yok</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private async Task CreateGreeting()
+    {
+        if (string.IsNullOrWhiteSpace(greetingFormName)) return;
+
+        try
+        {
+            var content = new MultipartFormDataContent();
+            content.Add(new StringContent(greetingFormName), "Name");
+            content.Add(new StringContent(greetingFormType), "Type");
+
+            var resp = await Http.PostAsync($"api/ivr/greetings?customerId={selectedCustomerId}", content);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Karsilama mesaji olusturuldu.");
+                showGreetingForm = false;
+                greetingFormName = "";
+                greetings = await Http.GetFromJsonAsync<List<GreetingMessageDto>>($"api/ivr/greetings?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Kayit basarisiz.");
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private void ConfirmDeleteGreeting(GreetingMessageDto g)
+    {
+        confirmMessage = $"'{g.Name}' karsilama mesajini silmek istediginize emin misiniz?";
+        pendingDeleteAction = async () =>
+        {
+            var resp = await Http.DeleteAsync($"api/ivr/greetings/{g.Id}?customerId={selectedCustomerId}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Silindi.");
+                greetings = await Http.GetFromJsonAsync<List<GreetingMessageDto>>($"api/ivr/greetings?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Silme basarisiz.");
+        };
+        confirmDialog.Show();
+    }
+
+    // ═══════════════════════════════════════════
+    // IVR MENU TAB
+    // ═══════════════════════════════════════════
+
+    private RenderFragment RenderIvrMenusTab() => __builder =>
+    {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">IVR Menuleri</h6>
+            <button class="btn btn-sm btn-primary" @onclick="() => showMenuForm = true">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Menu
+            </button>
+        </div>
+
+        @if (showMenuForm)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Menu Adi</label>
+                            <input class="form-control form-control-sm" @bind="menuFormName" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Karsilama Mesaji</label>
+                            <select class="form-select form-select-sm" @bind="menuFormGreetingId">
+                                <option value="0">-- Secilmedi --</option>
+                                @if (greetings != null)
+                                {
+                                    @foreach (var g in greetings.Where(x => x.IsActive))
+                                    {
+                                        <option value="@g.Id">@g.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Max Deneme</label>
+                            <input type="number" class="form-control form-control-sm" @bind="menuFormMaxRetries" min="1" max="10" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Timeout (sn)</label>
+                            <input type="number" class="form-control form-control-sm" @bind="menuFormTimeout" min="1" max="30" />
+                        </div>
+                    </div>
+
+                    @* Menu Secenekleri *@
+                    <h6 class="mt-2">Secenekler</h6>
+                    @for (int i = 0; i < menuFormOptions.Count; i++)
+                    {
+                        var idx = i;
+                        <div class="row g-1 mb-1 align-items-center">
+                            <div class="col-md-1">
+                                <input class="form-control form-control-sm" @bind="menuFormOptions[idx].Digit" placeholder="Tus" />
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm" @bind="menuFormOptions[idx].ActionType">
+                                    <option value="transfer_queue">Kuyruga Aktar</option>
+                                    <option value="transfer_extension">Dahiliye Aktar</option>
+                                    <option value="sub_menu">Alt Menu</option>
+                                    <option value="play_message">Mesaj Cal</option>
+                                    <option value="hangup">Kapat</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input class="form-control form-control-sm" @bind="menuFormOptions[idx].Label" placeholder="Etiket (orn: Satis)" />
+                            </div>
+                            <div class="col-md-3">
+                                <input class="form-control form-control-sm" @bind="menuFormOptions[idx].TargetExtension" placeholder="Hedef (dahili/kuyruk)" />
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => menuFormOptions.RemoveAt(idx)">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    <button class="btn btn-sm btn-outline-primary mt-1" @onclick="AddMenuOption">
+                        <i class="bi bi-plus"></i> Secenek Ekle
+                    </button>
+
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-success" @onclick="CreateIvrMenu">Kaydet</button>
+                        <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ResetMenuForm">Iptal</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead><tr><th>Ad</th><th>Karsilama</th><th>Secenekler</th><th>Durum</th><th></th></tr></thead>
+                <tbody>
+                    @if (ivrMenus?.Count > 0)
+                    {
+                        @foreach (var m in ivrMenus)
+                        {
+                            <tr>
+                                <td class="fw-medium">@m.Name</td>
+                                <td>@(m.GreetingMessageName ?? "-")</td>
+                                <td>
+                                    @foreach (var opt in m.Options.OrderBy(o => o.SortOrder))
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary me-1">@opt.Digit: @(opt.Label ?? opt.ActionType)</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @(m.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")">
+                                        @(m.IsActive ? "Aktif" : "Pasif")
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDeleteMenu(m)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="text-muted text-center">Henuz IVR menusu yok</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private void AddMenuOption()
+    {
+        menuFormOptions.Add(new CreateIvrMenuOptionRequest
+        {
+            Digit = (menuFormOptions.Count + 1).ToString(),
+            ActionType = "transfer_queue",
+            SortOrder = menuFormOptions.Count
+        });
+    }
+
+    private void ResetMenuForm()
+    {
+        showMenuForm = false;
+        menuFormName = "";
+        menuFormGreetingId = 0;
+        menuFormMaxRetries = 3;
+        menuFormTimeout = 5;
+        menuFormOptions.Clear();
+    }
+
+    private async Task CreateIvrMenu()
+    {
+        if (string.IsNullOrWhiteSpace(menuFormName)) return;
+
+        try
+        {
+            var request = new CreateIvrMenuRequest
+            {
+                Name = menuFormName,
+                GreetingMessageId = menuFormGreetingId > 0 ? menuFormGreetingId : null,
+                MaxRetries = menuFormMaxRetries,
+                TimeoutSeconds = menuFormTimeout,
+                Options = menuFormOptions
+            };
+            var resp = await Http.PostAsJsonAsync($"api/ivr/menus?customerId={selectedCustomerId}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("IVR menu olusturuldu.");
+                ResetMenuForm();
+                ivrMenus = await Http.GetFromJsonAsync<List<IvrMenuDto>>($"api/ivr/menus?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Kayit basarisiz.");
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private void ConfirmDeleteMenu(IvrMenuDto m)
+    {
+        confirmMessage = $"'{m.Name}' IVR menusunu silmek istediginize emin misiniz?";
+        pendingDeleteAction = async () =>
+        {
+            var resp = await Http.DeleteAsync($"api/ivr/menus/{m.Id}?customerId={selectedCustomerId}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Silindi.");
+                ivrMenus = await Http.GetFromJsonAsync<List<IvrMenuDto>>($"api/ivr/menus?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Silme basarisiz.");
+        };
+        confirmDialog.Show();
+    }
+
+    // ═══════════════════════════════════════════
+    // HOLD MUSIC TAB
+    // ═══════════════════════════════════════════
+
+    private RenderFragment RenderHoldMusicTab() => __builder =>
+    {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Bekleme Muzikleri</h6>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead><tr><th>Ad</th><th>Kuyruk</th><th>Ses Dosyasi</th><th>Varsayilan</th><th></th></tr></thead>
+                <tbody>
+                    @if (holdMusics?.Count > 0)
+                    {
+                        @foreach (var h in holdMusics)
+                        {
+                            <tr>
+                                <td class="fw-medium">@h.Name</td>
+                                <td>@(h.QueueName ?? "Genel")</td>
+                                <td>@(h.AudioFileName ?? "-")</td>
+                                <td>
+                                    @if (h.IsDefault)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning">Varsayilan</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDeleteHoldMusic(h)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="text-muted text-center">Henuz bekleme muzigi yok</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private void ConfirmDeleteHoldMusic(HoldMusicDto h)
+    {
+        confirmMessage = $"'{h.Name}' bekleme muzigini silmek istediginize emin misiniz?";
+        pendingDeleteAction = async () =>
+        {
+            var resp = await Http.DeleteAsync($"api/ivr/hold-music/{h.Id}?customerId={selectedCustomerId}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Silindi.");
+                holdMusics = await Http.GetFromJsonAsync<List<HoldMusicDto>>($"api/ivr/hold-music?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Silme basarisiz.");
+        };
+        confirmDialog.Show();
+    }
+
+    // ═══════════════════════════════════════════
+    // BUSINESS HOURS TAB
+    // ═══════════════════════════════════════════
+
+    private RenderFragment RenderBusinessHoursTab() => __builder =>
+    {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Mesai Saatleri</h6>
+            <button class="btn btn-sm btn-success" @onclick="SaveBusinessHours">
+                <i class="bi bi-floppy me-1"></i>Kaydet
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead><tr><th>Gun</th><th>Mesai</th><th>Baslangic</th><th>Bitis</th></tr></thead>
+                <tbody>
+                    @if (businessHours?.Count > 0)
+                    {
+                        @foreach (var bh in businessHours.OrderBy(b => b.DayOfWeek))
+                        {
+                            <tr class="@(!bh.IsWorkday ? "table-light text-muted" : "")">
+                                <td class="fw-medium">@bh.DayName</td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="bh.IsWorkday" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="time" class="form-control form-control-sm" style="width:120px"
+                                           value="@bh.StartTime.ToString(@"hh\:mm")"
+                                           @onchange="e => SetStartTime(bh, e)"
+                                           disabled="@(!bh.IsWorkday)" />
+                                </td>
+                                <td>
+                                    <input type="time" class="form-control form-control-sm" style="width:120px"
+                                           value="@bh.EndTime.ToString(@"hh\:mm")"
+                                           @onchange="e => SetEndTime(bh, e)"
+                                           disabled="@(!bh.IsWorkday)" />
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="4" class="text-muted text-center">
+                            Henuz mesai saati tanimlanmamis.
+                            <button class="btn btn-sm btn-link" @onclick="InitBusinessHours">Varsayilan olustur</button>
+                        </td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private void InitBusinessHours()
+    {
+        string[] dayNames = { "Pazar", "Pazartesi", "Sali", "Carsamba", "Persembe", "Cuma", "Cumartesi" };
+        businessHours = Enumerable.Range(0, 7).Select(d => new BusinessHoursDto
+        {
+            DayOfWeek = d,
+            DayName = dayNames[d],
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime = new TimeSpan(18, 0, 0),
+            IsWorkday = d >= 1 && d <= 5 // Pt-Cu
+        }).ToList();
+    }
+
+    private void SetStartTime(BusinessHoursDto bh, ChangeEventArgs e)
+    {
+        if (TimeSpan.TryParse(e.Value?.ToString(), out var ts)) bh.StartTime = ts;
+    }
+
+    private void SetEndTime(BusinessHoursDto bh, ChangeEventArgs e)
+    {
+        if (TimeSpan.TryParse(e.Value?.ToString(), out var ts)) bh.EndTime = ts;
+    }
+
+    private async Task SaveBusinessHours()
+    {
+        if (businessHours == null) return;
+        try
+        {
+            var request = new SetBusinessHoursRequest
+            {
+                Days = businessHours.Select(bh => new BusinessHoursDayRequest
+                {
+                    DayOfWeek = bh.DayOfWeek,
+                    StartTime = bh.StartTime,
+                    EndTime = bh.EndTime,
+                    IsWorkday = bh.IsWorkday
+                }).ToList()
+            };
+            var resp = await Http.PostAsJsonAsync($"api/ivr/business-hours?customerId={selectedCustomerId}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Mesai saatleri kaydedildi.");
+                businessHours = await Http.GetFromJsonAsync<List<BusinessHoursDto>>($"api/ivr/business-hours?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Kayit basarisiz.");
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    // ═══════════════════════════════════════════
+    // HOLIDAYS TAB
+    // ═══════════════════════════════════════════
+
+    private RenderFragment RenderHolidaysTab() => __builder =>
+    {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Tatil Takvimi</h6>
+            <button class="btn btn-sm btn-primary" @onclick="() => showHolidayForm = true">
+                <i class="bi bi-plus-lg me-1"></i>Tatil Ekle
+            </button>
+        </div>
+
+        @if (showHolidayForm)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label">Tarih</label>
+                            <input type="date" class="form-control form-control-sm"
+                                   value="@holidayFormDate.ToString("yyyy-MM-dd")"
+                                   @onchange="OnHolidayDateChange" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ad</label>
+                            <input class="form-control form-control-sm" @bind="holidayFormName" placeholder="Cumhuriyet Bayrami" />
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" @bind="holidayFormRecurring" id="recurringCheck" />
+                                <label class="form-check-label" for="recurringCheck">Her yil</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end gap-1">
+                            <button class="btn btn-sm btn-success" @onclick="CreateHoliday">Kaydet</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => showHolidayForm = false">Iptal</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead><tr><th>Tarih</th><th>Ad</th><th>Karsilama</th><th>Tekrar</th><th></th></tr></thead>
+                <tbody>
+                    @if (holidays?.Count > 0)
+                    {
+                        @foreach (var h in holidays.OrderBy(x => x.Date))
+                        {
+                            <tr>
+                                <td class="fw-medium">@h.Date.ToString("dd.MM.yyyy")</td>
+                                <td>@h.Name</td>
+                                <td>@(h.GreetingMessageName ?? "-")</td>
+                                <td>
+                                    @if (h.IsRecurring)
+                                    {
+                                        <i class="bi bi-arrow-repeat text-primary"></i>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDeleteHoliday(h)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="text-muted text-center">Henuz tatil tanimi yok</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private void OnHolidayDateChange(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var d)) holidayFormDate = d;
+    }
+
+    private async Task CreateHoliday()
+    {
+        if (string.IsNullOrWhiteSpace(holidayFormName)) return;
+
+        try
+        {
+            var request = new CreateHolidayRequest
+            {
+                Date = holidayFormDate,
+                Name = holidayFormName,
+                IsRecurring = holidayFormRecurring
+            };
+            var resp = await Http.PostAsJsonAsync($"api/ivr/holidays?customerId={selectedCustomerId}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Tatil olusturuldu.");
+                showHolidayForm = false;
+                holidayFormName = "";
+                holidays = await Http.GetFromJsonAsync<List<HolidayDto>>($"api/ivr/holidays?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Kayit basarisiz.");
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private void ConfirmDeleteHoliday(HolidayDto h)
+    {
+        confirmMessage = $"'{h.Name}' tatilini silmek istediginize emin misiniz?";
+        pendingDeleteAction = async () =>
+        {
+            var resp = await Http.DeleteAsync($"api/ivr/holidays/{h.Id}?customerId={selectedCustomerId}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Silindi.");
+                holidays = await Http.GetFromJsonAsync<List<HolidayDto>>($"api/ivr/holidays?customerId={selectedCustomerId}");
+            }
+            else Toast.ShowError("Silme basarisiz.");
+        };
+        confirmDialog.Show();
+    }
+
+    // ═══════════════════════════════════════════
+    // DELETE CONFIRM
+    // ═══════════════════════════════════════════
+
+    private async Task ExecuteDelete()
+    {
+        if (pendingDeleteAction != null)
+        {
+            await pendingDeleteAction();
+            pendingDeleteAction = null;
+        }
+    }
+}

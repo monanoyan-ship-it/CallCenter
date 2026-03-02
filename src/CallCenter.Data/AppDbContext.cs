@@ -35,6 +35,14 @@ public class AppDbContext : DbContext
     public DbSet<InstantMessage> InstantMessages => Set<InstantMessage>();
     public DbSet<Contact> Contacts => Set<Contact>();
 
+    // ─── IVR & Auto-Attendant ───
+    public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
+    public DbSet<IvrMenu> IvrMenus => Set<IvrMenu>();
+    public DbSet<IvrMenuOption> IvrMenuOptions => Set<IvrMenuOption>();
+    public DbSet<HoldMusic> HoldMusics => Set<HoldMusic>();
+    public DbSet<BusinessHours> BusinessHours => Set<BusinessHours>();
+    public DbSet<Holiday> Holidays => Set<Holiday>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -455,6 +463,112 @@ public class AppDbContext : DbContext
             e.HasOne(c => c.Customer)
              .WithMany()
              .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // GreetingMessage (sesli karsilama)
+        modelBuilder.Entity<GreetingMessage>(e =>
+        {
+            e.HasKey(g => g.Id);
+            e.HasIndex(g => g.Uid).IsUnique();
+            e.Property(g => g.Name).IsRequired().HasMaxLength(200);
+            e.Property(g => g.Type).IsRequired().HasMaxLength(50);
+            e.Property(g => g.AudioFilePath).IsRequired().HasMaxLength(500);
+            e.Property(g => g.AudioFileName).HasMaxLength(200);
+            e.HasIndex(g => new { g.CustomerId, g.Type });
+            e.HasOne(g => g.Customer)
+             .WithMany()
+             .HasForeignKey(g => g.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // IvrMenu
+        modelBuilder.Entity<IvrMenu>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => m.Uid).IsUnique();
+            e.Property(m => m.Name).IsRequired().HasMaxLength(200);
+            e.HasIndex(m => new { m.CustomerId, m.Name }).IsUnique();
+            e.HasOne(m => m.Customer)
+             .WithMany()
+             .HasForeignKey(m => m.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.GreetingMessage)
+             .WithMany()
+             .HasForeignKey(m => m.GreetingMessageId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // IvrMenuOption
+        modelBuilder.Entity<IvrMenuOption>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.Digit).IsRequired().HasMaxLength(2);
+            e.Property(o => o.ActionType).IsRequired().HasMaxLength(50);
+            e.Property(o => o.TargetExtension).HasMaxLength(50);
+            e.Property(o => o.Label).HasMaxLength(100);
+            e.HasIndex(o => new { o.IvrMenuId, o.Digit }).IsUnique();
+            e.HasOne(o => o.IvrMenu)
+             .WithMany(m => m.Options)
+             .HasForeignKey(o => o.IvrMenuId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(o => o.TargetQueue)
+             .WithMany()
+             .HasForeignKey(o => o.TargetQueueId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(o => o.TargetIvrMenu)
+             .WithMany()
+             .HasForeignKey(o => o.TargetIvrMenuId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(o => o.TargetGreetingMessage)
+             .WithMany()
+             .HasForeignKey(o => o.TargetGreetingMessageId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // HoldMusic (bekleme muzigi)
+        modelBuilder.Entity<HoldMusic>(e =>
+        {
+            e.HasKey(h => h.Id);
+            e.HasIndex(h => h.Uid).IsUnique();
+            e.Property(h => h.Name).IsRequired().HasMaxLength(200);
+            e.Property(h => h.AudioFilePath).IsRequired().HasMaxLength(500);
+            e.Property(h => h.AudioFileName).HasMaxLength(200);
+            e.HasIndex(h => new { h.CustomerId, h.QueueId });
+            e.HasOne(h => h.Customer)
+             .WithMany()
+             .HasForeignKey(h => h.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(h => h.Queue)
+             .WithMany()
+             .HasForeignKey(h => h.QueueId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // BusinessHours (mesai saatleri)
+        modelBuilder.Entity<BusinessHours>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.HasIndex(b => new { b.CustomerId, b.DayOfWeek }).IsUnique();
+            e.HasOne(b => b.Customer)
+             .WithMany()
+             .HasForeignKey(b => b.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Holiday (tatil takvimi)
+        modelBuilder.Entity<Holiday>(e =>
+        {
+            e.HasKey(h => h.Id);
+            e.Property(h => h.Name).IsRequired().HasMaxLength(200);
+            e.HasIndex(h => new { h.CustomerId, h.Date });
+            e.HasOne(h => h.Customer)
+             .WithMany()
+             .HasForeignKey(h => h.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(h => h.GreetingMessage)
+             .WithMany()
+             .HasForeignKey(h => h.GreetingMessageId)
              .OnDelete(DeleteBehavior.SetNull);
         });
 

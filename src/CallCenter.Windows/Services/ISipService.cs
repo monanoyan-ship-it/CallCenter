@@ -31,6 +31,7 @@ public interface ISipService : IAsyncDisposable
     event Func<int, Task>? OnLineChanged;
     event Func<bool, Task>? OnMuteChanged;
     event Func<int, Task>? OnVoicemailCountChanged;
+    event Func<byte, int, Task>? OnDtmfReceived; // (tone 0-15, durationMs)
 
     // ─── Core Call Methods ───
     Task<bool> InitializeAsync(SipConnectionInfoDto config);
@@ -99,4 +100,7 @@ public interface ISipService : IAsyncDisposable
     // ─── Ringtone ───
     string? RingtonePath { get; }
     void SetRingtone(string? filePath);
+
+    // ─── Hold Music ───
+    void SetHoldMusicEnabled(bool enabled);
 }

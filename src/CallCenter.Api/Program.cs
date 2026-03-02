@@ -82,6 +82,7 @@ builder.Services.AddScoped<IProvisioningService, ProvisioningService>();
 builder.Services.AddScoped<ContactService>();
 builder.Services.AddSingleton<CloudStorageFactory>();
 builder.Services.AddScoped<ICloudStorageService, CloudStorageService>();
+builder.Services.AddScoped<IIvrService, IvrService>();
 
 // Janus Gateway (Media Server)
 builder.Services.Configure<JanusConfig>(builder.Configuration.GetSection("Janus"));

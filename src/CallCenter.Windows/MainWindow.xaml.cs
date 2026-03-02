@@ -67,6 +67,7 @@ public partial class MainWindow : Window
 
         // SIP (native SIPSorcery)
         services.AddSingleton<Services.ISipService, Services.NativeSipService>();
+        services.AddSingleton<Services.IncomingCallPipelineService>();
 
         // Contacts (lokal rehber)
         services.AddSingleton<Services.ContactService>();

@@ -64,4 +64,7 @@ public class ServiceFactory
 
     public ICloudStorageService CreateCloudStorageService()
         => _sp.GetRequiredService<ICloudStorageService>();
+
+    public IIvrService CreateIvrService()
+        => _sp.GetRequiredService<IIvrService>();
 }

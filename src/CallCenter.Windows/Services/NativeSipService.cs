@@ -90,6 +90,9 @@ public class NativeSipService : ISipService
     private WaveOutEvent? _ringtonePlayer;
     private AudioFileReader? _ringtoneReader;
 
+    // ─── Hold Music ───
+    private bool _holdMusicEnabled = true;
+
     // ─── Recording sifreleme ───
     private string? _encryptionKey;
 
@@ -171,6 +174,7 @@ public class NativeSipService : ISipService
     public event Func<bool, Task>? OnMuteChanged;
     public event Func<int, Task>? OnVoicemailCountChanged;
     public event Func<string, string, Task>? OnBuddyPresenceChanged; // (sipUri, presenceStatus)
+    public event Func<byte, int, Task>? OnDtmfReceived; // (tone 0-15, durationMs)
 
     // ═══════════════════════════════════════════════════
     // INITIALIZE & REGISTER
@@ -1089,6 +1093,12 @@ public class NativeSipService : ISipService
         _ringtonePath = filePath;
     }
 
+    public void SetHoldMusicEnabled(bool enabled)
+    {
+        _holdMusicEnabled = enabled;
+        Console.WriteLine($"[SIP] Hold muzigi: {(enabled ? "aktif" : "deaktif")}");
+    }
+
     private void PlayRingtone()
     {
         try
@@ -1186,6 +1196,13 @@ public class NativeSipService : ISipService
             Console.WriteLine($"[SIP] Gelen arama OnCallHungup (hat={freeLine.Index})");
             CleanupLine(freeLine);
             await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
+        });
+
+        // DTMF alma — karsi tarafin tuslamalarini dinle
+        freeLine.UserAgent.OnDtmfTone += (tone, duration) => SafeCallbackAsync(async () =>
+        {
+            Console.WriteLine($"[SIP] DTMF alindi: tone={tone}, duration={duration}ms (hat={freeLine.Index})");
+            await (OnDtmfReceived?.Invoke(tone, duration) ?? Task.CompletedTask);
         });
 
         // AcceptCall (180 Ringing)
@@ -1347,15 +1364,16 @@ public class NativeSipService : ISipService
 
         try
         {
-            // 1. Mikrofonu sustur — karsi taraf sessizlik duyar
+            // 1. Karsi tarafa hold muzigi veya sessizlik gonder
             if (line.MediaSession.AudioExtrasSource != null)
             {
-                line.MediaSession.AudioExtrasSource.SetSource(AudioSourcesEnum.Silence);
-                Console.WriteLine("[SIP] AudioExtrasSource -> Silence (hold icin)");
+                var holdSource = _holdMusicEnabled ? AudioSourcesEnum.Music : AudioSourcesEnum.Silence;
+                line.MediaSession.AudioExtrasSource.SetSource(holdSource);
+                Console.WriteLine($"[SIP] AudioExtrasSource -> {holdSource} (hold icin)");
             }
             else
             {
-                Console.WriteLine("[SIP] UYARI: AudioExtrasSource null — sessizlik gonderilemedi");
+                Console.WriteLine("[SIP] UYARI: AudioExtrasSource null — hold muzigi gonderilemedi");
             }
 
             // 2. SDP hold sinyali (re-INVITE gerekmese de durum dogru olsun)
