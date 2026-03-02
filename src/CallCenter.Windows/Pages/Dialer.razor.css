@@ -8,8 +8,7 @@
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    padding: 1.5rem;
-    max-width: 360px;
+    padding: 1.5rem 2rem;
     margin: 0 auto;
 }
 
@@ -27,12 +26,12 @@
 
 .number-input {
     text-align: center;
-    font-size: 1.5rem;
-    font-weight: 500;
-    letter-spacing: 2px;
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: 3px;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
-    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    padding: 0.85rem 2.5rem 0.85rem 1rem;
     transition: border-color 0.2s;
 }
 
@@ -70,8 +69,8 @@
 }
 
 .keypad-btn {
-    width: 72px;
-    height: 58px;
+    width: 84px;
+    height: 64px;
     border-radius: 14px;
     border: 1px solid #e5e7eb;
     background: #fafafa;
@@ -189,6 +188,15 @@
     padding: 0.5rem;
     border-radius: 8px;
     background: #f8fafc;
+}
+
+/* ─── Ses cihazi secimi ─── */
+
+::deep .audio-device-select {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+    max-width: 200px;
 }
 
 ::deep .sip-badge {

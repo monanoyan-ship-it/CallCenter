@@ -2,6 +2,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Helpers;
 using CallCenter.Windows.LocalData;
 using CallCenter.Windows.LocalData.Entities;
 using Microsoft.Extensions.Logging;
@@ -58,6 +59,9 @@ public class CallSyncService
     /// <returns>Cagri Uid'si (hem lokal hem backend icin ortak referans)</returns>
     public async Task<CallSyncResult> StartCallAsync(string callerNumber, string calleeNumber, int? queueId = null)
     {
+        callerNumber = PhoneHelper.Sanitize(callerNumber);
+        calleeNumber = PhoneHelper.Sanitize(calleeNumber);
+
         // ── 1. Lokal DB'ye yaz ──
         var localRecord = new LocalCallRecord
         {

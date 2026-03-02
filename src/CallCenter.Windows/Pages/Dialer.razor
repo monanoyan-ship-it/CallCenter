@@ -11,11 +11,10 @@
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
 @using CallCenter.Windows.Models
+@using CallCenter.Shared.Helpers
 @implements IAsyncDisposable
 
 <div class="dialer-page">
-    <div class="row justify-content-center">
-        <div class="col-12 col-lg-5">
             <div class="dialer-card">
                 <div class="dialer-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -89,18 +88,38 @@
                     }
                 </div>
 
-                @* ─── Volume Slider ─── *@
-                <div class="volume-controls d-flex align-items-center gap-2 mb-2 px-2">
-                    <i class="bi bi-mic-fill text-muted small"></i>
-                    <input type="range" class="form-range form-range-sm flex-grow-1"
-                           min="0" max="100" step="5"
-                           value="@((int)(SipService.MicrophoneVolume * 100))"
-                           @oninput="OnMicVolumeChange" />
-                    <i class="bi bi-speaker-fill text-muted small ms-2"></i>
-                    <input type="range" class="form-range form-range-sm flex-grow-1"
-                           min="0" max="100" step="5"
-                           value="@((int)(SipService.SpeakerVolume * 100))"
-                           @oninput="OnSpeakerVolumeChange" />
+                @* ─── Ses Cihazi Secimi + Volume ─── *@
+                <div class="audio-controls mb-2 px-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-mic-fill text-muted small" title="Mikrofon"></i>
+                        <select class="form-select form-select-sm flex-grow-1 audio-device-select"
+                                value="@selectedInputDevice"
+                                @onchange="OnInputDeviceChange">
+                            @foreach (var dev in inputDevices)
+                            {
+                                <option value="@dev.DeviceIndex">@dev.DeviceName</option>
+                            }
+                        </select>
+                        <input type="range" class="form-range form-range-sm" style="max-width:80px;"
+                               min="0" max="100" step="5"
+                               value="@((int)(SipService.MicrophoneVolume * 100))"
+                               @oninput="OnMicVolumeChange" />
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-speaker-fill text-muted small" title="Hoparlor"></i>
+                        <select class="form-select form-select-sm flex-grow-1 audio-device-select"
+                                value="@selectedOutputDevice"
+                                @onchange="OnOutputDeviceChange">
+                            @foreach (var dev in outputDevices)
+                            {
+                                <option value="@dev.DeviceIndex">@dev.DeviceName</option>
+                            }
+                        </select>
+                        <input type="range" class="form-range form-range-sm" style="max-width:80px;"
+                               min="0" max="100" step="5"
+                               value="@((int)(SipService.SpeakerVolume * 100))"
+                               @oninput="OnSpeakerVolumeChange" />
+                    </div>
                 </div>
 
                 @* ─── Numara Gosterge ─── *@
@@ -191,8 +210,6 @@
                     </div>
                 }
             </div>
-        </div>
-    </div>
 </div>
 
 @* ─── Transfer Dialog ─── *@
@@ -200,10 +217,19 @@
     OnClosed="CloseTransferDialog" OnTransferred="HandleTransferred" />
 
 @code {
-    private string phoneNumber = "";
+    private string _phoneNumber = "";
+    private string phoneNumber
+    {
+        get => _phoneNumber;
+        set => _phoneNumber = PhoneHelper.Sanitize(value);
+    }
     private bool isCallStarting;
     private string statusMessage = "";
     private string statusClass = "";
+    private List<AudioDeviceInfo> inputDevices = new();
+    private List<AudioDeviceInfo> outputDevices = new();
+    private int selectedInputDevice = -1;
+    private int selectedOutputDevice = -1;
     private string callDuration = "00:00";
     private string sipStatusText = "Baglaniyor...";
     private System.Timers.Timer? callTimer;
@@ -240,6 +266,10 @@
         SipService.OnMuteChanged += HandleMuteChanged;
 
         lines = await SipService.GetLinesAsync();
+
+        // Ses cihazlarini yukle
+        inputDevices = await SipService.GetAudioInputDevicesAsync();
+        outputDevices = await SipService.GetAudioOutputDevicesAsync();
 
         if (SipService.IsRegistered)
         {
@@ -337,58 +367,68 @@
 
     private async Task HandleCallAnswered()
     {
-        isCallStarting = false;
-        statusMessage = $"{phoneNumber} ile gorusme baslatildi";
-        statusClass = "text-success";
-        lines = await SipService.GetLinesAsync();
-
-        // Cift yazim: lokal DB + backend'e "cevaplandi" bilgisi
-        if (currentCallUid.HasValue)
+        await InvokeAsync(async () =>
         {
-            try { await CallSync.AnswerCallAsync(currentCallUid.Value, currentCallId); }
-            catch { }
-        }
+            isCallStarting = false;
+            lines = (await SipService.GetLinesAsync()).ToList();
 
-        callStartTime = DateTime.Now;
-        callTimer = new System.Timers.Timer(1000);
-        callTimer.Elapsed += (s, e) =>
-        {
-            var elapsed = DateTime.Now - callStartTime;
-            callDuration = elapsed.ToString(@"mm\:ss");
-            InvokeAsync(StateHasChanged);
-        };
-        callTimer.Start();
+            // Gelen aramada phoneNumber bos olabilir — aktif hattan al
+            var activeLine = lines.FirstOrDefault(l => l.State == LineState.Connected);
+            if (string.IsNullOrEmpty(phoneNumber) && activeLine != null)
+                phoneNumber = activeLine.RemoteParty ?? "";
 
-        await InvokeAsync(StateHasChanged);
+            statusMessage = $"{phoneNumber} ile gorusme baslatildi";
+            statusClass = "text-success";
+
+            // Cift yazim: lokal DB + backend'e "cevaplandi" bilgisi
+            if (currentCallUid.HasValue)
+            {
+                try { await CallSync.AnswerCallAsync(currentCallUid.Value, currentCallId); }
+                catch { }
+            }
+
+            callStartTime = DateTime.Now;
+            callTimer = new System.Timers.Timer(1000);
+            callTimer.Elapsed += (s, e) =>
+            {
+                var elapsed = DateTime.Now - callStartTime;
+                callDuration = elapsed.ToString(@"mm\:ss");
+                _ = InvokeAsync(StateHasChanged);
+            };
+            callTimer.Start();
+
+            StateHasChanged();
+        });
     }
 
     private async Task HandleCallEnded()
     {
-        StopTimer();
-        isCallStarting = false;
-        lines = await SipService.GetLinesAsync();
-
-        // Cift yazim: lokal DB + backend'e "bitti" bilgisi
-        // Ses kaydi dosya yolunu da gonder (varsa lokal DB'ye metadata yazilir)
-        if (currentCallUid.HasValue)
+        await InvokeAsync(async () =>
         {
-            try
+            StopTimer();
+            isCallStarting = false;
+            lines = (await SipService.GetLinesAsync()).ToList();
+
+            // Cift yazim: lokal DB + backend'e "bitti" bilgisi
+            if (currentCallUid.HasValue)
             {
-                // NativeSipService'teki son kayit dosya yolunu al
-                string? recordingPath = SipService.IsRecording ? null : GetLastRecordingPath();
-                await CallSync.EndCallAsync(currentCallUid.Value, currentCallId, recordingPath);
+                try
+                {
+                    string? recordingPath = SipService.IsRecording ? null : GetLastRecordingPath();
+                    await CallSync.EndCallAsync(currentCallUid.Value, currentCallId, recordingPath);
+                }
+                catch { }
+                currentCallId = null;
+                currentCallUid = null;
             }
-            catch { }
-            currentCallId = null;
-            currentCallUid = null;
-        }
 
-        statusMessage = $"Arama sonlandirildi ({callDuration})";
-        statusClass = "text-muted";
-        callDuration = "00:00";
+            statusMessage = $"Arama sonlandirildi ({callDuration})";
+            statusClass = "text-muted";
+            callDuration = "00:00";
 
-        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
-        await InvokeAsync(StateHasChanged);
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
+            StateHasChanged();
+        });
 
         _ = Task.Run(async () =>
         {
@@ -405,20 +445,27 @@
         return null;
     }
 
-    private Task HandleCallFailed(string error)
+    private async Task HandleCallFailed(string error)
     {
-        StopTimer();
-        isCallStarting = false;
-        statusMessage = "Arama basarisiz: " + error;
-        statusClass = "text-danger";
-        callDuration = "00:00";
-        return InvokeAsync(StateHasChanged);
+        await InvokeAsync(() =>
+        {
+            StopTimer();
+            isCallStarting = false;
+            statusMessage = "Arama basarisiz: " + error;
+            statusClass = "text-danger";
+            callDuration = "00:00";
+            Toast.ShowError($"Arama basarisiz: {error}");
+            StateHasChanged();
+        });
     }
 
     private async Task HandleLineChanged(int lineIndex)
     {
-        lines = await SipService.GetLinesAsync();
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(async () =>
+        {
+            lines = (await SipService.GetLinesAsync()).ToList();
+            StateHasChanged();
+        });
     }
 
     private Task HandleMuteChanged(bool muted)
@@ -463,6 +510,7 @@
             currentCallId = syncResult.BackendCallId;
 
             var success = await SipService.MakeCallAsync(phoneNumber);
+            StateHasChanged(); // Arama basladi — UI'yi hemen guncelle (Kapat butonu gosterilsin)
             if (!success)
             {
                 // SIP basarisiz → cagriyi "missed" olarak isaretle
@@ -475,6 +523,7 @@
                 isCallStarting = false;
                 statusMessage = "Arama baslatilamadi";
                 statusClass = "text-danger";
+                Toast.ShowError("Arama baslatilamadi. GoIP cihazi aramayi reddetti veya codec uyumsuzlugu var.");
                 await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
             }
         }
@@ -483,6 +532,7 @@
             isCallStarting = false;
             statusMessage = "Arama hatasi: " + ex.Message;
             statusClass = "text-danger";
+            Toast.ShowError($"Arama hatasi: {ex.Message}");
             currentCallId = null;
             currentCallUid = null;
         }
@@ -575,6 +625,28 @@
     {
         if (int.TryParse(e.Value?.ToString(), out var val))
             SipService.SetSpeakerVolume(val / 100f);
+    }
+
+    private async Task OnInputDeviceChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var idx))
+        {
+            selectedInputDevice = idx;
+            await SipService.SetAudioInputDeviceAsync(idx);
+            var devName = inputDevices.FirstOrDefault(d => d.DeviceIndex == idx)?.DeviceName ?? idx.ToString();
+            Toast.ShowInfo($"Mikrofon: {devName} (sonraki aramada gecerli)");
+        }
+    }
+
+    private async Task OnOutputDeviceChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var idx))
+        {
+            selectedOutputDevice = idx;
+            await SipService.SetAudioOutputDeviceAsync(idx);
+            var devName = outputDevices.FirstOrDefault(d => d.DeviceIndex == idx)?.DeviceName ?? idx.ToString();
+            Toast.ShowInfo($"Hoparlor: {devName} (sonraki aramada gecerli)");
+        }
     }
 
     // ─── Transfer ───

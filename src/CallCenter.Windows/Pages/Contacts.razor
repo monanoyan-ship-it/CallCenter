@@ -5,6 +5,7 @@
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject NavigationManager NavigationManager
 @using CallCenter.Windows.Models
+@using CallCenter.Shared.Helpers
 
 <div class="contacts-page">
     <div class="page-header mb-3 d-flex justify-content-between align-items-center">
@@ -194,6 +195,9 @@
 
     private void SaveContact()
     {
+        // Numara temizle: bosluk, tire, parantez kaldir
+        editContact.Number = PhoneHelper.Sanitize(editContact.Number);
+
         if (isEditing)
         {
             ContactService.Update(editContact);

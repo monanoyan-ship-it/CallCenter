@@ -4,6 +4,7 @@ using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
+using CallCenter.Shared.Helpers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -68,8 +69,8 @@ public class CallService : ICallService
     {
         var call = new CallRecord
         {
-            CallerNumber = request.CallerNumber,
-            CalleeNumber = request.CalleeNumber,
+            CallerNumber = PhoneHelper.Sanitize(request.CallerNumber),
+            CalleeNumber = PhoneHelper.Sanitize(request.CalleeNumber),
             DirectionId = CallDirections.Ids.Outbound,
             StatusId = CallStatuses.Ids.Ringing,
             StartedAt = DateTime.UtcNow,
