@@ -110,8 +110,13 @@ public class CustomerService : ICustomerService
         };
     }
 
-    public async Task<int> CreateAsync(CustomerCreateDto dto)
+    public async Task<(int Id, string? Error)> CreateAsync(CustomerCreateDto dto)
     {
+        // Admin kullanici adi benzersizlik kontrolu
+        var userName = dto.AdminUserName.Trim();
+        if (await _db.Users.AnyAsync(u => u.UserName == userName))
+            return (0, "Bu kullanici adi zaten kullaniliyor.");
+
         var customer = new Customer
         {
             Name = dto.Name,
@@ -139,29 +144,24 @@ public class CustomerService : ICustomerService
         }
         await _db.SaveChangesAsync();
 
-        // ── 2. Musteri admin kullanicisini otomatik olustur ──
-        await CreateCustomerAdminAsync(customer);
+        // ── 2. Musteri admin kullanicisini olustur ──
+        await CreateCustomerAdminAsync(customer, userName, dto.AdminPassword);
 
-        return customer.Id;
+        return (customer.Id, null);
     }
 
     /// <summary>
-    /// Yeni musteri icin otomatik admin kullanicisi olusturur.
-    ///
-    /// Akis:
-    /// 1. "Yonetici" adinda CustomerUserType olustur (Level=1, tum izinler)
-    /// 2. User olustur (CustomerUser rolu, gecici sifre)
-    /// 3. CustomerPersonnel olustur (IsCustomerAdmin=true)
-    /// 4. Tum portal izinlerini personele ata
+    /// Yeni musteri icin admin kullanicisi olusturur.
+    /// Kullanici adi ve sifre admin tarafindan belirlenir.
     /// </summary>
-    private async Task CreateCustomerAdminAsync(Customer customer)
+    private async Task CreateCustomerAdminAsync(Customer customer, string userName, string password)
     {
         // --- Adim 1: Musteri icin "Yonetici" kullanici tipi olustur ---
         var adminType = new CustomerUserType
         {
             Name = "Yönetici",
             Description = "Müşteri yönetici tipi — tüm izinlere sahip",
-            Level = 1, // En yuksek seviye
+            Level = 1,
             CanManageSubordinates = true,
             CanApprove = true,
             CustomerId = customer.Id,
@@ -172,34 +172,7 @@ public class CustomerService : ICustomerService
         await _db.SaveChangesAsync();
 
         // --- Adim 2: User olustur (login icin) ---
-        // Kullanici adi: firma adindan kisa bir slug + "_admin"
-        // Ornek: "Acme Teknoloji" → "acme_admin"
-        var slugSource = customer.Name
-            .Replace('ı', 'i').Replace('ş', 's').Replace('ç', 'c')
-            .Replace('ğ', 'g').Replace('ü', 'u').Replace('ö', 'o')
-            .Replace('İ', 'i').Replace('Ş', 's').Replace('Ç', 'c')
-            .Replace('Ğ', 'g').Replace('Ü', 'u').Replace('Ö', 'o')
-            .Replace('â', 'a').Replace('î', 'i').Replace('û', 'u')
-            .ToLowerInvariant()
-            .Replace(" ", "");
-        var slug = new string(slugSource
-            .Where(c => c >= 'a' && c <= 'z' || c >= '0' && c <= '9')
-            .Take(20)
-            .ToArray());
-        var userName = $"{slug}_admin";
-
-        // Ayni username varsa numara ekle (acme_admin2, acme_admin3...)
-        var counter = 1;
-        var baseUserName = userName;
-        while (await _db.Users.AnyAsync(u => u.UserName == userName))
-        {
-            counter++;
-            userName = $"{baseUserName}{counter}";
-        }
-
-        // Gecici sifre: kriptografik olarak guvenli
-        var tempPassword = _passwordPolicy.GenerateSecureTemporaryPassword();
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
         var adminUser = new User
         {
@@ -217,7 +190,6 @@ public class CustomerService : ICustomerService
         _db.Users.Add(adminUser);
         await _db.SaveChangesAsync();
 
-        // Sifre gecmisine kaydet
         await _passwordPolicy.RecordPasswordAsync(adminUser.Id, passwordHash);
 
         // --- Adim 3: CustomerPersonnel olustur (IsCustomerAdmin=true) ---
@@ -244,15 +216,10 @@ public class CustomerService : ICustomerService
                 ScopeId = PermissionScopes.Ids.Customer,
                 IsActive = true,
                 Description = "Otomatik atanan yönetici izni",
-                CreatedByUserId = 1 // System Admin
+                CreatedByUserId = 1
             });
         }
         await _db.SaveChangesAsync();
-
-        // NOT: Admin kullanici bilgileri (userName + tempPassword)
-        // CustomerDetail sayfasinda gosterilecek.
-        // Simdilik Console'a yazalim — ileride response'a eklenecek.
-        Console.WriteLine($"[CUSTOMER-ADMIN] Musteri '{customer.Name}' icin admin olusturuldu: {userName} / {tempPassword}");
     }
 
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto)

@@ -33,15 +33,18 @@ public class CustomersController : AuditableControllerBase
         return Ok(result);
     }
 
-    /// <summary>Yeni musteri olustur (varsayilan portal modullerini otomatik ata)</summary>
+    /// <summary>Yeni musteri olustur (admin kullanici bilgileri form'dan alinir)</summary>
     [HttpPost]
     public async Task<ActionResult> Create(CustomerCreateDto dto)
     {
         var svc = Factory.CreateCustomerService();
-        var id = await svc.CreateAsync(dto);
+        var (id, error) = await svc.CreateAsync(dto);
+
+        if (id == 0)
+            return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "Customer", id.ToString(),
-            $"Musteri olusturuldu: '{dto.Name}'");
+            $"Musteri olusturuldu: '{dto.Name}' (admin: {dto.AdminUserName})");
 
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }

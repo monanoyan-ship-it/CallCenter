@@ -117,6 +117,14 @@ public class CustomerCreateDto
     [EmailAddress(ErrorMessage = "Gecerli bir e-posta giriniz.")]
     [StringLength(150)]
     public string? Email { get; set; }
+
+    [Required(ErrorMessage = "Admin kullanici adi zorunludur.")]
+    [StringLength(50, MinimumLength = 3)]
+    public string AdminUserName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Admin sifresi zorunludur.")]
+    [StringLength(100, MinimumLength = 8)]
+    public string AdminPassword { get; set; } = string.Empty;
 }
 
 public class CustomerUpdateDto
