@@ -1,0 +1,294 @@
+@page "/contacts"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ToastService Toast
+@inject NavigationManager Nav
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Helpers
+
+<PageTitle>Rehber - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-people-fill me-2 text-primary"></i>Rehber
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenAddDialog">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Kisi
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Isim, numara veya firma ara..."
+                           @bind="searchQuery" @bind:event="oninput" @bind:after="OnSearchAsync" />
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-sm @(showFavoritesOnly ? "btn-warning" : "btn-outline-secondary")"
+                        @onclick="ToggleFavoritesAsync">
+                    <i class="bi bi-star-fill me-1"></i>
+                    @(showFavoritesOnly ? "Tum Kisiler" : "Favoriler")
+                </button>
+                <span class="text-muted small ms-2">@contacts.Count kisi</span>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else if (contacts.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-people" style="font-size: 3rem;"></i>
+                <p class="mt-2">@(string.IsNullOrEmpty(searchQuery) ? "Henuz kisi eklenmemis." : "Arama sonucu bulunamadi.")</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px;"></th>
+                            <th>Isim</th>
+                            <th>Numara</th>
+                            <th>Firma</th>
+                            <th>E-posta</th>
+                            <th style="width:120px;" class="text-end">Islemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in contacts)
+                        {
+                            <tr>
+                                <td>
+                                    <button class="btn btn-sm btn-link p-0" @onclick="() => ToggleFavoriteAsync(c.Id)">
+                                        <i class="bi @(c.IsFavorite ? "bi-star-fill text-warning" : "bi-star text-muted")"></i>
+                                    </button>
+                                </td>
+                                <td class="fw-semibold">@c.FullName</td>
+                                <td><i class="bi bi-telephone me-1 text-muted"></i>@c.PhoneNumber</td>
+                                <td>@c.Company</td>
+                                <td>@c.Email</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenEditDialog(c)" title="Duzenle">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteContactAsync(c.Id)" title="Sil">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (showDialog)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi @(isEditing ? "bi-pencil" : "bi-person-plus") me-2"></i>
+                        @(isEditing ? "Kisi Duzenle" : "Yeni Kisi")
+                    </h6>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Isim <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" @bind="editFullName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Numara <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" @bind="editPhoneNumber" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Firma</label>
+                        <input type="text" class="form-control" @bind="editCompany" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">E-posta</label>
+                        <input type="email" class="form-control" @bind="editEmail" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDialog">Iptal</button>
+                    <button class="btn btn-primary" @onclick="SaveContactAsync" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-check-circle me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ContactDto> contacts = new();
+    private string searchQuery = "";
+    private bool showFavoritesOnly;
+    private bool isLoading;
+    private bool showDialog;
+    private bool isEditing;
+    private bool isSaving;
+
+    private int editContactId;
+    private string editFullName = "";
+    private string editPhoneNumber = "";
+    private string? editCompany;
+    private string? editEmail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContactsAsync();
+    }
+
+    private async Task LoadContactsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var url = showFavoritesOnly
+                ? "api/contact?search=&page=1&pageSize=500"
+                : $"api/contact?search={Uri.EscapeDataString(searchQuery)}&page=1&pageSize=500";
+
+            contacts = await Http.GetFromJsonAsync<List<ContactDto>>(url) ?? new();
+
+            if (showFavoritesOnly)
+                contacts = contacts.Where(c => c.IsFavorite).ToList();
+        }
+        catch
+        {
+            contacts = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnSearchAsync() => await LoadContactsAsync();
+
+    private async Task ToggleFavoritesAsync()
+    {
+        showFavoritesOnly = !showFavoritesOnly;
+        await LoadContactsAsync();
+    }
+
+    private async Task ToggleFavoriteAsync(int id)
+    {
+        try
+        {
+            var resp = await Http.PostAsync($"api/contact/{id}/favorite", null);
+            if (resp.IsSuccessStatusCode)
+                await LoadContactsAsync();
+            else
+                Toast.ShowError("Favori durumu guncellenemedi.");
+        }
+        catch
+        {
+            Toast.ShowError("Favori durumu guncellenemedi.");
+        }
+    }
+
+    private void OpenAddDialog()
+    {
+        editContactId = 0;
+        editFullName = "";
+        editPhoneNumber = "";
+        editCompany = null;
+        editEmail = null;
+        isEditing = false;
+        showDialog = true;
+    }
+
+    private void OpenEditDialog(ContactDto c)
+    {
+        editContactId = c.Id;
+        editFullName = c.FullName;
+        editPhoneNumber = c.PhoneNumber;
+        editCompany = c.Company;
+        editEmail = c.Email;
+        isEditing = true;
+        showDialog = true;
+    }
+
+    private async Task SaveContactAsync()
+    {
+        if (string.IsNullOrWhiteSpace(editFullName) || string.IsNullOrWhiteSpace(editPhoneNumber))
+            return;
+
+        isSaving = true;
+        try
+        {
+            var phone = PhoneHelper.Sanitize(editPhoneNumber);
+
+            if (isEditing)
+            {
+                var resp = await Http.PutAsJsonAsync($"api/contact/{editContactId}", new UpdateContactRequest
+                {
+                    FullName = editFullName,
+                    PhoneNumber = phone,
+                    Company = editCompany,
+                    Email = editEmail
+                });
+                Toast.ShowSuccess(resp.IsSuccessStatusCode ? "Kisi guncellendi." : "Guncelleme basarisiz.");
+            }
+            else
+            {
+                var resp = await Http.PostAsJsonAsync("api/contact", new CreateContactRequest
+                {
+                    FullName = editFullName,
+                    PhoneNumber = phone,
+                    Company = editCompany,
+                    Email = editEmail
+                });
+                Toast.ShowSuccess(resp.IsSuccessStatusCode ? "Kisi eklendi." : "Ekleme basarisiz.");
+            }
+
+            CloseDialog();
+            await LoadContactsAsync();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteContactAsync(int id)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/contact/{id}");
+            Toast.ShowInfo(resp.IsSuccessStatusCode ? "Kisi silindi." : "Silme basarisiz.");
+            await LoadContactsAsync();
+        }
+        catch
+        {
+            Toast.ShowError("Silme sirasinda hata olustu.");
+        }
+    }
+
+    private void CloseDialog() => showDialog = false;
+}
