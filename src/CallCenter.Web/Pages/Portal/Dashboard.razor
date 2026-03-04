@@ -39,6 +39,13 @@ else if (dashboard == null)
 }
 else
 {
+    @if (PermService.IsEkipLideri)
+    {
+        <div class="alert alert-info py-2 mb-3">
+            <i class="bi bi-people-fill me-2"></i>Ekibinize ait veriler gosterilmektedir.
+        </div>
+    }
+
     @* ─── KPI KARTLARI ─── *@
     <div class="row g-3 mb-4">
         <div class="col-sm-6 col-lg-4 col-xl">

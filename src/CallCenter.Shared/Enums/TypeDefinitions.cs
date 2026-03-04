@@ -138,6 +138,7 @@ public static class PortalModules
     public static readonly TypeItem Queues = new(5, "Queues", "PortalModule.Queues", "Kuyruk yonetimi", "bi-people-fill", "bg-secondary", 5);
     public static readonly TypeItem Settings = new(6, "Settings", "PortalModule.Settings", "Ayarlar", "bi-gear-fill", "bg-danger", 6);
     public static readonly TypeItem Personnel = new(7, "Personnel", "PortalModule.Personnel", "Personel yonetimi", "bi-person-badge", "bg-dark", 7, isDefault: true);
+    public static readonly TypeItem Organizations = new(8, "Organizations", "PortalModule.Organizations", "Organizasyon yonetimi", "bi-diagram-3-fill", "bg-indigo", 8);
 
     // Yeni moduller (Faz 4 — sektorel arastirma sonucu)
     public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9);
@@ -147,7 +148,7 @@ public static class PortalModules
     public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);
     public static readonly TypeItem Campaigns = new(14, "Campaigns", "PortalModule.Campaigns", "Giden arama kampanyalari", "bi-megaphone-fill", "bg-yellow text-dark", 14);
 
-    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns };
+    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
@@ -163,6 +164,7 @@ public static class PortalModules
         public const int Queues = 5;
         public const int Settings = 6;
         public const int Personnel = 7;
+        public const int Organizations = 8;
         public const int SipSettings = 9;
         public const int CallRecords = 10;
         public const int QualityManagement = 11;
@@ -207,6 +209,10 @@ public static class CustomerPermissionTypes
     public static readonly TypeItem PersonnelView = new(60, "PersonnelView", "CustomerPermission.PersonnelView", "Personeli goruntuleyebilir", "bi-people", "bg-dark", 60);
     public static readonly TypeItem PersonnelManage = new(61, "PersonnelManage", "CustomerPermission.PersonnelManage", "Personeli yonetebilir", "bi-person-plus-fill", "bg-dark", 61);
 
+    // Organizations (Organizasyon)
+    public static readonly TypeItem OrgView = new(70, "OrgView", "CustomerPermission.OrgView", "Organizasyonlari goruntuleyebilir", "bi-diagram-3", "bg-indigo", 70);
+    public static readonly TypeItem OrgManage = new(71, "OrgManage", "CustomerPermission.OrgManage", "Organizasyonlari yonetebilir", "bi-diagram-3-fill", "bg-indigo", 71);
+
     // SipSettings (SIP Ayarlari)
     public static readonly TypeItem SipView = new(80, "SipView", "CustomerPermission.SipView", "SIP hesaplarini goruntuleyebilir", "bi-router", "bg-teal", 80);
     public static readonly TypeItem SipManage = new(81, "SipManage", "CustomerPermission.SipManage", "SIP hesaplarini yonetebilir", "bi-router-fill", "bg-teal", 81);
@@ -243,6 +249,7 @@ public static class CustomerPermissionTypes
         QueueView, QueueManage,
         SettingsView, SettingsManage,
         PersonnelView, PersonnelManage,
+        OrgView, OrgManage,
         SipView, SipManage,
         RecordListen, RecordDownload, RecordDelete,
         QualityView, QualityManage, QualityScore,
@@ -266,6 +273,7 @@ public static class CustomerPermissionTypes
             PortalModules.Ids.Queues => new[] { QueueView, QueueManage },
             PortalModules.Ids.Settings => new[] { SettingsView, SettingsManage },
             PortalModules.Ids.Personnel => new[] { PersonnelView, PersonnelManage },
+            PortalModules.Ids.Organizations => new[] { OrgView, OrgManage },
             PortalModules.Ids.SipSettings => new[] { SipView, SipManage },
             PortalModules.Ids.CallRecords => new[] { RecordListen, RecordDownload, RecordDelete },
             PortalModules.Ids.QualityManagement => new[] { QualityView, QualityManage, QualityScore },
@@ -288,6 +296,7 @@ public static class CustomerPermissionTypes
             >= 40 and <= 49 => PortalModules.Ids.Queues,
             >= 50 and <= 59 => PortalModules.Ids.Settings,
             >= 60 and <= 69 => PortalModules.Ids.Personnel,
+            >= 70 and <= 79 => PortalModules.Ids.Organizations,
             >= 80 and <= 89 => PortalModules.Ids.SipSettings,
             >= 90 and <= 99 => PortalModules.Ids.CallRecords,
             >= 100 and <= 109 => PortalModules.Ids.QualityManagement,
@@ -322,6 +331,9 @@ public static class CustomerPermissionTypes
         // Personnel
         public const int PersonnelView = 60;
         public const int PersonnelManage = 61;
+        // Organizations
+        public const int OrgView = 70;
+        public const int OrgManage = 71;
         // SipSettings
         public const int SipView = 80;
         public const int SipManage = 81;

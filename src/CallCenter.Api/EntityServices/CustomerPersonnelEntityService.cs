@@ -48,6 +48,35 @@ public class CustomerPersonnelEntityService : ICustomerPersonnelEntityService
         => _db.CustomerPersonnel
             .CountAsync(p => p.CustomerId == customerId && p.IsCustomerAdmin && p.IsActive);
 
+    public async Task<List<int>> GetTeamMemberIdsAsync(int personnelId, int customerId)
+    {
+        var allPersonnel = await _db.CustomerPersonnel
+            .Where(p => p.CustomerId == customerId && p.IsActive)
+            .Select(p => new { p.Id, p.ReportsToPersonnelId })
+            .ToListAsync();
+
+        var result = new List<int>();
+        var visited = new HashSet<int> { personnelId };
+        var queue = new Queue<int>();
+        queue.Enqueue(personnelId);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            var subordinates = allPersonnel.Where(p => p.ReportsToPersonnelId == current);
+            foreach (var sub in subordinates)
+            {
+                if (visited.Add(sub.Id))
+                {
+                    result.Add(sub.Id);
+                    queue.Enqueue(sub.Id);
+                }
+            }
+        }
+
+        return result;
+    }
+
     public IQueryable<CustomerPersonnel> GetAllQueryable()
         => _db.CustomerPersonnel.AsQueryable();
 

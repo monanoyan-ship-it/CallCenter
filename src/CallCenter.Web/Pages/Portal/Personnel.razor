@@ -12,10 +12,20 @@
     <h4 class="mb-0">
         <i class="bi bi-person-badge me-2 text-primary"></i>Personel Yonetimi
     </h4>
-    <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
-        <i class="bi bi-plus-lg me-1"></i>Yeni Personel
-    </button>
+    @if (PermService.IsAdmin || PermService.IsFirmaAdmin)
+    {
+        <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Personel
+        </button>
+    }
 </div>
+
+@if (PermService.IsEkipLideri)
+{
+    <div class="alert alert-info py-2 mb-3">
+        <i class="bi bi-people-fill me-2"></i>Ekibinize ait personel listelenmektedir.
+    </div>
+}
 
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">

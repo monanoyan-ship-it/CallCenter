@@ -32,8 +32,8 @@
             @* CUSTOMERUSER PORTAL MENUSU                          *@
             @* ═══════════════════════════════════════════════════ *@
 
-            @* ─── PORTAL YÖNETİMİ (Sadece FirmaAdmin) ─── *@
-            @if (IsFirmaAdmin)
+            @* ─── PORTAL YÖNETİMİ (FirmaAdmin + EkipLideri) ─── *@
+            @if (IsFirmaAdmin || IsEkipLideri)
             {
                 <div class="nav-group">
                     <button class="nav-group-toggle" @onclick="() => ToggleGroup(10)">
@@ -42,14 +42,28 @@
                         <i class="bi bi-chevron-down chevron @(IsGroupOpen(10) ? "open" : "")"></i>
                     </button>
                     <div class="nav-group-items @(IsGroupOpen(10) ? "show" : "")">
-                        <NavLink class="nav-link" href="portal/personnel">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Personel Yonetimi</span>
-                        </NavLink>
-                        <NavLink class="nav-link" href="portal/sip">
-                            <i class="bi bi-router-fill"></i>
-                            <span>SIP Ayarlari</span>
-                        </NavLink>
+                        @if (IsFirmaAdmin)
+                        {
+                            <NavLink class="nav-link" href="portal/personnel">
+                                <i class="bi bi-person-badge"></i>
+                                <span>Personel Yonetimi</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="portal/organizations">
+                                <i class="bi bi-diagram-3-fill"></i>
+                                <span>Organizasyonlar</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="portal/sip">
+                                <i class="bi bi-router-fill"></i>
+                                <span>SIP Ayarlari</span>
+                            </NavLink>
+                        }
+                        @if (IsEkipLideri)
+                        {
+                            <NavLink class="nav-link" href="portal/personnel">
+                                <i class="bi bi-people-fill"></i>
+                                <span>Ekibim</span>
+                            </NavLink>
+                        }
                     </div>
                 </div>
             }

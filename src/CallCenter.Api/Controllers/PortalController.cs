@@ -13,10 +13,12 @@ namespace CallCenter.Api.Controllers;
 public class PortalController : AuditableControllerBase
 {
     private readonly IPortalFactory _portalFactory;
+    private readonly IOrganizationFactory _orgFactory;
 
-    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory) : base(auditFactory)
+    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory, IOrganizationFactory orgFactory) : base(auditFactory)
     {
         _portalFactory = portalFactory;
+        _orgFactory = orgFactory;
     }
 
     // HELPERS
@@ -26,6 +28,18 @@ public class PortalController : AuditableControllerBase
     private bool IsAdmin => User.IsInRole("Admin");
 
     private bool IsCustomerAdmin => User.FindFirstValue("IsCustomerAdmin") == "true";
+
+    private int? GetCustomerPersonnelId()
+    {
+        var claim = User.FindFirstValue("CustomerPersonnelId");
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private int? GetCustomerRoleId()
+    {
+        var claim = User.FindFirstValue("CustomerRoleId");
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 
     private int? ResolveCustomerId(int? queryCustomerId)
     {
@@ -54,7 +68,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var result = await _portalFactory.GetDashboardAsync(cid.Value);
+        var result = await _portalFactory.GetDashboardAsync(cid.Value, GetCustomerPersonnelId(), GetCustomerRoleId());
         return Ok(result);
     }
 
@@ -69,7 +83,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        return Ok(await _portalFactory.GetPersonnelAsync(cid.Value));
+        return Ok(await _portalFactory.GetPersonnelAsync(cid.Value, GetCustomerPersonnelId(), GetCustomerRoleId()));
     }
 
     [HttpPost("personnel")]
@@ -214,6 +228,100 @@ public class PortalController : AuditableControllerBase
 
         await AuditCrudAsync("Update", "SipAccount", id.ToString(),
             $"Portal SIP hesabi guncellendi: ID={id}", customerId: cid);
+
+        return NoContent();
+    }
+
+    // ORGANIZATIONS
+
+    [HttpGet("organizations/tree")]
+    public async Task<IActionResult> GetOrganizationTree([FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgView))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        return Ok(await _orgFactory.GetTreeAsync(cid.Value));
+    }
+
+    [HttpGet("organizations/parents")]
+    public async Task<IActionResult> GetOrganizationParents([FromQuery] int? customerId, [FromQuery] int? excludeId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgView))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        return Ok(await _orgFactory.GetPotentialParentsAsync(cid.Value, excludeId));
+    }
+
+    [HttpGet("organizations/{id}")]
+    public async Task<IActionResult> GetOrganization(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgView))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var result = await _orgFactory.GetByIdAsync(cid.Value, id);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost("organizations")]
+    public async Task<IActionResult> CreateOrganization([FromBody] OrgUnitCreateDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, result) = await _orgFactory.CreateAsync(cid.Value, dto);
+        if (!success) return BadRequest(new { error = (string)result });
+
+        await AuditCrudAsync("Create", "OrganizationUnit", result?.ToString(),
+            $"Portal organizasyon birimi olusturuldu: '{dto.Name}'", customerId: cid);
+
+        return Ok(result);
+    }
+
+    [HttpPut("organizations/{id}")]
+    public async Task<IActionResult> UpdateOrganization(int id, [FromBody] OrgUnitUpdateDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _orgFactory.UpdateAsync(cid.Value, id, dto);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Update", "OrganizationUnit", id.ToString(),
+            $"Portal organizasyon birimi guncellendi: ID={id}", customerId: cid);
+
+        return NoContent();
+    }
+
+    [HttpDelete("organizations/{id}")]
+    public async Task<IActionResult> DeleteOrganization(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _orgFactory.DeleteAsync(cid.Value, id);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Delete", "OrganizationUnit", id.ToString(),
+            $"Portal organizasyon birimi silindi: ID={id}", customerId: cid);
 
         return NoContent();
     }

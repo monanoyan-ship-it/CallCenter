@@ -48,15 +48,36 @@ public class PortalFactory : IPortalFactory
 
     // DASHBOARD
 
-    public async Task<PortalDashboardDto> GetDashboardAsync(int customerId)
+    public async Task<PortalDashboardDto> GetDashboardAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null)
     {
         var today = DateTime.UtcNow.Date;
+        var isEkipLideri = callerRoleId == CustomerRoles.Ids.EkipLideri && callerPersonnelId.HasValue;
+
+        List<int>? teamMemberIds = null;
+        if (isEkipLideri)
+        {
+            teamMemberIds = await _personnelEs.GetTeamMemberIdsAsync(callerPersonnelId!.Value, customerId);
+            teamMemberIds.Add(callerPersonnelId!.Value);
+        }
 
         var customer = await _customerEs.GetByIdAsync(customerId);
 
-        var personnelCount = await _personnelEs.GetActiveCountAsync(customerId);
-
-        var callableUserCount = await _personnelEs.GetActiveCountAsync(customerId, excludeAdmin: true);
+        int personnelCount;
+        int callableUserCount;
+        if (isEkipLideri && teamMemberIds != null)
+        {
+            personnelCount = await _personnelEs.GetAllQueryable()
+                .CountAsync(p => p.CustomerId == customerId && p.IsActive && teamMemberIds.Contains(p.Id));
+            callableUserCount = await _personnelEs.GetAllQueryable()
+                .CountAsync(p => p.CustomerId == customerId && p.IsActive && teamMemberIds.Contains(p.Id)
+                    && p.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin
+                    && p.CustomerRoleId != CustomerRoles.Ids.EkipLideri);
+        }
+        else
+        {
+            personnelCount = await _personnelEs.GetActiveCountAsync(customerId);
+            callableUserCount = await _personnelEs.GetActiveCountAsync(customerId, excludeAdmin: true);
+        }
 
         var activeModules = await _moduleEs.GetAllQueryable()
             .Where(m => m.CustomerId == customerId && m.IsActive)
@@ -65,8 +86,12 @@ public class PortalFactory : IPortalFactory
         var sipCount = await _sipEs.GetAllQueryable()
             .CountAsync(s => s.CustomerId == customerId && s.IsActive);
 
-        var personnelUserIds = await _personnelEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId)
+        var personnelQuery = _personnelEs.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId);
+        if (isEkipLideri && teamMemberIds != null)
+            personnelQuery = personnelQuery.Where(p => teamMemberIds.Contains(p.Id));
+
+        var personnelUserIds = await personnelQuery
             .Select(p => p.UserId)
             .ToListAsync();
 
@@ -97,10 +122,22 @@ public class PortalFactory : IPortalFactory
 
     // PERSONNEL
 
-    public async Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId)
+    public async Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null)
     {
-        var personnel = await _personnelEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId)
+        var isEkipLideri = callerRoleId == CustomerRoles.Ids.EkipLideri && callerPersonnelId.HasValue;
+        List<int>? teamMemberIds = null;
+        if (isEkipLideri)
+        {
+            teamMemberIds = await _personnelEs.GetTeamMemberIdsAsync(callerPersonnelId!.Value, customerId);
+            teamMemberIds.Add(callerPersonnelId!.Value);
+        }
+
+        var query = _personnelEs.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId);
+        if (isEkipLideri && teamMemberIds != null)
+            query = query.Where(p => teamMemberIds.Contains(p.Id));
+
+        var personnel = await query
             .Include(p => p.User)
             .Select(p => new PortalPersonnelListDto
             {

@@ -11,6 +11,7 @@ public interface ICustomerPersonnelEntityService
     Task<CustomerPersonnel?> GetCustomerAdminAsync(int customerId);
     Task<int> GetActiveCountAsync(int customerId, bool excludeAdmin = false);
     Task<int> GetActiveAdminCountAsync(int customerId);
+    Task<List<int>> GetTeamMemberIdsAsync(int personnelId, int customerId);
     IQueryable<CustomerPersonnel> GetAllQueryable();
     void Add(CustomerPersonnel entity);
     void Update(CustomerPersonnel entity);

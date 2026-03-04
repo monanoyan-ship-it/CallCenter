@@ -18,6 +18,9 @@ public class PermissionService
     public bool IsCustomerAdmin { get; private set; }
     public int? CustomerId { get; private set; }
     public int CustomerRoleId { get; private set; }
+    public int? CustomerPersonnelId { get; private set; }
+    public bool IsFirmaAdmin => IsCustomerAdmin || CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
+    public bool IsEkipLideri => CustomerRoleId == CustomerRoles.Ids.EkipLideri;
 
     public PermissionService(AuthenticationStateProvider authState)
     {
@@ -41,6 +44,9 @@ public class PermissionService
 
         var roleClaim = user.FindFirst("CustomerRoleId")?.Value;
         CustomerRoleId = roleClaim != null && int.TryParse(roleClaim, out var rid) ? rid : 0;
+
+        var personnelIdClaim = user.FindFirst("CustomerPersonnelId")?.Value;
+        CustomerPersonnelId = personnelIdClaim != null && int.TryParse(personnelIdClaim, out var pid) ? pid : null;
 
         var permsClaim = user.FindFirst("CustomerPermissions")?.Value;
         if (!string.IsNullOrEmpty(permsClaim))
