@@ -1,0 +1,17 @@
+namespace CallCenter.Shared.Entities;
+
+public class CustomerBillingPeriod
+{
+    public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public int UserCount { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal Amount { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime? PaidAt { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}

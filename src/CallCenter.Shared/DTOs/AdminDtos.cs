@@ -95,6 +95,7 @@ public class CustomerListDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public int MaxUsers { get; set; }
+    public decimal MonthlyUnitPrice { get; set; }
     public int PersonnelCount { get; set; }
     public int QueueCount { get; set; }
     public int SipAccountCount { get; set; }
@@ -120,6 +121,8 @@ public class CustomerCreateDto
     public string? Email { get; set; }
 
     public int MaxUsers { get; set; }
+
+    public decimal MonthlyUnitPrice { get; set; }
 
     [Required(ErrorMessage = "Admin kullanici adi zorunludur.")]
     [StringLength(50, MinimumLength = 3)]
@@ -152,6 +155,8 @@ public class CustomerUpdateDto
     public bool IsActive { get; set; } = true;
 
     public int MaxUsers { get; set; }
+
+    public decimal MonthlyUnitPrice { get; set; }
 }
 
 public class CustomerDetailDto
@@ -164,6 +169,7 @@ public class CustomerDetailDto
     public string? Email { get; set; }
     public bool IsActive { get; set; }
     public int MaxUsers { get; set; }
+    public decimal MonthlyUnitPrice { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<PersonnelSimpleDto> Personnel { get; set; } = new();
 
@@ -575,4 +581,35 @@ public class CallForwardingRuleUpdateDto
 
     [StringLength(500)]
     public string? Description { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FATURALAMA (BILLING)
+// ═══════════════════════════════════════════════════════════════
+
+public class BillingPeriodDto
+{
+    public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public int UserCount { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal Amount { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime? PaidAt { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class BillingPeriodUpdateDto
+{
+    public bool IsPaid { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class BulkBillingGenerateDto
+{
+    public int Year { get; set; }
+    public int Month { get; set; }
 }

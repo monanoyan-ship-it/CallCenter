@@ -89,6 +89,18 @@
             }
         </button>
     </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "odemeler" ? "active" : "")" @onclick='() => SetTab("odemeler")'>
+            <i class="bi bi-credit-card me-1"></i>Odemeler
+            @if (billingPeriods != null)
+            {
+                var unpaidCount = billingPeriods.Count(b => !b.IsPaid);
+                <span class="badge @(unpaidCount > 0 ? "bg-danger" : "bg-success-subtle text-success") rounded-pill ms-1">
+                    @(unpaidCount > 0 ? unpaidCount.ToString() : billingPeriods.Count.ToString())
+                </span>
+            }
+        </button>
+    </li>
 </ul>
 
 @* ═══════════════════════════════════════════════════════════ *@
@@ -134,13 +146,17 @@
                             <InputText class="form-control form-control-sm" @bind-Value="editModel.Email" />
                             <ValidationMessage For="@(() => editModel.Email)" />
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small">Maks. Kullanici</label>
                             <InputNumber class="form-control form-control-sm" @bind-Value="editModel.MaxUsers" />
                             <small class="text-muted">0 = limitsiz</small>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-check mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label small">Aylik Birim Fiyat (TL/kullanici)</label>
+                            <InputNumber class="form-control form-control-sm" @bind-Value="editModel.MonthlyUnitPrice" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4">
                                 <InputCheckbox class="form-check-input" @bind-Value="editModel.IsActive" />
                                 <label class="form-check-label small">Aktif</label>
                             </div>
@@ -549,6 +565,94 @@
     </div>
 }
 
+@* ═══════════════════════════════════════════════════════════ *@
+@* ODEMELER SEKMESİ                                            *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "odemeler")
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (isLoadingBilling)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (billingPeriods == null || billingPeriods.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-credit-card fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Faturalama donemi bulunamadi</span>
+                    <div class="mt-1 small text-muted">Musteriler sayfasindan toplu donem olusturabilirsiniz.</div>
+                </div>
+            }
+            else
+            {
+                @if (billingPeriods.Any(b => !b.IsPaid))
+                {
+                    <div class="alert alert-danger m-3 py-2 small d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span><strong>@billingPeriods.Count(b => !b.IsPaid)</strong> odenmemis donem bulunuyor. Toplam: <strong>@billingPeriods.Where(b => !b.IsPaid).Sum(b => b.Amount).ToString("N2") TL</strong></span>
+                    </div>
+                }
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Donem</th>
+                                <th class="text-center">Kullanici</th>
+                                <th class="text-end">Birim Fiyat</th>
+                                <th class="text-end">Tutar</th>
+                                <th>Durum</th>
+                                <th>Odeme Tarihi</th>
+                                <th>Not</th>
+                                <th style="width: 100px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var b in billingPeriods)
+                            {
+                                <tr class="@(!b.IsPaid ? "table-warning" : "")">
+                                    <td class="fw-medium">@b.Month.ToString("00")/@b.Year</td>
+                                    <td class="text-center">@b.UserCount</td>
+                                    <td class="text-end small">@b.UnitPrice.ToString("N2") TL</td>
+                                    <td class="text-end fw-medium">@b.Amount.ToString("N2") TL</td>
+                                    <td>
+                                        @if (b.IsPaid)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Odendi</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger">Odenmedi</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">@(b.PaidAt?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                                    <td class="small text-muted">@(b.Notes ?? "-")</td>
+                                    <td>
+                                        @if (!b.IsPaid)
+                                        {
+                                            <button class="btn btn-success btn-sm" title="Odendi olarak isaretle"
+                                                    @onclick="() => MarkAsPaid(b)" disabled="@isUpdatingBilling">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-outline-secondary btn-sm" title="Odenmedi olarak isaretle"
+                                                    @onclick="() => MarkAsUnpaid(b)" disabled="@isUpdatingBilling">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int Id { get; set; }
 
@@ -583,6 +687,11 @@
     private List<SipAccountListDto>? sipAccounts;
     private bool isLoadingSip;
 
+    // ─── ODEMELER ───
+    private List<BillingPeriodDto>? billingPeriods;
+    private bool isLoadingBilling;
+    private bool isUpdatingBilling;
+
     // ─── SETUP PACKAGE ───
     private bool isDownloadingSetup;
 
@@ -612,6 +721,9 @@
             case "sip" when sipAccounts == null:
                 await LoadSip();
                 break;
+            case "odemeler" when billingPeriods == null:
+                await LoadBilling();
+                break;
         }
     }
 
@@ -636,6 +748,7 @@
                     Phone = customer.Phone,
                     Email = customer.Email,
                     MaxUsers = customer.MaxUsers,
+                    MonthlyUnitPrice = customer.MonthlyUnitPrice,
                     IsActive = customer.IsActive
                 };
             }
@@ -785,6 +898,68 @@
         }
         catch (Exception ex) { Toast.ShowError($"SIP hesaplari yuklenemedi: {ex.Message}"); }
         finally { isLoadingSip = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ODEMELER
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadBilling()
+    {
+        isLoadingBilling = true;
+        StateHasChanged();
+        try
+        {
+            billingPeriods = await Http.GetFromJsonAsync<List<BillingPeriodDto>>($"api/customers/{Id}/billing");
+        }
+        catch (Exception ex) { Toast.ShowError($"Faturalama donemi yuklenemedi: {ex.Message}"); }
+        finally { isLoadingBilling = false; }
+    }
+
+    private async Task MarkAsPaid(BillingPeriodDto period)
+    {
+        isUpdatingBilling = true;
+        StateHasChanged();
+        try
+        {
+            var dto = new BillingPeriodUpdateDto { IsPaid = true, Notes = period.Notes };
+            var response = await Http.PutAsJsonAsync($"api/customers/billing/{period.Id}", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"{period.Month:00}/{period.Year} donemi odendi olarak isaretlendi.");
+                await LoadBilling();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isUpdatingBilling = false; }
+    }
+
+    private async Task MarkAsUnpaid(BillingPeriodDto period)
+    {
+        isUpdatingBilling = true;
+        StateHasChanged();
+        try
+        {
+            var dto = new BillingPeriodUpdateDto { IsPaid = false, Notes = period.Notes };
+            var response = await Http.PutAsJsonAsync($"api/customers/billing/{period.Id}", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"{period.Month:00}/{period.Year} donemi odenmedi olarak isaretlendi.");
+                await LoadBilling();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isUpdatingBilling = false; }
     }
 
     // ═══════════════════════════════════════════════════

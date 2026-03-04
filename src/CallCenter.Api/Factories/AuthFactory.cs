@@ -15,6 +15,7 @@ public class AuthFactory : IAuthFactory
     private readonly IRefreshTokenEntityService _refreshTokens;
     private readonly ICustomerEntityService _customers;
     private readonly IPasswordPolicyFactory _passwordPolicy;
+    private readonly IBillingFactory _billingFactory;
     private readonly TokenService _tokenService;
     private readonly IConfiguration _config;
     private readonly IHubContext<CallCenterHub> _hubContext;
@@ -28,6 +29,7 @@ public class AuthFactory : IAuthFactory
         IRefreshTokenEntityService refreshTokens,
         ICustomerEntityService customers,
         IPasswordPolicyFactory passwordPolicy,
+        IBillingFactory billingFactory,
         TokenService tokenService,
         IConfiguration config,
         IHubContext<CallCenterHub> hubContext,
@@ -37,6 +39,7 @@ public class AuthFactory : IAuthFactory
         _refreshTokens = refreshTokens;
         _customers = customers;
         _passwordPolicy = passwordPolicy;
+        _billingFactory = billingFactory;
         _tokenService = tokenService;
         _config = config;
         _hubContext = hubContext;
@@ -84,6 +87,10 @@ public class AuthFactory : IAuthFactory
             var customer = await _customers.GetByIdAsync(user.CustomerPersonnel.CustomerId);
             if (customer == null || !customer.IsActive)
                 return (false, null, "Müşteri hesabı aktif değil.");
+
+            var (isBlocked, reason) = await _billingFactory.IsCustomerBlockedByBillingAsync(user.CustomerPersonnel.CustomerId);
+            if (isBlocked)
+                return (false, null, reason ?? "Odenmemis fatura nedeniyle erisim engellendi.");
         }
 
         IEnumerable<int>? activePermissionIds = null;
@@ -178,6 +185,10 @@ public class AuthFactory : IAuthFactory
             var customer = await _customers.GetByIdAsync(user.CustomerPersonnel.CustomerId);
             if (customer == null || !customer.IsActive)
                 return (false, null, "Musteri hesabi aktif degil.");
+
+            var (isBlocked, reason) = await _billingFactory.IsCustomerBlockedByBillingAsync(user.CustomerPersonnel.CustomerId);
+            if (isBlocked)
+                return (false, null, reason ?? "Odenmemis fatura nedeniyle erisim engellendi.");
         }
 
         existingToken.RevokedAt = DateTime.UtcNow;

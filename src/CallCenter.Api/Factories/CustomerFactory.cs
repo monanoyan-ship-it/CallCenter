@@ -65,6 +65,7 @@ public class CustomerFactory : ICustomerFactory
                 IsActive = c.IsActive,
                 CreatedAt = c.CreatedAt,
                 MaxUsers = c.MaxUsers,
+                MonthlyUnitPrice = c.MonthlyUnitPrice,
                 PersonnelCount = c.Personnel.Count,
                 QueueCount = c.Queues.Count,
                 SipAccountCount = c.SipAccounts.Count
@@ -112,6 +113,7 @@ public class CustomerFactory : ICustomerFactory
             Email = c.Email,
             IsActive = c.IsActive,
             MaxUsers = c.MaxUsers,
+            MonthlyUnitPrice = c.MonthlyUnitPrice,
             CreatedAt = c.CreatedAt,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
             {
@@ -137,6 +139,7 @@ public class CustomerFactory : ICustomerFactory
             Phone = dto.Phone,
             Email = dto.Email,
             MaxUsers = dto.MaxUsers,
+            MonthlyUnitPrice = dto.MonthlyUnitPrice,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -223,6 +226,7 @@ public class CustomerFactory : ICustomerFactory
         customer.Email = dto.Email;
         customer.IsActive = dto.IsActive;
         customer.MaxUsers = dto.MaxUsers;
+        customer.MonthlyUnitPrice = dto.MonthlyUnitPrice;
 
         await _uow.SaveChangesAsync();
         return (true, null);

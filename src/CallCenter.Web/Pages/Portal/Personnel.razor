@@ -42,7 +42,6 @@
                             <th>E-posta</th>
                             <th>Unvan</th>
                             <th>Rol</th>
-                            <th class="text-center">Yetki</th>
                             <th>Durum</th>
                             <th style="width: 140px;"></th>
                         </tr>
@@ -64,9 +63,6 @@
                                         <span class="text-muted small">-</span>
                                     }
                                 </td>
-                                <td class="text-center">
-                                    <span class="badge bg-primary-subtle text-primary rounded-pill">@item.PermissionCount</span>
-                                </td>
                                 <td>
                                     @if (item.IsActive)
                                     {
@@ -78,10 +74,6 @@
                                     }
                                 </td>
                                 <td>
-                                    <button class="btn btn-outline-info btn-sm me-1" title="Yetkiler"
-                                            @onclick="() => OpenPermissions(item)">
-                                        <i class="bi bi-shield-check"></i>
-                                    </button>
                                     <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(item)">
                                         <i class="bi bi-pencil"></i>
@@ -102,8 +94,6 @@
 
 <PersonnelForm @ref="personnelForm" CustomerIdParam="@GetCustomerIdParam()" OnSaved="LoadData" />
 
-<PersonnelPermissionForm @ref="permForm" CustomerIdParam="@GetCustomerIdParam()" OnSaved="LoadData" />
-
 <ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDeactivate"
                Message="@($"'{deactivateTarget?.FullName}' personelini deaktive etmek istediginize emin misiniz?")" />
 
@@ -111,7 +101,6 @@
     private List<PortalPersonnelListDto>? items;
     private bool isLoading;
     private PersonnelForm personnelForm = null!;
-    private PersonnelPermissionForm permForm = null!;
     private ConfirmDialog confirmDialog = null!;
     private PortalPersonnelListDto? deactivateTarget;
 
@@ -151,8 +140,6 @@
 
     private void OpenCreateForm() => personnelForm.OpenForCreate();
     private void OpenEditForm(PortalPersonnelListDto item) => personnelForm.OpenForEdit(item);
-    private void OpenPermissions(PortalPersonnelListDto item) => permForm.Open(item);
-
     private void ConfirmDeactivate(PortalPersonnelListDto item)
     {
         deactivateTarget = item;

@@ -11,10 +11,12 @@ namespace CallCenter.Api.Controllers;
 public class CustomersController : AuditableControllerBase
 {
     private readonly ICustomerFactory _customerFactory;
+    private readonly IBillingFactory _billingFactory;
 
-    public CustomersController(IAuditFactory auditFactory, ICustomerFactory customerFactory) : base(auditFactory)
+    public CustomersController(IAuditFactory auditFactory, ICustomerFactory customerFactory, IBillingFactory billingFactory) : base(auditFactory)
     {
         _customerFactory = customerFactory;
+        _billingFactory = billingFactory;
     }
 
     /// <summary>Sayfalamali musteri listesi</summary>
@@ -89,5 +91,41 @@ public class CustomersController : AuditableControllerBase
             $"Musteri admin sifresi sifirlandi: ID={id}");
 
         return Ok(new { password = tempPassword });
+    }
+
+    // BILLING
+
+    /// <summary>Musteri faturalama donemleri listesi</summary>
+    [HttpGet("{id}/billing")]
+    public async Task<ActionResult<List<BillingPeriodDto>>> GetBilling(int id)
+    {
+        return Ok(await _billingFactory.GetByCustomerAsync(id));
+    }
+
+    /// <summary>Faturalama donemi guncelle (odendi isaretle / not)</summary>
+    [HttpPut("billing/{periodId}")]
+    public async Task<ActionResult> UpdateBillingPeriod(int periodId, BillingPeriodUpdateDto dto)
+    {
+        var (success, error) = await _billingFactory.UpdatePeriodAsync(periodId, dto);
+        if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Update", "BillingPeriod", periodId.ToString(),
+            $"Faturalama donemi guncellendi: ID={periodId}, IsPaid={dto.IsPaid}");
+
+        return NoContent();
+    }
+
+    /// <summary>Toplu faturalama donemi olustur (tum aktif musteriler)</summary>
+    [HttpPost("billing/generate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> GenerateBulkBilling(BulkBillingGenerateDto dto)
+    {
+        var (created, skipped, error) = await _billingFactory.GenerateBulkAsync(dto.Year, dto.Month);
+        if (error != null) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("BulkGenerate", "BillingPeriod", null,
+            $"Toplu faturalama: {dto.Year}/{dto.Month}, olusturulan={created}, atlanan={skipped}");
+
+        return Ok(new { created, skipped });
     }
 }

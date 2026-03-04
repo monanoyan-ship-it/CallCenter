@@ -125,6 +125,17 @@ public class PortalSipAccountDto
     // Password portal'da GOSTERILMEZ
 }
 
+public class PortalSipCreateDto
+{
+    [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
+    [Required, MaxLength(200)] public string Server { get; set; } = string.Empty;
+    public int Port { get; set; } = 5060;
+    [Required, MaxLength(100)] public string Username { get; set; } = string.Empty;
+    [Required] public string Password { get; set; } = string.Empty;
+    [MaxLength(10)] public string? Transport { get; set; } = "UDP";
+    public bool IsDefault { get; set; }
+}
+
 public class PortalSipUpdateDto
 {
     [MaxLength(100)]

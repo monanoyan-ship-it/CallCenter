@@ -116,7 +116,8 @@
       "Bash(rm:*)",
       "Bash(pip install:*)",
       "Bash(chcp 6500:*)",
-      "Bash(PYTHONIOENCODING=utf-8 python:*)"
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler:*)"
     ]
   }
 }

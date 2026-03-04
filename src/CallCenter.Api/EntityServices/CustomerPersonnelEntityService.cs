@@ -39,7 +39,8 @@ public class CustomerPersonnelEntityService : ICustomerPersonnelEntityService
         var query = _db.CustomerPersonnel
             .Where(p => p.CustomerId == customerId && p.IsActive);
         if (excludeAdmin)
-            query = query.Where(p => p.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin);
+            query = query.Where(p => p.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin
+                                  && p.CustomerRoleId != CustomerRoles.Ids.EkipLideri);
         return query.CountAsync();
     }
 

@@ -12,6 +12,12 @@
     <h4 class="mb-0">
         <i class="bi bi-router-fill me-2 text-primary"></i>SIP Ayarlari
     </h4>
+    @if (PermService.HasPermission(81))
+    {
+        <button class="btn btn-primary btn-sm" @onclick="OpenCreate">
+            <i class="bi bi-plus-lg me-1"></i>Yeni SIP Hesabi
+        </button>
+    }
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -85,6 +91,81 @@
     </div>
 </div>
 
+@* ─── CREATE MODAL ─── *@
+@if (showCreate)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle me-2"></i>Yeni SIP Hesabi
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseCreate"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(createError))
+                    {
+                        <div class="alert alert-danger py-2 small">@createError</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label small">Hesap Adi <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" @bind="createModel.Name" />
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-8">
+                            <label class="form-label small">Sunucu <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" @bind="createModel.Server" placeholder="sip.example.com" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Port</label>
+                            <input type="number" class="form-control form-control-sm" @bind="createModel.Port" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Kullanici Adi <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" @bind="createModel.Username" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Sifre <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control form-control-sm" @bind="createModel.Password" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Transport</label>
+                        <select class="form-select form-select-sm" @bind="createModel.Transport">
+                            <option value="UDP">UDP</option>
+                            <option value="TCP">TCP</option>
+                            <option value="TLS">TLS</option>
+                            <option value="WSS">WSS</option>
+                        </select>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" @bind="createModel.IsDefault" />
+                        <label class="form-check-label small">Varsayilan hesap olarak ayarla</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseCreate">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="SaveCreate" disabled="@isCreating">
+                        @if (isCreating)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-plus-lg me-1"></i>Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @* ─── EDIT MODAL (sinirli) ─── *@
 @if (showEdit)
 {
@@ -153,6 +234,12 @@
     private List<PortalSipAccountDto>? items;
     private bool isLoading;
 
+    // Create
+    private bool showCreate;
+    private bool isCreating;
+    private string? createError;
+    private PortalSipCreateDto createModel = new();
+
     // Edit
     private bool showEdit;
     private bool isSaving;
@@ -186,6 +273,42 @@
         }
         catch (Exception ex) { Toast.ShowError($"SIP hesaplari yuklenemedi: {ex.Message}"); }
         finally { isLoading = false; }
+    }
+
+    private void OpenCreate()
+    {
+        createModel = new PortalSipCreateDto();
+        createError = null;
+        showCreate = true;
+    }
+
+    private void CloseCreate()
+    {
+        showCreate = false;
+    }
+
+    private async Task SaveCreate()
+    {
+        isCreating = true;
+        createError = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync(BuildUrl("api/portal/sip"), createModel);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("SIP hesabi olusturuldu.");
+                showCreate = false;
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                createError = error?.Message ?? "Olusturma basarisiz.";
+            }
+        }
+        catch (Exception ex) { createError = $"Hata: {ex.Message}"; }
+        finally { isCreating = false; }
     }
 
     private void OpenEdit(PortalSipAccountDto item)

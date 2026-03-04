@@ -36,6 +36,9 @@ public static class EntityServiceRegistration
         services.AddScoped<IStorageConfigEntityService, StorageConfigEntityService>();
         services.AddScoped<IIvrEntityService, IvrEntityService>();
 
+        // Billing
+        services.AddScoped<IBillingPeriodEntityService, BillingPeriodEntityService>();
+
         return services;
     }
 }

@@ -10,7 +10,8 @@ public class Customer
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
-    public int MaxUsers { get; set; } // 0 = limitsiz
+    public int MaxUsers { get; set; } = 1;
+    public decimal MonthlyUnitPrice { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();
@@ -29,4 +30,7 @@ public class Customer
 
     // Musteriye ait bulut depolama yapilandirmalari
     public ICollection<CustomerStorageConfig> StorageConfigs { get; set; } = new List<CustomerStorageConfig>();
+
+    // Faturalama donemleri
+    public ICollection<CustomerBillingPeriod> BillingPeriods { get; set; } = new List<CustomerBillingPeriod>();
 }

@@ -39,6 +39,9 @@ public static class FactoryRegistration
         services.AddScoped<ICloudStorageFactory, CloudStorageFactory>();
         services.AddScoped<IIvrFactory, IvrFactory>();
 
+        // Billing
+        services.AddScoped<IBillingFactory, BillingFactory>();
+
         return services;
     }
 }

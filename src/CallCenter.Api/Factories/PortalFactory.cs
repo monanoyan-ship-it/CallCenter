@@ -138,10 +138,11 @@ public class PortalFactory : IPortalFactory
         if (!isValid)
             return (false, string.Join(" ", errors));
 
-        if (dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+        if (dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin
+            && dto.CustomerRoleId != CustomerRoles.Ids.EkipLideri)
         {
             var customer = await _customerEs.GetByIdAsync(customerId);
-            if (customer?.MaxUsers > 0)
+            if (customer != null)
             {
                 var callableCount = await _personnelEs.GetActiveCountAsync(customerId, excludeAdmin: true);
                 if (callableCount >= customer.MaxUsers)
@@ -430,5 +431,39 @@ public class PortalFactory : IPortalFactory
 
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    public async Task<(bool Success, int? Id, string? Error)> CreateSipAccountAsync(int customerId, PortalSipCreateDto dto)
+    {
+        var exists = await _sipEs.GetAllQueryable()
+            .AnyAsync(s => s.CustomerId == customerId && s.Name == dto.Name);
+        if (exists)
+            return (false, null, "Bu isimde bir SIP hesabi zaten mevcut.");
+
+        var account = new SipAccount
+        {
+            CustomerId = customerId,
+            Name = dto.Name,
+            Server = dto.Server,
+            Port = dto.Port,
+            Username = dto.Username,
+            Password = _encryption.Encrypt(dto.Password),
+            Transport = dto.Transport,
+            IsDefault = dto.IsDefault,
+            IsActive = true
+        };
+
+        if (dto.IsDefault)
+        {
+            var others = await _sipEs.GetAllQueryable()
+                .Where(s => s.CustomerId == customerId && s.IsDefault)
+                .ToListAsync();
+            foreach (var o in others) o.IsDefault = false;
+        }
+
+        _sipEs.Add(account);
+        await _uow.SaveChangesAsync();
+
+        return (true, account.Id, null);
     }
 }

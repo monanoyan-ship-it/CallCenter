@@ -182,6 +182,24 @@ public class PortalController : AuditableControllerBase
         return Ok(await _portalFactory.GetSipAccountsAsync(cid.Value));
     }
 
+    [HttpPost("sip")]
+    public async Task<IActionResult> CreateSipAccount([FromBody] PortalSipCreateDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.SipManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, id, error) = await _portalFactory.CreateSipAccountAsync(cid.Value, dto);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Create", "SipAccount", id.ToString(),
+            $"Portal SIP hesabi olusturuldu: '{dto.Name}' ({dto.Server}:{dto.Port})", customerId: cid);
+
+        return Ok(new { id });
+    }
+
     [HttpPut("sip/{id}")]
     public async Task<IActionResult> UpdateSipAccount(int id, [FromBody] PortalSipUpdateDto dto, [FromQuery] int? customerId)
     {

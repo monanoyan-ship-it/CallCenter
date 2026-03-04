@@ -644,8 +644,8 @@ public static class CustomerRoles
     public static TypeItem Default => All.First(x => x.IsDefault);
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
-    /// <summary>Aranabilir roller (MaxUsers limitine dahil)</summary>
-    public static IEnumerable<TypeItem> CallableRoles => new[] { EkipLideri, Operator };
+    /// <summary>Aranabilir roller (MaxUsers limitine dahil). EkipLideri arama yapmaz, limitte sayilmaz.</summary>
+    public static IEnumerable<TypeItem> CallableRoles => new[] { Operator };
 
     public static class Ids
     {

@@ -33,6 +33,9 @@ public class AppDbContext : DbContext
     public DbSet<InstantMessage> InstantMessages => Set<InstantMessage>();
     public DbSet<Contact> Contacts => Set<Contact>();
 
+    // ─── Billing ───
+    public DbSet<CustomerBillingPeriod> CustomerBillingPeriods => Set<CustomerBillingPeriod>();
+
     // ─── IVR & Auto-Attendant ───
     public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
     public DbSet<IvrMenu> IvrMenus => Set<IvrMenu>();
@@ -73,7 +76,8 @@ public class AppDbContext : DbContext
             e.Property(c => c.Address).HasMaxLength(500);
             e.Property(c => c.Phone).HasMaxLength(20);
             e.Property(c => c.Email).HasMaxLength(150);
-            e.Property(c => c.MaxUsers).HasDefaultValue(0);
+            e.Property(c => c.MaxUsers).HasDefaultValue(1);
+            e.Property(c => c.MonthlyUnitPrice).HasPrecision(18, 2).HasDefaultValue(0m);
         });
 
         // CustomerPersonnelPermission (dinamik yetki atamalari)
@@ -540,6 +544,20 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(h => h.GreetingMessageId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // CustomerBillingPeriod (faturalama donemi)
+        modelBuilder.Entity<CustomerBillingPeriod>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.HasIndex(b => new { b.CustomerId, b.Year, b.Month }).IsUnique();
+            e.Property(b => b.UnitPrice).HasPrecision(18, 2);
+            e.Property(b => b.Amount).HasPrecision(18, 2);
+            e.Property(b => b.Notes).HasMaxLength(1000);
+            e.HasOne(b => b.Customer)
+             .WithMany(c => c.BillingPeriods)
+             .HasForeignKey(b => b.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // =============================================
