@@ -7,7 +7,6 @@ public interface ICustomerPersonnelEntityService
     Task<CustomerPersonnel?> GetByUserIdAsync(int userId);
     Task<CustomerPersonnel?> GetByIdAndCustomerAsync(int personnelId, int customerId);
     Task<CustomerPersonnel?> GetByIdWithUserAsync(int personnelId, int customerId);
-    Task<CustomerPersonnel?> GetByIdWithPermissionsAsync(int personnelId, int customerId);
     Task<CustomerPersonnel?> GetCustomerAdminAsync(int customerId);
     Task<int> GetActiveCountAsync(int customerId, bool excludeAdmin = false);
     Task<int> GetActiveAdminCountAsync(int customerId);

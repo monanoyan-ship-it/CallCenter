@@ -15,7 +15,6 @@ public class AppDbContext : DbContext
     public DbSet<SipAccount> SipAccounts => Set<SipAccount>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerPersonnel> CustomerPersonnel => Set<CustomerPersonnel>();
-    public DbSet<CustomerPersonnelPermission> CustomerPersonnelPermissions => Set<CustomerPersonnelPermission>();
     public DbSet<CustomerPortalModule> CustomerPortalModules => Set<CustomerPortalModule>();
     public DbSet<Language> Languages => Set<Language>();
     public DbSet<TranslationKey> TranslationKeys => Set<TranslationKey>();
@@ -78,22 +77,6 @@ public class AppDbContext : DbContext
             e.Property(c => c.Email).HasMaxLength(150);
             e.Property(c => c.MaxUsers).HasDefaultValue(1);
             e.Property(c => c.MonthlyUnitPrice).HasPrecision(18, 2).HasDefaultValue(0m);
-        });
-
-        // CustomerPersonnelPermission (dinamik yetki atamalari)
-        modelBuilder.Entity<CustomerPersonnelPermission>(e =>
-        {
-            e.HasKey(p => p.Id);
-            e.HasIndex(p => new { p.PersonnelId, p.PermissionTypeId }).IsUnique();
-            e.Property(p => p.Description).HasMaxLength(500);
-            e.HasOne(p => p.Personnel)
-             .WithMany(cp => cp.Permissions)
-             .HasForeignKey(p => p.PersonnelId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(p => p.CreatedByUser)
-             .WithMany()
-             .HasForeignKey(p => p.CreatedByUserId)
-             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // CustomerPortalModule (musteriye acik moduller)

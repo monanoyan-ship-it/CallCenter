@@ -29,6 +29,4 @@ public class CustomerPersonnel
     public CustomerPersonnel? ReportsToPersonnel { get; set; }
     public ICollection<CustomerPersonnel> Subordinates { get; set; } = new List<CustomerPersonnel>();
 
-    // Dinamik yetkiler (CustomerPersonnelPermission tablosu)
-    public ICollection<CustomerPersonnelPermission> Permissions { get; set; } = new List<CustomerPersonnelPermission>();
 }

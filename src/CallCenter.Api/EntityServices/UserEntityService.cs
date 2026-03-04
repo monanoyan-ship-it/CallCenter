@@ -15,10 +15,9 @@ public class UserEntityService : IUserEntityService
     public Task<User?> GetByIdAsync(int id)
         => _db.Users.FindAsync(id).AsTask();
 
-    public Task<User?> GetByUsernameWithPermissionsAsync(string username)
+    public Task<User?> GetByUsernameWithPersonnelAsync(string username)
         => _db.Users
             .Include(u => u.CustomerPersonnel)
-                .ThenInclude(cp => cp!.Permissions)
             .FirstOrDefaultAsync(u => u.UserName == username);
 
     public IQueryable<User> GetAllQueryable()

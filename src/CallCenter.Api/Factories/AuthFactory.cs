@@ -48,7 +48,7 @@ public class AuthFactory : IAuthFactory
 
     public async Task<(bool Success, LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
     {
-        var user = await _users.GetByUsernameWithPermissionsAsync(request.UserName);
+        var user = await _users.GetByUsernameWithPersonnelAsync(request.UserName);
 
         if (user == null)
             return (false, null, "Kullanıcı adı veya şifre hatalı.");
@@ -93,19 +93,7 @@ public class AuthFactory : IAuthFactory
                 return (false, null, reason ?? "Odenmemis fatura nedeniyle erisim engellendi.");
         }
 
-        IEnumerable<int>? activePermissionIds = null;
-        if (user.CustomerPersonnel != null)
-        {
-            var now = DateTime.UtcNow;
-            activePermissionIds = user.CustomerPersonnel.Permissions
-                .Where(p => p.IsActive)
-                .Where(p => !p.ValidFrom.HasValue || p.ValidFrom.Value <= now)
-                .Where(p => !p.ValidUntil.HasValue || p.ValidUntil.Value >= now)
-                .Select(p => p.PermissionTypeId)
-                .ToList();
-        }
-
-        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, activePermissionIds);
+        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
         var oldTokens = await _refreshTokens.GetActiveByUserIdAsync(user.Id);
@@ -197,19 +185,7 @@ public class AuthFactory : IAuthFactory
         existingToken.ReplacedByToken = newRefreshToken.Token;
         _refreshTokens.Add(newRefreshToken);
 
-        IEnumerable<int>? activePermissionIds = null;
-        if (user.CustomerPersonnel != null)
-        {
-            var now = DateTime.UtcNow;
-            activePermissionIds = user.CustomerPersonnel.Permissions
-                .Where(p => p.IsActive)
-                .Where(p => !p.ValidFrom.HasValue || p.ValidFrom.Value <= now)
-                .Where(p => !p.ValidUntil.HasValue || p.ValidUntil.Value >= now)
-                .Select(p => p.PermissionTypeId)
-                .ToList();
-        }
-
-        var accessToken = _tokenService.GenerateToken(user, user.CustomerPersonnel, activePermissionIds);
+        var accessToken = _tokenService.GenerateToken(user, user.CustomerPersonnel);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
         await _uow.SaveChangesAsync();

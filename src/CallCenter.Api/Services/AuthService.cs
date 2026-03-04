@@ -31,34 +31,28 @@ public class AuthService : IAuthService
         // IsActive filtresi kaldirildi — kilitleme/aktiflik ayri kontrol edilecek
         var user = await _db.Users
             .Include(u => u.CustomerPersonnel)
-                .ThenInclude(cp => cp!.Permissions)
             .FirstOrDefaultAsync(u => u.UserName == request.UserName);
 
-        // Kullanici bulunamadi — generic hata (username enumeration engelleme)
         if (user == null)
             return (false, null, "Kullanıcı adı veya şifre hatalı.");
 
-        // Hesap aktif mi?
         if (!user.IsActive)
             return (false, null, "Kullanıcı hesabı aktif değil.");
 
-        // Hesap kilitli mi?
         if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
         {
             var remaining = (int)(user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;
             return (false, null, $"Hesap kilitli. {remaining} dakika sonra tekrar deneyin.");
         }
 
-        // Sifre dogru mu?
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            // Basarisiz deneme sayisini artir
             user.FailedLoginCount++;
 
             if (user.FailedLoginCount >= MaxFailedAttempts)
             {
                 user.LockedUntil = DateTime.UtcNow.AddMinutes(LockoutMinutes);
-                user.FailedLoginCount = 0; // Kilit sonrasi sifirla
+                user.FailedLoginCount = 0;
                 await _db.SaveChangesAsync();
                 return (false, null, $"Çok fazla hatalı deneme. Hesap {LockoutMinutes} dakika kilitlendi.");
             }
@@ -67,12 +61,10 @@ public class AuthService : IAuthService
             return (false, null, "Kullanıcı adı veya şifre hatalı.");
         }
 
-        // Basarili giris — sayaclari sifirla
         user.FailedLoginCount = 0;
         user.LockedUntil = null;
         user.LastLoginAt = DateTime.UtcNow;
 
-        // Musteri kullanicisiysa firma aktiflik kontrolu
         if (user.CustomerPersonnel != null)
         {
             var customer = await _db.Customers.FindAsync(user.CustomerPersonnel.CustomerId);
@@ -80,20 +72,7 @@ public class AuthService : IAuthService
                 return (false, null, "Müşteri hesabı aktif değil.");
         }
 
-        // Musteri personelinin aktif yetkilerini filtrele
-        IEnumerable<int>? activePermissionIds = null;
-        if (user.CustomerPersonnel != null)
-        {
-            var now = DateTime.UtcNow;
-            activePermissionIds = user.CustomerPersonnel.Permissions
-                .Where(p => p.IsActive)
-                .Where(p => !p.ValidFrom.HasValue || p.ValidFrom.Value <= now)
-                .Where(p => !p.ValidUntil.HasValue || p.ValidUntil.Value >= now)
-                .Select(p => p.PermissionTypeId)
-                .ToList();
-        }
-
-        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, activePermissionIds);
+        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
         // Eski tum aktif refresh token'lari revoke et (tek oturum zorunlulugu)
@@ -163,7 +142,6 @@ public class AuthService : IAuthService
         var existingToken = await _db.RefreshTokens
             .Include(rt => rt.User)
                 .ThenInclude(u => u.CustomerPersonnel)
-                    .ThenInclude(cp => cp!.Permissions)
             .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
 
         if (existingToken == null)
@@ -201,20 +179,7 @@ public class AuthService : IAuthService
         existingToken.ReplacedByToken = newRefreshToken.Token;
         _db.RefreshTokens.Add(newRefreshToken);
 
-        // Yeni access token uret (guncel permission'larla)
-        IEnumerable<int>? activePermissionIds = null;
-        if (user.CustomerPersonnel != null)
-        {
-            var now = DateTime.UtcNow;
-            activePermissionIds = user.CustomerPersonnel.Permissions
-                .Where(p => p.IsActive)
-                .Where(p => !p.ValidFrom.HasValue || p.ValidFrom.Value <= now)
-                .Where(p => !p.ValidUntil.HasValue || p.ValidUntil.Value >= now)
-                .Select(p => p.PermissionTypeId)
-                .ToList();
-        }
-
-        var accessToken = _tokenService.GenerateToken(user, user.CustomerPersonnel, activePermissionIds);
+        var accessToken = _tokenService.GenerateToken(user, user.CustomerPersonnel);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
         await _db.SaveChangesAsync();

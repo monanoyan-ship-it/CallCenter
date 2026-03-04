@@ -13,9 +13,4 @@ public interface ICustomerFactory
     Task<object?> GetCustomerModulesAsync(int customerId);
     Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request);
     Task<(bool Success, string? Error)> DeactivateModuleAsync(int customerId, int moduleId);
-    Task<object> GetAvailablePermissionTypesAsync(int customerId);
-    Task<object?> GetPersonnelPermissionsAsync(int customerId, int personnelId);
-    Task<(bool Success, object? Result, string? Error)> AssignPermissionsAsync(int customerId, int personnelId, AssignPermissionsRequest request, int currentUserId);
-    Task<(bool Success, string? Error)> UpdatePermissionAsync(int customerId, int personnelId, int id, UpdatePermissionRequest request);
-    Task<(bool Success, string? Error)> RemovePermissionAsync(int customerId, int personnelId, int id);
 }

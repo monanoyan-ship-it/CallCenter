@@ -659,6 +659,35 @@ public static class CustomerRoles
     /// <summary>Aranabilir roller (MaxUsers limitine dahil). EkipLideri arama yapmaz, limitte sayilmaz.</summary>
     public static IEnumerable<TypeItem> CallableRoles => new[] { Operator };
 
+    /// <summary>Rol bazli statik yetki eslestirmesi. FirmaAdmin tum izinlere sahiptir.</summary>
+    public static IEnumerable<int> GetPermissionsForRole(int roleId)
+    {
+        return roleId switch
+        {
+            Ids.FirmaAdmin => CustomerPermissionTypes.All.Select(p => p.Id),
+            Ids.EkipLideri => new[]
+            {
+                CustomerPermissionTypes.Ids.DashboardView,
+                CustomerPermissionTypes.Ids.CallListen, CustomerPermissionTypes.Ids.CallMake,
+                CustomerPermissionTypes.Ids.AgentView,
+                CustomerPermissionTypes.Ids.QueueView,
+                CustomerPermissionTypes.Ids.PersonnelView,
+                CustomerPermissionTypes.Ids.OrgView,
+                CustomerPermissionTypes.Ids.RecordListen,
+                CustomerPermissionTypes.Ids.QualityView, CustomerPermissionTypes.Ids.QualityScore,
+                CustomerPermissionTypes.Ids.KBView,
+                CustomerPermissionTypes.Ids.ReportView
+            },
+            Ids.Operator => new[]
+            {
+                CustomerPermissionTypes.Ids.DashboardView,
+                CustomerPermissionTypes.Ids.CallListen, CustomerPermissionTypes.Ids.CallMake,
+                CustomerPermissionTypes.Ids.KBView
+            },
+            _ => Enumerable.Empty<int>()
+        };
+    }
+
     public static class Ids
     {
         public const int FirmaAdmin = 1;

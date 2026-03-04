@@ -22,41 +22,6 @@ public class PortalModuleDto
     public List<PermissionTypeDto> Permissions { get; set; } = new();
 }
 
-/// <summary>Personelin mevcut yetkisi</summary>
-public class PersonnelPermissionDto
-{
-    public int Id { get; set; }
-    public int PermissionTypeId { get; set; }
-    public string PermissionName { get; set; } = string.Empty;
-    public string? PermissionDescription { get; set; }
-    public string? PermissionIcon { get; set; }
-    public int ScopeId { get; set; }
-    public string? ScopeName { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime? ValidFrom { get; set; }
-    public DateTime? ValidUntil { get; set; }
-    public string? Description { get; set; }
-    public int ModuleId { get; set; }
-    public string? ModuleName { get; set; }
-}
-
-/// <summary>Toplu yetki atama istegi</summary>
-public class AssignPermissionsRequest
-{
-    public int[] PermissionTypeIds { get; set; } = Array.Empty<int>();
-    public int ScopeId { get; set; } = 3; // default: Customer
-}
-
-/// <summary>Yetki guncelleme istegi</summary>
-public class UpdatePermissionRequest
-{
-    public int? ScopeId { get; set; }
-    public bool? IsActive { get; set; }
-    public DateTime? ValidFrom { get; set; }
-    public DateTime? ValidUntil { get; set; }
-    public string? Description { get; set; }
-}
-
 /// <summary>Musteriye modul atama istegi</summary>
 public class AssignModulesRequest
 {

@@ -24,11 +24,6 @@ public class CustomerPersonnelEntityService : ICustomerPersonnelEntityService
             .Include(p => p.User)
             .FirstOrDefaultAsync(p => p.Id == personnelId && p.CustomerId == customerId);
 
-    public Task<CustomerPersonnel?> GetByIdWithPermissionsAsync(int personnelId, int customerId)
-        => _db.CustomerPersonnel
-            .Include(p => p.Permissions)
-            .FirstOrDefaultAsync(p => p.Id == personnelId && p.CustomerId == customerId);
-
     public Task<CustomerPersonnel?> GetCustomerAdminAsync(int customerId)
         => _db.CustomerPersonnel
             .Include(p => p.User)
@@ -46,7 +41,8 @@ public class CustomerPersonnelEntityService : ICustomerPersonnelEntityService
 
     public Task<int> GetActiveAdminCountAsync(int customerId)
         => _db.CustomerPersonnel
-            .CountAsync(p => p.CustomerId == customerId && p.IsCustomerAdmin && p.IsActive);
+            .CountAsync(p => p.CustomerId == customerId && p.IsActive
+                && (p.IsCustomerAdmin || p.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin));
 
     public async Task<List<int>> GetTeamMemberIdsAsync(int personnelId, int customerId)
     {

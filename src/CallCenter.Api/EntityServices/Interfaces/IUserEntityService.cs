@@ -5,7 +5,7 @@ namespace CallCenter.Api.EntityServices.Interfaces;
 public interface IUserEntityService
 {
     Task<User?> GetByIdAsync(int id);
-    Task<User?> GetByUsernameWithPermissionsAsync(string username);
+    Task<User?> GetByUsernameWithPersonnelAsync(string username);
     IQueryable<User> GetAllQueryable();
     Task<bool> ExistsByUsernameAsync(string username);
     Task<bool> ExistsByEmailAsync(string email, int? excludeId = null);

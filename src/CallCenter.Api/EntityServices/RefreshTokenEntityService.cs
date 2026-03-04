@@ -15,7 +15,6 @@ public class RefreshTokenEntityService : IRefreshTokenEntityService
         => _db.RefreshTokens
             .Include(rt => rt.User)
                 .ThenInclude(u => u.CustomerPersonnel)
-                    .ThenInclude(cp => cp!.Permissions)
             .FirstOrDefaultAsync(rt => rt.Token == token);
 
     public Task<RefreshToken?> GetByTokenAsync(string token)

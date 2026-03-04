@@ -14,7 +14,6 @@ public class PortalFactory : IPortalFactory
     private readonly ICustomerEntityService _customerEs;
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
-    private readonly ICustomerPersonnelPermissionEntityService _permissionEs;
     private readonly ISipAccountEntityService _sipEs;
     private readonly IUserEntityService _userEs;
     private readonly ICallRecordEntityService _callEs;
@@ -26,7 +25,6 @@ public class PortalFactory : IPortalFactory
         ICustomerEntityService customerEs,
         ICustomerPersonnelEntityService personnelEs,
         ICustomerPortalModuleEntityService moduleEs,
-        ICustomerPersonnelPermissionEntityService permissionEs,
         ISipAccountEntityService sipEs,
         IUserEntityService userEs,
         ICallRecordEntityService callEs,
@@ -37,7 +35,6 @@ public class PortalFactory : IPortalFactory
         _customerEs = customerEs;
         _personnelEs = personnelEs;
         _moduleEs = moduleEs;
-        _permissionEs = permissionEs;
         _sipEs = sipEs;
         _userEs = userEs;
         _callEs = callEs;
@@ -151,8 +148,7 @@ public class PortalFactory : IPortalFactory
                 OrganizationUnitName = p.OrganizationUnit != null ? p.OrganizationUnit.Name : null,
                 ReportsToPersonnelId = p.ReportsToPersonnelId,
                 ReportsToPersonnelName = p.ReportsToPersonnel != null ? p.ReportsToPersonnel.User.FullName : null,
-                IsActive = p.IsActive && p.User.IsActive,
-                PermissionCount = p.Permissions.Count(pp => pp.IsActive)
+                IsActive = p.IsActive && p.User.IsActive
             })
             .OrderBy(p => p.FullName)
             .ToListAsync();
@@ -229,8 +225,7 @@ public class PortalFactory : IPortalFactory
             Title = personnelEntity.Title,
             CustomerRoleId = personnelEntity.CustomerRoleId,
             CustomerRoleName = CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
-            IsActive = true,
-            PermissionCount = 0
+            IsActive = true
         });
     }
 
@@ -255,7 +250,8 @@ public class PortalFactory : IPortalFactory
         if (emailExists)
             return (false, "Bu e-posta adresi zaten kullaniliyor.");
 
-        if (!dto.IsActive && personnel.IsActive && personnel.IsCustomerAdmin)
+        if (!dto.IsActive && personnel.IsActive
+            && (personnel.IsCustomerAdmin || personnel.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin))
         {
             var activeAdminCount = await _personnelEs.GetActiveAdminCountAsync(customerId);
             if (activeAdminCount <= 1)
@@ -306,7 +302,7 @@ public class PortalFactory : IPortalFactory
         if (personnel == null)
             return (false, "Personel bulunamadi.");
 
-        if (personnel.IsCustomerAdmin)
+        if (personnel.IsCustomerAdmin || personnel.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin)
         {
             var activeAdminCount = await _personnelEs.GetActiveAdminCountAsync(customerId);
             if (activeAdminCount <= 1)
@@ -317,71 +313,6 @@ public class PortalFactory : IPortalFactory
         personnel.User.IsActive = false;
         await _uow.SaveChangesAsync();
 
-        return (true, null);
-    }
-
-    public async Task<List<PersonnelPermissionDto>> GetPersonnelPermissionsAsync(int customerId, int personnelId)
-    {
-        var personnel = await _personnelEs.GetByIdAndCustomerAsync(personnelId, customerId);
-        if (personnel == null)
-            return new List<PersonnelPermissionDto>();
-
-        var rawPerms = await _permissionEs.GetByPersonnelIdAsync(personnelId);
-
-        return rawPerms.Select(p =>
-        {
-            var permType = CustomerPermissionTypes.GetById(p.PermissionTypeId);
-            var scope = PermissionScopes.GetById(p.ScopeId);
-            var moduleId = CustomerPermissionTypes.GetModuleId(p.PermissionTypeId);
-            var module = PortalModules.GetById(moduleId);
-
-            return new PersonnelPermissionDto
-            {
-                Id = p.Id,
-                PermissionTypeId = p.PermissionTypeId,
-                PermissionName = permType?.SystemName ?? "",
-                PermissionDescription = permType?.Description,
-                PermissionIcon = permType?.Icon,
-                ScopeId = p.ScopeId,
-                ScopeName = scope?.SystemName,
-                IsActive = p.IsActive,
-                ValidFrom = p.ValidFrom,
-                ValidUntil = p.ValidUntil,
-                Description = p.Description,
-                ModuleId = moduleId,
-                ModuleName = module?.SystemName
-            };
-        }).ToList();
-    }
-
-    public async Task<(bool Success, string? Error)> SetPersonnelPermissionsAsync(int customerId, int personnelId, int[] permissionTypeIds, int scopeId, int userId)
-    {
-        var personnel = await _personnelEs.GetByIdAndCustomerAsync(personnelId, customerId);
-        if (personnel == null)
-            return (false, "Personel bulunamadi.");
-
-        var validPermIds = permissionTypeIds
-            .Where(pid => CustomerPermissionTypes.GetById(pid) != null)
-            .Distinct()
-            .ToArray();
-
-        var existingPerms = await _permissionEs.GetByPersonnelIdAsync(personnelId);
-        _permissionEs.RemoveRange(existingPerms);
-
-        foreach (var pid in validPermIds)
-        {
-            _permissionEs.Add(new CustomerPersonnelPermission
-            {
-                PersonnelId = personnelId,
-                PermissionTypeId = pid,
-                ScopeId = scopeId,
-                IsActive = true,
-                CreatedByUserId = userId,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-
-        await _uow.SaveChangesAsync();
         return (true, null);
     }
 

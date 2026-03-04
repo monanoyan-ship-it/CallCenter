@@ -17,12 +17,4 @@ public interface ICustomerService
     Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request);
     Task<(bool Success, string? Error)> DeactivateModuleAsync(int customerId, int moduleId);
 
-    // CustomerPermissions — Permission Types
-    Task<object> GetAvailablePermissionTypesAsync(int customerId);
-
-    // CustomerPermissions — Personnel Permissions
-    Task<object?> GetPersonnelPermissionsAsync(int customerId, int personnelId);
-    Task<(bool Success, object? Result, string? Error)> AssignPermissionsAsync(int customerId, int personnelId, AssignPermissionsRequest request, int currentUserId);
-    Task<(bool Success, string? Error)> UpdatePermissionAsync(int customerId, int personnelId, int id, UpdatePermissionRequest request);
-    Task<(bool Success, string? Error)> RemovePermissionAsync(int customerId, int personnelId, int id);
 }

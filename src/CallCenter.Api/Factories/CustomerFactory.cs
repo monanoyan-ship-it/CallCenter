@@ -13,7 +13,6 @@ public class CustomerFactory : ICustomerFactory
     private readonly ICustomerEntityService _customerEs;
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
-    private readonly ICustomerPersonnelPermissionEntityService _permissionEs;
     private readonly IUserEntityService _userEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IUnitOfWork _uow;
@@ -22,7 +21,6 @@ public class CustomerFactory : ICustomerFactory
         ICustomerEntityService customerEs,
         ICustomerPersonnelEntityService personnelEs,
         ICustomerPortalModuleEntityService moduleEs,
-        ICustomerPersonnelPermissionEntityService permissionEs,
         IUserEntityService userEs,
         IPasswordPolicyFactory passwordPolicy,
         IUnitOfWork uow)
@@ -30,7 +28,6 @@ public class CustomerFactory : ICustomerFactory
         _customerEs = customerEs;
         _personnelEs = personnelEs;
         _moduleEs = moduleEs;
-        _permissionEs = permissionEs;
         _userEs = userEs;
         _passwordPolicy = passwordPolicy;
         _uow = uow;
@@ -198,20 +195,6 @@ public class CustomerFactory : ICustomerFactory
         };
         _personnelEs.Add(adminPersonnel);
         await _uow.SaveChangesAsync();
-
-        foreach (var permType in CustomerPermissionTypes.All)
-        {
-            _permissionEs.Add(new CustomerPersonnelPermission
-            {
-                PersonnelId = adminPersonnel.Id,
-                PermissionTypeId = permType.Id,
-                ScopeId = PermissionScopes.Ids.Customer,
-                IsActive = true,
-                Description = "Otomatik atanan yönetici izni",
-                CreatedByUserId = 1
-            });
-        }
-        await _uow.SaveChangesAsync();
     }
 
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto)
@@ -334,138 +317,4 @@ public class CustomerFactory : ICustomerFactory
         return (true, null);
     }
 
-    // PERMISSION TYPES
-
-    public async Task<object> GetAvailablePermissionTypesAsync(int customerId)
-    {
-        var activeModuleIds = await _moduleEs.GetActiveModuleIdsAsync(customerId);
-
-        return activeModuleIds
-            .SelectMany(moduleId =>
-            {
-                var module = PortalModules.GetById(moduleId);
-                return CustomerPermissionTypes.GetByModule(moduleId).Select(p => new PermissionTypeDto
-                {
-                    Id = p.Id,
-                    SystemName = p.SystemName,
-                    Description = p.Description,
-                    Icon = p.Icon,
-                    ModuleId = moduleId,
-                    ModuleName = module?.SystemName
-                });
-            })
-            .ToList();
-    }
-
-    // PERSONNEL PERMISSIONS
-
-    public async Task<object?> GetPersonnelPermissionsAsync(int customerId, int personnelId)
-    {
-        var personnel = await _personnelEs.GetByIdWithPermissionsAsync(personnelId, customerId);
-        if (personnel == null) return null;
-
-        return personnel.Permissions.Select(p =>
-        {
-            var permType = CustomerPermissionTypes.GetById(p.PermissionTypeId);
-            var scope = PermissionScopes.GetById(p.ScopeId);
-            var moduleId = CustomerPermissionTypes.GetModuleId(p.PermissionTypeId);
-            var module = PortalModules.GetById(moduleId);
-
-            return new PersonnelPermissionDto
-            {
-                Id = p.Id,
-                PermissionTypeId = p.PermissionTypeId,
-                PermissionName = permType?.SystemName ?? "Unknown",
-                PermissionDescription = permType?.Description,
-                PermissionIcon = permType?.Icon,
-                ScopeId = p.ScopeId,
-                ScopeName = scope?.SystemName,
-                IsActive = p.IsActive,
-                ValidFrom = p.ValidFrom,
-                ValidUntil = p.ValidUntil,
-                Description = p.Description,
-                ModuleId = moduleId,
-                ModuleName = module?.SystemName
-            };
-        }).ToList();
-    }
-
-    public async Task<(bool Success, object? Result, string? Error)> AssignPermissionsAsync(int customerId, int personnelId, AssignPermissionsRequest request, int currentUserId)
-    {
-        var personnel = await _personnelEs.GetByIdWithPermissionsAsync(personnelId, customerId);
-        if (personnel == null) return (false, null, "Personel bulunamadı.");
-
-        var activeModuleIds = await _moduleEs.GetActiveModuleIdsAsync(customerId);
-
-        var addedCount = 0;
-
-        foreach (var permTypeId in request.PermissionTypeIds)
-        {
-            if (CustomerPermissionTypes.GetById(permTypeId) == null) continue;
-
-            var moduleId = CustomerPermissionTypes.GetModuleId(permTypeId);
-            if (!activeModuleIds.Contains(moduleId)) continue;
-
-            var existing = personnel.Permissions.FirstOrDefault(p => p.PermissionTypeId == permTypeId);
-            if (existing != null)
-            {
-                existing.IsActive = true;
-                existing.ScopeId = request.ScopeId;
-            }
-            else
-            {
-                _permissionEs.Add(new CustomerPersonnelPermission
-                {
-                    PersonnelId = personnelId,
-                    PermissionTypeId = permTypeId,
-                    ScopeId = request.ScopeId,
-                    IsActive = true,
-                    CreatedByUserId = currentUserId
-                });
-                addedCount++;
-            }
-        }
-
-        await _uow.SaveChangesAsync();
-        return (true, new { added = addedCount, total = personnel.Permissions.Count }, null);
-    }
-
-    public async Task<(bool Success, string? Error)> UpdatePermissionAsync(int customerId, int personnelId, int id, UpdatePermissionRequest request)
-    {
-        var permission = await _permissionEs.GetByIdAsync(id, personnelId, customerId);
-        if (permission == null) return (false, "Yetki bulunamadı.");
-
-        if (request.ScopeId.HasValue)
-        {
-            if (PermissionScopes.GetById(request.ScopeId.Value) == null)
-                return (false, "Geçersiz kapsam.");
-            permission.ScopeId = request.ScopeId.Value;
-        }
-
-        if (request.IsActive.HasValue)
-            permission.IsActive = request.IsActive.Value;
-
-        if (request.ValidFrom.HasValue)
-            permission.ValidFrom = request.ValidFrom.Value;
-
-        if (request.ValidUntil.HasValue)
-            permission.ValidUntil = request.ValidUntil.Value;
-
-        if (request.Description != null)
-            permission.Description = request.Description;
-
-        await _uow.SaveChangesAsync();
-        return (true, null);
-    }
-
-    public async Task<(bool Success, string? Error)> RemovePermissionAsync(int customerId, int personnelId, int id)
-    {
-        var permission = await _permissionEs.GetByIdAsync(id, personnelId, customerId);
-        if (permission == null) return (false, "Yetki bulunamadı.");
-
-        _permissionEs.Remove(permission);
-        await _uow.SaveChangesAsync();
-
-        return (true, null);
-    }
 }

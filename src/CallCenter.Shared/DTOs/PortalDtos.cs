@@ -20,7 +20,6 @@ public class PortalPersonnelListDto
     public int? ReportsToPersonnelId { get; set; }
     public string? ReportsToPersonnelName { get; set; }
     public bool IsActive { get; set; }
-    public int PermissionCount { get; set; }
 }
 
 public class PortalPersonnelCreateDto
@@ -77,12 +76,6 @@ public class PortalPersonnelUpdateDto
     public int? ReportsToPersonnelId { get; set; }
 
     public bool IsActive { get; set; } = true;
-}
-
-public class SetPersonnelPermissionsRequest
-{
-    public int[] PermissionTypeIds { get; set; } = Array.Empty<int>();
-    public int ScopeId { get; set; } = 3; // default: Customer
 }
 
 // ═══════════════════════════════════════════════════════════════

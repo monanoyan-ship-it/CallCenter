@@ -96,8 +96,7 @@ public class PortalService : IPortalService
                 OrganizationUnitName = p.OrganizationUnit != null ? p.OrganizationUnit.Name : null,
                 ReportsToPersonnelId = p.ReportsToPersonnelId,
                 ReportsToPersonnelName = p.ReportsToPersonnel != null ? p.ReportsToPersonnel.User.FullName : null,
-                IsActive = p.IsActive && p.User.IsActive,
-                PermissionCount = p.Permissions.Count(pp => pp.IsActive)
+                IsActive = p.IsActive && p.User.IsActive
             })
             .OrderBy(p => p.FullName)
             .ToListAsync();
@@ -186,8 +185,7 @@ public class PortalService : IPortalService
             Title = personnel.Title,
             CustomerRoleId = personnel.CustomerRoleId,
             CustomerRoleName = CustomerRoles.GetById(personnel.CustomerRoleId)?.Description,
-            IsActive = true,
-            PermissionCount = 0
+            IsActive = true
         });
     }
 
@@ -286,80 +284,6 @@ public class PortalService : IPortalService
         personnel.User.IsActive = false;
         await _db.SaveChangesAsync();
 
-        return (true, null);
-    }
-
-    public async Task<List<PersonnelPermissionDto>> GetPersonnelPermissionsAsync(int customerId, int personnelId)
-    {
-        var personnel = await _db.CustomerPersonnel
-            .FirstOrDefaultAsync(p => p.Id == personnelId && p.CustomerId == customerId);
-        if (personnel == null)
-            return new List<PersonnelPermissionDto>();
-
-        var rawPerms = await _db.CustomerPersonnelPermissions
-            .Where(p => p.PersonnelId == personnelId)
-            .ToListAsync();
-
-        return rawPerms.Select(p =>
-        {
-            var permType = CustomerPermissionTypes.GetById(p.PermissionTypeId);
-            var scope = PermissionScopes.GetById(p.ScopeId);
-            var moduleId = CustomerPermissionTypes.GetModuleId(p.PermissionTypeId);
-            var module = PortalModules.GetById(moduleId);
-
-            return new PersonnelPermissionDto
-            {
-                Id = p.Id,
-                PermissionTypeId = p.PermissionTypeId,
-                PermissionName = permType?.SystemName ?? "",
-                PermissionDescription = permType?.Description,
-                PermissionIcon = permType?.Icon,
-                ScopeId = p.ScopeId,
-                ScopeName = scope?.SystemName,
-                IsActive = p.IsActive,
-                ValidFrom = p.ValidFrom,
-                ValidUntil = p.ValidUntil,
-                Description = p.Description,
-                ModuleId = moduleId,
-                ModuleName = module?.SystemName
-            };
-        }).ToList();
-    }
-
-    public async Task<(bool Success, string? Error)> SetPersonnelPermissionsAsync(int customerId, int personnelId, int[] permissionTypeIds, int scopeId, int userId)
-    {
-        var personnel = await _db.CustomerPersonnel
-            .FirstOrDefaultAsync(p => p.Id == personnelId && p.CustomerId == customerId);
-        if (personnel == null)
-            return (false, "Personel bulunamadi.");
-
-        // Tum izinler her zaman kullanilabilir (modul filtreleme kaldirildi)
-        var validPermIds = permissionTypeIds
-            .Where(pid => CustomerPermissionTypes.GetById(pid) != null)
-            .Distinct()
-            .ToArray();
-
-        // Mevcut yetkileri sil
-        var existingPerms = await _db.CustomerPersonnelPermissions
-            .Where(p => p.PersonnelId == personnelId)
-            .ToListAsync();
-        _db.CustomerPersonnelPermissions.RemoveRange(existingPerms);
-
-        // Yeni yetkileri ekle
-        foreach (var pid in validPermIds)
-        {
-            _db.CustomerPersonnelPermissions.Add(new CustomerPersonnelPermission
-            {
-                PersonnelId = personnelId,
-                PermissionTypeId = pid,
-                ScopeId = scopeId,
-                IsActive = true,
-                CreatedByUserId = userId,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-
-        await _db.SaveChangesAsync();
         return (true, null);
     }
 

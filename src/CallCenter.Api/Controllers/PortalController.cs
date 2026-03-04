@@ -140,37 +140,6 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
-    [HttpGet("personnel/{id}/permissions")]
-    public async Task<IActionResult> GetPersonnelPermissions(int id, [FromQuery] int? customerId)
-    {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelView))
-            return Forbid();
-
-        var cid = ResolveCustomerId(customerId);
-        if (cid == null) return BadRequest("CustomerId gerekli.");
-
-        return Ok(await _portalFactory.GetPersonnelPermissionsAsync(cid.Value, id));
-    }
-
-    [HttpPost("personnel/{id}/permissions")]
-    public async Task<IActionResult> SetPersonnelPermissions(int id, [FromBody] SetPersonnelPermissionsRequest request, [FromQuery] int? customerId)
-    {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
-            return Forbid();
-
-        var cid = ResolveCustomerId(customerId);
-        if (cid == null) return BadRequest("CustomerId gerekli.");
-
-        var (success, error) = await _portalFactory.SetPersonnelPermissionsAsync(cid.Value, id, request.PermissionTypeIds, request.ScopeId, GetUserId());
-        if (!success) return BadRequest(new { message = error });
-
-        await AuditCrudAsync("UpdatePermissions", "Personnel", id.ToString(),
-            $"Personel yetkileri guncellendi: ID={id}, izinler=[{string.Join(",", request.PermissionTypeIds)}]",
-            customerId: cid);
-
-        return NoContent();
-    }
-
     // MODULES
 
     [HttpGet("modules")]

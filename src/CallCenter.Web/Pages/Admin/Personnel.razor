@@ -68,7 +68,6 @@
                             <th>Rol</th>
                             <th>Org Birim</th>
                             <th>Ust Yonetici</th>
-                            <th class="text-center">Yetki</th>
                             <th>Durum</th>
                             <th style="width: 120px;"></th>
                         </tr>
@@ -84,9 +83,6 @@
                                 <td class="text-muted small">@(p.CustomerRoleName ?? "-")</td>
                                 <td class="text-muted small">@(p.OrganizationUnitName ?? "-")</td>
                                 <td class="text-muted small">@(p.ReportsToPersonnelName ?? "-")</td>
-                                <td class="text-center">
-                                    <span class="badge bg-warning-subtle text-warning rounded-pill">@p.PermissionCount</span>
-                                </td>
                                 <td>
                                     @if (p.IsActive)
                                     {
