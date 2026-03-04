@@ -2,6 +2,7 @@ using System.IO;
 using System.Net.Http;
 using System.Windows;
 using CallCenter.Windows.LocalData;
+using CallCenter.Windows.LocalData.Entities;
 using CallCenter.Windows.LocalData.Providers;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
@@ -33,7 +34,8 @@ public partial class MainWindow : Window
         services.AddSingleton<IConfiguration>(config);
 
         // Secure Storage (localStorage yerine dosya tabanli)
-        services.AddSingleton<Services.SecureStorage>();
+        var secureStorageInstance = new Services.SecureStorage();
+        services.AddSingleton(secureStorageInstance);
 
         // Auth
         services.AddSingleton<Services.WindowsAuthStateProvider>();
@@ -80,16 +82,23 @@ public partial class MainWindow : Window
         _trayService = new Services.SystemTrayService();
         services.AddSingleton(_trayService);
 
-        // ── Lokal Dosya Deposu + Cift Yazim ──
+        // ── Lokal Dosya Deposu (temp buffer) + Cift Yazim ──
         services.AddLogging();
+
+        var localDataPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CallCenter", "Data");
+
         services.AddSingleton<ILocalRepository>(sp =>
         {
-            var basePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "CallCenter", "Data");
-            return new FileLocalRepository(basePath);
+            return new FileLocalRepository(localDataPath, machineId: null);
+        });
+        services.AddSingleton(sp =>
+        {
+            return new LocalFileStore<LocalSipAccount>(localDataPath, "sip-accounts.json");
         });
         services.AddSingleton<Services.CallSyncService>();
+        services.AddSingleton<Services.RecordingUploadService>();
         services.AddSingleton<Services.BackgroundSyncService>();
         services.AddSingleton<Services.LocalReportService>();
 
@@ -103,7 +112,7 @@ public partial class MainWindow : Window
             _trayService.Initialize(this);
             _hotkeyService.Initialize(this);
 
-            // Lokal DB tablolarini initialize et — BEFORE anything accesses the DB
+            // Lokal DB tablolarini initialize et
             var localRepo = serviceProvider?.GetService<ILocalRepository>();
             if (localRepo != null)
             {
@@ -120,7 +129,6 @@ public partial class MainWindow : Window
             }
 
             // Arka plan senkronizasyonunu baslat (lokal DB → backend push)
-            // AFTER DB is initialized
             var bgSync = serviceProvider?.GetService<Services.BackgroundSyncService>();
             bgSync?.StartAsync();
         };

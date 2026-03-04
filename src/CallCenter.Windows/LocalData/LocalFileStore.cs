@@ -13,6 +13,10 @@ public class LocalFileStore<T> where T : class
     private readonly string _filePath;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private List<T>? _cache;
+    private DateTime _lastReadWriteTime = DateTime.MinValue;
+
+    private const int WriteRetryCount = 3;
+    private const int WriteRetryDelayMs = 200;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -200,9 +204,47 @@ public class LocalFileStore<T> where T : class
         }
     }
 
+    /// <summary>
+    /// Cache'i sifirla — FileChangeWatcher disaridan degisiklik tespit ettiginde cagirir.
+    /// Sonraki okuma dosyayi diskten tekrar yukler.
+    /// </summary>
+    public void InvalidateCache()
+    {
+        // lock almadan sadece null'a set — sonraki EnsureLoadedAsync yeniden yukler
+        _cache = null;
+        _lastReadWriteTime = DateTime.MinValue;
+    }
+
     private async Task EnsureLoadedAsync()
     {
-        if (_cache != null) return;
+        // Cache varsa, dosyanin disaridan degisip degismedigini kontrol et
+        if (_cache != null)
+        {
+            try
+            {
+                if (File.Exists(_filePath))
+                {
+                    var currentWriteTime = File.GetLastWriteTimeUtc(_filePath);
+                    if (currentWriteTime > _lastReadWriteTime)
+                    {
+                        // Dosya disaridan degismis, cache'i yenile
+                        _cache = null;
+                    }
+                    else
+                    {
+                        return; // Cache guncel
+                    }
+                }
+                else
+                {
+                    return; // Dosya yok, cache'teki veri gecerli
+                }
+            }
+            catch
+            {
+                return; // Hata durumunda mevcut cache ile devam
+            }
+        }
 
         if (File.Exists(_filePath))
         {
@@ -210,10 +252,12 @@ public class LocalFileStore<T> where T : class
             {
                 var json = await File.ReadAllTextAsync(_filePath);
                 _cache = JsonSerializer.Deserialize<List<T>>(json, JsonOptions) ?? new List<T>();
+                _lastReadWriteTime = File.GetLastWriteTimeUtc(_filePath);
             }
             catch
             {
-                _cache = new List<T>();
+                if (_cache == null)
+                    _cache = new List<T>();
             }
         }
         else
@@ -224,18 +268,44 @@ public class LocalFileStore<T> where T : class
 
     private async Task SaveToDiskAsync()
     {
-        try
-        {
-            var dir = Path.GetDirectoryName(_filePath);
-            if (dir != null && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
+        var dir = Path.GetDirectoryName(_filePath);
+        if (dir != null && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
 
-            var json = JsonSerializer.Serialize(_cache, JsonOptions);
-            await File.WriteAllTextAsync(_filePath, json);
-        }
-        catch (Exception ex)
+        var json = JsonSerializer.Serialize(_cache, JsonOptions);
+        var tmpPath = _filePath + ".tmp";
+
+        for (int attempt = 1; attempt <= WriteRetryCount; attempt++)
         {
-            System.Diagnostics.Debug.WriteLine($"[LocalFileStore] Kayit hatasi ({_filePath}): {ex.Message}");
+            try
+            {
+                // Atomic write: once .tmp'ye yaz, sonra rename
+                await File.WriteAllTextAsync(tmpPath, json);
+                File.Move(tmpPath, _filePath, overwrite: true);
+                _lastReadWriteTime = File.GetLastWriteTimeUtc(_filePath);
+                return;
+            }
+            catch (IOException) when (attempt < WriteRetryCount)
+            {
+                await Task.Delay(WriteRetryDelayMs * attempt);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LocalFileStore] Kayit hatasi ({_filePath}, deneme {attempt}): {ex.Message}");
+                if (attempt == WriteRetryCount)
+                {
+                    // Son deneme: dogrudan yazmayi dene (fallback)
+                    try
+                    {
+                        await File.WriteAllTextAsync(_filePath, json);
+                        _lastReadWriteTime = File.GetLastWriteTimeUtc(_filePath);
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[LocalFileStore] Fallback yazma da basarisiz ({_filePath}): {fallbackEx.Message}");
+                    }
+                }
+            }
         }
     }
 }

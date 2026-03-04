@@ -67,6 +67,15 @@ public interface ILocalRepository
     /// <summary>Ses kaydi metadata'sini sil (dosya temizleme sonrasi)</summary>
     Task DeleteRecordingAsync(Guid uid);
 
+    /// <summary>Bulut'a henuz yuklenmemis ses kayitlarini getir (max 5 deneme)</summary>
+    Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10);
+
+    /// <summary>Ses kaydini "bulut'a yuklendi" olarak isaretle</summary>
+    Task MarkRecordingAsUploadedAsync(Guid uid, string? cloudFileId = null);
+
+    /// <summary>Yukleme denemesi sayacini ve zamanini guncelle</summary>
+    Task UpdateRecordingUploadAttemptAsync(Guid uid);
+
     // ═══════════════════════════════════════
     // ISTATISTIKLER (lokal raporlama icin)
     // ═══════════════════════════════════════

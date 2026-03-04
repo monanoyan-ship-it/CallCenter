@@ -32,6 +32,20 @@ public class CallRecord
     /// <summary>Kayit saklama son tarihi (TTK md. 82: 10 yil)</summary>
     public DateTime? RecordingRetentionDate { get; set; }
 
+    // ─── Bulut Depolama ───
+
+    /// <summary>Bulut'taki dosya ID/key (S3 key, Drive file ID, vb.)</summary>
+    public string? CloudFileId { get; set; }
+
+    /// <summary>Bulut'taki dosya adi</summary>
+    public string? CloudFileName { get; set; }
+
+    /// <summary>Hangi storage config ile yuklendi</summary>
+    public int? CloudStorageConfigId { get; set; }
+
+    /// <summary>Bulut'a yuklenme zamani</summary>
+    public DateTime? CloudUploadedAt { get; set; }
+
     public int? AgentId { get; set; }
     public User? Agent { get; set; }
 

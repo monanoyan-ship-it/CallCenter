@@ -57,6 +57,17 @@ public class CallSyncPushRequest
 
     /// <summary>Kayit saklama son tarihi (TTK md. 82)</summary>
     public DateTime? RecordingRetentionDate { get; set; }
+
+    // ─── Bulut Depolama (Windows app direkt yukler) ───
+
+    /// <summary>Bulut'taki dosya ID/key (S3 key, Drive file ID, vb.)</summary>
+    public string? CloudFileId { get; set; }
+
+    /// <summary>Bulut'taki dosya adi</summary>
+    public string? CloudFileName { get; set; }
+
+    /// <summary>Bulut'a yuklenme zamani</summary>
+    public DateTime? CloudUploadedAt { get; set; }
 }
 
 /// <summary>Backend'in sync push'a verdigi yanit</summary>

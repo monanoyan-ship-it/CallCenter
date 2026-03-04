@@ -273,7 +273,7 @@
                             CustomerId = PermService.CustomerId ?? 0
                         };
 
-                        var response = await HttpClient.PostAsJsonAsync("/api/sipaccounts", createDto);
+                        var response = await HttpClient.PostAsJsonAsync("api/sipaccounts", createDto);
                         if (response.IsSuccessStatusCode)
                         {
                             // Backend'den yeni ID'yi al ve sync
@@ -313,7 +313,7 @@
                             IsActive = account.IsActive
                         };
 
-                        var response = await HttpClient.PutAsJsonAsync($"/api/sipaccounts/{account.BackendSipAccountId}", updateDto);
+                        var response = await HttpClient.PutAsJsonAsync($"api/sipaccounts/{account.BackendSipAccountId}", updateDto);
                         if (response.IsSuccessStatusCode)
                         {
                             await LocalRepo.MarkSipAccountAsSyncedAsync(account.Uid, account.BackendSipAccountId);

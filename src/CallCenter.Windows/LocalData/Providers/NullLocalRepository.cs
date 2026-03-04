@@ -26,6 +26,9 @@ public class NullLocalRepository : ILocalRepository
     public Task<List<LocalRecording>> GetRecordingsAsync(Guid? callRecordUid, int page, int pageSize) => Task.FromResult(new List<LocalRecording>());
     public Task<List<LocalRecording>> GetExpiredRecordingsAsync() => Task.FromResult(new List<LocalRecording>());
     public Task DeleteRecordingAsync(Guid uid) => Task.CompletedTask;
+    public Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10) => Task.FromResult(new List<LocalRecording>());
+    public Task MarkRecordingAsUploadedAsync(Guid uid, string? cloudFileId = null) => Task.CompletedTask;
+    public Task UpdateRecordingUploadAttemptAsync(Guid uid) => Task.CompletedTask;
 
     public Task<LocalCallStats> GetStatsAsync(DateTime from, DateTime to) => Task.FromResult(new LocalCallStats());
 

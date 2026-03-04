@@ -725,10 +725,10 @@ public class NativeSipService : ISipService
 
         try
         {
-            var path = filePath ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "CallCenter", "Recordings",
-                $"call_{DateTime.Now:yyyyMMdd_HHmmss}.wav");
+            var recordingsDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "CallCenter", "Recordings");
+            var path = filePath ?? Path.Combine(recordingsDir, $"call_{DateTime.Now:yyyyMMdd_HHmmss}.wav");
 
             var dir = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))

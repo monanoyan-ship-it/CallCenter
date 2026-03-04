@@ -28,6 +28,7 @@ public class BackgroundSyncService
     private readonly ILocalRepository _localRepo;
     private readonly HttpClient _http;
     private readonly ILogger<BackgroundSyncService> _logger;
+    private readonly RecordingUploadService _recordingUpload;
 
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
@@ -42,11 +43,13 @@ public class BackgroundSyncService
     public BackgroundSyncService(
         ILocalRepository localRepo,
         HttpClient http,
-        ILogger<BackgroundSyncService> logger)
+        ILogger<BackgroundSyncService> logger,
+        RecordingUploadService recordingUpload)
     {
         _localRepo = localRepo;
         _http = http;
         _logger = logger;
+        _recordingUpload = recordingUpload;
     }
 
     // ═══════════════════════════════════════
@@ -107,6 +110,7 @@ public class BackgroundSyncService
             {
                 await SyncUnsyncedRecordsAsync(ct);
                 await CleanupSyncedRecordsAsync();
+                await _recordingUpload.UploadPendingRecordingsAsync(ct);
             }
             catch (OperationCanceledException)
             {
@@ -214,6 +218,16 @@ public class BackgroundSyncService
             IsRecordingEncrypted = record.RecordingFilePath?.EndsWith(".enc", StringComparison.OrdinalIgnoreCase) ?? false,
             RecordingRetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
         };
+
+        // Bulut depolama bilgilerini ekle (Windows app direkt yuklediyse)
+        var recordings = await _localRepo.GetRecordingsAsync(record.Uid, 1, 1);
+        var recording = recordings.FirstOrDefault();
+        if (recording is { IsUploadedToCloud: true, CloudFileId: not null })
+        {
+            syncDto.CloudFileId = recording.CloudFileId;
+            syncDto.CloudFileName = System.IO.Path.GetFileName(recording.FilePath);
+            syncDto.CloudUploadedAt = recording.LastCloudUploadAttempt;
+        }
 
         var response = await _http.PostAsJsonAsync("api/calls/sync", syncDto);
 

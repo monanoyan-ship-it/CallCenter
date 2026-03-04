@@ -115,6 +115,33 @@ public class StorageTestResultDto
     public DateTime TestedAt { get; set; }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// RECORDING UPLOAD/DOWNLOAD DTO'LAR
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Ses kaydi bulut'a yukleme sonucu</summary>
+public class RecordingUploadResultDto
+{
+    public bool Success { get; set; }
+    public string? CloudFileId { get; set; }
+    public string? Error { get; set; }
+}
+
+/// <summary>Ses kaydi gecici indirme URL'i</summary>
+public class RecordingDownloadUrlDto
+{
+    public string Url { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+}
+
+/// <summary>Windows app icin musteri cloud config (credential'lar decrypted)</summary>
+public class CloudConfigForClientDto
+{
+    public int ProviderTypeId { get; set; }
+    public string? BasePath { get; set; }
+    public Dictionary<string, string> Credentials { get; set; } = new();
+}
+
 /// <summary>Desteklenen provider listesi icin</summary>
 public class StorageProviderInfoDto
 {

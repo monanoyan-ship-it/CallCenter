@@ -17,6 +17,11 @@ obj/
 
 ## Publish output
 publish/
+publish-web/
+
+## Deploy artifacts
+.wrangler/
+cloudbuild.yaml
 
 ## Build results
 [Dd]ebug/

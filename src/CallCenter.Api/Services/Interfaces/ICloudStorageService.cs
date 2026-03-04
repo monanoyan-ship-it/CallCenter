@@ -24,6 +24,22 @@ public interface ICloudStorageService
     /// <summary>Gecici indirme URL'i olustur (dinleme icin)</summary>
     Task<string?> GetRecordingUrlAsync(int customerId, string fileId, CancellationToken ct = default);
 
+    // ─── Cagri Kaydi Upload/Download ───
+
+    /// <summary>Ses kaydini bulut'a yukle ve CallRecord'u guncelle</summary>
+    Task<RecordingUploadResultDto> UploadCallRecordingAsync(int customerId, Guid callUid,
+        Stream fileStream, string fileName, CancellationToken ct = default);
+
+    /// <summary>Ses kaydinin gecici indirme URL'ini olustur (30dk)</summary>
+    Task<RecordingDownloadUrlDto?> GetCallRecordingUrlAsync(int customerId, Guid callUid,
+        CancellationToken ct = default);
+
+    /// <summary>Musterinin aktif cloud storage config'i var mi?</summary>
+    Task<bool> HasActiveConfigAsync(int customerId);
+
+    /// <summary>Musterinin default cloud config'ini decrypted olarak dondur (Windows app icin)</summary>
+    Task<CloudConfigForClientDto?> GetConfigForClientAsync(int customerId);
+
     // ─── Config CRUD ───
 
     /// <summary>Musterinin storage config'lerini listele</summary>

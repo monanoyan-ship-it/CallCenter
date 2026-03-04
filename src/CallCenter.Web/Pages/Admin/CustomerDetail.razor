@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ToastService Toast
+@inject IJSRuntime JS
 @using CallCenter.Shared.DTOs
 @using CallCenter.Web.Pages.Portal
 
@@ -31,6 +32,14 @@
         </h4>
     </div>
     <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary btn-sm" @onclick="DownloadSetupPackage"
+                disabled="@isDownloadingSetup" title="Offline kurulum paketi indir">
+            @if (isDownloadingSetup)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-box-seam me-1"></i>Kurulum Paketi
+        </button>
         <button class="btn btn-outline-success btn-sm" @onclick="GoToPortal" title="Portal">
             <i class="bi bi-box-arrow-up-right me-1"></i>Portal
         </button>
@@ -618,6 +627,9 @@
     private List<SipAccountListDto>? sipAccounts;
     private bool isLoadingSip;
 
+    // ─── SETUP PACKAGE ───
+    private bool isDownloadingSetup;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadGeneral();
@@ -872,6 +884,29 @@
     // ═══════════════════════════════════════════════════
     // NAVİGASYON
     // ═══════════════════════════════════════════════════
+
+    private async Task DownloadSetupPackage()
+    {
+        isDownloadingSetup = true;
+        StateHasChanged();
+        try
+        {
+            var response = await Http.PostAsync($"api/customers/{Id}/setup-package", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                await JS.InvokeVoidAsync("downloadFile", "setup.dat", "application/octet-stream", bytes);
+                Toast.ShowSuccess("Kurulum paketi indirildi.");
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Paket olusturulamadi.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isDownloadingSetup = false; }
+    }
 
     private void GoBack() => Nav.NavigateTo("admin/customers");
     private void GoToPortal() => Nav.NavigateTo($"portal/dashboard?customerId={Id}");

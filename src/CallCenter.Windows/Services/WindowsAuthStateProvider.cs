@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 namespace CallCenter.Windows.Services;
 
 /// <summary>
-/// Windows uygulamasi icin JWT tabanli kimlik dogrulama durumu saglayicisi.
-/// Web'deki JwtAuthStateProvider'in SecureStorage ile adapte edilmis hali.
+/// Windows uygulamasi icin kimlik dogrulama durumu saglayicisi.
+/// JWT token tabanli online kimlik dogrulama.
 /// </summary>
 public class WindowsAuthStateProvider : AuthenticationStateProvider
 {
@@ -29,17 +29,15 @@ public class WindowsAuthStateProvider : AuthenticationStateProvider
             if (string.IsNullOrWhiteSpace(token))
                 return new AuthenticationState(_anonymous);
 
-            var claims = ParseToken(token);
-            if (claims == null)
+            var jwtClaims = ParseToken(token);
+            if (jwtClaims == null)
             {
-                // Token gecersiz veya suresi dolmus - temizle
                 await _storage.RemoveAsync(TokenKey);
                 return new AuthenticationState(_anonymous);
             }
 
-            var identity = new ClaimsIdentity(claims, "jwt");
-            var user = new ClaimsPrincipal(identity);
-            return new AuthenticationState(user);
+            var jwtIdentity = new ClaimsIdentity(jwtClaims, "jwt");
+            return new AuthenticationState(new ClaimsPrincipal(jwtIdentity));
         }
         catch
         {
@@ -69,7 +67,6 @@ public class WindowsAuthStateProvider : AuthenticationStateProvider
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.ReadJwtToken(token);
 
-            // Token suresi dolmus mu?
             if (jwt.ValidTo < DateTime.UtcNow)
                 return null;
 

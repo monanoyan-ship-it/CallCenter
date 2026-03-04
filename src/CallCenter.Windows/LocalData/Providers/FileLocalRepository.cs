@@ -15,10 +15,17 @@ public class FileLocalRepository : ILocalRepository
     private readonly LocalFileStore<LocalRecording> _recordings;
     private readonly string _basePath;
 
-    public FileLocalRepository(string basePath)
+    /// <param name="basePath">JSON dosyalarinin klasoru</param>
+    /// <param name="machineId">Ag modunda PC bazli dosya ayirimi icin hostname. Null/bos = lokal mod (call-records.json).</param>
+    public FileLocalRepository(string basePath, string? machineId = null)
     {
         _basePath = basePath;
-        _callRecords = new LocalFileStore<LocalCallRecord>(basePath, "call-records.json");
+
+        var callRecordFile = string.IsNullOrEmpty(machineId)
+            ? "call-records.json"
+            : $"call-records-{machineId}.json";
+
+        _callRecords = new LocalFileStore<LocalCallRecord>(basePath, callRecordFile);
         _sipAccounts = new LocalFileStore<LocalSipAccount>(basePath, "sip-accounts.json");
         _recordings = new LocalFileStore<LocalRecording>(basePath, "recordings.json");
     }
@@ -155,6 +162,33 @@ public class FileLocalRepository : ILocalRepository
     public async Task DeleteRecordingAsync(Guid uid)
         => await _recordings.RemoveAsync(r => r.Uid == uid);
 
+    public Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10)
+        => _recordings.WhereAsync(r => !r.IsUploadedToCloud && r.CloudUploadAttemptCount < 5);
+
+    public async Task MarkRecordingAsUploadedAsync(Guid uid, string? cloudFileId = null)
+    {
+        await _recordings.UpdateAsync(
+            r => r.Uid == uid,
+            r =>
+            {
+                r.IsUploadedToCloud = true;
+                r.LastCloudUploadAttempt = DateTime.UtcNow;
+                if (cloudFileId != null)
+                    r.CloudFileId = cloudFileId;
+            });
+    }
+
+    public async Task UpdateRecordingUploadAttemptAsync(Guid uid)
+    {
+        await _recordings.UpdateAsync(
+            r => r.Uid == uid,
+            r =>
+            {
+                r.CloudUploadAttemptCount++;
+                r.LastCloudUploadAttempt = DateTime.UtcNow;
+            });
+    }
+
     // ═══════════════════════════════════════
     // ISTATISTIKLER
     // ═══════════════════════════════════════
@@ -269,7 +303,7 @@ public class FileLocalRepository : ILocalRepository
     /// <summary>Her store'un dosya boyutunu dondurur</summary>
     public Dictionary<string, long> GetFileSizes() => new()
     {
-        { "call-records.json", _callRecords.GetFileSize() },
+        { Path.GetFileName(_callRecords.FilePath), _callRecords.GetFileSize() },
         { "sip-accounts.json", _sipAccounts.GetFileSize() },
         { "recordings.json", _recordings.GetFileSize() }
     };
@@ -280,5 +314,29 @@ public class FileLocalRepository : ILocalRepository
         await _callRecords.ClearAsync();
         await _sipAccounts.ClearAsync();
         await _recordings.ClearAsync();
+    }
+
+    /// <summary>
+    /// Belirli bir dosyanin cache'ini sifirla (FileChangeWatcher icin).
+    /// Dosya adi eslesirse ilgili store invalidate edilir.
+    /// </summary>
+    public void InvalidateCache(string? fileName = null)
+    {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            // Tumu invalidate
+            _callRecords.InvalidateCache();
+            _sipAccounts.InvalidateCache();
+            _recordings.InvalidateCache();
+            return;
+        }
+
+        // Dosya adina gore hedefli invalidate
+        if (fileName.StartsWith("call-records", StringComparison.OrdinalIgnoreCase))
+            _callRecords.InvalidateCache();
+        else if (fileName.Equals("sip-accounts.json", StringComparison.OrdinalIgnoreCase))
+            _sipAccounts.InvalidateCache();
+        else if (fileName.Equals("recordings.json", StringComparison.OrdinalIgnoreCase))
+            _recordings.InvalidateCache();
     }
 }

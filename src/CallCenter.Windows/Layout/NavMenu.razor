@@ -129,13 +129,6 @@
                             <span>SIP Ayarlari</span>
                         </NavLink>
                     }
-                    @if (PermService.HasModule(PortalModules.Ids.Settings))
-                    {
-                        <NavLink class="nav-link" href="local-db-settings">
-                            <i class="bi bi-folder-fill"></i>
-                            <span>Lokal Depolama</span>
-                        </NavLink>
-                    }
                 </div>
             </div>
         }
@@ -214,7 +207,7 @@
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
         { 3, new[] { "admin/" } },
-        { 4, new[] { "sip-settings", "local-db-settings" } }
+        { 4, new[] { "sip-settings" } }
     };
 
     protected override void OnInitialized()

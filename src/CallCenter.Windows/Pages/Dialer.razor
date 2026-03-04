@@ -7,6 +7,7 @@
 @inject CallCenter.Windows.Services.CallSyncService CallSync
 @inject CallCenter.Windows.LocalData.ILocalRepository LocalRepo
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject CallCenter.Windows.Services.SecureStorage Storage
 @inject NavigationManager NavigationManager
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -69,10 +70,15 @@
                             <i class="bi @(SipService.IsMuted ? "bi-mic-mute-fill" : "bi-mic-fill")"></i>
                             <span class="d-none d-md-inline ms-1">@(SipService.IsMuted ? "Acik" : "Kapa")</span>
                         </button>
-                        <button class="btn btn-sm @(SipService.IsRecording ? "btn-danger recording-pulse" : "btn-outline-secondary") quick-btn"
+                        <button class="btn btn-sm @(SipService.IsRecording ? "btn-danger recording-pulse" : "btn-outline-secondary") quick-btn position-relative"
                                 @onclick="ToggleRecording" title="Kayit">
                             <i class="bi bi-record-circle-fill"></i>
                             <span class="d-none d-md-inline ms-1">Kayit</span>
+                            @if (_autoRecordEnabled)
+                            {
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info"
+                                      style="font-size: 0.55rem;">OTO</span>
+                            }
                         </button>
                     }
                     @if (SipService.VoicemailCount > 0)
@@ -237,6 +243,7 @@
     private int? currentCallId;
     private Guid? currentCallUid;       // Lokal DB referansi (cift yazim)
     private bool showTransferDialog;
+    private bool _autoRecordEnabled;
     private List<LineInfo> lines = new();
 
     private readonly (string digit, string letters)[][] keypadRows = new[]
@@ -266,6 +273,10 @@
         SipService.OnMuteChanged += HandleMuteChanged;
 
         lines = await SipService.GetLinesAsync();
+
+        // Otomatik kayit ayarini yukle
+        var autoRecordStr = await Storage.GetAsync("auto_record");
+        _autoRecordEnabled = autoRecordStr == "true";
 
         // Ses cihazlarini yukle
         inputDevices = await SipService.GetAudioInputDevicesAsync();
@@ -379,6 +390,20 @@
 
             statusMessage = $"{phoneNumber} ile gorusme baslatildi";
             statusClass = "text-success";
+
+            // Otomatik kayit
+            if (_autoRecordEnabled && !SipService.IsRecording)
+            {
+                try
+                {
+                    await SipService.StartRecordingAsync();
+                    Toast.ShowInfo("Otomatik kayit baslatildi");
+                }
+                catch (Exception ex)
+                {
+                    Toast.ShowError($"Otomatik kayit baslatilamadi: {ex.Message}");
+                }
+            }
 
             // Cift yazim: lokal DB + backend'e "cevaplandi" bilgisi
             if (currentCallUid.HasValue)

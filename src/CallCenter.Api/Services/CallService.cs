@@ -263,6 +263,13 @@ public class CallService : ICallService
             existing.IsRecordingEncrypted = request.IsRecordingEncrypted;
             if (request.RecordingRetentionDate.HasValue)
                 existing.RecordingRetentionDate = request.RecordingRetentionDate;
+            // Bulut depolama bilgileri (Windows app direkt yukler)
+            if (!string.IsNullOrEmpty(request.CloudFileId))
+                existing.CloudFileId = request.CloudFileId;
+            if (!string.IsNullOrEmpty(request.CloudFileName))
+                existing.CloudFileName = request.CloudFileName;
+            if (request.CloudUploadedAt.HasValue)
+                existing.CloudUploadedAt = request.CloudUploadedAt;
             await _db.SaveChangesAsync();
 
             return new CallSyncPushResponse { Id = existing.Id, IsNew = false };
@@ -288,7 +295,10 @@ public class CallService : ICallService
             RecordingFileHash = request.RecordingFileHash,
             RecordingFileSize = request.RecordingFileSize,
             IsRecordingEncrypted = request.IsRecordingEncrypted,
-            RecordingRetentionDate = request.RecordingRetentionDate
+            RecordingRetentionDate = request.RecordingRetentionDate,
+            CloudFileId = request.CloudFileId,
+            CloudFileName = request.CloudFileName,
+            CloudUploadedAt = request.CloudUploadedAt
         };
 
         // Kuyruk adi varsa eslestir

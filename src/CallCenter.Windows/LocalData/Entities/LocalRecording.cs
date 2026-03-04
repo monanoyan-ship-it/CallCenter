@@ -35,4 +35,18 @@ public class LocalRecording
 
     /// <summary>Saklama son tarihi (TTK md. 82: 10 yil)</summary>
     public DateTime? RetentionDate { get; set; }
+
+    // ─── Bulut Upload Takibi ───
+
+    /// <summary>Bulut'a basariyla yuklendi mi?</summary>
+    public bool IsUploadedToCloud { get; set; }
+
+    /// <summary>Son yukleme denemesi zamani</summary>
+    public DateTime? LastCloudUploadAttempt { get; set; }
+
+    /// <summary>Toplam yukleme deneme sayisi (max 5'te durur)</summary>
+    public int CloudUploadAttemptCount { get; set; }
+
+    /// <summary>Bulut'taki dosya ID/key (S3 key, Drive file ID, vb.)</summary>
+    public string? CloudFileId { get; set; }
 }

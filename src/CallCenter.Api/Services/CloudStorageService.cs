@@ -100,6 +100,87 @@ public class CloudStorageService : ICloudStorageService
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // CAGRI KAYDI UPLOAD / DOWNLOAD
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task<RecordingUploadResultDto> UploadCallRecordingAsync(int customerId, Guid callUid,
+        Stream fileStream, string fileName, CancellationToken ct = default)
+    {
+        // CallRecord'u bul
+        var callRecord = await _db.CallRecords.FirstOrDefaultAsync(c => c.Uid == callUid, ct);
+        if (callRecord == null)
+            return new RecordingUploadResultDto { Success = false, Error = "Cagri kaydi bulunamadi" };
+
+        // Bulut'a yukle (mevcut metod)
+        var uploadResult = await UploadRecordingAsync(customerId, fileStream, fileName, ct);
+        if (!uploadResult.Success)
+            return new RecordingUploadResultDto { Success = false, Error = uploadResult.Error };
+
+        // CallRecord'u guncelle
+        var config = await GetDefaultConfigAsync(customerId);
+        callRecord.CloudFileId = uploadResult.FileId;
+        callRecord.CloudFileName = fileName;
+        callRecord.CloudStorageConfigId = config?.Id;
+        callRecord.CloudUploadedAt = DateTime.UtcNow;
+        if (!string.IsNullOrEmpty(uploadResult.FileUrl))
+            callRecord.RecordingUrl = uploadResult.FileUrl;
+
+        await _db.SaveChangesAsync(ct);
+
+        return new RecordingUploadResultDto
+        {
+            Success = true,
+            CloudFileId = uploadResult.FileId
+        };
+    }
+
+    public async Task<RecordingDownloadUrlDto?> GetCallRecordingUrlAsync(int customerId, Guid callUid,
+        CancellationToken ct = default)
+    {
+        var callRecord = await _db.CallRecords.FirstOrDefaultAsync(c => c.Uid == callUid, ct);
+        if (callRecord?.CloudFileId == null) return null;
+
+        var url = await GetRecordingUrlAsync(customerId, callRecord.CloudFileId, ct);
+        if (url == null) return null;
+
+        return new RecordingDownloadUrlDto
+        {
+            Url = url,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+        };
+    }
+
+    public async Task<bool> HasActiveConfigAsync(int customerId)
+    {
+        return await _db.CustomerStorageConfigs
+            .AnyAsync(c => c.CustomerId == customerId && c.IsActive);
+    }
+
+    public async Task<CloudConfigForClientDto?> GetConfigForClientAsync(int customerId)
+    {
+        var config = await GetDefaultConfigAsync(customerId);
+        if (config == null) return null;
+
+        try
+        {
+            var json = _encryption.Decrypt(config.EncryptedCredentials);
+            var credentials = JsonSerializer.Deserialize<Dictionary<string, string>>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+
+            return new CloudConfigForClientDto
+            {
+                ProviderTypeId = config.ProviderTypeId,
+                BasePath = config.BasePath,
+                Credentials = credentials
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // CONFIG CRUD
     // ═══════════════════════════════════════════════════════════════
 

@@ -28,9 +28,8 @@ RUN dotnet publish CallCenter.Api/CallCenter.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Kullanici olustur (root degil)
-RUN adduser --disabled-password --gecos "" appuser
-USER appuser
+# .NET 8+ image'larinda 'app' kullanicisi built-in gelir
+USER app
 
 COPY --from=build /app/publish .
 
