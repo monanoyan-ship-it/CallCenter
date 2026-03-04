@@ -127,6 +127,7 @@
             // SignalR event'lerini dinle
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
             HubService.OnConnectionStateChanged += HandleConnectionStateChanged;
+            HubService.OnForceLogout += HandleForceLogout;
 
             // Hub'a baglan
             await HubService.ConnectAsync();
@@ -223,6 +224,12 @@
         sidebarOpen = false;
     }
 
+    private async Task HandleForceLogout()
+    {
+        await AuthService.ForceLogoutAsync();
+        await InvokeAsync(() => NavigationManager.NavigateTo("/login", forceLoad: true));
+    }
+
     private async Task HandleLogout()
     {
         await SipService.DisposeAsync();
@@ -235,5 +242,6 @@
     {
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+        HubService.OnForceLogout -= HandleForceLogout;
     }
 }

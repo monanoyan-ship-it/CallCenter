@@ -34,6 +34,9 @@ public class HubService : IAsyncDisposable
     // ─── Gateway Health Events ───
     public event Action<GatewayHealthUpdate>? OnGatewayHealthChanged;
 
+    // ─── Force Logout Event ───
+    public event Func<Task>? OnForceLogout;
+
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
@@ -115,6 +118,13 @@ public class HubService : IAsyncDisposable
         _connection.On<GatewayHealthUpdate>("GatewayHealthChanged", update =>
         {
             OnGatewayHealthChanged?.Invoke(update);
+        });
+
+        // Force logout (tek oturum zorunlulugu)
+        _connection.On("ForceLogout", async () =>
+        {
+            if (OnForceLogout != null)
+                await OnForceLogout.Invoke();
         });
 
         _connection.Reconnecting += _ =>

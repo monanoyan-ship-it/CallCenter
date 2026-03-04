@@ -1,7 +1,9 @@
+using CallCenter.Api.Hubs;
 using CallCenter.Api.Services.Interfaces;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Services;
@@ -11,15 +13,17 @@ public class AuthService : IAuthService
     private readonly AppDbContext _db;
     private readonly TokenService _tokenService;
     private readonly IConfiguration _config;
+    private readonly IHubContext<CallCenterHub> _hubContext;
 
     private const int MaxFailedAttempts = 5;
     private const int LockoutMinutes = 15;
 
-    public AuthService(AppDbContext db, TokenService tokenService, IConfiguration config)
+    public AuthService(AppDbContext db, TokenService tokenService, IConfiguration config, IHubContext<CallCenterHub> hubContext)
     {
         _db = db;
         _tokenService = tokenService;
         _config = config;
+        _hubContext = hubContext;
     }
 
     public async Task<(bool Success, LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
@@ -91,6 +95,16 @@ public class AuthService : IAuthService
 
         var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, activePermissionIds);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
+
+        // Eski tum aktif refresh token'lari revoke et (tek oturum zorunlulugu)
+        var oldTokens = await _db.RefreshTokens
+            .Where(t => t.UserId == user.Id && t.RevokedAt == null && t.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+        foreach (var old in oldTokens)
+            old.RevokedAt = DateTime.UtcNow;
+
+        // SignalR ile eski baglantilarai ForceLogout gonder
+        await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ForceLogout");
 
         // Refresh token uret ve DB'ye kaydet
         var refreshToken = _tokenService.GenerateRefreshToken(user.Id);

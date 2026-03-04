@@ -20,6 +20,9 @@ public class WindowsHubService : IAsyncDisposable
     public event Action<int>? OnCallEnded;
     public event Action<HubConnectionState>? OnConnectionStateChanged;
 
+    // ─── Force Logout Event ───
+    public event Func<Task>? OnForceLogout;
+
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
@@ -62,6 +65,13 @@ public class WindowsHubService : IAsyncDisposable
         _connection.On<int>("CallEnded", callId =>
         {
             OnCallEnded?.Invoke(callId);
+        });
+
+        // Force logout (tek oturum zorunlulugu)
+        _connection.On("ForceLogout", async () =>
+        {
+            if (OnForceLogout != null)
+                await OnForceLogout.Invoke();
         });
 
         _connection.Reconnecting += _ =>

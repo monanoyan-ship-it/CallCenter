@@ -118,7 +118,7 @@ public class AuthService
     }
 
     /// <summary>Sadece local storage temizler, server'a istek gitmez.</summary>
-    private async Task ForceLogoutAsync()
+    public async Task ForceLogoutAsync()
     {
         await _js.InvokeVoidAsync("localStorage.removeItem", TokenKey);
         await _js.InvokeVoidAsync("localStorage.removeItem", RefreshTokenKey);

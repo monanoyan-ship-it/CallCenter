@@ -133,7 +133,7 @@ public class WindowsAuthService
     }
 
     /// <summary>Sadece local storage temizler, server'a istek gitmez.</summary>
-    private async Task ForceLogoutAsync()
+    public async Task ForceLogoutAsync()
     {
         await _storage.RemoveAsync(TokenKey);
         await _storage.RemoveAsync(RefreshTokenKey);
