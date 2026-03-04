@@ -13,6 +13,7 @@ public class FileLocalRepository : ILocalRepository
     private readonly LocalFileStore<LocalCallRecord> _callRecords;
     private readonly LocalFileStore<LocalSipAccount> _sipAccounts;
     private readonly LocalFileStore<LocalRecording> _recordings;
+    private readonly LocalFileStore<LocalContact> _contacts;
     private readonly string _basePath;
 
     /// <param name="basePath">JSON dosyalarinin klasoru</param>
@@ -28,6 +29,7 @@ public class FileLocalRepository : ILocalRepository
         _callRecords = new LocalFileStore<LocalCallRecord>(basePath, callRecordFile);
         _sipAccounts = new LocalFileStore<LocalSipAccount>(basePath, "sip-accounts.json");
         _recordings = new LocalFileStore<LocalRecording>(basePath, "recordings.json");
+        _contacts = new LocalFileStore<LocalContact>(basePath, "contacts-buffer.json");
     }
 
     // ═══════════════════════════════════════
@@ -294,6 +296,23 @@ public class FileLocalRepository : ILocalRepository
     }
 
     // ═══════════════════════════════════════
+    // CONTACT BUFFER
+    // ═══════════════════════════════════════
+
+    public async Task SaveContactAsync(LocalContact contact)
+    {
+        var all = await _contacts.GetAllAsync();
+        contact.Id = all.Count > 0 ? all.Max(c => c.Id) + 1 : 1;
+        await _contacts.AddAsync(contact);
+    }
+
+    public Task<List<LocalContact>> GetUnsyncedContactsAsync(int limit = 50)
+        => _contacts.WhereAsync(c => !c.IsSyncedToBackend);
+
+    public async Task DeleteContactAsync(Guid uid)
+        => await _contacts.RemoveAsync(c => c.Uid == uid);
+
+    // ═══════════════════════════════════════
     // YARDIMCI (Settings sayfasi icin)
     // ═══════════════════════════════════════
 
@@ -305,7 +324,8 @@ public class FileLocalRepository : ILocalRepository
     {
         { Path.GetFileName(_callRecords.FilePath), _callRecords.GetFileSize() },
         { "sip-accounts.json", _sipAccounts.GetFileSize() },
-        { "recordings.json", _recordings.GetFileSize() }
+        { "recordings.json", _recordings.GetFileSize() },
+        { "contacts-buffer.json", _contacts.GetFileSize() }
     };
 
     /// <summary>Tum verileri temizle</summary>
@@ -314,6 +334,7 @@ public class FileLocalRepository : ILocalRepository
         await _callRecords.ClearAsync();
         await _sipAccounts.ClearAsync();
         await _recordings.ClearAsync();
+        await _contacts.ClearAsync();
     }
 
     /// <summary>
@@ -328,6 +349,7 @@ public class FileLocalRepository : ILocalRepository
             _callRecords.InvalidateCache();
             _sipAccounts.InvalidateCache();
             _recordings.InvalidateCache();
+            _contacts.InvalidateCache();
             return;
         }
 
@@ -338,5 +360,7 @@ public class FileLocalRepository : ILocalRepository
             _sipAccounts.InvalidateCache();
         else if (fileName.Equals("recordings.json", StringComparison.OrdinalIgnoreCase))
             _recordings.InvalidateCache();
+        else if (fileName.Equals("contacts-buffer.json", StringComparison.OrdinalIgnoreCase))
+            _contacts.InvalidateCache();
     }
 }

@@ -109,6 +109,8 @@ public class BackgroundSyncService
             try
             {
                 await SyncUnsyncedRecordsAsync(ct);
+                await SyncUnsyncedContactsAsync(ct);
+                await SyncUnsyncedSipAccountsAsync(ct);
                 await CleanupSyncedRecordsAsync();
                 await _recordingUpload.UploadPendingRecordingsAsync(ct);
             }
@@ -241,6 +243,197 @@ public class BackgroundSyncService
             response.StatusCode, record.Uid);
         return null;
     }
+    // ═══════════════════════════════════════
+    // CONTACT BUFFER SYNC
+    // ═══════════════════════════════════════
+
+    private async Task SyncUnsyncedContactsAsync(CancellationToken ct)
+    {
+        var unsyncedContacts = await _localRepo.GetUnsyncedContactsAsync(BatchSize);
+        if (unsyncedContacts.Count == 0) return;
+
+        _logger.LogInformation("{Count} senkronlanmamis contact buffer kaydi bulundu", unsyncedContacts.Count);
+
+        var successCount = 0;
+        var failCount = 0;
+
+        foreach (var contact in unsyncedContacts)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                bool success = contact.Operation switch
+                {
+                    "Create" => await PushContactCreateAsync(contact),
+                    "Update" => await PushContactUpdateAsync(contact),
+                    "Delete" => await PushContactDeleteAsync(contact),
+                    _ => false
+                };
+
+                if (success)
+                {
+                    await _localRepo.DeleteContactAsync(contact.Uid);
+                    successCount++;
+                }
+                else
+                {
+                    failCount++;
+                }
+            }
+            catch (Exception ex)
+            {
+                failCount++;
+                _logger.LogWarning(ex, "Contact sync basarisiz: {Uid} ({Op})", contact.Uid, contact.Operation);
+            }
+        }
+
+        if (successCount > 0 || failCount > 0)
+        {
+            _logger.LogInformation("Contact sync: {Success} basarili, {Fail} basarisiz", successCount, failCount);
+        }
+    }
+
+    private async Task<bool> PushContactCreateAsync(LocalContact contact)
+    {
+        var request = new CreateContactRequest
+        {
+            FullName = contact.FullName,
+            PhoneNumber = contact.PhoneNumber,
+            Company = contact.Company,
+            Email = contact.Email
+        };
+        var response = await _http.PostAsJsonAsync("api/contact", request);
+        return response.IsSuccessStatusCode;
+    }
+
+    private async Task<bool> PushContactUpdateAsync(LocalContact contact)
+    {
+        if (!contact.BackendContactId.HasValue) return false;
+        var request = new UpdateContactRequest
+        {
+            FullName = contact.FullName,
+            PhoneNumber = contact.PhoneNumber,
+            Company = contact.Company,
+            Email = contact.Email,
+            IsFavorite = contact.IsFavorite
+        };
+        var response = await _http.PutAsJsonAsync($"api/contact/{contact.BackendContactId.Value}", request);
+        return response.IsSuccessStatusCode;
+    }
+
+    private async Task<bool> PushContactDeleteAsync(LocalContact contact)
+    {
+        if (!contact.BackendContactId.HasValue) return false;
+        var response = await _http.DeleteAsync($"api/contact/{contact.BackendContactId.Value}");
+        return response.IsSuccessStatusCode;
+    }
+
+    // ═══════════════════════════════════════
+    // SIP ACCOUNT BUFFER SYNC
+    // ═══════════════════════════════════════
+
+    private async Task SyncUnsyncedSipAccountsAsync(CancellationToken ct)
+    {
+        var unsyncedAccounts = await _localRepo.GetUnsyncedSipAccountsAsync(BatchSize);
+        if (unsyncedAccounts.Count == 0) return;
+
+        _logger.LogInformation("{Count} senkronlanmamis SIP hesabi bulundu", unsyncedAccounts.Count);
+
+        var successCount = 0;
+        var failCount = 0;
+
+        foreach (var account in unsyncedAccounts)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (account.BackendSipAccountId == null)
+                {
+                    // Yeni — POST
+                    var createDto = new SipAccountCreateDto
+                    {
+                        Name = account.Name,
+                        Server = account.Server,
+                        Port = account.Port,
+                        Domain = account.Domain,
+                        Username = account.Username,
+                        Password = account.Password,
+                        Transport = account.Transport,
+                        WsUri = account.WsUri,
+                        UseSrtp = account.UseSrtp,
+                        StunServer = account.StunServer,
+                        TurnServer = account.TurnServer,
+                        TurnUsername = account.TurnUsername,
+                        TurnPassword = account.TurnPassword,
+                        PreferredCodecs = account.PreferredCodecs,
+                        JitterBufferMinMs = account.JitterBufferMinMs,
+                        JitterBufferMaxMs = account.JitterBufferMaxMs,
+                        IsDefault = account.IsDefault
+                    };
+
+                    var response = await _http.PostAsJsonAsync("api/sipaccounts", createDto);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        await _localRepo.DeleteSipAccountAsync(account.Id);
+                        successCount++;
+                    }
+                    else
+                    {
+                        failCount++;
+                    }
+                }
+                else
+                {
+                    // Mevcut — PUT
+                    var updateDto = new SipAccountUpdateDto
+                    {
+                        Name = account.Name,
+                        Server = account.Server,
+                        Port = account.Port,
+                        Domain = account.Domain,
+                        Username = account.Username,
+                        Password = account.Password,
+                        Transport = account.Transport,
+                        WsUri = account.WsUri,
+                        UseSrtp = account.UseSrtp,
+                        StunServer = account.StunServer,
+                        TurnServer = account.TurnServer,
+                        TurnUsername = account.TurnUsername,
+                        TurnPassword = account.TurnPassword,
+                        PreferredCodecs = account.PreferredCodecs,
+                        JitterBufferMinMs = account.JitterBufferMinMs,
+                        JitterBufferMaxMs = account.JitterBufferMaxMs,
+                        IsDefault = account.IsDefault,
+                        IsActive = account.IsActive
+                    };
+
+                    var response = await _http.PutAsJsonAsync($"api/sipaccounts/{account.BackendSipAccountId}", updateDto);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        await _localRepo.DeleteSipAccountAsync(account.Id);
+                        successCount++;
+                    }
+                    else
+                    {
+                        failCount++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                failCount++;
+                _logger.LogWarning(ex, "SIP account sync basarisiz: {Uid}", account.Uid);
+            }
+        }
+
+        if (successCount > 0 || failCount > 0)
+        {
+            _logger.LogInformation("SIP account sync: {Success} basarili, {Fail} basarisiz", successCount, failCount);
+        }
+    }
+
     /// <summary>
     /// CallSyncService tarafindan realtime push ile sync edilmis
     /// tamamlanmis/cevapsiz kayitlari lokalden temizler.

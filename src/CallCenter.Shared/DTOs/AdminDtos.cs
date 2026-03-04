@@ -272,6 +272,7 @@ public class SipAccountListDto
     public string Username { get; set; } = string.Empty;
     public string? Transport { get; set; }
     public string? WsUri { get; set; }
+    public bool UseSrtp { get; set; }
     public string? StunServer { get; set; }
     public string? TurnServer { get; set; }
     public string? PreferredCodecs { get; set; }

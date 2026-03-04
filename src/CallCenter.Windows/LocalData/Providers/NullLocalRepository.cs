@@ -42,4 +42,9 @@ public class NullLocalRepository : ILocalRepository
     public Task DeleteSipAccountAsync(int id) => Task.CompletedTask;
     public Task<List<LocalSipAccount>> GetUnsyncedSipAccountsAsync(int limit = 50) => Task.FromResult(new List<LocalSipAccount>());
     public Task MarkSipAccountAsSyncedAsync(Guid uid, int? backendSipAccountId = null) => Task.CompletedTask;
+
+    // CONTACT BUFFER — STUB METODLAR
+    public Task SaveContactAsync(LocalContact contact) => Task.CompletedTask;
+    public Task<List<LocalContact>> GetUnsyncedContactsAsync(int limit = 50) => Task.FromResult(new List<LocalContact>());
+    public Task DeleteContactAsync(Guid uid) => Task.CompletedTask;
 }

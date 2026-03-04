@@ -71,8 +71,11 @@ public partial class MainWindow : Window
         services.AddSingleton<Services.ISipService, Services.NativeSipService>();
         services.AddSingleton<Services.IncomingCallPipelineService>();
 
-        // Contacts (lokal rehber)
-        services.AddSingleton<Services.ContactService>();
+        // Contacts (API-first + lokal buffer)
+        services.AddSingleton<Services.ContactService>(sp =>
+            new Services.ContactService(
+                sp.GetRequiredService<HttpClient>(),
+                sp.GetRequiredService<ILocalRepository>()));
 
         // Hotkeys (global kisayollar)
         _hotkeyService = new Services.HotkeyService();

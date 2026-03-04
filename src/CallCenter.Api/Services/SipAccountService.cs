@@ -89,6 +89,7 @@ public class SipAccountService : ISipAccountService
                 Username = s.Username,
                 Transport = s.Transport,
                 WsUri = s.WsUri,
+                UseSrtp = s.UseSrtp,
                 StunServer = s.StunServer,
                 TurnServer = s.TurnServer,
                 IsDefault = s.IsDefault,

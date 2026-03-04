@@ -113,4 +113,17 @@ public interface ILocalRepository
 
     /// <summary>SIP hesabini "senkronlandi" olarak isaretle</summary>
     Task MarkSipAccountAsSyncedAsync(Guid uid, int? backendSipAccountId = null);
+
+    // ═══════════════════════════════════════
+    // CONTACT BUFFER (API basarisiz olunca gecici kayit)
+    // ═══════════════════════════════════════
+
+    /// <summary>Basarisiz API yazimini lokal buffer'a kaydet</summary>
+    Task SaveContactAsync(LocalContact contact);
+
+    /// <summary>Backend'e henuz senkronlanmamis contact buffer kayitlari</summary>
+    Task<List<LocalContact>> GetUnsyncedContactsAsync(int limit = 50);
+
+    /// <summary>Sync basarili olunca buffer'dan sil</summary>
+    Task DeleteContactAsync(Guid uid);
 }

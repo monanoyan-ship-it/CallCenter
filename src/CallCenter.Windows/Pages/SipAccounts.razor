@@ -12,7 +12,7 @@
 
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <h4 class="mb-0">
-        <i class="bi bi-router-fill me-2 text-primary"></i>SIP Hesap Ayarlari (Yerel)
+        <i class="bi bi-router-fill me-2 text-primary"></i>SIP Hesap Ayarlari
     </h4>
     <button class="btn btn-primary btn-sm" @onclick="OpenCreateForm">
         <i class="bi bi-plus-lg me-1"></i>Yeni Gateway
@@ -26,11 +26,6 @@
             <div class="col-auto">
                 <button class="btn btn-outline-secondary btn-sm" @onclick="LoadData" disabled="@isLoading">
                     <i class="bi bi-arrow-clockwise me-1"></i>Yenile
-                </button>
-            </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-info btn-sm" @onclick="SyncToBackend" disabled="@(isLoading || unsyncedCount == 0)">
-                    <i class="bi bi-cloud-upload me-1"></i>Backend'e Gonder (@unsyncedCount)
                 </button>
             </div>
         </div>
@@ -66,7 +61,6 @@
                             <th>Transport</th>
                             <th>Varsayilan</th>
                             <th>Durum</th>
-                            <th>Sync</th>
                             <th style="width: 100px;"></th>
                         </tr>
                     </thead>
@@ -98,20 +92,6 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (sip.IsSyncedToBackend)
-                                    {
-                                        <span class="badge bg-info-subtle text-info" title="@(sip.LastSyncAttempt?.ToString("g") ?? "")">
-                                            <i class="bi bi-check-circle me-1"></i>Synced
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning-subtle text-warning">
-                                            <i class="bi bi-exclamation-circle me-1"></i>Beklemede
-                                        </span>
-                                    }
-                                </td>
-                                <td>
                                     <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(sip)" disabled="@isLoading">
                                         <i class="bi bi-pencil"></i>
@@ -127,8 +107,8 @@
                 </table>
             </div>
 
-            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
-                <small class="text-muted">Toplam: @sipAccounts.Count kayit | Synced: @(sipAccounts.Count(s => s.IsSyncedToBackend)) | Beklemede: @unsyncedCount</small>
+            <div class="card-footer bg-white border-top">
+                <small class="text-muted">Toplam: @sipAccounts.Count kayit</small>
             </div>
         }
     </div>
@@ -137,24 +117,12 @@
 <SipAccountForm @ref="sipForm" OnSaved="LoadData" OnDelete="HandleFormDelete" />
 
 @code {
-    private List<LocalSipAccount>? sipAccounts;
+    private List<SipAccountListDto>? sipAccounts;
     private bool isLoading;
     private SipAccountForm sipForm = null!;
-    private int unsyncedCount;
 
     protected override async Task OnInitializedAsync()
     {
-        // Ensure DB tables are created BEFORE loading data
-        try
-        {
-            await LocalRepo.InitializeAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"DB init error: {ex.Message}");
-            // continue anyway — NullRepository won't fail
-        }
-
         await LoadData();
     }
 
@@ -162,7 +130,16 @@
     {
         try
         {
-            await LocalRepo.DeleteSipAccountAsync(sip.Id);
+            // API'den sil
+            if (sip.BackendSipAccountId.HasValue)
+            {
+                var response = await HttpClient.DeleteAsync($"api/sipaccounts/{sip.BackendSipAccountId.Value}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Toast.ShowError("Silme islemi basarisiz.");
+                    return;
+                }
+            }
             Toast.ShowSuccess("Gateway basariyla silindi.");
             await LoadData();
         }
@@ -179,8 +156,8 @@
 
         try
         {
-            sipAccounts = await LocalRepo.GetAllSipAccountsAsync(1, 1000);
-            unsyncedCount = sipAccounts?.Count(s => !s.IsSyncedToBackend) ?? 0;
+            var result = await HttpClient.GetFromJsonAsync<PagedResult<SipAccountListDto>>("api/sipaccounts?pageSize=1000");
+            sipAccounts = result?.Items;
         }
         catch (Exception ex)
         {
@@ -198,157 +175,31 @@
         sipForm.OpenForCreate();
     }
 
-    private void OpenEditForm(LocalSipAccount sip)
+    private void OpenEditForm(SipAccountListDto sip)
     {
         sipForm.OpenForEdit(sip);
     }
 
-    private async Task DeleteSipAccountAsync(LocalSipAccount sip)
+    private async Task DeleteSipAccountAsync(SipAccountListDto sip)
     {
         if (sip == null) return;
 
         try
         {
-            await LocalRepo.DeleteSipAccountAsync(sip.Id);
-            Toast.ShowSuccess("Gateway basariyla silindi.");
-            await LoadData();
+            var response = await HttpClient.DeleteAsync($"api/sipaccounts/{sip.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Gateway basariyla silindi.");
+                await LoadData();
+            }
+            else
+            {
+                Toast.ShowError("Silme islemi basarisiz.");
+            }
         }
         catch (Exception ex)
         {
             Toast.ShowError($"Silme islemi basarisiz: {ex.Message}");
-        }
-    }
-
-    private async Task SyncToBackend()
-    {
-        if (unsyncedCount == 0)
-        {
-            Toast.ShowInfo("Gonderilecek gateway yok.");
-            return;
-        }
-
-        isLoading = true;
-        StateHasChanged();
-
-        try
-        {
-            var unsyncedAccounts = await LocalRepo.GetUnsyncedSipAccountsAsync(100);
-            
-            if (unsyncedAccounts.Count == 0)
-            {
-                Toast.ShowInfo("Gonderilecek gateway yok.");
-                return;
-            }
-
-            // Backend'e push et — CreateDto veya UpdateDto'ya dönüştür
-            int successCount = 0;
-            int failureCount = 0;
-
-            foreach (var account in unsyncedAccounts)
-            {
-                try
-                {
-                    if (account.BackendSipAccountId == null)
-                    {
-                        // Yeni — POST ile create et
-                        var createDto = new SipAccountCreateDto
-                        {
-                            Name = account.Name,
-                            Server = account.Server,
-                            Port = account.Port,
-                            Domain = account.Domain,
-                            Username = account.Username,
-                            Password = account.Password,
-                            Transport = account.Transport,
-                            WsUri = account.WsUri,
-                            UseSrtp = account.UseSrtp,
-                            StunServer = account.StunServer,
-                            TurnServer = account.TurnServer,
-                            TurnUsername = account.TurnUsername,
-                            TurnPassword = account.TurnPassword,
-                            PreferredCodecs = account.PreferredCodecs,
-                            JitterBufferMinMs = account.JitterBufferMinMs,
-                            JitterBufferMaxMs = account.JitterBufferMaxMs,
-                            IsDefault = account.IsDefault,
-                            CustomerId = PermService.CustomerId ?? 0
-                        };
-
-                        var response = await HttpClient.PostAsJsonAsync("api/sipaccounts", createDto);
-                        if (response.IsSuccessStatusCode)
-                        {
-                            // Backend'den yeni ID'yi al ve sync
-                            var jsonString = await response.Content.ReadAsStringAsync();
-                            var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonString);
-                            int? backendId = jsonDoc.RootElement.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : (int?)null;
-                            await LocalRepo.MarkSipAccountAsSyncedAsync(account.Uid, backendId);
-                            successCount++;
-                        }
-                        else
-                        {
-                            failureCount++;
-                        }
-                    }
-                    else
-                    {
-                        // Mevcut — PUT ile update et
-                        var updateDto = new SipAccountUpdateDto
-                        {
-                            Name = account.Name,
-                            Server = account.Server,
-                            Port = account.Port,
-                            Domain = account.Domain,
-                            Username = account.Username,
-                            Password = account.Password,
-                            Transport = account.Transport,
-                            WsUri = account.WsUri,
-                            UseSrtp = account.UseSrtp,
-                            StunServer = account.StunServer,
-                            TurnServer = account.TurnServer,
-                            TurnUsername = account.TurnUsername,
-                            TurnPassword = account.TurnPassword,
-                            PreferredCodecs = account.PreferredCodecs,
-                            JitterBufferMinMs = account.JitterBufferMinMs,
-                            JitterBufferMaxMs = account.JitterBufferMaxMs,
-                            IsDefault = account.IsDefault,
-                            IsActive = account.IsActive
-                        };
-
-                        var response = await HttpClient.PutAsJsonAsync($"api/sipaccounts/{account.BackendSipAccountId}", updateDto);
-                        if (response.IsSuccessStatusCode)
-                        {
-                            await LocalRepo.MarkSipAccountAsSyncedAsync(account.Uid, account.BackendSipAccountId);
-                            successCount++;
-                        }
-                        else
-                        {
-                            failureCount++;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    failureCount++;
-                }
-            }
-
-            // Sonuç bildiri
-            if (successCount > 0)
-            {
-                Toast.ShowSuccess($"{successCount} gateway backend'e gonderildi.");
-                await LoadData();
-            }
-            if (failureCount > 0)
-            {
-                Toast.ShowWarning($"{failureCount} gateway gönderilemedi.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Toast.ShowError($"Senkronizasyon hatası: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
         }
     }
 }

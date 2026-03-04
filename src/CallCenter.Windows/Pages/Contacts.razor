@@ -4,7 +4,7 @@
 @inject CallCenter.Windows.Services.ISipService SipService
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject NavigationManager NavigationManager
-@using CallCenter.Windows.Models
+@using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Helpers
 
 <div class="contacts-page">
@@ -34,7 +34,13 @@
         <span class="text-muted small ms-2">@filteredContacts.Count kisi</span>
     </div>
 
-    @if (filteredContacts.Count == 0)
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (filteredContacts.Count == 0)
     {
         <div class="text-center py-5 text-muted">
             <i class="bi bi-people" style="font-size: 3rem;"></i>
@@ -53,9 +59,9 @@
                             <i class="bi @(contact.IsFavorite ? "bi-star-fill text-warning" : "bi-star text-muted")"></i>
                         </button>
                         <div>
-                            <div class="fw-bold small">@contact.Name</div>
+                            <div class="fw-bold small">@contact.FullName</div>
                             <div class="text-muted" style="font-size: 0.8rem;">
-                                <i class="bi bi-telephone me-1"></i>@contact.Number
+                                <i class="bi bi-telephone me-1"></i>@contact.PhoneNumber
                                 @if (!string.IsNullOrEmpty(contact.Company))
                                 {
                                     <span class="ms-2"><i class="bi bi-building me-1"></i>@contact.Company</span>
@@ -64,7 +70,7 @@
                         </div>
                     </div>
                     <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-success" @onclick="() => CallContact(contact.Number)"
+                        <button class="btn btn-sm btn-success" @onclick="() => CallContact(contact.PhoneNumber)"
                                 title="Ara" disabled="@(!SipService.IsRegistered)">
                             <i class="bi bi-telephone-fill"></i>
                         </button>
@@ -100,25 +106,29 @@
                 <div class="modal-body">
                     <div class="mb-2">
                         <label class="form-label small">Isim *</label>
-                        <input type="text" class="form-control form-control-sm" @bind="editContact.Name" />
+                        <input type="text" class="form-control form-control-sm" @bind="editFullName" />
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Numara *</label>
-                        <input type="text" class="form-control form-control-sm" @bind="editContact.Number" />
+                        <input type="text" class="form-control form-control-sm" @bind="editPhoneNumber" />
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Firma</label>
-                        <input type="text" class="form-control form-control-sm" @bind="editContact.Company" />
+                        <input type="text" class="form-control form-control-sm" @bind="editCompany" />
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">E-posta</label>
-                        <input type="email" class="form-control form-control-sm" @bind="editContact.Email" />
+                        <input type="email" class="form-control form-control-sm" @bind="editEmail" />
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-secondary" @onclick="CloseDialog">Iptal</button>
-                    <button class="btn btn-sm btn-primary" @onclick="SaveContact"
-                            disabled="@(string.IsNullOrWhiteSpace(editContact.Name) || string.IsNullOrWhiteSpace(editContact.Number))">
+                    <button class="btn btn-sm btn-primary" @onclick="SaveContact" disabled="@isSaving"
+                            >
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
                         <i class="bi bi-check-circle me-1"></i>Kaydet
                     </button>
                 </div>
@@ -128,41 +138,68 @@
 }
 
 @code {
-    private List<Contact> filteredContacts = new();
+    private List<ContactDto> filteredContacts = new();
     private string searchQuery = "";
     private bool showFavoritesOnly;
+    private bool isLoading;
     private bool showDialog;
     private bool isEditing;
-    private Contact editContact = new();
+    private bool isSaving;
 
-    protected override void OnInitialized()
+    // Edit form alanlari
+    private int editContactId;
+    private string editFullName = "";
+    private string editPhoneNumber = "";
+    private string? editCompany;
+    private string? editEmail;
+    private bool editIsFavorite;
+
+    protected override async Task OnInitializedAsync()
     {
-        RefreshList();
+        await RefreshListAsync();
     }
 
-    private void RefreshList()
+    private async Task RefreshListAsync()
     {
-        filteredContacts = showFavoritesOnly
-            ? ContactService.GetFavorites()
-            : ContactService.Search(searchQuery);
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            if (showFavoritesOnly)
+                filteredContacts = await ContactService.GetFavoritesAsync();
+            else
+                filteredContacts = await ContactService.GetAllAsync(searchQuery);
+        }
+        catch
+        {
+            filteredContacts = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private void OnSearch(ChangeEventArgs e)
+    private async Task OnSearch(ChangeEventArgs e)
     {
         searchQuery = e.Value?.ToString() ?? "";
-        RefreshList();
+        await RefreshListAsync();
     }
 
-    private void ToggleFavorites()
+    private async Task ToggleFavorites()
     {
         showFavoritesOnly = !showFavoritesOnly;
-        RefreshList();
+        await RefreshListAsync();
     }
 
-    private void ToggleFavorite(string id)
+    private async Task ToggleFavorite(int id)
     {
-        ContactService.ToggleFavorite(id);
-        RefreshList();
+        var success = await ContactService.ToggleFavoriteAsync(id);
+        if (success)
+            await RefreshListAsync();
+        else
+            Toast.ShowError("Favori durumu guncellenemedi.");
     }
 
     private void CallContact(string number)
@@ -172,56 +209,73 @@
 
     private void OpenAddDialog()
     {
-        editContact = new Contact();
+        editContactId = 0;
+        editFullName = "";
+        editPhoneNumber = "";
+        editCompany = null;
+        editEmail = null;
+        editIsFavorite = false;
         isEditing = false;
         showDialog = true;
     }
 
-    private void OpenEditDialog(Contact contact)
+    private void OpenEditDialog(ContactDto contact)
     {
-        editContact = new Contact
-        {
-            Id = contact.Id,
-            Name = contact.Name,
-            Number = contact.Number,
-            Company = contact.Company,
-            Email = contact.Email,
-            IsFavorite = contact.IsFavorite,
-            CreatedAt = contact.CreatedAt
-        };
+        editContactId = contact.Id;
+        editFullName = contact.FullName;
+        editPhoneNumber = contact.PhoneNumber;
+        editCompany = contact.Company;
+        editEmail = contact.Email;
+        editIsFavorite = contact.IsFavorite;
         isEditing = true;
         showDialog = true;
     }
 
-    private void SaveContact()
+    private async Task SaveContact()
     {
-        // Numara temizle: bosluk, tire, parantez kaldir
-        editContact.Number = PhoneHelper.Sanitize(editContact.Number);
+        if (string.IsNullOrWhiteSpace(editFullName) || string.IsNullOrWhiteSpace(editPhoneNumber))
+            return;
 
-        if (isEditing)
+        isSaving = true;
+        StateHasChanged();
+
+        try
         {
-            ContactService.Update(editContact);
-            Toast.ShowSuccess("Kisi guncellendi");
+            var phone = PhoneHelper.Sanitize(editPhoneNumber);
+
+            if (isEditing)
+            {
+                var success = await ContactService.UpdateAsync(editContactId, editFullName, phone, editCompany, editEmail, editIsFavorite);
+                Toast.ShowSuccess(success ? "Kisi guncellendi" : "Kisi guncellendi (cevrimdisi kuyruga eklendi)");
+            }
+            else
+            {
+                var success = await ContactService.CreateAsync(editFullName, phone, editCompany, editEmail);
+                Toast.ShowSuccess(success ? "Kisi eklendi" : "Kisi eklendi (cevrimdisi kuyruga eklendi)");
+            }
+
+            CloseDialog();
+            await RefreshListAsync();
         }
-        else
+        catch (Exception ex)
         {
-            ContactService.Add(editContact);
-            Toast.ShowSuccess("Kisi eklendi");
+            Toast.ShowError($"Hata: {ex.Message}");
         }
-        CloseDialog();
-        RefreshList();
+        finally
+        {
+            isSaving = false;
+        }
     }
 
-    private void DeleteContact(string id)
+    private async Task DeleteContact(int id)
     {
-        ContactService.Delete(id);
-        Toast.ShowInfo("Kisi silindi");
-        RefreshList();
+        var success = await ContactService.DeleteAsync(id);
+        Toast.ShowInfo(success ? "Kisi silindi" : "Kisi silindi (cevrimdisi kuyruga eklendi)");
+        await RefreshListAsync();
     }
 
     private void CloseDialog()
     {
         showDialog = false;
-        editContact = new();
     }
 }

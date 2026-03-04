@@ -1,7 +1,10 @@
 @inject ILocalRepository LocalRepo
 @inject ToastService Toast
+@inject HttpClient HttpClient
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
 @using CallCenter.Windows.LocalData.Entities
 @using CallCenter.Windows.LocalData
+@using CallCenter.Shared.DTOs
 
 @if (isVisible)
 {
@@ -220,10 +223,10 @@
     private bool isEditMode;
     private bool isSaving;
     private string? errorMessage;
-    private LocalSipAccount? editingSipAccount;
+    private int? editingBackendId;
     private bool showDeleteConfirm;
 
-    private LocalSipAccount model = new();
+    private SipAccountFormModel model = new();
     private List<string> selectedCodecs = new();
 
     private const string CodecOpus = "opus";
@@ -266,13 +269,12 @@
     public void OpenForCreate()
     {
         isEditMode = false;
-        editingSipAccount = null;
+        editingBackendId = null;
         model = new()
         {
             Port = 5060,
             Transport = "UDP",
-            IsActive = true,
-            Uid = Guid.NewGuid()
+            IsActive = true
         };
         LoadCodecsFromModel();
         errorMessage = null;
@@ -280,34 +282,27 @@
         StateHasChanged();
     }
 
-    public void OpenForEdit(LocalSipAccount sip)
+    public void OpenForEdit(SipAccountListDto sip)
     {
         isEditMode = true;
-        editingSipAccount = sip;
+        editingBackendId = sip.Id;
         model = new()
         {
-            Id = sip.Id,
-            Uid = sip.Uid,
             Name = sip.Name,
             Server = sip.Server,
             Port = sip.Port,
-            Domain = sip.Domain,
             Username = sip.Username,
-            Password = "", // bos kalır — degismez
+            Password = "", // bos kalir — degismez
             Transport = sip.Transport ?? "UDP",
             WsUri = sip.WsUri,
             UseSrtp = sip.UseSrtp,
             StunServer = sip.StunServer,
             TurnServer = sip.TurnServer,
-            TurnUsername = sip.TurnUsername,
-            TurnPassword = sip.TurnPassword,
             PreferredCodecs = sip.PreferredCodecs,
             JitterBufferMinMs = sip.JitterBufferMinMs,
             JitterBufferMaxMs = sip.JitterBufferMaxMs,
             IsDefault = sip.IsDefault,
-            IsActive = sip.IsActive,
-            IsSyncedToBackend = sip.IsSyncedToBackend,
-            CreatedAt = sip.CreatedAt
+            IsActive = sip.IsActive
         };
         LoadCodecsFromModel();
         errorMessage = null;
@@ -329,18 +324,19 @@
 
     private async Task ConfirmDelete()
     {
-        if (editingSipAccount == null) return;
+        if (!editingBackendId.HasValue) return;
 
         isSaving = true;
         try
         {
-            await OnDelete.InvokeAsync(editingSipAccount);
+            // OnDelete callback ile parent SipAccounts.razor silmeyi yapar
+            await OnDelete.InvokeAsync(new LocalSipAccount { BackendSipAccountId = editingBackendId });
             isVisible = false;
             showDeleteConfirm = false;
         }
         catch (Exception ex)
         {
-            errorMessage = $"Silme hatası: {ex.Message}";
+            errorMessage = $"Silme hatasi: {ex.Message}";
         }
         finally
         {
@@ -373,30 +369,85 @@
                 return;
             }
 
-            if (isEditMode && editingSipAccount != null)
+            if (isEditMode && editingBackendId.HasValue)
             {
-                // Update modu — password bos ise eski password tutar
-                if (string.IsNullOrWhiteSpace(model.Password))
+                // PUT ile API'ye gonder
+                var updateDto = new SipAccountUpdateDto
                 {
-                    model.Password = editingSipAccount.Password;
-                }
+                    Name = model.Name,
+                    Server = model.Server,
+                    Port = model.Port,
+                    Domain = model.Domain,
+                    Username = model.Username,
+                    Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
+                    Transport = model.Transport,
+                    WsUri = model.WsUri,
+                    UseSrtp = model.UseSrtp,
+                    StunServer = model.StunServer,
+                    TurnServer = model.TurnServer,
+                    TurnUsername = model.TurnUsername,
+                    TurnPassword = model.TurnPassword,
+                    PreferredCodecs = model.PreferredCodecs,
+                    JitterBufferMinMs = model.JitterBufferMinMs,
+                    JitterBufferMaxMs = model.JitterBufferMaxMs,
+                    IsDefault = model.IsDefault,
+                    IsActive = model.IsActive
+                };
 
-                model.LastSyncAttempt = DateTime.UtcNow;
-                await LocalRepo.UpdateSipAccountAsync(model);
-                Toast.ShowSuccess("Gateway guncellendi.");
+                var response = await HttpClient.PutAsJsonAsync($"api/sipaccounts/{editingBackendId.Value}", updateDto);
+                if (response.IsSuccessStatusCode)
+                {
+                    Toast.ShowSuccess("Gateway guncellendi.");
+                }
+                else
+                {
+                    // API basarisiz — lokal buffer'a kaydet
+                    await SaveToLocalBuffer("Update");
+                    Toast.ShowWarning("Gateway guncellendi (cevrimdisi kuyruga eklendi).");
+                }
             }
             else
             {
-                // Create modu — password zorunlu
+                // POST ile API'ye gonder
                 if (string.IsNullOrWhiteSpace(model.Password))
                 {
                     errorMessage = "Sifre zorunludur.";
                     return;
                 }
 
-                model.CreatedAt = DateTime.UtcNow;
-                await LocalRepo.SaveSipAccountAsync(model);
-                Toast.ShowSuccess("Gateway basariyla eklendi.");
+                var createDto = new SipAccountCreateDto
+                {
+                    Name = model.Name,
+                    Server = model.Server,
+                    Port = model.Port,
+                    Domain = model.Domain,
+                    Username = model.Username,
+                    Password = model.Password,
+                    Transport = model.Transport,
+                    WsUri = model.WsUri,
+                    UseSrtp = model.UseSrtp,
+                    StunServer = model.StunServer,
+                    TurnServer = model.TurnServer,
+                    TurnUsername = model.TurnUsername,
+                    TurnPassword = model.TurnPassword,
+                    PreferredCodecs = model.PreferredCodecs,
+                    JitterBufferMinMs = model.JitterBufferMinMs,
+                    JitterBufferMaxMs = model.JitterBufferMaxMs,
+                    IsDefault = model.IsDefault,
+                    CustomerId = PermService.CustomerId ?? 0
+                };
+
+                var response = await HttpClient.PostAsJsonAsync("api/sipaccounts", createDto);
+                if (response.IsSuccessStatusCode)
+                {
+                    Toast.ShowSuccess("Gateway basariyla eklendi.");
+                }
+                else
+                {
+                    // API basarisiz — lokal buffer'a kaydet
+                    await SaveToLocalBuffer("Create");
+                    Toast.ShowWarning("Gateway eklendi (cevrimdisi kuyruga eklendi).");
+                }
             }
 
             isVisible = false;
@@ -404,11 +455,76 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Hata: {ex.Message}";
+            // Network hatasi — lokal buffer'a kaydet
+            try
+            {
+                await SaveToLocalBuffer(isEditMode ? "Update" : "Create");
+                Toast.ShowWarning("API erisilemedi, lokal kuyruga kaydedildi.");
+                isVisible = false;
+                await OnSaved.InvokeAsync();
+            }
+            catch
+            {
+                errorMessage = $"Hata: {ex.Message}";
+            }
         }
         finally
         {
             isSaving = false;
         }
+    }
+
+    private async Task SaveToLocalBuffer(string operation)
+    {
+        var localAccount = new LocalSipAccount
+        {
+            Uid = Guid.NewGuid(),
+            Name = model.Name,
+            Server = model.Server,
+            Port = model.Port,
+            Domain = model.Domain,
+            Username = model.Username,
+            Password = model.Password ?? "",
+            Transport = model.Transport,
+            WsUri = model.WsUri,
+            UseSrtp = model.UseSrtp,
+            StunServer = model.StunServer,
+            TurnServer = model.TurnServer,
+            TurnUsername = model.TurnUsername,
+            TurnPassword = model.TurnPassword,
+            PreferredCodecs = model.PreferredCodecs,
+            JitterBufferMinMs = model.JitterBufferMinMs,
+            JitterBufferMaxMs = model.JitterBufferMaxMs,
+            IsDefault = model.IsDefault,
+            IsActive = model.IsActive,
+            IsSyncedToBackend = false,
+            BackendSipAccountId = editingBackendId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await LocalRepo.SaveSipAccountAsync(localAccount);
+    }
+
+    /// <summary>Form model — DTO degil, yerel form state'i</summary>
+    private class SipAccountFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Server { get; set; } = string.Empty;
+        public int Port { get; set; } = 5060;
+        public string? Domain { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string? Password { get; set; }
+        public string Transport { get; set; } = "UDP";
+        public string? WsUri { get; set; }
+        public bool UseSrtp { get; set; }
+        public string? StunServer { get; set; }
+        public string? TurnServer { get; set; }
+        public string? TurnUsername { get; set; }
+        public string? TurnPassword { get; set; }
+        public string? PreferredCodecs { get; set; }
+        public int JitterBufferMinMs { get; set; }
+        public int JitterBufferMaxMs { get; set; }
+        public bool IsDefault { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }
