@@ -3,8 +3,10 @@
 @inject HttpClient Http
 @inject ToastService Toast
 @inject NavigationManager Nav
+@inject PermissionService PermService
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Helpers
+@using CallCenter.Shared.Enums
 
 <PageTitle>Rehber - Call Center</PageTitle>
 
@@ -12,9 +14,12 @@
     <h4 class="mb-0">
         <i class="bi bi-people-fill me-2 text-primary"></i>Rehber
     </h4>
-    <button class="btn btn-primary btn-sm" @onclick="OpenAddDialog">
-        <i class="bi bi-plus-lg me-1"></i>Yeni Kisi
-    </button>
+    @if (!isReadOnly)
+    {
+        <button class="btn btn-primary btn-sm" @onclick="OpenAddDialog">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Kisi
+        </button>
+    }
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -78,12 +83,15 @@
                                 <td>@c.Company</td>
                                 <td>@c.Email</td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenEditDialog(c)" title="Duzenle">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteContactAsync(c.Id)" title="Sil">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    @if (!isReadOnly)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenEditDialog(c)" title="Duzenle">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteContactAsync(c.Id)" title="Sil">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -155,8 +163,12 @@
     private string? editCompany;
     private string? editEmail;
 
+    private bool isReadOnly;
+
     protected override async Task OnInitializedAsync()
     {
+        await PermService.LoadAsync();
+        isReadOnly = PermService.CustomerRoleId == CustomerRoles.Ids.Operator && !PermService.IsAdmin;
         await LoadContactsAsync();
     }
 

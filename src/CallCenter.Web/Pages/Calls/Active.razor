@@ -3,6 +3,8 @@
 @inject HubService HubService
 @inject SipService SipService
 @inject HttpClient Http
+@inject PermissionService PermService
+@inject NavigationManager Nav
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
 @implements IDisposable
@@ -166,6 +168,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Operator erisim engeli
+        await PermService.LoadAsync();
+        if (PermService.CustomerRoleId == CustomerRoles.Ids.Operator && !PermService.IsAdmin)
+        {
+            Nav.NavigateTo("/dashboard", replace: true);
+            return;
+        }
+
         HubService.OnIncomingCall += HandleIncomingCall;
         HubService.OnCallEnded += HandleCallEnded;
 
