@@ -1,6 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
-using CallCenter.Api.Services.Interfaces;
+using CallCenter.Api.Factories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Api.Controllers;
@@ -11,11 +10,11 @@ namespace CallCenter.Api.Controllers;
 /// </summary>
 public abstract class AuditableControllerBase : ControllerBase
 {
-    protected readonly ServiceFactory Factory;
+    private readonly IAuditFactory _auditFactory;
 
-    protected AuditableControllerBase(ServiceFactory factory)
+    protected AuditableControllerBase(IAuditFactory auditFactory)
     {
-        Factory = factory;
+        _auditFactory = auditFactory;
     }
 
     // ───────── Yardimci property'ler ─────────
@@ -51,8 +50,7 @@ public abstract class AuditableControllerBase : ControllerBase
     /// <summary>Auth olaylarini loglar (login, logout, refresh, revoke)</summary>
     protected async Task AuditAuthAsync(string action, string description, int? userId = null, string? userName = null)
     {
-        var audit = Factory.CreateAuditService();
-        await audit.LogAuthAsync(action, description,
+        await _auditFactory.LogAuthAsync(action, description,
             userId ?? CurrentUserId,
             userName ?? CurrentUserName,
             ClientIp, ClientUserAgent);
@@ -62,8 +60,7 @@ public abstract class AuditableControllerBase : ControllerBase
     protected async Task AuditCrudAsync(string action, string entityType, string? entityId, string description,
         string? oldValues = null, string? newValues = null, int? customerId = null)
     {
-        var audit = Factory.CreateAuditService();
-        await audit.LogCrudAsync(action, entityType, entityId, description,
+        await _auditFactory.LogCrudAsync(action, entityType, entityId, description,
             CurrentUserId, CurrentUserName,
             oldValues, newValues,
             customerId ?? CurrentCustomerId,

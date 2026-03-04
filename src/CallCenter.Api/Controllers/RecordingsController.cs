@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +14,12 @@ namespace CallCenter.Api.Controllers;
 [Authorize]
 public class RecordingsController : AuditableControllerBase
 {
-    public RecordingsController(ServiceFactory factory) : base(factory) { }
+    private readonly ICloudStorageFactory _cloudStorageFactory;
+
+    public RecordingsController(IAuditFactory auditFactory, ICloudStorageFactory cloudStorageFactory) : base(auditFactory)
+    {
+        _cloudStorageFactory = cloudStorageFactory;
+    }
 
     /// <summary>
     /// Musterinin default cloud storage config'ini decrypted dondur.
@@ -27,8 +32,7 @@ public class RecordingsController : AuditableControllerBase
         if (customerId == null)
             return Unauthorized("CustomerId bulunamadi");
 
-        var service = Factory.CreateCloudStorageService();
-        var config = await service.GetConfigForClientAsync(customerId.Value);
+        var config = await _cloudStorageFactory.GetConfigForClientAsync(customerId.Value);
 
         if (config == null)
             return NotFound("Cloud storage yapilandirilmamis");
@@ -47,8 +51,7 @@ public class RecordingsController : AuditableControllerBase
         if (customerId == null)
             return Unauthorized("CustomerId bulunamadi");
 
-        var service = Factory.CreateCloudStorageService();
-        var result = await service.GetCallRecordingUrlAsync(customerId.Value, callUid, ct);
+        var result = await _cloudStorageFactory.GetCallRecordingUrlAsync(customerId.Value, callUid, ct);
 
         if (result == null)
             return NotFound("Ses kaydi bulunamadi veya bulut'a yuklenmemis");
@@ -66,8 +69,7 @@ public class RecordingsController : AuditableControllerBase
         if (customerId == null)
             return Unauthorized("CustomerId bulunamadi");
 
-        var service = Factory.CreateCloudStorageService();
-        var enabled = await service.HasActiveConfigAsync(customerId.Value);
+        var enabled = await _cloudStorageFactory.HasActiveConfigAsync(customerId.Value);
         return Ok(enabled);
     }
 }

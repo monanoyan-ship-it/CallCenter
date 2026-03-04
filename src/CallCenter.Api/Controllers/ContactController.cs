@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +11,9 @@ namespace CallCenter.Api.Controllers;
 [Authorize]
 public class ContactController : ControllerBase
 {
-    private readonly ContactService _contacts;
+    private readonly IContactFactory _contactFactory;
 
-    public ContactController(ContactService contacts) => _contacts = contacts;
+    public ContactController(IContactFactory contactFactory) => _contactFactory = contactFactory;
 
     [HttpGet]
     public async Task<ActionResult<List<ContactDto>>> GetContacts([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
@@ -22,7 +22,7 @@ public class ContactController : ControllerBase
         if (userId == null) return Unauthorized();
         var customerId = GetCustomerId();
 
-        var contacts = await _contacts.GetContactsAsync(userId.Value, customerId, search, page, pageSize);
+        var contacts = await _contactFactory.GetContactsAsync(userId.Value, customerId, search, page, pageSize);
         return Ok(contacts);
     }
 
@@ -32,7 +32,7 @@ public class ContactController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var contact = await _contacts.GetContactAsync(id, userId.Value);
+        var contact = await _contactFactory.GetContactAsync(id, userId.Value);
         return contact != null ? Ok(contact) : NotFound();
     }
 
@@ -43,7 +43,7 @@ public class ContactController : ControllerBase
         if (userId == null) return Unauthorized();
         var customerId = GetCustomerId();
 
-        var contact = await _contacts.CreateContactAsync(req, userId.Value, customerId);
+        var contact = await _contactFactory.CreateContactAsync(req, userId.Value, customerId);
         return Ok(contact);
     }
 
@@ -53,7 +53,7 @@ public class ContactController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var (success, error) = await _contacts.UpdateContactAsync(id, req, userId.Value);
+        var (success, error) = await _contactFactory.UpdateContactAsync(id, req, userId.Value);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -63,7 +63,7 @@ public class ContactController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var (success, error) = await _contacts.DeleteContactAsync(id, userId.Value);
+        var (success, error) = await _contactFactory.DeleteContactAsync(id, userId.Value);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -73,7 +73,7 @@ public class ContactController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var (success, error) = await _contacts.ToggleFavoriteAsync(id, userId.Value);
+        var (success, error) = await _contactFactory.ToggleFavoriteAsync(id, userId.Value);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -85,7 +85,7 @@ public class ContactController : ControllerBase
         if (userId == null) return Unauthorized();
         var customerId = GetCustomerId();
 
-        var result = await _contacts.ImportFromCsvAsync(req, userId.Value, customerId);
+        var result = await _contactFactory.ImportFromCsvAsync(req, userId.Value, customerId);
         return Ok(result);
     }
 
@@ -95,7 +95,7 @@ public class ContactController : ControllerBase
     public async Task<ActionResult<LdapSyncResult>> SyncLdap([FromBody] LdapConfigDto config)
     {
         var customerId = GetCustomerId();
-        var result = await _contacts.SyncFromLdapAsync(config, customerId);
+        var result = await _contactFactory.SyncFromLdapAsync(config, customerId);
         return Ok(result);
     }
 

@@ -1,5 +1,4 @@
-using CallCenter.Api.Services;
-using CallCenter.Api.Services.Interfaces;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,18 +9,17 @@ namespace CallCenter.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : AuditableControllerBase
 {
-    private readonly IPasswordPolicyService _passwordPolicy;
+    private readonly IAuthFactory _authFactory;
 
-    public AuthController(ServiceFactory factory, IPasswordPolicyService passwordPolicy) : base(factory)
+    public AuthController(IAuditFactory auditFactory, IAuthFactory authFactory) : base(auditFactory)
     {
-        _passwordPolicy = passwordPolicy;
+        _authFactory = authFactory;
     }
 
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
-        var svc = Factory.CreateAuthService();
-        var (success, response, error) = await svc.LoginAsync(request);
+        var (success, response, error) = await _authFactory.LoginAsync(request);
 
         if (!success)
         {
@@ -41,8 +39,7 @@ public class AuthController : AuditableControllerBase
     [HttpPost("refresh")]
     public async Task<ActionResult<RefreshTokenResponse>> Refresh(RefreshTokenRequest request)
     {
-        var svc = Factory.CreateAuthService();
-        var (success, response, error) = await svc.RefreshAsync(request.RefreshToken);
+        var (success, response, error) = await _authFactory.RefreshAsync(request.RefreshToken);
 
         if (!success)
         {
@@ -57,8 +54,7 @@ public class AuthController : AuditableControllerBase
     [HttpPost("revoke")]
     public async Task<ActionResult> Revoke(RefreshTokenRequest request)
     {
-        var svc = Factory.CreateAuthService();
-        await svc.RevokeAsync(request.RefreshToken);
+        await _authFactory.RevokeAsync(request.RefreshToken);
 
         await AuditAuthAsync("Revoke", "Refresh token iptal edildi.");
         return Ok(new { message = "Token iptal edildi." });
@@ -71,8 +67,7 @@ public class AuthController : AuditableControllerBase
         if (CurrentUserId == null)
             return Unauthorized();
 
-        var svc = Factory.CreateAuthService();
-        var (success, error) = await svc.ChangePasswordAsync(CurrentUserId.Value, request, _passwordPolicy);
+        var (success, error) = await _authFactory.ChangePasswordAsync(CurrentUserId.Value, request);
 
         if (!success)
         {

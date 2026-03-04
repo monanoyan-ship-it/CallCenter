@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +10,12 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class CustomersController : AuditableControllerBase
 {
-    public CustomersController(ServiceFactory factory) : base(factory) { }
+    private readonly ICustomerFactory _customerFactory;
+
+    public CustomersController(IAuditFactory auditFactory, ICustomerFactory customerFactory) : base(auditFactory)
+    {
+        _customerFactory = customerFactory;
+    }
 
     /// <summary>Sayfalamali musteri listesi</summary>
     [HttpGet]
@@ -19,16 +24,14 @@ public class CustomersController : AuditableControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] string? search = null)
     {
-        var svc = Factory.CreateCustomerService();
-        return Ok(await svc.GetAllAsync(page, pageSize, search));
+        return Ok(await _customerFactory.GetAllAsync(page, pageSize, search));
     }
 
     /// <summary>Musteri detay (personel listesi dahil)</summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<CustomerDetailDto>> GetById(int id)
     {
-        var svc = Factory.CreateCustomerService();
-        var result = await svc.GetByIdAsync(id);
+        var result = await _customerFactory.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "Musteri bulunamadi." });
         return Ok(result);
     }
@@ -37,8 +40,7 @@ public class CustomersController : AuditableControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(CustomerCreateDto dto)
     {
-        var svc = Factory.CreateCustomerService();
-        var (id, error) = await svc.CreateAsync(dto);
+        var (id, error) = await _customerFactory.CreateAsync(dto);
 
         if (id == 0)
             return BadRequest(new { message = error });
@@ -53,8 +55,7 @@ public class CustomersController : AuditableControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, CustomerUpdateDto dto)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, error) = await svc.UpdateAsync(id, dto);
+        var (success, error) = await _customerFactory.UpdateAsync(id, dto);
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Update", "Customer", id.ToString(),
@@ -67,8 +68,7 @@ public class CustomersController : AuditableControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, error) = await svc.DeleteAsync(id);
+        var (success, error) = await _customerFactory.DeleteAsync(id);
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Delete", "Customer", id.ToString(),
@@ -82,8 +82,7 @@ public class CustomersController : AuditableControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> ResetAdminPassword(int id)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, tempPassword, error) = await svc.ResetAdminPasswordAsync(id);
+        var (success, tempPassword, error) = await _customerFactory.ResetAdminPasswordAsync(id);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("PasswordReset", "Customer", id.ToString(),

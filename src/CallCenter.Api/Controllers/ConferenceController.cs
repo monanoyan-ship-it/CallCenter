@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,16 +10,19 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class ConferenceController : AuditableControllerBase
 {
-    public ConferenceController(ServiceFactory factory) : base(factory) { }
+    private readonly IConferenceFactory _conferenceFactory;
 
-    /// <summary>Yeni konferans odasi olustur</summary>
+    public ConferenceController(IAuditFactory auditFactory, IConferenceFactory conferenceFactory) : base(auditFactory)
+    {
+        _conferenceFactory = conferenceFactory;
+    }
+
     [HttpPost("rooms")]
     public async Task<ActionResult<ConferenceRoomDto>> CreateRoom(CreateConferenceRequest req)
     {
         if (CurrentUserId == null) return Unauthorized();
 
-        var svc = Factory.CreateConferenceService();
-        var room = await svc.CreateRoomAsync(req, CurrentUserId.Value, CurrentCustomerId);
+        var room = await _conferenceFactory.CreateRoomAsync(req, CurrentUserId.Value, CurrentCustomerId);
 
         await AuditCrudAsync("Create", "ConferenceRoom", room.Id.ToString(),
             $"Konferans odasi olusturuldu: '{req.Name}'", customerId: CurrentCustomerId);
@@ -27,30 +30,24 @@ public class ConferenceController : AuditableControllerBase
         return CreatedAtAction(nameof(GetRoom), new { id = room.Id }, room);
     }
 
-    /// <summary>Aktif konferans odalari</summary>
     [HttpGet("rooms/active")]
     public async Task<ActionResult<List<ConferenceRoomDto>>> GetActiveRooms([FromQuery] int? customerId = null)
     {
-        var svc = Factory.CreateConferenceService();
-        return Ok(await svc.GetActiveRoomsAsync(customerId));
+        return Ok(await _conferenceFactory.GetActiveRoomsAsync(customerId));
     }
 
-    /// <summary>Konferans odasi detay</summary>
     [HttpGet("rooms/{id}")]
     public async Task<ActionResult<ConferenceRoomDto>> GetRoom(int id)
     {
-        var svc = Factory.CreateConferenceService();
-        var room = await svc.GetRoomAsync(id);
+        var room = await _conferenceFactory.GetRoomAsync(id);
         if (room == null) return NotFound(new { message = "Oda bulunamadi." });
         return Ok(room);
     }
 
-    /// <summary>Konferansa katilimci ekle</summary>
     [HttpPost("rooms/{id}/participants")]
     public async Task<ActionResult> AddParticipant(int id, AddParticipantRequest req)
     {
-        var svc = Factory.CreateConferenceService();
-        var (success, error) = await svc.AddParticipantAsync(id, req);
+        var (success, error) = await _conferenceFactory.AddParticipantAsync(id, req);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "ConferenceParticipant", id.ToString(),
@@ -59,32 +56,26 @@ public class ConferenceController : AuditableControllerBase
         return Ok();
     }
 
-    /// <summary>Katilimciyi konferanstan cikar</summary>
     [HttpDelete("rooms/{id}/participants/{participantId}")]
     public async Task<ActionResult> RemoveParticipant(int id, int participantId)
     {
-        var svc = Factory.CreateConferenceService();
-        var (success, error) = await svc.RemoveParticipantAsync(id, participantId);
+        var (success, error) = await _conferenceFactory.RemoveParticipantAsync(id, participantId);
         if (!success) return BadRequest(new { message = error });
         return NoContent();
     }
 
-    /// <summary>Katilimciyi sessize al / ac</summary>
     [HttpPut("rooms/{id}/participants/{participantId}/mute")]
     public async Task<ActionResult> MuteParticipant(int id, int participantId, [FromQuery] bool mute = true)
     {
-        var svc = Factory.CreateConferenceService();
-        var (success, error) = await svc.MuteParticipantAsync(id, participantId, mute);
+        var (success, error) = await _conferenceFactory.MuteParticipantAsync(id, participantId, mute);
         if (!success) return BadRequest(new { message = error });
         return NoContent();
     }
 
-    /// <summary>Konferansi sonlandir</summary>
     [HttpPost("rooms/{id}/end")]
     public async Task<ActionResult> EndRoom(int id)
     {
-        var svc = Factory.CreateConferenceService();
-        var (success, error) = await svc.EndRoomAsync(id);
+        var (success, error) = await _conferenceFactory.EndRoomAsync(id);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Update", "ConferenceRoom", id.ToString(), "Konferans odasi sonlandirildi");

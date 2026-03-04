@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services.Interfaces;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -11,9 +11,9 @@ namespace CallCenter.Api.Controllers;
 [Route("api/[controller]")]
 public class ProvisioningController : ControllerBase
 {
-    private readonly IProvisioningService _provisioning;
+    private readonly IProvisioningFactory _provisioningFactory;
 
-    public ProvisioningController(IProvisioningService provisioning) => _provisioning = provisioning;
+    public ProvisioningController(IProvisioningFactory provisioningFactory) => _provisioningFactory = provisioningFactory;
 
     /// <summary>
     /// Admin: Belirli bir kullanici icin provisioning URL olusturur.
@@ -24,7 +24,7 @@ public class ProvisioningController : ControllerBase
     public async Task<ActionResult<ProvisioningUrlResponse>> CreateProvisioning([FromBody] CreateProvisioningRequest req)
     {
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
-        var result = await _provisioning.CreateProvisioningAsync(req, baseUrl);
+        var result = await _provisioningFactory.CreateProvisioningAsync(req, baseUrl);
         return Ok(result);
     }
 
@@ -40,7 +40,7 @@ public class ProvisioningController : ControllerBase
         if (string.IsNullOrEmpty(token))
             return BadRequest("Token gerekli");
 
-        var config = await _provisioning.GetProvisioningByTokenAsync(token);
+        var config = await _provisioningFactory.GetProvisioningByTokenAsync(token);
         if (config == null)
             return NotFound("Gecersiz veya suresi dolmus token");
 
@@ -58,7 +58,7 @@ public class ProvisioningController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var config = await _provisioning.GetMyProvisioningAsync(userId.Value);
+        var config = await _provisioningFactory.GetMyProvisioningAsync(userId.Value);
         if (config == null) return NotFound();
 
         return Ok(config);

@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services.Interfaces;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +11,9 @@ namespace CallCenter.Api.Controllers;
 [Authorize]
 public class MessagingController : ControllerBase
 {
-    private readonly IMessagingService _messaging;
+    private readonly IMessagingFactory _messagingFactory;
 
-    public MessagingController(IMessagingService messaging) => _messaging = messaging;
+    public MessagingController(IMessagingFactory messagingFactory) => _messagingFactory = messagingFactory;
 
     /// <summary>Mesaj gonder</summary>
     [HttpPost("send")]
@@ -23,7 +23,7 @@ public class MessagingController : ControllerBase
         if (userId == null) return Unauthorized();
 
         var customerId = GetCustomerId();
-        var result = await _messaging.SendMessageAsync(req, userId.Value, customerId);
+        var result = await _messagingFactory.SendMessageAsync(req, userId.Value, customerId);
         return Ok(result);
     }
 
@@ -34,7 +34,7 @@ public class MessagingController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var messages = await _messaging.GetConversationAsync(userId.Value, otherUserId, page, pageSize);
+        var messages = await _messagingFactory.GetConversationAsync(userId.Value, otherUserId, page, pageSize);
         return Ok(messages);
     }
 
@@ -45,7 +45,7 @@ public class MessagingController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var conversations = await _messaging.GetConversationsAsync(userId.Value);
+        var conversations = await _messagingFactory.GetConversationsAsync(userId.Value);
         return Ok(conversations);
     }
 
@@ -56,7 +56,7 @@ public class MessagingController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var result = await _messaging.MarkAsReadAsync(messageId, userId.Value);
+        var result = await _messagingFactory.MarkAsReadAsync(messageId, userId.Value);
         return result ? Ok() : NotFound();
     }
 
@@ -67,7 +67,7 @@ public class MessagingController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var count = await _messaging.MarkConversationAsReadAsync(userId.Value, otherUserId);
+        var count = await _messagingFactory.MarkConversationAsReadAsync(userId.Value, otherUserId);
         return Ok(count);
     }
 
@@ -78,7 +78,7 @@ public class MessagingController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var count = await _messaging.GetUnreadCountAsync(userId.Value);
+        var count = await _messagingFactory.GetUnreadCountAsync(userId.Value);
         return Ok(count);
     }
 

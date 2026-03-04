@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +10,11 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin")]
 public class AuditLogsController : ControllerBase
 {
-    private readonly ServiceFactory _factory;
+    private readonly IAuditLogFactory _auditLogFactory;
 
-    public AuditLogsController(ServiceFactory factory)
+    public AuditLogsController(IAuditLogFactory auditLogFactory)
     {
-        _factory = factory;
+        _auditLogFactory = auditLogFactory;
     }
 
     [HttpGet]
@@ -28,36 +28,27 @@ public class AuditLogsController : ControllerBase
         [FromQuery] DateTime? dateTo = null,
         [FromQuery] int? customerId = null)
     {
-        var svc = _factory.CreateAuditLogService();
-        var result = await svc.GetAllAsync(page, pageSize, category, action, search, dateFrom, dateTo, customerId);
+        var result = await _auditLogFactory.GetAllAsync(page, pageSize, category, action, search, dateFrom, dateTo, customerId);
         return Ok(result);
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<AuditLogDetailDto>> GetById(long id)
     {
-        var svc = _factory.CreateAuditLogService();
-        var detail = await svc.GetByIdAsync(id);
-
-        if (detail == null)
-            return NotFound();
-
+        var detail = await _auditLogFactory.GetByIdAsync(id);
+        if (detail == null) return NotFound();
         return Ok(detail);
     }
 
     [HttpGet("categories")]
     public async Task<ActionResult<List<string>>> GetCategories()
     {
-        var svc = _factory.CreateAuditLogService();
-        var categories = await svc.GetCategoriesAsync();
-        return Ok(categories);
+        return Ok(await _auditLogFactory.GetCategoriesAsync());
     }
 
     [HttpGet("actions")]
     public async Task<ActionResult<List<string>>> GetActions([FromQuery] string? category = null)
     {
-        var svc = _factory.CreateAuditLogService();
-        var actions = await svc.GetActionsAsync(category);
-        return Ok(actions);
+        return Ok(await _auditLogFactory.GetActionsAsync(category));
     }
 }

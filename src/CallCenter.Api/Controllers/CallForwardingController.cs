@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,51 +10,47 @@ namespace CallCenter.Api.Controllers;
 [Authorize]
 public class CallForwardingController : AuditableControllerBase
 {
-    public CallForwardingController(ServiceFactory factory) : base(factory) { }
+    private readonly ICallForwardingFactory _callForwardingFactory;
 
-    /// <summary>Tum yonlendirme kurallarini listele (admin/supervisor)</summary>
+    public CallForwardingController(IAuditFactory auditFactory, ICallForwardingFactory callForwardingFactory) : base(auditFactory)
+    {
+        _callForwardingFactory = callForwardingFactory;
+    }
+
     [HttpGet]
     [Authorize(Roles = "Admin,Supervisor")]
     public async Task<ActionResult<List<CallForwardingRuleDto>>> GetAll(
         [FromQuery] int? customerId = null,
         [FromQuery] int? userId = null)
     {
-        var svc = Factory.CreateCallForwardingService();
-        return Ok(await svc.GetAllAsync(customerId, userId));
+        return Ok(await _callForwardingFactory.GetAllAsync(customerId, userId));
     }
 
-    /// <summary>Kendi yonlendirme kurallarim (agent)</summary>
     [HttpGet("my")]
     public async Task<ActionResult<List<CallForwardingRuleDto>>> GetMyRules()
     {
         if (CurrentUserId == null) return Unauthorized();
-        var svc = Factory.CreateCallForwardingService();
-        return Ok(await svc.GetByUserIdAsync(CurrentUserId.Value));
+        return Ok(await _callForwardingFactory.GetByUserIdAsync(CurrentUserId.Value));
     }
 
-    /// <summary>Kural detay</summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<CallForwardingRuleDto>> GetById(int id)
     {
-        var svc = Factory.CreateCallForwardingService();
-        var result = await svc.GetByIdAsync(id);
+        var result = await _callForwardingFactory.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "Kural bulunamadi." });
         return Ok(result);
     }
 
-    /// <summary>Yeni yonlendirme kurali olustur</summary>
     [HttpPost]
     public async Task<ActionResult> Create(CallForwardingRuleCreateDto dto)
     {
-        // Agent kendi kurali icerik kontrolu
         if (!User.IsInRole("Admin") && !User.IsInRole("Supervisor"))
         {
             if (dto.UserId != CurrentUserId)
                 return Forbid();
         }
 
-        var svc = Factory.CreateCallForwardingService();
-        var (success, id, error) = await svc.CreateAsync(dto);
+        var (success, id, error) = await _callForwardingFactory.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "CallForwardingRule", id.ToString(),
@@ -64,21 +60,17 @@ public class CallForwardingController : AuditableControllerBase
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
 
-    /// <summary>Kural guncelle</summary>
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, CallForwardingRuleUpdateDto dto)
     {
-        var svc = Factory.CreateCallForwardingService();
-
-        // Yetki kontrolu: agent kendi kuralini duzenleyebilir
         if (!User.IsInRole("Admin") && !User.IsInRole("Supervisor"))
         {
-            var existing = await svc.GetByIdAsync(id);
+            var existing = await _callForwardingFactory.GetByIdAsync(id);
             if (existing == null) return NotFound(new { message = "Kural bulunamadi." });
             if (existing.UserId != CurrentUserId) return Forbid();
         }
 
-        var (success, error) = await svc.UpdateAsync(id, dto);
+        var (success, error) = await _callForwardingFactory.UpdateAsync(id, dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Update", "CallForwardingRule", id.ToString(),
@@ -87,21 +79,17 @@ public class CallForwardingController : AuditableControllerBase
         return NoContent();
     }
 
-    /// <summary>Kural sil</summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var svc = Factory.CreateCallForwardingService();
-
-        // Yetki kontrolu
         if (!User.IsInRole("Admin") && !User.IsInRole("Supervisor"))
         {
-            var existing = await svc.GetByIdAsync(id);
+            var existing = await _callForwardingFactory.GetByIdAsync(id);
             if (existing == null) return NotFound(new { message = "Kural bulunamadi." });
             if (existing.UserId != CurrentUserId) return Forbid();
         }
 
-        var (success, error) = await svc.DeleteAsync(id);
+        var (success, error) = await _callForwardingFactory.DeleteAsync(id);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Delete", "CallForwardingRule", id.ToString(),

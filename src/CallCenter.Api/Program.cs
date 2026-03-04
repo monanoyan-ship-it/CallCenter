@@ -1,9 +1,6 @@
 using System.Text;
+using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Hubs;
-using CallCenter.Api.Services;
-using CallCenter.Api.Services.CloudStorage;
-using CallCenter.Api.Services.MediaServer;
-using CallCenter.Api.Services.Interfaces;
 using CallCenter.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -51,47 +48,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Services
-builder.Services.AddSingleton<AesEncryptionService>();
-builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<CallDistributionService>();
-builder.Services.AddSingleton<CallCenter.Shared.Services.ITranslationService, TranslationService>();
-
-// Factory + Service pattern
-builder.Services.AddScoped<IPortalService, PortalService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<IAgentService, AgentService>();
-builder.Services.AddScoped<ICallService, CallService>();
-builder.Services.AddScoped<IQueueService, QueueService>();
-builder.Services.AddScoped<ISipAccountService, SipAccountService>();
-builder.Services.AddScoped<ISupervisorService, SupervisorService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddScoped<ISettingService, SettingService>();
-builder.Services.AddScoped<ITranslationManagementService, TranslationManagementService>();
-builder.Services.AddScoped<IOrganizationService, OrganizationService>();
-builder.Services.AddScoped<IAuditService, AuditService>();
-builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
-builder.Services.AddScoped<IAuditLogService, AuditLogService>();
-builder.Services.AddScoped<ICallForwardingService, CallForwardingService>();
-builder.Services.AddScoped<IConferenceService, ConferenceService>();
-builder.Services.AddScoped<IMonitoringService, MonitoringService>();
-builder.Services.AddScoped<IMessagingService, MessagingService>();
-builder.Services.AddScoped<IProvisioningService, ProvisioningService>();
-builder.Services.AddScoped<ContactService>();
-builder.Services.AddSingleton<CloudStorageFactory>();
-builder.Services.AddScoped<ICloudStorageService, CloudStorageService>();
-builder.Services.AddScoped<IIvrService, IvrService>();
-
-// Janus Gateway (Media Server)
-builder.Services.Configure<JanusConfig>(builder.Configuration.GetSection("Janus"));
-builder.Services.AddHttpClient<IJanusService, JanusService>();
-
-builder.Services.AddScoped<ServiceFactory>();
-
-// Background Services
-builder.Services.AddHostedService<AuditPartitionMaintenanceService>();
+// Services — DI Registration (Infrastructure + EntityServices + Factories)
+builder.Services
+    .AddInfrastructure(builder.Configuration)
+    .AddEntityServices()
+    .AddFactories();
 
 // SignalR
 builder.Services.AddSignalR();

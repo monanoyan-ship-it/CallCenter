@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +10,12 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class QueuesController : AuditableControllerBase
 {
-    public QueuesController(ServiceFactory factory) : base(factory) { }
+    private readonly IQueueFactory _queueFactory;
+
+    public QueuesController(IAuditFactory auditFactory, IQueueFactory queueFactory) : base(auditFactory)
+    {
+        _queueFactory = queueFactory;
+    }
 
     /// <summary>Sayfalamali kuyruk listesi</summary>
     [HttpGet]
@@ -20,16 +25,14 @@ public class QueuesController : AuditableControllerBase
         [FromQuery] int? customerId = null,
         [FromQuery] string? search = null)
     {
-        var svc = Factory.CreateQueueService();
-        return Ok(await svc.GetAllAsync(page, pageSize, customerId, search));
+        return Ok(await _queueFactory.GetAllAsync(page, pageSize, customerId, search));
     }
 
     /// <summary>Kuyruk detay (atanmis agent'lar dahil)</summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<QueueDetailDto>> GetById(int id)
     {
-        var svc = Factory.CreateQueueService();
-        var result = await svc.GetByIdAsync(id);
+        var result = await _queueFactory.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "Kuyruk bulunamadi." });
         return Ok(result);
     }
@@ -38,8 +41,7 @@ public class QueuesController : AuditableControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(QueueCreateDto dto)
     {
-        var svc = Factory.CreateQueueService();
-        var (success, id, error) = await svc.CreateAsync(dto);
+        var (success, id, error) = await _queueFactory.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "Queue", id.ToString(),
@@ -52,8 +54,7 @@ public class QueuesController : AuditableControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, QueueUpdateDto dto)
     {
-        var svc = Factory.CreateQueueService();
-        var (success, error) = await svc.UpdateAsync(id, dto);
+        var (success, error) = await _queueFactory.UpdateAsync(id, dto);
         if (!success)
         {
             if (error == "Kuyruk bulunamadi.") return NotFound(new { message = error });
@@ -70,8 +71,7 @@ public class QueuesController : AuditableControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var svc = Factory.CreateQueueService();
-        var (success, error) = await svc.DeleteAsync(id);
+        var (success, error) = await _queueFactory.DeleteAsync(id);
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Delete", "Queue", id.ToString(),
@@ -84,8 +84,7 @@ public class QueuesController : AuditableControllerBase
     [HttpPost("{id}/agents")]
     public async Task<ActionResult> AssignAgent(int id, QueueAgentAssignDto dto)
     {
-        var svc = Factory.CreateQueueService();
-        var (success, error) = await svc.AssignAgentAsync(id, dto);
+        var (success, error) = await _queueFactory.AssignAgentAsync(id, dto);
         if (!success)
         {
             if (error!.Contains("bulunamadi")) return NotFound(new { message = error });
@@ -102,8 +101,7 @@ public class QueuesController : AuditableControllerBase
     [HttpDelete("{id}/agents/{agentId}")]
     public async Task<ActionResult> RemoveAgent(int id, int agentId)
     {
-        var svc = Factory.CreateQueueService();
-        var (success, error) = await svc.RemoveAgentAsync(id, agentId);
+        var (success, error) = await _queueFactory.RemoveAgentAsync(id, agentId);
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("RemoveAgent", "Queue", id.ToString(),

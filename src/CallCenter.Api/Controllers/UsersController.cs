@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +11,12 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin")]
 public class UsersController : AuditableControllerBase
 {
-    public UsersController(ServiceFactory factory) : base(factory) { }
+    private readonly IUserFactory _userFactory;
+
+    public UsersController(IAuditFactory auditFactory, IUserFactory userFactory) : base(auditFactory)
+    {
+        _userFactory = userFactory;
+    }
 
     /// <summary>Sayfalamali kullanici listesi</summary>
     [HttpGet]
@@ -21,16 +26,14 @@ public class UsersController : AuditableControllerBase
         [FromQuery] string? search = null,
         [FromQuery] int? roleId = null)
     {
-        var svc = Factory.CreateUserService();
-        return Ok(await svc.GetAllAsync(page, pageSize, search, roleId));
+        return Ok(await _userFactory.GetAllAsync(page, pageSize, search, roleId));
     }
 
     /// <summary>Kullanici detay</summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<UserListDto>> GetById(int id)
     {
-        var svc = Factory.CreateUserService();
-        var result = await svc.GetByIdAsync(id);
+        var result = await _userFactory.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "Kullanici bulunamadi." });
         return Ok(result);
     }
@@ -39,8 +42,7 @@ public class UsersController : AuditableControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(UserCreateDto dto)
     {
-        var svc = Factory.CreateUserService();
-        var (success, id, error) = await svc.CreateAsync(dto);
+        var (success, id, error) = await _userFactory.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "User", id.ToString(),
@@ -53,8 +55,7 @@ public class UsersController : AuditableControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, UserUpdateDto dto)
     {
-        var svc = Factory.CreateUserService();
-        var (success, error) = await svc.UpdateAsync(id, dto);
+        var (success, error) = await _userFactory.UpdateAsync(id, dto);
         if (!success)
         {
             if (error == "Kullanici bulunamadi.") return NotFound(new { message = error });
@@ -72,8 +73,7 @@ public class UsersController : AuditableControllerBase
     public async Task<ActionResult> Delete(int id)
     {
         var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var svc = Factory.CreateUserService();
-        var (success, error) = await svc.DeleteAsync(id, currentUserId);
+        var (success, error) = await _userFactory.DeleteAsync(id, currentUserId);
         if (!success)
         {
             if (error == "Kullanici bulunamadi.") return NotFound(new { message = error });

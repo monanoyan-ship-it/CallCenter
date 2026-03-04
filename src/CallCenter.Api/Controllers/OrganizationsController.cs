@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,29 +10,31 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class OrganizationsController : AuditableControllerBase
 {
-    public OrganizationsController(ServiceFactory factory) : base(factory) { }
+    private readonly IOrganizationFactory _orgFactory;
+
+    public OrganizationsController(IAuditFactory auditFactory, IOrganizationFactory orgFactory) : base(auditFactory)
+    {
+        _orgFactory = orgFactory;
+    }
 
     [HttpGet("tree")]
     public async Task<IActionResult> GetTree([FromQuery] int customerId)
     {
-        var svc = Factory.CreateOrganizationService();
-        var tree = await svc.GetTreeAsync(customerId);
+        var tree = await _orgFactory.GetTreeAsync(customerId);
         return Ok(tree);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] int customerId)
     {
-        var svc = Factory.CreateOrganizationService();
-        var list = await svc.GetListAsync(customerId);
+        var list = await _orgFactory.GetListAsync(customerId);
         return Ok(list);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id, [FromQuery] int customerId)
     {
-        var svc = Factory.CreateOrganizationService();
-        var detail = await svc.GetByIdAsync(customerId, id);
+        var detail = await _orgFactory.GetByIdAsync(customerId, id);
         if (detail == null) return NotFound();
         return Ok(detail);
     }
@@ -42,8 +44,7 @@ public class OrganizationsController : AuditableControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var svc = Factory.CreateOrganizationService();
-        var (success, result) = await svc.CreateAsync(customerId, dto);
+        var (success, result) = await _orgFactory.CreateAsync(customerId, dto);
         if (!success) return BadRequest(new { error = result });
 
         await AuditCrudAsync("Create", "OrganizationUnit", result?.ToString(),
@@ -57,8 +58,7 @@ public class OrganizationsController : AuditableControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var svc = Factory.CreateOrganizationService();
-        var (success, error) = await svc.UpdateAsync(customerId, id, dto);
+        var (success, error) = await _orgFactory.UpdateAsync(customerId, id, dto);
         if (!success) return BadRequest(new { error });
 
         await AuditCrudAsync("Update", "OrganizationUnit", id.ToString(),
@@ -70,8 +70,7 @@ public class OrganizationsController : AuditableControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int customerId)
     {
-        var svc = Factory.CreateOrganizationService();
-        var (success, error) = await svc.DeleteAsync(customerId, id);
+        var (success, error) = await _orgFactory.DeleteAsync(customerId, id);
         if (!success) return BadRequest(new { error });
 
         await AuditCrudAsync("Delete", "OrganizationUnit", id.ToString(),
@@ -83,8 +82,7 @@ public class OrganizationsController : AuditableControllerBase
     [HttpGet("parents")]
     public async Task<IActionResult> GetPotentialParents([FromQuery] int customerId, [FromQuery] int? excludeId)
     {
-        var svc = Factory.CreateOrganizationService();
-        var list = await svc.GetPotentialParentsAsync(customerId, excludeId);
+        var list = await _orgFactory.GetPotentialParentsAsync(customerId, excludeId);
         return Ok(list);
     }
 }

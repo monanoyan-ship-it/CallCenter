@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,22 +10,25 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin")]
 public class SettingsController : AuditableControllerBase
 {
-    public SettingsController(ServiceFactory factory) : base(factory) { }
+    private readonly ISettingFactory _settingFactory;
+
+    public SettingsController(IAuditFactory auditFactory, ISettingFactory settingFactory) : base(auditFactory)
+    {
+        _settingFactory = settingFactory;
+    }
 
     /// <summary>Grup bazli ayar listesi (grup bos ise tumu)</summary>
     [HttpGet]
     public async Task<ActionResult<List<SystemSettingDto>>> GetAll([FromQuery] string? group = null)
     {
-        var svc = Factory.CreateSettingService();
-        return Ok(await svc.GetAllAsync(group));
+        return Ok(await _settingFactory.GetAllAsync(group));
     }
 
     /// <summary>Ayar guncelle</summary>
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, SystemSettingUpdateDto dto)
     {
-        var svc = Factory.CreateSettingService();
-        var (success, error) = await svc.UpdateAsync(id, dto);
+        var (success, error) = await _settingFactory.UpdateAsync(id, dto);
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Update", "SystemSetting", id.ToString(),
@@ -38,8 +41,7 @@ public class SettingsController : AuditableControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(SystemSettingCreateDto dto)
     {
-        var svc = Factory.CreateSettingService();
-        var (success, id, error) = await svc.CreateAsync(dto);
+        var (success, id, error) = await _settingFactory.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "SystemSetting", id.ToString(),
@@ -52,8 +54,7 @@ public class SettingsController : AuditableControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var svc = Factory.CreateSettingService();
-        var (success, error) = await svc.DeleteAsync(id);
+        var (success, error) = await _settingFactory.DeleteAsync(id);
         if (!success)
         {
             if (error == "Ayar bulunamadi.") return NotFound(new { message = error });

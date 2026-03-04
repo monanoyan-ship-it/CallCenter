@@ -1,4 +1,4 @@
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +10,11 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class ReportsController : ControllerBase
 {
-    private readonly ServiceFactory _factory;
+    private readonly IReportFactory _reportFactory;
 
-    public ReportsController(ServiceFactory factory)
+    public ReportsController(IReportFactory reportFactory)
     {
-        _factory = factory;
+        _reportFactory = reportFactory;
     }
 
     /// <summary>
@@ -30,8 +30,7 @@ public class ReportsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var svc = _factory.CreateReportService();
-        return Ok(await svc.GetCallReportAsync(customerId, from, to, directionId, statusId, page, pageSize));
+        return Ok(await _reportFactory.GetCallReportAsync(customerId, from, to, directionId, statusId, page, pageSize));
     }
 
     /// <summary>
@@ -45,7 +44,6 @@ public class ReportsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var svc = _factory.CreateReportService();
-        return Ok(await svc.GetAgentReportAsync(customerId, from, to, page, pageSize));
+        return Ok(await _reportFactory.GetAgentReportAsync(customerId, from, to, page, pageSize));
     }
 }

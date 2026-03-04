@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -12,22 +12,21 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,CustomerUser")]
 public class PortalController : AuditableControllerBase
 {
-    public PortalController(ServiceFactory factory) : base(factory) { }
+    private readonly IPortalFactory _portalFactory;
 
-    // ═══════════════════════════════════════════════════════════════
+    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory) : base(auditFactory)
+    {
+        _portalFactory = portalFactory;
+    }
+
     // HELPERS
-    // ═══════════════════════════════════════════════════════════════
 
     private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     private bool IsAdmin => User.IsInRole("Admin");
 
-    /// <summary>Musteri admin'i mi? (kendi musterisi icin tum izinler)</summary>
     private bool IsCustomerAdmin => User.FindFirstValue("IsCustomerAdmin") == "true";
 
-    /// <summary>
-    /// Admin ise ?customerId parametresinden, CustomerUser ise JWT claim'den customerId alir.
-    /// </summary>
     private int? ResolveCustomerId(int? queryCustomerId)
     {
         if (IsAdmin)
@@ -37,9 +36,6 @@ public class PortalController : AuditableControllerBase
         return claim != null ? int.Parse(claim) : null;
     }
 
-    /// <summary>
-    /// System Admin ve CustomerAdmin muaf, normal CustomerUser icin JWT claim kontrolu.
-    /// </summary>
     private bool HasPermission(int permTypeId)
     {
         if (IsAdmin || IsCustomerAdmin) return true;
@@ -50,9 +46,7 @@ public class PortalController : AuditableControllerBase
         return perms.Split(',').Any(p => int.TryParse(p.Trim(), out var id) && id == permTypeId);
     }
 
-    // ═══════════════════════════════════════════════════════════════
     // DASHBOARD
-    // ═══════════════════════════════════════════════════════════════
 
     [HttpGet("dashboard")]
     public async Task<IActionResult> GetDashboard([FromQuery] int? customerId)
@@ -60,14 +54,11 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        var result = await service.GetDashboardAsync(cid.Value);
+        var result = await _portalFactory.GetDashboardAsync(cid.Value);
         return Ok(result);
     }
 
-    // ═══════════════════════════════════════════════════════════════
     // PERSONNEL
-    // ═══════════════════════════════════════════════════════════════
 
     [HttpGet("personnel")]
     public async Task<IActionResult> GetPersonnel([FromQuery] int? customerId)
@@ -78,8 +69,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        return Ok(await service.GetPersonnelAsync(cid.Value));
+        return Ok(await _portalFactory.GetPersonnelAsync(cid.Value));
     }
 
     [HttpPost("personnel")]
@@ -91,8 +81,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        var (success, result) = await service.CreatePersonnelAsync(cid.Value, dto, GetUserId());
+        var (success, result) = await _portalFactory.CreatePersonnelAsync(cid.Value, dto, GetUserId());
         if (!success) return BadRequest(new { message = (string)result });
 
         await AuditCrudAsync("Create", "Personnel", result?.ToString(),
@@ -110,8 +99,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        var (success, error) = await service.UpdatePersonnelAsync(cid.Value, id, dto);
+        var (success, error) = await _portalFactory.UpdatePersonnelAsync(cid.Value, id, dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Update", "Personnel", id.ToString(),
@@ -129,8 +117,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        var (success, error) = await service.DeactivatePersonnelAsync(cid.Value, id);
+        var (success, error) = await _portalFactory.DeactivatePersonnelAsync(cid.Value, id);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Deactivate", "Personnel", id.ToString(),
@@ -148,8 +135,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        return Ok(await service.GetPersonnelPermissionsAsync(cid.Value, id));
+        return Ok(await _portalFactory.GetPersonnelPermissionsAsync(cid.Value, id));
     }
 
     [HttpPost("personnel/{id}/permissions")]
@@ -161,8 +147,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        var (success, error) = await service.SetPersonnelPermissionsAsync(cid.Value, id, request.PermissionTypeIds, request.ScopeId, GetUserId());
+        var (success, error) = await _portalFactory.SetPersonnelPermissionsAsync(cid.Value, id, request.PermissionTypeIds, request.ScopeId, GetUserId());
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("UpdatePermissions", "Personnel", id.ToString(),
@@ -172,9 +157,7 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
-    // ═══════════════════════════════════════════════════════════════
     // MODULES
-    // ═══════════════════════════════════════════════════════════════
 
     [HttpGet("modules")]
     public async Task<IActionResult> GetModules([FromQuery] int? customerId)
@@ -182,13 +165,10 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        return Ok(await service.GetModulesAsync(cid.Value));
+        return Ok(await _portalFactory.GetModulesAsync(cid.Value));
     }
 
-    // ═══════════════════════════════════════════════════════════════
     // SIP
-    // ═══════════════════════════════════════════════════════════════
 
     [HttpGet("sip")]
     public async Task<IActionResult> GetSipAccounts([FromQuery] int? customerId)
@@ -199,8 +179,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        return Ok(await service.GetSipAccountsAsync(cid.Value));
+        return Ok(await _portalFactory.GetSipAccountsAsync(cid.Value));
     }
 
     [HttpPut("sip/{id}")]
@@ -212,8 +191,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var service = Factory.CreatePortalService();
-        var (success, error) = await service.UpdateSipAccountAsync(cid.Value, id, dto);
+        var (success, error) = await _portalFactory.UpdateSipAccountAsync(cid.Value, id, dto);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Update", "SipAccount", id.ToString(),

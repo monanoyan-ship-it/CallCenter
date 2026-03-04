@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,22 +11,25 @@ namespace CallCenter.Api.Controllers;
 [Authorize]
 public class CallsController : AuditableControllerBase
 {
-    public CallsController(ServiceFactory factory) : base(factory) { }
+    private readonly ICallFactory _callFactory;
+
+    public CallsController(IAuditFactory auditFactory, ICallFactory callFactory) : base(auditFactory)
+    {
+        _callFactory = callFactory;
+    }
 
     /// <summary>Arama gecmisi (tamamlanmis aramalar)</summary>
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var svc = Factory.CreateCallService();
-        return Ok(await svc.GetHistoryAsync(GetUserId(), page, pageSize));
+        return Ok(await _callFactory.GetHistoryAsync(GetUserId(), page, pageSize));
     }
 
     /// <summary>Aktif aramalar (devam eden)</summary>
     [HttpGet("active")]
     public async Task<IActionResult> GetActive()
     {
-        var svc = Factory.CreateCallService();
-        return Ok(await svc.GetActiveAsync(GetUserId()));
+        return Ok(await _callFactory.GetActiveAsync(GetUserId()));
     }
 
     /// <summary>Yeni arama baslat (outbound)</summary>
@@ -35,8 +38,7 @@ public class CallsController : AuditableControllerBase
     {
         try
         {
-            var svc = Factory.CreateCallService();
-            var (id, uid) = await svc.StartCallAsync(GetUserId(), request);
+            var (id, uid) = await _callFactory.StartCallAsync(GetUserId(), request);
 
             await AuditCrudAsync("Create", "CallRecord", id.ToString(),
                 $"Arama baslatildi: {request.CalleeNumber}");
@@ -53,8 +55,7 @@ public class CallsController : AuditableControllerBase
     [HttpPut("{callId}/hold")]
     public async Task<IActionResult> HoldCall(int callId)
     {
-        var svc = Factory.CreateCallService();
-        var (success, error) = await svc.HoldCallAsync(callId);
+        var (success, error) = await _callFactory.HoldCallAsync(callId);
         if (!success) return NotFound();
 
         await AuditCrudAsync("Hold", "CallRecord", callId.ToString(),
@@ -67,8 +68,7 @@ public class CallsController : AuditableControllerBase
     [HttpPut("{callId}/end")]
     public async Task<IActionResult> EndCall(int callId)
     {
-        var svc = Factory.CreateCallService();
-        var (success, error) = await svc.EndCallAsync(callId, GetUserId());
+        var (success, error) = await _callFactory.EndCallAsync(callId, GetUserId());
         if (!success) return NotFound();
 
         await AuditCrudAsync("End", "CallRecord", callId.ToString(),
@@ -81,8 +81,7 @@ public class CallsController : AuditableControllerBase
     [HttpPut("{callId}/answer")]
     public async Task<IActionResult> AnswerCall(int callId)
     {
-        var svc = Factory.CreateCallService();
-        var (success, error) = await svc.AnswerCallAsync(callId);
+        var (success, error) = await _callFactory.AnswerCallAsync(callId);
         if (!success) return NotFound();
 
         await AuditCrudAsync("Answer", "CallRecord", callId.ToString(),
@@ -95,19 +94,16 @@ public class CallsController : AuditableControllerBase
     [HttpGet("queued")]
     public async Task<IActionResult> GetQueued([FromQuery] int? customerId = null)
     {
-        var svc = Factory.CreateCallService();
-        return Ok(await svc.GetQueuedAsync(customerId));
+        return Ok(await _callFactory.GetQueuedAsync(customerId));
     }
 
     /// <summary>
     /// Gelen arama kaydi olusturur ve uygun agent'a yonlendirir.
-    /// PBX webhook veya SIP event'i tarafindan cagrilabilir.
     /// </summary>
     [HttpPost("incoming")]
     public async Task<IActionResult> IncomingCall([FromBody] IncomingCallRequest request)
     {
-        var svc = Factory.CreateCallService();
-        var result = await svc.IncomingCallAsync(request);
+        var result = await _callFactory.IncomingCallAsync(request);
 
         await AuditCrudAsync("Incoming", "CallRecord", null,
             $"Gelen arama: {request.CallerNumber} -> kuyruk {request.QueueId}");
@@ -117,14 +113,11 @@ public class CallsController : AuditableControllerBase
 
     /// <summary>
     /// Windows uygulamasindan lokal DB senkronizasyonu.
-    /// BackgroundSyncService periyodik olarak senkronlanmamis kayitlari buraya push eder.
-    /// Uid bazli idempotent: ayni Uid tekrar gelirse gunceller, yeni olusturmaz.
     /// </summary>
     [HttpPost("sync")]
     public async Task<IActionResult> SyncPush([FromBody] CallSyncPushRequest request)
     {
-        var svc = Factory.CreateCallService();
-        var result = await svc.SyncPushAsync(GetUserId(), request);
+        var result = await _callFactory.SyncPushAsync(GetUserId(), request);
 
         await AuditCrudAsync("Sync", "CallRecord", request.Uid.ToString(),
             $"Cagri sync: {request.CallerNumber} -> {request.CalleeNumber}");

@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
+using CallCenter.Api.Factories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,28 +10,27 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "Admin,Supervisor")]
 public class CustomerPermissionsController : AuditableControllerBase
 {
-    public CustomerPermissionsController(ServiceFactory factory) : base(factory) { }
+    private readonly ICustomerFactory _customerFactory;
 
-    // ═══════════════════════════════════════════════════════════
-    // PORTAL MODUL YONETIMI (Musteriye modul ac/kapa)
-    // ═══════════════════════════════════════════════════════════
+    public CustomerPermissionsController(IAuditFactory auditFactory, ICustomerFactory customerFactory) : base(auditFactory)
+    {
+        _customerFactory = customerFactory;
+    }
 
-    /// <summary>Musterinin portal modullerini getir</summary>
+    // PORTAL MODUL YONETIMI
+
     [HttpGet("modules")]
     public async Task<IActionResult> GetCustomerModules(int customerId)
     {
-        var svc = Factory.CreateCustomerService();
-        var result = await svc.GetCustomerModulesAsync(customerId);
+        var result = await _customerFactory.GetCustomerModulesAsync(customerId);
         if (result == null) return NotFound("Musteri bulunamadi.");
         return Ok(result);
     }
 
-    /// <summary>Musteriye modul ac (toplu)</summary>
     [HttpPost("modules")]
     public async Task<IActionResult> AssignModules(int customerId, [FromBody] Shared.DTOs.AssignModulesRequest request)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, error) = await svc.AssignModulesAsync(customerId, request);
+        var (success, error) = await _customerFactory.AssignModulesAsync(customerId, request);
         if (!success) return NotFound(error);
 
         await AuditCrudAsync("AssignModules", "Customer", customerId.ToString(),
@@ -40,12 +39,10 @@ public class CustomerPermissionsController : AuditableControllerBase
         return Ok();
     }
 
-    /// <summary>Musteriden modul kapat</summary>
     [HttpDelete("modules/{moduleId}")]
     public async Task<IActionResult> DeactivateModule(int customerId, int moduleId)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, error) = await svc.DeactivateModuleAsync(customerId, moduleId);
+        var (success, error) = await _customerFactory.DeactivateModuleAsync(customerId, moduleId);
         if (!success) return NotFound(error);
 
         await AuditCrudAsync("DeactivateModule", "Customer", customerId.ToString(),
@@ -54,39 +51,29 @@ public class CustomerPermissionsController : AuditableControllerBase
         return Ok();
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // YETKI TIPLERI (Statik katalog — UI'da checkbox listesi)
-    // ═══════════════════════════════════════════════════════════
+    // YETKI TIPLERI
 
-    /// <summary>Musterinin acik modullerindeki yetki tiplerini listele</summary>
     [HttpGet("permissions/types")]
     public async Task<IActionResult> GetAvailablePermissionTypes(int customerId)
     {
-        var svc = Factory.CreateCustomerService();
-        return Ok(await svc.GetAvailablePermissionTypesAsync(customerId));
+        return Ok(await _customerFactory.GetAvailablePermissionTypesAsync(customerId));
     }
 
-    // ═══════════════════════════════════════════════════════════
     // PERSONEL YETKI YONETIMI
-    // ═══════════════════════════════════════════════════════════
 
-    /// <summary>Personelin mevcut yetkilerini getir</summary>
     [HttpGet("personnel/{personnelId}/permissions")]
     public async Task<IActionResult> GetPersonnelPermissions(int customerId, int personnelId)
     {
-        var svc = Factory.CreateCustomerService();
-        var result = await svc.GetPersonnelPermissionsAsync(customerId, personnelId);
+        var result = await _customerFactory.GetPersonnelPermissionsAsync(customerId, personnelId);
         if (result == null) return NotFound("Personel bulunamadi.");
         return Ok(result);
     }
 
-    /// <summary>Personele toplu yetki ata</summary>
     [HttpPost("personnel/{personnelId}/permissions")]
     public async Task<IActionResult> AssignPermissions(int customerId, int personnelId, [FromBody] Shared.DTOs.AssignPermissionsRequest request)
     {
         var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var svc = Factory.CreateCustomerService();
-        var (success, result, error) = await svc.AssignPermissionsAsync(customerId, personnelId, request, currentUserId);
+        var (success, result, error) = await _customerFactory.AssignPermissionsAsync(customerId, personnelId, request, currentUserId);
         if (!success) return NotFound(error);
 
         await AuditCrudAsync("AssignPermissions", "Personnel", personnelId.ToString(),
@@ -96,12 +83,10 @@ public class CustomerPermissionsController : AuditableControllerBase
         return Ok(result);
     }
 
-    /// <summary>Tek bir yetkiyi guncelle</summary>
     [HttpPut("personnel/{personnelId}/permissions/{id}")]
     public async Task<IActionResult> UpdatePermission(int customerId, int personnelId, int id, [FromBody] Shared.DTOs.UpdatePermissionRequest request)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, error) = await svc.UpdatePermissionAsync(customerId, personnelId, id, request);
+        var (success, error) = await _customerFactory.UpdatePermissionAsync(customerId, personnelId, id, request);
         if (!success)
         {
             if (error == "Yetki bulunamadi.") return NotFound(error);
@@ -115,12 +100,10 @@ public class CustomerPermissionsController : AuditableControllerBase
         return Ok();
     }
 
-    /// <summary>Yetkiyi kaldir</summary>
     [HttpDelete("personnel/{personnelId}/permissions/{id}")]
     public async Task<IActionResult> RemovePermission(int customerId, int personnelId, int id)
     {
-        var svc = Factory.CreateCustomerService();
-        var (success, error) = await svc.RemovePermissionAsync(customerId, personnelId, id);
+        var (success, error) = await _customerFactory.RemovePermissionAsync(customerId, personnelId, id);
         if (!success) return NotFound(error);
 
         await AuditCrudAsync("RemovePermission", "Permission", id.ToString(),
