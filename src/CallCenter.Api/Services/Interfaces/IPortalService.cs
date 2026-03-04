@@ -7,14 +7,6 @@ public interface IPortalService
     // Dashboard
     Task<PortalDashboardDto> GetDashboardAsync(int customerId);
 
-    // UserTypes
-    Task<List<UserTypeListDto>> GetUserTypesAsync(int customerId);
-    Task<(bool Success, object Result)> CreateUserTypeAsync(int customerId, UserTypeCreateDto dto);
-    Task<(bool Success, string? Error)> UpdateUserTypeAsync(int customerId, int id, UserTypeUpdateDto dto);
-    Task<(bool Success, string? Error)> DeactivateUserTypeAsync(int customerId, int id);
-    Task<int[]> GetUserTypePermissionsAsync(int customerId, int id);
-    Task<(bool Success, string? Error)> SetUserTypePermissionsAsync(int customerId, int id, int[] permissionTypeIds);
-
     // Personnel
     Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId);
     Task<(bool Success, object Result)> CreatePersonnelAsync(int customerId, PortalPersonnelCreateDto dto, int createdByUserId);

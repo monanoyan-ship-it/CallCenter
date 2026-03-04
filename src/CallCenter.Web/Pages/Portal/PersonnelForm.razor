@@ -58,19 +58,14 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small">Kullanici Tipi</label>
-                            <SearchableSelect Items="userTypeItems" Value="@selectedUserTypeIdStr"
-                                              ValueChanged="OnUserTypeSelected" Placeholder="-- Secilmedi --" />
-                            @if (selectedUserTypeId > 0)
-                            {
-                                var selected = userTypes?.FirstOrDefault(u => u.Id == selectedUserTypeId);
-                                @if (selected != null)
+                            <label class="form-label small">Rol</label>
+                            <select class="form-select form-select-sm" @bind="selectedRoleId">
+                                <option value="0">-- Secilmedi --</option>
+                                @foreach (var role in CallCenter.Shared.Enums.CustomerRoles.All)
                                 {
-                                    <small class="text-info d-block mt-1">
-                                        <i class="bi bi-info-circle me-1"></i>Bu tip @selected.PermissionCount yetki icerir, personele otomatik atanacak.
-                                    </small>
+                                    <option value="@role.Id">@role.Description</option>
                                 }
-                            }
+                            </select>
                         </div>
 
                         @if (isEditMode)
@@ -106,19 +101,7 @@
     private bool isSaving;
     private string? errorMessage;
     private int editId;
-    private int selectedUserTypeId;
-    private List<UserTypeListDto>? userTypes;
-
-    private List<SearchableSelect.SearchSelectItem> userTypeItems =>
-        userTypes?.Where(u => u.IsActive)
-            .Select(ut => new SearchableSelect.SearchSelectItem(ut.Id.ToString(), ut.Name, $"{ut.PermissionCount} yetki")).ToList() ?? new();
-
-    private string selectedUserTypeIdStr => selectedUserTypeId > 0 ? selectedUserTypeId.ToString() : "";
-
-    private void OnUserTypeSelected(string? val)
-    {
-        selectedUserTypeId = int.TryParse(val, out var id) ? id : 0;
-    }
+    private int selectedRoleId;
 
     private PersonnelFormModel formModel = new();
 
@@ -131,11 +114,9 @@
     {
         isEditMode = false;
         formModel = new();
-        selectedUserTypeId = 0;
+        selectedRoleId = 0;
         errorMessage = null;
         isVisible = true;
-
-        await LoadUserTypes();
         StateHasChanged();
     }
 
@@ -143,7 +124,7 @@
     {
         isEditMode = true;
         editId = item.Id;
-        selectedUserTypeId = item.UserTypeId ?? 0;
+        selectedRoleId = item.CustomerRoleId;
         formModel = new()
         {
             FullName = item.FullName,
@@ -153,18 +134,7 @@
         };
         errorMessage = null;
         isVisible = true;
-
-        await LoadUserTypes();
         StateHasChanged();
-    }
-
-    private async Task LoadUserTypes()
-    {
-        try
-        {
-            userTypes = await Http.GetFromJsonAsync<List<UserTypeListDto>>(BuildUrl("api/portal/usertypes"));
-        }
-        catch { userTypes = new(); }
     }
 
     private void Close() => isVisible = false;
@@ -186,7 +156,7 @@
                     Email = formModel.Email,
                     Password = string.IsNullOrWhiteSpace(formModel.Password) ? null : formModel.Password,
                     Title = formModel.Title,
-                    UserTypeId = selectedUserTypeId > 0 ? selectedUserTypeId : null,
+                    CustomerRoleId = selectedRoleId,
                     IsActive = formModel.IsActive
                 };
                 response = await Http.PutAsJsonAsync(BuildUrl($"api/portal/personnel/{editId}"), updateDto);
@@ -213,7 +183,7 @@
                     Email = formModel.Email,
                     Password = formModel.Password,
                     Title = formModel.Title,
-                    UserTypeId = selectedUserTypeId > 0 ? selectedUserTypeId : null
+                    CustomerRoleId = selectedRoleId
                 };
                 response = await Http.PostAsJsonAsync(BuildUrl("api/portal/personnel"), createDto);
             }

@@ -140,7 +140,6 @@ public static class PortalModules
     public static readonly TypeItem Personnel = new(7, "Personnel", "PortalModule.Personnel", "Personel yonetimi", "bi-person-badge", "bg-dark", 7, isDefault: true);
 
     // Yeni moduller (Faz 4 — sektorel arastirma sonucu)
-    public static readonly TypeItem UserTypes = new(8, "UserTypes", "PortalModule.UserTypes", "Kullanici tipi sablonlari", "bi-person-vcard", "bg-indigo", 8);
     public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9);
     public static readonly TypeItem CallRecords = new(10, "CallRecords", "PortalModule.CallRecords", "Arama kaydi dinleme/yonetimi", "bi-record-circle", "bg-orange", 10);
     public static readonly TypeItem QualityManagement = new(11, "QualityManagement", "PortalModule.QualityManagement", "Kalite degerlendirme formlari", "bi-clipboard-check", "bg-pink", 11);
@@ -148,7 +147,7 @@ public static class PortalModules
     public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);
     public static readonly TypeItem Campaigns = new(14, "Campaigns", "PortalModule.Campaigns", "Giden arama kampanyalari", "bi-megaphone-fill", "bg-yellow text-dark", 14);
 
-    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, UserTypes, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns };
+    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
@@ -164,7 +163,6 @@ public static class PortalModules
         public const int Queues = 5;
         public const int Settings = 6;
         public const int Personnel = 7;
-        public const int UserTypes = 8;
         public const int SipSettings = 9;
         public const int CallRecords = 10;
         public const int QualityManagement = 11;
@@ -209,10 +207,6 @@ public static class CustomerPermissionTypes
     public static readonly TypeItem PersonnelView = new(60, "PersonnelView", "CustomerPermission.PersonnelView", "Personeli goruntuleyebilir", "bi-people", "bg-dark", 60);
     public static readonly TypeItem PersonnelManage = new(61, "PersonnelManage", "CustomerPermission.PersonnelManage", "Personeli yonetebilir", "bi-person-plus-fill", "bg-dark", 61);
 
-    // UserTypes (Kullanici Tipleri)
-    public static readonly TypeItem UserTypeView = new(70, "UserTypeView", "CustomerPermission.UserTypeView", "Kullanici tiplerini goruntuleyebilir", "bi-person-vcard", "bg-indigo", 70);
-    public static readonly TypeItem UserTypeManage = new(71, "UserTypeManage", "CustomerPermission.UserTypeManage", "Kullanici tiplerini yonetebilir", "bi-person-vcard-fill", "bg-indigo", 71);
-
     // SipSettings (SIP Ayarlari)
     public static readonly TypeItem SipView = new(80, "SipView", "CustomerPermission.SipView", "SIP hesaplarini goruntuleyebilir", "bi-router", "bg-teal", 80);
     public static readonly TypeItem SipManage = new(81, "SipManage", "CustomerPermission.SipManage", "SIP hesaplarini yonetebilir", "bi-router-fill", "bg-teal", 81);
@@ -249,7 +243,6 @@ public static class CustomerPermissionTypes
         QueueView, QueueManage,
         SettingsView, SettingsManage,
         PersonnelView, PersonnelManage,
-        UserTypeView, UserTypeManage,
         SipView, SipManage,
         RecordListen, RecordDownload, RecordDelete,
         QualityView, QualityManage, QualityScore,
@@ -273,7 +266,6 @@ public static class CustomerPermissionTypes
             PortalModules.Ids.Queues => new[] { QueueView, QueueManage },
             PortalModules.Ids.Settings => new[] { SettingsView, SettingsManage },
             PortalModules.Ids.Personnel => new[] { PersonnelView, PersonnelManage },
-            PortalModules.Ids.UserTypes => new[] { UserTypeView, UserTypeManage },
             PortalModules.Ids.SipSettings => new[] { SipView, SipManage },
             PortalModules.Ids.CallRecords => new[] { RecordListen, RecordDownload, RecordDelete },
             PortalModules.Ids.QualityManagement => new[] { QualityView, QualityManage, QualityScore },
@@ -296,7 +288,6 @@ public static class CustomerPermissionTypes
             >= 40 and <= 49 => PortalModules.Ids.Queues,
             >= 50 and <= 59 => PortalModules.Ids.Settings,
             >= 60 and <= 69 => PortalModules.Ids.Personnel,
-            >= 70 and <= 79 => PortalModules.Ids.UserTypes,
             >= 80 and <= 89 => PortalModules.Ids.SipSettings,
             >= 90 and <= 99 => PortalModules.Ids.CallRecords,
             >= 100 and <= 109 => PortalModules.Ids.QualityManagement,
@@ -331,9 +322,6 @@ public static class CustomerPermissionTypes
         // Personnel
         public const int PersonnelView = 60;
         public const int PersonnelManage = 61;
-        // UserTypes
-        public const int UserTypeView = 70;
-        public const int UserTypeManage = 71;
         // SipSettings
         public const int SipView = 80;
         public const int SipManage = 81;
@@ -639,6 +627,31 @@ public static class SipPresenceStatuses
         public const int Away = 4;
         public const int OnThePhone = 5;
         public const int DoNotDisturb = 6;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÜŞTERİ ROLLERİ (Sabit firma rolleri)
+// ═══════════════════════════════════════════════════════════════
+
+public static class CustomerRoles
+{
+    public static readonly TypeItem FirmaAdmin = new(1, "FirmaAdmin", "CustomerRole.FirmaAdmin", "Firma Yoneticisi", "bi-shield-fill-check", "bg-danger", 1);
+    public static readonly TypeItem EkipLideri = new(2, "EkipLideri", "CustomerRole.EkipLideri", "Ekip Lideri", "bi-people-fill", "bg-info", 2);
+    public static readonly TypeItem Operator = new(3, "Operator", "CustomerRole.Operator", "Operator", "bi-headset", "bg-primary", 3, isDefault: true);
+
+    public static IEnumerable<TypeItem> All => new[] { FirmaAdmin, EkipLideri, Operator };
+    public static TypeItem Default => All.First(x => x.IsDefault);
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    /// <summary>Aranabilir roller (MaxUsers limitine dahil)</summary>
+    public static IEnumerable<TypeItem> CallableRoles => new[] { EkipLideri, Operator };
+
+    public static class Ids
+    {
+        public const int FirmaAdmin = 1;
+        public const int EkipLideri = 2;
+        public const int Operator = 3;
     }
 }
 

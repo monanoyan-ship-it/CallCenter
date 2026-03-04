@@ -16,6 +16,7 @@ public class WindowsPermissionService
 
     public bool IsAdmin { get; private set; }
     public int? CustomerId { get; private set; }
+    public int CustomerRoleId { get; private set; }
 
     public WindowsPermissionService(AuthenticationStateProvider authState)
     {
@@ -35,6 +36,9 @@ public class WindowsPermissionService
 
         var customerIdClaim = user.FindFirst("CustomerId")?.Value;
         CustomerId = customerIdClaim != null && int.TryParse(customerIdClaim, out var cid) ? cid : null;
+
+        var roleClaim = user.FindFirst("CustomerRoleId")?.Value;
+        CustomerRoleId = roleClaim != null && int.TryParse(roleClaim, out var rid) ? rid : 0;
 
         var permsClaim = user.FindFirst("CustomerPermissions")?.Value;
         if (!string.IsNullOrEmpty(permsClaim))
@@ -56,11 +60,6 @@ public class WindowsPermissionService
         return _permissions.Contains(permTypeId);
     }
 
-    /// <summary>Moduldeki herhangi bir izne sahip mi? Admin her zaman true.</summary>
-    public bool HasModule(int moduleId)
-    {
-        if (IsAdmin) return true;
-        var modulePerms = CustomerPermissionTypes.GetByModule(moduleId);
-        return modulePerms.Any(p => _permissions.Contains(p.Id));
-    }
+    /// <summary>Tum moduller her zaman aktif (dinamik modul yonetimi kaldirildi).</summary>
+    public bool HasModule(int moduleId) => true;
 }

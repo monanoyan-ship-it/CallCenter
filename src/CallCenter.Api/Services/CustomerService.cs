@@ -48,6 +48,7 @@ public class CustomerService : ICustomerService
                 Email = c.Email,
                 IsActive = c.IsActive,
                 CreatedAt = c.CreatedAt,
+                MaxUsers = c.MaxUsers,
                 PersonnelCount = c.Personnel.Count,
                 QueueCount = c.Queues.Count,
                 SipAccountCount = c.SipAccounts.Count
@@ -99,6 +100,7 @@ public class CustomerService : ICustomerService
             Phone = c.Phone,
             Email = c.Email,
             IsActive = c.IsActive,
+            MaxUsers = c.MaxUsers,
             CreatedAt = c.CreatedAt,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
             {
@@ -124,6 +126,7 @@ public class CustomerService : ICustomerService
             Address = dto.Address,
             Phone = dto.Phone,
             Email = dto.Email,
+            MaxUsers = dto.MaxUsers,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -131,8 +134,8 @@ public class CustomerService : ICustomerService
         _db.Customers.Add(customer);
         await _db.SaveChangesAsync();
 
-        // ── 1. Varsayilan portal modullerini otomatik ata ──
-        foreach (var module in PortalModules.Defaults)
+        // ── 1. Tum portal modullerini otomatik ata (hepsi her zaman aktif) ──
+        foreach (var module in PortalModules.All)
         {
             _db.CustomerPortalModules.Add(new CustomerPortalModule
             {
@@ -156,22 +159,7 @@ public class CustomerService : ICustomerService
     /// </summary>
     private async Task CreateCustomerAdminAsync(Customer customer, string userName, string password)
     {
-        // --- Adim 1: Musteri icin "Yonetici" kullanici tipi olustur ---
-        var adminType = new CustomerUserType
-        {
-            Name = "Yönetici",
-            Description = "Müşteri yönetici tipi — tüm izinlere sahip",
-            Level = 1,
-            CanManageSubordinates = true,
-            CanApprove = true,
-            CustomerId = customer.Id,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.CustomerUserTypes.Add(adminType);
-        await _db.SaveChangesAsync();
-
-        // --- Adim 2: User olustur (login icin) ---
+        // --- Adim 1: User olustur (login icin) ---
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
         var adminUser = new User
@@ -192,13 +180,13 @@ public class CustomerService : ICustomerService
 
         await _passwordPolicy.RecordPasswordAsync(adminUser.Id, passwordHash);
 
-        // --- Adim 3: CustomerPersonnel olustur (IsCustomerAdmin=true) ---
+        // --- Adim 2: CustomerPersonnel olustur (IsCustomerAdmin=true, FirmaAdmin rolu) ---
         var adminPersonnel = new CustomerPersonnel
         {
             UserId = adminUser.Id,
             CustomerId = customer.Id,
             Title = "Müşteri Yöneticisi",
-            UserTypeId = adminType.Id,
+            CustomerRoleId = CustomerRoles.Ids.FirmaAdmin,
             IsCustomerAdmin = true,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
@@ -206,7 +194,7 @@ public class CustomerService : ICustomerService
         _db.CustomerPersonnel.Add(adminPersonnel);
         await _db.SaveChangesAsync();
 
-        // --- Adim 4: Tum portal izinlerini personele ata ---
+        // --- Adim 3: Tum portal izinlerini personele ata ---
         foreach (var permType in CustomerPermissionTypes.All)
         {
             _db.CustomerPersonnelPermissions.Add(new CustomerPersonnelPermission
@@ -233,6 +221,7 @@ public class CustomerService : ICustomerService
         customer.Phone = dto.Phone;
         customer.Email = dto.Email;
         customer.IsActive = dto.IsActive;
+        customer.MaxUsers = dto.MaxUsers;
 
         await _db.SaveChangesAsync();
         return (true, null);

@@ -56,6 +56,12 @@
                             </div>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label small">Maks. Kullanici Sayisi</label>
+                            <InputNumber class="form-control form-control-sm" @bind-Value="model.MaxUsers" />
+                            <small class="text-muted">0 = limitsiz. Sadece aranabilir kullanicilar (Operator + Ekip Lideri) sayilir.</small>
+                        </div>
+
                         @if (!isEditMode)
                         {
                             <hr class="my-2" />
@@ -164,6 +170,7 @@
             {
                 model.TaxNumber = detail.TaxNumber;
                 model.Address = detail.Address;
+                model.MaxUsers = detail.MaxUsers;
                 StateHasChanged();
             }
         }
@@ -230,6 +237,7 @@
                     Address = model.Address,
                     Phone = model.Phone,
                     Email = model.Email,
+                    MaxUsers = model.MaxUsers,
                     IsActive = isActive
                 };
                 response = await Http.PutAsJsonAsync($"api/customers/{editCustomerId}", updateDto);

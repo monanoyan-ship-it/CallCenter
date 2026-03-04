@@ -15,7 +15,15 @@
 @using CallCenter.Shared.Helpers
 @implements IAsyncDisposable
 
-<div class="dialer-page">
+@if (isAdminRole)
+{
+    <div class="alert alert-warning d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span>Firma Yoneticisi rolundeki kullanicilar arama yapamaz. Arama yapmak icin Operator veya Ekip Lideri rolune gecin.</span>
+    </div>
+}
+
+<div class="dialer-page" style="@(isAdminRole ? "opacity: 0.5; pointer-events: none;" : "")"
             <div class="dialer-card">
                 <div class="dialer-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -244,6 +252,7 @@
     private Guid? currentCallUid;       // Lokal DB referansi (cift yazim)
     private bool showTransferDialog;
     private bool _autoRecordEnabled;
+    private bool isAdminRole;
     private List<LineInfo> lines = new();
 
     private readonly (string digit, string letters)[][] keypadRows = new[]
@@ -256,8 +265,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Modul guard: Calls modulu yoksa dashboard'a yonlendir
+        // Modul guard + admin rol kontrolu
         await PermService.LoadAsync();
+        isAdminRole = PermService.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
+
         if (!PermService.HasModule(PortalModules.Ids.Calls))
         {
             NavigationManager.NavigateTo("/dashboard");

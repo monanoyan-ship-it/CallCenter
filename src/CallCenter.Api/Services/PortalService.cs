@@ -28,11 +28,14 @@ public class PortalService : IPortalService
     {
         var today = DateTime.UtcNow.Date;
 
+        var customer = await _db.Customers.FindAsync(customerId);
+
         var personnelCount = await _db.CustomerPersonnel
             .CountAsync(p => p.CustomerId == customerId && p.IsActive);
 
-        var userTypeCount = await _db.CustomerUserTypes
-            .CountAsync(ut => ut.CustomerId == customerId && ut.IsActive);
+        var callableUserCount = await _db.CustomerPersonnel
+            .CountAsync(p => p.CustomerId == customerId && p.IsActive
+                && p.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin);
 
         var activeModules = await _db.CustomerPortalModules
             .Where(m => m.CustomerId == customerId && m.IsActive)
@@ -64,180 +67,12 @@ public class PortalService : IPortalService
         {
             PersonnelCount = personnelCount,
             ActiveModuleCount = activeModules.Count,
-            UserTypeCount = userTypeCount,
+            MaxUsers = customer?.MaxUsers ?? 0,
+            CallableUserCount = callableUserCount,
             TotalCallsToday = callsToday,
             SipAccountCount = sipCount,
             Modules = modules
         };
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // USERTYPES
-    // ═══════════════════════════════════════════════════════════════
-
-    public async Task<List<UserTypeListDto>> GetUserTypesAsync(int customerId)
-    {
-        return await _db.CustomerUserTypes
-            .Where(ut => ut.CustomerId == customerId)
-            .Select(ut => new UserTypeListDto
-            {
-                Id = ut.Id,
-                Uid = ut.Uid,
-                Name = ut.Name,
-                Description = ut.Description,
-                Level = ut.Level,
-                CanManageSubordinates = ut.CanManageSubordinates,
-                IsActive = ut.IsActive,
-                PersonnelCount = ut.Personnel.Count(p => p.IsActive),
-                PermissionCount = ut.Permissions.Count
-            })
-            .OrderBy(ut => ut.Name)
-            .ToListAsync();
-    }
-
-    public async Task<(bool Success, object Result)> CreateUserTypeAsync(int customerId, UserTypeCreateDto dto)
-    {
-        var exists = await _db.CustomerUserTypes
-            .AnyAsync(ut => ut.CustomerId == customerId && ut.Name == dto.Name);
-        if (exists)
-            return (false, "Bu isimde bir kullanici tipi zaten var.");
-
-        var entity = new CustomerUserType
-        {
-            CustomerId = customerId,
-            Name = dto.Name,
-            Description = dto.Description,
-            Level = dto.Level,
-            CanManageSubordinates = dto.CanManageSubordinates
-        };
-
-        _db.CustomerUserTypes.Add(entity);
-        await _db.SaveChangesAsync();
-
-        return (true, new UserTypeListDto
-        {
-            Id = entity.Id,
-            Uid = entity.Uid,
-            Name = entity.Name,
-            Description = entity.Description,
-            Level = entity.Level,
-            CanManageSubordinates = entity.CanManageSubordinates,
-            IsActive = entity.IsActive,
-            PersonnelCount = 0,
-            PermissionCount = 0
-        });
-    }
-
-    public async Task<(bool Success, string? Error)> UpdateUserTypeAsync(int customerId, int id, UserTypeUpdateDto dto)
-    {
-        var entity = await _db.CustomerUserTypes
-            .FirstOrDefaultAsync(ut => ut.Id == id && ut.CustomerId == customerId);
-        if (entity == null)
-            return (false, "Kullanici tipi bulunamadi.");
-
-        // Varsayilan (seed) Yonetici tipi koruması:
-        // Musterinin ilk olusturulan UserType'i degistirilemez ve deaktif edilemez
-        var isDefault = await IsDefaultUserTypeAsync(customerId, id);
-        if (isDefault)
-        {
-            // Ad, aktiflik ve seviye degistirilemez
-            if (dto.Name != entity.Name)
-                return (false, "Varsayilan Yonetici tipinin adi degistirilemez.");
-            if (!dto.IsActive)
-                return (false, "Varsayilan Yonetici tipi deaktif edilemez.");
-            if (dto.Level != entity.Level)
-                return (false, "Varsayilan Yonetici tipinin seviyesi degistirilemez.");
-        }
-
-        // Ayni isimde baska bir tip var mi?
-        var duplicate = await _db.CustomerUserTypes
-            .AnyAsync(ut => ut.CustomerId == customerId && ut.Name == dto.Name && ut.Id != id);
-        if (duplicate)
-            return (false, "Bu isimde bir kullanici tipi zaten var.");
-
-        entity.Name = dto.Name;
-        entity.Description = dto.Description;
-        entity.Level = dto.Level;
-        entity.CanManageSubordinates = dto.CanManageSubordinates;
-        entity.IsActive = dto.IsActive;
-        await _db.SaveChangesAsync();
-
-        return (true, null);
-    }
-
-    public async Task<(bool Success, string? Error)> DeactivateUserTypeAsync(int customerId, int id)
-    {
-        var entity = await _db.CustomerUserTypes
-            .FirstOrDefaultAsync(ut => ut.Id == id && ut.CustomerId == customerId);
-        if (entity == null)
-            return (false, "Kullanici tipi bulunamadi.");
-
-        // Varsayilan Yonetici tipi deaktif edilemez
-        if (await IsDefaultUserTypeAsync(customerId, id))
-            return (false, "Varsayilan Yonetici tipi deaktif edilemez.");
-
-        entity.IsActive = false;
-        await _db.SaveChangesAsync();
-
-        return (true, null);
-    }
-
-    /// <summary>
-    /// Musterinin ilk olusturulan (seed) UserType'ini tespit eder.
-    /// CreateCustomerAdminAsync her zaman ilk UserType'i olusturur, bu "Yonetici" tipidir.
-    /// </summary>
-    private async Task<bool> IsDefaultUserTypeAsync(int customerId, int userTypeId)
-    {
-        var firstTypeId = await _db.CustomerUserTypes
-            .Where(ut => ut.CustomerId == customerId)
-            .OrderBy(ut => ut.Id)
-            .Select(ut => ut.Id)
-            .FirstOrDefaultAsync();
-
-        return firstTypeId == userTypeId;
-    }
-
-    public async Task<int[]> GetUserTypePermissionsAsync(int customerId, int id)
-    {
-        return await _db.CustomerUserTypePermissions
-            .Where(p => p.UserType.CustomerId == customerId && p.UserTypeId == id)
-            .Select(p => p.PermissionTypeId)
-            .ToArrayAsync();
-    }
-
-    public async Task<(bool Success, string? Error)> SetUserTypePermissionsAsync(int customerId, int id, int[] permissionTypeIds)
-    {
-        var entity = await _db.CustomerUserTypes
-            .Include(ut => ut.Permissions)
-            .FirstOrDefaultAsync(ut => ut.Id == id && ut.CustomerId == customerId);
-        if (entity == null)
-            return (false, "Kullanici tipi bulunamadi.");
-
-        // Musterinin acik modulleri
-        var activeModuleIds = await _db.CustomerPortalModules
-            .Where(m => m.CustomerId == customerId && m.IsActive)
-            .Select(m => m.ModuleId)
-            .ToListAsync();
-
-        // Sadece acik modullerdeki yetkilere izin ver
-        var validPermIds = permissionTypeIds
-            .Where(pid => activeModuleIds.Contains(CustomerPermissionTypes.GetModuleId(pid)))
-            .Distinct()
-            .ToArray();
-
-        // Mevcut yetkileri temizle, yenilerini ekle
-        entity.Permissions.Clear();
-        foreach (var pid in validPermIds)
-        {
-            entity.Permissions.Add(new CustomerUserTypePermission
-            {
-                UserTypeId = entity.Id,
-                PermissionTypeId = pid
-            });
-        }
-
-        await _db.SaveChangesAsync();
-        return (true, null);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -246,10 +81,9 @@ public class PortalService : IPortalService
 
     public async Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId)
     {
-        return await _db.CustomerPersonnel
+        var personnel = await _db.CustomerPersonnel
             .Where(p => p.CustomerId == customerId)
             .Include(p => p.User)
-            .Include(p => p.UserType)
             .Select(p => new PortalPersonnelListDto
             {
                 Id = p.Id,
@@ -257,8 +91,7 @@ public class PortalService : IPortalService
                 FullName = p.User.FullName,
                 Email = p.User.Email,
                 Title = p.Title,
-                UserTypeId = p.UserTypeId,
-                UserTypeName = p.UserType != null ? p.UserType.Name : null,
+                CustomerRoleId = p.CustomerRoleId,
                 OrganizationUnitId = p.OrganizationUnitId,
                 OrganizationUnitName = p.OrganizationUnit != null ? p.OrganizationUnit.Name : null,
                 ReportsToPersonnelId = p.ReportsToPersonnelId,
@@ -268,6 +101,12 @@ public class PortalService : IPortalService
             })
             .OrderBy(p => p.FullName)
             .ToListAsync();
+
+        // CustomerRoleName'i memory'de ata (TypeItem DB'de degil)
+        foreach (var p in personnel)
+            p.CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description;
+
+        return personnel;
     }
 
     public async Task<(bool Success, object Result)> CreatePersonnelAsync(int customerId, PortalPersonnelCreateDto dto, int createdByUserId)
@@ -286,6 +125,20 @@ public class PortalService : IPortalService
         var (isValid, errors) = _passwordPolicy.ValidatePassword(dto.Password);
         if (!isValid)
             return (false, string.Join(" ", errors));
+
+        // MaxUsers limit kontrolu (FirmaAdmin haric — aranabilir roller)
+        if (dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+        {
+            var customer = await _db.Customers.FindAsync(customerId);
+            if (customer?.MaxUsers > 0)
+            {
+                var callableCount = await _db.CustomerPersonnel
+                    .CountAsync(p => p.CustomerId == customerId && p.IsActive
+                        && p.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin);
+                if (callableCount >= customer.MaxUsers)
+                    return (false, $"Maksimum kullanici limitine ({customer.MaxUsers}) ulasildi.");
+            }
+        }
 
         // User olustur
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
@@ -306,25 +159,23 @@ public class PortalService : IPortalService
         // Sifre gecmisine kaydet
         await _passwordPolicy.RecordPasswordAsync(user.Id, passwordHash);
 
+        // IsCustomerAdmin auto-set: FirmaAdmin rolu secildiyse
+        var isAdmin = dto.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
+
         // CustomerPersonnel olustur
         var personnel = new CustomerPersonnel
         {
             UserId = user.Id,
             CustomerId = customerId,
             Title = dto.Title,
-            UserTypeId = dto.UserTypeId,
+            CustomerRoleId = dto.CustomerRoleId,
+            IsCustomerAdmin = isAdmin,
             OrganizationUnitId = dto.OrganizationUnitId,
             ReportsToPersonnelId = dto.ReportsToPersonnelId,
             IsActive = true
         };
         _db.CustomerPersonnel.Add(personnel);
         await _db.SaveChangesAsync();
-
-        // UserType secildiyse, template yetkilerini personele kopyala
-        if (dto.UserTypeId.HasValue)
-        {
-            await CopyUserTypePermissionsToPersonnel(dto.UserTypeId.Value, personnel.Id, createdByUserId);
-        }
 
         return (true, new PortalPersonnelListDto
         {
@@ -333,7 +184,8 @@ public class PortalService : IPortalService
             FullName = user.FullName,
             Email = user.Email,
             Title = personnel.Title,
-            UserTypeId = personnel.UserTypeId,
+            CustomerRoleId = personnel.CustomerRoleId,
+            CustomerRoleName = CustomerRoles.GetById(personnel.CustomerRoleId)?.Description,
             IsActive = true,
             PermissionCount = 0
         });
@@ -399,10 +251,11 @@ public class PortalService : IPortalService
             await _passwordPolicy.RecordPasswordAsync(personnel.UserId, newHash);
         }
 
-        // UserType degistiyse guncelle
-        if (dto.UserTypeId != personnel.UserTypeId)
+        // Rol degistiyse guncelle + IsCustomerAdmin sync
+        if (dto.CustomerRoleId != personnel.CustomerRoleId)
         {
-            personnel.UserTypeId = dto.UserTypeId;
+            personnel.CustomerRoleId = dto.CustomerRoleId;
+            personnel.IsCustomerAdmin = dto.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
         }
 
         personnel.OrganizationUnitId = dto.OrganizationUnitId;
@@ -480,14 +333,9 @@ public class PortalService : IPortalService
         if (personnel == null)
             return (false, "Personel bulunamadi.");
 
-        // Musterinin acik modulleri
-        var activeModuleIds = await _db.CustomerPortalModules
-            .Where(m => m.CustomerId == customerId && m.IsActive)
-            .Select(m => m.ModuleId)
-            .ToListAsync();
-
+        // Tum izinler her zaman kullanilabilir (modul filtreleme kaldirildi)
         var validPermIds = permissionTypeIds
-            .Where(pid => activeModuleIds.Contains(CustomerPermissionTypes.GetModuleId(pid)))
+            .Where(pid => CustomerPermissionTypes.GetById(pid) != null)
             .Distinct()
             .ToArray();
 
@@ -603,33 +451,5 @@ public class PortalService : IPortalService
 
         await _db.SaveChangesAsync();
         return (true, null);
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // PRIVATE HELPERS
-    // ═══════════════════════════════════════════════════════════════
-
-    private async Task CopyUserTypePermissionsToPersonnel(int userTypeId, int personnelId, int createdByUserId)
-    {
-        var templatePerms = await _db.CustomerUserTypePermissions
-            .Where(p => p.UserTypeId == userTypeId)
-            .Select(p => p.PermissionTypeId)
-            .ToListAsync();
-
-        foreach (var pid in templatePerms)
-        {
-            _db.CustomerPersonnelPermissions.Add(new CustomerPersonnelPermission
-            {
-                PersonnelId = personnelId,
-                PermissionTypeId = pid,
-                ScopeId = PermissionScopes.Ids.Customer,
-                IsActive = true,
-                CreatedByUserId = createdByUserId,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-
-        if (templatePerms.Count > 0)
-            await _db.SaveChangesAsync();
     }
 }

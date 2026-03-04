@@ -79,7 +79,6 @@ public class OrganizationService : IOrganizationService
             .Include(o => o.Parent)
             .Include(o => o.ManagerPersonnel).ThenInclude(m => m!.User)
             .Include(o => o.Personnel.Where(p => p.IsActive)).ThenInclude(p => p.User)
-            .Include(o => o.Personnel).ThenInclude(p => p.UserType)
             .Include(o => o.Children)
             .FirstOrDefaultAsync();
 
@@ -111,7 +110,7 @@ public class OrganizationService : IOrganizationService
                 Id = p.Id,
                 FullName = p.User.FullName,
                 Title = p.Title,
-                UserTypeName = p.UserType?.Name
+                CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description
             }).ToList(),
             Children = unit.Children.Select(c => new OrgUnitChildDto
             {

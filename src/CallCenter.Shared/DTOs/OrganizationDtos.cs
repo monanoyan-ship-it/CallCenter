@@ -68,7 +68,7 @@ public class OrgUnitPersonnelDto
     public int Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
-    public string? UserTypeName { get; set; }
+    public string? CustomerRoleName { get; set; }
 }
 
 public class OrgUnitChildDto

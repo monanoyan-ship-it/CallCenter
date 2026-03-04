@@ -41,7 +41,7 @@
                             <th>Ad Soyad</th>
                             <th>E-posta</th>
                             <th>Unvan</th>
-                            <th>Kullanici Tipi</th>
+                            <th>Rol</th>
                             <th class="text-center">Yetki</th>
                             <th>Durum</th>
                             <th style="width: 140px;"></th>
@@ -55,9 +55,9 @@
                                 <td class="text-muted small">@item.Email</td>
                                 <td class="small">@item.Title</td>
                                 <td>
-                                    @if (item.UserTypeName != null)
+                                    @if (item.CustomerRoleName != null)
                                     {
-                                        <span class="badge bg-info-subtle text-info">@item.UserTypeName</span>
+                                        <span class="badge bg-info-subtle text-info">@item.CustomerRoleName</span>
                                     }
                                     else
                                     {

@@ -17,9 +17,8 @@ public class CustomerPersonnel
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
 
-    // Kullanici tipi (sablon yetki seti) — opsiyonel
-    public int? UserTypeId { get; set; }
-    public CustomerUserType? UserType { get; set; }
+    // Sabit firma rolu (CustomerRoles TypeItem referansi, FK degil)
+    public int CustomerRoleId { get; set; }
 
     // Organizasyon birimi (opsiyonel)
     public int? OrganizationUnitId { get; set; }

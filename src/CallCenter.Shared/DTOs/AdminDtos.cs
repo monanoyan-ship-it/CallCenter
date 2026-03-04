@@ -94,6 +94,7 @@ public class CustomerListDto
     public string? Email { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int MaxUsers { get; set; }
     public int PersonnelCount { get; set; }
     public int QueueCount { get; set; }
     public int SipAccountCount { get; set; }
@@ -117,6 +118,8 @@ public class CustomerCreateDto
     [EmailAddress(ErrorMessage = "Gecerli bir e-posta giriniz.")]
     [StringLength(150)]
     public string? Email { get; set; }
+
+    public int MaxUsers { get; set; }
 
     [Required(ErrorMessage = "Admin kullanici adi zorunludur.")]
     [StringLength(50, MinimumLength = 3)]
@@ -147,6 +150,8 @@ public class CustomerUpdateDto
     public string? Email { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    public int MaxUsers { get; set; }
 }
 
 public class CustomerDetailDto
@@ -158,6 +163,7 @@ public class CustomerDetailDto
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; }
+    public int MaxUsers { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<PersonnelSimpleDto> Personnel { get; set; } = new();
 

@@ -10,12 +10,10 @@ public class Customer
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
+    public int MaxUsers { get; set; } // 0 = limitsiz
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();
-
-    // Musteriye ait kullanici tipleri (sablon yetki setleri)
-    public ICollection<CustomerUserType> UserTypes { get; set; } = new List<CustomerUserType>();
 
     // Müşteriye açık portal modülleri
     public ICollection<CustomerPortalModule> PortalModules { get; set; } = new List<CustomerPortalModule>();

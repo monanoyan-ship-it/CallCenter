@@ -53,9 +53,14 @@
                                 <InputText class="form-control form-control-sm" @bind-Value="model.Title" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Kullanici Tipi</label>
-                                <SearchableSelect Items="userTypeItems" Value="@userTypeIdStr"
-                                                  ValueChanged="OnUserTypeSelected" Placeholder="-- Tip yok --" />
+                                <label class="form-label">Rol</label>
+                                <select class="form-select form-select-sm" @bind="model.CustomerRoleId">
+                                    <option value="0">-- Secilmedi --</option>
+                                    @foreach (var role in CallCenter.Shared.Enums.CustomerRoles.All)
+                                    {
+                                        <option value="@role.Id">@role.Description</option>
+                                    }
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Organizasyon Birimi</label>
@@ -105,23 +110,18 @@
     private int? editId;
     private string editUserName = ""; // Duzenleme modunda readonly gosterim icin
     private bool userNameManuallyEdited; // Kullanici elle degistirdiyse otomatik uretme
-    private List<UserTypeListDto>? userTypes;
     private List<OrgUnitListDto>? orgUnits;
     private List<PortalPersonnelListDto>? allPersonnel;
 
-    private string userTypeIdStr => model.UserTypeId?.ToString() ?? "";
     private string orgUnitIdStr => model.OrganizationUnitId?.ToString() ?? "";
     private string reportsToIdStr => model.ReportsToPersonnelId?.ToString() ?? "";
-
-    private List<SearchableSelect.SearchSelectItem> userTypeItems =>
-        userTypes?.Select(ut => new SearchableSelect.SearchSelectItem(ut.Id.ToString(), ut.Name, $"Seviye: {ut.Level}")).ToList() ?? new();
 
     private List<SearchableSelect.SearchSelectItem> orgUnitItems =>
         orgUnits?.Select(o => new SearchableSelect.SearchSelectItem(o.Id.ToString(), o.Name, o.ParentName)).ToList() ?? new();
 
     private List<SearchableSelect.SearchSelectItem> reportsToItems =>
         allPersonnel?.Where(x => x.Id != editId)
-            .Select(p => new SearchableSelect.SearchSelectItem(p.Id.ToString(), p.FullName, p.UserTypeName)).ToList() ?? new();
+            .Select(p => new SearchableSelect.SearchSelectItem(p.Id.ToString(), p.FullName, p.CustomerRoleName)).ToList() ?? new();
 
     public async void OpenForCreate()
     {
@@ -147,7 +147,7 @@
             FullName = p.FullName,
             Email = p.Email,
             Title = p.Title,
-            UserTypeId = p.UserTypeId,
+            CustomerRoleId = p.CustomerRoleId,
             OrganizationUnitId = p.OrganizationUnitId,
             ReportsToPersonnelId = p.ReportsToPersonnelId,
             IsActive = p.IsActive
@@ -233,16 +233,10 @@
     {
         try
         {
-            userTypes = await Http.GetFromJsonAsync<List<UserTypeListDto>>($"api/portal/usertypes?customerId={CustomerId}");
             orgUnits = await Http.GetFromJsonAsync<List<OrgUnitListDto>>($"api/organizations?customerId={CustomerId}");
             allPersonnel = await Http.GetFromJsonAsync<List<PortalPersonnelListDto>>($"api/portal/personnel?customerId={CustomerId}");
         }
         catch { }
-    }
-
-    private void OnUserTypeSelected(string? val)
-    {
-        model.UserTypeId = int.TryParse(val, out var id) ? id : null;
     }
 
     private void OnOrgUnitSelected(string? val)
@@ -272,7 +266,7 @@
                     Email = model.Email,
                     Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
                     Title = model.Title,
-                    UserTypeId = model.UserTypeId,
+                    CustomerRoleId = model.CustomerRoleId,
                     OrganizationUnitId = model.OrganizationUnitId,
                     ReportsToPersonnelId = model.ReportsToPersonnelId,
                     IsActive = model.IsActive
@@ -288,7 +282,7 @@
                     Email = model.Email,
                     Password = model.Password,
                     Title = model.Title ?? "",
-                    UserTypeId = model.UserTypeId,
+                    CustomerRoleId = model.CustomerRoleId,
                     OrganizationUnitId = model.OrganizationUnitId,
                     ReportsToPersonnelId = model.ReportsToPersonnelId
                 };
@@ -329,7 +323,7 @@
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string? Title { get; set; }
-        public int? UserTypeId { get; set; }
+        public int CustomerRoleId { get; set; }
         public int? OrganizationUnitId { get; set; }
         public int? ReportsToPersonnelId { get; set; }
         public bool IsActive { get; set; } = true;

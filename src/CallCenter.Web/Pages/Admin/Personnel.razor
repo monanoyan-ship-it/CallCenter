@@ -65,7 +65,7 @@
                             <th>Ad Soyad</th>
                             <th>E-posta</th>
                             <th>Unvan</th>
-                            <th>Kullanici Tipi</th>
+                            <th>Rol</th>
                             <th>Org Birim</th>
                             <th>Ust Yonetici</th>
                             <th class="text-center">Yetki</th>
@@ -81,7 +81,7 @@
                                 <td class="fw-medium">@p.FullName</td>
                                 <td class="text-muted small">@p.Email</td>
                                 <td class="text-muted small">@p.Title</td>
-                                <td class="text-muted small">@(p.UserTypeName ?? "-")</td>
+                                <td class="text-muted small">@(p.CustomerRoleName ?? "-")</td>
                                 <td class="text-muted small">@(p.OrganizationUnitName ?? "-")</td>
                                 <td class="text-muted small">@(p.ReportsToPersonnelName ?? "-")</td>
                                 <td class="text-center">

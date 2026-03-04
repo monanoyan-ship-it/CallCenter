@@ -42,6 +42,7 @@ public class TokenService
         {
             claims.Add(new Claim("CustomerId", customerPersonnel.CustomerId.ToString()));
             claims.Add(new Claim("CustomerPersonnelId", customerPersonnel.Id.ToString()));
+            claims.Add(new Claim("CustomerRoleId", customerPersonnel.CustomerRoleId.ToString()));
 
             // Musteri admin'i ise ozel claim ekle — tum izinlere sahip
             if (customerPersonnel.IsCustomerAdmin)

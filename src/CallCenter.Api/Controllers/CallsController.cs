@@ -33,13 +33,20 @@ public class CallsController : AuditableControllerBase
     [HttpPost("start")]
     public async Task<IActionResult> StartCall([FromBody] StartCallRequest request)
     {
-        var svc = Factory.CreateCallService();
-        var (id, uid) = await svc.StartCallAsync(GetUserId(), request);
+        try
+        {
+            var svc = Factory.CreateCallService();
+            var (id, uid) = await svc.StartCallAsync(GetUserId(), request);
 
-        await AuditCrudAsync("Create", "CallRecord", id.ToString(),
-            $"Arama baslatildi: {request.CalleeNumber}");
+            await AuditCrudAsync("Create", "CallRecord", id.ToString(),
+                $"Arama baslatildi: {request.CalleeNumber}");
 
-        return Ok(new { Id = id, Uid = uid });
+            return Ok(new { Id = id, Uid = uid });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("arama yetkisi"))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>Aramayi beklet</summary>

@@ -67,6 +67,11 @@ public class CallService : ICallService
 
     public async Task<(int Id, Guid Uid)> StartCallAsync(int userId, StartCallRequest request)
     {
+        // Admin arama kisitlamasi
+        var personnel = await _db.CustomerPersonnel.FirstOrDefaultAsync(p => p.UserId == userId);
+        if (personnel?.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin)
+            throw new InvalidOperationException("Bu rolun arama yetkisi yoktur.");
+
         var call = new CallRecord
         {
             CallerNumber = PhoneHelper.Sanitize(request.CallerNumber),

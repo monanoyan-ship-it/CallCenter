@@ -54,15 +54,6 @@
         </button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(activeTab == "moduller" ? "active" : "")" @onclick='() => SetTab("moduller")'>
-            <i class="bi bi-grid-3x3-gap me-1"></i>Moduller
-            @if (modules != null)
-            {
-                <span class="badge bg-primary-subtle text-primary rounded-pill ms-1">@modules.Count(m => m.IsActive)</span>
-            }
-        </button>
-    </li>
-    <li class="nav-item">
         <button class="nav-link @(activeTab == "personel" ? "active" : "")" @onclick='() => SetTab("personel")'>
             <i class="bi bi-person-badge me-1"></i>Personel
             @if (personnel != null)
@@ -144,6 +135,11 @@
                             <ValidationMessage For="@(() => editModel.Email)" />
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label small">Maks. Kullanici</label>
+                            <InputNumber class="form-control form-control-sm" @bind-Value="editModel.MaxUsers" />
+                            <small class="text-muted">0 = limitsiz</small>
+                        </div>
+                        <div class="col-md-6">
                             <div class="form-check mt-2">
                                 <InputCheckbox class="form-check-input" @bind-Value="editModel.IsActive" />
                                 <label class="form-check-label small">Aktif</label>
@@ -221,41 +217,6 @@
 }
 
 @* ═══════════════════════════════════════════════════════════ *@
-@* MODÜLLER SEKMESİ                                            *@
-@* ═══════════════════════════════════════════════════════════ *@
-@if (activeTab == "moduller")
-{
-    <div class="row g-3">
-        @if (isLoadingModules)
-        {
-            <div class="col-12 text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-        }
-        else if (modules != null)
-        {
-            @foreach (var mod in modules)
-            {
-                <div class="col-sm-6 col-md-4 col-lg-3">
-                    <div class="card h-100 @(mod.IsActive ? "border-success" : "border-0") shadow-sm">
-                        <div class="card-body text-center py-3 @(!mod.IsActive ? "opacity-50" : "")">
-                            <i class="bi @(mod.Icon ?? "bi-box") fs-2 @(mod.IsActive ? "text-success" : "text-muted")"></i>
-                            <h6 class="mt-2 mb-1">@mod.SystemName</h6>
-                            <small class="text-muted d-block mb-2">@mod.Description</small>
-                            <div class="form-check form-switch d-flex justify-content-center">
-                                <input class="form-check-input" type="checkbox" role="switch"
-                                       checked="@mod.IsActive"
-                                       disabled="@togglingModuleId.HasValue"
-                                       @onchange="(e) => ToggleModule(mod, (bool)(e.Value ?? false))" />
-                            </div>
-                            <small class="text-muted mt-1 d-block">@mod.Permissions.Count izin</small>
-                        </div>
-                    </div>
-                </div>
-            }
-        }
-    </div>
-}
-
-@* ═══════════════════════════════════════════════════════════ *@
 @* PERSONEL SEKMESİ                                            *@
 @* ═══════════════════════════════════════════════════════════ *@
 @if (activeTab == "personel")
@@ -288,7 +249,7 @@
                                 <th>Ad Soyad</th>
                                 <th>E-posta</th>
                                 <th>Unvan</th>
-                                <th>Kullanici Tipi</th>
+                                <th>Rol</th>
                                 <th class="text-center">Yetki</th>
                                 <th>Durum</th>
                                 <th style="width: 140px;"></th>
@@ -302,9 +263,9 @@
                                     <td class="text-muted small">@item.Email</td>
                                     <td class="small">@item.Title</td>
                                     <td>
-                                        @if (item.UserTypeName != null)
+                                        @if (item.CustomerRoleName != null)
                                         {
-                                            <span class="badge bg-info-subtle text-info">@item.UserTypeName</span>
+                                            <span class="badge bg-info-subtle text-info">@item.CustomerRoleName</span>
                                         }
                                         else
                                         {
@@ -602,11 +563,6 @@
     private bool isResettingPassword;
     private string? tempAdminPassword;
 
-    // ─── MODULLER ───
-    private List<PortalModuleDto>? modules;
-    private bool isLoadingModules;
-    private int? togglingModuleId;
-
     // ─── PERSONEL ───
     private List<PortalPersonnelListDto>? personnel;
     private bool isLoadingPersonnel;
@@ -644,9 +600,6 @@
             case "genel" when customer == null:
                 await LoadGeneral();
                 break;
-            case "moduller" when modules == null:
-                await LoadModules();
-                break;
             case "personel" when personnel == null:
                 await LoadPersonnel();
                 break;
@@ -682,6 +635,7 @@
                     Address = customer.Address,
                     Phone = customer.Phone,
                     Email = customer.Email,
+                    MaxUsers = customer.MaxUsers,
                     IsActive = customer.IsActive
                 };
             }
@@ -735,54 +689,6 @@
         }
         catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
         finally { isResettingPassword = false; }
-    }
-
-    // ═══════════════════════════════════════════════════
-    // MODULLER
-    // ═══════════════════════════════════════════════════
-
-    private async Task LoadModules()
-    {
-        isLoadingModules = true;
-        StateHasChanged();
-        try
-        {
-            modules = await Http.GetFromJsonAsync<List<PortalModuleDto>>($"api/portal/modules?customerId={Id}");
-        }
-        catch (Exception ex) { Toast.ShowError($"Moduller yuklenemedi: {ex.Message}"); }
-        finally { isLoadingModules = false; }
-    }
-
-    private async Task ToggleModule(PortalModuleDto mod, bool activate)
-    {
-        togglingModuleId = mod.Id;
-        StateHasChanged();
-
-        try
-        {
-            HttpResponseMessage response;
-            if (activate)
-            {
-                var request = new AssignModulesRequest { ModuleIds = new[] { mod.Id } };
-                response = await Http.PostAsJsonAsync($"api/customers/{Id}/modules", request);
-            }
-            else
-            {
-                response = await Http.DeleteAsync($"api/customers/{Id}/modules/{mod.Id}");
-            }
-
-            if (response.IsSuccessStatusCode)
-            {
-                Toast.ShowSuccess(activate ? $"{mod.SystemName} aktif edildi." : $"{mod.SystemName} deaktive edildi.");
-                await LoadModules();
-            }
-            else
-            {
-                Toast.ShowError("Modul guncelleme basarisiz.");
-            }
-        }
-        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
-        finally { togglingModuleId = null; }
     }
 
     // ═══════════════════════════════════════════════════
