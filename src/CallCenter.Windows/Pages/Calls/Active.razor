@@ -2,6 +2,8 @@
 @attribute [Authorize]
 @inject CallCenter.Windows.Services.WindowsHubService HubService
 @inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -164,6 +166,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Operator erisim engeli
+        if (PermService.CustomerRoleId == CustomerRoles.Ids.Operator && !PermService.IsAdmin)
+        {
+            NavigationManager.NavigateTo("/dashboard", replace: true);
+            return;
+        }
+
         HubService.OnIncomingCall += HandleIncomingCall;
         HubService.OnCallEnded += HandleCallEnded;
 

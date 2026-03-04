@@ -113,7 +113,10 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiYWRtaW4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9naXZlbm5hbWUiOiJTeXN0ZW0gQWRtaW4iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbiIsImV4cCI6MTc3MjYyMzI5MCwiaXNzIjoiQ2FsbENlbnRlci5BcGkiLCJhdWQiOiJDYWxsQ2VudGVyLkNsaWVudHMifQ.bOrRXOACkJNHCcVAp3sNkPwFEj9f2rlfYjcbgw47HKc\")",
       "Bash(npx wrangler pages project create callcenter-web --production-branch main)",
       "Bash(CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler pages deploy publish-web/wwwroot --project-name=callcenter-web)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(pip install:*)",
+      "Bash(chcp 6500:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)"
     ]
   }
 }
