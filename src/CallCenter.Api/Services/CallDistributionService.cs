@@ -1,4 +1,4 @@
-using CallCenter.Api.Services.Interfaces;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -22,13 +22,13 @@ public class CallDistributionService
 {
     private readonly AppDbContext _db;
     private readonly IHubContext<CallCenterHub> _hub;
-    private readonly ICallForwardingService _forwardingService;
+    private readonly ICallForwardingFactory _forwardingFactory;
 
-    public CallDistributionService(AppDbContext db, IHubContext<CallCenterHub> hub, ICallForwardingService forwardingService)
+    public CallDistributionService(AppDbContext db, IHubContext<CallCenterHub> hub, ICallForwardingFactory forwardingFactory)
     {
         _db = db;
         _hub = hub;
-        _forwardingService = forwardingService;
+        _forwardingFactory = forwardingFactory;
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public class CallDistributionService
 
         // Call Forwarding kontrolu: secilen agent'in yonlendirme kurali var mi?
         // Offline agent'lar zaten filtrelendi, ama Always tipi kontrol edilmeli
-        var forwardDest = await _forwardingService.GetForwardDestinationAsync(
+        var forwardDest = await _forwardingFactory.GetForwardDestinationAsync(
             selectedAgent.Id, ForwardTypes.Always);
         // ForwardDest varsa loglama yapilir, SIP tarafinda 302 gonderilir
         // Simdilik CallRecord'a forwarding bilgisini kaydediyoruz
