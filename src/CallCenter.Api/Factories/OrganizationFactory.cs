@@ -31,6 +31,14 @@ public class OrganizationFactory : IOrganizationFactory
         var type = OrganizationUnitTypes.GetById(node.TypeId);
         var children = allUnits.Where(o => o.ParentId == node.Id).ToList();
 
+        // Personel sayisi: birincil (OrganizationUnitId FK) + junction atamalari
+        var primaryCount = node.Personnel.Count(p => p.IsActive);
+        var junctionCount = node.PersonnelAssignments.Count(pa => pa.Personnel.IsActive);
+        // Birincil ve junction'da ayni personel olabilir, distinct yapiyoruz
+        var allPersonnelIds = node.Personnel.Where(p => p.IsActive).Select(p => p.Id)
+            .Union(node.PersonnelAssignments.Where(pa => pa.Personnel.IsActive).Select(pa => pa.PersonnelId))
+            .Distinct().Count();
+
         return new OrgUnitTreeDto
         {
             Id = node.Id,
@@ -41,7 +49,7 @@ public class OrganizationFactory : IOrganizationFactory
             TypeIcon = type?.Icon,
             TypeCssClass = type?.CssClass,
             ParentId = node.ParentId,
-            PersonnelCount = node.Personnel.Count(p => p.IsActive),
+            PersonnelCount = allPersonnelIds,
             QueueCount = node.Queues.Count(q => q.IsActive),
             SipAccountCount = node.SipAccounts.Count(s => s.IsActive),
             IsActive = node.IsActive,
@@ -63,9 +71,9 @@ public class OrganizationFactory : IOrganizationFactory
                 TypeId = o.TypeId,
                 ParentId = o.ParentId,
                 ParentName = o.Parent != null ? o.Parent.Name : null,
-                ManagerName = o.ManagerPersonnel != null ? o.ManagerPersonnel.User.FullName : null,
                 ChildCount = o.Children.Count,
-                PersonnelCount = o.Personnel.Count(p => p.IsActive),
+                PersonnelCount = o.Personnel.Count(p => p.IsActive) +
+                    o.PersonnelAssignments.Count(pa => pa.Personnel.IsActive),
                 IsActive = o.IsActive
             })
             .ToListAsync();
@@ -76,14 +84,54 @@ public class OrganizationFactory : IOrganizationFactory
         var unit = await _orgEs.GetAllQueryable()
             .Where(o => o.CustomerId == customerId && o.Id == id)
             .Include(o => o.Parent)
-            .Include(o => o.ManagerPersonnel).ThenInclude(m => m!.User)
-            .Include(o => o.Personnel.Where(p => p.IsActive)).ThenInclude(p => p.User)
+            .Include(o => o.Personnel.Where(p => p.IsActive))
+                .ThenInclude(p => p.User)
+            .Include(o => o.Personnel.Where(p => p.IsActive))
+                .ThenInclude(p => p.ReportsToPersonnel)
+                    .ThenInclude(r => r!.User)
+            .Include(o => o.PersonnelAssignments)
+                .ThenInclude(pa => pa.Personnel)
+                    .ThenInclude(p => p.User)
+            .Include(o => o.PersonnelAssignments)
+                .ThenInclude(pa => pa.Personnel)
+                    .ThenInclude(p => p.ReportsToPersonnel)
+                        .ThenInclude(r => r!.User)
             .Include(o => o.Children)
             .FirstOrDefaultAsync();
 
         if (unit == null) return null;
 
         var type = OrganizationUnitTypes.GetById(unit.TypeId);
+
+        // Birincil + junction personellerini birlestir (distinct)
+        var primaryPersonnel = unit.Personnel.Where(p => p.IsActive).Select(p => new OrgUnitPersonnelDto
+        {
+            Id = p.Id,
+            FullName = p.User.FullName,
+            Title = p.Title,
+            CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description,
+            ReportsToName = p.ReportsToPersonnel?.User.FullName,
+            IsPrimaryAssignment = true
+        });
+
+        var junctionPersonnel = unit.PersonnelAssignments
+            .Where(pa => pa.Personnel.IsActive)
+            .Select(pa => new OrgUnitPersonnelDto
+            {
+                Id = pa.Personnel.Id,
+                FullName = pa.Personnel.User.FullName,
+                Title = pa.Personnel.Title,
+                CustomerRoleName = CustomerRoles.GetById(pa.Personnel.CustomerRoleId)?.Description,
+                ReportsToName = pa.Personnel.ReportsToPersonnel?.User.FullName,
+                IsPrimaryAssignment = false
+            });
+
+        // Distinct by Id: birincil oncelikli
+        var allPersonnel = primaryPersonnel
+            .Concat(junctionPersonnel)
+            .GroupBy(p => p.Id)
+            .Select(g => g.First())
+            .ToList();
 
         return new OrgUnitDetailDto
         {
@@ -96,21 +144,13 @@ public class OrganizationFactory : IOrganizationFactory
             TypeIcon = type?.Icon,
             ParentId = unit.ParentId,
             ParentName = unit.Parent?.Name,
-            ManagerPersonnelId = unit.ManagerPersonnelId,
-            ManagerName = unit.ManagerPersonnel?.User.FullName,
             Address = unit.Address,
             Phone = unit.Phone,
             Email = unit.Email,
             DisplayOrder = unit.DisplayOrder,
             IsActive = unit.IsActive,
             CreatedAt = unit.CreatedAt,
-            Personnel = unit.Personnel.Where(p => p.IsActive).Select(p => new OrgUnitPersonnelDto
-            {
-                Id = p.Id,
-                FullName = p.User.FullName,
-                Title = p.Title,
-                CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description
-            }).ToList(),
+            Personnel = allPersonnel,
             Children = unit.Children.Select(c => new OrgUnitChildDto
             {
                 Id = c.Id,
@@ -143,7 +183,6 @@ public class OrganizationFactory : IOrganizationFactory
             Address = dto.Address,
             Phone = dto.Phone,
             Email = dto.Email,
-            ManagerPersonnelId = dto.ManagerPersonnelId,
             DisplayOrder = dto.DisplayOrder
         };
 
@@ -182,7 +221,6 @@ public class OrganizationFactory : IOrganizationFactory
         unit.Address = dto.Address;
         unit.Phone = dto.Phone;
         unit.Email = dto.Email;
-        unit.ManagerPersonnelId = dto.ManagerPersonnelId;
         unit.DisplayOrder = dto.DisplayOrder;
         unit.IsActive = dto.IsActive;
 
@@ -230,6 +268,48 @@ public class OrganizationFactory : IOrganizationFactory
             })
             .ToListAsync();
     }
+
+    // ─── PERSONEL ATAMA ───
+
+    public async Task<(bool Success, string? Error)> AssignPersonnelAsync(int customerId, int orgId, int personnelId)
+    {
+        var unit = await _orgEs.GetByIdAsync(customerId, orgId);
+        if (unit == null)
+            return (false, "Organizasyon birimi bulunamadi.");
+
+        // Zaten atanmis mi kontrol et (hem birincil hem junction)
+        var alreadyAssigned = await _orgEs.IsPersonnelAssignedAsync(personnelId, orgId);
+        if (alreadyAssigned)
+            return (false, "Bu personel zaten bu birime atanmis.");
+
+        _orgEs.AddPersonnelAssignment(new CustomerPersonnelOrganizationUnit
+        {
+            PersonnelId = personnelId,
+            OrganizationUnitId = orgId
+        });
+        await _uow.SaveChangesAsync();
+
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> RemovePersonnelAsync(int customerId, int orgId, int personnelId)
+    {
+        var assignment = await _orgEs.GetPersonnelAssignmentAsync(personnelId, orgId);
+        if (assignment == null)
+            return (false, "Atama bulunamadi.");
+
+        _orgEs.RemovePersonnelAssignment(assignment);
+        await _uow.SaveChangesAsync();
+
+        return (true, null);
+    }
+
+    public async Task<List<OrgUnitPersonnelDto>> GetAvailablePersonnelAsync(int customerId, int orgId)
+    {
+        return await _orgEs.GetAvailablePersonnelAsync(customerId, orgId);
+    }
+
+    // ─── PRIVATE ───
 
     private async Task<bool> IsDescendantAsync(int nodeId, int targetId)
     {

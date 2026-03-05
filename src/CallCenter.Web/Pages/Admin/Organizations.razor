@@ -128,13 +128,6 @@ else
                                     <span>@detail.ParentName</span>
                                 </div>
                             }
-                            @if (!string.IsNullOrEmpty(detail.ManagerName))
-                            {
-                                <div class="col-sm-6">
-                                    <small class="text-muted d-block">Yonetici</small>
-                                    <span>@detail.ManagerName</span>
-                                </div>
-                            }
                             @if (!string.IsNullOrEmpty(detail.Phone))
                             {
                                 <div class="col-sm-6">
@@ -159,9 +152,14 @@ else
                         </div>
 
                         @* Personel listesi *@
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="text-muted mb-0"><i class="bi bi-people me-1"></i>Personel (@detail.Personnel.Count)</h6>
+                            <button class="btn btn-outline-primary btn-sm" @onclick="OpenAssignPersonnel" title="Personel Ata">
+                                <i class="bi bi-person-plus me-1"></i>Ata
+                            </button>
+                        </div>
                         @if (detail.Personnel.Count > 0)
                         {
-                            <h6 class="text-muted mb-2"><i class="bi bi-people me-1"></i>Personel (@detail.Personnel.Count)</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-3">
                                     <thead class="table-light">
@@ -169,6 +167,8 @@ else
                                             <th>Ad Soyad</th>
                                             <th>Unvan</th>
                                             <th>Rol</th>
+                                            <th>Amiri</th>
+                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -178,6 +178,15 @@ else
                                                 <td>@p.FullName</td>
                                                 <td class="text-muted small">@p.Title</td>
                                                 <td class="text-muted small">@(p.CustomerRoleName ?? "-")</td>
+                                                <td class="text-muted small">@(p.ReportsToName ?? "-")</td>
+                                                <td class="text-end">
+                                                    @if (!p.IsPrimaryAssignment)
+                                                    {
+                                                        <button class="btn btn-outline-danger btn-sm py-0 px-1" @onclick="() => RemovePersonnel(p.Id)" title="Cikar">
+                                                            <i class="bi bi-x-lg" style="font-size:0.7rem;"></i>
+                                                        </button>
+                                                    }
+                                                </td>
                                             </tr>
                                         }
                                     </tbody>
@@ -225,6 +234,39 @@ else
 <ConfirmDialog @ref="confirmDialog" OnConfirm="ExecuteDelete"
                Message="@($"'{detail?.Name}' birimini silmek istediginize emin misiniz?")" />
 
+@* ─── PERSONEL ATAMA MODAL ─── *@
+@if (showAssignModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Personel Ata</h5>
+                    <button type="button" class="btn-close" @onclick="() => showAssignModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (availablePersonnel == null)
+                    {
+                        <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+                    }
+                    else if (availablePersonnel.Count == 0)
+                    {
+                        <div class="text-muted text-center py-3">Atanabilecek personel yok.</div>
+                    }
+                    else
+                    {
+                        <SearchableSelect Items="availablePersonnelItems" Value="" ValueChanged="OnAssignPersonnelSelected"
+                                          Placeholder="-- Personel seciniz --" />
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="() => showAssignModal = false">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<OrgUnitTreeDto>? tree;
     private OrgUnitDetailDto? detail;
@@ -234,6 +276,12 @@ else
     private bool isLoading;
     private OrganizationForm orgForm = null!;
     private ConfirmDialog confirmDialog = null!;
+
+    // Personel atama
+    private bool showAssignModal;
+    private List<OrgUnitPersonnelDto>? availablePersonnel;
+    private List<SearchableSelect.SearchSelectItem> availablePersonnelItems =>
+        availablePersonnel?.Select(p => new SearchableSelect.SearchSelectItem(p.Id.ToString(), p.FullName, p.Title)).ToList() ?? new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -355,6 +403,73 @@ else
     private int CountNodes(OrgUnitTreeDto node)
     {
         return 1 + node.Children.Sum(CountNodes);
+    }
+
+    // ─── PERSONEL ATAMA ───
+
+    private async Task OpenAssignPersonnel()
+    {
+        if (detail == null) return;
+        try
+        {
+            availablePersonnel = await Http.GetFromJsonAsync<List<OrgUnitPersonnelDto>>(
+                $"api/organizations/{detail.Id}/available-personnel?customerId={selectedCustomerId}");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+            return;
+        }
+        showAssignModal = true;
+    }
+
+    private async Task OnAssignPersonnelSelected(string? val)
+    {
+        if (!int.TryParse(val, out var personnelId) || detail == null) return;
+        try
+        {
+            var response = await Http.PostAsJsonAsync(
+                $"api/organizations/{detail.Id}/personnel?customerId={selectedCustomerId}",
+                new { PersonnelId = personnelId });
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Personel atandi.");
+                showAssignModal = false;
+                // Detayi yenile
+                detail = await Http.GetFromJsonAsync<OrgUnitDetailDto>(
+                    $"api/organizations/{detail.Id}?customerId={selectedCustomerId}");
+                await LoadTree();
+            }
+            else
+            {
+                var err = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(err?.Error ?? "Atama basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private async Task RemovePersonnel(int personnelId)
+    {
+        if (detail == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync(
+                $"api/organizations/{detail.Id}/personnel/{personnelId}?customerId={selectedCustomerId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Personel cikarildi.");
+                detail = await Http.GetFromJsonAsync<OrgUnitDetailDto>(
+                    $"api/organizations/{detail.Id}?customerId={selectedCustomerId}");
+                await LoadTree();
+            }
+            else
+            {
+                var err = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(err?.Error ?? "Cikarma basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
     }
 
     private record ErrorMsg(string? Error);

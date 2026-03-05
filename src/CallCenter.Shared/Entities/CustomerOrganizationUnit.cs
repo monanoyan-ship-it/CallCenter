@@ -22,13 +22,10 @@ public class CustomerOrganizationUnit
     public int? ParentId { get; set; }
     public CustomerOrganizationUnit? Parent { get; set; }
 
-    // Yonetici personel (opsiyonel)
-    public int? ManagerPersonnelId { get; set; }
-    public CustomerPersonnel? ManagerPersonnel { get; set; }
-
     // Navigation collections
     public ICollection<CustomerOrganizationUnit> Children { get; set; } = new List<CustomerOrganizationUnit>();
-    public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();
+    public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>(); // Birincil org (OrganizationUnitId FK)
+    public ICollection<CustomerPersonnelOrganizationUnit> PersonnelAssignments { get; set; } = new List<CustomerPersonnelOrganizationUnit>(); // Ek org atamalari (junction)
     public ICollection<Queue> Queues { get; set; } = new List<Queue>();
     public ICollection<SipAccount> SipAccounts { get; set; } = new List<SipAccount>();
 }

@@ -16,7 +16,6 @@ public class OrgUnitListDto
     public string? TypeIcon { get; set; }
     public int? ParentId { get; set; }
     public string? ParentName { get; set; }
-    public string? ManagerName { get; set; }
     public int ChildCount { get; set; }
     public int PersonnelCount { get; set; }
     public bool IsActive { get; set; }
@@ -51,8 +50,6 @@ public class OrgUnitDetailDto
     public string? TypeIcon { get; set; }
     public int? ParentId { get; set; }
     public string? ParentName { get; set; }
-    public int? ManagerPersonnelId { get; set; }
-    public string? ManagerName { get; set; }
     public string? Address { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
@@ -69,6 +66,8 @@ public class OrgUnitPersonnelDto
     public string FullName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? CustomerRoleName { get; set; }
+    public string? ReportsToName { get; set; }
+    public bool IsPrimaryAssignment { get; set; } // true = OrganizationUnitId FK, false = junction
 }
 
 public class OrgUnitChildDto
@@ -103,8 +102,6 @@ public class OrgUnitCreateDto
     [MaxLength(150)]
     public string? Email { get; set; }
 
-    public int? ManagerPersonnelId { get; set; }
-
     public int DisplayOrder { get; set; }
 }
 
@@ -132,9 +129,14 @@ public class OrgUnitUpdateDto
     [MaxLength(150)]
     public string? Email { get; set; }
 
-    public int? ManagerPersonnelId { get; set; }
-
     public int DisplayOrder { get; set; }
 
     public bool IsActive { get; set; } = true;
+}
+
+/// <summary>Organizasyona personel atama DTO</summary>
+public class OrgPersonnelAssignDto
+{
+    [Required]
+    public int PersonnelId { get; set; }
 }

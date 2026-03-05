@@ -64,7 +64,6 @@ public class OrganizationService : IOrganizationService
                 TypeId = o.TypeId,
                 ParentId = o.ParentId,
                 ParentName = o.Parent != null ? o.Parent.Name : null,
-                ManagerName = o.ManagerPersonnel != null ? o.ManagerPersonnel.User.FullName : null,
                 ChildCount = o.Children.Count,
                 PersonnelCount = o.Personnel.Count(p => p.IsActive),
                 IsActive = o.IsActive
@@ -77,7 +76,6 @@ public class OrganizationService : IOrganizationService
         var unit = await _db.CustomerOrganizationUnits
             .Where(o => o.CustomerId == customerId && o.Id == id)
             .Include(o => o.Parent)
-            .Include(o => o.ManagerPersonnel).ThenInclude(m => m!.User)
             .Include(o => o.Personnel.Where(p => p.IsActive)).ThenInclude(p => p.User)
             .Include(o => o.Children)
             .FirstOrDefaultAsync();
@@ -97,8 +95,6 @@ public class OrganizationService : IOrganizationService
             TypeIcon = type?.Icon,
             ParentId = unit.ParentId,
             ParentName = unit.Parent?.Name,
-            ManagerPersonnelId = unit.ManagerPersonnelId,
-            ManagerName = unit.ManagerPersonnel?.User.FullName,
             Address = unit.Address,
             Phone = unit.Phone,
             Email = unit.Email,
@@ -149,7 +145,6 @@ public class OrganizationService : IOrganizationService
             Address = dto.Address,
             Phone = dto.Phone,
             Email = dto.Email,
-            ManagerPersonnelId = dto.ManagerPersonnelId,
             DisplayOrder = dto.DisplayOrder
         };
 
@@ -194,7 +189,6 @@ public class OrganizationService : IOrganizationService
         unit.Address = dto.Address;
         unit.Phone = dto.Phone;
         unit.Email = dto.Email;
-        unit.ManagerPersonnelId = dto.ManagerPersonnelId;
         unit.DisplayOrder = dto.DisplayOrder;
         unit.IsActive = dto.IsActive;
 

@@ -85,4 +85,37 @@ public class OrganizationsController : AuditableControllerBase
         var list = await _orgFactory.GetPotentialParentsAsync(customerId, excludeId);
         return Ok(list);
     }
+
+    // ─── PERSONEL ATAMA ───
+
+    [HttpGet("{id}/available-personnel")]
+    public async Task<IActionResult> GetAvailablePersonnel(int id, [FromQuery] int customerId)
+    {
+        var list = await _orgFactory.GetAvailablePersonnelAsync(customerId, id);
+        return Ok(list);
+    }
+
+    [HttpPost("{id}/personnel")]
+    public async Task<IActionResult> AssignPersonnel(int id, [FromQuery] int customerId, [FromBody] OrgPersonnelAssignDto dto)
+    {
+        var (success, error) = await _orgFactory.AssignPersonnelAsync(customerId, id, dto.PersonnelId);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("AssignPersonnel", "OrganizationUnit", id.ToString(),
+            $"Personel atandi: OrgID={id}, PersonelID={dto.PersonnelId}", customerId: customerId);
+
+        return Ok();
+    }
+
+    [HttpDelete("{id}/personnel/{personnelId}")]
+    public async Task<IActionResult> RemovePersonnel(int id, int personnelId, [FromQuery] int customerId)
+    {
+        var (success, error) = await _orgFactory.RemovePersonnelAsync(customerId, id, personnelId);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("RemovePersonnel", "OrganizationUnit", id.ToString(),
+            $"Personel cikarildi: OrgID={id}, PersonelID={personnelId}", customerId: customerId);
+
+        return Ok();
+    }
 }

@@ -294,4 +294,55 @@ public class PortalController : AuditableControllerBase
 
         return NoContent();
     }
+
+    // ─── PERSONEL ATAMA (ORGANİZASYON) ───
+
+    [HttpGet("organizations/{id}/available-personnel")]
+    public async Task<IActionResult> GetAvailablePersonnelForOrg(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgView))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var list = await _orgFactory.GetAvailablePersonnelAsync(cid.Value, id);
+        return Ok(list);
+    }
+
+    [HttpPost("organizations/{id}/personnel")]
+    public async Task<IActionResult> AssignPersonnelToOrg(int id, [FromBody] OrgPersonnelAssignDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _orgFactory.AssignPersonnelAsync(cid.Value, id, dto.PersonnelId);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("AssignPersonnel", "OrganizationUnit", id.ToString(),
+            $"Portal personel atandi: OrgID={id}, PersonelID={dto.PersonnelId}", customerId: cid);
+
+        return Ok();
+    }
+
+    [HttpDelete("organizations/{id}/personnel/{personnelId}")]
+    public async Task<IActionResult> RemovePersonnelFromOrg(int id, int personnelId, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.OrgManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _orgFactory.RemovePersonnelAsync(cid.Value, id, personnelId);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("RemovePersonnel", "OrganizationUnit", id.ToString(),
+            $"Portal personel cikarildi: OrgID={id}, PersonelID={personnelId}", customerId: cid);
+
+        return NoContent();
+    }
 }

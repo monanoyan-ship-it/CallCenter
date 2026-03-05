@@ -11,4 +11,9 @@ public interface IOrganizationFactory
     Task<(bool Success, string? Error)> UpdateAsync(int customerId, int id, OrgUnitUpdateDto dto);
     Task<(bool Success, string? Error)> DeleteAsync(int customerId, int id);
     Task<List<OrgUnitListDto>> GetPotentialParentsAsync(int customerId, int? excludeId);
+
+    // Personel atama
+    Task<(bool Success, string? Error)> AssignPersonnelAsync(int customerId, int orgId, int personnelId);
+    Task<(bool Success, string? Error)> RemovePersonnelAsync(int customerId, int orgId, int personnelId);
+    Task<List<OrgUnitPersonnelDto>> GetAvailablePersonnelAsync(int customerId, int orgId);
 }

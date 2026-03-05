@@ -43,11 +43,6 @@
                                                   ValueChanged="OnParentSelected" Placeholder="-- Kok birim (ust yok) --" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Yonetici</label>
-                                <SearchableSelect Items="managerItems" Value="@managerIdStr"
-                                                  ValueChanged="OnManagerSelected" Placeholder="-- Yonetici yok --" />
-                            </div>
-                            <div class="col-md-6">
                                 <label class="form-label">Sira</label>
                                 <InputNumber class="form-control form-control-sm" @bind-Value="model.DisplayOrder" />
                             </div>
@@ -100,16 +95,11 @@
     private bool isSaving;
     private int? editId;
     private List<OrgUnitListDto>? potentialParents;
-    private List<PortalPersonnelListDto>? personnel;
 
     private string parentIdStr => model.ParentId?.ToString() ?? "";
-    private string managerIdStr => model.ManagerPersonnelId?.ToString() ?? "";
 
     private List<SearchableSelect.SearchSelectItem> parentItems =>
         potentialParents?.Select(p => new SearchableSelect.SearchSelectItem(p.Id.ToString(), p.Name, p.ParentName)).ToList() ?? new();
-
-    private List<SearchableSelect.SearchSelectItem> managerItems =>
-        personnel?.Select(p => new SearchableSelect.SearchSelectItem(p.Id.ToString(), p.FullName)).ToList() ?? new();
 
     public async void OpenForCreate(int? defaultParentId = null)
     {
@@ -134,7 +124,6 @@
             Address = detail.Address,
             Phone = detail.Phone,
             Email = detail.Email,
-            ManagerPersonnelId = detail.ManagerPersonnelId,
             DisplayOrder = detail.DisplayOrder,
             IsActive = detail.IsActive
         };
@@ -150,8 +139,6 @@
             var parentUrl = $"api/organizations/parents?customerId={CustomerId}";
             if (excludeId.HasValue) parentUrl += $"&excludeId={excludeId}";
             potentialParents = await Http.GetFromJsonAsync<List<OrgUnitListDto>>(parentUrl);
-
-            personnel = await Http.GetFromJsonAsync<List<PortalPersonnelListDto>>($"api/portal/personnel?customerId={CustomerId}");
         }
         catch { }
     }
@@ -159,11 +146,6 @@
     private void OnParentSelected(string? val)
     {
         model.ParentId = int.TryParse(val, out var id) ? id : null;
-    }
-
-    private void OnManagerSelected(string? val)
-    {
-        model.ManagerPersonnelId = int.TryParse(val, out var id) ? id : null;
     }
 
     private async Task HandleSubmit()
@@ -185,7 +167,6 @@
                     Address = model.Address,
                     Phone = model.Phone,
                     Email = model.Email,
-                    ManagerPersonnelId = model.ManagerPersonnelId,
                     DisplayOrder = model.DisplayOrder,
                     IsActive = model.IsActive
                 };
@@ -202,7 +183,6 @@
                     Address = model.Address,
                     Phone = model.Phone,
                     Email = model.Email,
-                    ManagerPersonnelId = model.ManagerPersonnelId,
                     DisplayOrder = model.DisplayOrder
                 };
                 response = await Http.PostAsJsonAsync($"api/organizations?customerId={CustomerId}", dto);
@@ -244,7 +224,6 @@
         public string? Address { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
-        public int? ManagerPersonnelId { get; set; }
         public int DisplayOrder { get; set; }
         public bool IsActive { get; set; } = true;
     }

@@ -29,4 +29,6 @@ public class CustomerPersonnel
     public CustomerPersonnel? ReportsToPersonnel { get; set; }
     public ICollection<CustomerPersonnel> Subordinates { get; set; } = new List<CustomerPersonnel>();
 
+    // Ek organizasyon atamalari (junction - coka-cok)
+    public ICollection<CustomerPersonnelOrganizationUnit> OrganizationUnits { get; set; } = new List<CustomerPersonnelOrganizationUnit>();
 }
