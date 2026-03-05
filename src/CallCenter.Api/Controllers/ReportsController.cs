@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,7 @@ namespace CallCenter.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Supervisor")]
+[Authorize(Roles = "Admin,Supervisor,CustomerUser")]
 public class ReportsController : ControllerBase
 {
     private readonly IReportFactory _reportFactory;
@@ -15,6 +16,14 @@ public class ReportsController : ControllerBase
     public ReportsController(IReportFactory reportFactory)
     {
         _reportFactory = reportFactory;
+    }
+
+    private int? ResolveCustomerId(int? queryCustomerId)
+    {
+        if (User.IsInRole("Admin") || User.IsInRole("Supervisor"))
+            return queryCustomerId;
+        var claim = User.FindFirstValue("CustomerId");
+        return claim != null ? int.Parse(claim) : null;
     }
 
     /// <summary>
@@ -30,7 +39,7 @@ public class ReportsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        return Ok(await _reportFactory.GetCallReportAsync(customerId, from, to, directionId, statusId, page, pageSize));
+        return Ok(await _reportFactory.GetCallReportAsync(ResolveCustomerId(customerId), from, to, directionId, statusId, page, pageSize));
     }
 
     /// <summary>
@@ -44,7 +53,7 @@ public class ReportsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        return Ok(await _reportFactory.GetAgentReportAsync(customerId, from, to, page, pageSize));
+        return Ok(await _reportFactory.GetAgentReportAsync(ResolveCustomerId(customerId), from, to, page, pageSize));
     }
 
     /// <summary>
@@ -58,7 +67,7 @@ public class ReportsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        return Ok(await _reportFactory.GetQueueReportAsync(customerId, from, to, page, pageSize));
+        return Ok(await _reportFactory.GetQueueReportAsync(ResolveCustomerId(customerId), from, to, page, pageSize));
     }
 
     /// <summary>
@@ -70,7 +79,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
-        return Ok(await _reportFactory.GetDailyTrendAsync(customerId, from, to));
+        return Ok(await _reportFactory.GetDailyTrendAsync(ResolveCustomerId(customerId), from, to));
     }
 
     /// <summary>
@@ -82,7 +91,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
-        return Ok(await _reportFactory.GetStatusDistributionAsync(customerId, from, to));
+        return Ok(await _reportFactory.GetStatusDistributionAsync(ResolveCustomerId(customerId), from, to));
     }
 
     /// <summary>
@@ -97,14 +106,15 @@ public class ReportsController : ControllerBase
         [FromQuery] int? directionId,
         [FromQuery] int? statusId)
     {
+        var resolved = ResolveCustomerId(customerId);
         if (string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase))
         {
-            var bytes = await _reportFactory.ExportCallReportExcelAsync(customerId, from, to, directionId, statusId);
+            var bytes = await _reportFactory.ExportCallReportExcelAsync(resolved, from, to, directionId, statusId);
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"arama-raporu-{DateTime.Now:yyyyMMdd}.xlsx");
         }
         else
         {
-            var bytes = await _reportFactory.ExportCallReportCsvAsync(customerId, from, to, directionId, statusId);
+            var bytes = await _reportFactory.ExportCallReportCsvAsync(resolved, from, to, directionId, statusId);
             return File(bytes, "text/csv", $"arama-raporu-{DateTime.Now:yyyyMMdd}.csv");
         }
     }
@@ -119,14 +129,15 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
+        var resolved = ResolveCustomerId(customerId);
         if (string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase))
         {
-            var bytes = await _reportFactory.ExportAgentReportExcelAsync(customerId, from, to);
+            var bytes = await _reportFactory.ExportAgentReportExcelAsync(resolved, from, to);
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"temsilci-raporu-{DateTime.Now:yyyyMMdd}.xlsx");
         }
         else
         {
-            var bytes = await _reportFactory.ExportAgentReportCsvAsync(customerId, from, to);
+            var bytes = await _reportFactory.ExportAgentReportCsvAsync(resolved, from, to);
             return File(bytes, "text/csv", $"temsilci-raporu-{DateTime.Now:yyyyMMdd}.csv");
         }
     }

@@ -76,7 +76,7 @@
                     <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
                 </button>
                 <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
-                    @if (!IsFirmaAdmin)
+                    @if (IsOperator)
                     {
                         <NavLink class="nav-link" href="dialer">
                             <i class="bi bi-dialpad-fill"></i>
@@ -163,10 +163,6 @@
                     <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
                 </button>
                 <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
-                    <NavLink class="nav-link" href="dialer">
-                        <i class="bi bi-dialpad-fill"></i>
-                        <span>Numara Cevirici</span>
-                    </NavLink>
                     <NavLink class="nav-link" href="calls/active">
                         <i class="bi bi-telephone-inbound-fill"></i>
                         <span>Aktif Aramalar</span>

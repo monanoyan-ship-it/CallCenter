@@ -110,6 +110,7 @@ public class OrganizationFactory : IOrganizationFactory
             FullName = p.User.FullName,
             Title = p.Title,
             CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description,
+            ReportsToPersonnelId = p.ReportsToPersonnelId,
             ReportsToName = p.ReportsToPersonnel?.User.FullName,
             IsPrimaryAssignment = true
         });
@@ -122,6 +123,7 @@ public class OrganizationFactory : IOrganizationFactory
                 FullName = pa.Personnel.User.FullName,
                 Title = pa.Personnel.Title,
                 CustomerRoleName = CustomerRoles.GetById(pa.Personnel.CustomerRoleId)?.Description,
+                ReportsToPersonnelId = pa.Personnel.ReportsToPersonnelId,
                 ReportsToName = pa.Personnel.ReportsToPersonnel?.User.FullName,
                 IsPrimaryAssignment = false
             });

@@ -1,7 +1,8 @@
 @page "/queues/live"
-@attribute [Authorize(Roles = "Admin,Supervisor")]
+@attribute [Authorize(Roles = "Admin,Supervisor,CustomerUser")]
 @inject HttpClient Http
 @inject HubService HubService
+@inject PermissionService PermService
 @implements IDisposable
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
@@ -17,14 +18,17 @@
         }
     </h4>
     <div class="d-flex align-items-center gap-2">
-        <label class="text-muted small mb-0">Firma:</label>
-        <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
-            <option value="0">Tumu</option>
-            @foreach (var c in customers)
-            {
-                <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
-            }
-        </select>
+        @if (!isCustomerUser)
+        {
+            <label class="text-muted small mb-0">Firma:</label>
+            <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
+                <option value="0">Tumu</option>
+                @foreach (var c in customers)
+                {
+                    <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
+                }
+            </select>
+        }
         <button class="btn btn-outline-secondary btn-sm" @onclick="LoadQueues" title="Yenile">
             <i class="bi bi-arrow-clockwise"></i>
         </button>
@@ -111,6 +115,7 @@ else
     private List<CustomerSimpleDto> customers = new();
     private int selectedCustomerId;
     private bool isLoading;
+    private bool isCustomerUser;
     private System.Threading.Timer? refreshTimer;
 
     // Durum adlarini Turkce goster
@@ -126,13 +131,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Firma listesi
-        try
+        await PermService.LoadAsync();
+        if (PermService.CustomerId != null)
         {
-            var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
-            customers = list ?? new();
+            isCustomerUser = true;
+            selectedCustomerId = PermService.CustomerId.Value;
         }
-        catch { }
+        else
+        {
+            try
+            {
+                var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+                customers = list ?? new();
+            }
+            catch { }
+        }
 
         await LoadQueues();
 

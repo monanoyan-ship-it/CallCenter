@@ -1,7 +1,8 @@
 @page "/reports/queues"
-@attribute [Authorize(Roles = "Admin,Supervisor")]
+@attribute [Authorize(Roles = "Admin,Supervisor,CustomerUser")]
 @inject HttpClient Http
 @inject ChartJsInterop ChartJs
+@inject PermissionService PermService
 @using CallCenter.Shared.DTOs
 @using CallCenter.Web.Services
 @implements IAsyncDisposable
@@ -18,11 +19,14 @@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
         <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label small text-muted mb-1">Firma</label>
-                <SearchableSelect Items="customerItems" Value="@selectedCustomerIdStr"
-                                  ValueChanged="OnCustomerSelected" Placeholder="Tumu" />
-            </div>
+            @if (!isCustomerUser)
+            {
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">Firma</label>
+                    <SearchableSelect Items="customerItems" Value="@selectedCustomerIdStr"
+                                      ValueChanged="OnCustomerSelected" Placeholder="Tumu" />
+                </div>
+            }
             <div class="col-md-3">
                 <label class="form-label small text-muted mb-1">Baslangic</label>
                 <input type="date" class="form-control form-control-sm" @bind="fromDate" />
@@ -186,6 +190,7 @@ else if (report != null)
     private int currentPage = 1;
     private bool isLoading;
     private bool chartInitialized;
+    private bool isCustomerUser;
 
     private List<SearchableSelect.SearchSelectItem> customerItems =>
         customers.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList();
@@ -202,12 +207,21 @@ else if (report != null)
         toDate = DateTime.Today;
         fromDate = DateTime.Today.AddDays(-30);
 
-        try
+        await PermService.LoadAsync();
+        if (PermService.CustomerId != null)
         {
-            var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
-            customers = list ?? new();
+            isCustomerUser = true;
+            selectedCustomerId = PermService.CustomerId.Value;
         }
-        catch { }
+        else
+        {
+            try
+            {
+                var list = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers");
+                customers = list ?? new();
+            }
+            catch { }
+        }
 
         await LoadReport();
     }

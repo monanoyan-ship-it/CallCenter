@@ -141,7 +141,7 @@ else
                             }
                         </div>
 
-                        @* Personel listesi *@
+                        @* Personel listesi - Hiyerarsik Kart + Drag-Drop *@
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <h6 class="text-muted mb-0"><i class="bi bi-people me-1"></i>Personel (@detail.Personnel.Count)</h6>
                             @if (PermService.IsAdmin || PermService.IsFirmaAdmin)
@@ -153,44 +153,21 @@ else
                         </div>
                         @if (detail.Personnel.Count > 0)
                         {
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover mb-3">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Ad Soyad</th>
-                                            <th>Unvan</th>
-                                            <th>Rol</th>
-                                            <th>Amiri</th>
-                                            @if (PermService.IsAdmin || PermService.IsFirmaAdmin)
-                                            {
-                                                <th></th>
-                                            }
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var p in detail.Personnel)
-                                        {
-                                            <tr>
-                                                <td>@p.FullName</td>
-                                                <td class="text-muted small">@p.Title</td>
-                                                <td class="text-muted small">@(p.CustomerRoleName ?? "-")</td>
-                                                <td class="text-muted small">@(p.ReportsToName ?? "-")</td>
-                                                @if (PermService.IsAdmin || PermService.IsFirmaAdmin)
-                                                {
-                                                    <td class="text-end">
-                                                        @if (!p.IsPrimaryAssignment)
-                                                        {
-                                                            <button class="btn btn-outline-danger btn-sm py-0 px-1" @onclick="() => RemovePersonnel(p.Id)" title="Cikar">
-                                                                <i class="bi bi-x-lg" style="font-size:0.7rem;"></i>
-                                                            </button>
-                                                        }
-                                                    </td>
-                                                }
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
+                            <div class="personnel-hierarchy">
+                                @foreach (var p in GetSubordinates(null))
+                                {
+                                    @RenderPersonnelCard(p)
+                                }
                             </div>
+
+                            @if (PermService.IsAdmin || PermService.IsFirmaAdmin)
+                            {
+                                <div class="drop-zone-root @(isDragging ? "visible" : "")"
+                                     ondragover="event.preventDefault();"
+                                     @ondrop="() => OnDrop(null)">
+                                    <i class="bi bi-arrow-up me-1"></i>Amirsiz bolgeye tasi
+                                </div>
+                            }
                         }
 
                         @if (detail.Children.Count > 0)
@@ -273,6 +250,11 @@ else
     private int? customerId;
     private PortalOrganizationForm orgForm = null!;
     private ConfirmDialog confirmDialog = null!;
+
+    // Drag-drop
+    private int? draggedPersonnelId;
+    private bool isDragging;
+    private int? dragOverPersonnelId;
 
     // Personel atama
     private bool showAssignModal;
@@ -451,5 +433,126 @@ else
         catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
     }
 
-    private record ErrorMsg(string? Error);
+    // ─── DRAG-DROP (AMİR ATAMASI) ───
+
+    private List<OrgUnitPersonnelDto> GetSubordinates(int? parentId) =>
+        detail?.Personnel.Where(p => p.ReportsToPersonnelId == parentId).ToList() ?? new();
+
+    private RenderFragment RenderPersonnelCard(OrgUnitPersonnelDto person) => __builder =>
+    {
+        var canDrag = PermService.IsAdmin || PermService.IsFirmaAdmin;
+        var isOver = dragOverPersonnelId == person.Id;
+        var cardClass = "personnel-card" + (isOver ? " drag-over" : "");
+        var subs = GetSubordinates(person.Id);
+
+        <div class="@cardClass"
+             draggable="@(canDrag ? "true" : "false")"
+             @ondragstart="() => OnDragStart(person.Id)"
+             @ondragend="OnDragEnd"
+             ondragover="event.preventDefault();"
+             @ondragenter="() => OnDragEnter(person.Id)"
+             @ondragleave="() => OnDragLeave(person.Id)"
+             @ondrop="() => OnDrop(person.Id)"
+             @ondrop:stopPropagation>
+            @if (canDrag)
+            {
+                <i class="bi bi-grip-vertical drag-handle text-muted"></i>
+            }
+            <i class="bi bi-person-fill text-primary me-1"></i>
+            <span class="fw-medium">@person.FullName</span>
+            <small class="text-muted ms-2">@person.Title</small>
+            @if (!string.IsNullOrEmpty(person.CustomerRoleName))
+            {
+                <span class="badge bg-primary-subtle text-primary ms-auto">@person.CustomerRoleName</span>
+            }
+            @if (canDrag && !person.IsPrimaryAssignment)
+            {
+                <button class="btn btn-outline-danger btn-sm py-0 px-1 ms-1" @onclick="() => RemovePersonnel(person.Id)" @onclick:stopPropagation title="Cikar">
+                    <i class="bi bi-x-lg" style="font-size:0.7rem;"></i>
+                </button>
+            }
+        </div>
+
+        @if (subs.Count > 0)
+        {
+            <div class="personnel-subordinates">
+                @foreach (var sub in subs)
+                {
+                    @RenderPersonnelCard(sub)
+                }
+            </div>
+        }
+    };
+
+    private void OnDragStart(int personnelId)
+    {
+        draggedPersonnelId = personnelId;
+        isDragging = true;
+    }
+
+    private void OnDragEnd()
+    {
+        isDragging = false;
+        dragOverPersonnelId = null;
+    }
+
+    private void OnDragEnter(int personnelId) => dragOverPersonnelId = personnelId;
+
+    private void OnDragLeave(int personnelId)
+    {
+        if (dragOverPersonnelId == personnelId) dragOverPersonnelId = null;
+    }
+
+    private async Task OnDrop(int? targetPersonnelId)
+    {
+        dragOverPersonnelId = null;
+        isDragging = false;
+
+        if (draggedPersonnelId == null || draggedPersonnelId == targetPersonnelId || detail == null)
+        {
+            draggedPersonnelId = null;
+            return;
+        }
+
+        var dragId = draggedPersonnelId.Value;
+        draggedPersonnelId = null;
+
+        try
+        {
+            var response = await Http.PatchAsJsonAsync(
+                BuildUrl($"api/portal/personnel/{dragId}/reports-to"),
+                new SetReportsToDto { ReportsToPersonnelId = targetPersonnelId });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Amir atamasi guncellendi.");
+                detail = await Http.GetFromJsonAsync<OrgUnitDetailDto>(
+                    BuildUrl($"api/portal/organizations/{detail.Id}"));
+            }
+            else
+            {
+                var err = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(err?.Message ?? "Amir atamasi basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+
+    private record ErrorMsg(string? Error, string? Message);
 }
+
+<style>
+    .personnel-hierarchy { margin-bottom: 8px; }
+    .personnel-card { padding: 8px 12px; border: 1px solid #dee2e6; border-radius: 6px; margin: 4px 0; cursor: grab; display: flex; align-items: center; gap: 6px; background: white; transition: all 0.2s; }
+    .personnel-card:hover { background: #f8f9fa; }
+    .personnel-card.drag-over { border-color: #0d6efd; background: #e7f1ff; }
+    .personnel-subordinates { margin-left: 24px; border-left: 2px solid #dee2e6; padding-left: 8px; }
+    .drag-handle { cursor: grab; opacity: 0.5; }
+    .drag-handle:hover { opacity: 1; }
+    .drop-zone-root { padding: 12px; border: 2px dashed #dee2e6; border-radius: 6px; text-align: center; color: #6c757d; margin-top: 8px; display: none; }
+    .drop-zone-root.visible { display: block; }
+    .drop-zone-root:hover { border-color: #0d6efd; background: #e7f1ff; }
+</style>

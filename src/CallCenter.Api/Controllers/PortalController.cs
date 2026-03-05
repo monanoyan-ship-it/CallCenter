@@ -122,6 +122,24 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
+    [HttpPatch("personnel/{id}/reports-to")]
+    public async Task<IActionResult> SetReportsTo(int id, [FromBody] SetReportsToDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.SetReportsToAsync(cid.Value, id, dto.ReportsToPersonnelId);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("SetReportsTo", "Personnel", id.ToString(),
+            $"Personel amir atamasi: ID={id}, AmirID={dto.ReportsToPersonnelId?.ToString() ?? "null"}", customerId: cid);
+
+        return NoContent();
+    }
+
     [HttpDelete("personnel/{id}")]
     public async Task<IActionResult> DeactivatePersonnel(int id, [FromQuery] int? customerId)
     {

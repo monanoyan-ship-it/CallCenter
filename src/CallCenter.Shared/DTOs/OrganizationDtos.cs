@@ -66,6 +66,7 @@ public class OrgUnitPersonnelDto
     public string FullName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? CustomerRoleName { get; set; }
+    public int? ReportsToPersonnelId { get; set; }
     public string? ReportsToName { get; set; }
     public bool IsPrimaryAssignment { get; set; } // true = OrganizationUnitId FK, false = junction
 }
@@ -132,6 +133,12 @@ public class OrgUnitUpdateDto
     public int DisplayOrder { get; set; }
 
     public bool IsActive { get; set; } = true;
+}
+
+/// <summary>Amir ataması DTO</summary>
+public class SetReportsToDto
+{
+    public int? ReportsToPersonnelId { get; set; }
 }
 
 /// <summary>Organizasyona personel atama DTO</summary>

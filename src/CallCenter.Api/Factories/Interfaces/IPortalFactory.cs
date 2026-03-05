@@ -13,4 +13,5 @@ public interface IPortalFactory
     Task<List<PortalSipAccountDto>> GetSipAccountsAsync(int customerId);
     Task<(bool Success, string? Error)> UpdateSipAccountAsync(int customerId, int id, PortalSipUpdateDto dto);
     Task<(bool Success, int? Id, string? Error)> CreateSipAccountAsync(int customerId, PortalSipCreateDto dto);
+    Task<(bool Success, string? Error)> SetReportsToAsync(int customerId, int personnelId, int? reportsToPersonnelId);
 }

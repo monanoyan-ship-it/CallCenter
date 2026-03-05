@@ -316,6 +316,52 @@ public class PortalFactory : IPortalFactory
         return (true, null);
     }
 
+    // REPORTS-TO (AMIR ATAMASI)
+
+    public async Task<(bool Success, string? Error)> SetReportsToAsync(int customerId, int personnelId, int? reportsToPersonnelId)
+    {
+        var personnel = await _personnelEs.GetByIdWithUserAsync(personnelId, customerId);
+        if (personnel == null)
+            return (false, "Personel bulunamadi.");
+
+        if (reportsToPersonnelId == personnelId)
+            return (false, "Bir personel kendi amiri olamaz.");
+
+        if (reportsToPersonnelId.HasValue)
+        {
+            var target = await _personnelEs.GetByIdWithUserAsync(reportsToPersonnelId.Value, customerId);
+            if (target == null)
+                return (false, "Hedef amir bulunamadi.");
+
+            // Cycle detection: BFS ile reportsToPersonnelId'den yukarı çık, personnelId'ye ulaşılıyorsa döngü var
+            var allPersonnel = await _personnelEs.GetAllQueryable()
+                .Where(p => p.CustomerId == customerId)
+                .Select(p => new { p.Id, p.ReportsToPersonnelId })
+                .ToListAsync();
+
+            var visited = new HashSet<int>();
+            var queue = new Queue<int>();
+            queue.Enqueue(reportsToPersonnelId.Value);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                var parent = allPersonnel.FirstOrDefault(p => p.Id == current);
+                if (parent?.ReportsToPersonnelId == null) continue;
+
+                if (parent.ReportsToPersonnelId == personnelId)
+                    return (false, "Dongusel iliski tespit edildi. Bu atama bir amir dongusune yol acar.");
+
+                if (visited.Add(parent.ReportsToPersonnelId.Value))
+                    queue.Enqueue(parent.ReportsToPersonnelId.Value);
+            }
+        }
+
+        personnel.ReportsToPersonnelId = reportsToPersonnelId;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     // MODULES
 
     public async Task<List<PortalModuleDto>> GetModulesAsync(int customerId)

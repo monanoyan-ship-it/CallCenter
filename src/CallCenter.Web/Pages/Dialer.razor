@@ -1,5 +1,5 @@
 @page "/dialer"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "CustomerUser")]
 @inject HubService HubService
 @inject SipService SipService
 @inject HttpClient Http
@@ -10,15 +10,15 @@
 @using CallCenter.Shared.Helpers
 @implements IAsyncDisposable
 
-@if (isAdminRole)
+@if (!isOperatorRole)
 {
     <div class="alert alert-warning d-flex align-items-center">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <span>Firma Yoneticisi rolundeki kullanicilar arama yapamaz. Arama yapmak icin Operator veya Ekip Lideri rolune gecin.</span>
+        <span>Yalnizca Operator rolundeki kullanicilar arama yapabilir.</span>
     </div>
 }
 
-<div class="dialer-page" style="@(isAdminRole ? "opacity: 0.5; pointer-events: none;" : "")">
+<div class="dialer-page" style="@(!isOperatorRole ? "opacity: 0.5; pointer-events: none;" : "")">
             <div class="dialer-card">
                 <div class="dialer-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -117,7 +117,7 @@
         get => _phoneNumber;
         set => _phoneNumber = PhoneHelper.Sanitize(value);
     }
-    private bool isAdminRole;
+    private bool isOperatorRole;
     private bool isInCall;
     private bool isCallStarting;
     private bool isVideoEnabled;
@@ -139,9 +139,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Admin rol kontrolu
         await PermService.LoadAsync();
-        isAdminRole = PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.FirmaAdmin;
+        isOperatorRole = PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.Operator;
 
         // SIP event'lerini dinle
         SipService.OnRegistered += HandleSipRegistered;
