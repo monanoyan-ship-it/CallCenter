@@ -119,7 +119,8 @@
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
       "Bash(CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler:*)",
       "WebFetch(domain:docs.closedxml.io)",
-      "Bash(git reset HEAD nul)"
+      "Bash(git reset HEAD nul)",
+      "Bash(test -f \"C:/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/src/CallCenter.PbxService/appsettings.Development.json\")"
     ]
   }
 }
