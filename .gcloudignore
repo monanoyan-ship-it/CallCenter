@@ -1,0 +1,25 @@
+# gcloud deploy icin ignore listesi
+# Dockerfile DAHIL edilmeli (gitignore'dan farkli)
+
+.git/
+.vs/
+.claude/
+bin/
+obj/
+publish/
+publish-web/
+.wrangler/
+node_modules/
+nul
+
+# Test ve Windows/Web/Mobile projeleri deploy'a gerekli degil
+tests/
+src/CallCenter.Web/
+src/CallCenter.Windows/
+src/CallCenter.Mobile/
+src/CallCenter.PbxService/
+
+# Gereksiz dosyalar
+*.user
+*.suo
+*.md

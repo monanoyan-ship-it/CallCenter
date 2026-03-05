@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/CallCenter.Api/CallCenter.Api.csproj"],
+      "port": 5041
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/CallCenter.Web/CallCenter.Web.csproj"],
+      "port": 5123
+    }
+  ]
+}
