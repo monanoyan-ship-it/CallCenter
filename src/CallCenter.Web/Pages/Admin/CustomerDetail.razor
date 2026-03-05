@@ -101,6 +101,15 @@
             }
         </button>
     </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "hizmetler" ? "active" : "")" @onclick='() => SetTab("hizmetler")'>
+            <i class="bi bi-box-seam me-1"></i>Hizmetler
+            @if (subscriptions != null)
+            {
+                <span class="badge bg-info-subtle text-info rounded-pill ms-1">@subscriptions.Count(s => s.StatusId == 1)</span>
+            }
+        </button>
+    </li>
 </ul>
 
 @* ═══════════════════════════════════════════════════════════ *@
@@ -642,6 +651,214 @@
     </div>
 }
 
+@* ═══════════════════════════════════════════════════════════ *@
+@* HİZMETLER SEKMESİ                                           *@
+@* ═══════════════════════════════════════════════════════════ *@
+@if (activeTab == "hizmetler")
+{
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-box-seam me-1"></i>Hizmet Abonelikleri</span>
+            <button class="btn btn-primary btn-sm" @onclick="OpenAddSubscription">
+                <i class="bi bi-plus-circle me-1"></i>Hizmet Ekle
+            </button>
+        </div>
+        <div class="card-body p-0">
+            @if (isLoadingSubscriptions)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (subscriptions == null || subscriptions.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-box-seam fs-1 d-block mb-2 opacity-25"></i>
+                    Henuz hizmet aboneligi yok.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hizmet</th>
+                                <th class="text-end">Aylik Fiyat</th>
+                                <th>Baslangic</th>
+                                <th>Durum</th>
+                                <th class="text-end">Islemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sub in subscriptions)
+                            {
+                                <tr class="@(sub.StatusId != 1 ? "table-secondary" : "")">
+                                    <td>
+                                        <code class="me-1">@sub.ServiceCode</code>@sub.ServiceName
+                                    </td>
+                                    <td class="text-end fw-semibold">@sub.MonthlyPrice.ToString("N2") TL</td>
+                                    <td>@sub.StartDate.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (sub.StatusId == 1)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Aktif</span>
+                                        }
+                                        else if (sub.StatusId == 2)
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning">Askida</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger">Iptal</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (sub.StatusId == 1)
+                                        {
+                                            <button class="btn btn-outline-warning btn-sm me-1" title="Askiya Al"
+                                                    @onclick="() => SuspendSubscription(sub)" disabled="@isUpdatingSubscription">
+                                                <i class="bi bi-pause-circle"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm" title="Iptal Et"
+                                                    @onclick="() => CancelSubscription(sub)" disabled="@isUpdatingSubscription">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        }
+                                        else if (sub.StatusId == 2)
+                                        {
+                                            <button class="btn btn-outline-success btn-sm" title="Yeniden Aktifle"
+                                                    @onclick="() => ReactivateSubscription(sub)" disabled="@isUpdatingSubscription">
+                                                <i class="bi bi-play-circle"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Hizmet Faturaları *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 fw-semibold">
+            <i class="bi bi-receipt me-1"></i>Hizmet Faturalari
+        </div>
+        <div class="card-body p-0">
+            @if (isLoadingServiceBilling)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            }
+            else if (serviceBillingItems == null || serviceBillingItems.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-receipt fs-1 d-block mb-2 opacity-25"></i>
+                    Henuz hizmet faturasi yok.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Donem</th>
+                                <th>Hizmet</th>
+                                <th class="text-end">Tutar</th>
+                                <th class="text-center">Odeme</th>
+                                <th class="text-end">Islem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var bill in serviceBillingItems)
+                            {
+                                <tr>
+                                    <td>@bill.Month.ToString("00")/@bill.Year</td>
+                                    <td>@bill.ServiceName</td>
+                                    <td class="text-end fw-semibold">@bill.Amount.ToString("N2") TL</td>
+                                    <td class="text-center">
+                                        @if (bill.IsPaid)
+                                        {
+                                            <span class="badge bg-success-subtle text-success">Odendi</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Odenmedi</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (!bill.IsPaid)
+                                        {
+                                            <button class="btn btn-outline-success btn-sm" title="Odendi Isaretle"
+                                                    @onclick="() => MarkServiceBillingPaid(bill)" disabled="@isUpdatingServiceBilling">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Hizmet Ekle Modalı *@
+    @if (showAddSubscription)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title"><i class="bi bi-plus-circle me-1"></i>Hizmet Ekle</h6>
+                        <button class="btn-close btn-close-sm" @onclick="() => showAddSubscription = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(addSubError))
+                        {
+                            <div class="alert alert-danger py-2 small">@addSubError</div>
+                        }
+                        <div class="mb-3">
+                            <label class="form-label small">Hizmet</label>
+                            <select class="form-select form-select-sm" @bind="newSubServiceId">
+                                <option value="0">-- Secin --</option>
+                                @if (premiumServices != null)
+                                {
+                                    @foreach (var svc in premiumServices)
+                                    {
+                                        <option value="@svc.Id">@svc.Name (@svc.DefaultPrice.ToString("N2") TL)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Aylik Fiyat (TL)</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" @bind="newSubPrice" />
+                            <small class="text-muted">Bos birakilirsa varsayilan fiyat kullanilir.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Notlar</label>
+                            <textarea class="form-control form-control-sm" rows="2" @bind="newSubNotes"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-1">
+                        <button class="btn btn-sm btn-secondary" @onclick="() => showAddSubscription = false">Vazgec</button>
+                        <button class="btn btn-sm btn-primary" @onclick="SaveNewSubscription" disabled="@isSavingSubscription">
+                            @if (isSavingSubscription)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
 @code {
     [Parameter] public int Id { get; set; }
 
@@ -680,6 +897,21 @@
     private bool isLoadingBilling;
     private bool isUpdatingBilling;
 
+    // ─── HİZMETLER ───
+    private List<SubscriptionDto>? subscriptions;
+    private List<ServiceBillingItemDto>? serviceBillingItems;
+    private List<ServiceDefinitionDto>? premiumServices;
+    private bool isLoadingSubscriptions;
+    private bool isLoadingServiceBilling;
+    private bool isUpdatingSubscription;
+    private bool isUpdatingServiceBilling;
+    private bool showAddSubscription;
+    private int newSubServiceId;
+    private decimal? newSubPrice;
+    private string? newSubNotes;
+    private string? addSubError;
+    private bool isSavingSubscription;
+
     // ─── SETUP PACKAGE ───
     private bool isDownloadingSetup;
 
@@ -711,6 +943,10 @@
                 break;
             case "odemeler" when billingPeriods == null:
                 await LoadBilling();
+                break;
+            case "hizmetler" when subscriptions == null:
+                await LoadSubscriptions();
+                await LoadServiceBilling();
                 break;
         }
     }
@@ -947,6 +1183,174 @@
         }
         catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
         finally { isUpdatingBilling = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // HİZMETLER
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadSubscriptions()
+    {
+        isLoadingSubscriptions = true;
+        StateHasChanged();
+        try
+        {
+            subscriptions = await Http.GetFromJsonAsync<List<SubscriptionDto>>($"api/service-subscriptions?customerId={Id}");
+        }
+        catch (Exception ex) { Toast.ShowError($"Abonelikler yuklenemedi: {ex.Message}"); }
+        finally { isLoadingSubscriptions = false; }
+    }
+
+    private async Task LoadServiceBilling()
+    {
+        isLoadingServiceBilling = true;
+        StateHasChanged();
+        try
+        {
+            serviceBillingItems = await Http.GetFromJsonAsync<List<ServiceBillingItemDto>>($"api/service-billing?customerId={Id}");
+        }
+        catch (Exception ex) { Toast.ShowError($"Hizmet faturalari yuklenemedi: {ex.Message}"); }
+        finally { isLoadingServiceBilling = false; }
+    }
+
+    private async Task OpenAddSubscription()
+    {
+        addSubError = null;
+        newSubServiceId = 0;
+        newSubPrice = null;
+        newSubNotes = null;
+        if (premiumServices == null)
+        {
+            try
+            {
+                premiumServices = await Http.GetFromJsonAsync<List<ServiceDefinitionDto>>("api/services/premium");
+            }
+            catch (Exception ex) { Toast.ShowError($"Hizmet listesi yuklenemedi: {ex.Message}"); }
+        }
+        showAddSubscription = true;
+    }
+
+    private async Task SaveNewSubscription()
+    {
+        addSubError = null;
+        if (newSubServiceId == 0) { addSubError = "Hizmet secin."; return; }
+
+        isSavingSubscription = true;
+        StateHasChanged();
+        try
+        {
+            var dto = new SubscriptionCreateDto
+            {
+                CustomerId = Id,
+                ServiceDefinitionId = newSubServiceId,
+                MonthlyPrice = newSubPrice,
+                Notes = newSubNotes
+            };
+            var response = await Http.PostAsJsonAsync("api/service-subscriptions", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Hizmet aboneligi eklendi.");
+                showAddSubscription = false;
+                await LoadSubscriptions();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                addSubError = error?.Message ?? "Islem basarisiz.";
+            }
+        }
+        catch (Exception ex) { addSubError = $"Hata: {ex.Message}"; }
+        finally { isSavingSubscription = false; }
+    }
+
+    private async Task SuspendSubscription(SubscriptionDto sub)
+    {
+        isUpdatingSubscription = true;
+        StateHasChanged();
+        try
+        {
+            var dto = new SubscriptionUpdateDto { StatusId = 2 };
+            var response = await Http.PutAsJsonAsync($"api/service-subscriptions/{sub.Uid}", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"'{sub.ServiceName}' askiya alindi.");
+                await LoadSubscriptions();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isUpdatingSubscription = false; }
+    }
+
+    private async Task ReactivateSubscription(SubscriptionDto sub)
+    {
+        isUpdatingSubscription = true;
+        StateHasChanged();
+        try
+        {
+            var dto = new SubscriptionUpdateDto { StatusId = 1 };
+            var response = await Http.PutAsJsonAsync($"api/service-subscriptions/{sub.Uid}", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"'{sub.ServiceName}' yeniden aktif.");
+                await LoadSubscriptions();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isUpdatingSubscription = false; }
+    }
+
+    private async Task CancelSubscription(SubscriptionDto sub)
+    {
+        isUpdatingSubscription = true;
+        StateHasChanged();
+        try
+        {
+            var response = await Http.DeleteAsync($"api/service-subscriptions/{sub.Uid}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"'{sub.ServiceName}' iptal edildi.");
+                await LoadSubscriptions();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isUpdatingSubscription = false; }
+    }
+
+    private async Task MarkServiceBillingPaid(ServiceBillingItemDto item)
+    {
+        isUpdatingServiceBilling = true;
+        StateHasChanged();
+        try
+        {
+            var response = await Http.PutAsync($"api/service-billing/{item.Id}/pay", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess($"{item.Month:00}/{item.Year} - {item.ServiceName} odendi.");
+                await LoadServiceBilling();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isUpdatingServiceBilling = false; }
     }
 
     // ═══════════════════════════════════════════════════

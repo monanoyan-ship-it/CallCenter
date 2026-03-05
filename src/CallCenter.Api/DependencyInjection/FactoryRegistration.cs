@@ -51,6 +51,9 @@ public static class FactoryRegistration
         // Faz 13 — KVKK Uyumluluk
         services.AddScoped<IKvkkFactory, KvkkFactory>();
 
+        // Faz 14 — Hizmet Abonelik Yönetimi
+        services.AddScoped<IServiceSubscriptionFactory, ServiceSubscriptionFactory>();
+
         return services;
     }
 }

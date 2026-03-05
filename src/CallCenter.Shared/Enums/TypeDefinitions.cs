@@ -964,3 +964,66 @@ public static class ContactSources
         public const int CSV = 3;
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// HİZMET KATEGORİLERİ (Service Categories)
+// ═══════════════════════════════════════════════════════════════
+
+public static class ServiceCategories
+{
+    public static readonly TypeItem Default = new(1, "Default", "ServiceCategory.Default", "Standart dahil hizmet", "bi-check-circle-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem Premium = new(2, "Premium", "ServiceCategory.Premium", "Ucretli ek hizmet", "bi-star-fill", "bg-warning text-dark", 2);
+
+    public static IEnumerable<TypeItem> All => new[] { Default, Premium };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Default = 1;
+        public const int Premium = 2;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ABONELİK DURUMLARI (Subscription Statuses)
+// ═══════════════════════════════════════════════════════════════
+
+public static class SubscriptionStatuses
+{
+    public static readonly TypeItem Active = new(1, "Active", "SubscriptionStatus.Active", "Aktif abonelik", "bi-check-circle-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem Suspended = new(2, "Suspended", "SubscriptionStatus.Suspended", "Askiya alinmis", "bi-pause-circle-fill", "bg-warning text-dark", 2);
+    public static readonly TypeItem Cancelled = new(3, "Cancelled", "SubscriptionStatus.Cancelled", "Iptal edilmis", "bi-x-circle-fill", "bg-danger", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Active, Suspended, Cancelled };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Active = 1;
+        public const int Suspended = 2;
+        public const int Cancelled = 3;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FATURA KALEMİ DURUMLARI (Billing Item Statuses)
+// ═══════════════════════════════════════════════════════════════
+
+public static class BillingItemStatuses
+{
+    public static readonly TypeItem Pending = new(1, "Pending", "BillingItemStatus.Pending", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);
+    public static readonly TypeItem Invoiced = new(2, "Invoiced", "BillingItemStatus.Invoiced", "Faturalanmis", "bi-receipt", "bg-info", 2);
+    public static readonly TypeItem Paid = new(3, "Paid", "BillingItemStatus.Paid", "Odenmis", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem Overdue = new(4, "Overdue", "BillingItemStatus.Overdue", "Gecmis", "bi-exclamation-triangle-fill", "bg-danger", 4);
+
+    public static IEnumerable<TypeItem> All => new[] { Pending, Invoiced, Paid, Overdue };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Pending = 1;
+        public const int Invoiced = 2;
+        public const int Paid = 3;
+        public const int Overdue = 4;
+    }
+}

@@ -333,6 +333,14 @@
                             </NavLink>
                         }
 
+                        @if (IsAdmin)
+                        {
+                            <NavLink class="nav-link" href="admin/services">
+                                <i class="bi bi-box-seam"></i>
+                                <span>Hizmet Yonetimi</span>
+                            </NavLink>
+                        }
+
                         @* ─── KVKK ─── *@
                         @if (IsAdmin)
                         {
@@ -407,7 +415,7 @@
         { 0, new[] { "dialer", "calls/" } },
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/storage", "admin/gateway-health", "admin/kvkk" } },
+        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/storage", "admin/gateway-health", "admin/services", "admin/kvkk" } },
         { 4, new[] { "admin/customers", "admin/organizations", "admin/personnel" } },
         { 6, new[] { "supervisor/" } },
         { 10, new[] { "portal/" } }

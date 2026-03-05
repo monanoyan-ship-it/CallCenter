@@ -33,4 +33,7 @@ public class Customer
 
     // Faturalama donemleri
     public ICollection<CustomerBillingPeriod> BillingPeriods { get; set; } = new List<CustomerBillingPeriod>();
+
+    // Hizmet abonelikleri
+    public ICollection<CustomerServiceSubscription> ServiceSubscriptions { get; set; } = new List<CustomerServiceSubscription>();
 }
