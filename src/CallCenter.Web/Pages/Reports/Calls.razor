@@ -1,8 +1,12 @@
 @page "/reports/calls"
 @attribute [Authorize(Roles = "Admin,Supervisor")]
 @inject HttpClient Http
+@inject ChartJsInterop ChartJs
+@inject IJSRuntime JS
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
+@using CallCenter.Web.Services
+@implements IAsyncDisposable
 
 <PageTitle>Arama Raporlari - Call Center</PageTitle>
 
@@ -10,9 +14,17 @@
     <h4 class="mb-0">
         <i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Arama Raporlari
     </h4>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-success btn-sm" @onclick="ExportCsv" disabled="@isExporting">
+            <i class="bi bi-filetype-csv me-1"></i>CSV
+        </button>
+        <button class="btn btn-outline-primary btn-sm" @onclick="ExportExcel" disabled="@isExporting">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </button>
+    </div>
 </div>
 
-@* ─── FİLTRELER ─── *@
+@* --- FILTRELER --- *@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
         <div class="row g-2 align-items-end">
@@ -66,7 +78,7 @@
 }
 else if (report != null)
 {
-    @* ─── ÖZET KARTLARI ─── *@
+    @* --- OZET KARTLARI (8 adet) --- *@
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
@@ -128,9 +140,98 @@ else if (report != null)
                 </div>
             </div>
         </div>
+        @* SLA KARTLARI *@
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">Terk Orani</div>
+                            <div class="fs-3 fw-bold @(report.AbandonmentRate > 20 ? "text-danger" : report.AbandonmentRate > 10 ? "text-warning" : "text-success")">
+                                %@report.AbandonmentRate.ToString("0.#")
+                            </div>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-person-dash-fill text-danger fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">ASA (Ort. Cevap Suresi)</div>
+                            <div class="fs-3 fw-bold text-primary">@FormatDuration(report.AvgSpeedOfAnswerSeconds)</div>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-stopwatch-fill text-primary fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">AHT (Ort. Gorusme)</div>
+                            <div class="fs-3 fw-bold text-secondary">@FormatDuration(report.AvgHandleTimeSeconds)</div>
+                        </div>
+                        <div class="bg-secondary bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-headset text-secondary fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small">SLA Uyum</div>
+                            <div class="fs-3 fw-bold @(report.SlaComplianceRate >= 90 ? "text-success" : report.SlaComplianceRate >= 70 ? "text-warning" : "text-danger")">
+                                %@report.SlaComplianceRate.ToString("0.#")
+                            </div>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-3 p-2">
+                            <i class="bi bi-shield-check text-success fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    @* ─── TABLO ─── *@
+    @* --- GRAFIKLER --- *@
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Gunluk Arama Trendi</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" style="height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Durum Dagilimi</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="distributionChart" style="height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* --- TABLO --- *@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             @if (report.Items.Items.Count == 0)
@@ -202,6 +303,8 @@ else if (report != null)
     private int selectedStatusId;
     private int currentPage = 1;
     private bool isLoading;
+    private bool isExporting;
+    private bool chartsInitialized;
 
     private List<SearchableSelect.SearchSelectItem> customerItems =>
         customers.Select(c => new SearchableSelect.SearchSelectItem(c.Id.ToString(), c.Name)).ToList();
@@ -224,9 +327,14 @@ else if (report != null)
         { "Inbound", "Gelen" }, { "Outbound", "Giden" }
     };
 
+    private static readonly Dictionary<string, string> StatusColors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Completed", "#198754" }, { "Missed", "#ffc107" }, { "Failed", "#dc3545" },
+        { "Ringing", "#0dcaf0" }, { "InProgress", "#0d6efd" }, { "OnHold", "#6c757d" }, { "Transferred", "#6f42c1" }
+    };
+
     protected override async Task OnInitializedAsync()
     {
-        // Varsayilan tarih: son 7 gun
         toDate = DateTime.Today;
         fromDate = DateTime.Today.AddDays(-7);
 
@@ -240,9 +348,19 @@ else if (report != null)
         await LoadReport();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (report != null && !chartsInitialized)
+        {
+            chartsInitialized = true;
+            await LoadCharts();
+        }
+    }
+
     private async Task LoadReport()
     {
         isLoading = true;
+        chartsInitialized = false;
         StateHasChanged();
 
         try
@@ -266,15 +384,121 @@ else if (report != null)
         }
     }
 
+    private async Task LoadCharts()
+    {
+        try
+        {
+            var filterParams = BuildFilterParams();
+
+            // Trend ve distribution verilerini paralel yukle
+            var trendTask = Http.GetFromJsonAsync<List<DailyCallStatsDto>>($"api/reports/calls/trend{filterParams}");
+            var distTask = Http.GetFromJsonAsync<List<StatusDistributionDto>>($"api/reports/calls/distribution{filterParams}");
+
+            await Task.WhenAll(trendTask, distTask);
+
+            var trend = trendTask.Result ?? new();
+            var dist = distTask.Result ?? new();
+
+            // Trend line chart
+            if (trend.Count > 0)
+            {
+                var trendConfig = new
+                {
+                    type = "line",
+                    data = new
+                    {
+                        labels = trend.Select(t => t.Date.ToString("dd.MM")).ToArray(),
+                        datasets = new object[]
+                        {
+                            new { label = "Toplam", data = trend.Select(t => t.TotalCalls).ToArray(), borderColor = "#0d6efd", backgroundColor = "rgba(13,110,253,0.1)", fill = true, tension = 0.3 },
+                            new { label = "Cevaplanan", data = trend.Select(t => t.AnsweredCalls).ToArray(), borderColor = "#198754", backgroundColor = "transparent", tension = 0.3 },
+                            new { label = "Cevapsiz", data = trend.Select(t => t.MissedCalls).ToArray(), borderColor = "#ffc107", backgroundColor = "transparent", tension = 0.3 }
+                        }
+                    },
+                    options = new { responsive = true, maintainAspectRatio = false, plugins = new { legend = new { position = "bottom" } } }
+                };
+                await ChartJs.CreateChartAsync("trendChart", trendConfig);
+            }
+
+            // Distribution pie chart
+            if (dist.Count > 0)
+            {
+                var distConfig = new
+                {
+                    type = "doughnut",
+                    data = new
+                    {
+                        labels = dist.Select(d => GetStatusDisplayName(d.StatusName)).ToArray(),
+                        datasets = new object[]
+                        {
+                            new
+                            {
+                                data = dist.Select(d => d.Count).ToArray(),
+                                backgroundColor = dist.Select(d => StatusColors.TryGetValue(d.StatusName, out var c) ? c : "#6c757d").ToArray()
+                            }
+                        }
+                    },
+                    options = new { responsive = true, maintainAspectRatio = false, plugins = new { legend = new { position = "bottom" } } }
+                };
+                await ChartJs.CreateChartAsync("distributionChart", distConfig);
+            }
+        }
+        catch { }
+    }
+
+    private string BuildFilterParams()
+    {
+        var parts = new List<string>();
+        if (selectedCustomerId > 0) parts.Add($"customerId={selectedCustomerId}");
+        if (fromDate.HasValue) parts.Add($"from={fromDate.Value:yyyy-MM-dd}");
+        if (toDate.HasValue) parts.Add($"to={toDate.Value:yyyy-MM-dd}");
+        return parts.Count > 0 ? "?" + string.Join("&", parts) : "";
+    }
+
+    private Task ExportCsv() => ExportReport("csv");
+    private Task ExportExcel() => ExportReport("xlsx");
+
+    private async Task ExportReport(string format)
+    {
+        isExporting = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"api/reports/calls/export?format={format}";
+            if (selectedCustomerId > 0) url += $"&customerId={selectedCustomerId}";
+            if (fromDate.HasValue) url += $"&from={fromDate.Value:yyyy-MM-dd}";
+            if (toDate.HasValue) url += $"&to={toDate.Value:yyyy-MM-dd}";
+            if (selectedDirectionId > 0) url += $"&directionId={selectedDirectionId}";
+            if (selectedStatusId > 0) url += $"&statusId={selectedStatusId}";
+
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var fileName = $"arama-raporu-{DateTime.Now:yyyyMMdd}.{format}";
+                var contentType = format == "xlsx"
+                    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    : "text/csv";
+                await JS.InvokeVoidAsync("downloadFile", fileName, contentType, bytes);
+            }
+        }
+        catch { }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
     private async Task ApplyFilters()
     {
         currentPage = 1;
         await LoadReport();
     }
 
-    private async Task OnPageChanged(int page)
+    private async Task OnPageChanged(int pageNum)
     {
-        currentPage = page;
+        currentPage = pageNum;
         await LoadReport();
     }
 
@@ -291,5 +515,15 @@ else if (report != null)
         return ts.Hours > 0
             ? $"{ts.Hours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
             : $"{ts.Minutes}:{ts.Seconds:D2}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await ChartJs.DestroyChartAsync("trendChart");
+            await ChartJs.DestroyChartAsync("distributionChart");
+        }
+        catch { }
     }
 }

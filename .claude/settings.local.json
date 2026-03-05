@@ -117,7 +117,9 @@
       "Bash(pip install:*)",
       "Bash(chcp 6500:*)",
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
-      "Bash(CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler:*)"
+      "Bash(CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler:*)",
+      "WebFetch(domain:docs.closedxml.io)",
+      "Bash(git reset HEAD nul)"
     ]
   }
 }

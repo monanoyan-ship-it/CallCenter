@@ -100,19 +100,32 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
 }
 
 // Otomatik migration (Development veya Docker/test ortami)
+// GUVENLIK: Hata durumunda ASLA EnsureDeletedAsync/EnsureCreatedAsync CAGIRMA — tum veriyi siler!
 if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var migrationLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Migration");
     try
     {
+        var pending = await db.Database.GetPendingMigrationsAsync();
+        var pendingList = pending.ToList();
+        if (pendingList.Count > 0)
+            migrationLogger.LogInformation("Bekleyen migration'lar uygulanacak: {Migrations}", string.Join(", ", pendingList));
+
         await db.Database.MigrateAsync();
+        migrationLogger.LogInformation("Migration basarili.");
     }
-    catch
+    catch (Exception ex)
     {
-        // Migration history bozuksa DB'yi sıfırla ve tekrar uygula
-        await db.Database.EnsureDeletedAsync();
-        await db.Database.MigrateAsync();
+        migrationLogger.LogCritical(ex, "MIGRATION HATASI! Veritabanina dokunulmadi. Manuel mudahale gerekiyor.");
+
+        if (!app.Environment.IsDevelopment())
+        {
+            // Production/Docker: migration basarisizsa uygulama BASLAMASIN (fail fast)
+            throw;
+        }
+        // Development: hata loglanir, gelistirici gorup duzeltir
     }
 }
 

@@ -46,4 +46,7 @@ builder.Services.AddScoped<ToastService>();
 // Portal yetki servisi (JWT claim parse)
 builder.Services.AddScoped<PermissionService>();
 
+// Chart.js JS Interop servisi
+builder.Services.AddScoped<ChartJsInterop>();
+
 await builder.Build().RunAsync();

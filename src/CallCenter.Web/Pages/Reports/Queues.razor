@@ -1,27 +1,17 @@
-@page "/reports/agents"
+@page "/reports/queues"
 @attribute [Authorize(Roles = "Admin,Supervisor")]
 @inject HttpClient Http
 @inject ChartJsInterop ChartJs
-@inject IJSRuntime JS
 @using CallCenter.Shared.DTOs
-@using CallCenter.Shared.Enums
 @using CallCenter.Web.Services
 @implements IAsyncDisposable
 
-<PageTitle>Temsilci Performansi - Call Center</PageTitle>
+<PageTitle>Kuyruk Performansi - Call Center</PageTitle>
 
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <h4 class="mb-0">
-        <i class="bi bi-person-lines-fill me-2 text-primary"></i>Temsilci Performansi
+        <i class="bi bi-diagram-3-fill me-2 text-primary"></i>Kuyruk Performansi
     </h4>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-success btn-sm" @onclick="ExportCsv" disabled="@isExporting">
-            <i class="bi bi-filetype-csv me-1"></i>CSV
-        </button>
-        <button class="btn btn-outline-primary btn-sm" @onclick="ExportExcel" disabled="@isExporting">
-            <i class="bi bi-file-earmark-excel me-1"></i>Excel
-        </button>
-    </div>
 </div>
 
 @* --- FILTRELER --- *@
@@ -60,63 +50,48 @@ else if (report != null)
 {
     @* --- OZET KARTLARI --- *@
     <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-muted small">Toplam Temsilci</div>
-                            <div class="fs-3 fw-bold text-primary">@report.TotalAgents</div>
+                            <div class="text-muted small">Toplam Kuyruk</div>
+                            <div class="fs-3 fw-bold text-primary">@report.TotalQueues</div>
                         </div>
                         <div class="bg-primary bg-opacity-10 rounded-3 p-2">
-                            <i class="bi bi-people-fill text-primary fs-4"></i>
+                            <i class="bi bi-diagram-3-fill text-primary fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-muted small">En Iyi Performans</div>
-                            <div class="fs-5 fw-bold text-success text-truncate" style="max-width: 140px;" title="@(report.BestPerformerName ?? "-")">
-                                @(report.BestPerformerName ?? "-")
+                            <div class="text-muted small">Genel SLA Uyum</div>
+                            <div class="fs-3 fw-bold @GetSlaColorClass(report.OverallSlaRate)">
+                                %@report.OverallSlaRate.ToString("0.#")
                             </div>
                         </div>
                         <div class="bg-success bg-opacity-10 rounded-3 p-2">
-                            <i class="bi bi-trophy-fill text-success fs-4"></i>
+                            <i class="bi bi-shield-check text-success fs-4"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-muted small">En Dusuk Ort. Sure</div>
-                            <div class="fs-3 fw-bold text-warning">@FormatDuration(report.LowestAvgAnswerSeconds)</div>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 rounded-3 p-2">
-                            <i class="bi bi-lightning-fill text-warning fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-muted small">Genel Ort. Sure</div>
-                            <div class="fs-3 fw-bold text-info">@FormatDuration(report.OverallAvgDurationSeconds)</div>
+                            <div class="text-muted small">SLA Aciklamasi</div>
+                            <div class="small text-muted mt-1">Kuyruk MaxWaitTime suresinde cevaplanan aramalarin orani</div>
                         </div>
                         <div class="bg-info bg-opacity-10 rounded-3 p-2">
-                            <i class="bi bi-clock-fill text-info fs-4"></i>
+                            <i class="bi bi-info-circle text-info fs-4"></i>
                         </div>
                     </div>
                 </div>
@@ -124,15 +99,15 @@ else if (report != null)
         </div>
     </div>
 
-    @* --- CEVAPLAMA ORANI GRAFIGI --- *@
+    @* --- SLA BAR CHART --- *@
     @if (report.Items.Items.Count > 0)
     {
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-0">
-                <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Temsilci Cevaplama Oranlari</h6>
+                <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Kuyruk SLA Uyum Oranlari</h6>
             </div>
             <div class="card-body">
-                <canvas id="agentChart" style="height: 300px;"></canvas>
+                <canvas id="queueSlaChart" style="height: 300px;"></canvas>
             </div>
         </div>
     }
@@ -143,8 +118,8 @@ else if (report != null)
             @if (report.Items.Items.Count == 0)
             {
                 <div class="text-center text-muted py-5">
-                    <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
-                    <span>Temsilci bulunamadi</span>
+                    <i class="bi bi-diagram-3 fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Kuyruk bulunamadi</span>
                 </div>
             }
             else
@@ -153,33 +128,39 @@ else if (report != null)
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Temsilci</th>
-                                <th>Dahili</th>
+                                <th>Kuyruk</th>
                                 <th class="text-center">Toplam</th>
                                 <th class="text-center">Cevaplanan</th>
                                 <th class="text-center">Cevapsiz</th>
-                                <th class="text-center">Ort. Sure</th>
-                                <th class="text-center">Cevaplama Orani</th>
+                                <th class="text-center">Ort. Bekleme</th>
+                                <th class="text-center">Ort. Gorusme</th>
+                                <th class="text-center">SLA Hedef</th>
+                                <th class="text-center">SLA Uyum</th>
+                                <th class="text-center">Terk Orani</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var agent in report.Items.Items)
+                            @foreach (var q in report.Items.Items)
                             {
                                 <tr>
                                     <td class="fw-medium">
-                                        <i class="bi bi-person-circle me-1 text-muted"></i>@agent.FullName
+                                        <i class="bi bi-diagram-3 me-1 text-muted"></i>@q.QueueName
                                     </td>
-                                    <td class="text-muted">@(agent.Extension ?? "-")</td>
-                                    <td class="text-center fw-medium">@agent.TotalCalls</td>
-                                    <td class="text-center text-success">@agent.AnsweredCalls</td>
-                                    <td class="text-center text-danger">@agent.MissedCalls</td>
-                                    <td class="text-center text-muted">@FormatDuration(agent.AvgDurationSeconds)</td>
+                                    <td class="text-center fw-medium">@q.TotalCalls</td>
+                                    <td class="text-center text-success">@q.AnsweredCalls</td>
+                                    <td class="text-center text-danger">@q.MissedCalls</td>
+                                    <td class="text-center text-muted">@FormatDuration(q.AvgWaitSeconds)</td>
+                                    <td class="text-center text-muted">@FormatDuration(q.AvgHandleSeconds)</td>
+                                    <td class="text-center text-muted">@FormatDuration(q.SlaTargetSeconds)</td>
                                     <td class="text-center">
-                                        @{
-                                            var rateClass = agent.AnswerRate >= 80 ? "text-success" :
-                                                            agent.AnswerRate >= 50 ? "text-warning" : "text-danger";
-                                        }
-                                        <span class="fw-bold @rateClass">%@agent.AnswerRate.ToString("0.#")</span>
+                                        <span class="badge rounded-pill @GetSlaBadgeClass(q.SlaComplianceRate)">
+                                            %@q.SlaComplianceRate.ToString("0.#")
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="@(q.AbandonmentRate > 20 ? "text-danger fw-bold" : q.AbandonmentRate > 10 ? "text-warning" : "text-success")">
+                                            %@q.AbandonmentRate.ToString("0.#")
+                                        </span>
                                     </td>
                                 </tr>
                             }
@@ -188,7 +169,7 @@ else if (report != null)
                 </div>
 
                 <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
-                    <small class="text-muted">Toplam: @report.Items.TotalCount temsilci</small>
+                    <small class="text-muted">Toplam: @report.Items.TotalCount kuyruk</small>
                     <Pagination CurrentPage="currentPage" TotalPages="report.Items.TotalPages" OnPageChanged="OnPageChanged" />
                 </div>
             }
@@ -197,14 +178,13 @@ else if (report != null)
 }
 
 @code {
-    private AgentReportResponse? report;
+    private QueueReportResponse? report;
     private List<CustomerSimpleDto> customers = new();
     private int selectedCustomerId;
     private DateTime? fromDate;
     private DateTime? toDate;
     private int currentPage = 1;
     private bool isLoading;
-    private bool isExporting;
     private bool chartInitialized;
 
     private List<SearchableSelect.SearchSelectItem> customerItems =>
@@ -237,30 +217,30 @@ else if (report != null)
         if (report != null && report.Items.Items.Count > 0 && !chartInitialized)
         {
             chartInitialized = true;
-            await CreateAgentChart();
+            await CreateSlaChart();
         }
     }
 
-    private async Task CreateAgentChart()
+    private async Task CreateSlaChart()
     {
         try
         {
-            var agents = report!.Items.Items;
+            var queues = report!.Items.Items;
             var config = new
             {
                 type = "bar",
                 data = new
                 {
-                    labels = agents.Select(a => a.FullName).ToArray(),
+                    labels = queues.Select(q => q.QueueName).ToArray(),
                     datasets = new object[]
                     {
                         new
                         {
-                            label = "Cevaplama Orani (%)",
-                            data = agents.Select(a => a.AnswerRate).ToArray(),
-                            backgroundColor = agents.Select(a =>
-                                a.AnswerRate >= 80 ? "rgba(25,135,84,0.7)" :
-                                a.AnswerRate >= 50 ? "rgba(255,193,7,0.7)" : "rgba(220,53,69,0.7)").ToArray(),
+                            label = "SLA Uyum (%)",
+                            data = queues.Select(q => q.SlaComplianceRate).ToArray(),
+                            backgroundColor = queues.Select(q =>
+                                q.SlaComplianceRate >= 90 ? "rgba(25,135,84,0.7)" :
+                                q.SlaComplianceRate >= 70 ? "rgba(255,193,7,0.7)" : "rgba(220,53,69,0.7)").ToArray(),
                             borderWidth = 0
                         }
                     }
@@ -273,7 +253,7 @@ else if (report != null)
                     scales = new { y = new { beginAtZero = true, max = 100 } }
                 }
             };
-            await ChartJs.CreateChartAsync("agentChart", config);
+            await ChartJs.CreateChartAsync("queueSlaChart", config);
         }
         catch { }
     }
@@ -286,53 +266,20 @@ else if (report != null)
 
         try
         {
-            var url = $"api/reports/agents?page={currentPage}&pageSize=20";
+            var url = $"api/reports/queues?page={currentPage}&pageSize=20";
             if (selectedCustomerId > 0) url += $"&customerId={selectedCustomerId}";
             if (fromDate.HasValue) url += $"&from={fromDate.Value:yyyy-MM-dd}";
             if (toDate.HasValue) url += $"&to={toDate.Value:yyyy-MM-dd}";
 
-            report = await Http.GetFromJsonAsync<AgentReportResponse>(url);
+            report = await Http.GetFromJsonAsync<QueueReportResponse>(url);
         }
         catch
         {
-            report = new AgentReportResponse();
+            report = new QueueReportResponse();
         }
         finally
         {
             isLoading = false;
-        }
-    }
-
-    private Task ExportCsv() => ExportReport("csv");
-    private Task ExportExcel() => ExportReport("xlsx");
-
-    private async Task ExportReport(string format)
-    {
-        isExporting = true;
-        StateHasChanged();
-
-        try
-        {
-            var url = $"api/reports/agents/export?format={format}";
-            if (selectedCustomerId > 0) url += $"&customerId={selectedCustomerId}";
-            if (fromDate.HasValue) url += $"&from={fromDate.Value:yyyy-MM-dd}";
-            if (toDate.HasValue) url += $"&to={toDate.Value:yyyy-MM-dd}";
-
-            var response = await Http.GetAsync(url);
-            if (response.IsSuccessStatusCode)
-            {
-                var bytes = await response.Content.ReadAsByteArrayAsync();
-                var fileName = $"temsilci-raporu-{DateTime.Now:yyyyMMdd}.{format}";
-                var contentType = format == "xlsx"
-                    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    : "text/csv";
-                await JS.InvokeVoidAsync("downloadFile", fileName, contentType, bytes);
-            }
-        }
-        catch { }
-        finally
-        {
-            isExporting = false;
         }
     }
 
@@ -348,6 +295,12 @@ else if (report != null)
         await LoadReport();
     }
 
+    private static string GetSlaColorClass(double rate) =>
+        rate >= 90 ? "text-success" : rate >= 70 ? "text-warning" : "text-danger";
+
+    private static string GetSlaBadgeClass(double rate) =>
+        rate >= 90 ? "bg-success" : rate >= 70 ? "bg-warning text-dark" : "bg-danger";
+
     private static string FormatDuration(int seconds)
     {
         if (seconds <= 0) return "-";
@@ -359,6 +312,6 @@ else if (report != null)
 
     public async ValueTask DisposeAsync()
     {
-        try { await ChartJs.DestroyChartAsync("agentChart"); } catch { }
+        try { await ChartJs.DestroyChartAsync("queueSlaChart"); } catch { }
     }
 }
