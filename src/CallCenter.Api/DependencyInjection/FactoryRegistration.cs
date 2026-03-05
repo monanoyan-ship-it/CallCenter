@@ -42,6 +42,9 @@ public static class FactoryRegistration
         // Billing
         services.AddScoped<IBillingFactory, BillingFactory>();
 
+        // PBX Service
+        services.AddScoped<IPbxFactory, PbxFactory>();
+
         return services;
     }
 }

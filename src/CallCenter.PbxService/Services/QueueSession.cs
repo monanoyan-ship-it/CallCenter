@@ -161,9 +161,9 @@ public class QueueManager
             var queueConfig = await _apiClient.GetQueueConfigAsync(call.QueueId);
 
             string? holdMusicPath = null;
-            if (queueConfig?.HoldMusicMessageId != null)
+            if (queueConfig?.HoldMusicId != null)
             {
-                holdMusicPath = await _audioCache.GetAudioFileAsync(queueConfig.HoldMusicMessageId.Value);
+                holdMusicPath = await _audioCache.GetAudioFileAsync(queueConfig.HoldMusicId.Value);
             }
 
             if (holdMusicPath == null)
@@ -239,7 +239,7 @@ public class QueueConfigInfo
 {
     public int QueueId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public int? HoldMusicMessageId { get; set; }
+    public int? HoldMusicId { get; set; }
     public int? TimeoutMessageId { get; set; }
     public int MaxWaitTimeSeconds { get; set; } = 600;
     public int MaxQueueLength { get; set; } = 50;
