@@ -68,6 +68,8 @@ public interface ISipService : IAsyncDisposable
     void SetSpeakerVolume(float volume);
 
     // ─── Recording ───
+    string? LastRecordingPath { get; }
+    void SetEncryptionKey(string key);
     Task<bool> StartRecordingAsync(string? filePath = null);
     Task<bool> StopRecordingAsync();
 

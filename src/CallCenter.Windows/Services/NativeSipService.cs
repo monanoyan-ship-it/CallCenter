@@ -146,6 +146,7 @@ public class NativeSipService : ISipService
     public bool IsDndEnabled => _dndEnabled;
     public bool IsAutoAnswerEnabled => _autoAnswerEnabled;
     public bool IsRecording => _isRecording;
+    public string? LastRecordingPath => _recordingWavPath;
     public bool IsMuted => _muted;
     public int ActiveLineIndex => _activeLineIndex;
     public int LineCount => MaxLines;

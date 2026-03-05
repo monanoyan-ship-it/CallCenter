@@ -12,6 +12,15 @@ public class RecordingInfoDto
     public DateTime CallDate { get; set; }
 }
 
+/// <summary>Windows app icin cift upload hedefleri</summary>
+public class RecordingUploadTargetsDto
+{
+    public bool UploadToPlatform { get; set; }
+    public CloudConfigForClientDto? PlatformConfig { get; set; }
+    public bool UploadToCustomerStorage { get; set; }
+    public CloudConfigForClientDto? CustomerConfig { get; set; }
+}
+
 /// <summary>Oturum acik kullanici bilgisi (yetki kontrolu icin)</summary>
 public class CurrentUserInfo
 {

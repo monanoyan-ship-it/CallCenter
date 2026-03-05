@@ -165,7 +165,9 @@ public class FileLocalRepository : ILocalRepository
         => await _recordings.RemoveAsync(r => r.Uid == uid);
 
     public Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10)
-        => _recordings.WhereAsync(r => !r.IsUploadedToCloud && r.CloudUploadAttemptCount < 5);
+        => _recordings.WhereAsync(r =>
+            (!r.IsUploadedToCloud && r.CloudUploadAttemptCount < 5) ||
+            (!r.IsUploadedToPlatform && r.PlatformUploadAttemptCount < 5));
 
     public async Task MarkRecordingAsUploadedAsync(Guid uid, string? cloudFileId = null)
     {
@@ -180,6 +182,19 @@ public class FileLocalRepository : ILocalRepository
             });
     }
 
+    public async Task MarkRecordingAsUploadedToPlatformAsync(Guid uid, string? platformFileId = null)
+    {
+        await _recordings.UpdateAsync(
+            r => r.Uid == uid,
+            r =>
+            {
+                r.IsUploadedToPlatform = true;
+                r.LastPlatformUploadAttempt = DateTime.UtcNow;
+                if (platformFileId != null)
+                    r.PlatformFileId = platformFileId;
+            });
+    }
+
     public async Task UpdateRecordingUploadAttemptAsync(Guid uid)
     {
         await _recordings.UpdateAsync(
@@ -188,6 +203,17 @@ public class FileLocalRepository : ILocalRepository
             {
                 r.CloudUploadAttemptCount++;
                 r.LastCloudUploadAttempt = DateTime.UtcNow;
+            });
+    }
+
+    public async Task UpdateRecordingPlatformUploadAttemptAsync(Guid uid)
+    {
+        await _recordings.UpdateAsync(
+            r => r.Uid == uid,
+            r =>
+            {
+                r.PlatformUploadAttemptCount++;
+                r.LastPlatformUploadAttempt = DateTime.UtcNow;
             });
     }
 

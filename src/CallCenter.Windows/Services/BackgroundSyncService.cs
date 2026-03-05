@@ -224,11 +224,19 @@ public class BackgroundSyncService
         // Bulut depolama bilgilerini ekle (Windows app direkt yuklediyse)
         var recordings = await _localRepo.GetRecordingsAsync(record.Uid, 1, 1);
         var recording = recordings.FirstOrDefault();
-        if (recording is { IsUploadedToCloud: true, CloudFileId: not null })
+        if (recording != null)
         {
-            syncDto.CloudFileId = recording.CloudFileId;
-            syncDto.CloudFileName = System.IO.Path.GetFileName(recording.FilePath);
-            syncDto.CloudUploadedAt = recording.LastCloudUploadAttempt;
+            if (recording is { IsUploadedToCloud: true, CloudFileId: not null })
+            {
+                syncDto.CloudFileId = recording.CloudFileId;
+                syncDto.CloudFileName = System.IO.Path.GetFileName(recording.FilePath);
+                syncDto.CloudUploadedAt = recording.LastCloudUploadAttempt;
+            }
+            if (recording is { IsUploadedToPlatform: true, PlatformFileId: not null })
+            {
+                syncDto.PlatformFileId = recording.PlatformFileId;
+                syncDto.PlatformUploadedAt = recording.LastPlatformUploadAttempt;
+            }
         }
 
         var response = await _http.PostAsJsonAsync("api/calls/sync", syncDto);

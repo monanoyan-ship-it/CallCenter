@@ -44,7 +44,7 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
 
         return new RecordingInfoDto
         {
-            HasRecording = call.CloudFileId != null,
+            HasRecording = call.CloudFileId != null || call.PlatformFileId != null,
             IsEncrypted = call.IsRecordingEncrypted,
             FileSize = call.RecordingFileSize,
             DurationSeconds = call.DurationSeconds,
@@ -66,7 +66,9 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
             return null;
         }
 
-        if (string.IsNullOrEmpty(call.CloudFileId))
+        // Oncelik: musteri deposu (CloudFileId), yoksa platform deposu (PlatformFileId)
+        var fileId = call.CloudFileId ?? call.PlatformFileId;
+        if (string.IsNullOrEmpty(fileId))
             return null;
 
         // Determine customer ID for cloud storage
@@ -82,8 +84,8 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
         // Log stream started
         await LogAccessAsync(call, currentUser, RecordingAccessActions.Ids.StreamStarted, ipAddress, userAgent);
 
-        // Download from cloud
-        var stream = await _cloudStorage.DownloadRecordingAsync(customerId.Value, call.CloudFileId);
+        // Download from cloud (musteri deposu veya platform deposu)
+        var stream = await _cloudStorage.DownloadRecordingAsync(customerId.Value, fileId);
         if (stream == null) return null;
 
         // Decrypt if encrypted

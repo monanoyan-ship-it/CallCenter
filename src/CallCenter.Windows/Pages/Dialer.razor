@@ -9,6 +9,7 @@
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
 @inject CallCenter.Windows.Services.SecureStorage Storage
 @inject NavigationManager NavigationManager
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
 @using CallCenter.Windows.Models
@@ -285,6 +286,11 @@
 
         lines = await SipService.GetLinesAsync();
 
+        // Sifreleme anahtarini SIP servisine aktar
+        var encKey = Configuration["Encryption:Key"];
+        if (!string.IsNullOrEmpty(encKey))
+            SipService.SetEncryptionKey(encKey);
+
         // Otomatik kayit ayarini yukle
         var autoRecordStr = await Storage.GetAsync("auto_record");
         _autoRecordEnabled = autoRecordStr == "true";
@@ -450,7 +456,13 @@
             {
                 try
                 {
-                    string? recordingPath = SipService.IsRecording ? null : GetLastRecordingPath();
+                    // Aktif kayit varsa durdur (WAV -> AES-256 .enc)
+                    if (SipService.IsRecording)
+                        await SipService.StopRecordingAsync();
+
+                    // Kayit yolunu al (sifreli .enc dosyasi)
+                    string? recordingPath = SipService.LastRecordingPath;
+
                     await CallSync.EndCallAsync(currentCallUid.Value, currentCallId, recordingPath);
                 }
                 catch { }
@@ -471,14 +483,6 @@
             await Task.Delay(5000);
             await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
         });
-    }
-
-    /// <summary>Son ses kaydi dosya yolunu alir (NativeSipService'ten)</summary>
-    private string? GetLastRecordingPath()
-    {
-        // SipService kayit dosyasini %LOCALAPPDATA%\CallCenter\Recordings altina yazar
-        // Bu metod henuz recording entegrasyonu yapilinca detaylandirilacak
-        return null;
     }
 
     private async Task HandleCallFailed(string error)

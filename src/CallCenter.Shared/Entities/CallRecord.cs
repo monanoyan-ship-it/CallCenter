@@ -46,6 +46,14 @@ public class CallRecord
     /// <summary>Bulut'a yuklenme zamani</summary>
     public DateTime? CloudUploadedAt { get; set; }
 
+    // ─── Platform Depolama ───
+
+    /// <summary>Platform deposundaki dosya ID/key</summary>
+    public string? PlatformFileId { get; set; }
+
+    /// <summary>Platform deposuna yuklenme zamani</summary>
+    public DateTime? PlatformUploadedAt { get; set; }
+
     public int? AgentId { get; set; }
     public User? Agent { get; set; }
 

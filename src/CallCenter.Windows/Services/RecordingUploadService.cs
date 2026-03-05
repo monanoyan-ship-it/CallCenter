@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using CallCenter.Shared.DTOs;
 using CallCenter.Windows.LocalData;
+using CallCenter.Windows.LocalData.Entities;
 using CallCenter.Windows.Services.CloudStorage;
 using Microsoft.Extensions.Logging;
 
@@ -11,14 +12,14 @@ namespace CallCenter.Windows.Services;
 
 /// <summary>
 /// Lokal ses kayitlarini (.enc) dogrudan bulut depolamaya yukler.
-/// API'ye proxy olarak gondermez — Windows app bagimsiz olarak yukler.
+/// Cift hedef destekler: Platform deposu + Musteri deposu.
+/// Musterinin tercihleri API'den alinir (upload-targets endpoint).
 ///
 /// Akis:
-///   1. Cloud config'i API'den cek veya cache'ten oku
-///   2. Yuklenmemis kayitlari lokal DB'den al (max 5 deneme)
-///   3. Her kayit icin: dosya var mi → CloudUploadHelper ile yukle → basarili → lokal sil
-///   4. Upload sonrasi CloudFileId, LocalRecording'e kaydedilir
-///      ve BackgroundSync ile API'ye push edilir
+///   1. Upload hedeflerini API'den cek veya cache'ten oku (30 dk)
+///   2. Yuklenmemis kayitlari lokal DB'den al (max 5 deneme/hedef)
+///   3. Her kayit icin: aktif hedeflere yukle
+///   4. Tum aktif hedefler tamamlaninca lokal .enc sil
 /// </summary>
 public class RecordingUploadService
 {
@@ -28,12 +29,11 @@ public class RecordingUploadService
     private readonly ILogger<RecordingUploadService> _logger;
 
     private const int MaxRetries = 5;
-    private const string CloudConfigCacheKey = "cloud_storage_config";
+    private const string UploadTargetsCacheKey = "upload_targets_config";
 
-    // Bellekte tutulan config (her seferinde SecureStorage'a gitmemek icin)
-    private CloudConfigForClientDto? _cachedConfig;
-    private DateTime _lastConfigFetch = DateTime.MinValue;
-    private static readonly TimeSpan ConfigCacheExpiry = TimeSpan.FromMinutes(30);
+    private RecordingUploadTargetsDto? _cachedTargets;
+    private DateTime _lastTargetsFetch = DateTime.MinValue;
+    private static readonly TimeSpan TargetsCacheExpiry = TimeSpan.FromMinutes(30);
 
     public RecordingUploadService(
         ILocalRepository localRepo,
@@ -48,175 +48,182 @@ public class RecordingUploadService
     }
 
     /// <summary>
-    /// Bekleyen ses kayitlarini bulut'a yukle.
-    /// Cloud config yoksa sessizce cikar.
+    /// Bekleyen ses kayitlarini bulut hedeflerine yukle.
+    /// Hedef yoksa sessizce cikar.
     /// </summary>
     public async Task UploadPendingRecordingsAsync(CancellationToken ct = default)
     {
-        // Cloud config'i al (API'den veya cache'ten)
-        var config = await GetCloudConfigAsync(ct);
-        if (config == null)
+        var targets = await GetUploadTargetsAsync(ct);
+        if (targets == null || (!targets.UploadToPlatform && !targets.UploadToCustomerStorage))
         {
-            _logger.LogDebug("Cloud storage yapilandirilmamis — upload atlaniyor");
+            _logger.LogDebug("Hic bir upload hedefi aktif degil — upload atlaniyor");
             return;
         }
 
-        // Yuklenmemis kayitlari al
         var recordings = await _localRepo.GetUnuploadedRecordingsAsync(10);
         if (recordings.Count == 0) return;
 
-        _logger.LogInformation("{Count} ses kaydi bulut'a yuklenecek", recordings.Count);
-
-        var successCount = 0;
-        var failCount = 0;
+        _logger.LogInformation("{Count} ses kaydi yuklenecek (platform={Platform}, musteri={Customer})",
+            recordings.Count, targets.UploadToPlatform, targets.UploadToCustomerStorage);
 
         foreach (var recording in recordings)
         {
             ct.ThrowIfCancellationRequested();
 
-            if (recording.CloudUploadAttemptCount >= MaxRetries)
-            {
-                _logger.LogWarning("Kayit {Uid} max deneme sayisina ulasti ({Max}), atlaniyor",
-                    recording.Uid, MaxRetries);
-                continue;
-            }
-
             if (!File.Exists(recording.FilePath))
             {
                 _logger.LogWarning("Ses kaydi dosyasi bulunamadi: {Path}", recording.FilePath);
+                // Her iki hedef icin de attempt artir
                 await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
-                failCount++;
+                await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
                 continue;
             }
 
-            try
+            // Platform hedefi
+            if (targets.UploadToPlatform && targets.PlatformConfig != null
+                && !recording.IsUploadedToPlatform && recording.PlatformUploadAttemptCount < MaxRetries)
             {
-                var uploaded = await UploadSingleRecordingAsync(config, recording, ct);
-                if (uploaded)
+                await UploadToTargetAsync(targets.PlatformConfig, recording, "platform", ct);
+            }
+
+            // Musteri hedefi
+            if (targets.UploadToCustomerStorage && targets.CustomerConfig != null
+                && !recording.IsUploadedToCloud && recording.CloudUploadAttemptCount < MaxRetries)
+            {
+                await UploadToTargetAsync(targets.CustomerConfig, recording, "customer", ct);
+            }
+
+            // Tum aktif hedefler tamamlandiysa lokal dosyayi sil
+            var allDone = IsAllTargetsComplete(recording, targets);
+            if (allDone)
+            {
+                try
                 {
-                    // Basarili: lokal .enc dosyasini sil
-                    await _localRepo.MarkRecordingAsUploadedAsync(recording.Uid, recording.CloudFileId);
-                    try
-                    {
-                        File.Delete(recording.FilePath);
-                        _logger.LogInformation("Yuklendi ve silindi: {Path}", recording.FilePath);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Dosya silme hatasi: {Path}", recording.FilePath);
-                    }
-                    successCount++;
+                    File.Delete(recording.FilePath);
+                    _logger.LogInformation("Tum hedeflere yuklendi, lokal silindi: {Path}", recording.FilePath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Dosya silme hatasi: {Path}", recording.FilePath);
+                }
+            }
+        }
+    }
+
+    private async Task UploadToTargetAsync(
+        CloudConfigForClientDto config,
+        LocalRecording recording,
+        string targetName,
+        CancellationToken ct)
+    {
+        try
+        {
+            await using var fileStream = new FileStream(
+                recording.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            var fileName = Path.GetFileName(recording.FilePath);
+            var (success, fileId, error) = await CloudUploadHelper.UploadAsync(config, fileStream, fileName, ct);
+
+            if (success && fileId != null)
+            {
+                _logger.LogInformation("{Target} deposuna yuklendi: {FileName} → {FileId}",
+                    targetName, fileName, fileId);
+
+                if (targetName == "platform")
+                    await _localRepo.MarkRecordingAsUploadedToPlatformAsync(recording.Uid, fileId);
+                else
+                    await _localRepo.MarkRecordingAsUploadedAsync(recording.Uid, fileId);
+
+                // In-memory nesneyi de guncelle (ayni dogu icinde kontrol icin)
+                if (targetName == "platform")
+                {
+                    recording.IsUploadedToPlatform = true;
+                    recording.PlatformFileId = fileId;
                 }
                 else
                 {
+                    recording.IsUploadedToCloud = true;
+                    recording.CloudFileId = fileId;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("{Target} upload basarisiz: {Error}", targetName, error);
+                if (targetName == "platform")
+                    await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+                else
                     await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
-                    failCount++;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Kayit yukleme hatasi: {Uid}", recording.Uid);
-                await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
-                failCount++;
-            }
-        }
-
-        if (successCount > 0 || failCount > 0)
-        {
-            _logger.LogInformation("Bulut yukleme tamamlandi: {Success} basarili, {Fail} basarisiz",
-                successCount, failCount);
-        }
-    }
-
-    /// <summary>
-    /// Tek bir ses kaydini CloudUploadHelper ile dogrudan bulut'a yukle.
-    /// API'ye proxy gondermez — Windows bagimsiz yukler.
-    /// </summary>
-    private async Task<bool> UploadSingleRecordingAsync(
-        CloudConfigForClientDto config,
-        LocalData.Entities.LocalRecording recording,
-        CancellationToken ct)
-    {
-        await using var fileStream = new FileStream(
-            recording.FilePath, FileMode.Open, FileAccess.Read);
-
-        var fileName = Path.GetFileName(recording.FilePath);
-
-        var (success, fileId, error) = await CloudUploadHelper.UploadAsync(
-            config, fileStream, fileName, ct);
-
-        if (success && fileId != null)
-        {
-            _logger.LogInformation("Bulut'a yuklendi: {FileName} → {FileId}", fileName, fileId);
-            recording.CloudFileId = fileId;
-            return true;
-        }
-
-        _logger.LogWarning("Bulut upload basarisiz: {Error}", error);
-        return false;
-    }
-
-    // ═══════════════════════════════════════
-    // CLOUD CONFIG CACHE
-    // ═══════════════════════════════════════
-
-    /// <summary>
-    /// Cloud config'i once bellekten, sonra SecureStorage'dan, en son API'den al.
-    /// 30 dakikada bir API'den taze config cekilir.
-    /// </summary>
-    private async Task<CloudConfigForClientDto?> GetCloudConfigAsync(CancellationToken ct)
-    {
-        // 1. Bellek cache'i kontrol
-        if (_cachedConfig != null && DateTime.UtcNow - _lastConfigFetch < ConfigCacheExpiry)
-            return _cachedConfig;
-
-        // 2. API'den cek (online ise)
-        try
-        {
-            var response = await _http.GetAsync("api/recordings/cloud-config", ct);
-            if (response.IsSuccessStatusCode)
-            {
-                var config = await response.Content.ReadFromJsonAsync<CloudConfigForClientDto>(
-                    cancellationToken: ct);
-                if (config != null)
-                {
-                    // SecureStorage'a kaydet (offline icin)
-                    var json = JsonSerializer.Serialize(config);
-                    await _secureStorage.SetAsync(CloudConfigCacheKey, json);
-
-                    _cachedConfig = config;
-                    _lastConfigFetch = DateTime.UtcNow;
-                    return config;
-                }
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // Cloud config yok — cache temizle
-                await _secureStorage.RemoveAsync(CloudConfigCacheKey);
-                _cachedConfig = null;
-                _lastConfigFetch = DateTime.UtcNow;
-                return null;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Cloud config API'den alinamadi — cache'e bakilacak");
+            _logger.LogWarning(ex, "{Target} upload hatasi: {Uid}", targetName, recording.Uid);
+            if (targetName == "platform")
+                await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+            else
+                await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
+        }
+    }
+
+    private static bool IsAllTargetsComplete(LocalRecording recording, RecordingUploadTargetsDto targets)
+    {
+        if (targets.UploadToPlatform && !recording.IsUploadedToPlatform) return false;
+        if (targets.UploadToCustomerStorage && !recording.IsUploadedToCloud) return false;
+        return true;
+    }
+
+    // ═══════════════════════════════════════
+    // UPLOAD TARGETS CACHE
+    // ═══════════════════════════════════════
+
+    /// <summary>
+    /// Upload hedeflerini once bellekten, sonra SecureStorage'dan, en son API'den al.
+    /// 30 dakikada bir API'den taze hedefler cekilir.
+    /// </summary>
+    private async Task<RecordingUploadTargetsDto?> GetUploadTargetsAsync(CancellationToken ct)
+    {
+        // 1. Bellek cache'i kontrol
+        if (_cachedTargets != null && DateTime.UtcNow - _lastTargetsFetch < TargetsCacheExpiry)
+            return _cachedTargets;
+
+        // 2. API'den cek (online ise)
+        try
+        {
+            var response = await _http.GetAsync("api/recordings/upload-targets", ct);
+            if (response.IsSuccessStatusCode)
+            {
+                var targets = await response.Content.ReadFromJsonAsync<RecordingUploadTargetsDto>(
+                    cancellationToken: ct);
+                if (targets != null)
+                {
+                    var json = JsonSerializer.Serialize(targets);
+                    await _secureStorage.SetAsync(UploadTargetsCacheKey, json);
+
+                    _cachedTargets = targets;
+                    _lastTargetsFetch = DateTime.UtcNow;
+                    return targets;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Upload targets API'den alinamadi — cache'e bakilacak");
         }
 
         // 3. SecureStorage'dan oku (offline mod)
         try
         {
-            var cached = await _secureStorage.GetAsync(CloudConfigCacheKey);
+            var cached = await _secureStorage.GetAsync(UploadTargetsCacheKey);
             if (!string.IsNullOrEmpty(cached))
             {
-                _cachedConfig = JsonSerializer.Deserialize<CloudConfigForClientDto>(cached);
-                _lastConfigFetch = DateTime.UtcNow;
-                return _cachedConfig;
+                _cachedTargets = JsonSerializer.Deserialize<RecordingUploadTargetsDto>(cached);
+                _lastTargetsFetch = DateTime.UtcNow;
+                return _cachedTargets;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "SecureStorage'dan cloud config okunamadi");
+            _logger.LogDebug(ex, "SecureStorage'dan upload targets okunamadi");
         }
 
         return null;

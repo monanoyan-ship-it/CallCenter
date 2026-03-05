@@ -12,6 +12,8 @@ public class Customer
     public bool IsActive { get; set; } = true;
     public int MaxUsers { get; set; } = 1;
     public decimal MonthlyUnitPrice { get; set; }
+    public bool SaveRecordingToPlatform { get; set; } = true;
+    public bool SaveRecordingToOwnStorage { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();

@@ -1,8 +1,12 @@
 using System.Security.Claims;
+using System.Text.Json;
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -17,14 +21,23 @@ public class RecordingsController : AuditableControllerBase
 {
     private readonly ICloudStorageFactory _cloudStorageFactory;
     private readonly IRecordingPlaybackFactory _playbackFactory;
+    private readonly ISettingEntityService _settingEs;
+    private readonly ICustomerEntityService _customerEs;
+    private readonly AesEncryptionService _aes;
 
     public RecordingsController(
         IAuditFactory auditFactory,
         ICloudStorageFactory cloudStorageFactory,
-        IRecordingPlaybackFactory playbackFactory) : base(auditFactory)
+        IRecordingPlaybackFactory playbackFactory,
+        ISettingEntityService settingEs,
+        ICustomerEntityService customerEs,
+        AesEncryptionService aes) : base(auditFactory)
     {
         _cloudStorageFactory = cloudStorageFactory;
         _playbackFactory = playbackFactory;
+        _settingEs = settingEs;
+        _customerEs = customerEs;
+        _aes = aes;
     }
 
     /// <summary>
@@ -63,6 +76,88 @@ public class RecordingsController : AuditableControllerBase
             return NotFound("Ses kaydi bulunamadi veya bulut'a yuklenmemis");
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Platform (sistem geneli) cloud storage config'ini dondur.
+    /// SystemSettings'ten okur, credentials AES decrypt eder.
+    /// </summary>
+    [HttpGet("platform-config")]
+    public async Task<ActionResult<CloudConfigForClientDto>> GetPlatformConfig()
+    {
+        var config = await GetPlatformConfigInternalAsync();
+        if (config == null)
+            return NotFound("Platform depolamasi yapilandirilmamis veya aktif degil");
+
+        return Ok(config);
+    }
+
+    /// <summary>
+    /// Windows app icin cift upload hedeflerini dondur.
+    /// Musterinin SaveRecordingToPlatform/SaveRecordingToOwnStorage tercihlerine gore
+    /// platform ve/veya musteri cloud config'ini birlikte dondurur.
+    /// </summary>
+    [HttpGet("upload-targets")]
+    public async Task<ActionResult<RecordingUploadTargetsDto>> GetUploadTargets()
+    {
+        var customerId = CurrentCustomerId;
+        if (customerId == null)
+            return Unauthorized("CustomerId bulunamadi");
+
+        var customer = await _customerEs.GetByIdAsync(customerId.Value);
+        if (customer == null)
+            return NotFound("Musteri bulunamadi");
+
+        var result = new RecordingUploadTargetsDto
+        {
+            UploadToPlatform = customer.SaveRecordingToPlatform,
+            UploadToCustomerStorage = customer.SaveRecordingToOwnStorage
+        };
+
+        if (customer.SaveRecordingToPlatform)
+            result.PlatformConfig = await GetPlatformConfigInternalAsync();
+
+        if (customer.SaveRecordingToOwnStorage)
+            result.CustomerConfig = await _cloudStorageFactory.GetConfigForClientAsync(customerId.Value);
+
+        return Ok(result);
+    }
+
+    private async Task<CloudConfigForClientDto?> GetPlatformConfigInternalAsync()
+    {
+        var settings = await _settingEs.GetAllQueryable()
+            .Where(s => s.Key.StartsWith("storage.platform_"))
+            .ToListAsync();
+
+        var enabled = settings.FirstOrDefault(s => s.Key == "storage.platform_enabled")?.Value;
+        if (enabled != "true") return null;
+
+        var providerTypeIdStr = settings.FirstOrDefault(s => s.Key == "storage.platform_provider_type_id")?.Value;
+        if (!int.TryParse(providerTypeIdStr, out var providerTypeId) || providerTypeId == 0) return null;
+
+        var encryptedCredentials = settings.FirstOrDefault(s => s.Key == "storage.platform_credentials")?.Value;
+        var basePath = settings.FirstOrDefault(s => s.Key == "storage.platform_base_path")?.Value;
+
+        var credentials = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(encryptedCredentials))
+        {
+            var decrypted = _aes.Decrypt(encryptedCredentials);
+            if (!string.IsNullOrEmpty(decrypted))
+            {
+                try
+                {
+                    credentials = JsonSerializer.Deserialize<Dictionary<string, string>>(decrypted) ?? new();
+                }
+                catch { /* gecersiz JSON — bos credentials */ }
+            }
+        }
+
+        return new CloudConfigForClientDto
+        {
+            ProviderTypeId = providerTypeId,
+            BasePath = basePath,
+            Credentials = credentials
+        };
     }
 
     /// <summary>

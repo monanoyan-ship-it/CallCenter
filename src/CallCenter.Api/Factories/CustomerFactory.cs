@@ -111,6 +111,8 @@ public class CustomerFactory : ICustomerFactory
             IsActive = c.IsActive,
             MaxUsers = c.MaxUsers,
             MonthlyUnitPrice = c.MonthlyUnitPrice,
+            SaveRecordingToPlatform = c.SaveRecordingToPlatform,
+            SaveRecordingToOwnStorage = c.SaveRecordingToOwnStorage,
             CreatedAt = c.CreatedAt,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
             {
@@ -210,6 +212,8 @@ public class CustomerFactory : ICustomerFactory
         customer.IsActive = dto.IsActive;
         customer.MaxUsers = dto.MaxUsers;
         customer.MonthlyUnitPrice = dto.MonthlyUnitPrice;
+        customer.SaveRecordingToPlatform = dto.SaveRecordingToPlatform;
+        customer.SaveRecordingToOwnStorage = dto.SaveRecordingToOwnStorage;
 
         await _uow.SaveChangesAsync();
         return (true, null);

@@ -270,6 +270,10 @@ public class CallFactory : ICallFactory
                 existing.CloudFileName = request.CloudFileName;
             if (request.CloudUploadedAt.HasValue)
                 existing.CloudUploadedAt = request.CloudUploadedAt;
+            if (!string.IsNullOrEmpty(request.PlatformFileId))
+                existing.PlatformFileId = request.PlatformFileId;
+            if (request.PlatformUploadedAt.HasValue)
+                existing.PlatformUploadedAt = request.PlatformUploadedAt;
             await _uow.SaveChangesAsync();
 
             return new CallSyncPushResponse { Id = existing.Id, IsNew = false };
@@ -297,7 +301,9 @@ public class CallFactory : ICallFactory
             RecordingRetentionDate = request.RecordingRetentionDate,
             CloudFileId = request.CloudFileId,
             CloudFileName = request.CloudFileName,
-            CloudUploadedAt = request.CloudUploadedAt
+            CloudUploadedAt = request.CloudUploadedAt,
+            PlatformFileId = request.PlatformFileId,
+            PlatformUploadedAt = request.PlatformUploadedAt
         };
 
         if (!string.IsNullOrEmpty(request.QueueName))

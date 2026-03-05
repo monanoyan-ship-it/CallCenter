@@ -36,9 +36,9 @@ public class LocalRecording
     /// <summary>Saklama son tarihi (TTK md. 82: 10 yil)</summary>
     public DateTime? RetentionDate { get; set; }
 
-    // ─── Bulut Upload Takibi ───
+    // ─── Musteri Bulut Upload Takibi ───
 
-    /// <summary>Bulut'a basariyla yuklendi mi?</summary>
+    /// <summary>Musteri deposuna basariyla yuklendi mi?</summary>
     public bool IsUploadedToCloud { get; set; }
 
     /// <summary>Son yukleme denemesi zamani</summary>
@@ -47,6 +47,20 @@ public class LocalRecording
     /// <summary>Toplam yukleme deneme sayisi (max 5'te durur)</summary>
     public int CloudUploadAttemptCount { get; set; }
 
-    /// <summary>Bulut'taki dosya ID/key (S3 key, Drive file ID, vb.)</summary>
+    /// <summary>Musteri bulut'undaki dosya ID/key (S3 key, Drive file ID, vb.)</summary>
     public string? CloudFileId { get; set; }
+
+    // ─── Platform Bulut Upload Takibi ───
+
+    /// <summary>Platform deposuna basariyla yuklendi mi?</summary>
+    public bool IsUploadedToPlatform { get; set; }
+
+    /// <summary>Platform'daki dosya ID/key</summary>
+    public string? PlatformFileId { get; set; }
+
+    /// <summary>Platform upload deneme sayisi</summary>
+    public int PlatformUploadAttemptCount { get; set; }
+
+    /// <summary>Son platform upload denemesi zamani</summary>
+    public DateTime? LastPlatformUploadAttempt { get; set; }
 }

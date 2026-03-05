@@ -70,11 +70,17 @@ public interface ILocalRepository
     /// <summary>Bulut'a henuz yuklenmemis ses kayitlarini getir (max 5 deneme)</summary>
     Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10);
 
-    /// <summary>Ses kaydini "bulut'a yuklendi" olarak isaretle</summary>
+    /// <summary>Ses kaydini "musteri bulut'una yuklendi" olarak isaretle</summary>
     Task MarkRecordingAsUploadedAsync(Guid uid, string? cloudFileId = null);
 
-    /// <summary>Yukleme denemesi sayacini ve zamanini guncelle</summary>
+    /// <summary>Ses kaydini "platform deposuna yuklendi" olarak isaretle</summary>
+    Task MarkRecordingAsUploadedToPlatformAsync(Guid uid, string? platformFileId = null);
+
+    /// <summary>Musteri bulut yukleme denemesi sayacini ve zamanini guncelle</summary>
     Task UpdateRecordingUploadAttemptAsync(Guid uid);
+
+    /// <summary>Platform yukleme denemesi sayacini ve zamanini guncelle</summary>
+    Task UpdateRecordingPlatformUploadAttemptAsync(Guid uid);
 
     // ═══════════════════════════════════════
     // ISTATISTIKLER (lokal raporlama icin)

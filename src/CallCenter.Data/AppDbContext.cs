@@ -96,6 +96,8 @@ public class AppDbContext : DbContext
             e.Property(c => c.Email).HasMaxLength(150);
             e.Property(c => c.MaxUsers).HasDefaultValue(1);
             e.Property(c => c.MonthlyUnitPrice).HasPrecision(18, 2).HasDefaultValue(0m);
+            e.Property(c => c.SaveRecordingToPlatform).HasDefaultValue(true);
+            e.Property(c => c.SaveRecordingToOwnStorage).HasDefaultValue(false);
         });
 
         // CustomerPortalModule (musteriye acik moduller)
@@ -896,6 +898,12 @@ public class AppDbContext : DbContext
             (30, "notification.sound_enabled", "true", "notification", "bool", "Bildirim sesi", false),
             (31, "notification.desktop_enabled", "true", "notification", "bool", "Masaustu bildirimi", false),
             (32, "notification.ring_duration", "30", "notification", "int", "Zil calma suresi (sn)", false),
+
+            // Platform Depolama
+            (40, "storage.platform_enabled", "false", "storage", "bool", "Platform depolamasi aktif mi", true),
+            (41, "storage.platform_provider_type_id", "0", "storage", "int", "StorageProviders ID", true),
+            (42, "storage.platform_credentials", "", "storage", "encrypted_json", "Sifrelenmis kimlik bilgileri (JSON)", true),
+            (43, "storage.platform_base_path", "/recordings/", "storage", "string", "Temel yol", true),
         };
 
         foreach (var (id, key, value, group, valueType, desc, isSystem) in settings)
