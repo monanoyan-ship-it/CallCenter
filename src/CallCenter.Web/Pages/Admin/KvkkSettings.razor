@@ -1,0 +1,542 @@
+@page "/admin/kvkk/settings"
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>KVKK Ayarlari - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-gear-wide-connected me-2 text-primary"></i>KVKK Ayarlari
+    </h4>
+</div>
+
+@* ─── SEKMELER ─── *@
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == 0 ? "active" : "")" @onclick="() => SwitchTab(0)">
+            <i class="bi bi-shield-fill-x me-1"></i>Ihlal Bildirimi
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == 1 ? "active" : "")" @onclick="() => SwitchTab(1)">
+            <i class="bi bi-clock-history me-1"></i>Saklama Politikalari
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == 2 ? "active" : "")" @onclick="() => SwitchTab(2)">
+            <i class="bi bi-database me-1"></i>Veri Envanteri
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == 3 ? "active" : "")" @onclick="() => SwitchTab(3)">
+            <i class="bi bi-trash me-1"></i>Imha Kayitlari
+        </button>
+    </li>
+</ul>
+
+@if (isLoading)
+{
+    <div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+}
+else
+{
+    @* ═══ TAB 0: İHLAL BİLDİRİMİ ═══ *@
+    @if (activeTab == 0)
+    {
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-danger btn-sm" @onclick="() => showBreachForm = true">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Ihlal Bildirimi
+            </button>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                @if (breaches.Count == 0)
+                {
+                    <div class="text-center text-muted py-4">Ihlal kaydi yok</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Baslik</th><th>Ciddiyet</th><th>Durum</th><th>Tespit</th><th>Bildirim Suresi</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var b in breaches)
+                                {
+                                    <tr>
+                                        <td>@b.Title</td>
+                                        <td><span class="badge @GetSeverityBadge(b.SeverityId)">@b.SeverityName</span></td>
+                                        <td><small>@b.StatusName</small></td>
+                                        <td><small>@b.DetectedAt.ToString("dd.MM.yyyy HH:mm")</small></td>
+                                        <td><small class="@(b.IsOverdue ? "text-danger fw-bold" : "")">@b.NotificationDeadline.ToString("dd.MM.yyyy HH:mm")</small></td>
+                                        <td>
+                                            @if (b.StatusId < 6)
+                                            {
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => AdvanceBreachStatus(b)">
+                                                    <i class="bi bi-arrow-right"></i>
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (showBreachForm)
+        {
+            <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Yeni Veri Ihlali Bildirimi</h5>
+                            <button type="button" class="btn-close" @onclick="() => showBreachForm = false"></button>
+                        </div>
+                        <div class="modal-body">
+                            <EditForm Model="breachCreateDto" OnValidSubmit="SubmitBreach">
+                                <DataAnnotationsValidator />
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <label class="form-label">Baslik</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="breachCreateDto.Title" />
+                                        <ValidationMessage For="() => breachCreateDto.Title" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ciddiyet</label>
+                                        <InputSelect class="form-select form-select-sm" @bind-Value="breachCreateDto.SeverityId">
+                                            @foreach (var s in BreachSeverities.All)
+                                            {
+                                                <option value="@s.Id">@s.Description</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Aciklama</label>
+                                        <InputTextArea class="form-control form-control-sm" @bind-Value="breachCreateDto.Description" rows="3" />
+                                        <ValidationMessage For="() => breachCreateDto.Description" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Etkilenen Kisi Sayisi</label>
+                                        <InputNumber class="form-control form-control-sm" @bind-Value="breachCreateDto.AffectedSubjectCount" />
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Etkilenen Veri Kategorileri</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="breachCreateDto.AffectedDataCategories" />
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="() => showBreachForm = false">Iptal</button>
+                                    <button type="submit" class="btn btn-danger btn-sm" disabled="@isSaving">
+                                        @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                        Bildir
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    @* ═══ TAB 1: SAKLAMA POLİTİKALARI ═══ *@
+    @if (activeTab == 1)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                @if (retentionPolicies.Count == 0)
+                {
+                    <div class="text-center text-muted py-4">
+                        <p>Saklama politikasi tanimlanmamis.</p>
+                        <button class="btn btn-primary btn-sm" @onclick="SeedDefaults">Varsayilan Politikalari Olustur</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Kategori</th><th>Saklama Suresi</th><th>Yasal Dayanak</th><th>Durum</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in retentionPolicies)
+                                {
+                                    <tr>
+                                        <td>@p.CategoryName</td>
+                                        <td>
+                                            @if (editingRetentionId == p.Id)
+                                            {
+                                                <input type="number" class="form-control form-control-sm d-inline-block" style="width:80px"
+                                                       @bind="editRetentionDays" />
+                                            }
+                                            else
+                                            {
+                                                <span>@p.RetentionDays gun (@(p.RetentionDays / 365) yil)</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (editingRetentionId == p.Id)
+                                            {
+                                                <input type="text" class="form-control form-control-sm" @bind="editRetentionBasis" />
+                                            }
+                                            else
+                                            {
+                                                <small>@p.LegalBasis</small>
+                                            }
+                                        </td>
+                                        <td><span class="badge @(p.IsActive ? "bg-success" : "bg-secondary")">@(p.IsActive ? "Aktif" : "Pasif")</span></td>
+                                        <td>
+                                            @if (editingRetentionId == p.Id)
+                                            {
+                                                <button class="btn btn-success btn-sm me-1" @onclick="() => SaveRetention(p)"><i class="bi bi-check"></i></button>
+                                                <button class="btn btn-secondary btn-sm" @onclick="() => editingRetentionId = 0"><i class="bi bi-x"></i></button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => StartEditRetention(p)"><i class="bi bi-pencil"></i></button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* ═══ TAB 2: VERİ ENVANTERİ ═══ *@
+    @if (activeTab == 2)
+    {
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-primary btn-sm" @onclick="() => showInventoryForm = true">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Kayit
+            </button>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                @if (inventoryItems.Count == 0)
+                {
+                    <div class="text-center text-muted py-4">Veri envanteri bos</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Veri Kategorisi</th><th>Amac</th><th>Yasal Dayanak</th><th>Ilgili Kisi</th><th>Saklama</th><th>Durum</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var i in inventoryItems)
+                                {
+                                    <tr>
+                                        <td>@i.DataCategory</td>
+                                        <td><small>@i.Purpose</small></td>
+                                        <td><small>@i.LegalBasis</small></td>
+                                        <td><small>@i.DataSubjectGroup</small></td>
+                                        <td><small>@i.RetentionDays gun</small></td>
+                                        <td><span class="badge @(i.IsActive ? "bg-success" : "bg-secondary")">@(i.IsActive ? "Aktif" : "Pasif")</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (showInventoryForm)
+        {
+            <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Veri Envanteri Kaydi</h5>
+                            <button type="button" class="btn-close" @onclick="() => showInventoryForm = false"></button>
+                        </div>
+                        <div class="modal-body">
+                            <EditForm Model="inventoryCreateDto" OnValidSubmit="SubmitInventory">
+                                <DataAnnotationsValidator />
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Veri Kategorisi</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.DataCategory" />
+                                        <ValidationMessage For="() => inventoryCreateDto.DataCategory" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Ilgili Kisi Grubu</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.DataSubjectGroup" />
+                                        <ValidationMessage For="() => inventoryCreateDto.DataSubjectGroup" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Isleme Amaci</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.Purpose" />
+                                        <ValidationMessage For="() => inventoryCreateDto.Purpose" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Yasal Dayanak</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.LegalBasis" />
+                                        <ValidationMessage For="() => inventoryCreateDto.LegalBasis" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Saklama (gun)</label>
+                                        <InputNumber class="form-control form-control-sm" @bind-Value="inventoryCreateDto.RetentionDays" />
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Guvenlik Onlemleri</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.SecurityMeasures" />
+                                        <ValidationMessage For="() => inventoryCreateDto.SecurityMeasures" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Alici Grubu</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.RecipientGroup" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Transfer Ulkesi</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="inventoryCreateDto.TransferCountry" />
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="() => showInventoryForm = false">Iptal</button>
+                                    <button type="submit" class="btn btn-primary btn-sm" disabled="@isSaving">Kaydet</button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    @* ═══ TAB 3: İMHA KAYITLARI ═══ *@
+    @if (activeTab == 3)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                @if (destructionLogs.Count == 0)
+                {
+                    <div class="text-center text-muted py-4">Imha kaydi yok</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Veri Kategorisi</th><th>Yontem</th><th>Kayit Sayisi</th><th>Onaylayan</th><th>Imha Tarihi</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var d in destructionLogs)
+                                {
+                                    <tr>
+                                        <td>@d.DataCategory</td>
+                                        <td>@d.MethodName</td>
+                                        <td>@d.DestroyedRecordCount</td>
+                                        <td><small>@d.ApprovedByUserName</small></td>
+                                        <td><small>@d.DestroyedAt.ToString("dd.MM.yyyy HH:mm")</small></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private int activeTab;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool showBreachForm;
+    private bool showInventoryForm;
+    private int selectedCustomerId = 1;
+
+    // Tab 0: Breaches
+    private List<DataBreachDto> breaches = new();
+    private DataBreachCreateDto breachCreateDto = new() { SeverityId = 1 };
+
+    // Tab 1: Retention
+    private List<RetentionPolicyDto> retentionPolicies = new();
+    private int editingRetentionId;
+    private int editRetentionDays;
+    private string editRetentionBasis = "";
+
+    // Tab 2: Inventory
+    private List<DataInventoryItemDto> inventoryItems = new();
+    private DataInventoryCreateDto inventoryCreateDto = new() { RetentionDays = 365 };
+
+    // Tab 3: Destruction
+    private List<DataDestructionLogDto> destructionLogs = new();
+
+    protected override async Task OnInitializedAsync() => await LoadTabData();
+
+    private async Task SwitchTab(int tab)
+    {
+        activeTab = tab;
+        await LoadTabData();
+    }
+
+    private async Task LoadTabData()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            switch (activeTab)
+            {
+                case 0:
+                    var br = await Http.GetFromJsonAsync<PagedResponse<DataBreachDto>>($"api/kvkk/breaches?page=1&pageSize=50");
+                    breaches = br?.Items ?? new();
+                    break;
+                case 1:
+                    retentionPolicies = await Http.GetFromJsonAsync<List<RetentionPolicyDto>>($"api/kvkk/retention?customerId={selectedCustomerId}") ?? new();
+                    break;
+                case 2:
+                    inventoryItems = await Http.GetFromJsonAsync<List<DataInventoryItemDto>>("api/kvkk/inventory") ?? new();
+                    break;
+                case 3:
+                    var dl = await Http.GetFromJsonAsync<PagedResponse<DataDestructionLogDto>>("api/kvkk/destruction?page=1&pageSize=50");
+                    destructionLogs = dl?.Items ?? new();
+                    break;
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+        finally { isLoading = false; }
+    }
+
+    private async Task SubmitBreach()
+    {
+        isSaving = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/kvkk/breaches", breachCreateDto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Ihlal bildirimi olusturuldu.");
+                showBreachForm = false;
+                breachCreateDto = new() { SeverityId = 1 };
+                await LoadTabData();
+            }
+            else Toast.ShowError("Hata olustu.");
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+        finally { isSaving = false; }
+    }
+
+    private async Task AdvanceBreachStatus(DataBreachDto breach)
+    {
+        var nextStatus = breach.StatusId + 1;
+        var dto = new DataBreachUpdateDto { StatusId = nextStatus };
+        if (nextStatus == 4) dto.AuthorityNotifiedAt = DateTime.UtcNow;
+        if (nextStatus == 5) dto.SubjectsNotifiedAt = DateTime.UtcNow;
+
+        var response = await Http.PutAsJsonAsync($"api/kvkk/breaches/{breach.Uid}", dto);
+        if (response.IsSuccessStatusCode)
+        {
+            Toast.ShowSuccess("Ihlal durumu guncellendi.");
+            await LoadTabData();
+        }
+        else Toast.ShowError("Guncelleme basarisiz.");
+    }
+
+    private void StartEditRetention(RetentionPolicyDto p)
+    {
+        editingRetentionId = p.Id;
+        editRetentionDays = p.RetentionDays;
+        editRetentionBasis = p.LegalBasis;
+    }
+
+    private async Task SaveRetention(RetentionPolicyDto p)
+    {
+        var dto = new RetentionPolicyCreateDto
+        {
+            CustomerId = p.CustomerId,
+            CategoryId = p.CategoryId,
+            RetentionDays = editRetentionDays,
+            LegalBasis = editRetentionBasis
+        };
+        var response = await Http.PostAsJsonAsync("api/kvkk/retention", dto);
+        if (response.IsSuccessStatusCode)
+        {
+            Toast.ShowSuccess("Politika guncellendi.");
+            editingRetentionId = 0;
+            await LoadTabData();
+        }
+        else Toast.ShowError("Guncelleme basarisiz.");
+    }
+
+    private async Task SeedDefaults()
+    {
+        // Direkt retention endpoint'e varsayilan kategorileri gonder
+        foreach (var cat in RetentionCategories.All)
+        {
+            var days = cat.Id switch
+            {
+                1 => 3650, // CallRecording — 10 yil
+                2 => 1095, // AuditLog — 3 yil
+                3 => 730,  // AccessLog — 2 yil
+                4 => 1095, // PersonalData — 3 yil
+                5 => 3650, // FinancialData — 10 yil
+                _ => 365
+            };
+            var basis = cat.Id switch
+            {
+                1 => "TTK md.82 — 10 yil",
+                2 => "KVKK — 3 yil",
+                3 => "BTK — 2 yil",
+                4 => "KVKK — 3 yil",
+                5 => "TTK md.82 — 10 yil",
+                _ => "KVKK"
+            };
+            var dto = new RetentionPolicyCreateDto
+            {
+                CustomerId = selectedCustomerId,
+                CategoryId = cat.Id,
+                RetentionDays = days,
+                LegalBasis = basis
+            };
+            await Http.PostAsJsonAsync("api/kvkk/retention", dto);
+        }
+        Toast.ShowSuccess("Varsayilan politikalar olusturuldu.");
+        await LoadTabData();
+    }
+
+    private async Task SubmitInventory()
+    {
+        isSaving = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/kvkk/inventory", inventoryCreateDto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Envanter kaydi olusturuldu.");
+                showInventoryForm = false;
+                inventoryCreateDto = new() { RetentionDays = 365 };
+                await LoadTabData();
+            }
+            else Toast.ShowError("Hata olustu.");
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+        finally { isSaving = false; }
+    }
+
+    private static string GetSeverityBadge(int severityId) => severityId switch
+    {
+        1 => "bg-success",
+        2 => "bg-warning text-dark",
+        3 => "bg-danger",
+        4 => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    private record PagedResponse<T>(List<T> Items, int TotalCount, int TotalPages);
+}

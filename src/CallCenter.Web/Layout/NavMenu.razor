@@ -332,6 +332,28 @@
                                 <span>Gateway Durumu</span>
                             </NavLink>
                         }
+
+                        @* ─── KVKK ─── *@
+                        @if (IsAdmin)
+                        {
+                            <div class="nav-group-divider my-1 border-top mx-3 opacity-25"></div>
+                            <NavLink class="nav-link" href="admin/kvkk">
+                                <i class="bi bi-shield-check"></i>
+                                <span>KVKK Dashboard</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/kvkk/consents">
+                                <i class="bi bi-file-earmark-check"></i>
+                                <span>Riza Yonetimi</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/kvkk/requests">
+                                <i class="bi bi-envelope-paper"></i>
+                                <span>Basvuru Yonetimi</span>
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/kvkk/settings">
+                                <i class="bi bi-gear-wide-connected"></i>
+                                <span>KVKK Ayarlari</span>
+                            </NavLink>
+                        }
                     </div>
                 </div>
             }
@@ -385,7 +407,7 @@
         { 0, new[] { "dialer", "calls/" } },
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/storage", "admin/gateway-health" } },
+        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/storage", "admin/gateway-health", "admin/kvkk" } },
         { 4, new[] { "admin/customers", "admin/organizations", "admin/personnel" } },
         { 6, new[] { "supervisor/" } },
         { 10, new[] { "portal/" } }

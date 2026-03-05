@@ -1,0 +1,219 @@
+@page "/admin/kvkk"
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@using CallCenter.Shared.DTOs
+
+<PageTitle>KVKK Dashboard - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-shield-check me-2 text-primary"></i>KVKK Uyumluluk
+    </h4>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (dashboard != null)
+{
+    @* ─── İSTATİSTİK KARTLARI ─── *@
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-envelope-paper fs-2 text-warning d-block mb-1"></i>
+                    <h3 class="mb-0">@dashboard.PendingRequests</h3>
+                    <small class="text-muted">Bekleyen Basvuru</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle fs-2 text-danger d-block mb-1"></i>
+                    <h3 class="mb-0 @(dashboard.OverdueRequests > 0 ? "text-danger" : "")">@dashboard.OverdueRequests</h3>
+                    <small class="text-muted">Geciken Basvuru</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-fill-x fs-2 text-danger d-block mb-1"></i>
+                    <h3 class="mb-0 @(dashboard.ActiveBreaches > 0 ? "text-danger" : "")">@dashboard.ActiveBreaches</h3>
+                    <small class="text-muted">Aktif Ihlal</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-check fs-2 text-success d-block mb-1"></i>
+                    <h3 class="mb-0">@dashboard.TotalConsents</h3>
+                    <small class="text-muted">Toplam Riza</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-x-circle fs-2 text-secondary d-block mb-1"></i>
+                    <h3 class="mb-0">@dashboard.RevokedConsents</h3>
+                    <small class="text-muted">Iptal Edilen Riza</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history fs-2 text-info d-block mb-1"></i>
+                    <h3 class="mb-0">@dashboard.RetentionPolicies</h3>
+                    <small class="text-muted">Saklama Politikasi</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-trash fs-2 text-warning d-block mb-1"></i>
+                    <h3 class="mb-0">@dashboard.DestructionCount</h3>
+                    <small class="text-muted">Imha Kaydi</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-database fs-2 text-primary d-block mb-1"></i>
+                    <h3 class="mb-0">@dashboard.InventoryItems</h3>
+                    <small class="text-muted">Veri Envanteri</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── SON BAŞVURULAR + SON İHLALLER ─── *@
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong><i class="bi bi-envelope-paper me-1"></i>Son Basvurular</strong>
+                    <a href="admin/kvkk/requests" class="btn btn-sm btn-outline-primary">Tumu</a>
+                </div>
+                <div class="card-body p-0">
+                    @if (dashboard.RecentRequests.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">Basvuru yok</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Basvuran</th>
+                                        <th>Tip</th>
+                                        <th>Durum</th>
+                                        <th>Son Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var r in dashboard.RecentRequests)
+                                    {
+                                        <tr>
+                                            <td>@r.RequesterName</td>
+                                            <td><small>@r.RequestTypeName</small></td>
+                                            <td>
+                                                <span class="badge @(r.IsOverdue ? "bg-danger" : "bg-secondary")">
+                                                    @r.StatusName @(r.IsOverdue ? "(Gecikti)" : "")
+                                                </span>
+                                            </td>
+                                            <td><small>@r.Deadline.ToString("dd.MM.yyyy")</small></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong><i class="bi bi-shield-fill-x me-1"></i>Son Ihlaller</strong>
+                    <a href="admin/kvkk/settings" class="btn btn-sm btn-outline-danger">Tumu</a>
+                </div>
+                <div class="card-body p-0">
+                    @if (dashboard.RecentBreaches.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">Ihlal yok</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Baslik</th>
+                                        <th>Ciddiyet</th>
+                                        <th>Durum</th>
+                                        <th>Bildirim Suresi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var b in dashboard.RecentBreaches)
+                                    {
+                                        <tr>
+                                            <td>@b.Title</td>
+                                            <td>
+                                                <span class="badge @GetSeverityBadge(b.SeverityId)">@b.SeverityName</span>
+                                            </td>
+                                            <td><small>@b.StatusName</small></td>
+                                            <td>
+                                                <small class="@(b.IsOverdue ? "text-danger fw-bold" : "")">
+                                                    @b.NotificationDeadline.ToString("dd.MM.yyyy HH:mm")
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private KvkkDashboardDto? dashboard;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            dashboard = await Http.GetFromJsonAsync<KvkkDashboardDto>("api/kvkk/dashboard");
+        }
+        catch { }
+        finally { isLoading = false; }
+    }
+
+    private static string GetSeverityBadge(int severityId) => severityId switch
+    {
+        1 => "bg-success",
+        2 => "bg-warning text-dark",
+        3 => "bg-danger",
+        4 => "bg-dark",
+        _ => "bg-secondary"
+    };
+}
