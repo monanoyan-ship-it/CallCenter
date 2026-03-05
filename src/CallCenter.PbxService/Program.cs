@@ -1,5 +1,6 @@
 using CallCenter.PbxService;
 using CallCenter.PbxService.Configuration;
+using CallCenter.PbxService.Services;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -30,6 +31,12 @@ try
         if (apiConfig != null && !string.IsNullOrEmpty(apiConfig.BaseUrl))
             client.BaseAddress = new Uri(apiConfig.BaseUrl);
     });
+
+    // SIP Services
+    builder.Services.AddSingleton<SipTransportService>();
+    builder.Services.AddSingleton<ISipTransportService>(sp => sp.GetRequiredService<SipTransportService>());
+    builder.Services.AddSingleton<ICallSessionManager, CallSessionManager>();
+    builder.Services.AddSingleton<SipRequestHandler>();
 
     // PBX Worker
     builder.Services.AddHostedService<Worker>();
