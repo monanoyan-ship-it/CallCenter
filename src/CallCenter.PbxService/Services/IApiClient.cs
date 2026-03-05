@@ -9,8 +9,21 @@ public interface IApiClient
     Task<List<TrunkInfo>> GetSipAccountsAsync(string customerUid);
     Task<CustomerPbxConfig?> GetCustomerPbxConfigAsync(string customerUid);
     Task<BusinessHoursInfo?> GetBusinessHoursAsync(string customerUid);
+    Task<IvrMenuInfo?> GetIvrMenuAsync(string customerUid, int menuId);
+    Task<QueueConfigInfo?> GetQueueConfigAsync(int queueId);
+    Task<AvailableAgentInfo?> GetAvailableAgentAsync(int queueId);
     Task<int?> CreateIncomingCallRecordAsync(IncomingCallRequest request);
     Task UpdateCallRecordAsync(int callRecordId, CallRecordUpdate update);
+}
+
+/// <summary>ACD tarafindan bulunan musait agent bilgisi</summary>
+public class AvailableAgentInfo
+{
+    public int AgentId { get; set; }
+    public string AgentName { get; set; } = string.Empty;
+    public string SipExtension { get; set; } = string.Empty;
+    public string? SipServer { get; set; }
+    public int SipPort { get; set; } = 5060;
 }
 
 /// <summary>SIP trunk (GoIP / SIP provider) bilgileri - API'den gelir</summary>

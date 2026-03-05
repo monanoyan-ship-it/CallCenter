@@ -43,6 +43,7 @@ try
     builder.Services.AddSingleton<IAudioPlayer, AudioPlayer>();
     builder.Services.AddSingleton<AudioFileCache>();
     builder.Services.AddSingleton<IvrEngine>();
+    builder.Services.AddSingleton<QueueManager>();
     builder.Services.AddSingleton<InboundCallHandler>();
     builder.Services.AddSingleton<SipRequestHandler>();
 

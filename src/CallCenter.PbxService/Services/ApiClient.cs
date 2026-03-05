@@ -56,6 +56,53 @@ public class ApiClient : IApiClient
         }
     }
 
+    public async Task<IvrMenuInfo?> GetIvrMenuAsync(string customerUid, int menuId)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<IvrMenuInfo>(
+                $"/api/pbx/ivr/{menuId}?customerUid={customerUid}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "IVR menu alinamadi: {MenuId}", menuId);
+            return null;
+        }
+    }
+
+    public async Task<QueueConfigInfo?> GetQueueConfigAsync(int queueId)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<QueueConfigInfo>(
+                $"/api/pbx/queues/{queueId}/config");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Kuyruk config alinamadi: {QueueId}", queueId);
+            return null;
+        }
+    }
+
+    public async Task<AvailableAgentInfo?> GetAvailableAgentAsync(int queueId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/api/pbx/queues/{queueId}/available-agent");
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent ||
+                response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<AvailableAgentInfo>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Musait agent sorgulanamadi: QueueId={QueueId}", queueId);
+            return null;
+        }
+    }
+
     public async Task<int?> CreateIncomingCallRecordAsync(IncomingCallRequest request)
     {
         try
