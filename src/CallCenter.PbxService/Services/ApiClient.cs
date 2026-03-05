@@ -17,7 +17,6 @@ public class ApiClient : IApiClient
     {
         try
         {
-            // TODO 11.10: API'ye PbxService icin ozel endpoint eklenecek
             var result = await _httpClient.GetFromJsonAsync<List<TrunkInfo>>(
                 $"/api/pbx/trunks?customerUid={customerUid}");
             return result ?? [];
@@ -42,4 +41,52 @@ public class ApiClient : IApiClient
             return null;
         }
     }
+
+    public async Task<BusinessHoursInfo?> GetBusinessHoursAsync(string customerUid)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<BusinessHoursInfo>(
+                $"/api/pbx/business-hours?customerUid={customerUid}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Mesai saatleri alinamadi (CustomerUid: {Uid})", customerUid);
+            return null;
+        }
+    }
+
+    public async Task<int?> CreateIncomingCallRecordAsync(IncomingCallRequest request)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/pbx/calls/incoming", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CallRecordCreated>();
+                return result?.Id;
+            }
+            _logger.LogError("Cagri kaydi olusturulamadi: {Status}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cagri kaydi olusturma hatasi");
+            return null;
+        }
+    }
+
+    public async Task UpdateCallRecordAsync(int callRecordId, CallRecordUpdate update)
+    {
+        try
+        {
+            await _httpClient.PutAsJsonAsync($"/api/pbx/calls/{callRecordId}", update);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cagri kaydi guncelleme hatasi: {Id}", callRecordId);
+        }
+    }
+
+    private class CallRecordCreated { public int Id { get; set; } }
 }

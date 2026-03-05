@@ -40,6 +40,7 @@ try
     builder.Services.AddSingleton<ISipTransportService>(sp => sp.GetRequiredService<SipTransportService>());
     builder.Services.AddSingleton<ICallSessionManager, CallSessionManager>();
     builder.Services.AddSingleton<ITrunkManager, TrunkManager>();
+    builder.Services.AddSingleton<InboundCallHandler>();
     builder.Services.AddSingleton<SipRequestHandler>();
 
     // PBX Worker

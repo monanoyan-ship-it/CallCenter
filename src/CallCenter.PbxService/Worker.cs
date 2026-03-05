@@ -10,7 +10,8 @@ public class Worker(
     SipTransportService transportService,
     SipRequestHandler requestHandler,
     ICallSessionManager sessionManager,
-    ITrunkManager trunkManager) : BackgroundService
+    ITrunkManager trunkManager,
+    InboundCallHandler inboundHandler) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -27,10 +28,13 @@ public class Worker(
         // 1. SIP Transport baslat
         await transportService.StartAsync(stoppingToken);
 
-        // 2. Request handler'i transport'a bagla
+        // 2. API'den musteri config + mesai bilgilerini yukle
+        await inboundHandler.LoadConfigAsync(config.CustomerUid);
+
+        // 3. Request handler'i transport'a bagla
         requestHandler.Bind();
 
-        // 3. API'den trunk bilgilerini yukle ve register ol
+        // 4. API'den trunk bilgilerini yukle ve register ol
         await trunkManager.LoadTrunksAsync(config.CustomerUid);
         await trunkManager.RegisterAllAsync();
 

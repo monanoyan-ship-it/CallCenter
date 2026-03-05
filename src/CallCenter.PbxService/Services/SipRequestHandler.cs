@@ -7,15 +7,18 @@ public class SipRequestHandler
     private readonly ILogger<SipRequestHandler> _logger;
     private readonly SipTransportService _transport;
     private readonly ICallSessionManager _sessionManager;
+    private readonly InboundCallHandler _inboundHandler;
 
     public SipRequestHandler(
         ILogger<SipRequestHandler> logger,
         SipTransportService transport,
-        ICallSessionManager sessionManager)
+        ICallSessionManager sessionManager,
+        InboundCallHandler inboundHandler)
     {
         _logger = logger;
         _transport = transport;
         _sessionManager = sessionManager;
+        _inboundHandler = inboundHandler;
     }
 
     public void Bind()
@@ -29,23 +32,23 @@ public class SipRequestHandler
         switch (request.Method)
         {
             case SIPMethodsEnum.INVITE:
-                await HandleInvite(localEp, remoteEp, request);
+                await _inboundHandler.HandleInviteAsync(localEp, remoteEp, request);
                 break;
 
             case SIPMethodsEnum.ACK:
-                HandleAck(request);
+                _logger.LogDebug("ACK: CallId={CallId}", request.Header.CallId);
                 break;
 
             case SIPMethodsEnum.BYE:
-                await HandleBye(localEp, remoteEp, request);
+                await _inboundHandler.HandleByeAsync(request);
                 break;
 
             case SIPMethodsEnum.CANCEL:
-                await HandleCancel(localEp, remoteEp, request);
+                await HandleCancel(request);
                 break;
 
             case SIPMethodsEnum.REGISTER:
-                await HandleRegister(localEp, remoteEp, request);
+                await HandleRegister(remoteEp, request);
                 break;
 
             default:
@@ -56,53 +59,7 @@ public class SipRequestHandler
         }
     }
 
-    private async Task HandleInvite(SIPEndPoint localEp, SIPEndPoint remoteEp, SIPRequest request)
-    {
-        var callId = request.Header.CallId;
-        var from = request.Header.From.FromURI.ToString();
-        var to = request.Header.To.ToURI.ToString();
-
-        _logger.LogInformation("INVITE: {From} -> {To} [CallId={CallId}]", from, to, callId);
-
-        // 100 Trying gonder
-        var trying = SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Trying, null);
-        await _transport.SendResponseAsync(trying);
-
-        // Oturum olustur
-        var session = _sessionManager.CreateSession(callId, from, to);
-
-        // TODO 11.4: Mesai kontrolu + IVR/kuyruk yonlendirme
-        // Simdilik 180 Ringing + 486 Busy (henuz agent yonlendirme yok)
-        var ringing = SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Ringing, null);
-        await _transport.SendResponseAsync(ringing);
-
-        _logger.LogWarning("INVITE islendi ama henuz agent yonlendirme yok (11.4/11.8 bekliyor). 486 Busy donuluyor.");
-        var busy = SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.BusyHere, "PBX henuz hazir degil");
-        await _transport.SendResponseAsync(busy);
-        _sessionManager.RemoveSession(callId);
-    }
-
-    private void HandleAck(SIPRequest request)
-    {
-        _logger.LogDebug("ACK: CallId={CallId}", request.Header.CallId);
-    }
-
-    private async Task HandleBye(SIPEndPoint localEp, SIPEndPoint remoteEp, SIPRequest request)
-    {
-        var callId = request.Header.CallId;
-        _logger.LogInformation("BYE: CallId={CallId}", callId);
-
-        // Oturumu sonlandir
-        _sessionManager.RemoveSession(callId);
-
-        // 200 OK
-        var ok = SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Ok, null);
-        await _transport.SendResponseAsync(ok);
-
-        // TODO 11.9: CallRecord guncelle (API)
-    }
-
-    private async Task HandleCancel(SIPEndPoint localEp, SIPEndPoint remoteEp, SIPRequest request)
+    private async Task HandleCancel(SIPRequest request)
     {
         var callId = request.Header.CallId;
         _logger.LogInformation("CANCEL: CallId={CallId}", callId);
@@ -114,18 +71,16 @@ public class SipRequestHandler
             _sessionManager.RemoveSession(callId);
         }
 
-        // 200 OK (CANCEL icin)
         var ok = SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Ok, null);
         await _transport.SendResponseAsync(ok);
     }
 
-    private async Task HandleRegister(SIPEndPoint localEp, SIPEndPoint remoteEp, SIPRequest request)
+    private async Task HandleRegister(SIPEndPoint remoteEp, SIPRequest request)
     {
         _logger.LogInformation("REGISTER: {Contact} [{Remote}]",
             request.Header.Contact?.FirstOrDefault()?.ContactURI, remoteEp);
 
-        // TODO 11.3: Agent/Trunk registration isleme
-        // Simdilik 200 OK
+        // Agent register isleme - simdilik 200 OK
         var ok = SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Ok, null);
         await _transport.SendResponseAsync(ok);
     }
