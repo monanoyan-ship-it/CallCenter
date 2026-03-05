@@ -44,6 +44,7 @@ try
     builder.Services.AddSingleton<AudioFileCache>();
     builder.Services.AddSingleton<IvrEngine>();
     builder.Services.AddSingleton<QueueManager>();
+    builder.Services.AddSingleton<AcdService>();
     builder.Services.AddSingleton<InboundCallHandler>();
     builder.Services.AddSingleton<SipRequestHandler>();
 

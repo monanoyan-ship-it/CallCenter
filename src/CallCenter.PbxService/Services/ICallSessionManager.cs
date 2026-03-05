@@ -21,6 +21,13 @@ public class CallSession
     public int? AssignedAgentId { get; set; }
     public int? QueueId { get; set; }
     public int? CallRecordId { get; set; }
+
+    // ACD / Bridge icin ek alanlar
+    public int? AgentId { get; set; }
+    public string? CallerNumber { get; set; }
+    public string? CallerRtpEndpoint { get; set; }
+    public string? AgentRtpEndpoint { get; set; }
+    public RtpBridge? Bridge { get; set; }
 }
 
 public enum CallSessionState

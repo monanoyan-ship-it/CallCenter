@@ -120,6 +120,123 @@ public class SipTransportService : ISipTransportService, IDisposable
         }
     }
 
+    public async Task<InviteResult> SendInviteToAgentAsync(
+        string agentSipUri, string callerNumber, string callId, CancellationToken ct)
+    {
+        if (_transport == null)
+            return InviteResult.Failed("SIP Transport baslatilmamis");
+
+        try
+        {
+            var agentUri = SIPURI.ParseSIPURI(agentSipUri);
+            var fromUri = new SIPURI(callerNumber, _transport.GetSIPChannels().First().ListeningSIPEndPoint.GetIPEndPoint().Address.ToString(), null);
+
+            var invite = SIPRequest.GetRequest(
+                SIPMethodsEnum.INVITE,
+                agentUri);
+
+            invite.Header.From = new SIPFromHeader(callerNumber, fromUri, callId);
+            invite.Header.To = new SIPToHeader(null, agentUri, null);
+            invite.Header.CallId = $"acd-{callId}-{Guid.NewGuid():N}";
+            invite.Header.CSeq = 1;
+            invite.Header.CSeqMethod = SIPMethodsEnum.INVITE;
+
+            // Basit SDP - agent'in RTP bilgisini almak icin
+            // Gercek implementasyonda SIPSorcery'nin SDP negotiation kullanilacak
+            invite.Header.ContentType = "application/sdp";
+
+            var tcs = new TaskCompletionSource<InviteResult>();
+            var agentCallId = invite.Header.CallId;
+
+            // Response handler ekle
+            Func<SIPEndPoint, SIPEndPoint, SIPResponse, Task>? responseHandler = null;
+            responseHandler = async (local, remote, response) =>
+            {
+                if (response.Header.CallId != agentCallId) return;
+
+                if (response.StatusCode >= 200 && response.StatusCode < 300)
+                {
+                    // 200 OK - agent kabul etti
+                    // ACK gonder
+                    var ack = SIPRequest.GetRequest(SIPMethodsEnum.ACK, agentUri);
+                    ack.Header.CallId = agentCallId;
+                    await SendRequestAsync(ack);
+
+                    // Agent RTP endpoint cikart (SDP'den)
+                    var rtpEndpoint = ExtractRtpEndpointFromSdp(response.Body);
+                    tcs.TrySetResult(InviteResult.Ok(rtpEndpoint ?? remote.GetIPEndPoint().ToString()));
+
+                    OnResponseReceived -= responseHandler;
+                }
+                else if (response.StatusCode >= 300)
+                {
+                    // Reddedildi
+                    tcs.TrySetResult(InviteResult.Failed($"{response.StatusCode} {response.ReasonPhrase}"));
+                    OnResponseReceived -= responseHandler;
+                }
+                // 1xx provisional response'lari ignored
+            };
+
+            OnResponseReceived += responseHandler;
+
+            await _transport.SendRequestAsync(invite);
+
+            // 30 saniye timeout
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
+
+            try
+            {
+                return await tcs.Task.WaitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                OnResponseReceived -= responseHandler;
+
+                // CANCEL gonder
+                var cancel = SIPRequest.GetRequest(SIPMethodsEnum.CANCEL, agentUri);
+                cancel.Header.CallId = agentCallId;
+                try { await _transport.SendRequestAsync(cancel); } catch { /* suppress */ }
+
+                return InviteResult.Failed("Agent cevap vermedi (timeout)");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Agent INVITE hatasi: {Uri}", agentSipUri);
+            return InviteResult.Failed(ex.Message);
+        }
+    }
+
+    private static string? ExtractRtpEndpointFromSdp(string? sdp)
+    {
+        if (string.IsNullOrEmpty(sdp)) return null;
+
+        // Basit SDP parser: c= ve m= satirlarindan IP:Port cikart
+        string? ip = null;
+        int? port = null;
+
+        foreach (var line in sdp.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("c=IN IP4 "))
+            {
+                ip = trimmed["c=IN IP4 ".Length..].Trim();
+            }
+            else if (trimmed.StartsWith("m=audio "))
+            {
+                var parts = trimmed.Split(' ');
+                if (parts.Length >= 2 && int.TryParse(parts[1], out var p))
+                    port = p;
+            }
+        }
+
+        if (ip != null && port != null)
+            return $"{ip}:{port}";
+
+        return null;
+    }
+
     public void Dispose()
     {
         if (!_disposed)

@@ -10,4 +10,5 @@ public interface ISipTransportService
     Task StopAsync();
     Task SendResponseAsync(SIPResponse response);
     Task SendRequestAsync(SIPRequest request);
+    Task<InviteResult> SendInviteToAgentAsync(string agentSipUri, string callerNumber, string callId, CancellationToken ct);
 }
