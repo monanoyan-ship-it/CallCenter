@@ -29,6 +29,7 @@ public class CallSession
     public string? AgentRtpEndpoint { get; set; }
     public RtpBridge? Bridge { get; set; }
     public CancellationTokenSource? HoldMusicCts { get; set; }
+    public RecordingSession? RecordingSession { get; set; }
 }
 
 public enum CallSessionState

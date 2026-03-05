@@ -47,6 +47,7 @@ try
     builder.Services.AddSingleton<AcdService>();
     builder.Services.AddSingleton<CallControlService>();
     builder.Services.AddSingleton<CallRecordingService>();
+    builder.Services.AddSingleton<OutboundCallHandler>();
     builder.Services.AddSingleton<InboundCallHandler>();
     builder.Services.AddSingleton<SipRequestHandler>();
 

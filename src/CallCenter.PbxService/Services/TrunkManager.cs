@@ -50,7 +50,8 @@ public class TrunkManager : ITrunkManager, IDisposable
             {
                 SipAccountId = trunk.Id,
                 Name = trunk.Name,
-                Server = trunk.Server
+                Server = trunk.Server,
+                Port = trunk.Port
             };
             _logger.LogInformation("Trunk yuklendi: {Name} ({Server}:{Port})",
                 trunk.Name, trunk.Server, trunk.Port);
@@ -93,6 +94,11 @@ public class TrunkManager : ITrunkManager, IDisposable
     {
         _trunkStates.TryGetValue(sipAccountId, out var state);
         return state;
+    }
+
+    public TrunkState? GetActiveTrunk()
+    {
+        return _trunkStates.Values.FirstOrDefault(t => t.Status == TrunkStatus.Registered);
     }
 
     public IReadOnlyCollection<TrunkState> GetAllTrunkStates()
