@@ -9,7 +9,8 @@ public class Worker(
     IOptions<PbxConfig> pbxConfig,
     SipTransportService transportService,
     SipRequestHandler requestHandler,
-    ICallSessionManager sessionManager) : BackgroundService
+    ICallSessionManager sessionManager,
+    ITrunkManager trunkManager) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -23,13 +24,18 @@ public class Worker(
 
         logger.LogInformation("PBX Service baslatiliyor - Musteri: {CustomerUid}", config.CustomerUid);
 
-        // SIP Transport baslat
+        // 1. SIP Transport baslat
         await transportService.StartAsync(stoppingToken);
 
-        // Request handler'i transport'a bagla
+        // 2. Request handler'i transport'a bagla
         requestHandler.Bind();
 
-        logger.LogInformation("PBX Service hazir. Cagri bekleniyor...");
+        // 3. API'den trunk bilgilerini yukle ve register ol
+        await trunkManager.LoadTrunksAsync(config.CustomerUid);
+        await trunkManager.RegisterAllAsync();
+
+        logger.LogInformation("PBX Service hazir. {TrunkCount} trunk, cagri bekleniyor...",
+            trunkManager.RegisteredTrunkCount);
 
         // Periyodik durum raporu
         using var statusTimer = new PeriodicTimer(TimeSpan.FromMinutes(5));
@@ -37,8 +43,11 @@ public class Worker(
         {
             while (await statusTimer.WaitForNextTickAsync(stoppingToken))
             {
-                logger.LogInformation("PBX Durum: {ActiveCalls} aktif cagri",
-                    sessionManager.ActiveCallCount);
+                logger.LogInformation(
+                    "PBX Durum: {ActiveCalls} aktif cagri, {RegisteredTrunks}/{TotalTrunks} trunk registered",
+                    sessionManager.ActiveCallCount,
+                    trunkManager.RegisteredTrunkCount,
+                    trunkManager.GetAllTrunkStates().Count);
             }
         }
         catch (OperationCanceledException)
@@ -55,6 +64,7 @@ public class Worker(
             logger.LogWarning("{ActiveCalls} aktif cagri var, kapatiliyor...", activeCalls);
         }
 
+        await trunkManager.UnregisterAllAsync();
         await transportService.StopAsync();
         await base.StopAsync(cancellationToken);
         logger.LogInformation("PBX Service durduruldu.");
