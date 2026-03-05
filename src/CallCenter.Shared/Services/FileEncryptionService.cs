@@ -114,6 +114,35 @@ public static class FileEncryptionService
     }
 
     /// <summary>
+    /// Sifreli stream'i baska bir stream'e cozer (cloud'dan gelen stream icin).
+    /// Format: [16 byte IV][AES-CBC ciphertext]
+    /// </summary>
+    public static async Task DecryptStreamToStreamAsync(Stream source, Stream destination, byte[] key)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(destination);
+        if (key.Length != 32)
+            throw new ArgumentException("AES-256 icin 32 byte key gerekli.", nameof(key));
+
+        var iv = new byte[16];
+        var bytesRead = await source.ReadAsync(iv);
+        if (bytesRead != 16)
+            throw new InvalidDataException("Sifreli stream IV okunamadi.");
+
+        using var aes = Aes.Create();
+        aes.Key = key;
+        aes.IV = iv;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+
+        using var decryptor = aes.CreateDecryptor();
+        await using var cryptoStream = new CryptoStream(source, decryptor, CryptoStreamMode.Read);
+
+        await cryptoStream.CopyToAsync(destination, BufferSize);
+        destination.Position = 0;
+    }
+
+    /// <summary>
     /// Dosyanin SHA-256 hash'ini hesaplar (butunluk dogrulamasi).
     /// </summary>
     public static async Task<string> ComputeFileHashAsync(string filePath)

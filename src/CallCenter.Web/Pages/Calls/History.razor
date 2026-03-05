@@ -29,6 +29,16 @@
         </div>
     </div>
 
+    @* Active AudioPlayer *@
+    @if (playingCallUid != null)
+    {
+        <div class="mb-3">
+            <AudioPlayer CallUid="playingCallUid.Value"
+                         OnPlaybackEnded="OnPlaybackEnded"
+                         OnClose="OnPlayerClose" />
+        </div>
+    }
+
     @if (isLoading)
     {
         <div class="text-center py-4">
@@ -58,6 +68,7 @@
                         <th>Tarih</th>
                         <th>Sure</th>
                         <th>Kuyruk</th>
+                        <th>Kayit</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -80,6 +91,25 @@
                             <td class="text-muted small">@record.StartedAt.ToString("dd.MM.yyyy HH:mm")</td>
                             <td class="fw-medium">@FormatDuration(record.DurationSeconds)</td>
                             <td class="small text-muted">@(record.QueueName ?? "-")</td>
+                            <td>
+                                @if (record.HasRecording && !isAgent)
+                                {
+                                    var isCurrentlyPlaying = playingCallUid == record.Uid;
+                                    <button class="btn btn-sm @(isCurrentlyPlaying ? "btn-warning" : "btn-outline-success")"
+                                            @onclick="() => TogglePlay(record.Uid)"
+                                            title="@(isCurrentlyPlaying ? "Durdur" : "Dinle")">
+                                        <i class="bi @(isCurrentlyPlaying ? "bi-stop-fill" : "bi-play-circle")"></i>
+                                    </button>
+                                }
+                                else if (record.HasRecording && isAgent)
+                                {
+                                    <i class="bi bi-lock-fill text-muted" title="Erisim yetkisi yok"></i>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -94,6 +124,8 @@
     private string searchTerm = "";
     private int filterDirection;
     private int filterStatus;
+    private Guid? playingCallUid;
+    private bool isAgent;
 
     private static readonly Dictionary<string, string> StatusNames = new()
     {
@@ -112,8 +144,19 @@
         .OrderByDescending(r => r.StartedAt)
         .ToList();
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
+        // Check if user is Agent role (no recording access)
+        if (AuthState != null)
+        {
+            var state = await AuthState;
+            var role = state.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            isAgent = role == "Agent";
+        }
+
         await LoadHistory();
     }
 
@@ -136,6 +179,29 @@
         }
     }
 
+    private void TogglePlay(Guid callUid)
+    {
+        if (playingCallUid == callUid)
+        {
+            playingCallUid = null;
+        }
+        else
+        {
+            playingCallUid = callUid;
+        }
+    }
+
+    private void OnPlaybackEnded()
+    {
+        // Keep player visible, user can close manually
+    }
+
+    private void OnPlayerClose()
+    {
+        playingCallUid = null;
+        StateHasChanged();
+    }
+
     private string FormatDuration(int seconds)
     {
         if (seconds <= 0) return "-";
@@ -143,10 +209,10 @@
         return ts.Hours > 0 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
     }
 
-    // Arama gecmisi icin DTO (API'den gelecek)
     private class CallHistoryItem
     {
         public int Id { get; set; }
+        public Guid Uid { get; set; }
         public string CallerNumber { get; set; } = "";
         public string CalleeNumber { get; set; } = "";
         public int DirectionId { get; set; }
@@ -154,5 +220,8 @@
         public DateTime StartedAt { get; set; }
         public int DurationSeconds { get; set; }
         public string? QueueName { get; set; }
+        public bool HasRecording { get; set; }
+        public bool IsRecordingEncrypted { get; set; }
+        public long? RecordingFileSize { get; set; }
     }
 }

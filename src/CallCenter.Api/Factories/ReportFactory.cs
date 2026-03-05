@@ -71,12 +71,11 @@ public class ReportFactory : IReportFactory
         var totalCalls = await query.CountAsync();
         var answeredCalls = await query.CountAsync(c => c.StatusId == CallStatuses.Ids.Completed);
         var missedCalls = await query.CountAsync(c => c.StatusId == CallStatuses.Ids.Missed);
-        var avgDuration = totalCalls > 0
-            ? (int)await query.Where(c => c.StatusId == CallStatuses.Ids.Completed && c.DurationSeconds > 0)
-                              .Select(c => (double)c.DurationSeconds)
-                              .DefaultIfEmpty(0)
-                              .AverageAsync()
-            : 0;
+        var completedDurations = await query
+            .Where(c => c.StatusId == CallStatuses.Ids.Completed && c.DurationSeconds > 0)
+            .Select(c => c.DurationSeconds)
+            .ToListAsync();
+        var avgDuration = completedDurations.Count > 0 ? (int)completedDurations.Average() : 0;
 
         // SLA metrikleri
         var abandonmentRate = totalCalls > 0 ? Math.Round((double)missedCalls / totalCalls * 100, 1) : 0;

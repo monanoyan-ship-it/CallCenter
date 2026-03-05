@@ -37,6 +37,9 @@ public static class EntityServiceRegistration
         // Billing
         services.AddScoped<IBillingPeriodEntityService, BillingPeriodEntityService>();
 
+        // Recording Access Log
+        services.AddScoped<IRecordingAccessLogEntityService, RecordingAccessLogEntityService>();
+
         return services;
     }
 }

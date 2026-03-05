@@ -51,13 +51,17 @@ public class CallFactory : ICallFactory
             .Select(c => new
             {
                 c.Id,
+                c.Uid,
                 c.CallerNumber,
                 c.CalleeNumber,
                 c.DirectionId,
                 c.StatusId,
                 c.StartedAt,
                 c.DurationSeconds,
-                QueueName = c.Queue != null ? c.Queue.Name : null
+                QueueName = c.Queue != null ? c.Queue.Name : null,
+                HasRecording = c.CloudFileId != null,
+                c.IsRecordingEncrypted,
+                c.RecordingFileSize
             })
             .ToListAsync();
     }

@@ -35,6 +35,9 @@ public class AppDbContext : DbContext
     // ─── Billing ───
     public DbSet<CustomerBillingPeriod> CustomerBillingPeriods => Set<CustomerBillingPeriod>();
 
+    // ─── Recording Access Log ───
+    public DbSet<RecordingAccessLog> RecordingAccessLogs => Set<RecordingAccessLog>();
+
     // ─── IVR & Auto-Attendant ───
     public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
     public DbSet<IvrMenu> IvrMenus => Set<IvrMenu>();
@@ -527,6 +530,24 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(h => h.GreetingMessageId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // RecordingAccessLog (KVKK/BTK kayit dinleme denetim logu)
+        modelBuilder.Entity<RecordingAccessLog>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.AccessedByUserName).HasMaxLength(100);
+            e.Property(r => r.IpAddress).HasMaxLength(50);
+            e.Property(r => r.UserAgent).HasMaxLength(500);
+            e.Property(r => r.FailureReason).HasMaxLength(500);
+            e.HasIndex(r => r.CallRecordId);
+            e.HasIndex(r => r.AccessedByUserId);
+            e.HasIndex(r => r.AccessedAt);
+            e.HasIndex(r => r.CustomerId);
+            e.HasOne(r => r.CallRecord)
+             .WithMany()
+             .HasForeignKey(r => r.CallRecordId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // CustomerBillingPeriod (faturalama donemi)

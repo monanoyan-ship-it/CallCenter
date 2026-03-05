@@ -1,0 +1,198 @@
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject NavigationManager Nav
+@implements IAsyncDisposable
+
+<div class="audio-player d-flex align-items-center gap-2 p-2 bg-light rounded">
+    @if (isLoading)
+    {
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Yukleniyor...</span>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-sm @(isPlaying ? "btn-warning" : "btn-success")" @onclick="TogglePlayPause" title="@(isPlaying ? "Duraklat" : "Oynat")">
+            <i class="bi @(isPlaying ? "bi-pause-fill" : "bi-play-fill")"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="Stop" title="Durdur" disabled="@(!hasStarted)">
+            <i class="bi bi-stop-fill"></i>
+        </button>
+
+        <div class="flex-grow-1 mx-2">
+            <input type="range" class="form-range" min="0" max="@duration" step="0.1"
+                   value="@currentTime" @onchange="OnSeek" style="height:20px;" />
+        </div>
+
+        <span class="text-muted small text-nowrap">@FormatTime(currentTime) / @FormatTime(duration)</span>
+
+        <div class="d-flex align-items-center gap-1" style="min-width:80px;">
+            <i class="bi bi-volume-up small"></i>
+            <input type="range" class="form-range" min="0" max="1" step="0.05"
+                   value="@volume" @onchange="OnVolumeChange" style="width:60px;height:16px;" />
+        </div>
+
+        @if (hasStarted)
+        {
+            <button class="btn btn-sm btn-outline-danger" @onclick="Close" title="Kapat">
+                <i class="bi bi-x"></i>
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid CallUid { get; set; }
+    [Parameter] public EventCallback OnPlaybackEnded { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string audioElementId = "";
+    private bool isLoading = true;
+    private bool isPlaying;
+    private bool hasStarted;
+    private double currentTime;
+    private double duration;
+    private double volume = 0.8;
+    private Timer? pollTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        audioElementId = $"audioPlayer_{CallUid:N}";
+        isLoading = true;
+
+        try
+        {
+            var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
+            if (string.IsNullOrEmpty(token)) return;
+
+            var baseUrl = Nav.BaseUri.TrimEnd('/');
+            var streamUrl = $"{baseUrl}/api/recordings/{CallUid}/stream";
+
+            await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, streamUrl, token);
+            isPlaying = true;
+            hasStarted = true;
+
+            // Poll state every 250ms
+            pollTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    var state = await JS.InvokeAsync<AudioState>("audioPlayer.getState", audioElementId);
+                    currentTime = state.CurrentTime;
+                    duration = state.Duration;
+                    isPlaying = state.Playing;
+
+                    if (state.Ended && hasStarted)
+                    {
+                        await NotifyStreamEnded();
+                        hasStarted = false;
+                    }
+
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch { /* component disposed */ }
+            }, null, 500, 250);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AudioPlayer] Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task TogglePlayPause()
+    {
+        if (isPlaying)
+        {
+            await JS.InvokeVoidAsync("audioPlayer.pause", audioElementId);
+            isPlaying = false;
+        }
+        else if (hasStarted)
+        {
+            await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, "", "");
+            isPlaying = true;
+        }
+        else
+        {
+            // First play
+            var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
+            if (string.IsNullOrEmpty(token)) return;
+            var baseUrl = Nav.BaseUri.TrimEnd('/');
+            var streamUrl = $"{baseUrl}/api/recordings/{CallUid}/stream";
+            await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, streamUrl, token);
+            isPlaying = true;
+            hasStarted = true;
+        }
+    }
+
+    private async Task Stop()
+    {
+        await JS.InvokeVoidAsync("audioPlayer.stop", audioElementId);
+        isPlaying = false;
+        currentTime = 0;
+        await NotifyStreamEnded();
+        hasStarted = false;
+    }
+
+    private async Task OnSeek(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var pos))
+        {
+            await JS.InvokeVoidAsync("audioPlayer.seek", audioElementId, pos);
+            currentTime = pos;
+        }
+    }
+
+    private async Task OnVolumeChange(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var vol))
+        {
+            await JS.InvokeVoidAsync("audioPlayer.setVolume", audioElementId, vol);
+            volume = vol;
+        }
+    }
+
+    private async Task Close()
+    {
+        await Stop();
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task NotifyStreamEnded()
+    {
+        try
+        {
+            await Http.PostAsync($"api/recordings/{CallUid}/stream-ended", null);
+        }
+        catch { /* best effort */ }
+        await OnPlaybackEnded.InvokeAsync();
+    }
+
+    private static string FormatTime(double seconds)
+    {
+        if (seconds <= 0 || double.IsNaN(seconds)) return "00:00";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        pollTimer?.Dispose();
+        try
+        {
+            await JS.InvokeVoidAsync("audioPlayer.stop", audioElementId);
+        }
+        catch { /* page unloading */ }
+    }
+
+    private class AudioState
+    {
+        public bool Playing { get; set; }
+        public double CurrentTime { get; set; }
+        public double Duration { get; set; }
+        public bool Ended { get; set; }
+    }
+}

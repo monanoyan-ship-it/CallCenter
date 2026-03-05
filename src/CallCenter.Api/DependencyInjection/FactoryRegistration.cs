@@ -45,6 +45,9 @@ public static class FactoryRegistration
         // PBX Service
         services.AddScoped<IPbxFactory, PbxFactory>();
 
+        // Recording Playback
+        services.AddScoped<IRecordingPlaybackFactory, RecordingPlaybackFactory>();
+
         return services;
     }
 }
