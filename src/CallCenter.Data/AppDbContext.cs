@@ -38,6 +38,17 @@ public class AppDbContext : DbContext
     // ─── Recording Access Log ───
     public DbSet<RecordingAccessLog> RecordingAccessLogs => Set<RecordingAccessLog>();
 
+    // ─── Personel-Org Junction ───
+    public DbSet<CustomerPersonnelOrganizationUnit> CustomerPersonnelOrganizationUnits => Set<CustomerPersonnelOrganizationUnit>();
+
+    // ─── KVKK Uyumluluk ───
+    public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
+    public DbSet<DataSubjectRequest> DataSubjectRequests => Set<DataSubjectRequest>();
+    public DbSet<DataBreach> DataBreaches => Set<DataBreach>();
+    public DbSet<RetentionPolicy> RetentionPolicies => Set<RetentionPolicy>();
+    public DbSet<DataDestructionLog> DataDestructionLogs => Set<DataDestructionLog>();
+    public DbSet<DataInventoryItem> DataInventoryItems => Set<DataInventoryItem>();
+
     // ─── IVR & Auto-Attendant ───
     public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
     public DbSet<IvrMenu> IvrMenus => Set<IvrMenu>();
@@ -114,11 +125,21 @@ public class AppDbContext : DbContext
              .WithMany(o => o.Children)
              .HasForeignKey(o => o.ParentId)
              .OnDelete(DeleteBehavior.Restrict);
-            // Yonetici personel (opsiyonel)
-            e.HasOne(o => o.ManagerPersonnel)
-             .WithMany()
-             .HasForeignKey(o => o.ManagerPersonnelId)
-             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // CustomerPersonnelOrganizationUnit (junction: personel-org coka-cok)
+        modelBuilder.Entity<CustomerPersonnelOrganizationUnit>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.PersonnelId, x.OrganizationUnitId }).IsUnique();
+            e.HasOne(x => x.Personnel)
+             .WithMany(p => p.OrganizationUnits)
+             .HasForeignKey(x => x.PersonnelId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.OrganizationUnit)
+             .WithMany(o => o.PersonnelAssignments)
+             .HasForeignKey(x => x.OrganizationUnitId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // CustomerPersonnel
@@ -562,6 +583,118 @@ public class AppDbContext : DbContext
              .WithMany(c => c.BillingPeriods)
              .HasForeignKey(b => b.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // KVKK UYUMLULUK ENTITY'LERİ
+        // ═══════════════════════════════════════════════════════════════
+
+        // ConsentRecord (KVKK riza kaydi)
+        modelBuilder.Entity<ConsentRecord>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.Property(c => c.SubjectIdentifier).IsRequired().HasMaxLength(200);
+            e.Property(c => c.SubjectName).IsRequired().HasMaxLength(200);
+            e.Property(c => c.ConsentMethod).IsRequired().HasMaxLength(50);
+            e.Property(c => c.LegalBasis).HasMaxLength(500);
+            e.Property(c => c.PrivacyNoticeVersion).HasMaxLength(50);
+            e.Property(c => c.RevokedBy).HasMaxLength(200);
+            e.Property(c => c.Notes).HasMaxLength(1000);
+            e.HasIndex(c => new { c.CustomerId, c.ConsentTypeId });
+            e.HasIndex(c => c.SubjectIdentifier);
+            e.HasOne(c => c.Customer)
+             .WithMany()
+             .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // DataSubjectRequest (KVKK ilgili kisi basvurusu)
+        modelBuilder.Entity<DataSubjectRequest>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => d.Uid).IsUnique();
+            e.Property(d => d.RequesterName).IsRequired().HasMaxLength(200);
+            e.Property(d => d.RequesterIdentifier).IsRequired().HasMaxLength(200);
+            e.Property(d => d.RequesterContact).IsRequired().HasMaxLength(500);
+            e.Property(d => d.RequestDescription).IsRequired().HasMaxLength(2000);
+            e.Property(d => d.ResponseDescription).HasMaxLength(2000);
+            e.Property(d => d.AssignedToUserName).HasMaxLength(200);
+            e.Property(d => d.RejectionReason).HasMaxLength(1000);
+            e.HasIndex(d => new { d.CustomerId, d.StatusId });
+            e.HasIndex(d => d.Deadline);
+            e.HasOne(d => d.Customer)
+             .WithMany()
+             .HasForeignKey(d => d.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // DataBreach (KVKK veri ihlali)
+        modelBuilder.Entity<DataBreach>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.HasIndex(b => b.Uid).IsUnique();
+            e.Property(b => b.Title).IsRequired().HasMaxLength(300);
+            e.Property(b => b.Description).IsRequired().HasMaxLength(5000);
+            e.Property(b => b.AffectedDataCategories).HasMaxLength(1000);
+            e.Property(b => b.CauseSummary).HasMaxLength(2000);
+            e.Property(b => b.MeasuresTaken).HasMaxLength(2000);
+            e.Property(b => b.ReportedByUserName).HasMaxLength(200);
+            e.HasIndex(b => b.StatusId);
+            e.HasIndex(b => b.NotificationDeadline);
+            e.HasOne(b => b.Customer)
+             .WithMany()
+             .HasForeignKey(b => b.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // RetentionPolicy (KVKK saklama politikasi)
+        modelBuilder.Entity<RetentionPolicy>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.CategoryName).IsRequired().HasMaxLength(200);
+            e.Property(r => r.LegalBasis).IsRequired().HasMaxLength(500);
+            e.Property(r => r.Description).HasMaxLength(1000);
+            e.HasIndex(r => new { r.CustomerId, r.CategoryId }).IsUnique();
+            e.HasOne(r => r.Customer)
+             .WithMany()
+             .HasForeignKey(r => r.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // DataDestructionLog (KVKK veri imha kaydi)
+        modelBuilder.Entity<DataDestructionLog>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.DataCategory).IsRequired().HasMaxLength(200);
+            e.Property(d => d.Description).IsRequired().HasMaxLength(2000);
+            e.Property(d => d.LegalBasis).HasMaxLength(500);
+            e.Property(d => d.ApprovedByUserName).IsRequired().HasMaxLength(200);
+            e.HasIndex(d => d.CustomerId);
+            e.HasIndex(d => d.DestroyedAt);
+            e.HasOne(d => d.Customer)
+             .WithMany()
+             .HasForeignKey(d => d.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // DataInventoryItem (KVKK veri envanteri)
+        modelBuilder.Entity<DataInventoryItem>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.DataCategory).IsRequired().HasMaxLength(200);
+            e.Property(i => i.Purpose).IsRequired().HasMaxLength(500);
+            e.Property(i => i.LegalBasis).IsRequired().HasMaxLength(500);
+            e.Property(i => i.DataSubjectGroup).IsRequired().HasMaxLength(200);
+            e.Property(i => i.RecipientGroup).HasMaxLength(200);
+            e.Property(i => i.TransferCountry).HasMaxLength(100);
+            e.Property(i => i.SecurityMeasures).IsRequired().HasMaxLength(1000);
+            e.Property(i => i.VerbisRegistrationNo).HasMaxLength(50);
+            e.HasIndex(i => i.CustomerId);
+            e.HasOne(i => i.Customer)
+             .WithMany()
+             .HasForeignKey(i => i.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // =============================================

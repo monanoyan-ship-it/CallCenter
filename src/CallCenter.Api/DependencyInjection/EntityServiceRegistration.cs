@@ -40,6 +40,14 @@ public static class EntityServiceRegistration
         // Recording Access Log
         services.AddScoped<IRecordingAccessLogEntityService, RecordingAccessLogEntityService>();
 
+        // Faz 13 — KVKK Uyumluluk
+        services.AddScoped<IConsentRecordEntityService, ConsentRecordEntityService>();
+        services.AddScoped<IDataSubjectRequestEntityService, DataSubjectRequestEntityService>();
+        services.AddScoped<IDataBreachEntityService, DataBreachEntityService>();
+        services.AddScoped<IRetentionPolicyEntityService, RetentionPolicyEntityService>();
+        services.AddScoped<IDataDestructionLogEntityService, DataDestructionLogEntityService>();
+        services.AddScoped<IDataInventoryEntityService, DataInventoryEntityService>();
+
         return services;
     }
 }

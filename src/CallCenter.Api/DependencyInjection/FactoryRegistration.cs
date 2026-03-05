@@ -48,6 +48,9 @@ public static class FactoryRegistration
         // Recording Playback
         services.AddScoped<IRecordingPlaybackFactory, RecordingPlaybackFactory>();
 
+        // Faz 13 — KVKK Uyumluluk
+        services.AddScoped<IKvkkFactory, KvkkFactory>();
+
         return services;
     }
 }
