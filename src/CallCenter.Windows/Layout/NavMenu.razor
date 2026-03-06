@@ -143,7 +143,6 @@
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
     {
         await RefreshUserInfo();
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RefreshUserInfo()
@@ -158,7 +157,7 @@
         // Portal yetkileri yukle
         await PermService.LoadAsync();
 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)

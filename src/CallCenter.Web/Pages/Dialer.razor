@@ -19,6 +19,8 @@
 }
 
 <div class="dialer-page" style="@(!isOperatorRole ? "opacity: 0.5; pointer-events: none;" : "")">
+    <div class="row g-3">
+        <div class="@(myCallList != null && myCallList.Count > 0 ? "col-lg-5 col-xl-4" : "col-12")">
             <div class="dialer-card">
                 <div class="dialer-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -111,6 +113,66 @@
                     </div>
                 }
             </div>
+        </div>
+
+        @* ─── Arama Listem (Kampanya) ─── *@
+        @if (myCallList != null && myCallList.Count > 0)
+        {
+            <div class="col-lg-7 col-xl-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Arama Listem (@myCallList.Count)</h6>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="LoadMyCallList" title="Yenile">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0 small">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Kisi</th>
+                                        <th>Telefon</th>
+                                        <th>Kampanya</th>
+                                        <th class="text-center">Deneme</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in myCallList)
+                                    {
+                                        <tr class="@(activeCallListItemId == item.CampaignContactId ? "table-active" : "")">
+                                            <td class="fw-medium">@item.ContactName</td>
+                                            <td>@item.PhoneNumber</td>
+                                            <td class="text-muted">@item.CampaignName</td>
+                                            <td class="text-center">@item.AttemptCount</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" title="Ara"
+                                                            @onclick="() => CallFromList(item)"
+                                                            disabled="@(isInCall || !SipService.IsRegistered)">
+                                                        <i class="bi bi-telephone-fill"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-success" title="Ulasildi"
+                                                            @onclick="() => MarkListItem(item, 3)">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" title="Ulasilamadi"
+                                                            @onclick="() => MarkListItem(item, 4)">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>
 
 @* ─── Rehber Secici ─── *@
@@ -177,6 +239,8 @@
     private bool showContactPicker;
     private string contactSearch = "";
     private List<ContactDto>? contactResults;
+    private List<MyCallListItemDto>? myCallList;
+    private int? activeCallListItemId;
 
     private readonly (string digit, string letters)[][] keypadRows = new[]
     {
@@ -197,6 +261,9 @@
         SipService.OnCallAnswered += HandleCallAnswered;
         SipService.OnCallEnded += HandleCallEnded;
         SipService.OnCallFailed += HandleCallFailed;
+
+        // Arama listesini yukle
+        await LoadMyCallList();
 
         // SIP zaten kayıtlıysa (başka sayfadan gelmiş olabilir) tekrar initialize etme
         if (SipService.IsRegistered)
@@ -524,6 +591,46 @@
     {
         phoneNumber = contact.PhoneNumber ?? "";
         showContactPicker = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ARAMA LİSTESİ (KAMPANYA)
+    // ═══════════════════════════════════════════════════════════════
+
+    private async Task LoadMyCallList()
+    {
+        try
+        {
+            myCallList = await Http.GetFromJsonAsync<List<MyCallListItemDto>>("api/campaigns/my-list");
+        }
+        catch
+        {
+            myCallList = new();
+        }
+    }
+
+    private void CallFromList(MyCallListItemDto item)
+    {
+        phoneNumber = item.PhoneNumber;
+        activeCallListItemId = item.CampaignContactId;
+    }
+
+    private async Task MarkListItem(MyCallListItemDto item, int statusId)
+    {
+        try
+        {
+            // campaignUid lazim — campaign detayindan uid al
+            // Basit endpoint: uid yerine campaign id kullanarak direkt guncelle
+            var req = new UpdateCampaignContactStatusRequest { StatusId = statusId };
+            // Kampanya uid'sini bilmiyoruz, dogrudan my-list'ten guncelleme yapacak endpoint kullaniyoruz
+            var resp = await Http.PutAsJsonAsync($"api/campaigns/my-list/{item.CampaignContactId}", req);
+            if (resp.IsSuccessStatusCode)
+            {
+                await LoadMyCallList();
+                activeCallListItemId = null;
+            }
+        }
+        catch { }
     }
 
     private void StopTimer()

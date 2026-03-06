@@ -1,0 +1,457 @@
+@page "/campaigns/{Uid:guid}"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+@if (campaign == null)
+{
+    <div class="text-center py-5"><div class="spinner-border" role="status"></div></div>
+}
+else
+{
+    var status = CampaignStatuses.GetById(campaign.StatusId);
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="campaigns" class="text-muted small text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i>Kampanyalar
+            </a>
+            <h4 class="mb-0 mt-1">
+                @campaign.Name
+                <span class="badge @(status?.CssClass ?? "bg-secondary") ms-2" style="font-size:0.7rem;">
+                    @(status?.Description ?? "")
+                </span>
+            </h4>
+            @if (!string.IsNullOrEmpty(campaign.Description))
+            {
+                <div class="text-muted small">@campaign.Description</div>
+            }
+        </div>
+        <div class="btn-group btn-group-sm">
+            @if (CanManage && campaign.StatusId == CampaignStatuses.Ids.Draft)
+            {
+                <button class="btn btn-success" @onclick="() => ChangeStatus(CampaignStatuses.Ids.Active)">
+                    <i class="bi bi-play-fill me-1"></i>Baslat
+                </button>
+            }
+            @if (CanManage && campaign.StatusId == CampaignStatuses.Ids.Active)
+            {
+                <button class="btn btn-warning" @onclick="() => ChangeStatus(CampaignStatuses.Ids.Paused)">
+                    <i class="bi bi-pause-fill me-1"></i>Duraklat
+                </button>
+                <button class="btn btn-primary" @onclick="() => ChangeStatus(CampaignStatuses.Ids.Completed)">
+                    <i class="bi bi-check-circle me-1"></i>Tamamla
+                </button>
+            }
+            @if (CanManage && campaign.StatusId == CampaignStatuses.Ids.Paused)
+            {
+                <button class="btn btn-success" @onclick="() => ChangeStatus(CampaignStatuses.Ids.Active)">
+                    <i class="bi bi-play-fill me-1"></i>Devam Ettir
+                </button>
+            }
+        </div>
+    </div>
+
+    @* ─── Ozet Kartlari ─── *@
+    <div class="row g-2 mb-3">
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Toplam</div>
+                    <div class="fs-4 fw-bold">@campaign.TotalContacts</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Ulasildi</div>
+                    <div class="fs-4 fw-bold text-success">@campaign.ReachedCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Ulasilamadi</div>
+                    <div class="fs-4 fw-bold text-danger">@campaign.NotReachedCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Bekliyor</div>
+                    <div class="fs-4 fw-bold text-secondary">@campaign.PendingCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── Progress Bar ─── *@
+    @if (campaign.TotalContacts > 0)
+    {
+        var pctReached = campaign.ReachedCount * 100 / campaign.TotalContacts;
+        var pctNotReached = campaign.NotReachedCount * 100 / campaign.TotalContacts;
+        var pctCancelled = campaign.CancelledCount * 100 / campaign.TotalContacts;
+        <div class="progress mb-3" style="height: 8px;">
+            <div class="progress-bar bg-success" style="width: @pctReached%"></div>
+            <div class="progress-bar bg-danger" style="width: @pctNotReached%"></div>
+            <div class="progress-bar bg-dark" style="width: @pctCancelled%"></div>
+        </div>
+    }
+
+    @* ─── Aksiyonlar ─── *@
+    @if (CanManage)
+    {
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-outline-primary btn-sm" @onclick="OpenAddContactsModal">
+                <i class="bi bi-person-plus me-1"></i>Kisi Ekle
+            </button>
+            @if (selectedIds.Count > 0)
+            {
+                <button class="btn btn-outline-info btn-sm" @onclick="OpenAssignModal">
+                    <i class="bi bi-person-check me-1"></i>Secilenleri Ata (@selectedIds.Count)
+                </button>
+            }
+        </div>
+    }
+
+    @* ─── Kisi Tablosu ─── *@
+    <div class="table-responsive">
+        <table class="table table-hover align-middle small">
+            <thead class="table-light">
+                <tr>
+                    @if (CanManage)
+                    {
+                        <th style="width:30px;">
+                            <input type="checkbox" class="form-check-input" @onchange="ToggleSelectAll"
+                                   checked="@(selectedIds.Count > 0 && selectedIds.Count == campaign.Contacts.Count)" />
+                        </th>
+                    }
+                    <th>Kisi</th>
+                    <th>Telefon</th>
+                    <th>Firma</th>
+                    <th>Atanan</th>
+                    <th>Durum</th>
+                    <th>Deneme</th>
+                    <th>Not</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cc in campaign.Contacts)
+                {
+                    var ccStatus = CampaignContactStatuses.GetById(cc.StatusId);
+                    <tr>
+                        @if (CanManage)
+                        {
+                            <td>
+                                <input type="checkbox" class="form-check-input"
+                                       checked="@selectedIds.Contains(cc.Id)"
+                                       @onchange="() => ToggleSelect(cc.Id)" />
+                            </td>
+                        }
+                        <td class="fw-medium">@cc.ContactName</td>
+                        <td>@cc.PhoneNumber</td>
+                        <td class="text-muted">@(cc.Company ?? "-")</td>
+                        <td class="text-muted">@(cc.AssignedPersonnelName ?? "-")</td>
+                        <td>
+                            <span class="badge @(ccStatus?.CssClass ?? "bg-secondary")">
+                                <i class="bi @(ccStatus?.Icon) me-1"></i>@(ccStatus?.Description ?? "")
+                            </span>
+                        </td>
+                        <td class="text-center">@cc.AttemptCount</td>
+                        <td class="text-muted small">@(cc.ResultNotes ?? "")</td>
+                        <td>
+                            @if (CanManage)
+                            {
+                                <button class="btn btn-outline-danger btn-sm" title="Cikar"
+                                        @onclick="() => RemoveContact(cc)">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@* ─── Kisi Ekleme Modali ─── *@
+@if (showAddContactsModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Rehberden Kisi Ekle</h5>
+                    <button class="btn-close" @onclick="CloseAddContactsModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="Kisi ara..."
+                               @bind="contactSearchText" @bind:event="oninput" @onkeyup="SearchContacts" />
+                        <button class="btn btn-outline-primary" @onclick="SearchContacts">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    @if (availableContacts != null)
+                    {
+                        <div style="max-height:300px; overflow-y:auto;">
+                            @foreach (var c in availableContacts)
+                            {
+                                var alreadyAdded = existingContactIds.Contains(c.Id);
+                                <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+                                    <div>
+                                        <span class="fw-medium">@c.FullName</span>
+                                        <span class="text-muted ms-2 small">@c.PhoneNumber</span>
+                                        @if (!string.IsNullOrEmpty(c.Company))
+                                        {
+                                            <span class="text-muted ms-2 small">(@c.Company)</span>
+                                        }
+                                    </div>
+                                    <div>
+                                        @if (alreadyAdded)
+                                        {
+                                            <span class="badge bg-secondary">Eklendi</span>
+                                        }
+                                        else
+                                        {
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@contactIdsToAdd.Contains(c.Id)"
+                                                   @onchange="() => ToggleContactToAdd(c.Id)" />
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <span class="text-muted small me-auto">@contactIdsToAdd.Count kisi secildi</span>
+                    <button class="btn btn-secondary btn-sm" @onclick="CloseAddContactsModal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="AddSelectedContacts"
+                            disabled="@(contactIdsToAdd.Count == 0 || addingContacts)">
+                        @if (addingContacts) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ─── Atama Modali ─── *@
+@if (showAssignModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-check me-2"></i>Operatore Ata</h5>
+                    <button class="btn-close" @onclick="CloseAssignModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">@selectedIds.Count kisi secildi. Atanacak operatoru secin:</p>
+                    @if (operators == null)
+                    {
+                        <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+                    }
+                    else
+                    {
+                        <select class="form-select" @bind="assignPersonnelId">
+                            <option value="0">-- Operator Secin --</option>
+                            @foreach (var op in operators)
+                            {
+                                <option value="@op.Id">@op.FullName</option>
+                            }
+                        </select>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="CloseAssignModal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="AssignSelected"
+                            disabled="@(assignPersonnelId == 0 || assigning)">
+                        @if (assigning) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Ata
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Uid { get; set; }
+
+    private CampaignDetailDto? campaign;
+    private HashSet<int> selectedIds = new();
+    private bool CanManage => PermService.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin
+        || PermService.CustomerRoleId == CustomerRoles.Ids.EkipLideri;
+
+    // Add contacts modal
+    private bool showAddContactsModal;
+    private string contactSearchText = "";
+    private List<ContactDto>? availableContacts;
+    private HashSet<int> existingContactIds = new();
+    private HashSet<int> contactIdsToAdd = new();
+    private bool addingContacts;
+
+    // Assign modal
+    private bool showAssignModal;
+    private List<PersonnelSimpleDto>? operators;
+    private int assignPersonnelId;
+    private bool assigning;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        await LoadCampaign();
+    }
+
+    private async Task LoadCampaign()
+    {
+        try
+        {
+            campaign = await Http.GetFromJsonAsync<CampaignDetailDto>($"api/campaigns/{Uid}");
+            if (campaign != null)
+                existingContactIds = campaign.Contacts.Select(cc => cc.ContactId).ToHashSet();
+        }
+        catch { }
+    }
+
+    // ─── Status ───
+
+    private async Task ChangeStatus(int statusId)
+    {
+        var req = new UpdateCampaignRequest { StatusId = statusId };
+        var resp = await Http.PutAsJsonAsync($"api/campaigns/{Uid}", req);
+        if (resp.IsSuccessStatusCode)
+            await LoadCampaign();
+    }
+
+    // ─── Selection ───
+
+    private void ToggleSelect(int id)
+    {
+        if (!selectedIds.Remove(id))
+            selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (campaign == null) return;
+        if ((bool)(e.Value ?? false))
+            selectedIds = campaign.Contacts.Select(cc => cc.Id).ToHashSet();
+        else
+            selectedIds.Clear();
+    }
+
+    // ─── Add Contacts ───
+
+    private void OpenAddContactsModal()
+    {
+        contactSearchText = "";
+        availableContacts = null;
+        contactIdsToAdd.Clear();
+        showAddContactsModal = true;
+    }
+
+    private void CloseAddContactsModal() => showAddContactsModal = false;
+
+    private async Task SearchContacts()
+    {
+        try
+        {
+            var url = $"api/contact?search={Uri.EscapeDataString(contactSearchText)}&pageSize=50";
+            availableContacts = await Http.GetFromJsonAsync<List<ContactDto>>(url);
+        }
+        catch
+        {
+            availableContacts = new();
+        }
+    }
+
+    private void ToggleContactToAdd(int id)
+    {
+        if (!contactIdsToAdd.Remove(id))
+            contactIdsToAdd.Add(id);
+    }
+
+    private async Task AddSelectedContacts()
+    {
+        if (contactIdsToAdd.Count == 0) return;
+        addingContacts = true;
+        try
+        {
+            var req = new AddCampaignContactsRequest { ContactIds = contactIdsToAdd.ToList() };
+            var resp = await Http.PostAsJsonAsync($"api/campaigns/{Uid}/contacts", req);
+            if (resp.IsSuccessStatusCode)
+            {
+                showAddContactsModal = false;
+                await LoadCampaign();
+            }
+        }
+        finally
+        {
+            addingContacts = false;
+        }
+    }
+
+    // ─── Remove Contact ───
+
+    private async Task RemoveContact(CampaignContactDto cc)
+    {
+        var resp = await Http.DeleteAsync($"api/campaigns/{Uid}/contacts/{cc.Id}");
+        if (resp.IsSuccessStatusCode)
+            await LoadCampaign();
+    }
+
+    // ─── Assign ───
+
+    private async Task OpenAssignModal()
+    {
+        assignPersonnelId = 0;
+        showAssignModal = true;
+        try
+        {
+            operators = await Http.GetFromJsonAsync<List<PersonnelSimpleDto>>("api/campaigns/operators");
+        }
+        catch
+        {
+            operators = new();
+        }
+    }
+
+    private void CloseAssignModal() => showAssignModal = false;
+
+    private async Task AssignSelected()
+    {
+        if (assignPersonnelId == 0) return;
+        assigning = true;
+        try
+        {
+            var req = new AssignCampaignContactsRequest
+            {
+                CampaignContactIds = selectedIds.ToList(),
+                PersonnelId = assignPersonnelId
+            };
+            var resp = await Http.PostAsJsonAsync($"api/campaigns/{Uid}/assign", req);
+            if (resp.IsSuccessStatusCode)
+            {
+                showAssignModal = false;
+                selectedIds.Clear();
+                await LoadCampaign();
+            }
+        }
+        finally
+        {
+            assigning = false;
+        }
+    }
+}

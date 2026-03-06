@@ -48,6 +48,9 @@ public static class FactoryRegistration
         // Recording Playback
         services.AddScoped<IRecordingPlaybackFactory, RecordingPlaybackFactory>();
 
+        // Campaign (Gunluk Arama Listesi)
+        services.AddScoped<ICampaignFactory, CampaignFactory>();
+
         // Faz 13 — KVKK Uyumluluk
         services.AddScoped<IKvkkFactory, KvkkFactory>();
 

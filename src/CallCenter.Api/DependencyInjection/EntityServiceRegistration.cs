@@ -50,6 +50,10 @@ public static class EntityServiceRegistration
         services.AddScoped<IPrivacyNoticeEntityService, PrivacyNoticeEntityService>();
         services.AddScoped<ICrossBorderTransferEntityService, CrossBorderTransferEntityService>();
 
+        // Campaign (Gunluk Arama Listesi)
+        services.AddScoped<ICampaignEntityService, CampaignEntityService>();
+        services.AddScoped<ICampaignContactEntityService, CampaignContactEntityService>();
+
         // Faz 14 — Hizmet Abonelik Yönetimi
         services.AddScoped<IServiceDefinitionEntityService, ServiceDefinitionEntityService>();
         services.AddScoped<ICustomerServiceSubscriptionEntityService, CustomerServiceSubscriptionEntityService>();

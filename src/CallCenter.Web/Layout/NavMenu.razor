@@ -2,6 +2,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthService AuthService
 @inject PermissionService PermService
+@inject AuthenticationStateProvider AuthStateProvider
 @implements IDisposable
 
 <div class="sidebar-header">
@@ -98,6 +99,13 @@
                         <i class="bi bi-people-fill"></i>
                         <span>Rehber</span>
                     </NavLink>
+                    @if (IsFirmaAdmin || IsEkipLideri)
+                    {
+                        <NavLink class="nav-link" href="campaigns" Match="NavLinkMatch.Prefix">
+                            <i class="bi bi-list-check"></i>
+                            <span>Kampanyalar</span>
+                        </NavLink>
+                    }
                 </div>
             </div>
 
@@ -424,7 +432,7 @@
     // Grup index → URL prefix eslestirmesi
     private static readonly Dictionary<int, string[]> GroupRoutes = new()
     {
-        { 0, new[] { "dialer", "calls/" } },
+        { 0, new[] { "dialer", "calls/", "contacts", "campaigns" } },
         { 1, new[] { "queues" } },
         { 2, new[] { "reports/" } },
         { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/storage", "admin/gateway-health", "admin/services", "admin/kvkk" } },
@@ -436,6 +444,7 @@
     protected override void OnInitialized()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         OpenGroupByCurrentUrl();
     }
 
@@ -443,18 +452,28 @@
     {
         if (firstRender)
         {
-            var name = await AuthService.GetFullNameAsync();
-            var role = await AuthService.GetRoleAsync();
-
-            fullName = name ?? "Kullanici";
-            userRole = role ?? "";
-            roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
-
-            // Portal yetkileri yukle
-            await PermService.LoadAsync();
-
-            StateHasChanged();
+            await ReloadUserInfoAsync();
         }
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        await ReloadUserInfoAsync();
+    }
+
+    private async Task ReloadUserInfoAsync()
+    {
+        var name = await AuthService.GetFullNameAsync();
+        var role = await AuthService.GetRoleAsync();
+
+        fullName = name ?? "Kullanici";
+        userRole = role ?? "";
+        roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
+
+        // Portal yetkileri yukle
+        await PermService.LoadAsync();
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -467,6 +486,7 @@
     {
         var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
 
+        openGroups.Clear();
         foreach (var (groupIndex, prefixes) in GroupRoutes)
         {
             if (prefixes.Any(p => relativePath.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
@@ -489,7 +509,10 @@
         if (openGroups.Contains(index))
             openGroups.Remove(index);
         else
+        {
+            openGroups.Clear();
             openGroups.Add(index);
+        }
     }
 
     private bool IsGroupOpen(int index) => openGroups.Contains(index);
@@ -497,5 +520,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }

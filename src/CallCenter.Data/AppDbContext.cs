@@ -56,6 +56,10 @@ public class AppDbContext : DbContext
     public DbSet<CustomerServiceSubscription> CustomerServiceSubscriptions => Set<CustomerServiceSubscription>();
     public DbSet<ServiceBillingItem> ServiceBillingItems => Set<ServiceBillingItem>();
 
+    // ─── Campaign (Gunluk Arama Listesi) ───
+    public DbSet<CallCampaign> CallCampaigns => Set<CallCampaign>();
+    public DbSet<CampaignContact> CampaignContacts => Set<CampaignContact>();
+
     // ─── IVR & Auto-Attendant ───
     public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
     public DbSet<IvrMenu> IvrMenus => Set<IvrMenu>();
@@ -455,6 +459,47 @@ public class AppDbContext : DbContext
             e.HasOne(c => c.Customer)
              .WithMany()
              .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // CallCampaign (gunluk arama listesi)
+        modelBuilder.Entity<CallCampaign>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.Property(c => c.Name).IsRequired().HasMaxLength(200);
+            e.HasIndex(c => new { c.CustomerId, c.StatusId });
+            e.HasOne(c => c.Customer)
+             .WithMany()
+             .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.CreatedByPersonnel)
+             .WithMany()
+             .HasForeignKey(c => c.CreatedByPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // CampaignContact (kampanya kisi kaydi)
+        modelBuilder.Entity<CampaignContact>(e =>
+        {
+            e.HasKey(cc => cc.Id);
+            e.HasIndex(cc => new { cc.CampaignId, cc.ContactId }).IsUnique();
+            e.HasIndex(cc => new { cc.AssignedPersonnelId, cc.StatusId });
+            e.HasOne(cc => cc.Campaign)
+             .WithMany(c => c.CampaignContacts)
+             .HasForeignKey(cc => cc.CampaignId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(cc => cc.Contact)
+             .WithMany()
+             .HasForeignKey(cc => cc.ContactId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(cc => cc.AssignedPersonnel)
+             .WithMany()
+             .HasForeignKey(cc => cc.AssignedPersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(cc => cc.CallRecord)
+             .WithMany()
+             .HasForeignKey(cc => cc.CallRecordId)
              .OnDelete(DeleteBehavior.SetNull);
         });
 
