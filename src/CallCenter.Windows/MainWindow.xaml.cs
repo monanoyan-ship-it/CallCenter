@@ -93,7 +93,7 @@ public partial class MainWindow : Window
 
         var localDataPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CallCenter", "Data");
+            "CorpLynk", "Data");
 
         services.AddSingleton<ILocalRepository>(sp =>
         {

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Wpf;assembly=Microsoft.AspNetCore.Components.WebView.Wpf"
         xmlns:local="clr-namespace:CallCenter.Windows"
-        Title="Call Center" Height="768" Width="1280"
+        Title="CorpLynk" Height="768" Width="1280"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <blazor:BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">

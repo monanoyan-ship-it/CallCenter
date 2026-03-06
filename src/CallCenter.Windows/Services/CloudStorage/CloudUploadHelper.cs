@@ -129,7 +129,7 @@ public static class CloudUploadHelper
         using var driveService = new DriveService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
-            ApplicationName = "CallCenter"
+            ApplicationName = "CorpLynk"
         });
 
         var fileMetadata = new Google.Apis.Drive.v3.Data.File { Name = fileName };

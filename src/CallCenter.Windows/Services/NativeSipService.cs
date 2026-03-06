@@ -735,7 +735,7 @@ public class NativeSipService : ISipService
         {
             var recordingsDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "CallCenter", "Recordings");
+                    "CorpLynk", "Recordings");
             var path = filePath ?? Path.Combine(recordingsDir, $"call_{DateTime.Now:yyyyMMdd_HHmmss}.wav");
 
             var dir = Path.GetDirectoryName(path);

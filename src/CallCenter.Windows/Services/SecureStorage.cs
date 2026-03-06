@@ -5,7 +5,7 @@ namespace CallCenter.Windows.Services;
 
 /// <summary>
 /// Windows icin guvenli depolama servisi.
-/// Token ve ayarlari %LOCALAPPDATA%\CallCenter\ klasorunde JSON dosyasinda saklar.
+/// Token ve ayarlari %LOCALAPPDATA%\CorpLynk\ klasorunde JSON dosyasinda saklar.
 /// </summary>
 public class SecureStorage
 {
@@ -18,7 +18,7 @@ public class SecureStorage
     {
         _storagePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CallCenter");
+            "CorpLynk");
 
         _filePath = Path.Combine(_storagePath, "storage.json");
 

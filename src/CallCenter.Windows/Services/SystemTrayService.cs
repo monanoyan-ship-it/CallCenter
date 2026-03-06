@@ -22,7 +22,7 @@ public class SystemTrayService : IDisposable
 
         _trayIcon = new TaskbarIcon
         {
-            ToolTipText = "Call Center",
+            ToolTipText = "CorpLynk",
             Visibility = Visibility.Visible
         };
 
@@ -116,7 +116,7 @@ public class SystemTrayService : IDisposable
         _mainWindow?.Hide();
 
         _trayIcon?.ShowBalloonTip(
-            "Call Center",
+            "CorpLynk",
             "Uygulama arka planda calismaya devam ediyor.",
             BalloonIcon.Info);
     }
