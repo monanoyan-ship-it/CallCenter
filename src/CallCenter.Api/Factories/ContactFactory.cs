@@ -23,11 +23,13 @@ public class ContactFactory : IContactFactory
 
     public async Task<List<ContactDto>> GetContactsAsync(int userId, int? customerId, string? search, int page = 1, int pageSize = 50)
     {
-        var query = _contacts.GetAllQueryable()
-            .Where(c => c.OwnerUserId == userId || c.OwnerUserId == null);
+        var query = _contacts.GetAllQueryable();
 
+        // Ayni firmadaki tum personel ortak rehberi gorur
         if (customerId.HasValue)
-            query = query.Where(c => c.CustomerId == customerId || c.CustomerId == null);
+            query = query.Where(c => c.CustomerId == customerId);
+        else
+            query = query.Where(c => c.OwnerUserId == userId || c.OwnerUserId == null);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
