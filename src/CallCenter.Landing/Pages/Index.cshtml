@@ -1,0 +1,256 @@
+@page
+@model IndexModel
+
+<!-- Background -->
+<div class="landing-bg">
+    <div class="grid-overlay"></div>
+</div>
+
+<div class="landing-wrapper">
+    <!-- Nav -->
+    <nav class="landing-nav">
+        <a href="/" class="landing-brand">
+            <i class="bi bi-hexagon-fill"></i> CorpLynk
+        </a>
+        <div class="landing-nav-links">
+            <a href="#products">Products</a>
+            <a href="#about">About</a>
+            <a href="#contact">Contact</a>
+            <a href="https://cc.corplynk.com" class="nav-btn">Sign In</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <main class="landing-main">
+        <div class="landing-badge">
+            <span class="dot"></span>
+            Enterprise Software Solutions
+        </div>
+
+        <h1 class="landing-title">
+            Business Tools,<br />
+            <span class="gradient-text">Connected.</span>
+        </h1>
+
+        <p class="landing-subtitle">
+            We build software that connects businesses. From cloud call centers to global B2B trade,
+            CorpLynk provides the infrastructure your company needs to grow.
+        </p>
+
+        <div class="hero-cta">
+            <a href="#products" class="cta-btn cta-primary">
+                <span>Explore Products</span>
+                <i class="bi bi-arrow-down"></i>
+            </a>
+            <a href="#contact" class="cta-btn cta-outline">
+                <span>Get in Touch</span>
+            </a>
+        </div>
+    </main>
+
+    <!-- Stats -->
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">2</div>
+                <div class="stat-label">Products</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">SIP</div>
+                <div class="stat-label">VoIP Ready</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">B2B</div>
+                <div class="stat-label">Global Trade</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Cloud Native</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products -->
+    <section class="products-section" id="products">
+        <div class="section-header">
+            <div class="section-badge">Our Products</div>
+            <h2 class="section-title">Two Platforms, One Vision</h2>
+            <p class="section-desc">Enterprise-grade solutions designed to connect businesses and streamline operations.</p>
+        </div>
+
+        <div class="products-grid">
+            <!-- Call Center -->
+            <div class="product-card product-callcenter">
+                <div class="product-icon-wrap">
+                    <div class="product-icon">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <span class="product-status live">Live</span>
+                </div>
+                <h3 class="product-name">Cloud Call Center</h3>
+                <p class="product-desc">
+                    Multi-tenant cloud call center with SIP integration, real-time dashboards,
+                    intelligent call routing, and encrypted call recordings.
+                </p>
+                <div class="product-features">
+                    <span class="product-tag"><i class="bi bi-telephone-forward"></i> SIP/WebRTC</span>
+                    <span class="product-tag"><i class="bi bi-diagram-3"></i> ACD Routing</span>
+                    <span class="product-tag"><i class="bi bi-shield-check"></i> KVKK</span>
+                    <span class="product-tag"><i class="bi bi-graph-up"></i> Real-Time</span>
+                    <span class="product-tag"><i class="bi bi-cloud"></i> Multi-Cloud</span>
+                    <span class="product-tag"><i class="bi bi-people"></i> Multi-Tenant</span>
+                </div>
+                <div class="product-actions">
+                    <a href="/call-center" class="product-btn primary">
+                        <span>Learn More</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                    <a href="https://cc.corplynk.com" class="product-btn outline" target="_blank">
+                        <span>Open App</span>
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- B2B Trade -->
+            <div class="product-card product-b2b">
+                <div class="product-icon-wrap">
+                    <div class="product-icon b2b">
+                        <i class="bi bi-globe2"></i>
+                    </div>
+                    <span class="product-status dev">In Development</span>
+                </div>
+                <h3 class="product-name">B2B Trade Platform</h3>
+                <p class="product-desc">
+                    Next-generation B2B marketplace connecting suppliers, buyers, carriers,
+                    and service providers across industries worldwide.
+                </p>
+                <div class="product-features">
+                    <span class="product-tag"><i class="bi bi-shop"></i> Marketplace</span>
+                    <span class="product-tag"><i class="bi bi-truck"></i> Logistics</span>
+                    <span class="product-tag"><i class="bi bi-shield-lock"></i> Verified</span>
+                    <span class="product-tag"><i class="bi bi-chat-dots"></i> Messaging</span>
+                    <span class="product-tag"><i class="bi bi-receipt"></i> Orders</span>
+                    <span class="product-tag"><i class="bi bi-translate"></i> Multi-Language</span>
+                </div>
+                <div class="product-actions">
+                    <a href="/b2b-trade" class="product-btn primary">
+                        <span>Learn More</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="tech-section" id="about">
+        <div class="section-header">
+            <div class="section-badge">Technology</div>
+            <h2 class="section-title">Built with Modern Stack</h2>
+            <p class="section-desc">Enterprise-grade architecture with security and performance at its core.</p>
+        </div>
+        <div class="tech-grid">
+            <div class="tech-item">
+                <div class="tech-icon"><i class="bi bi-filetype-cs"></i></div>
+                <span>.NET 10</span>
+            </div>
+            <div class="tech-item">
+                <div class="tech-icon"><i class="bi bi-database"></i></div>
+                <span>PostgreSQL</span>
+            </div>
+            <div class="tech-item">
+                <div class="tech-icon"><i class="bi bi-lightning-charge"></i></div>
+                <span>SignalR</span>
+            </div>
+            <div class="tech-item">
+                <div class="tech-icon"><i class="bi bi-window"></i></div>
+                <span>Blazor</span>
+            </div>
+            <div class="tech-item">
+                <div class="tech-icon"><i class="bi bi-cloud"></i></div>
+                <span>Google Cloud</span>
+            </div>
+            <div class="tech-item">
+                <div class="tech-icon"><i class="bi bi-lock"></i></div>
+                <span>AES-256</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact / Waitlist -->
+    <section class="contact-section" id="contact">
+        <div class="section-header">
+            <div class="section-badge">Stay Updated</div>
+            <h2 class="section-title">Get Early Access</h2>
+            <p class="section-desc">Join our mailing list to get notified about updates, new features, and early access to our products.</p>
+        </div>
+
+        <div class="waitlist-card" id="waitlistForm">
+            <form id="waitlistFormInner" class="waitlist-form" autocomplete="off">
+                <input
+                    type="email"
+                    id="waitlistEmail"
+                    class="waitlist-input"
+                    placeholder="Enter your email"
+                    required
+                />
+                <button type="submit" id="waitlistBtn" class="waitlist-btn">
+                    <span id="waitlistBtnText">Subscribe</span>
+                    <span id="waitlistSpinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+            <div id="waitlistError" class="waitlist-error"></div>
+            <div id="waitlistSuccess" class="waitlist-success">
+                <div class="check-icon"><i class="bi bi-check-lg"></i></div>
+                <h4>You're on the list!</h4>
+                <p>We'll keep you updated on all things CorpLynk.</p>
+            </div>
+        </div>
+
+        <div class="social-proof" id="socialProof" style="display: none;">
+            <div class="avatar-stack">
+                <div class="avatar">A</div>
+                <div class="avatar">M</div>
+                <div class="avatar">S</div>
+                <div class="avatar">+</div>
+            </div>
+            <span>Join <span class="count" id="waitlistCount">0</span> others</span>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <a href="/" class="landing-brand">
+                    <i class="bi bi-hexagon-fill"></i> CorpLynk
+                </a>
+                <p>Enterprise software solutions that connect businesses.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Products</h4>
+                <a href="/call-center">Cloud Call Center</a>
+                <a href="/b2b-trade">B2B Trade Platform</a>
+            </div>
+            <div class="footer-col">
+                <h4>Company</h4>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <div class="footer-col">
+                <h4>Connect</h4>
+                <a href="https://x.com/corplynkcmon" target="_blank" rel="noopener"><i class="bi bi-twitter-x"></i> Twitter</a>
+                <a href="mailto:info@corplynk.com"><i class="bi bi-envelope"></i> Email</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 CorpLynk. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+@section Scripts {
+    <script src="~/js/landing.js" asp-append-version="true"></script>
+}

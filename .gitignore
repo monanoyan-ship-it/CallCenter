@@ -45,6 +45,9 @@ bld/
 ## VS Code
 .vscode/
 
+## Landing libman (restored via libman restore)
+src/CallCenter.Landing/wwwroot/lib/
+
 ## OS
 Thumbs.db
 ehthumbs.db

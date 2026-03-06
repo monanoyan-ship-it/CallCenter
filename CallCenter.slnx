@@ -6,6 +6,7 @@
     <Project Path="src/CallCenter.Web/CallCenter.Web.csproj" />
     <Project Path="src/CallCenter.PbxService/CallCenter.PbxService.csproj" />
     <Project Path="src/CallCenter.Windows/CallCenter.Windows.csproj" />
+    <Project Path="src/CallCenter.Landing/CallCenter.Landing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CallCenter.Tests/CallCenter.Tests.csproj" />

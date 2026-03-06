@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CorpLynk — Enterprise Software Solutions</title>
+    <meta name="description" content="CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more." />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corplynk.com/" />
+    <meta property="og:title" content="CorpLynk — Enterprise Software Solutions" />
+    <meta property="og:description" content="CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more." />
+    <meta property="og:site_name" content="CorpLynk" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@@corplynkcmon" />
+    <meta name="twitter:title" content="CorpLynk — Enterprise Software Solutions" />
+    <meta name="twitter:description" content="CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more." />
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/landing.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    @RenderBody()
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

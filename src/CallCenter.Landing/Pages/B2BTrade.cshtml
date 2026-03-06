@@ -1,0 +1,241 @@
+@page "/b2b-trade"
+@model B2BTradeModel
+
+@section Styles {
+    <meta property="og:title" content="CorpLynk — B2B Trade Platform" />
+    <meta property="og:description" content="Next-generation B2B trading platform. Connect with verified suppliers, discover products, and grow your business." />
+}
+
+<!-- Background -->
+<div class="landing-bg">
+    <div class="grid-overlay"></div>
+</div>
+
+<div class="landing-wrapper">
+    <!-- Nav -->
+    <nav class="landing-nav">
+        <a href="/" class="landing-brand">
+            <i class="bi bi-hexagon-fill"></i> CorpLynk
+        </a>
+        <div class="landing-nav-links">
+            <a href="/">Home</a>
+            <a href="/call-center">Call Center</a>
+            <a href="#features">Features</a>
+            <a href="#contact" class="nav-btn">Contact</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <main class="landing-main">
+        <div class="landing-badge">
+            <span class="dot dot-amber"></span>
+            In Development
+        </div>
+
+        <h1 class="landing-title">
+            B2B Trade,<br />
+            <span class="gradient-text-b2b">Reimagined.</span>
+        </h1>
+
+        <p class="landing-subtitle">
+            Connect with verified suppliers, discover products at scale,
+            and grow your business on the next-generation B2B platform.
+        </p>
+
+        <div class="hero-cta">
+            <a href="#contact" class="cta-btn cta-primary">
+                <span>Get Early Access</span>
+                <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </main>
+
+    <!-- Features -->
+    <section class="features-section" id="features">
+        <div class="section-header">
+            <div class="section-badge">Platform</div>
+            <h2 class="section-title">All-in-One B2B Ecosystem</h2>
+            <p class="section-desc">Every stakeholder in the supply chain, connected on a single platform.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon b2b"><i class="bi bi-shop-window"></i></div>
+                <h3 class="feature-title">Product Catalog</h3>
+                <p class="feature-desc">List products with multi-image galleries, price tiers, SKU tracking, and multi-warehouse inventory management.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon b2b"><i class="bi bi-megaphone"></i></div>
+                <h3 class="feature-title">Demand & Quotation</h3>
+                <p class="feature-desc">Post open demands, receive competitive quotes, and compare offers by price, delivery time, and MOQ.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon b2b"><i class="bi bi-cart-check"></i></div>
+                <h3 class="feature-title">Order Management</h3>
+                <p class="feature-desc">Checkout wizard, real-time order tracking timeline, and separate dashboards for buyers and sellers.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon b2b"><i class="bi bi-truck"></i></div>
+                <h3 class="feature-title">Integrated Logistics</h3>
+                <p class="feature-desc">Road, sea, and air freight quotes from logistics partners. Cargo tracking and delivery management.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon b2b"><i class="bi bi-building-check"></i></div>
+                <h3 class="feature-title">Customs & Insurance</h3>
+                <p class="feature-desc">Digital customs declaration management and cargo insurance quotes — all within the order flow.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon b2b"><i class="bi bi-translate"></i></div>
+                <h3 class="feature-title">Unlimited Languages</h3>
+                <p class="feature-desc">Dynamic multi-language support with XML-based localization. Add any language, including RTL support.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stakeholders -->
+    <section class="stakeholders-section">
+        <div class="section-header">
+            <div class="section-badge">Ecosystem</div>
+            <h2 class="section-title">Who It's For</h2>
+        </div>
+        <div class="stakeholders-grid">
+            <div class="stakeholder-card">
+                <div class="stakeholder-icon"><i class="bi bi-building"></i></div>
+                <h4>Sellers & Manufacturers</h4>
+                <p>Publish catalogs, respond to demands, manage orders</p>
+            </div>
+            <div class="stakeholder-card">
+                <div class="stakeholder-icon"><i class="bi bi-bag"></i></div>
+                <h4>Buyers & Distributors</h4>
+                <p>Find suppliers, create bulk demands, compare quotes</p>
+            </div>
+            <div class="stakeholder-card">
+                <div class="stakeholder-icon"><i class="bi bi-truck"></i></div>
+                <h4>Carriers & Forwarders</h4>
+                <p>Offer logistics services, provide cargo tracking</p>
+            </div>
+            <div class="stakeholder-card">
+                <div class="stakeholder-icon"><i class="bi bi-shield-plus"></i></div>
+                <h4>Insurance & Customs</h4>
+                <p>Cargo insurance, customs brokerage, quality inspection</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison -->
+    <section class="comparison-section">
+        <div class="section-header">
+            <div class="section-badge">Why CorpLynk</div>
+            <h2 class="section-title">The Difference</h2>
+        </div>
+        <div class="comparison-table">
+            <div class="comparison-row header">
+                <div class="comparison-cell">Feature</div>
+                <div class="comparison-cell highlight">CorpLynk</div>
+                <div class="comparison-cell">Traditional B2B</div>
+                <div class="comparison-cell">Alibaba / TradeKey</div>
+            </div>
+            <div class="comparison-row">
+                <div class="comparison-cell">Integrated Logistics</div>
+                <div class="comparison-cell highlight"><i class="bi bi-check-circle-fill text-success"></i></div>
+                <div class="comparison-cell"><i class="bi bi-x-circle text-muted"></i></div>
+                <div class="comparison-cell">Limited</div>
+            </div>
+            <div class="comparison-row">
+                <div class="comparison-cell">Customs Management</div>
+                <div class="comparison-cell highlight"><i class="bi bi-check-circle-fill text-success"></i></div>
+                <div class="comparison-cell"><i class="bi bi-x-circle text-muted"></i></div>
+                <div class="comparison-cell"><i class="bi bi-x-circle text-muted"></i></div>
+            </div>
+            <div class="comparison-row">
+                <div class="comparison-cell">Insurance Integration</div>
+                <div class="comparison-cell highlight"><i class="bi bi-check-circle-fill text-success"></i></div>
+                <div class="comparison-cell"><i class="bi bi-x-circle text-muted"></i></div>
+                <div class="comparison-cell"><i class="bi bi-x-circle text-muted"></i></div>
+            </div>
+            <div class="comparison-row">
+                <div class="comparison-cell">Unlimited Languages</div>
+                <div class="comparison-cell highlight"><i class="bi bi-check-circle-fill text-success"></i></div>
+                <div class="comparison-cell">Varies</div>
+                <div class="comparison-cell">Limited</div>
+            </div>
+            <div class="comparison-row">
+                <div class="comparison-cell">Verified Businesses</div>
+                <div class="comparison-cell highlight"><i class="bi bi-check-circle-fill text-success"></i></div>
+                <div class="comparison-cell"><i class="bi bi-x-circle text-muted"></i></div>
+                <div class="comparison-cell">Limited</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="contact-section" id="contact">
+        <div class="section-header">
+            <div class="section-badge">Early Access</div>
+            <h2 class="section-title">Be the First to Know</h2>
+            <p class="section-desc">Join our mailing list to get notified when the B2B Trade Platform launches.</p>
+        </div>
+
+        <div class="waitlist-card" id="waitlistForm">
+            <form id="waitlistFormInner" class="waitlist-form" autocomplete="off">
+                <input
+                    type="email"
+                    id="waitlistEmail"
+                    class="waitlist-input"
+                    placeholder="Enter your email"
+                    required
+                />
+                <button type="submit" id="waitlistBtn" class="waitlist-btn">
+                    <span id="waitlistBtnText">Join Waitlist</span>
+                    <span id="waitlistSpinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+            <div id="waitlistError" class="waitlist-error"></div>
+            <div id="waitlistSuccess" class="waitlist-success">
+                <div class="check-icon"><i class="bi bi-check-lg"></i></div>
+                <h4>You're on the list!</h4>
+                <p>We'll notify you as soon as we launch.</p>
+            </div>
+        </div>
+
+        <div class="social-proof" id="socialProof" style="display: none;">
+            <div class="avatar-stack">
+                <div class="avatar">A</div>
+                <div class="avatar">M</div>
+                <div class="avatar">S</div>
+                <div class="avatar">+</div>
+            </div>
+            <span>Join <span class="count" id="waitlistCount">0</span> others on the waitlist</span>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <a href="/" class="landing-brand">
+                    <i class="bi bi-hexagon-fill"></i> CorpLynk
+                </a>
+                <p>Enterprise software solutions that connect businesses.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Products</h4>
+                <a href="/call-center">Cloud Call Center</a>
+                <a href="/b2b-trade">B2B Trade Platform</a>
+            </div>
+            <div class="footer-col">
+                <h4>Connect</h4>
+                <a href="https://x.com/corplynkcmon" target="_blank" rel="noopener"><i class="bi bi-twitter-x"></i> Twitter</a>
+                <a href="mailto:info@corplynk.com"><i class="bi bi-envelope"></i> Email</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 CorpLynk. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
+
+@section Scripts {
+    <script src="~/js/landing.js" asp-append-version="true"></script>
+}
