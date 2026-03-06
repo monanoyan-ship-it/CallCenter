@@ -165,7 +165,7 @@ public class ReportFactory : IReportFactory
 
     public async Task<AgentReportResponse> GetAgentReportAsync(int? customerId, DateTime? from, DateTime? to, int page, int pageSize)
     {
-        var agentsQuery = _userEs.GetAllQueryable().Where(u => u.IsActive && u.RoleId == UserRoles.Ids.Agent);
+        var agentsQuery = _userEs.GetAllQueryable().Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser));
 
         if (customerId.HasValue && customerId.Value > 0)
         {

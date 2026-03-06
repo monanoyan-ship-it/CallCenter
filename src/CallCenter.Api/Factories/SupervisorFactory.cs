@@ -36,18 +36,26 @@ public class SupervisorFactory : ISupervisorFactory
         List<int>? customerAgentIds = null;
         if (customerId.HasValue && customerId.Value > 0)
         {
+            // Sadece operatorleri al (yalnizca operatorler arama yapabiliyor)
             customerAgentIds = await _personnelEs.GetAllQueryable()
                 .Where(cp => cp.CustomerId == customerId.Value)
+                .Where(cp => cp.CustomerRoleId == CustomerRoles.Ids.Operator)
                 .Select(cp => cp.UserId)
                 .ToListAsync();
         }
 
-        // AGENTS — sadece Agent rolundeki kullanicilar (operatorler)
+        // AGENTS — musteri filtresi varsa musteri personeli, yoksa tum agent'lar
         var agentsQuery = _userEs.GetAllQueryable()
-            .Where(u => u.IsActive && u.RoleId == UserRoles.Ids.Agent);
+            .Where(u => u.IsActive);
         if (customerAgentIds != null)
         {
             agentsQuery = agentsQuery.Where(u => customerAgentIds.Contains(u.Id));
+        }
+        else
+        {
+            // Global gorunum (Admin) — Agent ve CustomerUser rollerini dahil et
+            agentsQuery = agentsQuery.Where(u =>
+                u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser);
         }
 
         var agents = await agentsQuery

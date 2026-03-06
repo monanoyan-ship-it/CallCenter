@@ -1,6 +1,7 @@
 @inject CallCenter.Windows.Services.WindowsHubService HubService
 @inject CallCenter.Windows.Services.ISipService SipService
 @inject CallCenter.Windows.Services.IncomingCallPipelineService Pipeline
+@inject CallCenter.Windows.Services.SystemTrayService TrayService
 @inject NavigationManager NavigationManager
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
@@ -82,6 +83,7 @@ else if (incomingCall != null)
         {
             incomingCall = notification;
             isSipCall = false;
+            TrayService.BringToFront();
             InvokeAsync(StateHasChanged);
         }
     }
@@ -97,6 +99,7 @@ else if (incomingCall != null)
 
     private async Task HandleSipIncomingCall(string callerUri, string callerDisplay)
     {
+        TrayService.BringToFront();
         // Pipeline'a yonlendir — IVR kontrolu yapacak
         await Pipeline.HandleIncomingCallAsync(callerUri, callerDisplay);
         ivrActive = Pipeline.IsIvrActive;
@@ -114,6 +117,7 @@ else if (incomingCall != null)
         };
         isSipCall = true;
         ivrActive = false;
+        TrayService.BringToFront();
         return InvokeAsync(StateHasChanged);
     }
 

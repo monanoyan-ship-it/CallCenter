@@ -138,37 +138,50 @@
 
                 @* ─── Arama Butonlari ─── *@
                 <div class="call-actions">
-                    @if (!SipService.IsInCall)
+                    @if (!SipService.IsInCall && !isCallStarting)
                     {
                         <button class="btn call-btn call-start"
-                                disabled="@(string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered || isCallStarting)"
+                                disabled="@(string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered)"
                                 @onclick="StartCall">
                             <i class="bi bi-telephone-fill"></i>
-                            <span>@(isCallStarting ? "Araniyor..." : "Ara")</span>
+                            <span>Ara</span>
                         </button>
                     }
                     else
                     {
                         <div class="in-call-actions">
-                            <button class="btn call-btn @(SipService.IsOnHold ? "call-resume" : "call-hold")"
-                                    @onclick="ToggleHold">
-                                <i class="bi @(SipService.IsOnHold ? "bi-play-circle-fill" : "bi-pause-circle-fill")"></i>
-                                <span>@(SipService.IsOnHold ? "Devam" : "Beklet")</span>
-                            </button>
-                            <button class="btn call-btn btn-outline-info" @onclick="OpenTransfer"
-                                    title="Transfer">
-                                <i class="bi bi-arrow-left-right"></i>
-                                <span>Transfer</span>
-                            </button>
+                            @if (SipService.IsInCall && !isCallStarting)
+                            {
+                                <button class="btn call-btn @(SipService.IsOnHold ? "call-resume" : "call-hold")"
+                                        @onclick="ToggleHold">
+                                    <i class="bi @(SipService.IsOnHold ? "bi-play-circle-fill" : "bi-pause-circle-fill")"></i>
+                                    <span>@(SipService.IsOnHold ? "Devam" : "Beklet")</span>
+                                </button>
+                                <button class="btn call-btn btn-outline-info" @onclick="OpenTransfer"
+                                        title="Transfer">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                    <span>Transfer</span>
+                                </button>
+                            }
                             <button class="btn call-btn call-end" @onclick="EndCall">
                                 <i class="bi bi-telephone-x-fill"></i>
-                                <span>Kapat</span>
+                                <span>@(isCallStarting ? "Iptal" : "Kapat")</span>
                             </button>
                         </div>
-                        <div class="call-timer mt-2">
-                            <i class="bi bi-clock"></i>
-                            <span>@callDuration</span>
-                        </div>
+                        @if (isCallStarting)
+                        {
+                            <div class="call-timer mt-2 text-info">
+                                <i class="bi bi-telephone-outbound-fill"></i>
+                                <span>Araniyor...</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="call-timer mt-2">
+                                <i class="bi bi-clock"></i>
+                                <span>@callDuration</span>
+                            </div>
+                        }
                     }
                 </div>
 
@@ -293,7 +306,7 @@
     {
         // Modul guard + admin rol kontrolu
         await PermService.LoadAsync();
-        isAdminRole = PermService.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
+        isAdminRole = PermService.CustomerRoleId != CustomerRoles.Ids.Operator;
 
         if (!PermService.HasModule(PortalModules.Ids.Calls))
         {
@@ -578,8 +591,9 @@
             currentCallUid = syncResult.Uid;
             currentCallId = syncResult.BackendCallId;
 
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
             var success = await SipService.MakeCallAsync(phoneNumber);
-            StateHasChanged(); // Arama basladi — UI'yi hemen guncelle (Kapat butonu gosterilsin)
+            StateHasChanged();
             if (!success)
             {
                 // SIP basarisiz → cagriyi "missed" olarak isaretle
@@ -623,7 +637,11 @@
         }
     }
 
-    private async Task EndCall() => await SipService.HangupAsync();
+    private async Task EndCall()
+    {
+        isCallStarting = false;
+        await SipService.HangupAsync();
+    }
 
     // ─── Quick Actions ───
 

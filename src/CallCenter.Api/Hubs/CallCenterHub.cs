@@ -58,6 +58,9 @@ public class CallCenterHub : Hub
 
                 // Grup + Admin'lere bildir
                 await SendToGroupAndAdminsAsync(groupName, "AgentStatusChanged", statusUpdate);
+
+                // Dashboard KPI guncelle (musait temsilci sayisi degisti)
+                await BroadcastKpiUpdateAsync(groupName);
             }
         }
 
@@ -86,6 +89,9 @@ public class CallCenterHub : Hub
                 };
 
                 await SendToGroupAndAdminsAsync(groupName, "AgentStatusChanged", statusUpdate);
+
+                // Dashboard KPI guncelle (musait temsilci sayisi degisti)
+                await BroadcastKpiUpdateAsync(groupName);
 
                 // Gateway durumunu "kayit disi" olarak guncelle
                 if (_gatewayStates.TryGetValue(user.Id, out var gwState))
@@ -126,6 +132,9 @@ public class CallCenterHub : Hub
         };
 
         await SendToGroupAndAdminsAsync(groupName, "AgentStatusChanged", statusUpdate);
+
+        // Dashboard KPI guncelle
+        await BroadcastKpiUpdateAsync(groupName);
 
         // Agent musait oldugunda kuyrukta bekleyen aramalar varsa otomatik ata
         if (statusId == AgentStatuses.Ids.Available)
@@ -211,8 +220,9 @@ public class CallCenterHub : Hub
         if (user == null || (user.RoleId != UserRoles.Ids.Admin && user.RoleId != UserRoles.Ids.Supervisor))
             return new();
 
+        // Agent ve CustomerUser rollerini dahil et (portal'dan olusturulan operatorler CustomerUser rolunde)
         var users = await _db.Users
-            .Where(u => u.IsActive && u.RoleId == UserRoles.Ids.Agent)
+            .Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser))
             .Select(u => new { u.Id, u.FullName, u.Extension, u.RoleId, u.StatusId })
             .ToListAsync();
 
@@ -310,6 +320,9 @@ public class CallCenterHub : Hub
         };
 
         await SendToGroupAndAdminsAsync(groupName, "AgentStatusChanged", statusUpdate);
+
+        // Dashboard KPI guncelle
+        await BroadcastKpiUpdateAsync(groupName);
 
         // SIP presence bilgisini de ayrica yayinla (BLF kullanan client'lar icin)
         await SendToGroupAndAdminsAsync(groupName, "SipPresenceChanged", new
@@ -549,6 +562,51 @@ public class CallCenterHub : Hub
     {
         var customerIdClaim = Context.User?.FindFirst("CustomerId")?.Value;
         return !string.IsNullOrEmpty(customerIdClaim) ? $"customer_{customerIdClaim}" : null;
+    }
+
+    /// <summary>
+    /// Agent durum degisikliklerinde Dashboard KPI guncellemesini broadcast eder.
+    /// </summary>
+    private async Task BroadcastKpiUpdateAsync(string? groupName)
+    {
+        try
+        {
+            var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+
+            var activeCallCount = await _db.CallRecords
+                .Where(c => activeStatusIds.Contains(c.StatusId))
+                .CountAsync();
+
+            var queueWaitingCount = await _db.CallRecords
+                .Where(c => c.StatusId == CallStatuses.Ids.Queued || c.StatusId == CallStatuses.Ids.Ringing)
+                .CountAsync();
+
+            var availableAgentCount = await _db.Users
+                .Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser) && u.StatusId == AgentStatuses.Ids.Available)
+                .CountAsync();
+
+            var today = DateTime.UtcNow.Date;
+            var todayCalls = await _db.CallRecords
+                .Where(c => c.StartedAt >= today)
+                .Select(c => c.StatusId)
+                .ToListAsync();
+
+            var kpi = new DashboardKpiUpdate
+            {
+                ActiveCallCount = activeCallCount,
+                AvailableAgentCount = availableAgentCount,
+                QueueWaitingCount = queueWaitingCount,
+                TodayTotalCallCount = todayCalls.Count,
+                TodayAnsweredCount = todayCalls.Count(s => s == CallStatuses.Ids.Completed),
+                TodayMissedCount = todayCalls.Count(s => s == CallStatuses.Ids.Missed)
+            };
+
+            await SendToGroupAndAdminsAsync(groupName, "DashboardKpiUpdated", kpi);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Hub] KPI broadcast hatasi: {ex.Message}");
+        }
     }
 
     private int? GetUserId()

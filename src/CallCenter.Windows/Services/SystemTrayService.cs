@@ -82,13 +82,31 @@ public class SystemTrayService : IDisposable
             .Show();
     }
 
-    private void ShowWindow()
+    /// <summary>
+    /// Pencereyi on plana getirir (Blazor componentlerinden cagirilabilir).
+    /// </summary>
+    public void BringToFront()
     {
         if (_mainWindow == null) return;
+
+        // WPF UI thread'inde calistirilmali
+        if (!_mainWindow.Dispatcher.CheckAccess())
+        {
+            _mainWindow.Dispatcher.Invoke(BringToFront);
+            return;
+        }
 
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
+        _mainWindow.Topmost = true;
+        _mainWindow.Topmost = false;
+        _mainWindow.Focus();
+    }
+
+    private void ShowWindow()
+    {
+        BringToFront();
     }
 
     private void OnMainWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)

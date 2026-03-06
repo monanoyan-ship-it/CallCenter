@@ -2,6 +2,7 @@ using System.Text;
 using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Hubs;
 using CallCenter.Data;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -141,5 +142,19 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<CallCenterHub>("/hubs/callcenter");
+
+// Sunucu basladiginda tum kullanicilari Offline'a cek (onceki oturumdan kalan stale status temizligi)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var resetCount = await db.Users
+        .Where(u => u.StatusId != AgentStatuses.Ids.Offline)
+        .ExecuteUpdateAsync(u => u.SetProperty(x => x.StatusId, AgentStatuses.Ids.Offline));
+    if (resetCount > 0)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+        logger.LogInformation("Startup: {Count} kullanicinin statusu Offline'a sifirlandi.", resetCount);
+    }
+}
 
 app.Run();

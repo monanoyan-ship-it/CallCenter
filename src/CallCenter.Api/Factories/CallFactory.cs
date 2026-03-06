@@ -87,7 +87,7 @@ public class CallFactory : ICallFactory
     public async Task<(int Id, Guid Uid)> StartCallAsync(int userId, StartCallRequest request)
     {
         var personnelRecord = await _personnel.GetByUserIdAsync(userId);
-        if (personnelRecord?.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin)
+        if (personnelRecord?.CustomerRoleId != CustomerRoles.Ids.Operator)
             throw new InvalidOperationException("Bu rolun arama yetkisi yoktur.");
 
         var call = new CallRecord
@@ -111,6 +111,7 @@ public class CallFactory : ICallFactory
             await _uow.SaveChangesAsync();
         }
 
+        await BroadcastKpiUpdateAsync(userId);
         return (call.Id, call.Uid);
     }
 
@@ -121,6 +122,9 @@ public class CallFactory : ICallFactory
 
         call.StatusId = CallStatuses.Ids.OnHold;
         await _uow.SaveChangesAsync();
+
+        if (call.AgentId.HasValue)
+            await BroadcastKpiUpdateAsync(call.AgentId.Value);
 
         return (true, null);
     }
@@ -155,6 +159,7 @@ public class CallFactory : ICallFactory
             });
         }
 
+        await BroadcastKpiUpdateAsync(userId);
         return (true, null);
     }
 
@@ -166,6 +171,9 @@ public class CallFactory : ICallFactory
         call.StatusId = CallStatuses.Ids.InProgress;
         call.AnsweredAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
+
+        if (call.AgentId.HasValue)
+            await BroadcastKpiUpdateAsync(call.AgentId.Value);
 
         return (true, null);
     }
@@ -241,6 +249,21 @@ public class CallFactory : ICallFactory
         }
 
         await SendToGroupAndAdminsAsync(groupName, "IncomingCall", notification);
+
+        // KPI broadcast — IncomingCall icin groupName'den customer bilgisi kullan
+        try
+        {
+            var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+            var kpi = new DashboardKpiUpdate
+            {
+                ActiveCallCount = await _calls.GetAllQueryable().Where(c => activeStatusIds.Contains(c.StatusId)).CountAsync(),
+                QueueWaitingCount = await _calls.GetAllQueryable().Where(c => c.StatusId == CallStatuses.Ids.Queued || c.StatusId == CallStatuses.Ids.Ringing).CountAsync(),
+                AvailableAgentCount = await _users.GetAllQueryable().Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser) && u.StatusId == AgentStatuses.Ids.Available).CountAsync()
+            };
+            await SendToGroupAndAdminsAsync(groupName, "DashboardKpiUpdated", kpi);
+        }
+        catch { }
+
         return new { call.Id, call.Uid, Status = "Broadcasting" };
     }
 
@@ -386,6 +409,71 @@ public class CallFactory : ICallFactory
             .FirstOrDefaultAsync();
 
         return customerId > 0 ? $"customer_{customerId}" : null;
+    }
+
+    /// <summary>
+    /// Arama durumu degistiginde Dashboard KPI guncellemesini broadcast eder.
+    /// </summary>
+    private async Task BroadcastKpiUpdateAsync(int userId)
+    {
+        try
+        {
+            var customerGroupName = await GetCustomerGroupNameAsync(userId);
+
+            List<int>? customerAgentIds = null;
+            if (customerGroupName != null)
+            {
+                var cidStr = customerGroupName.Replace("customer_", "");
+                if (int.TryParse(cidStr, out var cid))
+                {
+                    customerAgentIds = await _personnel.GetAllQueryable()
+                        .Where(cp => cp.CustomerId == cid)
+                        .Select(cp => cp.UserId)
+                        .ToListAsync();
+                }
+            }
+
+            var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+
+            var activeCallCount = await _calls.GetAllQueryable()
+                .Where(c => activeStatusIds.Contains(c.StatusId))
+                .Where(c => customerAgentIds == null || (c.AgentId.HasValue && customerAgentIds.Contains(c.AgentId.Value)))
+                .CountAsync();
+
+            var queueWaitingCount = await _calls.GetAllQueryable()
+                .Where(c => c.StatusId == CallStatuses.Ids.Queued || c.StatusId == CallStatuses.Ids.Ringing)
+                .Where(c => customerAgentIds == null || (c.AgentId.HasValue && customerAgentIds.Contains(c.AgentId.Value)))
+                .CountAsync();
+
+            var availableAgentCount = await _users.GetAllQueryable()
+                .Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser) && u.StatusId == AgentStatuses.Ids.Available)
+                .Where(u => customerAgentIds == null || customerAgentIds.Contains(u.Id))
+                .CountAsync();
+
+            var today = DateTime.UtcNow.Date;
+            var todayCalls = await _calls.GetAllQueryable()
+                .Where(c => c.StartedAt >= today)
+                .Where(c => customerAgentIds == null || (c.AgentId.HasValue && customerAgentIds.Contains(c.AgentId.Value)))
+                .Select(c => c.StatusId)
+                .ToListAsync();
+
+            var kpi = new DashboardKpiUpdate
+            {
+                ActiveCallCount = activeCallCount,
+                AvailableAgentCount = availableAgentCount,
+                QueueWaitingCount = queueWaitingCount,
+                TodayTotalCallCount = todayCalls.Count,
+                TodayAnsweredCount = todayCalls.Count(s => s == CallStatuses.Ids.Completed),
+                TodayMissedCount = todayCalls.Count(s => s == CallStatuses.Ids.Missed)
+            };
+
+            await SendToGroupAndAdminsAsync(customerGroupName, "DashboardKpiUpdated", kpi);
+        }
+        catch (Exception ex)
+        {
+            // KPI broadcast hatasi arama islemini engellemeyecek
+            Console.WriteLine($"[CallFactory] KPI broadcast hatasi: {ex.Message}");
+        }
     }
 
     private async Task SendToGroupAndAdminsAsync(string? groupName, string method, object arg)

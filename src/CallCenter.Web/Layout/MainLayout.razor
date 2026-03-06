@@ -195,10 +195,17 @@
 
     private async Task HandleLogout()
     {
+        // Event handler'lari once kaldir (dispose sirasinda event ateslenmesin)
+        HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
+        HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+        HubService.OnForceLogout -= HandleForceLogout;
+
         await SipService.DisposeAsync();
         await HubService.DisconnectAsync();
         await AuthService.LogoutAsync();
-        NavigationManager.NavigateTo("/login", forceLoad: false);
+
+        // forceLoad: true ile tam sayfa yenileme — tum Blazor state sifirlanir
+        NavigationManager.NavigateTo("/login", forceLoad: true);
     }
 
     public async ValueTask DisposeAsync()

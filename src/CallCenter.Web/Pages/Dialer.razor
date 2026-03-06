@@ -397,6 +397,9 @@
 
         try
         {
+            // Agent durumunu InCall yap
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+
             // 1. Once API'ye arama kaydini olustur
             var request = new StartCallRequest
             {
@@ -491,15 +494,30 @@
     {
         showContactPicker = true;
         contactSearch = "";
-        contactResults = await Http.GetFromJsonAsync<List<ContactDto>>("api/contact?search=&page=1&pageSize=50");
+        try
+        {
+            contactResults = await Http.GetFromJsonAsync<List<ContactDto>>("api/contact?search=&page=1&pageSize=500");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Dialer] Rehber yuklenemedi: {ex.Message}");
+            contactResults = new();
+        }
     }
 
     private void CloseContactPicker() => showContactPicker = false;
 
     private async Task SearchContacts()
     {
-        var query = string.IsNullOrWhiteSpace(contactSearch) ? "" : Uri.EscapeDataString(contactSearch);
-        contactResults = await Http.GetFromJsonAsync<List<ContactDto>>($"api/contact?search={query}&page=1&pageSize=50");
+        try
+        {
+            var query = string.IsNullOrWhiteSpace(contactSearch) ? "" : Uri.EscapeDataString(contactSearch);
+            contactResults = await Http.GetFromJsonAsync<List<ContactDto>>($"api/contact?search={query}&page=1&pageSize=500");
+        }
+        catch
+        {
+            contactResults = new();
+        }
     }
 
     private void PickContact(ContactDto contact)

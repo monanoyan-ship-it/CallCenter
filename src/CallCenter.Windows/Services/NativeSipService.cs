@@ -340,12 +340,15 @@ public class NativeSipService : ISipService
         var line = ActiveLine;
         Console.WriteLine($"[SIP] HangupAsync cagirildi. ActiveLine={line.Index}, State={line.State}");
 
-        // Ringing varsa onu kapat
-        var ringing = FindRingingLine();
-        if (ringing != null && line.State == LineState.Idle)
+        // Connecting hattı varsa (giden arama calıyor) onu kapat
+        if (line.State == LineState.Idle)
         {
-            line = ringing;
-            Console.WriteLine($"[SIP] Ringing hat bulundu: {ringing.Index}");
+            // Ringing (gelen) veya Connecting (giden) hat ara
+            var ringing = FindRingingLine();
+            var connecting = Array.Find(_lines, l => l.State == LineState.Connecting);
+            line = ringing ?? connecting ?? line;
+            if (ringing != null) Console.WriteLine($"[SIP] Ringing hat bulundu: {ringing.Index}");
+            if (connecting != null) Console.WriteLine($"[SIP] Connecting hat bulundu: {connecting.Index}");
         }
 
         if (line.State == LineState.Idle && line.PendingUas == null)
@@ -364,10 +367,14 @@ public class NativeSipService : ISipService
                 StopRingtone();
             }
 
-            if (line.UserAgent?.IsCallActive == true)
+            if (line.UserAgent != null)
             {
-                Console.WriteLine("[SIP] UserAgent.Hangup() cagirildi");
-                line.UserAgent.Hangup();
+                // Connecting veya Connected — CANCEL veya BYE gonder
+                Console.WriteLine($"[SIP] UserAgent.Cancel/Hangup cagirildi (IsCallActive={line.UserAgent.IsCallActive})");
+                if (line.UserAgent.IsCallActive)
+                    line.UserAgent.Hangup();
+                else
+                    line.UserAgent.Cancel();
             }
 
             CleanupLine(line);
@@ -1148,7 +1155,10 @@ public class NativeSipService : ISipService
 
     private async Task OnSipRequestReceived(SIPEndPoint localSIPEndPoint, SIPEndPoint remoteEndPoint, SIPRequest sipRequest)
     {
-        Console.WriteLine($"[SIP] <<< Gelen SIP istegi: {sipRequest.Method} from {remoteEndPoint}");
+        var callId = sipRequest.Header.CallId;
+        var toTag = sipRequest.Header.To?.ToTag;
+        Console.WriteLine($"[SIP] <<< Gelen SIP istegi: {sipRequest.Method} from {remoteEndPoint}, CallId={callId}, ToTag={toTag ?? "(yok)"}");
+
         if (sipRequest.Method == SIPMethodsEnum.INVITE)
         {
             await HandleIncomingInvite(sipRequest);
@@ -1159,7 +1169,40 @@ public class NativeSipService : ISipService
         }
         else if (sipRequest.Method == SIPMethodsEnum.BYE)
         {
-            Console.WriteLine("[SIP] BYE istegi alindi");
+            Console.WriteLine($"[SIP] BYE istegi alindi, CallId={callId}");
+            // Dialog ile eslesen hat varsa temizle
+            var byeLine = Array.Find(_lines, l =>
+                l.UserAgent?.Dialogue?.CallId == callId && l.State != LineState.Idle);
+            if (byeLine != null)
+            {
+                Console.WriteLine($"[SIP] BYE eslesti, hat {byeLine.Index} temizleniyor");
+                CleanupLine(byeLine);
+                await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
+                // 200 OK yanit
+                var okResp = SIPResponse.GetResponse(sipRequest, SIPResponseStatusCodesEnum.Ok, null);
+                await _sipTransport!.SendResponseAsync(okResp);
+            }
+        }
+        else if (sipRequest.Method == SIPMethodsEnum.ACK)
+        {
+            // ACK normal SIP akisi — loglama yeterli
+            Console.WriteLine($"[SIP] ACK alindi, CallId={callId}");
+        }
+        else if (sipRequest.Method == SIPMethodsEnum.CANCEL)
+        {
+            Console.WriteLine($"[SIP] CANCEL alindi, CallId={callId}");
+            // Ringing hatlarda eslesen varsa temizle
+            var cancelLine = Array.Find(_lines, l => l.State == LineState.Ringing);
+            if (cancelLine != null)
+            {
+                Console.WriteLine($"[SIP] CANCEL eslesti, hat {cancelLine.Index} temizleniyor");
+                // 200 OK to CANCEL
+                var okCancel = SIPResponse.GetResponse(sipRequest, SIPResponseStatusCodesEnum.Ok, null);
+                await _sipTransport!.SendResponseAsync(okCancel);
+                StopRingtone();
+                CleanupLine(cancelLine);
+                await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
+            }
         }
     }
 
@@ -1167,7 +1210,43 @@ public class NativeSipService : ISipService
     {
         var fromUri = sipRequest.Header.From?.FromURI?.ToString() ?? "?";
         var fromName = sipRequest.Header.From?.FromName ?? "";
-        Console.WriteLine($"[SIP] === GELEN ARAMA === From: {fromName} <{fromUri}>");
+        var callId = sipRequest.Header.CallId;
+        var toTag = sipRequest.Header.To?.ToTag;
+
+        Console.WriteLine($"[SIP] === GELEN INVITE === From: {fromName} <{fromUri}>, CallId={callId}, ToTag={toTag ?? "(yok)"}");
+
+        // ── re-INVITE kontrolu ──
+        // To tag varsa bu mevcut dialog icindeki bir re-INVITE (hold, codec degisikligi vb.)
+        // Yeni arama degil — mevcut UserAgent kendi icerisinde handle etmeli
+        if (!string.IsNullOrEmpty(toTag))
+        {
+            Console.WriteLine($"[SIP] re-INVITE algilandi (ToTag={toTag}), yeni arama degil — atlanıyor");
+            // Mevcut hatlardaki UserAgent'lar bunu dialog handler uzerinden alacak.
+            // Eger hicbir dialog eslesmediyse 481 (Call/Transaction Does Not Exist) gonder
+            var existingLine = Array.Find(_lines, l =>
+                l.UserAgent?.Dialogue?.CallId == callId &&
+                l.State is LineState.Connected or LineState.OnHold);
+            if (existingLine == null)
+            {
+                Console.WriteLine("[SIP] re-INVITE icin eslesen dialog bulunamadi, 481 gonderiliyor");
+                var noDialog = SIPResponse.GetResponse(sipRequest,
+                    SIPResponseStatusCodesEnum.CallLegTransactionDoesNotExist, null);
+                await _sipTransport!.SendResponseAsync(noDialog);
+            }
+            return;
+        }
+
+        // ── Ayni Call-ID ile tekrar INVITE kontrolu (retransmission) ──
+        var duplicateLine = Array.Find(_lines, l =>
+            l.UserAgent != null &&
+            l.State == LineState.Ringing &&
+            l.PendingUas != null);
+        if (duplicateLine != null)
+        {
+            // Zaten ringing durumunda bir hat var — ayni Call-ID mi kontrol et
+            Console.WriteLine($"[SIP] Zaten ringing hat mevcut (hat={duplicateLine.Index}), muhtemel retransmission — atlanıyor");
+            return;
+        }
 
         // DND aktifse reject
         if (_dndEnabled)
@@ -1291,6 +1370,8 @@ public class NativeSipService : ISipService
             {
                 Console.WriteLine($"[SIP] Hat {lineIndex} takili kalmis (State={line.State}), temizleniyor...");
                 CleanupLine(line);
+                // Audio kaynaginin serbest kalmasi icin kisa bekleme
+                await Task.Delay(300);
             }
             else
             {
@@ -1436,12 +1517,30 @@ public class NativeSipService : ISipService
         Console.WriteLine($"[SIP] CleanupLine hat={line.Index}, State={line.State}, RemoteUri={line.RemoteUri}");
         if (line.MediaSession != null)
         {
-            line.MediaSession.Close(null);
+            try
+            {
+                line.MediaSession.Close(null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIP] MediaSession.Close hatasi: {ex.Message}");
+            }
             line.MediaSession = null;
         }
 
+        if (line.UserAgent != null)
+        {
+            try
+            {
+                // UserAgent aktifse once hangup yap
+                if (line.UserAgent.IsCallActive)
+                    line.UserAgent.Hangup();
+            }
+            catch { }
+            line.UserAgent = null;
+        }
+
         line.PendingUas = null;
-        line.UserAgent = null;
         line.State = LineState.Idle;
         line.RemoteUri = null;
         line.RemoteDisplayName = null;
