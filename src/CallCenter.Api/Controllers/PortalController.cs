@@ -158,6 +158,24 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
+    [HttpPut("personnel/{id}/reactivate")]
+    public async Task<IActionResult> ReactivatePersonnel(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.ReactivatePersonnelAsync(cid.Value, id);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Reactivate", "Personnel", id.ToString(),
+            $"Personel aktiflestirildi: ID={id}", customerId: cid);
+
+        return NoContent();
+    }
+
     // MODULES
 
     [HttpGet("modules")]

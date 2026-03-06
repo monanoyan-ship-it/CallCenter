@@ -316,6 +316,31 @@ public class PortalFactory : IPortalFactory
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error)> ReactivatePersonnelAsync(int customerId, int id)
+    {
+        var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
+        if (personnel == null)
+            return (false, "Personel bulunamadi.");
+
+        if (personnel.IsActive && personnel.User.IsActive)
+            return (false, "Personel zaten aktif.");
+
+        // MaxUsers kontrolü
+        var customer = await _customerEs.GetByIdAsync(customerId);
+        if (customer != null && personnel.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+        {
+            var activeCount = await _personnelEs.GetActiveCountAsync(customerId, excludeAdmin: true);
+            if (activeCount >= customer.MaxUsers)
+                return (false, $"Maksimum kullanici limitine ({customer.MaxUsers}) ulasildi. Yeni personel aktiflestirilemiyor.");
+        }
+
+        personnel.IsActive = true;
+        personnel.User.IsActive = true;
+        await _uow.SaveChangesAsync();
+
+        return (true, null);
+    }
+
     // REPORTS-TO (AMIR ATAMASI)
 
     public async Task<(bool Success, string? Error)> SetReportsToAsync(int customerId, int personnelId, int? reportsToPersonnelId)
