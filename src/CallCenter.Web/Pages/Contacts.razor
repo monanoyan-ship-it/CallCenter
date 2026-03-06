@@ -16,9 +16,14 @@
     </h4>
     @if (!isReadOnly)
     {
-        <button class="btn btn-primary btn-sm" @onclick="OpenAddDialog">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Kisi
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" @onclick="OpenBulkImport">
+                <i class="bi bi-upload me-1"></i>Toplu Ekle
+            </button>
+            <button class="btn btn-primary btn-sm" @onclick="OpenAddDialog">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Kisi
+            </button>
+        </div>
     }
 </div>
 
@@ -102,6 +107,7 @@
     </div>
 </div>
 
+@* ═══ TEK KİŞİ EKLEME / DÜZENLEME MODAL ═══ *@
 @if (showDialog)
 {
     <div class="modal-backdrop fade show"></div>
@@ -148,6 +154,229 @@
     </div>
 }
 
+@* ═══ TOPLU EKLEME MODAL ═══ *@
+@if (showBulkModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi bi-upload me-2"></i>Toplu Numara Ekleme
+                    </h6>
+                    <button type="button" class="btn-close" @onclick="CloseBulkModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (bulkStep == 0)
+                    {
+                        @* ─── ADIM 1: VERİ GİRİŞİ ─── *@
+                        <ul class="nav nav-tabs mb-3">
+                            <li class="nav-item">
+                                <button class="nav-link @(bulkTab == 0 ? "active" : "")" @onclick="() => bulkTab = 0">
+                                    <i class="bi bi-file-earmark-arrow-up me-1"></i>Dosya Yukle
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(bulkTab == 1 ? "active" : "")" @onclick="() => bulkTab = 1">
+                                    <i class="bi bi-clipboard me-1"></i>Metin Yapistir
+                                </button>
+                            </li>
+                        </ul>
+
+                        @if (bulkTab == 0)
+                        {
+                            <div class="border rounded p-4 text-center bg-light">
+                                <i class="bi bi-cloud-arrow-up fs-1 text-primary d-block mb-2"></i>
+                                <p class="mb-2">Dosya secin veya surukleyin</p>
+                                <p class="text-muted small mb-3">Desteklenen formatlar: Excel (.xlsx), CSV (.csv), Text (.txt), Word (.docx)</p>
+                                <InputFile OnChange="OnFileSelected" accept=".csv,.txt,.xlsx,.xls,.docx" class="form-control form-control-sm mx-auto" style="max-width:400px" />
+                            </div>
+
+                            @if (bulkFileProcessing)
+                            {
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary me-1"></div>
+                                    <span>Dosya isleniyor...</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Numaralari yapistirin</label>
+                                <textarea class="form-control" rows="10" @bind="bulkTextInput"
+                                          placeholder="Her satira bir kayit yazin. Desteklenen formatlar:&#10;&#10;Ad Soyad;05xx xxx xxxx&#10;Ad Soyad	05xx xxx xxxx&#10;05xx xxx xxxx&#10;Ad Soyad - 05xx xxx xxxx&#10;Ad Soyad;05xx xxx xxxx;Firma Adi"></textarea>
+                                <small class="text-muted">
+                                    Ayirici olarak noktalı virgul (;), tab veya tire (-) kullanabilirsiniz.
+                                    Sadece numara yazarsaniz isim alani bos kalir.
+                                </small>
+                            </div>
+                            <button class="btn btn-primary btn-sm" @onclick="ParseTextInput" disabled="@string.IsNullOrWhiteSpace(bulkTextInput)">
+                                <i class="bi bi-arrow-right me-1"></i>Devam
+                            </button>
+                        }
+
+                        @if (bulkParseErrors.Count > 0)
+                        {
+                            <div class="alert alert-warning mt-3 py-2">
+                                <small>
+                                    @foreach (var err in bulkParseErrors.Take(5))
+                                    {
+                                        <div>@err</div>
+                                    }
+                                    @if (bulkParseErrors.Count > 5)
+                                    {
+                                        <div>... ve @(bulkParseErrors.Count - 5) hata daha</div>
+                                    }
+                                </small>
+                            </div>
+                        }
+                    }
+                    else if (bulkStep == 1)
+                    {
+                        @* ─── ADIM 2: ÖNİZLEME ─── *@
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <strong>@bulkItems.Count kayit bulundu</strong>
+                                @{ var validCount = bulkItems.Count(i => i.IsValid); }
+                                <span class="text-muted ms-2">(@validCount gecerli, @(bulkItems.Count - validCount) eksik bilgi)</span>
+                            </div>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => bulkStep = 0">
+                                <i class="bi bi-arrow-left me-1"></i>Geri
+                            </button>
+                        </div>
+                        <div class="table-responsive" style="max-height:400px;overflow:auto">
+                            <table class="table table-sm table-bordered mb-0 align-middle">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width:30px">
+                                            <input type="checkbox" class="form-check-input" checked="@allSelected" @onchange="ToggleSelectAll" />
+                                        </th>
+                                        <th>#</th>
+                                        <th>Isim</th>
+                                        <th>Telefon</th>
+                                        <th>Firma</th>
+                                        <th>E-posta</th>
+                                        <th style="width:50px">Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int idx = 0; idx < bulkItems.Count; idx++)
+                                    {
+                                        var i = idx;
+                                        var item = bulkItems[i];
+                                        <tr class="@(!item.IsValid ? "table-warning" : "")">
+                                            <td>
+                                                <input type="checkbox" class="form-check-input"
+                                                       checked="@bulkSelected.Contains(i)" @onchange="() => ToggleSelect(i)" />
+                                            </td>
+                                            <td><small class="text-muted">@(i + 1)</small></td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm border-0 p-0"
+                                                       @bind="item.FullName" style="background:transparent" />
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm border-0 p-0"
+                                                       @bind="item.PhoneNumber" style="background:transparent" />
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm border-0 p-0"
+                                                       @bind="item.Company" style="background:transparent" />
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm border-0 p-0"
+                                                       @bind="item.Email" style="background:transparent" />
+                                            </td>
+                                            <td class="text-center">
+                                                @if (item.IsValid)
+                                                {
+                                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-exclamation-triangle-fill text-warning" title="Isim veya telefon eksik"></i>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else if (bulkStep == 2)
+                    {
+                        @* ─── ADIM 3: SONUÇ ─── *@
+                        <div class="text-center py-4">
+                            @if (bulkResult != null)
+                            {
+                                <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-3"></i>
+                                <h5>Import Tamamlandi</h5>
+                                <div class="row g-2 justify-content-center mt-3">
+                                    <div class="col-auto">
+                                        <div class="border rounded p-3 text-center">
+                                            <h4 class="mb-0 text-success">@bulkResult.ImportedCount</h4>
+                                            <small class="text-muted">Eklendi</small>
+                                        </div>
+                                    </div>
+                                    @if (bulkResult.DuplicateCount > 0)
+                                    {
+                                        <div class="col-auto">
+                                            <div class="border rounded p-3 text-center">
+                                                <h4 class="mb-0 text-info">@bulkResult.DuplicateCount</h4>
+                                                <small class="text-muted">Mevcut (atlandi)</small>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (bulkResult.SkippedCount > 0)
+                                    {
+                                        <div class="col-auto">
+                                            <div class="border rounded p-3 text-center">
+                                                <h4 class="mb-0 text-warning">@bulkResult.SkippedCount</h4>
+                                                <small class="text-muted">Gecersiz (atlandi)</small>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                @if (bulkResult.Errors.Count > 0)
+                                {
+                                    <div class="alert alert-warning mt-3 text-start py-2">
+                                        <small>
+                                            @foreach (var err in bulkResult.Errors.Take(10))
+                                            {
+                                                <div>@err</div>
+                                            }
+                                        </small>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (bulkStep == 1)
+                    {
+                        <span class="text-muted small me-auto">@bulkSelected.Count / @bulkItems.Count secili</span>
+                        <button class="btn btn-primary btn-sm" @onclick="ExecuteBulkImport"
+                                disabled="@(isSaving || bulkSelected.Count == 0)">
+                            @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                            <i class="bi bi-upload me-1"></i>@bulkSelected.Count Kayit Ekle
+                        </button>
+                    }
+                    @if (bulkStep == 2)
+                    {
+                        <button class="btn btn-primary btn-sm" @onclick="CloseBulkModal">Tamam</button>
+                    }
+                    @if (bulkStep < 2)
+                    {
+                        <button class="btn btn-secondary btn-sm" @onclick="CloseBulkModal">Iptal</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<ContactDto> contacts = new();
     private string searchQuery = "";
@@ -156,6 +385,7 @@
     private bool showDialog;
     private bool isEditing;
     private bool isSaving;
+    private bool isReadOnly;
 
     private int editContactId;
     private string editFullName = "";
@@ -163,7 +393,17 @@
     private string? editCompany;
     private string? editEmail;
 
-    private bool isReadOnly;
+    // ─── Bulk Import State ───
+    private bool showBulkModal;
+    private int bulkStep; // 0=input, 1=preview, 2=result
+    private int bulkTab; // 0=file, 1=text
+    private bool bulkFileProcessing;
+    private string bulkTextInput = "";
+    private List<BulkContactItem> bulkItems = new();
+    private HashSet<int> bulkSelected = new();
+    private List<string> bulkParseErrors = new();
+    private BulkImportResult? bulkResult;
+    private bool allSelected => bulkSelected.Count == bulkItems.Count && bulkItems.Count > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,14 +426,8 @@
             if (showFavoritesOnly)
                 contacts = contacts.Where(c => c.IsFavorite).ToList();
         }
-        catch
-        {
-            contacts = new();
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { contacts = new(); }
+        finally { isLoading = false; }
     }
 
     private async Task OnSearchAsync() => await LoadContactsAsync();
@@ -209,83 +443,51 @@
         try
         {
             var resp = await Http.PostAsync($"api/contact/{id}/favorite", null);
-            if (resp.IsSuccessStatusCode)
-                await LoadContactsAsync();
-            else
-                Toast.ShowError("Favori durumu guncellenemedi.");
+            if (resp.IsSuccessStatusCode) await LoadContactsAsync();
+            else Toast.ShowError("Favori durumu guncellenemedi.");
         }
-        catch
-        {
-            Toast.ShowError("Favori durumu guncellenemedi.");
-        }
+        catch { Toast.ShowError("Favori durumu guncellenemedi."); }
     }
 
+    // ─── Tek kişi modal ───
     private void OpenAddDialog()
     {
-        editContactId = 0;
-        editFullName = "";
-        editPhoneNumber = "";
-        editCompany = null;
-        editEmail = null;
-        isEditing = false;
-        showDialog = true;
+        editContactId = 0; editFullName = ""; editPhoneNumber = ""; editCompany = null; editEmail = null;
+        isEditing = false; showDialog = true;
     }
 
     private void OpenEditDialog(ContactDto c)
     {
-        editContactId = c.Id;
-        editFullName = c.FullName;
-        editPhoneNumber = c.PhoneNumber;
-        editCompany = c.Company;
-        editEmail = c.Email;
-        isEditing = true;
-        showDialog = true;
+        editContactId = c.Id; editFullName = c.FullName; editPhoneNumber = c.PhoneNumber;
+        editCompany = c.Company; editEmail = c.Email;
+        isEditing = true; showDialog = true;
     }
 
     private async Task SaveContactAsync()
     {
-        if (string.IsNullOrWhiteSpace(editFullName) || string.IsNullOrWhiteSpace(editPhoneNumber))
-            return;
+        if (string.IsNullOrWhiteSpace(editFullName) || string.IsNullOrWhiteSpace(editPhoneNumber)) return;
 
         isSaving = true;
         try
         {
             var phone = PhoneHelper.Sanitize(editPhoneNumber);
-
             if (isEditing)
             {
                 var resp = await Http.PutAsJsonAsync($"api/contact/{editContactId}", new UpdateContactRequest
-                {
-                    FullName = editFullName,
-                    PhoneNumber = phone,
-                    Company = editCompany,
-                    Email = editEmail
-                });
+                { FullName = editFullName, PhoneNumber = phone, Company = editCompany, Email = editEmail });
                 Toast.ShowSuccess(resp.IsSuccessStatusCode ? "Kisi guncellendi." : "Guncelleme basarisiz.");
             }
             else
             {
                 var resp = await Http.PostAsJsonAsync("api/contact", new CreateContactRequest
-                {
-                    FullName = editFullName,
-                    PhoneNumber = phone,
-                    Company = editCompany,
-                    Email = editEmail
-                });
+                { FullName = editFullName, PhoneNumber = phone, Company = editCompany, Email = editEmail });
                 Toast.ShowSuccess(resp.IsSuccessStatusCode ? "Kisi eklendi." : "Ekleme basarisiz.");
             }
-
             CloseDialog();
             await LoadContactsAsync();
         }
-        catch (Exception ex)
-        {
-            Toast.ShowError($"Hata: {ex.Message}");
-        }
-        finally
-        {
-            isSaving = false;
-        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isSaving = false; }
     }
 
     private async Task DeleteContactAsync(int id)
@@ -296,11 +498,318 @@
             Toast.ShowInfo(resp.IsSuccessStatusCode ? "Kisi silindi." : "Silme basarisiz.");
             await LoadContactsAsync();
         }
-        catch
-        {
-            Toast.ShowError("Silme sirasinda hata olustu.");
-        }
+        catch { Toast.ShowError("Silme sirasinda hata olustu."); }
     }
 
     private void CloseDialog() => showDialog = false;
+
+    // ═══════════════════════════════════════════════════════════════
+    // TOPLU EKLEME (Bulk Import)
+    // ═══════════════════════════════════════════════════════════════
+
+    private void OpenBulkImport()
+    {
+        bulkStep = 0; bulkTab = 0; bulkTextInput = ""; bulkItems = new(); bulkSelected = new();
+        bulkParseErrors = new(); bulkResult = null; bulkFileProcessing = false;
+        showBulkModal = true;
+    }
+
+    private void CloseBulkModal()
+    {
+        showBulkModal = false;
+        if (bulkResult != null && bulkResult.ImportedCount > 0)
+            _ = LoadContactsAsync();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            Toast.ShowError("Dosya 10MB sinirini asmamali.");
+            return;
+        }
+
+        bulkFileProcessing = true;
+        bulkParseErrors = new();
+        StateHasChanged();
+
+        try
+        {
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(10 * 1024 * 1024).ReadAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+
+            if (ext == ".csv" || ext == ".txt")
+            {
+                // Client-side parse
+                var text = System.Text.Encoding.UTF8.GetString(buffer);
+                ParseCsvTxt(text, ext);
+            }
+            else if (ext == ".xlsx" || ext == ".xls" || ext == ".docx")
+            {
+                // Server-side parse
+                var req = new FileParseRequest { FileContentBase64 = base64, FileName = file.Name };
+                var result = await Http.PostAsJsonAsync("api/contact/import/parse-file", req);
+                if (result.IsSuccessStatusCode)
+                {
+                    var parsed = await result.Content.ReadFromJsonAsync<FileParseResult>();
+                    if (parsed != null)
+                    {
+                        bulkItems = parsed.Rows;
+                        bulkParseErrors = parsed.Errors;
+                    }
+                }
+                else
+                {
+                    bulkParseErrors.Add("Dosya parse basarisiz.");
+                }
+            }
+            else
+            {
+                bulkParseErrors.Add($"Desteklenmeyen format: {ext}");
+            }
+
+            if (bulkItems.Count > 0)
+            {
+                bulkSelected = new HashSet<int>(Enumerable.Range(0, bulkItems.Count));
+                bulkStep = 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            bulkParseErrors.Add($"Dosya okuma hatasi: {ex.Message}");
+        }
+        finally
+        {
+            bulkFileProcessing = false;
+        }
+    }
+
+    private void ParseTextInput()
+    {
+        bulkItems = new();
+        bulkParseErrors = new();
+
+        var lines = bulkTextInput.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+        int lineNo = 0;
+        foreach (var rawLine in lines)
+        {
+            lineNo++;
+            var line = rawLine.Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+
+            var item = ParseSingleLine(line);
+            if (item != null)
+                bulkItems.Add(item);
+            else
+                bulkParseErrors.Add($"Satir {lineNo}: parse edilemedi — {Truncate(line, 60)}");
+        }
+
+        if (bulkItems.Count > 0)
+        {
+            bulkSelected = new HashSet<int>(Enumerable.Range(0, bulkItems.Count));
+            bulkStep = 1;
+        }
+        else if (bulkParseErrors.Count == 0)
+        {
+            bulkParseErrors.Add("Hicbir kayit bulunamadi.");
+        }
+    }
+
+    private void ParseCsvTxt(string text, string ext)
+    {
+        bulkItems = new();
+        var lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length == 0) return;
+
+        // Detect delimiter
+        char delimiter = DetectDelimiter(lines[0]);
+
+        // Check if first row is header
+        bool hasHeader = false;
+        var firstCols = lines[0].Split(delimiter);
+        if (firstCols.Any(c => IsHeaderLike(c.Trim().ToLowerInvariant())))
+            hasHeader = true;
+
+        // Auto-detect column mapping
+        int nameCol = -1, phoneCol = -1, companyCol = -1, emailCol = -1;
+        if (hasHeader)
+        {
+            for (int i = 0; i < firstCols.Length; i++)
+            {
+                var h = firstCols[i].Trim().ToLowerInvariant();
+                if (nameCol < 0 && IsNameLike(h)) nameCol = i;
+                else if (phoneCol < 0 && IsPhoneLike(h)) phoneCol = i;
+                else if (companyCol < 0 && IsCompanyLike(h)) companyCol = i;
+                else if (emailCol < 0 && IsEmailLike(h)) emailCol = i;
+            }
+        }
+
+        int startLine = hasHeader ? 1 : 0;
+        for (int i = startLine; i < lines.Length; i++)
+        {
+            var line = lines[i].Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+
+            if (nameCol >= 0 || phoneCol >= 0)
+            {
+                // Structured CSV with known columns
+                var cols = line.Split(delimiter);
+                var item = new BulkContactItem();
+                if (nameCol >= 0 && nameCol < cols.Length) item.FullName = cols[nameCol].Trim().Trim('"');
+                if (phoneCol >= 0 && phoneCol < cols.Length) item.PhoneNumber = cols[phoneCol].Trim().Trim('"');
+                if (companyCol >= 0 && companyCol < cols.Length) item.Company = cols[companyCol].Trim().Trim('"');
+                if (emailCol >= 0 && emailCol < cols.Length) item.Email = cols[emailCol].Trim().Trim('"');
+                bulkItems.Add(item);
+            }
+            else
+            {
+                // Try generic line parsing
+                var item = ParseSingleLine(line);
+                if (item != null) bulkItems.Add(item);
+            }
+        }
+    }
+
+    private static BulkContactItem? ParseSingleLine(string line)
+    {
+        // Try delimiters: tab, semicolon, pipe
+        char[] delimiters = { '\t', ';', '|' };
+        foreach (var delim in delimiters)
+        {
+            if (line.Contains(delim))
+            {
+                var parts = line.Split(delim);
+                if (parts.Length >= 2)
+                {
+                    var phonePart = parts.FirstOrDefault(p => LooksLikePhone(p.Trim()));
+                    if (phonePart != null)
+                    {
+                        var namePart = parts.FirstOrDefault(p => p != phonePart && !string.IsNullOrWhiteSpace(p));
+                        var companyPart = parts.Length > 2
+                            ? parts.FirstOrDefault(p => p != phonePart && p != namePart && !string.IsNullOrWhiteSpace(p))
+                            : null;
+                        return new BulkContactItem
+                        {
+                            FullName = namePart?.Trim().Trim('"') ?? "",
+                            PhoneNumber = phonePart.Trim().Trim('"'),
+                            Company = companyPart?.Trim().Trim('"')
+                        };
+                    }
+                }
+            }
+        }
+
+        // Try "Name - Phone"
+        var dashParts = line.Split(new[] { " - ", " – " }, StringSplitOptions.RemoveEmptyEntries);
+        if (dashParts.Length >= 2)
+        {
+            var phone = dashParts.FirstOrDefault(s => LooksLikePhone(s.Trim()));
+            var name = dashParts.FirstOrDefault(s => s != phone);
+            if (phone != null)
+                return new BulkContactItem { FullName = name?.Trim() ?? "", PhoneNumber = phone.Trim() };
+        }
+
+        // Just a phone number
+        if (LooksLikePhone(line.Trim()))
+            return new BulkContactItem { PhoneNumber = line.Trim() };
+
+        // Try comma separated (careful - phone numbers can contain commas in some formats)
+        if (line.Contains(','))
+        {
+            var parts = line.Split(',');
+            if (parts.Length >= 2)
+            {
+                var phonePart = parts.FirstOrDefault(p => LooksLikePhone(p.Trim()));
+                if (phonePart != null)
+                {
+                    var namePart = parts.FirstOrDefault(p => p != phonePart && !string.IsNullOrWhiteSpace(p));
+                    return new BulkContactItem
+                    {
+                        FullName = namePart?.Trim().Trim('"') ?? "",
+                        PhoneNumber = phonePart.Trim().Trim('"')
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool LooksLikePhone(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        var digits = s.Count(char.IsDigit);
+        return digits >= 7 && digits <= 15 && s.All(c => char.IsDigit(c) || c == '+' || c == ' ' || c == '(' || c == ')' || c == '-');
+    }
+
+    private static char DetectDelimiter(string line)
+    {
+        if (line.Contains('\t')) return '\t';
+        if (line.Contains(';')) return ';';
+        if (line.Contains('|')) return '|';
+        return ',';
+    }
+
+    private static bool IsHeaderLike(string h) => IsNameLike(h) || IsPhoneLike(h) || IsCompanyLike(h) || IsEmailLike(h);
+    private static bool IsNameLike(string h) => h.Contains("ad") || h.Contains("name") || h.Contains("isim") || h.Contains("soyad") || h == "kisi";
+    private static bool IsPhoneLike(string h) => h.Contains("tel") || h.Contains("phone") || h.Contains("numara") || h.Contains("gsm") || h.Contains("cep") || h.Contains("mobile");
+    private static bool IsCompanyLike(string h) => h.Contains("firma") || h.Contains("sirket") || h.Contains("company") || h.Contains("kurum");
+    private static bool IsEmailLike(string h) => h.Contains("mail") || h.Contains("eposta") || h.Contains("e-posta");
+
+    private void ToggleSelectAll()
+    {
+        if (allSelected)
+            bulkSelected.Clear();
+        else
+            bulkSelected = new HashSet<int>(Enumerable.Range(0, bulkItems.Count));
+    }
+
+    private void ToggleSelect(int idx)
+    {
+        if (!bulkSelected.Remove(idx))
+            bulkSelected.Add(idx);
+    }
+
+    private async Task ExecuteBulkImport()
+    {
+        isSaving = true;
+        try
+        {
+            var selectedItems = bulkSelected
+                .Where(i => i < bulkItems.Count)
+                .Select(i => bulkItems[i])
+                .Where(item => !string.IsNullOrWhiteSpace(item.PhoneNumber))
+                .ToList();
+
+            // Fill empty names
+            foreach (var item in selectedItems)
+            {
+                if (string.IsNullOrWhiteSpace(item.FullName))
+                    item.FullName = item.PhoneNumber;
+                item.PhoneNumber = PhoneHelper.Sanitize(item.PhoneNumber);
+            }
+
+            var req = new BulkImportRequest { Contacts = selectedItems };
+            var resp = await Http.PostAsJsonAsync("api/contact/import/batch", req);
+            if (resp.IsSuccessStatusCode)
+            {
+                bulkResult = await resp.Content.ReadFromJsonAsync<BulkImportResult>();
+                bulkStep = 2;
+            }
+            else
+            {
+                Toast.ShowError("Toplu ekleme basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+        finally { isSaving = false; }
+    }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "...";
 }

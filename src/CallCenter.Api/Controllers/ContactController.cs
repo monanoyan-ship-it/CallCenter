@@ -89,6 +89,26 @@ public class ContactController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Dosya parse (Excel, Word) → satirlari doner.</summary>
+    [HttpPost("import/parse-file")]
+    public ActionResult<FileParseResult> ParseFile([FromBody] FileParseRequest req)
+    {
+        var result = _contactFactory.ParseFile(req);
+        return Ok(result);
+    }
+
+    /// <summary>Toplu rehber ekleme.</summary>
+    [HttpPost("import/batch")]
+    public async Task<ActionResult<BulkImportResult>> BulkImport([FromBody] BulkImportRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        var customerId = GetCustomerId();
+
+        var result = await _contactFactory.BulkImportAsync(req, userId.Value, customerId);
+        return Ok(result);
+    }
+
     /// <summary>LDAP/Active Directory senkronizasyonu (Admin only).</summary>
     [HttpPost("sync/ldap")]
     [Authorize(Roles = "Admin")]

@@ -55,6 +55,47 @@ public class CsvImportResult
     public List<string> Errors { get; set; } = new();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// BULK IMPORT (Toplu ekleme)
+// ═══════════════════════════════════════════════════════════════
+
+public class BulkContactItem
+{
+    public string FullName { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string? Company { get; set; }
+    public string? Email { get; set; }
+    public string? Notes { get; set; }
+    public bool IsValid => !string.IsNullOrWhiteSpace(FullName) && !string.IsNullOrWhiteSpace(PhoneNumber);
+}
+
+public class BulkImportRequest
+{
+    public List<BulkContactItem> Contacts { get; set; } = new();
+}
+
+public class BulkImportResult
+{
+    public int TotalRows { get; set; }
+    public int ImportedCount { get; set; }
+    public int DuplicateCount { get; set; }
+    public int SkippedCount { get; set; }
+    public List<string> Errors { get; set; } = new();
+}
+
+public class FileParseRequest
+{
+    public string FileContentBase64 { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+}
+
+public class FileParseResult
+{
+    public List<BulkContactItem> Rows { get; set; } = new();
+    public List<string> Headers { get; set; } = new();
+    public List<string> Errors { get; set; } = new();
+}
+
 /// <summary>LDAP baglanti ayarlari</summary>
 public class LdapConfigDto
 {

@@ -12,4 +12,6 @@ public interface IContactFactory
     Task<(bool Success, string? Error)> ToggleFavoriteAsync(int contactId, int userId);
     Task<CsvImportResult> ImportFromCsvAsync(CsvImportRequest req, int userId, int? customerId);
     Task<LdapSyncResult> SyncFromLdapAsync(LdapConfigDto config, int? customerId);
+    FileParseResult ParseFile(FileParseRequest req);
+    Task<BulkImportResult> BulkImportAsync(BulkImportRequest req, int userId, int? customerId);
 }
