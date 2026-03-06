@@ -124,7 +124,11 @@
       "WebFetch(domain:buken.av.tr)",
       "WebFetch(domain:www.kvkk.gov.tr)",
       "WebFetch(domain:www.cottgroup.com)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(dotnet:*)",
+      "Bash(\"/c/Users/Ahmet/.dotnet/tools/libman\" restore:*)",
+      "WebFetch(domain:www.btk.gov.tr)",
+      "WebFetch(domain:gun.av.tr)"
     ]
   }
 }
