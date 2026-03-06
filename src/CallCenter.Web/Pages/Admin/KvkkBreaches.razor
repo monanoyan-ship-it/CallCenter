@@ -1,0 +1,552 @@
+@page "/admin/kvkk/breaches"
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Veri Ihlali Bildirimleri - Call Center</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-shield-fill-x me-2 text-danger"></i>Veri Ihlali Bildirimleri
+    </h4>
+    <div class="d-flex gap-2">
+        <select class="form-select form-select-sm" style="width:200px" @bind="filterCustomerId" @bind:after="LoadData">
+            <option value="0">Tum Musteriler</option>
+            @foreach (var c in customers)
+            {
+                <option value="@c.Id">@c.Name</option>
+            }
+        </select>
+        <button class="btn btn-danger btn-sm" @onclick="ShowCreateForm">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Ihlal Bildirimi
+        </button>
+    </div>
+</div>
+
+@* ─── AKTİF İHLAL UYARILARI ─── *@
+@if (overdueBreaches.Count > 0)
+{
+    <div class="alert alert-danger d-flex align-items-start mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2 fs-4 mt-1"></i>
+        <div>
+            <strong>72 Saat Suresi Gecen Ihlaller!</strong>
+            <ul class="mb-0 mt-1">
+                @foreach (var ob in overdueBreaches)
+                {
+                    <li>
+                        <strong>@ob.Title</strong> — Bildirim suresi: @ob.NotificationDeadline.ToString("dd.MM.yyyy HH:mm")
+                        <span class="text-danger fw-bold ms-1">(@FormatOverdue(ob.NotificationDeadline) gecikme)</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+@* ─── TABLO ─── *@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+        }
+        else if (breaches.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-shield-check fs-1 d-block mb-2 opacity-25"></i>
+                <span>Ihlal kaydi bulunamadi</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Baslik</th>
+                            <th>Musteri</th>
+                            <th>Ciddiyet</th>
+                            <th>Durum</th>
+                            <th>Tespit Tarihi</th>
+                            <th>72 Saat Suresi</th>
+                            <th>Etkilenen Kisi</th>
+                            <th style="width:100px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in breaches)
+                        {
+                            <tr class="@(b.IsOverdue ? "table-danger" : "")">
+                                <td>
+                                    <strong>@b.Title</strong>
+                                    @if (!string.IsNullOrEmpty(b.ReportedByUserName))
+                                    {
+                                        <br /><small class="text-muted">Bildiren: @b.ReportedByUserName</small>
+                                    }
+                                </td>
+                                <td><small>@(b.CustomerName ?? "-")</small></td>
+                                <td><span class="badge @GetSeverityBadge(b.SeverityId)">@b.SeverityName</span></td>
+                                <td><span class="badge @GetStatusBadge(b.StatusId)">@b.StatusName</span></td>
+                                <td><small>@b.DetectedAt.ToString("dd.MM.yyyy HH:mm")</small></td>
+                                <td>
+                                    @{ var remaining = b.NotificationDeadline - DateTime.UtcNow; }
+                                    @if (b.StatusId >= BreachStatuses.Ids.NotifiedAuthority)
+                                    {
+                                        <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Bildirildi</span>
+                                    }
+                                    else if (remaining.TotalHours > 0)
+                                    {
+                                        <span class="@(remaining.TotalHours < 12 ? "text-danger fw-bold" : remaining.TotalHours < 24 ? "text-warning fw-bold" : "")">
+                                            <i class="bi bi-hourglass-split me-1"></i>@FormatRemaining(remaining)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger fw-bold">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>@FormatOverdue(b.NotificationDeadline) gecikme
+                                        </span>
+                                    }
+                                </td>
+                                <td>@(b.AffectedSubjectCount?.ToString("N0") ?? "-")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-primary btn-sm me-1" title="Detay" @onclick="() => ShowDetail(b)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    @if (b.StatusId < BreachStatuses.Ids.Resolved)
+                                    {
+                                        <button class="btn btn-outline-warning btn-sm" title="Guncelle" @onclick="() => ShowUpdateForm(b)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@* ─── OLUŞTURMA MODAL ─── *@
+@if (showCreateForm)
+{
+    <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-shield-fill-x me-2"></i>Yeni Veri Ihlali Bildirimi</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showCreateForm = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning py-2 mb-3">
+                        <i class="bi bi-clock me-1"></i>
+                        <strong>KVKK Md.12:</strong> Veri ihlali tespit edildikten sonra en gec <strong>72 saat</strong> icinde Kisisel Verileri Koruma Kurulu'na bildirim yapilmalidir.
+                    </div>
+                    <EditForm Model="createDto" OnValidSubmit="SubmitCreate">
+                        <DataAnnotationsValidator />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Musteri <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" @bind="createDto.CustomerId">
+                                    <option value="0">Secin...</option>
+                                    @foreach (var c in customers)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Ciddiyet <span class="text-danger">*</span></label>
+                                <InputSelect class="form-select form-select-sm" @bind-Value="createDto.SeverityId">
+                                    @foreach (var s in BreachSeverities.All)
+                                    {
+                                        <option value="@s.Id">@s.Description</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Baslik <span class="text-danger">*</span></label>
+                                <InputText class="form-control form-control-sm" @bind-Value="createDto.Title" />
+                                <ValidationMessage For="() => createDto.Title" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Aciklama <span class="text-danger">*</span></label>
+                                <InputTextArea class="form-control form-control-sm" @bind-Value="createDto.Description" rows="3" />
+                                <ValidationMessage For="() => createDto.Description" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Etkilenen Kisi Sayisi</label>
+                                <InputNumber class="form-control form-control-sm" @bind-Value="createDto.AffectedSubjectCount" />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Etkilenen Veri Kategorileri</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="createDto.AffectedDataCategories"
+                                           placeholder="Kimlik, iletisim, saglik, finans..." />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Ihlal Sebebi</label>
+                                <InputTextArea class="form-control form-control-sm" @bind-Value="createDto.CauseSummary" rows="2"
+                                               placeholder="Ihlalin nasil gerceklestigi, teknik detaylar..." />
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="() => showCreateForm = false">Iptal</button>
+                            <button type="submit" class="btn btn-danger btn-sm" disabled="@isSaving">
+                                @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                <i class="bi bi-shield-fill-x me-1"></i>Ihlal Bildir
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ─── GÜNCELLEME MODAL ─── *@
+@if (showUpdateForm && selectedBreach != null)
+{
+    <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Ihlal Guncelle: @selectedBreach.Title</h5>
+                    <button type="button" class="btn-close" @onclick="() => showUpdateForm = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Durum</label>
+                            <select class="form-select form-select-sm" @bind="updateDto.StatusId">
+                                @foreach (var s in BreachStatuses.All)
+                                {
+                                    <option value="@s.Id">@s.Description</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Etkilenen Kisi Sayisi</label>
+                            <input type="number" class="form-control form-control-sm" @bind="updateDto.AffectedSubjectCount" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Etkilenen Veri Kategorileri</label>
+                            <input type="text" class="form-control form-control-sm" @bind="updateDto.AffectedDataCategories" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Ihlal Sebebi</label>
+                            <textarea class="form-control form-control-sm" rows="2" @bind="updateDto.CauseSummary"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Alinan Onlemler</label>
+                            <textarea class="form-control form-control-sm" rows="3" @bind="updateDto.MeasuresTaken"
+                                      placeholder="Ihlale karsi alinan teknik ve idari onlemler..."></textarea>
+                        </div>
+
+                        @* Bildirim tarihlerini set et *@
+                        @if (selectedBreach.StatusId < BreachStatuses.Ids.NotifiedAuthority)
+                        {
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="chkAuthority" @bind="notifyAuthority" />
+                                    <label class="form-check-label" for="chkAuthority">
+                                        <i class="bi bi-building me-1"></i>Kuruma bildirim yapildi
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                        @if (selectedBreach.StatusId < BreachStatuses.Ids.NotifiedSubjects)
+                        {
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="chkSubjects" @bind="notifySubjects" />
+                                    <label class="form-check-label" for="chkSubjects">
+                                        <i class="bi bi-people-fill me-1"></i>Ilgili kisilere bildirim yapildi
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showUpdateForm = false">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="SubmitUpdate" disabled="@isSaving">
+                        @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ─── DETAY MODAL ─── *@
+@if (showDetail && selectedBreach != null)
+{
+    <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-shield-fill-x me-2"></i>@selectedBreach.Title
+                        <span class="badge @GetSeverityBadge(selectedBreach.SeverityId) ms-2">@selectedBreach.SeverityName</span>
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="() => showDetail = false"></button>
+                </div>
+                <div class="modal-body">
+                    @* Bilgiler *@
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <strong>Musteri:</strong> <span>@(selectedBreach.CustomerName ?? "-")</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Durum:</strong> <span class="badge @GetStatusBadge(selectedBreach.StatusId)">@selectedBreach.StatusName</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Bildiren:</strong> <span>@(selectedBreach.ReportedByUserName ?? "-")</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Etkilenen Kisi:</strong> <span>@(selectedBreach.AffectedSubjectCount?.ToString("N0") ?? "-")</span>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>Etkilenen Kategoriler:</strong> <span>@(selectedBreach.AffectedDataCategories ?? "-")</span>
+                        </div>
+                    </div>
+
+                    @* Zaman Cizelgesi *@
+                    <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-clock-history me-1"></i>Zaman Cizelgesi</h6>
+                    <div class="timeline-simple mb-4">
+                        <div class="d-flex mb-2">
+                            <div class="me-3 text-center" style="width:28px">
+                                <i class="bi bi-circle-fill text-danger"></i>
+                            </div>
+                            <div>
+                                <strong>Tespit Edildi</strong><br />
+                                <small class="text-muted">@selectedBreach.DetectedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-2">
+                            <div class="me-3 text-center" style="width:28px">
+                                <i class="bi bi-circle-fill @(selectedBreach.StatusId >= BreachStatuses.Ids.NotifiedAuthority ? "text-success" : selectedBreach.IsOverdue ? "text-danger" : "text-warning")"></i>
+                            </div>
+                            <div>
+                                <strong>72 Saat Bildirim Suresi</strong><br />
+                                <small class="text-muted">Son tarih: @selectedBreach.NotificationDeadline.ToString("dd.MM.yyyy HH:mm")</small>
+                                @if (selectedBreach.IsOverdue)
+                                {
+                                    <br /><small class="text-danger fw-bold">SURE GECTI!</small>
+                                }
+                            </div>
+                        </div>
+                        @if (selectedBreach.AuthorityNotifiedAt.HasValue)
+                        {
+                            <div class="d-flex mb-2">
+                                <div class="me-3 text-center" style="width:28px">
+                                    <i class="bi bi-circle-fill text-primary"></i>
+                                </div>
+                                <div>
+                                    <strong>Kuruma Bildirildi</strong><br />
+                                    <small class="text-muted">@selectedBreach.AuthorityNotifiedAt.Value.ToString("dd.MM.yyyy HH:mm")</small>
+                                </div>
+                            </div>
+                        }
+                        @if (selectedBreach.SubjectsNotifiedAt.HasValue)
+                        {
+                            <div class="d-flex mb-2">
+                                <div class="me-3 text-center" style="width:28px">
+                                    <i class="bi bi-circle-fill text-primary"></i>
+                                </div>
+                                <div>
+                                    <strong>Ilgili Kisilere Bildirildi</strong><br />
+                                    <small class="text-muted">@selectedBreach.SubjectsNotifiedAt.Value.ToString("dd.MM.yyyy HH:mm")</small>
+                                </div>
+                            </div>
+                        }
+                        @if (selectedBreach.StatusId == BreachStatuses.Ids.Resolved)
+                        {
+                            <div class="d-flex mb-2">
+                                <div class="me-3 text-center" style="width:28px">
+                                    <i class="bi bi-circle-fill text-success"></i>
+                                </div>
+                                <div>
+                                    <strong>Cozumlendi</strong>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @* Aciklama *@
+                    @if (!string.IsNullOrEmpty(selectedBreach.Description))
+                    {
+                        <h6 class="border-bottom pb-2 mb-2">Aciklama</h6>
+                        <div class="border rounded p-3 mb-3" style="white-space:pre-wrap;font-size:0.9rem;">@selectedBreach.Description</div>
+                    }
+
+                    @* Sebep *@
+                    @if (!string.IsNullOrEmpty(selectedBreach.CauseSummary))
+                    {
+                        <h6 class="border-bottom pb-2 mb-2">Ihlal Sebebi</h6>
+                        <div class="border rounded p-3 mb-3" style="white-space:pre-wrap;font-size:0.9rem;">@selectedBreach.CauseSummary</div>
+                    }
+
+                    @* Alinan Onlemler *@
+                    @if (!string.IsNullOrEmpty(selectedBreach.MeasuresTaken))
+                    {
+                        <h6 class="border-bottom pb-2 mb-2">Alinan Onlemler</h6>
+                        <div class="border rounded p-3 mb-3" style="white-space:pre-wrap;font-size:0.9rem;">@selectedBreach.MeasuresTaken</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (selectedBreach.StatusId < BreachStatuses.Ids.Resolved)
+                    {
+                        <button class="btn btn-warning btn-sm" @onclick="() => { showDetail = false; ShowUpdateForm(selectedBreach); }">
+                            <i class="bi bi-pencil me-1"></i>Guncelle
+                        </button>
+                    }
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showDetail = false">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<DataBreachDto> breaches = new();
+    private List<DataBreachDto> overdueBreaches = new();
+    private List<CustomerSimpleDto> customers = new();
+    private DataBreachDto? selectedBreach;
+    private bool isLoading = true, isSaving;
+    private bool showCreateForm, showUpdateForm, showDetail;
+    private int filterCustomerId;
+    private bool notifyAuthority, notifySubjects;
+
+    private DataBreachCreateDto createDto = new() { SeverityId = BreachSeverities.Ids.Medium };
+    private DataBreachUpdateDto updateDto = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { customers = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers") ?? new(); } catch { }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var url = "api/kvkk/breaches?page=1&pageSize=100";
+            if (filterCustomerId > 0) url += $"&customerId={filterCustomerId}";
+            var result = await Http.GetFromJsonAsync<PagedResponse<DataBreachDto>>(url);
+            breaches = result?.Items ?? new();
+            overdueBreaches = breaches.Where(b => b.IsOverdue).ToList();
+        }
+        catch { Toast.ShowError("Veriler yuklenemedi."); }
+        finally { isLoading = false; }
+    }
+
+    private void ShowCreateForm()
+    {
+        createDto = new() { SeverityId = BreachSeverities.Ids.Medium };
+        if (filterCustomerId > 0) createDto.CustomerId = filterCustomerId;
+        showCreateForm = true;
+    }
+
+    private void ShowUpdateForm(DataBreachDto breach)
+    {
+        selectedBreach = breach;
+        notifyAuthority = false;
+        notifySubjects = false;
+        updateDto = new()
+        {
+            StatusId = breach.StatusId,
+            AffectedSubjectCount = breach.AffectedSubjectCount,
+            AffectedDataCategories = breach.AffectedDataCategories,
+            CauseSummary = breach.CauseSummary,
+            MeasuresTaken = breach.MeasuresTaken
+        };
+        showUpdateForm = true;
+    }
+
+    private void ShowDetail(DataBreachDto breach)
+    {
+        selectedBreach = breach;
+        showDetail = true;
+    }
+
+    private async Task SubmitCreate()
+    {
+        isSaving = true;
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/kvkk/breaches", createDto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Ihlal bildirimi olusturuldu. 72 saatlik bildirim suresi basladi.");
+                showCreateForm = false;
+                await LoadData();
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ErrorResponse>();
+                Toast.ShowError(err?.Error ?? "Olusturma basarisiz.");
+            }
+        }
+        catch { Toast.ShowError("Bir hata olustu."); }
+        finally { isSaving = false; }
+    }
+
+    private async Task SubmitUpdate()
+    {
+        if (selectedBreach == null) return;
+        isSaving = true;
+        try
+        {
+            if (notifyAuthority) updateDto.AuthorityNotifiedAt = DateTime.UtcNow;
+            if (notifySubjects) updateDto.SubjectsNotifiedAt = DateTime.UtcNow;
+
+            var resp = await Http.PutAsJsonAsync($"api/kvkk/breaches/{selectedBreach.Uid}", updateDto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Ihlal bilgileri guncellendi.");
+                showUpdateForm = false;
+                await LoadData();
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ErrorResponse>();
+                Toast.ShowError(err?.Error ?? "Guncelleme basarisiz.");
+            }
+        }
+        catch { Toast.ShowError("Bir hata olustu."); }
+        finally { isSaving = false; }
+    }
+
+    private static string GetSeverityBadge(int id) => id switch
+    {
+        1 => "bg-success", 2 => "bg-warning text-dark", 3 => "bg-danger", 4 => "bg-dark", _ => "bg-secondary"
+    };
+
+    private static string GetStatusBadge(int id) => id switch
+    {
+        1 => "bg-danger", 2 => "bg-warning text-dark", 3 => "bg-info",
+        4 => "bg-primary", 5 => "bg-primary", 6 => "bg-success", _ => "bg-secondary"
+    };
+
+    private static string FormatRemaining(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 24) return $"{(int)ts.TotalDays} gun {ts.Hours} saat";
+        return $"{(int)ts.TotalHours} saat {ts.Minutes} dk";
+    }
+
+    private static string FormatOverdue(DateTime deadline)
+    {
+        var elapsed = DateTime.UtcNow - deadline;
+        if (elapsed.TotalHours >= 24) return $"{(int)elapsed.TotalDays} gun {elapsed.Hours} saat";
+        return $"{(int)elapsed.TotalHours} saat {elapsed.Minutes} dk";
+    }
+
+    private record PagedResponse<T>(List<T> Items, int TotalCount, int TotalPages);
+    private record ErrorResponse(string? Error);
+}

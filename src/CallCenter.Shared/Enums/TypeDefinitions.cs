@@ -147,8 +147,9 @@ public static class PortalModules
     public static readonly TypeItem KnowledgeBase = new(12, "KnowledgeBase", "PortalModule.KnowledgeBase", "Bilgi bankasi, agent senaryolari", "bi-book", "bg-cyan", 12);
     public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);
     public static readonly TypeItem Campaigns = new(14, "Campaigns", "PortalModule.Campaigns", "Giden arama kampanyalari", "bi-megaphone-fill", "bg-yellow text-dark", 14);
+    public static readonly TypeItem KvkkCompliance = new(15, "KvkkCompliance", "PortalModule.KvkkCompliance", "KVKK uyumluluk yonetimi", "bi-shield-check", "bg-dark", 15);
 
-    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns };
+    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns, KvkkCompliance };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
@@ -171,6 +172,7 @@ public static class PortalModules
         public const int KnowledgeBase = 12;
         public const int Integrations = 13;
         public const int Campaigns = 14;
+        public const int KvkkCompliance = 15;
     }
 }
 
@@ -240,6 +242,11 @@ public static class CustomerPermissionTypes
     public static readonly TypeItem CampaignManage = new(131, "CampaignManage", "CustomerPermission.CampaignManage", "Kampanyalari yonetebilir", "bi-megaphone-fill", "bg-yellow text-dark", 131);
     public static readonly TypeItem CampaignExecute = new(132, "CampaignExecute", "CustomerPermission.CampaignExecute", "Kampanya calistirabilir", "bi-play-fill", "bg-yellow text-dark", 132);
 
+    // KVKK Compliance (KVKK Uyumluluk)
+    public static readonly TypeItem KvkkView = new(140, "KvkkView", "CustomerPermission.KvkkView", "KVKK verilerini goruntuleyebilir", "bi-shield", "bg-dark", 140);
+    public static readonly TypeItem KvkkManage = new(141, "KvkkManage", "CustomerPermission.KvkkManage", "KVKK ayarlarini yonetebilir", "bi-shield-check", "bg-dark", 141);
+    public static readonly TypeItem PrivacyNoticeManage = new(142, "PrivacyNoticeManage", "CustomerPermission.PrivacyNoticeManage", "Aydinlatma metinlerini yonetebilir", "bi-file-earmark-text", "bg-dark", 142);
+
     public static IEnumerable<TypeItem> All => new[]
     {
         DashboardView, DashboardExport,
@@ -255,7 +262,8 @@ public static class CustomerPermissionTypes
         QualityView, QualityManage, QualityScore,
         KBView, KBManage,
         IntegrationView, IntegrationManage,
-        CampaignView, CampaignManage, CampaignExecute
+        CampaignView, CampaignManage, CampaignExecute,
+        KvkkView, KvkkManage, PrivacyNoticeManage
     };
 
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -280,6 +288,7 @@ public static class CustomerPermissionTypes
             PortalModules.Ids.KnowledgeBase => new[] { KBView, KBManage },
             PortalModules.Ids.Integrations => new[] { IntegrationView, IntegrationManage },
             PortalModules.Ids.Campaigns => new[] { CampaignView, CampaignManage, CampaignExecute },
+            PortalModules.Ids.KvkkCompliance => new[] { KvkkView, KvkkManage, PrivacyNoticeManage },
             _ => Enumerable.Empty<TypeItem>()
         };
     }
@@ -303,6 +312,7 @@ public static class CustomerPermissionTypes
             >= 110 and <= 119 => PortalModules.Ids.KnowledgeBase,
             >= 120 and <= 129 => PortalModules.Ids.Integrations,
             >= 130 and <= 139 => PortalModules.Ids.Campaigns,
+            >= 140 and <= 149 => PortalModules.Ids.KvkkCompliance,
             _ => 0
         };
     }
@@ -355,6 +365,10 @@ public static class CustomerPermissionTypes
         public const int CampaignView = 130;
         public const int CampaignManage = 131;
         public const int CampaignExecute = 132;
+        // KVKK Compliance
+        public const int KvkkView = 140;
+        public const int KvkkManage = 141;
+        public const int PrivacyNoticeManage = 142;
     }
 }
 
@@ -676,7 +690,8 @@ public static class CustomerRoles
                 CustomerPermissionTypes.Ids.RecordListen,
                 CustomerPermissionTypes.Ids.QualityView, CustomerPermissionTypes.Ids.QualityScore,
                 CustomerPermissionTypes.Ids.KBView,
-                CustomerPermissionTypes.Ids.ReportView
+                CustomerPermissionTypes.Ids.ReportView,
+                CustomerPermissionTypes.Ids.KvkkView
             },
             Ids.Operator => new[]
             {
@@ -747,6 +762,27 @@ public static class StorageProviders
         public const int YandexDisk = 3;
         public const int AmazonS3 = 4;
         public const int MinIO = 5;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KVKK - AYDINLATMA METNİ TİPLERİ
+// ═══════════════════════════════════════════════════════════════
+
+public static class PrivacyNoticeTypes
+{
+    public static readonly TypeItem CallRecording = new(1, "CallRecording", "PrivacyNotice.CallRecording", "Ses kaydi aydinlatma metni", "bi-mic-fill", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem DataProcessing = new(2, "DataProcessing", "PrivacyNotice.DataProcessing", "Veri isleme aydinlatma metni", "bi-database-fill-gear", "bg-info", 2);
+    public static readonly TypeItem General = new(3, "General", "PrivacyNotice.General", "Genel aydinlatma metni", "bi-file-earmark-text", "bg-secondary", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { CallRecording, DataProcessing, General };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int CallRecording = 1;
+        public const int DataProcessing = 2;
+        public const int General = 3;
     }
 }
 
@@ -941,6 +977,33 @@ public static class RetentionCategories
         public const int AccessLog = 3;
         public const int PersonalData = 4;
         public const int FinancialData = 5;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KVKK - YURT DIŞI AKTARIM GÜVENCELERİ (Transfer Safeguards)
+// ═══════════════════════════════════════════════════════════════
+
+public static class TransferSafeguards
+{
+    public static readonly TypeItem AdequateCountry = new(1, "AdequateCountry", "Safeguard.AdequateCountry", "Yeterli koruma bulunan ulke", "bi-globe", "bg-success", 1);
+    public static readonly TypeItem BindingCorporateRules = new(2, "BindingCorporateRules", "Safeguard.BindingCorporateRules", "Baglayici sirket kurallari", "bi-building", "bg-primary", 2);
+    public static readonly TypeItem StandardContractualClauses = new(3, "StandardContractualClauses", "Safeguard.StandardContractualClauses", "Standart sozlesme hukumleri", "bi-file-earmark-text", "bg-info", 3);
+    public static readonly TypeItem ExplicitConsent = new(4, "ExplicitConsent", "Safeguard.ExplicitConsent", "Acik riza", "bi-hand-thumbs-up", "bg-warning text-dark", 4);
+    public static readonly TypeItem LegalObligation = new(5, "LegalObligation", "Safeguard.LegalObligation", "Kanuni zorunluluk", "bi-bank", "bg-secondary", 5);
+    public static readonly TypeItem VitalInterest = new(6, "VitalInterest", "Safeguard.VitalInterest", "Hayati menfaat", "bi-heart-pulse", "bg-danger", 6);
+
+    public static IEnumerable<TypeItem> All => new[] { AdequateCountry, BindingCorporateRules, StandardContractualClauses, ExplicitConsent, LegalObligation, VitalInterest };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int AdequateCountry = 1;
+        public const int BindingCorporateRules = 2;
+        public const int StandardContractualClauses = 3;
+        public const int ExplicitConsent = 4;
+        public const int LegalObligation = 5;
+        public const int VitalInterest = 6;
     }
 }
 

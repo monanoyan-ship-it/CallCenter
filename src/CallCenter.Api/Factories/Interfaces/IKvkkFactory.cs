@@ -5,6 +5,16 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface IKvkkFactory
 {
+    // PrivacyNotice
+    Task<List<PrivacyNoticeListDto>> GetPrivacyNoticesAsync(int? customerId, int? typeId);
+    Task<PrivacyNoticeDto?> GetPrivacyNoticeByUidAsync(Guid uid);
+    Task<PrivacyNoticeDto?> GetActivePrivacyNoticeAsync(int customerId, int typeId);
+    Task<(bool Success, object Result)> CreatePrivacyNoticeAsync(PrivacyNoticeCreateDto dto);
+    Task<(bool Success, string? Error)> UpdatePrivacyNoticeAsync(Guid uid, PrivacyNoticeUpdateDto dto);
+    Task<(bool Success, string? Error)> ActivatePrivacyNoticeAsync(Guid uid);
+    Task<(bool Success, object Result)> RecordCallConsentAsync(CallConsentDto dto);
+    Task<ConsentRecordDto?> GetCallConsentAsync(int callRecordId);
+
     // Consent
     Task<(List<ConsentRecordDto> Items, int TotalCount)> GetConsentsAsync(int? customerId, int page, int pageSize);
     Task<(bool Success, object Result)> CreateConsentAsync(ConsentCreateDto dto);
@@ -34,6 +44,11 @@ public interface IKvkkFactory
     // DataInventory
     Task<List<DataInventoryItemDto>> GetInventoryAsync(int? customerId);
     Task<(bool Success, object Result)> CreateOrUpdateItemAsync(DataInventoryCreateDto dto);
+
+    // CrossBorderTransfer
+    Task<List<CrossBorderTransferDto>> GetTransfersAsync(int? customerId);
+    Task<(bool Success, object Result)> CreateTransferAsync(CrossBorderTransferCreateDto dto, string? createdByUserName);
+    Task<(bool Success, string? Error)> UpdateTransferAsync(Guid uid, CrossBorderTransferUpdateDto dto);
 
     // Dashboard
     Task<KvkkDashboardDto> GetDashboardAsync(int? customerId);

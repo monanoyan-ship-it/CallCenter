@@ -47,6 +47,8 @@ public static class EntityServiceRegistration
         services.AddScoped<IRetentionPolicyEntityService, RetentionPolicyEntityService>();
         services.AddScoped<IDataDestructionLogEntityService, DataDestructionLogEntityService>();
         services.AddScoped<IDataInventoryEntityService, DataInventoryEntityService>();
+        services.AddScoped<IPrivacyNoticeEntityService, PrivacyNoticeEntityService>();
+        services.AddScoped<ICrossBorderTransferEntityService, CrossBorderTransferEntityService>();
 
         // Faz 14 — Hizmet Abonelik Yönetimi
         services.AddScoped<IServiceDefinitionEntityService, ServiceDefinitionEntityService>();

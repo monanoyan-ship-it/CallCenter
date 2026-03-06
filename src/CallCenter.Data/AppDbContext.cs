@@ -48,6 +48,8 @@ public class AppDbContext : DbContext
     public DbSet<RetentionPolicy> RetentionPolicies => Set<RetentionPolicy>();
     public DbSet<DataDestructionLog> DataDestructionLogs => Set<DataDestructionLog>();
     public DbSet<DataInventoryItem> DataInventoryItems => Set<DataInventoryItem>();
+    public DbSet<PrivacyNotice> PrivacyNotices => Set<PrivacyNotice>();
+    public DbSet<CrossBorderTransfer> CrossBorderTransfers => Set<CrossBorderTransfer>();
 
     // ─── Service Subscription ───
     public DbSet<ServiceDefinition> ServiceDefinitions => Set<ServiceDefinition>();
@@ -179,6 +181,8 @@ public class AppDbContext : DbContext
             e.Property(c => c.CalleeNumber).HasMaxLength(50).IsRequired();
             e.HasOne(c => c.Agent).WithMany(u => u.CallRecords).HasForeignKey(c => c.AgentId);
             e.HasOne(c => c.Queue).WithMany(q => q.CallRecords).HasForeignKey(c => c.QueueId);
+            e.HasOne(c => c.ConsentRecord).WithMany().HasForeignKey(c => c.ConsentRecordId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.PrivacyNotice).WithMany().HasForeignKey(c => c.PrivacyNoticeId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(c => c.StartedAt);
         });
 
@@ -613,6 +617,45 @@ public class AppDbContext : DbContext
             e.HasOne(c => c.Customer)
              .WithMany()
              .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PrivacyNotice (KVKK aydinlatma metni)
+        modelBuilder.Entity<PrivacyNotice>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.Uid).IsUnique();
+            e.Property(p => p.Title).IsRequired().HasMaxLength(300);
+            e.Property(p => p.Content).IsRequired();
+            e.Property(p => p.Version).IsRequired().HasMaxLength(50);
+            e.Property(p => p.ApprovedBy).HasMaxLength(200);
+            e.HasIndex(p => new { p.CustomerId, p.TypeId, p.IsActive });
+            e.HasOne(p => p.Customer)
+             .WithMany()
+             .HasForeignKey(p => p.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.GreetingMessage)
+             .WithMany()
+             .HasForeignKey(p => p.GreetingMessageId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // CrossBorderTransfer (KVKK yurt disi aktarim)
+        modelBuilder.Entity<CrossBorderTransfer>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => t.Uid).IsUnique();
+            e.Property(t => t.RecipientName).IsRequired().HasMaxLength(300);
+            e.Property(t => t.RecipientCountry).IsRequired().HasMaxLength(100);
+            e.Property(t => t.DataCategories).IsRequired().HasMaxLength(1000);
+            e.Property(t => t.Purpose).IsRequired().HasMaxLength(500);
+            e.Property(t => t.LegalBasis).IsRequired().HasMaxLength(500);
+            e.Property(t => t.Notes).HasMaxLength(2000);
+            e.Property(t => t.CreatedByUserName).HasMaxLength(200);
+            e.HasIndex(t => new { t.CustomerId, t.IsActive });
+            e.HasOne(t => t.Customer)
+             .WithMany()
+             .HasForeignKey(t => t.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

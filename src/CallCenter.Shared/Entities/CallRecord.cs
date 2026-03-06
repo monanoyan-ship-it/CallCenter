@@ -54,6 +54,22 @@ public class CallRecord
     /// <summary>Platform deposuna yuklenme zamani</summary>
     public DateTime? PlatformUploadedAt { get; set; }
 
+    // ─── KVKK Rıza Takibi ───
+
+    /// <summary>Arama icin olusturulan riza kaydi</summary>
+    public int? ConsentRecordId { get; set; }
+    public ConsentRecord? ConsentRecord { get; set; }
+
+    /// <summary>Arama sirasindaki riza durumu (ConsentStatuses)</summary>
+    public int? ConsentStatusId { get; set; }
+
+    /// <summary>Aydinlatma metni okundu/dinletildi mi?</summary>
+    public bool IsPrivacyNoticeDelivered { get; set; }
+
+    /// <summary>Hangi aydinlatma metni versiyonu okundu?</summary>
+    public int? PrivacyNoticeId { get; set; }
+    public PrivacyNotice? PrivacyNotice { get; set; }
+
     public int? AgentId { get; set; }
     public User? Agent { get; set; }
 

@@ -16,6 +16,9 @@ public class KvkkFactory : IKvkkFactory
     private readonly IRetentionPolicyEntityService _retentionEs;
     private readonly IDataDestructionLogEntityService _destructionEs;
     private readonly IDataInventoryEntityService _inventoryEs;
+    private readonly IPrivacyNoticeEntityService _privacyNoticeEs;
+    private readonly ICallRecordEntityService _callRecordEs;
+    private readonly ICrossBorderTransferEntityService _transferEs;
     private readonly IUnitOfWork _uow;
 
     public KvkkFactory(
@@ -25,6 +28,9 @@ public class KvkkFactory : IKvkkFactory
         IRetentionPolicyEntityService retentionEs,
         IDataDestructionLogEntityService destructionEs,
         IDataInventoryEntityService inventoryEs,
+        IPrivacyNoticeEntityService privacyNoticeEs,
+        ICallRecordEntityService callRecordEs,
+        ICrossBorderTransferEntityService transferEs,
         IUnitOfWork uow)
     {
         _consentEs = consentEs;
@@ -33,7 +39,191 @@ public class KvkkFactory : IKvkkFactory
         _retentionEs = retentionEs;
         _destructionEs = destructionEs;
         _inventoryEs = inventoryEs;
+        _privacyNoticeEs = privacyNoticeEs;
+        _callRecordEs = callRecordEs;
+        _transferEs = transferEs;
         _uow = uow;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PRIVACY NOTICE (AYDINLATMA METNİ)
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task<List<PrivacyNoticeListDto>> GetPrivacyNoticesAsync(int? customerId, int? typeId)
+    {
+        var query = _privacyNoticeEs.GetAllQueryable()
+            .Include(p => p.Customer)
+            .Include(p => p.GreetingMessage)
+            .AsQueryable();
+
+        if (customerId.HasValue) query = query.Where(p => p.CustomerId == customerId.Value);
+        if (typeId.HasValue) query = query.Where(p => p.TypeId == typeId.Value);
+
+        return await query
+            .OrderByDescending(p => p.IsActive).ThenByDescending(p => p.CreatedAt)
+            .Select(p => new PrivacyNoticeListDto
+            {
+                Id = p.Id,
+                Uid = p.Uid,
+                CustomerId = p.CustomerId,
+                CustomerName = p.Customer.Name,
+                TypeId = p.TypeId,
+                TypeName = PrivacyNoticeTypes.GetById(p.TypeId) != null ? PrivacyNoticeTypes.GetById(p.TypeId)!.Description : "",
+                Title = p.Title,
+                Version = p.Version,
+                IsActive = p.IsActive,
+                GreetingMessageName = p.GreetingMessage != null ? p.GreetingMessage.Name : null,
+                EffectiveFrom = p.EffectiveFrom,
+                EffectiveTo = p.EffectiveTo,
+                ApprovedBy = p.ApprovedBy,
+                CreatedAt = p.CreatedAt
+            }).ToListAsync();
+    }
+
+    public async Task<PrivacyNoticeDto?> GetPrivacyNoticeByUidAsync(Guid uid)
+    {
+        return await _privacyNoticeEs.GetAllQueryable()
+            .Include(p => p.Customer)
+            .Include(p => p.GreetingMessage)
+            .Where(p => p.Uid == uid)
+            .Select(p => MapPrivacyNotice(p))
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<PrivacyNoticeDto?> GetActivePrivacyNoticeAsync(int customerId, int typeId)
+    {
+        return await _privacyNoticeEs.GetAllQueryable()
+            .Include(p => p.Customer)
+            .Include(p => p.GreetingMessage)
+            .Where(p => p.CustomerId == customerId && p.TypeId == typeId && p.IsActive)
+            .Select(p => MapPrivacyNotice(p))
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<(bool Success, object Result)> CreatePrivacyNoticeAsync(PrivacyNoticeCreateDto dto)
+    {
+        var entity = new PrivacyNotice
+        {
+            CustomerId = dto.CustomerId,
+            TypeId = dto.TypeId,
+            Title = dto.Title,
+            Content = dto.Content,
+            Version = dto.Version,
+            GreetingMessageId = dto.GreetingMessageId,
+            EffectiveFrom = dto.EffectiveFrom ?? DateTime.UtcNow,
+            ApprovedBy = dto.ApprovedBy
+        };
+
+        _privacyNoticeEs.Add(entity);
+        await _uow.SaveChangesAsync();
+        return (true, new { entity.Id, entity.Uid });
+    }
+
+    public async Task<(bool Success, string? Error)> UpdatePrivacyNoticeAsync(Guid uid, PrivacyNoticeUpdateDto dto)
+    {
+        var entity = await _privacyNoticeEs.GetByUidAsync(uid);
+        if (entity == null) return (false, "Aydinlatma metni bulunamadi.");
+
+        if (dto.Title != null) entity.Title = dto.Title;
+        if (dto.Content != null) entity.Content = dto.Content;
+        if (dto.GreetingMessageId.HasValue) entity.GreetingMessageId = dto.GreetingMessageId.Value == 0 ? null : dto.GreetingMessageId;
+        if (dto.ApprovedBy != null) entity.ApprovedBy = dto.ApprovedBy;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        _privacyNoticeEs.Update(entity);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ActivatePrivacyNoticeAsync(Guid uid)
+    {
+        var entity = await _privacyNoticeEs.GetByUidAsync(uid);
+        if (entity == null) return (false, "Aydinlatma metni bulunamadi.");
+        if (entity.IsActive) return (false, "Bu metin zaten aktif.");
+
+        // Ayni Customer+Type icin onceki aktif versiyonu deaktif et
+        var currentActive = await _privacyNoticeEs.GetAllQueryable()
+            .Where(p => p.CustomerId == entity.CustomerId && p.TypeId == entity.TypeId && p.IsActive)
+            .ToListAsync();
+
+        foreach (var active in currentActive)
+        {
+            active.IsActive = false;
+            active.EffectiveTo = DateTime.UtcNow;
+            _privacyNoticeEs.Update(active);
+        }
+
+        entity.IsActive = true;
+        entity.EffectiveFrom = DateTime.UtcNow;
+        entity.EffectiveTo = null;
+        entity.UpdatedAt = DateTime.UtcNow;
+        _privacyNoticeEs.Update(entity);
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, object Result)> RecordCallConsentAsync(CallConsentDto dto)
+    {
+        var callRecord = await _callRecordEs.GetByIdAsync(dto.CallRecordId);
+        if (callRecord == null) return (false, "Arama kaydi bulunamadi.");
+
+        // Aktif aydinlatma metnini bul
+        PrivacyNotice? activeNotice = null;
+        if (dto.PrivacyNoticeId.HasValue)
+        {
+            activeNotice = await _privacyNoticeEs.GetByIdAsync(dto.PrivacyNoticeId.Value);
+        }
+        else
+        {
+            activeNotice = await _privacyNoticeEs.GetAllQueryable()
+                .Where(p => p.CustomerId == dto.CustomerId && p.TypeId == dto.ConsentTypeId && p.IsActive)
+                .FirstOrDefaultAsync();
+        }
+
+        // Riza kaydi olustur
+        var consent = new ConsentRecord
+        {
+            CustomerId = dto.CustomerId,
+            ConsentTypeId = dto.ConsentTypeId,
+            StatusId = dto.ConsentStatusId,
+            SubjectIdentifier = dto.SubjectIdentifier,
+            SubjectName = dto.SubjectName,
+            ConsentMethod = dto.ConsentMethod,
+            PrivacyNoticeVersion = activeNotice?.Version,
+            ConsentDate = DateTime.UtcNow
+        };
+
+        _consentEs.Add(consent);
+
+        // CallRecord'u guncelle
+        callRecord.ConsentStatusId = dto.ConsentStatusId;
+        callRecord.IsPrivacyNoticeDelivered = activeNotice != null;
+        callRecord.PrivacyNoticeId = activeNotice?.Id;
+
+        await _uow.SaveChangesAsync();
+
+        // SaveChanges sonrasi consent.Id atanmis olacak
+        callRecord.ConsentRecordId = consent.Id;
+        await _uow.SaveChangesAsync();
+
+        return (true, new { ConsentRecordId = consent.Id, consent.Uid });
+    }
+
+    public async Task<ConsentRecordDto?> GetCallConsentAsync(int callRecordId)
+    {
+        var callRecord = await _callRecordEs.GetAllQueryable()
+            .Where(c => c.Id == callRecordId && c.ConsentRecordId.HasValue)
+            .Select(c => c.ConsentRecordId)
+            .FirstOrDefaultAsync();
+
+        if (!callRecord.HasValue) return null;
+
+        return await _consentEs.GetAllQueryable()
+            .Include(c => c.Customer)
+            .Where(c => c.Id == callRecord.Value)
+            .Select(c => MapConsent(c))
+            .FirstOrDefaultAsync();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -443,6 +633,9 @@ public class KvkkFactory : IKvkkFactory
         var retentionQuery = _retentionEs.GetAllQueryable();
         var destructionQuery = _destructionEs.GetAllQueryable();
         var inventoryQuery = _inventoryEs.GetAllQueryable();
+        var privacyNoticeQuery = _privacyNoticeEs.GetAllQueryable();
+
+        var transferQuery = _transferEs.GetAllQueryable();
 
         if (customerId.HasValue)
         {
@@ -452,6 +645,8 @@ public class KvkkFactory : IKvkkFactory
             retentionQuery = retentionQuery.Where(r => r.CustomerId == customerId.Value);
             destructionQuery = destructionQuery.Where(d => d.CustomerId == customerId.Value);
             inventoryQuery = inventoryQuery.Where(i => i.CustomerId == customerId.Value);
+            privacyNoticeQuery = privacyNoticeQuery.Where(p => p.CustomerId == customerId.Value);
+            transferQuery = transferQuery.Where(t => t.CustomerId == customerId.Value);
         }
 
         var dto = new KvkkDashboardDto
@@ -468,7 +663,10 @@ public class KvkkFactory : IKvkkFactory
             RevokedConsents = await consentQuery.CountAsync(c => c.StatusId == ConsentStatuses.Ids.Revoked),
             RetentionPolicies = await retentionQuery.CountAsync(r => r.IsActive),
             DestructionCount = await destructionQuery.CountAsync(),
-            InventoryItems = await inventoryQuery.CountAsync(i => i.IsActive)
+            InventoryItems = await inventoryQuery.CountAsync(i => i.IsActive),
+            ActivePrivacyNotices = await privacyNoticeQuery.CountAsync(p => p.IsActive),
+            TotalPrivacyNotices = await privacyNoticeQuery.CountAsync(),
+            ActiveTransfers = await transferQuery.CountAsync(t => t.IsActive)
         };
 
         dto.RecentRequests = await requestQuery
@@ -485,8 +683,78 @@ public class KvkkFactory : IKvkkFactory
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // CROSS-BORDER TRANSFER
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task<List<CrossBorderTransferDto>> GetTransfersAsync(int? customerId)
+    {
+        var query = _transferEs.GetAllQueryable().Include(t => t.Customer).AsQueryable();
+        if (customerId.HasValue) query = query.Where(t => t.CustomerId == customerId.Value);
+
+        return await query.OrderByDescending(t => t.CreatedAt)
+            .Select(t => MapTransfer(t)).ToListAsync();
+    }
+
+    public async Task<(bool Success, object Result)> CreateTransferAsync(CrossBorderTransferCreateDto dto, string? createdByUserName)
+    {
+        var entity = new CrossBorderTransfer
+        {
+            CustomerId = dto.CustomerId,
+            RecipientName = dto.RecipientName,
+            RecipientCountry = dto.RecipientCountry,
+            DataCategories = dto.DataCategories,
+            Purpose = dto.Purpose,
+            SafeguardId = dto.SafeguardId,
+            LegalBasis = dto.LegalBasis,
+            TransferDate = DateTime.UtcNow,
+            Notes = dto.Notes,
+            CreatedByUserName = createdByUserName
+        };
+
+        _transferEs.Add(entity);
+        await _uow.SaveChangesAsync();
+        return (true, new { entity.Id, entity.Uid });
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateTransferAsync(Guid uid, CrossBorderTransferUpdateDto dto)
+    {
+        var entity = await _transferEs.GetByUidAsync(uid);
+        if (entity == null) return (false, "Aktarim kaydi bulunamadi.");
+
+        if (dto.IsActive.HasValue) entity.IsActive = dto.IsActive.Value;
+        if (dto.EndDate.HasValue) entity.EndDate = dto.EndDate;
+        if (dto.Notes != null) entity.Notes = dto.Notes;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        _transferEs.Update(entity);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // MAPPING
     // ═══════════════════════════════════════════════════════════════
+
+    private static PrivacyNoticeDto MapPrivacyNotice(PrivacyNotice p) => new()
+    {
+        Id = p.Id,
+        Uid = p.Uid,
+        CustomerId = p.CustomerId,
+        CustomerName = p.Customer != null ? p.Customer.Name : "",
+        TypeId = p.TypeId,
+        TypeName = PrivacyNoticeTypes.GetById(p.TypeId)?.Description ?? "",
+        Title = p.Title,
+        Content = p.Content,
+        Version = p.Version,
+        IsActive = p.IsActive,
+        GreetingMessageId = p.GreetingMessageId,
+        GreetingMessageName = p.GreetingMessage?.Name,
+        EffectiveFrom = p.EffectiveFrom,
+        EffectiveTo = p.EffectiveTo,
+        ApprovedBy = p.ApprovedBy,
+        CreatedAt = p.CreatedAt,
+        UpdatedAt = p.UpdatedAt
+    };
 
     private static ConsentRecordDto MapConsent(ConsentRecord c) => new()
     {
@@ -555,5 +823,26 @@ public class KvkkFactory : IKvkkFactory
         MeasuresTaken = b.MeasuresTaken,
         ReportedByUserName = b.ReportedByUserName,
         CreatedAt = b.CreatedAt
+    };
+
+    private static CrossBorderTransferDto MapTransfer(CrossBorderTransfer t) => new()
+    {
+        Id = t.Id,
+        Uid = t.Uid,
+        CustomerId = t.CustomerId,
+        CustomerName = t.Customer?.Name,
+        RecipientName = t.RecipientName,
+        RecipientCountry = t.RecipientCountry,
+        DataCategories = t.DataCategories,
+        Purpose = t.Purpose,
+        SafeguardId = t.SafeguardId,
+        SafeguardName = TransferSafeguards.GetById(t.SafeguardId)?.Description ?? "",
+        LegalBasis = t.LegalBasis,
+        TransferDate = t.TransferDate,
+        EndDate = t.EndDate,
+        IsActive = t.IsActive,
+        Notes = t.Notes,
+        CreatedByUserName = t.CreatedByUserName,
+        CreatedAt = t.CreatedAt
     };
 }

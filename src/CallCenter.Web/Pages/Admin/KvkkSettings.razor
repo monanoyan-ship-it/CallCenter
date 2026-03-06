@@ -11,6 +11,14 @@
     <h4 class="mb-0">
         <i class="bi bi-gear-wide-connected me-2 text-primary"></i>KVKK Ayarlari
     </h4>
+    <div>
+        <select class="form-select form-select-sm d-inline-block" style="width:220px" @bind="selectedCustomerId" @bind:after="LoadTabData">
+            @foreach (var c in customers)
+            {
+                <option value="@c.Id">@c.Name</option>
+            }
+        </select>
+    </div>
 </div>
 
 @* ─── SEKMELER ─── *@
@@ -149,6 +157,36 @@ else
     @* ═══ TAB 1: SAKLAMA POLİTİKALARI ═══ *@
     @if (activeTab == 1)
     {
+        @* Periyodik imha hatirlatmasi *@
+        @if (nextPeriodicDestructionDate.HasValue)
+        {
+            var remaining = (nextPeriodicDestructionDate.Value - DateTime.UtcNow).TotalDays;
+            <div class="alert @(remaining < 30 ? "alert-warning" : "alert-info") d-flex align-items-center mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                <div>
+                    <strong>Periyodik Imha Tarihi:</strong> @nextPeriodicDestructionDate.Value.ToString("dd.MM.yyyy")
+                    @if (remaining < 0)
+                    {
+                        <span class="text-danger ms-2 fw-bold">(@((int)Math.Abs(remaining)) gun gecikme!)</span>
+                    }
+                    else
+                    {
+                        <span class="ms-2">(@((int)remaining) gun kaldi)</span>
+                    }
+                    <br /><small class="text-muted">KVKK: Periyodik imha max 6 ay (180 gun) aralikla yapilmalidir.</small>
+                </div>
+            </div>
+        }
+        else if (destructionLogs.Count == 0)
+        {
+            <div class="alert alert-warning d-flex align-items-center mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                <div>
+                    <strong>Uyari:</strong> Henuz periyodik imha yapilmamis. KVKK uyumu icin ilk imha islemini baslatmalisiniz.
+                </div>
+            </div>
+        }
+
         <div class="card border-0 shadow-sm">
             <div class="card-body p-0">
                 @if (retentionPolicies.Count == 0)
@@ -319,6 +357,11 @@ else
     @* ═══ TAB 3: İMHA KAYITLARI ═══ *@
     @if (activeTab == 3)
     {
+        <div class="d-flex justify-content-end mb-2">
+            <button class="btn btn-warning btn-sm" @onclick="() => showDestructionForm = true">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Imha Kaydi
+            </button>
+        </div>
         <div class="card border-0 shadow-sm">
             <div class="card-body p-0">
                 @if (destructionLogs.Count == 0)
@@ -330,15 +373,17 @@ else
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Veri Kategorisi</th><th>Yontem</th><th>Kayit Sayisi</th><th>Onaylayan</th><th>Imha Tarihi</th></tr>
+                                <tr><th>Veri Kategorisi</th><th>Yontem</th><th>Aciklama</th><th>Kayit Sayisi</th><th>Yasal Dayanak</th><th>Onaylayan</th><th>Imha Tarihi</th></tr>
                             </thead>
                             <tbody>
                                 @foreach (var d in destructionLogs)
                                 {
                                     <tr>
                                         <td>@d.DataCategory</td>
-                                        <td>@d.MethodName</td>
+                                        <td><span class="badge bg-secondary">@d.MethodName</span></td>
+                                        <td><small>@d.Description</small></td>
                                         <td>@d.DestroyedRecordCount</td>
+                                        <td><small>@(d.LegalBasis ?? "-")</small></td>
                                         <td><small>@d.ApprovedByUserName</small></td>
                                         <td><small>@d.DestroyedAt.ToString("dd.MM.yyyy HH:mm")</small></td>
                                     </tr>
@@ -349,6 +394,61 @@ else
                 }
             </div>
         </div>
+
+        @if (showDestructionForm)
+        {
+            <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Yeni Imha Kaydi</h5>
+                            <button type="button" class="btn-close" @onclick="() => showDestructionForm = false"></button>
+                        </div>
+                        <div class="modal-body">
+                            <EditForm Model="destructionCreateDto" OnValidSubmit="SubmitDestruction">
+                                <DataAnnotationsValidator />
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Veri Kategorisi <span class="text-danger">*</span></label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="destructionCreateDto.DataCategory" />
+                                        <ValidationMessage For="() => destructionCreateDto.DataCategory" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Imha Yontemi <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select form-select-sm" @bind-Value="destructionCreateDto.MethodId">
+                                            @foreach (var m in DestructionMethods.All)
+                                            {
+                                                <option value="@m.Id">@m.Description</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Aciklama <span class="text-danger">*</span></label>
+                                        <InputTextArea class="form-control form-control-sm" @bind-Value="destructionCreateDto.Description" rows="2" />
+                                        <ValidationMessage For="() => destructionCreateDto.Description" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Imha Edilen Kayit Sayisi <span class="text-danger">*</span></label>
+                                        <InputNumber class="form-control form-control-sm" @bind-Value="destructionCreateDto.DestroyedRecordCount" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Yasal Dayanak</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="destructionCreateDto.LegalBasis" />
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="() => showDestructionForm = false">Iptal</button>
+                                    <button type="submit" class="btn btn-warning btn-sm" disabled="@isSaving">
+                                        @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                        Imha Kaydini Olustur
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     }
 }
 
@@ -356,9 +456,9 @@ else
     private int activeTab;
     private bool isLoading = true;
     private bool isSaving;
-    private bool showBreachForm;
-    private bool showInventoryForm;
-    private int selectedCustomerId = 1;
+    private bool showBreachForm, showInventoryForm, showDestructionForm;
+    private int selectedCustomerId;
+    private List<CustomerSimpleDto> customers = new();
 
     // Tab 0: Breaches
     private List<DataBreachDto> breaches = new();
@@ -369,6 +469,7 @@ else
     private int editingRetentionId;
     private int editRetentionDays;
     private string editRetentionBasis = "";
+    private DateTime? nextPeriodicDestructionDate;
 
     // Tab 2: Inventory
     private List<DataInventoryItemDto> inventoryItems = new();
@@ -376,14 +477,20 @@ else
 
     // Tab 3: Destruction
     private List<DataDestructionLogDto> destructionLogs = new();
+    private DataDestructionCreateDto destructionCreateDto = new() { MethodId = 1, DestroyedRecordCount = 1 };
 
-    protected override async Task OnInitializedAsync() => await LoadTabData();
-
-    private async Task SwitchTab(int tab)
+    protected override async Task OnInitializedAsync()
     {
-        activeTab = tab;
+        try
+        {
+            customers = await Http.GetFromJsonAsync<List<CustomerSimpleDto>>("api/supervisor/customers") ?? new();
+            selectedCustomerId = customers.FirstOrDefault()?.Id ?? 0;
+        }
+        catch { }
         await LoadTabData();
     }
+
+    private async Task SwitchTab(int tab) { activeTab = tab; await LoadTabData(); }
 
     private async Task LoadTabData()
     {
@@ -394,17 +501,28 @@ else
             switch (activeTab)
             {
                 case 0:
-                    var br = await Http.GetFromJsonAsync<PagedResponse<DataBreachDto>>($"api/kvkk/breaches?page=1&pageSize=50");
+                    var br = await Http.GetFromJsonAsync<PagedResponse<DataBreachDto>>($"api/kvkk/breaches?customerId={selectedCustomerId}&page=1&pageSize=50");
                     breaches = br?.Items ?? new();
                     break;
                 case 1:
                     retentionPolicies = await Http.GetFromJsonAsync<List<RetentionPolicyDto>>($"api/kvkk/retention?customerId={selectedCustomerId}") ?? new();
+                    // Imha kayitlarini da yukle (periyodik imha tarihi hesabi icin)
+                    var dlForCalc = await Http.GetFromJsonAsync<PagedResponse<DataDestructionLogDto>>($"api/kvkk/destruction?customerId={selectedCustomerId}&page=1&pageSize=1");
+                    if (dlForCalc?.Items.Count > 0)
+                    {
+                        var lastDestruction = dlForCalc.Items[0].DestroyedAt;
+                        nextPeriodicDestructionDate = lastDestruction.AddDays(180); // KVKK max 6 ay
+                    }
+                    else
+                    {
+                        nextPeriodicDestructionDate = null;
+                    }
                     break;
                 case 2:
-                    inventoryItems = await Http.GetFromJsonAsync<List<DataInventoryItemDto>>("api/kvkk/inventory") ?? new();
+                    inventoryItems = await Http.GetFromJsonAsync<List<DataInventoryItemDto>>($"api/kvkk/inventory?customerId={selectedCustomerId}") ?? new();
                     break;
                 case 3:
-                    var dl = await Http.GetFromJsonAsync<PagedResponse<DataDestructionLogDto>>("api/kvkk/destruction?page=1&pageSize=50");
+                    var dl = await Http.GetFromJsonAsync<PagedResponse<DataDestructionLogDto>>($"api/kvkk/destruction?customerId={selectedCustomerId}&page=1&pageSize=50");
                     destructionLogs = dl?.Items ?? new();
                     break;
             }
@@ -416,12 +534,13 @@ else
     private async Task SubmitBreach()
     {
         isSaving = true;
+        breachCreateDto.CustomerId = selectedCustomerId;
         try
         {
             var response = await Http.PostAsJsonAsync("api/kvkk/breaches", breachCreateDto);
             if (response.IsSuccessStatusCode)
             {
-                Toast.ShowSuccess("Ihlal bildirimi olusturuldu.");
+                Toast.ShowSuccess("Ihlal bildirimi olusturuldu. 72 saatlik bildirim suresi basladi.");
                 showBreachForm = false;
                 breachCreateDto = new() { SeverityId = 1 };
                 await LoadTabData();
@@ -476,35 +595,11 @@ else
 
     private async Task SeedDefaults()
     {
-        // Direkt retention endpoint'e varsayilan kategorileri gonder
         foreach (var cat in RetentionCategories.All)
         {
-            var days = cat.Id switch
-            {
-                1 => 3650, // CallRecording — 10 yil
-                2 => 1095, // AuditLog — 3 yil
-                3 => 730,  // AccessLog — 2 yil
-                4 => 1095, // PersonalData — 3 yil
-                5 => 3650, // FinancialData — 10 yil
-                _ => 365
-            };
-            var basis = cat.Id switch
-            {
-                1 => "TTK md.82 — 10 yil",
-                2 => "KVKK — 3 yil",
-                3 => "BTK — 2 yil",
-                4 => "KVKK — 3 yil",
-                5 => "TTK md.82 — 10 yil",
-                _ => "KVKK"
-            };
-            var dto = new RetentionPolicyCreateDto
-            {
-                CustomerId = selectedCustomerId,
-                CategoryId = cat.Id,
-                RetentionDays = days,
-                LegalBasis = basis
-            };
-            await Http.PostAsJsonAsync("api/kvkk/retention", dto);
+            var days = cat.Id switch { 1 => 3650, 2 => 1095, 3 => 730, 4 => 1095, 5 => 3650, _ => 365 };
+            var basis = cat.Id switch { 1 => "TTK md.82 — 10 yil", 2 => "KVKK — 3 yil", 3 => "BTK — 2 yil", 4 => "KVKK — 3 yil", 5 => "TTK md.82 — 10 yil", _ => "KVKK" };
+            await Http.PostAsJsonAsync("api/kvkk/retention", new RetentionPolicyCreateDto { CustomerId = selectedCustomerId, CategoryId = cat.Id, RetentionDays = days, LegalBasis = basis });
         }
         Toast.ShowSuccess("Varsayilan politikalar olusturuldu.");
         await LoadTabData();
@@ -513,6 +608,7 @@ else
     private async Task SubmitInventory()
     {
         isSaving = true;
+        inventoryCreateDto.CustomerId = selectedCustomerId;
         try
         {
             var response = await Http.PostAsJsonAsync("api/kvkk/inventory", inventoryCreateDto);
@@ -529,13 +625,29 @@ else
         finally { isSaving = false; }
     }
 
+    private async Task SubmitDestruction()
+    {
+        isSaving = true;
+        destructionCreateDto.CustomerId = selectedCustomerId;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/kvkk/destruction", destructionCreateDto);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Imha kaydi olusturuldu.");
+                showDestructionForm = false;
+                destructionCreateDto = new() { MethodId = 1, DestroyedRecordCount = 1 };
+                await LoadTabData();
+            }
+            else Toast.ShowError("Hata olustu.");
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+        finally { isSaving = false; }
+    }
+
     private static string GetSeverityBadge(int severityId) => severityId switch
     {
-        1 => "bg-success",
-        2 => "bg-warning text-dark",
-        3 => "bg-danger",
-        4 => "bg-dark",
-        _ => "bg-secondary"
+        1 => "bg-success", 2 => "bg-warning text-dark", 3 => "bg-danger", 4 => "bg-dark", _ => "bg-secondary"
     };
 
     private record PagedResponse<T>(List<T> Items, int TotalCount, int TotalPages);

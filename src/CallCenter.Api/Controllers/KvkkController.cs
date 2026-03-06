@@ -19,6 +19,100 @@ public class KvkkController : AuditableControllerBase
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // PRIVACY NOTICE (AYDINLATMA METNİ)
+    // ═══════════════════════════════════════════════════════════════
+
+    [HttpGet("privacy-notices")]
+    public async Task<IActionResult> GetPrivacyNotices([FromQuery] int? customerId, [FromQuery] int? typeId)
+    {
+        var items = await _kvkkFactory.GetPrivacyNoticesAsync(customerId, typeId);
+        return Ok(items);
+    }
+
+    [HttpGet("privacy-notices/{uid}")]
+    public async Task<IActionResult> GetPrivacyNotice(Guid uid)
+    {
+        var item = await _kvkkFactory.GetPrivacyNoticeByUidAsync(uid);
+        if (item == null) return NotFound();
+        return Ok(item);
+    }
+
+    [HttpGet("privacy-notices/active")]
+    [Authorize] // Agent'lar da erisebilmeli (arama sirasinda aydinlatma metnini okumak icin)
+    public async Task<IActionResult> GetActivePrivacyNotice([FromQuery] int customerId, [FromQuery] int typeId)
+    {
+        var item = await _kvkkFactory.GetActivePrivacyNoticeAsync(customerId, typeId);
+        if (item == null) return NotFound(new { error = "Bu musteri icin aktif aydinlatma metni bulunamadi." });
+        return Ok(item);
+    }
+
+    [HttpPost("privacy-notices")]
+    public async Task<IActionResult> CreatePrivacyNotice([FromBody] PrivacyNoticeCreateDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var (success, result) = await _kvkkFactory.CreatePrivacyNoticeAsync(dto);
+        if (!success) return BadRequest(new { error = result });
+
+        await AuditCrudAsync("Create", "PrivacyNotice", result?.ToString(),
+            $"Aydinlatma metni olusturuldu: {dto.Title} (v{dto.Version})", customerId: dto.CustomerId);
+
+        return Ok(result);
+    }
+
+    [HttpPut("privacy-notices/{uid}")]
+    public async Task<IActionResult> UpdatePrivacyNotice(Guid uid, [FromBody] PrivacyNoticeUpdateDto dto)
+    {
+        var (success, error) = await _kvkkFactory.UpdatePrivacyNoticeAsync(uid, dto);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Update", "PrivacyNotice", uid.ToString(),
+            $"Aydinlatma metni guncellendi");
+
+        return Ok(new { message = "Aydinlatma metni guncellendi." });
+    }
+
+    [HttpPost("privacy-notices/{uid}/activate")]
+    public async Task<IActionResult> ActivatePrivacyNotice(Guid uid)
+    {
+        var (success, error) = await _kvkkFactory.ActivatePrivacyNoticeAsync(uid);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Activate", "PrivacyNotice", uid.ToString(),
+            "Aydinlatma metni aktif yapildi");
+
+        return Ok(new { message = "Aydinlatma metni aktif yapildi." });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CALL CONSENT (ARAMA RIZASI)
+    // ═══════════════════════════════════════════════════════════════
+
+    [HttpPost("call-consent")]
+    [Authorize] // Agent'lar da kullanabilmeli
+    public async Task<IActionResult> RecordCallConsent([FromBody] CallConsentDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var (success, result) = await _kvkkFactory.RecordCallConsentAsync(dto);
+        if (!success) return BadRequest(new { error = result });
+
+        await AuditCrudAsync("Create", "CallConsent", result?.ToString(),
+            $"Arama rizasi kaydedildi: {dto.SubjectName}", customerId: dto.CustomerId);
+
+        return Ok(result);
+    }
+
+    [HttpGet("call-consent/{callRecordId}")]
+    [Authorize]
+    public async Task<IActionResult> GetCallConsent(int callRecordId)
+    {
+        var item = await _kvkkFactory.GetCallConsentAsync(callRecordId);
+        if (item == null) return NotFound(new { error = "Bu arama icin riza kaydi bulunamadi." });
+        return Ok(item);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // CONSENT (RIZA)
     // ═══════════════════════════════════════════════════════════════
 
@@ -212,6 +306,43 @@ public class KvkkController : AuditableControllerBase
             $"KVKK veri envanteri guncellendi: {dto.DataCategory}", customerId: dto.CustomerId);
 
         return Ok(result);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CROSS-BORDER TRANSFER (YURT DIŞI AKTARIM)
+    // ═══════════════════════════════════════════════════════════════
+
+    [HttpGet("transfers")]
+    public async Task<IActionResult> GetTransfers([FromQuery] int? customerId)
+    {
+        var items = await _kvkkFactory.GetTransfersAsync(customerId);
+        return Ok(items);
+    }
+
+    [HttpPost("transfers")]
+    public async Task<IActionResult> CreateTransfer([FromBody] CrossBorderTransferCreateDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var (success, result) = await _kvkkFactory.CreateTransferAsync(dto, CurrentUserName);
+        if (!success) return BadRequest(new { error = result });
+
+        await AuditCrudAsync("Create", "CrossBorderTransfer", result?.ToString(),
+            $"KVKK yurt disi aktarim kaydi olusturuldu: {dto.RecipientName} ({dto.RecipientCountry})", customerId: dto.CustomerId);
+
+        return Ok(result);
+    }
+
+    [HttpPut("transfers/{uid}")]
+    public async Task<IActionResult> UpdateTransfer(Guid uid, [FromBody] CrossBorderTransferUpdateDto dto)
+    {
+        var (success, error) = await _kvkkFactory.UpdateTransferAsync(uid, dto);
+        if (!success) return BadRequest(new { error });
+
+        await AuditCrudAsync("Update", "CrossBorderTransfer", uid.ToString(),
+            $"KVKK yurt disi aktarim guncellendi.");
+
+        return Ok(new { message = "Aktarim kaydi guncellendi." });
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -3,6 +3,116 @@ using System.ComponentModel.DataAnnotations;
 namespace CallCenter.Shared.DTOs;
 
 // ═══════════════════════════════════════════════════════════════
+// PRIVACY NOTICE (AYDINLATMA METNİ) DTO'lari
+// ═══════════════════════════════════════════════════════════════
+
+public class PrivacyNoticeDto
+{
+    public int Id { get; set; }
+    public Guid Uid { get; set; }
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public int TypeId { get; set; }
+    public string TypeName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public int? GreetingMessageId { get; set; }
+    public string? GreetingMessageName { get; set; }
+    public DateTime EffectiveFrom { get; set; }
+    public DateTime? EffectiveTo { get; set; }
+    public string? ApprovedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class PrivacyNoticeListDto
+{
+    public int Id { get; set; }
+    public Guid Uid { get; set; }
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public int TypeId { get; set; }
+    public string TypeName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public string? GreetingMessageName { get; set; }
+    public DateTime EffectiveFrom { get; set; }
+    public DateTime? EffectiveTo { get; set; }
+    public string? ApprovedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class PrivacyNoticeCreateDto
+{
+    [Required(ErrorMessage = "Musteri secimi zorunludur.")]
+    public int CustomerId { get; set; }
+
+    [Required(ErrorMessage = "Metin tipi zorunludur.")]
+    public int TypeId { get; set; }
+
+    [Required(ErrorMessage = "Baslik zorunludur.")]
+    [MaxLength(300)]
+    public string Title { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Icerik zorunludur.")]
+    public string Content { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Versiyon zorunludur.")]
+    [MaxLength(50)]
+    public string Version { get; set; } = string.Empty;
+
+    public int? GreetingMessageId { get; set; }
+    public DateTime? EffectiveFrom { get; set; }
+
+    [MaxLength(200)]
+    public string? ApprovedBy { get; set; }
+}
+
+public class PrivacyNoticeUpdateDto
+{
+    [MaxLength(300)]
+    public string? Title { get; set; }
+
+    public string? Content { get; set; }
+
+    public int? GreetingMessageId { get; set; }
+
+    [MaxLength(200)]
+    public string? ApprovedBy { get; set; }
+}
+
+public class CallConsentDto
+{
+    [Required(ErrorMessage = "Arama kaydi zorunludur.")]
+    public int CallRecordId { get; set; }
+
+    [Required(ErrorMessage = "Musteri zorunludur.")]
+    public int CustomerId { get; set; }
+
+    [Required(ErrorMessage = "Kisi tanimlayicisi zorunludur.")]
+    [MaxLength(200)]
+    public string SubjectIdentifier { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Kisi adi zorunludur.")]
+    [MaxLength(200)]
+    public string SubjectName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Riza tipi zorunludur.")]
+    public int ConsentTypeId { get; set; }
+
+    [Required(ErrorMessage = "Riza durumu zorunludur.")]
+    public int ConsentStatusId { get; set; }
+
+    [MaxLength(50)]
+    public string ConsentMethod { get; set; } = "Verbal";
+
+    public int? PrivacyNoticeId { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // CONSENT (RIZA) DTO'lari
 // ═══════════════════════════════════════════════════════════════
 
@@ -349,6 +459,71 @@ public class DataInventoryCreateDto
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CROSS-BORDER TRANSFER (YURT DIŞI AKTARIM) DTO'lari
+// ═══════════════════════════════════════════════════════════════
+
+public class CrossBorderTransferDto
+{
+    public int Id { get; set; }
+    public Guid Uid { get; set; }
+    public int? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string RecipientName { get; set; } = string.Empty;
+    public string RecipientCountry { get; set; } = string.Empty;
+    public string DataCategories { get; set; } = string.Empty;
+    public string Purpose { get; set; } = string.Empty;
+    public int SafeguardId { get; set; }
+    public string SafeguardName { get; set; } = string.Empty;
+    public string LegalBasis { get; set; } = string.Empty;
+    public DateTime TransferDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public bool IsActive { get; set; }
+    public string? Notes { get; set; }
+    public string? CreatedByUserName { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CrossBorderTransferCreateDto
+{
+    public int? CustomerId { get; set; }
+
+    [Required(ErrorMessage = "Alici adi zorunludur.")]
+    [MaxLength(300)]
+    public string RecipientName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Alici ulkesi zorunludur.")]
+    [MaxLength(100)]
+    public string RecipientCountry { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Veri kategorileri zorunludur.")]
+    [MaxLength(1000)]
+    public string DataCategories { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Aktarim amaci zorunludur.")]
+    [MaxLength(500)]
+    public string Purpose { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Guvence tipi zorunludur.")]
+    public int SafeguardId { get; set; }
+
+    [Required(ErrorMessage = "Yasal dayanak zorunludur.")]
+    [MaxLength(500)]
+    public string LegalBasis { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? Notes { get; set; }
+}
+
+public class CrossBorderTransferUpdateDto
+{
+    public bool? IsActive { get; set; }
+    public DateTime? EndDate { get; set; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // KVKK DASHBOARD DTO
 // ═══════════════════════════════════════════════════════════════
 
@@ -362,6 +537,9 @@ public class KvkkDashboardDto
     public int RetentionPolicies { get; set; }
     public int DestructionCount { get; set; }
     public int InventoryItems { get; set; }
+    public int ActivePrivacyNotices { get; set; }
+    public int TotalPrivacyNotices { get; set; }
+    public int ActiveTransfers { get; set; }
     public List<DataSubjectRequestDto> RecentRequests { get; set; } = new();
     public List<DataBreachDto> RecentBreaches { get; set; } = new();
 }
