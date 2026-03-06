@@ -27,6 +27,17 @@ public class PermissionService
         _authState = authState;
     }
 
+    public void Reset()
+    {
+        _loaded = false;
+        _permissions = new();
+        IsAdmin = false;
+        IsCustomerAdmin = false;
+        CustomerId = null;
+        CustomerRoleId = 0;
+        CustomerPersonnelId = null;
+    }
+
     public async Task LoadAsync()
     {
         if (_loaded) return;

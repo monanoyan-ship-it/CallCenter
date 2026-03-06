@@ -9,17 +9,19 @@ public class AuthService
     private readonly HttpClient _http;
     private readonly IJSRuntime _js;
     private readonly JwtAuthStateProvider _authStateProvider;
+    private readonly PermissionService _permService;
 
     private const string TokenKey = "auth_token";
     private const string RefreshTokenKey = "auth_refresh_token";
     private const string FullNameKey = "auth_fullname";
     private const string RoleKey = "auth_role";
 
-    public AuthService(HttpClient http, IJSRuntime js, JwtAuthStateProvider authStateProvider)
+    public AuthService(HttpClient http, IJSRuntime js, JwtAuthStateProvider authStateProvider, PermissionService permService)
     {
         _http = http;
         _js = js;
         _authStateProvider = authStateProvider;
+        _permService = permService;
     }
 
     public async Task<LoginResult> LoginAsync(LoginRequest request)
@@ -125,6 +127,7 @@ public class AuthService
         await _js.InvokeVoidAsync("localStorage.removeItem", FullNameKey);
         await _js.InvokeVoidAsync("localStorage.removeItem", RoleKey);
 
+        _permService.Reset();
         _authStateProvider.NotifyUserLogout();
     }
 

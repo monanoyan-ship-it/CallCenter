@@ -37,7 +37,7 @@
     letter-spacing: 3px;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
-    padding: 0.85rem 2.5rem 0.85rem 1rem;
+    padding: 0.85rem 3rem 0.85rem 1rem;
     transition: border-color 0.2s;
 }
 
@@ -48,7 +48,7 @@
 
 .clear-btn {
     position: absolute;
-    right: 0.5rem;
+    right: 2.5rem;
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
@@ -200,6 +200,86 @@
     padding: 0.5rem;
     border-radius: 8px;
     background: #f8fafc;
+}
+
+/* ─── Rehber butonu ─── */
+
+.contacts-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+}
+
+.contacts-btn:hover {
+    color: #3b82f6;
+}
+
+/* ─── Rehber Secici ─── */
+
+.contact-picker-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1040;
+}
+
+.contact-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 340px;
+    max-height: 480px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1041;
+    overflow: hidden;
+}
+
+.contact-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.contact-picker-search {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.contact-picker-list {
+    overflow-y: auto;
+    flex: 1;
+    max-height: 340px;
+}
+
+.contact-pick-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.contact-pick-item:hover {
+    background: #f0f4ff;
 }
 
 /* ─── SIP durum badge ─── */

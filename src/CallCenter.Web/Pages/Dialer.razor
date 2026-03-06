@@ -43,6 +43,9 @@
                             <i class="bi bi-x-circle-fill"></i>
                         </button>
                     }
+                    <button class="btn btn-link contacts-btn" title="Rehberden Sec" @onclick="OpenContactPicker">
+                        <i class="bi bi-person-vcard-fill"></i>
+                    </button>
                 </div>
 
                 @* ─── Tus Takimi ─── *@
@@ -110,6 +113,49 @@
             </div>
 </div>
 
+@* ─── Rehber Secici ─── *@
+@if (showContactPicker)
+{
+    <div class="contact-picker-backdrop" @onclick="CloseContactPicker"></div>
+    <div class="contact-picker">
+        <div class="contact-picker-header">
+            <h6 class="mb-0"><i class="bi bi-person-vcard-fill me-2"></i>Rehberden Sec</h6>
+            <button class="btn btn-sm btn-link" @onclick="CloseContactPicker"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="contact-picker-search">
+            <input type="text" class="form-control form-control-sm" placeholder="Ara..."
+                   @bind="contactSearch" @bind:event="oninput" @onkeyup="SearchContacts" />
+        </div>
+        <div class="contact-picker-list">
+            @if (contactResults == null)
+            {
+                <div class="text-center text-muted py-3">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                </div>
+            }
+            else if (contactResults.Count == 0)
+            {
+                <div class="text-center text-muted py-3 small">Sonuc bulunamadi</div>
+            }
+            else
+            {
+                @foreach (var c in contactResults)
+                {
+                    <button class="contact-pick-item" @onclick="() => PickContact(c)">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-person-circle text-muted"></i>
+                            <div>
+                                <div class="fw-medium small">@c.FullName</div>
+                                <div class="text-muted" style="font-size:0.75rem;">@c.PhoneNumber</div>
+                            </div>
+                        </div>
+                    </button>
+                }
+            }
+        </div>
+    </div>
+}
+
 @code {
     private string _phoneNumber = "";
     private string phoneNumber
@@ -128,6 +174,9 @@
     private System.Timers.Timer? callTimer;
     private DateTime callStartTime;
     private int? currentCallId; // DB'deki arama kaydinin ID'si
+    private bool showContactPicker;
+    private string contactSearch = "";
+    private List<ContactDto>? contactResults;
 
     private readonly (string digit, string letters)[][] keypadRows = new[]
     {
@@ -434,6 +483,29 @@
         // SIP kapatilinca HandleCallEnded event'i otomatik tetiklenecek
         // orada DB kaydi da sonlandirilir
         await SipService.HangupAsync();
+    }
+
+    // ─── Rehber Secici ───
+
+    private async Task OpenContactPicker()
+    {
+        showContactPicker = true;
+        contactSearch = "";
+        contactResults = await Http.GetFromJsonAsync<List<ContactDto>>("api/contact?search=&page=1&pageSize=50");
+    }
+
+    private void CloseContactPicker() => showContactPicker = false;
+
+    private async Task SearchContacts()
+    {
+        var query = string.IsNullOrWhiteSpace(contactSearch) ? "" : Uri.EscapeDataString(contactSearch);
+        contactResults = await Http.GetFromJsonAsync<List<ContactDto>>($"api/contact?search={query}&page=1&pageSize=50");
+    }
+
+    private void PickContact(ContactDto contact)
+    {
+        phoneNumber = contact.PhoneNumber ?? "";
+        showContactPicker = false;
     }
 
     private void StopTimer()
