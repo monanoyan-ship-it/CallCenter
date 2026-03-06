@@ -12,7 +12,6 @@ public class WindowsPermissionService
 {
     private readonly AuthenticationStateProvider _authState;
     private HashSet<int> _permissions = new();
-    private bool _loaded;
 
     public bool IsAdmin { get; private set; }
     public int? CustomerId { get; private set; }
@@ -23,9 +22,17 @@ public class WindowsPermissionService
         _authState = authState;
     }
 
+    public void Reset()
+    {
+        _permissions = new();
+        IsAdmin = false;
+        CustomerId = null;
+        CustomerRoleId = 0;
+    }
+
     public async Task LoadAsync()
     {
-        if (_loaded) return;
+        Reset();
 
         var state = await _authState.GetAuthenticationStateAsync();
         var user = state.User;
@@ -49,8 +56,6 @@ public class WindowsPermissionService
                 .Select(p => int.Parse(p.Trim()))
                 .ToHashSet();
         }
-
-        _loaded = true;
     }
 
     /// <summary>Tekil izin kontrolu. Admin her zaman true doner.</summary>

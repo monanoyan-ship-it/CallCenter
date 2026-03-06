@@ -1,6 +1,7 @@
 @inject CallCenter.Windows.Services.WindowsHubService HubService
 @inject CallCenter.Windows.Services.ISipService SipService
 @inject CallCenter.Windows.Services.IncomingCallPipelineService Pipeline
+@inject NavigationManager NavigationManager
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 @implements IDisposable
@@ -167,7 +168,16 @@ else if (incomingCall != null)
             await SipService.AnswerCallAsync();
 
         await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
+
+        var callerNumber = incomingCall.CallerNumber;
         incomingCall = null;
+
+        // Dialer sayfasina yonlendir — aramayi yonetebilsin (beklet, kapat, DTMF)
+        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        if (!currentPath.StartsWith("dialer", StringComparison.OrdinalIgnoreCase))
+        {
+            NavigationManager.NavigateTo($"/dialer?number={Uri.EscapeDataString(callerNumber ?? "")}");
+        }
     }
 
     private async Task RejectCall()

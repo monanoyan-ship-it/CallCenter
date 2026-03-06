@@ -159,3 +159,20 @@ public class MonitoringStoppedEvent
     public int SupervisorId { get; set; }
     public DateTime StoppedAt { get; set; }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// OPERATOR KISISEL ISTATISTIK
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Operatorun kendi gunluk istatistikleri</summary>
+public class MyStatsResponse
+{
+    public int TodayTotalCalls { get; set; }
+    public int TodayAnsweredCalls { get; set; }
+    public int TodayMissedCalls { get; set; }
+    public int TodayOutboundCalls { get; set; }
+    public int TodayInboundCalls { get; set; }
+    public int TodayTotalDurationSeconds { get; set; }
+    public int TodayAvgDurationSeconds { get; set; }
+    public List<RecentCallDto> RecentCalls { get; set; } = new();
+}

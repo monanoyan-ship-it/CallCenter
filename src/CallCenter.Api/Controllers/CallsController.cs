@@ -18,6 +18,13 @@ public class CallsController : AuditableControllerBase
         _callFactory = callFactory;
     }
 
+    /// <summary>Operatorun kendi gunluk istatistikleri</summary>
+    [HttpGet("my-stats")]
+    public async Task<IActionResult> GetMyStats()
+    {
+        return Ok(await _callFactory.GetMyStatsAsync(GetUserId()));
+    }
+
     /// <summary>Arama gecmisi (tamamlanmis aramalar)</summary>
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 50)

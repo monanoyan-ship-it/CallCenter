@@ -1,56 +1,321 @@
 @page "/dashboard"
 @page "/"
 @attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.WindowsHubService HubService
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+@implements IDisposable
 
-<PageTitle>Dashboard - Call Center</PageTitle>
+<PageTitle>Ana Sayfa - Call Center</PageTitle>
 
-<div class="page-header mb-3">
-    <h5><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h5>
-</div>
+@if (IsOperator)
+{
+    @* ═══ OPERATOR DASHBOARD ═══ *@
+    <div class="row g-3 mb-3">
+        @* ─── Hizli Kisayollar ─── *@
+        <div class="col-12">
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="dialer" class="btn btn-primary btn-lg">
+                    <i class="bi bi-telephone-fill me-2"></i>Cagri Takip
+                </a>
+                <a href="contacts" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-person-vcard-fill me-2"></i>Rehber
+                </a>
+                <a href="calls/history" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-clock-history me-2"></i>Arama Gecmisi
+                </a>
+            </div>
+        </div>
+    </div>
 
-<div class="row g-3">
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-2">
-                    <i class="bi bi-telephone-fill text-primary" style="font-size: 2rem;"></i>
+    @* ─── Durum Gostergesi ─── *@
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">SIP Durumu</div>
+                    <div class="fs-5 fw-bold @(SipService.IsRegistered ? "text-success" : "text-secondary")">
+                        <i class="bi @(SipService.IsRegistered ? "bi-wifi" : "bi-wifi-off") me-1"></i>
+                        @(SipService.IsRegistered ? "Kayitli" : "Bagli degil")
+                    </div>
                 </div>
-                <h6 class="text-muted small mb-0">Windows Masaustu</h6>
-                <p class="small text-muted mt-1 mb-0">Softphone uygulamasi hazir.</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Sunucu</div>
+                    <div class="fs-5 fw-bold @(HubService.IsConnected ? "text-success" : "text-warning")">
+                        <i class="bi @(HubService.IsConnected ? "bi-check-circle-fill" : "bi-exclamation-circle-fill") me-1"></i>
+                        @(HubService.IsConnected ? "Bagli" : "Baglanmiyor")
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Bugun Toplam</div>
+                    <div class="fs-4 fw-bold text-primary">@(stats?.TodayTotalCalls ?? 0)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Toplam Sure</div>
+                    <div class="fs-4 fw-bold text-info">@FormatDuration(stats?.TodayTotalDurationSeconds ?? 0)</div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-2">
-                    <i class="bi bi-wifi text-success" style="font-size: 2rem;"></i>
+
+    @* ─── Detay Istatistikler ─── *@
+    <div class="row row-cols-2 row-cols-md-5 g-3 mb-3">
+        <div class="col">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Cevaplanan</div>
+                    <div class="fs-5 fw-bold text-success">@(stats?.TodayAnsweredCalls ?? 0)</div>
                 </div>
-                <h6 class="text-muted small mb-0">Baglanti Durumu</h6>
-                <p class="small text-muted mt-1 mb-0">SignalR + SIP baglantisi ust bardan kontrol edilebilir.</p>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Cevapsiz</div>
+                    <div class="fs-5 fw-bold text-danger">@(stats?.TodayMissedCalls ?? 0)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Giden</div>
+                    <div class="fs-5 fw-bold text-primary">@(stats?.TodayOutboundCalls ?? 0)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Gelen</div>
+                    <div class="fs-5 fw-bold text-info">@(stats?.TodayInboundCalls ?? 0)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-2">
+                    <div class="text-muted small">Ort. Sure</div>
+                    <div class="fs-5 fw-bold text-secondary">@FormatDuration(stats?.TodayAvgDurationSeconds ?? 0)</div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-2">
-                    <i class="bi bi-dialpad-fill text-info" style="font-size: 2rem;"></i>
+
+    @* ─── Son Aramalar ─── *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="bi bi-clock-history me-2"></i>Son Aramalarim
+            </h6>
+            <a href="calls/history" class="btn btn-sm btn-outline-secondary">
+                Tumu <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="card-body p-0">
+            @if (stats == null)
+            {
+                <div class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="text-muted ms-2 small">Yukleniyor...</span>
                 </div>
-                <h6 class="text-muted small mb-0">Numara Cevirici</h6>
-                <p class="small text-muted mt-1 mb-0">Sol menudan Arama > Numara Cevirici'ye gidin.</p>
-            </div>
+            }
+            else if (stats.RecentCalls.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-telephone-x fs-1 d-block mb-2 opacity-25"></i>
+                    <span>Henuz arama kaydi yok</span>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Numara</th>
+                                <th>Durum</th>
+                                <th>Sure</th>
+                                <th>Zaman</th>
+                                <th style="width: 40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var call in stats.RecentCalls)
+                            {
+                                var direction = CallDirections.GetById(call.DirectionId);
+                                var status = CallStatuses.GetById(call.StatusId);
+                                var number = call.DirectionId == CallDirections.Ids.Inbound ? call.CallerNumber : call.CalleeNumber;
+                                <tr>
+                                    <td class="text-center">
+                                        <i class="bi @(direction?.Icon ?? "bi-telephone") @(direction?.CssClass ?? "")"></i>
+                                    </td>
+                                    <td>
+                                        <span class="fw-medium">@number</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(status?.CssClass ?? "bg-secondary") rounded-pill">
+                                            @GetStatusName(call.StatusName)
+                                        </span>
+                                    </td>
+                                    <td class="text-muted">@FormatDuration(call.DurationSeconds)</td>
+                                    <td class="text-muted small">@FormatTimeAgo(call.StartedAt)</td>
+                                    <td>
+                                        <a href="dialer?number=@number" class="btn btn-sm btn-link text-success p-0" title="Geri ara">
+                                            <i class="bi bi-telephone-fill"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-2">
-                    <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
+}
+else
+{
+    @* ═══ ADMIN / SUPERVISOR DASHBOARD ═══ *@
+    <div class="page-header mb-3">
+        <h5><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h5>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="bi bi-telephone-fill text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                    <h6 class="text-muted small mb-0">Windows Masaustu</h6>
+                    <p class="small text-muted mt-1 mb-0">Softphone uygulamasi hazir.</p>
                 </div>
-                <h6 class="text-muted small mb-0">Arama Gecmisi</h6>
-                <p class="small text-muted mt-1 mb-0">Tum aramalariniz gecmis sayfasinda listelenir.</p>
             </div>
         </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="bi bi-wifi text-success" style="font-size: 2rem;"></i>
+                    </div>
+                    <h6 class="text-muted small mb-0">Baglanti Durumu</h6>
+                    <p class="small text-muted mt-1 mb-0">SignalR + SIP baglantisi ust bardan kontrol edilebilir.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="calls/active" class="text-decoration-none">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <i class="bi bi-telephone-inbound-fill text-info" style="font-size: 2rem;"></i>
+                        </div>
+                        <h6 class="text-muted small mb-0">Aktif Aramalar</h6>
+                        <p class="small text-muted mt-1 mb-0">Devam eden aramalari izleyin.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <a href="calls/history" class="text-decoration-none">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="mb-2">
+                            <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
+                        </div>
+                        <h6 class="text-muted small mb-0">Arama Gecmisi</h6>
+                        <p class="small text-muted mt-1 mb-0">Tum aramalari goruntuleyin.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
-</div>
+}
+
+@code {
+    private MyStatsResponse? stats;
+    private System.Threading.Timer? refreshTimer;
+
+    private bool IsOperator => PermService.CustomerRoleId == CustomerRoles.Ids.Operator
+                            || PermService.CustomerRoleId == CustomerRoles.Ids.EkipLideri;
+
+    private static readonly Dictionary<string, string> StatusNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Ringing", "Caliyor" }, { "InProgress", "Devam Ediyor" }, { "OnHold", "Beklemede" },
+        { "Transferred", "Transfer" }, { "Completed", "Tamamlandi" }, { "Missed", "Cevapsiz" },
+        { "Failed", "Basarisiz" }, { "Inbound", "Gelen" }, { "Outbound", "Giden" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+
+        if (IsOperator)
+        {
+            await LoadStats();
+
+            // 60 saniyede bir yenile
+            refreshTimer = new System.Threading.Timer(async _ =>
+            {
+                await LoadStats();
+                await InvokeAsync(StateHasChanged);
+            }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+        }
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            stats = await Http.GetFromJsonAsync<MyStatsResponse>("api/calls/my-stats");
+        }
+        catch
+        {
+            stats ??= new MyStatsResponse();
+        }
+    }
+
+    private string GetStatusName(string systemName)
+        => StatusNames.TryGetValue(systemName, out var name) ? name : systemName;
+
+    private static string FormatDuration(int seconds)
+    {
+        if (seconds <= 0) return "-";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0
+            ? $"{ts.Hours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes}:{ts.Seconds:D2}";
+    }
+
+    private static string FormatTimeAgo(DateTime utcTime)
+    {
+        var diff = DateTime.UtcNow - utcTime;
+        if (diff.TotalMinutes < 1) return "Az once";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} dk once";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} saat once";
+        return utcTime.ToLocalTime().ToString("dd.MM HH:mm");
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+    }
+}

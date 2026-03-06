@@ -38,10 +38,22 @@ public class SupervisorController : ControllerBase
         return Ok(await _supervisorFactory.GetQueuesLiveAsync(ResolveCustomerId(customerId)));
     }
 
-    [Authorize(Roles = "Admin,Supervisor")]
     [HttpGet("customers")]
     public async Task<ActionResult<List<CustomerSimpleDto>>> GetCustomers()
     {
+        // CustomerUser kendi firmasini zaten biliyor, tum listeyi gormesine gerek yok
+        // Ama 403 vermek yerine kendi firmasini donelim
+        if (User.IsInRole("CustomerUser"))
+        {
+            var claim = User.FindFirstValue("CustomerId");
+            if (claim != null && int.TryParse(claim, out var cid))
+            {
+                var all = await _supervisorFactory.GetCustomersAsync();
+                return Ok(all.Where(c => c.Id == cid).ToList());
+            }
+            return Ok(new List<CustomerSimpleDto>());
+        }
+
         return Ok(await _supervisorFactory.GetCustomersAsync());
     }
 }

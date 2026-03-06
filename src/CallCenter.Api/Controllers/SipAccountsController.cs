@@ -37,21 +37,48 @@ public class SipAccountsController : AuditableControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,CustomerUser")]
     public async Task<ActionResult<PagedResult<SipAccountListDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] int? customerId = null)
     {
+        // CustomerUser sadece kendi firmasinin SIP hesaplarini gorebilir
+        if (User.IsInRole("CustomerUser"))
+        {
+            var cid = User.FindFirstValue("CustomerId");
+            if (string.IsNullOrEmpty(cid) || !int.TryParse(cid, out var customerIdFromClaim))
+                return Forbid();
+
+            var isAdmin = User.FindFirstValue("IsCustomerAdmin");
+            if (!string.Equals(isAdmin, "true", StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+
+            customerId = customerIdFromClaim;
+        }
+
         return Ok(await _sipFactory.GetAllAsync(page, pageSize, customerId));
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,CustomerUser")]
     public async Task<ActionResult> GetById(int id)
     {
         var result = await _sipFactory.GetByIdAsync(id);
         if (result == null) return NotFound(new { message = "SIP hesabi bulunamadi." });
+
+        // CustomerUser firma kontrolu
+        if (User.IsInRole("CustomerUser"))
+        {
+            var cid = User.FindFirstValue("CustomerId");
+            if (string.IsNullOrEmpty(cid) || !int.TryParse(cid, out var customerIdFromClaim))
+                return Forbid();
+            // Anonymous type - dynamic ile CustomerId kontrolu
+            var customerId = (int)((dynamic)result).CustomerId;
+            if (customerId != customerIdFromClaim)
+                return Forbid();
+        }
+
         return Ok(result);
     }
 

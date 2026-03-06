@@ -2,7 +2,9 @@
 @inject NavigationManager NavigationManager
 @inject WindowsAuthService AuthService
 @inject WindowsPermissionService PermService
+@inject AuthenticationStateProvider AuthStateProvider
 @using CallCenter.Shared.Enums
+@using Microsoft.AspNetCore.Components.Authorization
 @implements IDisposable
 
 <div class="sidebar-header">
@@ -35,8 +37,8 @@
                 @if (!IsFirmaAdmin)
                 {
                     <NavLink class="nav-link" href="dialer">
-                        <i class="bi bi-dialpad-fill"></i>
-                        <span>Numara Cevirici</span>
+                        <i class="bi bi-telephone-fill"></i>
+                        <span>Cagri Takip</span>
                     </NavLink>
                 }
                 @if (IsAdmin || IsFirmaAdmin || IsEkipLideri)
@@ -69,7 +71,7 @@
                 <div class="nav-group-items @(IsGroupOpen(4) ? "show" : "")">
                     <NavLink class="nav-link" href="sip-accounts">
                         <i class="bi bi-router-fill"></i>
-                        <span>Gateway Hesaplari</span>
+                        <span>SIP Hesaplari</span>
                     </NavLink>
                     <NavLink class="nav-link" href="sip-settings">
                         <i class="bi bi-telephone-fill"></i>
@@ -126,6 +128,7 @@
     protected override void OnInitialized()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         OpenGroupByCurrentUrl();
     }
 
@@ -133,18 +136,29 @@
     {
         if (firstRender)
         {
-            var name = await AuthService.GetFullNameAsync();
-            var role = await AuthService.GetRoleAsync();
-
-            fullName = name ?? "Kullanici";
-            userRole = role ?? "";
-            roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
-
-            // Portal yetkileri yukle
-            await PermService.LoadAsync();
-
-            StateHasChanged();
+            await RefreshUserInfo();
         }
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        await RefreshUserInfo();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshUserInfo()
+    {
+        var name = await AuthService.GetFullNameAsync();
+        var role = await AuthService.GetRoleAsync();
+
+        fullName = name ?? "Kullanici";
+        userRole = role ?? "";
+        roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
+
+        // Portal yetkileri yukle
+        await PermService.LoadAsync();
+
+        StateHasChanged();
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -180,5 +194,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }

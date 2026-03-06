@@ -1,0 +1,75 @@
+.dropdown {
+    position: relative;
+}
+
+.btn-audio-settings {
+    font-size: 1.1rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.audio-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+}
+
+.audio-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    min-width: 280px;
+    z-index: 1041;
+    overflow: hidden;
+}
+
+.audio-dropdown-header {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.audio-section {
+    padding: 0.5rem 0.75rem;
+}
+
+.audio-section + .audio-section {
+    border-top: 1px solid #f3f4f6;
+}
+
+.audio-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.audio-device {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: #374151;
+    transition: background 0.1s;
+}
+
+.audio-device:hover {
+    background: #f0f4ff;
+}
+
+.audio-device.selected {
+    background: #eff6ff;
+    font-weight: 500;
+}

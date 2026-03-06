@@ -13,17 +13,19 @@ public class WindowsAuthService
     private readonly HttpClient _http;
     private readonly SecureStorage _storage;
     private readonly WindowsAuthStateProvider _authStateProvider;
+    private readonly WindowsPermissionService _permService;
 
     private const string TokenKey = "auth_token";
     private const string RefreshTokenKey = "auth_refresh_token";
     private const string FullNameKey = "auth_fullname";
     private const string RoleKey = "auth_role";
 
-    public WindowsAuthService(HttpClient http, SecureStorage storage, WindowsAuthStateProvider authStateProvider)
+    public WindowsAuthService(HttpClient http, SecureStorage storage, WindowsAuthStateProvider authStateProvider, WindowsPermissionService permService)
     {
         _http = http;
         _storage = storage;
         _authStateProvider = authStateProvider;
+        _permService = permService;
     }
 
     public async Task<LoginResult> LoginAsync(LoginRequest request)
@@ -140,6 +142,7 @@ public class WindowsAuthService
         await _storage.RemoveAsync(FullNameKey);
         await _storage.RemoveAsync(RoleKey);
 
+        _permService.Reset();
         _authStateProvider.NotifyUserLogout();
     }
 

@@ -1,4 +1,5 @@
 @inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.SecureStorage Storage
 
 <div class="dropdown">
     <button class="btn btn-link text-muted btn-audio-settings" title="Ses Ayarlari"
@@ -75,6 +76,24 @@
     private int selectedMicIndex = -1;
     private int selectedSpeakerIndex = -1;
 
+    protected override async Task OnInitializedAsync()
+    {
+        // Kayitli cihaz secimlerini yukle
+        var savedMic = await Storage.GetAsync("audio_input_device");
+        var savedSpk = await Storage.GetAsync("audio_output_device");
+
+        if (savedMic != null && int.TryParse(savedMic, out var micIdx))
+            selectedMicIndex = micIdx;
+        if (savedSpk != null && int.TryParse(savedSpk, out var spkIdx))
+            selectedSpeakerIndex = spkIdx;
+
+        // Kayitli cihazlari SIP servisine uygula
+        if (selectedMicIndex >= 0)
+            await SipService.SetAudioInputDeviceAsync(selectedMicIndex);
+        if (selectedSpeakerIndex >= 0)
+            await SipService.SetAudioOutputDeviceAsync(selectedSpeakerIndex);
+    }
+
     private async Task ToggleDropdown()
     {
         isOpen = !isOpen;
@@ -92,6 +111,12 @@
         microphones = await SipService.GetAudioInputDevicesAsync();
         speakers = await SipService.GetAudioOutputDevicesAsync();
 
+        // Kayitli cihaz hala listede yoksa ilkini sec
+        if (selectedMicIndex >= 0 && !microphones.Any(m => m.DeviceIndex == selectedMicIndex) && microphones.Any())
+            selectedMicIndex = microphones.First().DeviceIndex;
+        if (selectedSpeakerIndex >= 0 && !speakers.Any(s => s.DeviceIndex == selectedSpeakerIndex) && speakers.Any())
+            selectedSpeakerIndex = speakers.First().DeviceIndex;
+
         if (selectedMicIndex == -1 && microphones.Any())
             selectedMicIndex = microphones.First().DeviceIndex;
         if (selectedSpeakerIndex == -1 && speakers.Any())
@@ -104,11 +129,13 @@
     {
         selectedMicIndex = deviceIndex;
         await SipService.SetAudioInputDeviceAsync(deviceIndex);
+        await Storage.SetAsync("audio_input_device", deviceIndex.ToString());
     }
 
     private async Task SelectSpeaker(int deviceIndex)
     {
         selectedSpeakerIndex = deviceIndex;
         await SipService.SetAudioOutputDeviceAsync(deviceIndex);
+        await Storage.SetAsync("audio_output_device", deviceIndex.ToString());
     }
 }

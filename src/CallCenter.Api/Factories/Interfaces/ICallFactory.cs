@@ -13,4 +13,5 @@ public interface ICallFactory
     Task<List<CallNotification>> GetQueuedAsync(int? customerId);
     Task<object> IncomingCallAsync(IncomingCallRequest request);
     Task<CallSyncPushResponse> SyncPushAsync(int userId, CallSyncPushRequest request);
+    Task<MyStatsResponse> GetMyStatsAsync(int userId);
 }

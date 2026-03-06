@@ -319,6 +319,59 @@ public class CallFactory : ICallFactory
         return new CallSyncPushResponse { Id = call.Id, IsNew = true };
     }
 
+    public async Task<MyStatsResponse> GetMyStatsAsync(int userId)
+    {
+        var today = DateTime.UtcNow.Date;
+
+        var todayCalls = await _calls.GetAllQueryable()
+            .Where(c => c.AgentId == userId && c.StartedAt >= today)
+            .Select(c => new { c.StatusId, c.DirectionId, c.DurationSeconds })
+            .ToListAsync();
+
+        var answered = todayCalls.Where(c => c.StatusId == CallStatuses.Ids.Completed).ToList();
+        var totalDuration = answered.Sum(c => c.DurationSeconds);
+
+        var recentCallsRaw = await _calls.GetAllQueryable()
+            .Where(c => c.AgentId == userId)
+            .OrderByDescending(c => c.StartedAt)
+            .Take(15)
+            .Select(c => new
+            {
+                c.Id, c.CallerNumber, c.CalleeNumber,
+                c.DirectionId, c.StatusId, c.StartedAt, c.DurationSeconds,
+                c.AgentId,
+                AgentName = c.Agent != null ? c.Agent.FullName : null,
+                QueueName = c.Queue != null ? c.Queue.Name : null
+            })
+            .ToListAsync();
+
+        return new MyStatsResponse
+        {
+            TodayTotalCalls = todayCalls.Count,
+            TodayAnsweredCalls = answered.Count,
+            TodayMissedCalls = todayCalls.Count(c => c.StatusId == CallStatuses.Ids.Missed),
+            TodayOutboundCalls = todayCalls.Count(c => c.DirectionId == CallDirections.Ids.Outbound),
+            TodayInboundCalls = todayCalls.Count(c => c.DirectionId == CallDirections.Ids.Inbound),
+            TodayTotalDurationSeconds = totalDuration,
+            TodayAvgDurationSeconds = answered.Count > 0 ? totalDuration / answered.Count : 0,
+            RecentCalls = recentCallsRaw.Select(c => new RecentCallDto
+            {
+                Id = c.Id,
+                CallerNumber = c.CallerNumber,
+                CalleeNumber = c.CalleeNumber,
+                DirectionId = c.DirectionId,
+                DirectionName = CallDirections.GetById(c.DirectionId)?.SystemName ?? "Unknown",
+                StatusId = c.StatusId,
+                StatusName = CallStatuses.GetById(c.StatusId)?.SystemName ?? "Unknown",
+                StartedAt = c.StartedAt,
+                DurationSeconds = c.DurationSeconds,
+                AgentId = c.AgentId,
+                AgentName = c.AgentName,
+                QueueName = c.QueueName
+            }).ToList()
+        };
+    }
+
     private static int MapStatusNameToId(string statusName)
     {
         var status = CallStatuses.GetBySystemName(statusName);

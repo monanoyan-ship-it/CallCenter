@@ -212,7 +212,7 @@ public class CallCenterHub : Hub
             return new();
 
         var users = await _db.Users
-            .Where(u => u.IsActive)
+            .Where(u => u.IsActive && u.RoleId == UserRoles.Ids.Agent)
             .Select(u => new { u.Id, u.FullName, u.Extension, u.RoleId, u.StatusId })
             .ToListAsync();
 

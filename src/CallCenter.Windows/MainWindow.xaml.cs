@@ -30,6 +30,9 @@ public partial class MainWindow : Window
         var config = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("wwwroot/appsettings.json", optional: false)
+#if DEBUG
+            .AddJsonFile("wwwroot/appsettings.Development.json", optional: true, reloadOnChange: true)
+#endif
             .Build();
         services.AddSingleton<IConfiguration>(config);
 

@@ -1,6 +1,7 @@
 .dialer-page {
     display: flex;
     justify-content: center;
+    gap: 1rem;
     padding-top: 1rem;
 }
 
@@ -9,7 +10,6 @@
     border-radius: 16px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     padding: 1.5rem 2rem;
-    margin: 0 auto;
 }
 
 .dialer-header h5 {
@@ -18,6 +18,106 @@
     color: #1e293b;
     font-size: 1rem;
 }
+
+/* ─── Hat Paneli (sag taraf, dikey) ─── */
+
+.line-panel {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 120px;
+    align-self: flex-start;
+}
+
+.line-panel-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.line-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+    background: #fafafa;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 50px;
+}
+
+.line-item:hover {
+    border-color: #93c5fd;
+    background: #f0f4ff;
+}
+
+.line-number {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.line-remote {
+    font-size: 0.6rem;
+    color: #6b7280;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.line-item.line-active {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.line-item.line-idle {
+    opacity: 0.5;
+}
+
+.line-item.line-connected {
+    border-color: #22c55e;
+    background: #f0fdf4;
+}
+
+.line-item.line-ringing {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    animation: line-ring 1s ease-in-out infinite;
+}
+
+.line-item.line-hold {
+    border-color: #f59e0b;
+    background: #fefce8;
+}
+
+.line-item.line-connecting {
+    border-color: #6366f1;
+    background: #eef2ff;
+}
+
+.line-item.line-transfer {
+    border-color: #8b5cf6;
+    background: #f5f3ff;
+}
+
+@keyframes line-ring {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* ─── Numara alani ─── */
 
 .number-display {
     position: relative;
@@ -31,7 +131,7 @@
     letter-spacing: 3px;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
-    padding: 0.85rem 2.5rem 0.85rem 1rem;
+    padding: 0.85rem 4.5rem 0.85rem 1rem;
     transition: border-color 0.2s;
 }
 
@@ -42,7 +142,7 @@
 
 .clear-btn {
     position: absolute;
-    right: 0.5rem;
+    right: 2.5rem;
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
@@ -54,6 +154,23 @@
 .clear-btn:hover {
     color: #ef4444;
 }
+
+.contacts-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+}
+
+.contacts-btn:hover {
+    color: #3b82f6;
+}
+
+/* ─── Tus takimi ─── */
 
 .keypad {
     display: flex;
@@ -105,6 +222,8 @@
     letter-spacing: 2px;
     margin-top: 1px;
 }
+
+/* ─── Arama butonlari ─── */
 
 .call-actions {
     display: flex;
@@ -203,4 +322,65 @@
     font-size: 0.65rem;
     font-weight: 500;
     padding: 0.3em 0.6em;
+}
+
+/* ─── Rehber Secici ─── */
+
+.contact-picker-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+}
+
+.contact-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    width: 360px;
+    max-height: 500px;
+    z-index: 1051;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.contact-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.contact-picker-search {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.contact-picker-list {
+    overflow-y: auto;
+    max-height: 380px;
+}
+
+.contact-pick-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.contact-pick-item:hover {
+    background: #f0f4ff;
 }

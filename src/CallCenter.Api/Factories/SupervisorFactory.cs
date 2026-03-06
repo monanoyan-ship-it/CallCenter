@@ -42,8 +42,9 @@ public class SupervisorFactory : ISupervisorFactory
                 .ToListAsync();
         }
 
-        // AGENTS
-        var agentsQuery = _userEs.GetAllQueryable().Where(u => u.IsActive);
+        // AGENTS — sadece Agent rolundeki kullanicilar (operatorler)
+        var agentsQuery = _userEs.GetAllQueryable()
+            .Where(u => u.IsActive && u.RoleId == UserRoles.Ids.Agent);
         if (customerAgentIds != null)
         {
             agentsQuery = agentsQuery.Where(u => customerAgentIds.Contains(u.Id));

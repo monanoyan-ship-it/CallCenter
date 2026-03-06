@@ -42,6 +42,19 @@ window.sipClient = {
         stunServer, turnServer, turnUsername, turnPassword,
         preferredCodecsJson, jitterBufferMinMs, jitterBufferMaxMs) {
         try {
+            // SIP.js ES module async yuklendiginden hazir olmasini bekle
+            if (typeof SIP === 'undefined') {
+                for (let i = 0; i < 50; i++) {
+                    await new Promise(r => setTimeout(r, 100));
+                    if (typeof SIP !== 'undefined') break;
+                }
+                if (typeof SIP === 'undefined') {
+                    console.error('[SipClient] SIP.js yuklenemedi');
+                    if (dotNetRef) await dotNetRef.invokeMethodAsync('OnRegistrationFailed', 'SIP.js kutuphanesi yuklenemedi');
+                    return false;
+                }
+            }
+
             this.dotNetRef = dotNetRef;
             this.remoteAudio = document.getElementById('remoteAudio');
 
