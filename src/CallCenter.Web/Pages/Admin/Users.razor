@@ -5,7 +5,7 @@
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 
-<PageTitle>Kullanicilar - Call Center</PageTitle>
+<PageTitle>Kullanicilar - CorpLynk</PageTitle>
 
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <h4 class="mb-0">
@@ -71,6 +71,7 @@
                             <th>Ad Soyad</th>
                             <th>E-posta</th>
                             <th>Rol</th>
+                            <th>Firma / Firma Rolu</th>
                             <th>Dahili</th>
                             <th>Durum</th>
                             <th>Son Giris</th>
@@ -89,6 +90,20 @@
                                     <span class="badge @(role?.CssClass ?? "bg-secondary") rounded-pill">
                                         @GetRoleDisplayName(user.RoleName)
                                     </span>
+                                </td>
+                                <td>
+                                    @if (user.CustomerRoleId.HasValue)
+                                    {
+                                        var cRole = CustomerRoles.GetById(user.CustomerRoleId.Value);
+                                        <small class="text-muted d-block">@user.CustomerName</small>
+                                        <span class="badge @(cRole?.CssClass ?? "bg-secondary") rounded-pill" style="font-size: 0.7em;">
+                                            @(cRole?.Description ?? "-")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
                                 </td>
                                 <td class="text-muted">@(user.Extension ?? "-")</td>
                                 <td>

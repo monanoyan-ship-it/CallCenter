@@ -10,12 +10,14 @@ namespace CallCenter.Api.Factories;
 public class UserFactory : IUserFactory
 {
     private readonly IUserEntityService _users;
+    private readonly ICustomerPersonnelEntityService _personnel;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IUnitOfWork _uow;
 
-    public UserFactory(IUserEntityService users, IPasswordPolicyFactory passwordPolicy, IUnitOfWork uow)
+    public UserFactory(IUserEntityService users, ICustomerPersonnelEntityService personnel, IPasswordPolicyFactory passwordPolicy, IUnitOfWork uow)
     {
         _users = users;
+        _personnel = personnel;
         _passwordPolicy = passwordPolicy;
         _uow = uow;
     }
@@ -55,8 +57,23 @@ public class UserFactory : IUserFactory
             })
             .ToListAsync();
 
+        // CustomerPersonnel bilgilerini batch olarak getir
+        var userIds = items.Select(i => i.Id).ToList();
+        var personnelMap = await _personnel.GetAllQueryable()
+            .Where(cp => userIds.Contains(cp.UserId))
+            .Select(cp => new { cp.UserId, cp.CustomerRoleId, CustomerName = cp.Customer.Name })
+            .ToDictionaryAsync(x => x.UserId);
+
         foreach (var item in items)
+        {
             item.RoleName = UserRoles.GetById(item.RoleId)?.SystemName ?? "Unknown";
+            if (personnelMap.TryGetValue(item.Id, out var cp))
+            {
+                item.CustomerRoleId = cp.CustomerRoleId;
+                item.CustomerRoleName = CustomerRoles.GetById(cp.CustomerRoleId)?.Description;
+                item.CustomerName = cp.CustomerName;
+            }
+        }
 
         return new PagedResult<UserListDto>
         {

@@ -27,6 +27,9 @@ public class UserListDto
     public string Email { get; set; } = string.Empty;
     public int RoleId { get; set; }
     public string RoleName { get; set; } = string.Empty;
+    public int? CustomerRoleId { get; set; }
+    public string? CustomerRoleName { get; set; }
+    public string? CustomerName { get; set; }
     public string? Extension { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -599,6 +602,8 @@ public class BillingPeriodDto
     public string? CustomerName { get; set; }
     public int Year { get; set; }
     public int Month { get; set; }
+    public DateTime PeriodStartDate { get; set; }
+    public DateTime PeriodEndDate { get; set; }
     public int UserCount { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Amount { get; set; }
