@@ -9,4 +9,5 @@ public interface IBillingPeriodEntityService
     void Add(CustomerBillingPeriod entity);
     void AddRange(IEnumerable<CustomerBillingPeriod> entities);
     void Update(CustomerBillingPeriod entity);
+    void Remove(CustomerBillingPeriod entity);
 }

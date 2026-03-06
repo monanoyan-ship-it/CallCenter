@@ -19,4 +19,5 @@ public class BillingPeriodEntityService : IBillingPeriodEntityService
     public void Add(CustomerBillingPeriod entity) => _db.CustomerBillingPeriods.Add(entity);
     public void AddRange(IEnumerable<CustomerBillingPeriod> entities) => _db.CustomerBillingPeriods.AddRange(entities);
     public void Update(CustomerBillingPeriod entity) => _db.CustomerBillingPeriods.Update(entity);
+    public void Remove(CustomerBillingPeriod entity) => _db.CustomerBillingPeriods.Remove(entity);
 }

@@ -7,6 +7,8 @@ public class CustomerBillingPeriod
     public Customer Customer { get; set; } = null!;
     public int Year { get; set; }
     public int Month { get; set; }
+    public DateTime PeriodStartDate { get; set; }
+    public DateTime PeriodEndDate { get; set; }
     public int UserCount { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Amount { get; set; }

@@ -115,6 +115,20 @@ public class CustomersController : AuditableControllerBase
         return NoContent();
     }
 
+    /// <summary>Faturalama donemi sil (sadece odenmemis donemler)</summary>
+    [HttpDelete("billing/{periodId}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> DeleteBillingPeriod(int periodId)
+    {
+        var (success, error) = await _billingFactory.DeletePeriodAsync(periodId);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Delete", "BillingPeriod", periodId.ToString(),
+            $"Faturalama donemi silindi: ID={periodId}");
+
+        return NoContent();
+    }
+
     /// <summary>Toplu faturalama donemi olustur (tum aktif musteriler)</summary>
     [HttpPost("billing/generate")]
     [Authorize(Roles = "Admin")]

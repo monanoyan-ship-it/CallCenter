@@ -6,6 +6,7 @@ public interface IBillingFactory
 {
     Task<List<BillingPeriodDto>> GetByCustomerAsync(int customerId);
     Task<(bool Success, string? Error)> UpdatePeriodAsync(int periodId, BillingPeriodUpdateDto dto);
+    Task<(bool Success, string? Error)> DeletePeriodAsync(int periodId);
     Task<(int Created, int Skipped, string? Error)> GenerateBulkAsync(int year, int month);
     Task<(bool IsBlocked, string? Reason)> IsCustomerBlockedByBillingAsync(int customerId);
 }

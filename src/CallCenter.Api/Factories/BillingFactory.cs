@@ -3,6 +3,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -38,6 +39,8 @@ public class BillingFactory : IBillingFactory
                 CustomerName = b.Customer.Name,
                 Year = b.Year,
                 Month = b.Month,
+                PeriodStartDate = b.PeriodStartDate,
+                PeriodEndDate = b.PeriodEndDate,
                 UserCount = b.UserCount,
                 UnitPrice = b.UnitPrice,
                 Amount = b.Amount,
@@ -61,6 +64,19 @@ public class BillingFactory : IBillingFactory
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error)> DeletePeriodAsync(int periodId)
+    {
+        var period = await _billingEs.GetByIdAsync(periodId);
+        if (period == null) return (false, "Faturalama donemi bulunamadi.");
+
+        if (period.IsPaid)
+            return (false, "Odemesi onaylanmis donem silinemez.");
+
+        _billingEs.Remove(period);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<(int Created, int Skipped, string? Error)> GenerateBulkAsync(int year, int month)
     {
         if (month < 1 || month > 12)
@@ -70,7 +86,7 @@ public class BillingFactory : IBillingFactory
 
         var activeCustomers = await _customerEs.GetAllQueryable()
             .Where(c => c.IsActive)
-            .Select(c => new { c.Id, c.MonthlyUnitPrice })
+            .Select(c => new { c.Id, c.MonthlyUnitPrice, c.CreatedAt })
             .ToListAsync();
 
         var existingCustomerIds = await _billingEs.GetAllQueryable()
@@ -89,14 +105,31 @@ public class BillingFactory : IBillingFactory
                 continue;
             }
 
+            // Donem baslangic gunu: musterinin olusturulma gunune gore
+            var startDay = customer.CreatedAt.Day;
+            var daysInMonth = DateTime.DaysInMonth(year, month);
+            if (startDay > daysInMonth) startDay = daysInMonth;
+
+            var periodStart = new DateTime(year, month, startDay, 0, 0, 0, DateTimeKind.Utc);
+
+            // Donem bitis: bir sonraki ayin ayni gunu - 1 gun
+            var nextMonth = month == 12 ? 1 : month + 1;
+            var nextYear = month == 12 ? year + 1 : year;
+            var daysInNextMonth = DateTime.DaysInMonth(nextYear, nextMonth);
+            var endDay = Math.Min(startDay, daysInNextMonth);
+            var periodEnd = new DateTime(nextYear, nextMonth, endDay, 0, 0, 0, DateTimeKind.Utc).AddDays(-1);
+
             var userCount = await _personnelEs.GetAllQueryable()
-                .CountAsync(p => p.CustomerId == customer.Id && p.IsActive);
+                .CountAsync(p => p.CustomerId == customer.Id && p.IsActive
+                    && p.CustomerRoleId == CustomerRoles.Ids.Operator);
 
             _billingEs.Add(new CustomerBillingPeriod
             {
                 CustomerId = customer.Id,
                 Year = year,
                 Month = month,
+                PeriodStartDate = periodStart,
+                PeriodEndDate = periodEnd,
                 UserCount = userCount,
                 UnitPrice = customer.MonthlyUnitPrice,
                 Amount = userCount * customer.MonthlyUnitPrice,
