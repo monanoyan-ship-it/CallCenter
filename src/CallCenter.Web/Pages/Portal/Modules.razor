@@ -1,5 +1,5 @@
-@page "/portal/modules"
-@attribute [Authorize(Roles = "Admin,CustomerUser")]
+@page "/customer/portal/modules"
+@attribute [Authorize(Roles = "CustomerUser")]
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ToastService Toast

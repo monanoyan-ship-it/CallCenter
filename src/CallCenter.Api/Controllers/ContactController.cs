@@ -20,8 +20,12 @@ public class ContactController : ControllerBase
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-        var customerId = GetCustomerId();
 
+        // Sistem adminleri musteri rehberini goremez
+        if (IsSystemAdmin)
+            return Ok(new List<ContactDto>());
+
+        var customerId = GetCustomerId();
         var contacts = await _contactFactory.GetContactsAsync(userId.Value, customerId, search, page, pageSize);
         return Ok(contacts);
     }
@@ -31,6 +35,9 @@ public class ContactController : ControllerBase
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
+
+        if (IsSystemAdmin)
+            return Forbid();
 
         var contact = await _contactFactory.GetContactAsync(id, userId.Value);
         return contact != null ? Ok(contact) : NotFound();
@@ -118,6 +125,8 @@ public class ContactController : ControllerBase
         var result = await _contactFactory.SyncFromLdapAsync(config, customerId);
         return Ok(result);
     }
+
+    private bool IsSystemAdmin => User.IsInRole("Admin") || User.IsInRole("Supervisor");
 
     private int? GetUserId()
     {

@@ -247,44 +247,6 @@ public class CallCenterHub : Hub
         return agents;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // CONFERENCE (Konferans Odasi)
-    // ═══════════════════════════════════════════════════════════════
-
-    /// <summary>Konferans odasina katilim bildirimi (SignalR grup).</summary>
-    public async Task JoinConferenceRoom(int roomId)
-    {
-        var userId = GetUserId();
-        if (userId == null) return;
-
-        var groupName = $"conference_{roomId}";
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-
-        await Clients.Group(groupName).SendAsync("ConferenceParticipantJoined", new
-        {
-            RoomId = roomId,
-            UserId = userId.Value,
-            JoinedAt = DateTime.UtcNow
-        });
-    }
-
-    /// <summary>Konferans odasindan ayrilma bildirimi.</summary>
-    public async Task LeaveConferenceRoom(int roomId)
-    {
-        var userId = GetUserId();
-        if (userId == null) return;
-
-        var groupName = $"conference_{roomId}";
-
-        await Clients.Group(groupName).SendAsync("ConferenceParticipantLeft", new
-        {
-            RoomId = roomId,
-            UserId = userId.Value,
-            LeftAt = DateTime.UtcNow
-        });
-
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-    }
 
     // ═══════════════════════════════════════════════════════════════
     // SIP PRESENCE SENKRONIZASYONU
@@ -461,60 +423,6 @@ public class CallCenterHub : Hub
         return _gatewayStates.Values.ToList();
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // MONITORING (Arama Izleme)
-    // ═══════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Arama izleme baslatildiginda agent ve supervisor'lara bildirim gonderir.
-    /// NOT: Gercek ses izleme medya sunucusu gerektirir — bu sadece durum bildirimi.
-    /// </summary>
-    public async Task NotifyMonitoringStarted(int callId, int supervisorId, int modeId)
-    {
-        var supervisor = await _db.Users.FindAsync(supervisorId);
-        var modeName = MonitoringModes.GetById(modeId)?.SystemName ?? "Unknown";
-
-        var notification = new
-        {
-            CallId = callId,
-            SupervisorId = supervisorId,
-            SupervisorName = supervisor?.FullName ?? "",
-            ModeId = modeId,
-            ModeName = modeName,
-            StartedAt = DateTime.UtcNow
-        };
-
-        // Agent'a bildir (izlendigini bilmeli — Silent modda bile kayit var)
-        var call = await _db.CallRecords.FindAsync(callId);
-        if (call?.AgentId != null)
-        {
-            await Clients.User(call.AgentId.Value.ToString())
-                .SendAsync("MonitoringStarted", notification);
-        }
-
-        // Admin grubuna bildir
-        await Clients.Group("admins").SendAsync("MonitoringStarted", notification);
-    }
-
-    /// <summary>Arama izleme durduruldugunda bildirim.</summary>
-    public async Task NotifyMonitoringStopped(int callId, int supervisorId)
-    {
-        var notification = new
-        {
-            CallId = callId,
-            SupervisorId = supervisorId,
-            StoppedAt = DateTime.UtcNow
-        };
-
-        var call = await _db.CallRecords.FindAsync(callId);
-        if (call?.AgentId != null)
-        {
-            await Clients.User(call.AgentId.Value.ToString())
-                .SendAsync("MonitoringStopped", notification);
-        }
-
-        await Clients.Group("admins").SendAsync("MonitoringStopped", notification);
-    }
 
     // ═══════════════════════════════════════════════════════════════
     // HELPER METODLAR

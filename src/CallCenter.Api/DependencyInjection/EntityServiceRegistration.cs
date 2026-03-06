@@ -28,8 +28,7 @@ public static class EntityServiceRegistration
         services.AddScoped<IAuditLogEntityService, AuditLogEntityService>();
         services.AddScoped<ITranslationKeyEntityService, TranslationKeyEntityService>();
         services.AddScoped<ICallForwardingRuleEntityService, CallForwardingRuleEntityService>();
-        services.AddScoped<IConferenceEntityService, ConferenceEntityService>();
-        services.AddScoped<IMonitoringSessionEntityService, MonitoringSessionEntityService>();
+
         services.AddScoped<IInstantMessageEntityService, InstantMessageEntityService>();
         services.AddScoped<IStorageConfigEntityService, StorageConfigEntityService>();
         services.AddScoped<IIvrEntityService, IvrEntityService>();

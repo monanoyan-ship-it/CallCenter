@@ -53,7 +53,7 @@ public class AuthService
             if (loginResponse.MustChangePassword)
                 await _js.InvokeVoidAsync("localStorage.setItem", "must_change_pw", "true");
 
-            return new LoginResult(true, null, loginResponse.MustChangePassword);
+            return new LoginResult(true, null, loginResponse.MustChangePassword, loginResponse.Role);
         }
         catch (Exception ex)
         {
@@ -169,7 +169,7 @@ public class AuthService
     }
 
     // Yardimci siniflar
-    public record LoginResult(bool Success, string? ErrorMessage, bool MustChangePassword = false);
+    public record LoginResult(bool Success, string? ErrorMessage, bool MustChangePassword = false, string? Role = null);
     public record ChangePasswordResult(bool Success, string? ErrorMessage);
     private record ErrorResponse(string? Message);
 }

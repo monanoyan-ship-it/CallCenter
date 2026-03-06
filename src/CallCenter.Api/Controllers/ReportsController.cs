@@ -18,12 +18,20 @@ public class ReportsController : ControllerBase
         _reportFactory = reportFactory;
     }
 
+    private bool IsSystemAdmin => User.IsInRole("Admin") || User.IsInRole("Supervisor");
+
     private int? ResolveCustomerId(int? queryCustomerId)
     {
-        if (User.IsInRole("Admin") || User.IsInRole("Supervisor"))
+        if (IsSystemAdmin)
             return queryCustomerId;
         var claim = User.FindFirstValue("CustomerId");
         return claim != null ? int.Parse(claim) : null;
+    }
+
+    private void StripCallDetails(CallReportResponse report)
+    {
+        if (!IsSystemAdmin) return;
+        report.Items = new() { Items = new(), TotalCount = report.Items.TotalCount, Page = report.Items.Page, PageSize = report.Items.PageSize };
     }
 
     /// <summary>
@@ -39,7 +47,9 @@ public class ReportsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        return Ok(await _reportFactory.GetCallReportAsync(ResolveCustomerId(customerId), from, to, directionId, statusId, page, pageSize));
+        var result = await _reportFactory.GetCallReportAsync(ResolveCustomerId(customerId), from, to, directionId, statusId, page, pageSize);
+        StripCallDetails(result);
+        return Ok(result);
     }
 
     /// <summary>
@@ -106,6 +116,10 @@ public class ReportsController : ControllerBase
         [FromQuery] int? directionId,
         [FromQuery] int? statusId)
     {
+        // Sistem adminleri numara iceren dosya indiremez
+        if (IsSystemAdmin)
+            return BadRequest(new { message = "Sistem yoneticileri musteri arama detaylarini disari aktaramaz." });
+
         var resolved = ResolveCustomerId(customerId);
         if (string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase))
         {

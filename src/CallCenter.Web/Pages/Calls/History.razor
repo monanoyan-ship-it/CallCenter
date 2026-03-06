@@ -1,5 +1,5 @@
-@page "/calls/history"
-@attribute [Authorize]
+@page "/customer/calls/history"
+@attribute [Authorize(Roles = "CustomerUser")]
 @inject HttpClient Http
 @using CallCenter.Shared.Enums
 

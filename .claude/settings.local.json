@@ -128,7 +128,9 @@
       "Bash(dotnet:*)",
       "Bash(\"/c/Users/Ahmet/.dotnet/tools/libman\" restore:*)",
       "WebFetch(domain:www.btk.gov.tr)",
-      "WebFetch(domain:gun.av.tr)"
+      "WebFetch(domain:gun.av.tr)",
+      "WebFetch(domain:www.organikhaberlesme.com.tr)",
+      "WebFetch(domain:organikhaberlesme.com)"
     ]
   }
 }

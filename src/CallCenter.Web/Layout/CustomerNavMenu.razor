@@ -1,0 +1,268 @@
+@* Sol Panel - Musteri Portali Menusu *@
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+@inject PermissionService PermService
+@inject AuthenticationStateProvider AuthStateProvider
+@implements IDisposable
+
+<div class="sidebar-header">
+    <div class="d-flex align-items-center justify-content-between px-3 py-2">
+        <a class="brand" href="customer/dashboard">
+            <i class="bi bi-headset me-2"></i>
+            <span class="brand-text">CorpLynk</span>
+        </a>
+        <button class="btn btn-link sidebar-toggle d-lg-none" @onclick="ToggleNavMenu">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</div>
+
+<div class="sidebar-body">
+    <nav>
+        @* ─── DASHBOARD ─── *@
+        <div class="nav-item">
+            <NavLink class="nav-link" href="customer/dashboard" Match="NavLinkMatch.All">
+                <i class="bi bi-grid-1x2-fill"></i>
+                <span>Dashboard</span>
+            </NavLink>
+        </div>
+
+        @* ─── PORTAL YÖNETİMİ (FirmaAdmin + EkipLideri) ─── *@
+        @if (IsFirmaAdmin || IsEkipLideri)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(10)">
+                    <i class="bi bi-building"></i>
+                    <span>Portal</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(10) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(10) ? "show" : "")">
+                    @if (IsFirmaAdmin)
+                    {
+                        <NavLink class="nav-link" href="customer/portal/personnel">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Personel Yonetimi</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="customer/portal/organizations">
+                            <i class="bi bi-diagram-3-fill"></i>
+                            <span>Organizasyonlar</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="customer/portal/sip">
+                            <i class="bi bi-router-fill"></i>
+                            <span>SIP Ayarlari</span>
+                        </NavLink>
+                    }
+                    @if (IsEkipLideri)
+                    {
+                        <NavLink class="nav-link" href="customer/portal/personnel">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Ekibim</span>
+                        </NavLink>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ─── ARAMALAR ─── *@
+        <div class="nav-group">
+            <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
+                <i class="bi bi-telephone-fill"></i>
+                <span>Arama</span>
+                <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
+                @if (IsOperator)
+                {
+                    <NavLink class="nav-link" href="customer/dialer">
+                        <i class="bi bi-telephone-fill"></i>
+                        <span>Cagri Takip</span>
+                    </NavLink>
+                }
+                @if (!IsOperator)
+                {
+                    <NavLink class="nav-link" href="customer/calls/active">
+                        <i class="bi bi-telephone-inbound-fill"></i>
+                        <span>Aktif Aramalar</span>
+                    </NavLink>
+                }
+                <NavLink class="nav-link" href="customer/calls/history">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Arama Gecmisi</span>
+                </NavLink>
+                <NavLink class="nav-link" href="customer/contacts" Match="NavLinkMatch.All">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Rehber</span>
+                </NavLink>
+                @if (IsFirmaAdmin || IsEkipLideri)
+                {
+                    <NavLink class="nav-link" href="customer/campaigns" Match="NavLinkMatch.Prefix">
+                        <i class="bi bi-list-check"></i>
+                        <span>Kampanyalar</span>
+                    </NavLink>
+                }
+            </div>
+        </div>
+
+        @* ─── MESAJLAR ─── *@
+        <div class="nav-item">
+            <NavLink class="nav-link" href="customer/messaging">
+                <i class="bi bi-chat-dots-fill"></i>
+                <span>Mesajlar</span>
+            </NavLink>
+        </div>
+
+        @* ─── KUYRUKLAR (Operator haric) ─── *@
+        @if (!IsOperator)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(1)">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Kuyruklar</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(1) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(1) ? "show" : "")">
+                    <NavLink class="nav-link" href="customer/queues" Match="NavLinkMatch.All">
+                        <i class="bi bi-list-ol"></i>
+                        <span>Kuyruk Listesi</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="customer/queues/live">
+                        <i class="bi bi-broadcast"></i>
+                        <span>Canli Izleme</span>
+                    </NavLink>
+                </div>
+            </div>
+        }
+
+        @* ─── RAPORLAR (Operator haric) ─── *@
+        @if (!IsOperator)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(2)">
+                    <i class="bi bi-bar-chart-fill"></i>
+                    <span>Raporlar</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(2) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(2) ? "show" : "")">
+                    <NavLink class="nav-link" href="customer/reports/calls">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                        <span>Arama Raporlari</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="customer/reports/agents">
+                        <i class="bi bi-person-lines-fill"></i>
+                        <span>Temsilci Performansi</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="customer/reports/queues">
+                        <i class="bi bi-diagram-3-fill"></i>
+                        <span>Kuyruk Performansi</span>
+                    </NavLink>
+                </div>
+            </div>
+        }
+    </nav>
+</div>
+
+@* ─── SIDEBAR FOOTER ─── *@
+<div class="sidebar-footer">
+    <div class="agent-status">
+        <div class="d-flex align-items-center">
+            <div class="agent-avatar">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            <div class="agent-info">
+                <span class="agent-name">@fullName</span>
+                <span class="agent-role">@roleName</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private HashSet<int> openGroups = new();
+    private string fullName = "...";
+    private string roleName = "";
+
+    private bool IsFirmaAdmin => PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.FirmaAdmin;
+    private bool IsEkipLideri => PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.EkipLideri;
+    private bool IsOperator => PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.Operator;
+
+    private static readonly Dictionary<int, string[]> GroupRoutes = new()
+    {
+        { 0, new[] { "customer/dialer", "customer/calls/", "customer/contacts", "customer/campaigns" } },
+        { 1, new[] { "customer/queues" } },
+        { 2, new[] { "customer/reports/" } },
+        { 5, new[] { "customer/messaging" } },
+        { 10, new[] { "customer/portal/" } }
+    };
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        OpenGroupByCurrentUrl();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await ReloadUserInfoAsync();
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        await ReloadUserInfoAsync();
+    }
+
+    private async Task ReloadUserInfoAsync()
+    {
+        var name = await AuthService.GetFullNameAsync();
+        fullName = name ?? "Kullanici";
+
+        var role = CallCenter.Shared.Enums.CustomerRoles.GetById(PermService.CustomerRoleId);
+        roleName = role?.Description ?? "Musteri";
+
+        await PermService.LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        OpenGroupByCurrentUrl();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OpenGroupByCurrentUrl()
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+        openGroups.Clear();
+        foreach (var (groupIndex, prefixes) in GroupRoutes)
+        {
+            if (prefixes.Any(p => relativePath.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+            {
+                openGroups.Add(groupIndex);
+                return;
+            }
+        }
+    }
+
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+    private void ToggleGroup(int index)
+    {
+        if (openGroups.Contains(index))
+            openGroups.Remove(index);
+        else
+        {
+            openGroups.Clear();
+            openGroups.Add(index);
+        }
+    }
+
+    private bool IsGroupOpen(int index) => openGroups.Contains(index);
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+    }
+}

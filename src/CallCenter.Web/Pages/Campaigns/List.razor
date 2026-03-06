@@ -1,4 +1,4 @@
-@page "/campaigns"
+@page "/customer/campaigns"
 @attribute [Authorize(Roles = "CustomerUser")]
 @inject HttpClient Http
 @inject NavigationManager Nav
@@ -179,7 +179,7 @@ else
             {
                 var created = await resp.Content.ReadFromJsonAsync<CampaignDto>();
                 if (created != null)
-                    Nav.NavigateTo($"campaigns/{created.Uid}");
+                    Nav.NavigateTo($"customer/campaigns/{created.Uid}");
             }
         }
         finally

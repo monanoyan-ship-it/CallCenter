@@ -82,7 +82,13 @@
 
             if (result.Success)
             {
-                var target = result.MustChangePassword ? "/change-password" : "/dashboard";
+                string target;
+                if (result.MustChangePassword)
+                    target = "/change-password";
+                else if (string.Equals(result.Role, "CustomerUser", StringComparison.OrdinalIgnoreCase))
+                    target = "/customer/dashboard";
+                else
+                    target = "/dashboard";
                 NavigationManager.NavigateTo(target, forceLoad: false);
             }
             else

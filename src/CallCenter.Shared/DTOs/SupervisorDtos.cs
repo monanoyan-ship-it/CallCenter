@@ -133,32 +133,6 @@ public class QueueStatusUpdate
 // SIGNALR EVENT DTO'LAR
 // ═══════════════════════════════════════════════════════════════
 
-/// <summary>Konferans katilimci olayi (Join/Leave)</summary>
-public class ConferenceParticipantEvent
-{
-    public int RoomId { get; set; }
-    public int UserId { get; set; }
-    public DateTime Timestamp { get; set; }
-}
-
-/// <summary>Izleme baslatildi olayi</summary>
-public class MonitoringEvent
-{
-    public int CallId { get; set; }
-    public int SupervisorId { get; set; }
-    public string SupervisorName { get; set; } = string.Empty;
-    public int ModeId { get; set; }
-    public string ModeName { get; set; } = string.Empty;
-    public DateTime StartedAt { get; set; }
-}
-
-/// <summary>Izleme durduruldu olayi</summary>
-public class MonitoringStoppedEvent
-{
-    public int CallId { get; set; }
-    public int SupervisorId { get; set; }
-    public DateTime StoppedAt { get; set; }
-}
 
 // ═══════════════════════════════════════════════════════════════
 // OPERATOR KISISEL ISTATISTIK

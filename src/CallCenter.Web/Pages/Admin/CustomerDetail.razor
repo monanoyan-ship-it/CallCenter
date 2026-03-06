@@ -1464,7 +1464,7 @@
     }
 
     private void GoBack() => Nav.NavigateTo("admin/customers");
-    private void GoToPortal() => Nav.NavigateTo($"portal/dashboard?customerId={Id}");
+    private void GoToPortal() => Nav.NavigateTo($"customer/portal/dashboard?customerId={Id}");
 
     private record ErrorMsg(string? Message);
     private record PasswordResetResult(string? Password);

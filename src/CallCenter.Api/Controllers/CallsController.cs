@@ -101,7 +101,13 @@ public class CallsController : AuditableControllerBase
     [HttpGet("queued")]
     public async Task<IActionResult> GetQueued([FromQuery] int? customerId = null)
     {
-        return Ok(await _callFactory.GetQueuedAsync(customerId));
+        var items = await _callFactory.GetQueuedAsync(customerId);
+
+        // Sistem adminleri bireysel kayitlari goremez, sadece sayi
+        if (IsSystemAdmin)
+            return Ok(new List<CallNotification>());
+
+        return Ok(items);
     }
 
     /// <summary>
@@ -131,6 +137,8 @@ public class CallsController : AuditableControllerBase
 
         return Ok(result);
     }
+
+    private bool IsSystemAdmin => User.IsInRole("Admin") || User.IsInRole("Supervisor");
 
     private int GetUserId()
     {

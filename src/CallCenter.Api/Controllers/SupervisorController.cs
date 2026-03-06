@@ -18,9 +18,11 @@ public class SupervisorController : ControllerBase
         _supervisorFactory = supervisorFactory;
     }
 
+    private bool IsSystemAdmin => User.IsInRole("Admin") || User.IsInRole("Supervisor");
+
     private int? ResolveCustomerId(int? queryCustomerId)
     {
-        if (User.IsInRole("Admin") || User.IsInRole("Supervisor"))
+        if (IsSystemAdmin)
             return queryCustomerId;
         var claim = User.FindFirstValue("CustomerId");
         return claim != null ? int.Parse(claim) : null;
@@ -29,7 +31,15 @@ public class SupervisorController : ControllerBase
     [HttpGet("dashboard")]
     public async Task<ActionResult<DashboardResponse>> GetDashboard([FromQuery] int? customerId)
     {
-        return Ok(await _supervisorFactory.GetDashboardAsync(ResolveCustomerId(customerId)));
+        var result = await _supervisorFactory.GetDashboardAsync(ResolveCustomerId(customerId));
+
+        // Sistem adminleri bireysel arama kayitlarini goremez — sadece KPI sayilari yeter
+        if (IsSystemAdmin)
+        {
+            result.RecentCalls = new();
+        }
+
+        return Ok(result);
     }
 
     [HttpGet("queues/live")]

@@ -13,7 +13,14 @@
 
     @* ─── SOL PANEL ─── *@
     <aside class="sidebar">
-        <NavMenu />
+        @if (isCustomerUser)
+        {
+            <CustomerNavMenu />
+        }
+        else
+        {
+            <NavMenu />
+        }
     </aside>
 
     @* ─── ANA İÇERİK ─── *@
@@ -85,6 +92,7 @@
 @code {
     private bool sidebarOpen;
     private bool statusDropdownOpen;
+    private bool isCustomerUser;
     private int currentStatusId = AgentStatuses.Ids.Offline;
 
     // Durum adlarini Turkce goster
@@ -121,6 +129,11 @@
                 NavigationManager.NavigateTo("/change-password", forceLoad: false);
                 return;
             }
+
+            // Rol kontrolu
+            var role = await AuthService.GetRoleAsync();
+            isCustomerUser = string.Equals(role, "CustomerUser", StringComparison.OrdinalIgnoreCase);
+            StateHasChanged();
 
             // SignalR event'lerini dinle
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;

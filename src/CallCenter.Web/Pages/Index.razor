@@ -146,11 +146,15 @@
     {
         if (firstRender)
         {
-            // Zaten login olmussa dashboard'a yonlendir
+            // Zaten login olmussa role'a gore yonlendir
             var token = await AuthService.GetTokenAsync();
             if (!string.IsNullOrEmpty(token))
             {
-                NavigationManager.NavigateTo("/dashboard", forceLoad: false);
+                var role = await AuthService.GetRoleAsync();
+                var target = string.Equals(role, "CustomerUser", StringComparison.OrdinalIgnoreCase)
+                    ? "/customer/dashboard"
+                    : "/dashboard";
+                NavigationManager.NavigateTo(target, forceLoad: false);
             }
         }
     }

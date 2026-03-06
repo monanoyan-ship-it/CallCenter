@@ -1,5 +1,5 @@
-@page "/contacts"
-@attribute [Authorize]
+@page "/customer/contacts"
+@attribute [Authorize(Roles = "CustomerUser")]
 @inject HttpClient Http
 @inject ToastService Toast
 @inject NavigationManager Nav

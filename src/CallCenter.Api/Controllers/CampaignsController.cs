@@ -31,7 +31,13 @@ public class CampaignsController : AuditableControllerBase
     public async Task<IActionResult> GetCampaign(Guid uid)
     {
         var campaign = await _campaignFactory.GetCampaignByUidAsync(uid, GetCustomerId());
-        return campaign != null ? Ok(campaign) : NotFound();
+        if (campaign == null) return NotFound();
+
+        // Sistem adminleri bireysel kisi bilgilerini goremez, sadece sayilar
+        if (IsSystemAdmin)
+            campaign.Contacts = new();
+
+        return Ok(campaign);
     }
 
     /// <summary>Yeni kampanya olustur</summary>
@@ -136,6 +142,8 @@ public class CampaignsController : AuditableControllerBase
     }
 
     // ─── Helpers ───
+
+    private bool IsSystemAdmin => User.IsInRole("Admin") || User.IsInRole("Supervisor");
 
     private int? GetCustomerId()
     {

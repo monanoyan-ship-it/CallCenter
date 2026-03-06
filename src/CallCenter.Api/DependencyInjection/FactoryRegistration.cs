@@ -32,8 +32,7 @@ public static class FactoryRegistration
         services.AddScoped<IAuditLogFactory, AuditLogFactory>();
         services.AddScoped<ITranslationFactory, TranslationFactory>();
         services.AddScoped<ICallForwardingFactory, CallForwardingFactory>();
-        services.AddScoped<IConferenceFactory, ConferenceFactory>();
-        services.AddScoped<IMonitoringFactory, MonitoringFactory>();
+
         services.AddScoped<IMessagingFactory, MessagingFactory>();
         services.AddScoped<IProvisioningFactory, ProvisioningFactory>();
         services.AddScoped<ICloudStorageFactory, CloudStorageFactory>();

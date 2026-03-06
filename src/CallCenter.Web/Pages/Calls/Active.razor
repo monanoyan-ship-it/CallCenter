@@ -1,5 +1,5 @@
-@page "/calls/active"
-@attribute [Authorize]
+@page "/customer/calls/active"
+@attribute [Authorize(Roles = "CustomerUser")]
 @inject HubService HubService
 @inject SipService SipService
 @inject HttpClient Http
@@ -172,7 +172,7 @@
         await PermService.LoadAsync();
         if (PermService.CustomerRoleId == CustomerRoles.Ids.Operator && !PermService.IsAdmin)
         {
-            Nav.NavigateTo("/dashboard", replace: true);
+            Nav.NavigateTo("/customer/dashboard", replace: true);
             return;
         }
 

@@ -23,13 +23,6 @@ public class HubService : IAsyncDisposable
     public event Action<DashboardKpiUpdate>? OnDashboardKpiUpdated;
     public event Action<QueueStatusUpdate>? OnQueueStatusUpdated;
 
-    // ─── Conference Events ───
-    public event Action<ConferenceParticipantEvent>? OnConferenceParticipantJoined;
-    public event Action<ConferenceParticipantEvent>? OnConferenceParticipantLeft;
-
-    // ─── Monitoring Events ───
-    public event Action<MonitoringEvent>? OnMonitoringStarted;
-    public event Action<MonitoringStoppedEvent>? OnMonitoringStopped;
 
     // ─── Gateway Health Events ───
     public event Action<GatewayHealthUpdate>? OnGatewayHealthChanged;
@@ -92,27 +85,6 @@ public class HubService : IAsyncDisposable
             OnQueueStatusUpdated?.Invoke(update);
         });
 
-        // Conference events
-        _connection.On<ConferenceParticipantEvent>("ConferenceParticipantJoined", e =>
-        {
-            OnConferenceParticipantJoined?.Invoke(e);
-        });
-
-        _connection.On<ConferenceParticipantEvent>("ConferenceParticipantLeft", e =>
-        {
-            OnConferenceParticipantLeft?.Invoke(e);
-        });
-
-        // Monitoring events
-        _connection.On<MonitoringEvent>("MonitoringStarted", e =>
-        {
-            OnMonitoringStarted?.Invoke(e);
-        });
-
-        _connection.On<MonitoringStoppedEvent>("MonitoringStopped", e =>
-        {
-            OnMonitoringStopped?.Invoke(e);
-        });
 
         // Gateway health events
         _connection.On<GatewayHealthUpdate>("GatewayHealthChanged", update =>
@@ -216,23 +188,6 @@ public class HubService : IAsyncDisposable
         return new();
     }
 
-    /// <summary>Konferans odasina katil (SignalR grubu).</summary>
-    public async Task JoinConferenceRoomAsync(int roomId)
-    {
-        if (_connection?.State == HubConnectionState.Connected)
-        {
-            await _connection.InvokeAsync("JoinConferenceRoom", roomId);
-        }
-    }
-
-    /// <summary>Konferans odasindan ayril.</summary>
-    public async Task LeaveConferenceRoomAsync(int roomId)
-    {
-        if (_connection?.State == HubConnectionState.Connected)
-        {
-            await _connection.InvokeAsync("LeaveConferenceRoom", roomId);
-        }
-    }
 
     public async ValueTask DisposeAsync()
     {
