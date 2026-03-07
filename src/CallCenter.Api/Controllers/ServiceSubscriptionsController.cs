@@ -19,21 +19,19 @@ public class ServiceSubscriptionsController : AuditableControllerBase
     }
 
     // ═══════════════════════════════════════════════════
-    // HİZMET TANIMLARI
+    // HİZMET TANIMLARI (TypeDefinition bazlı)
     // ═══════════════════════════════════════════════════
 
     [HttpGet("services")]
-    public async Task<ActionResult<List<ServiceDefinitionDto>>> GetAllServices()
+    public ActionResult<List<ServiceTypeDto>> GetAllServices()
     {
-        var result = await _factory.GetAllServicesAsync();
-        return Ok(result);
+        return Ok(_factory.GetAllServices());
     }
 
     [HttpGet("services/premium")]
-    public async Task<ActionResult<List<ServiceDefinitionDto>>> GetPremiumServices()
+    public ActionResult<List<ServiceTypeDto>> GetPremiumServices()
     {
-        var result = await _factory.GetPremiumServicesAsync();
-        return Ok(result);
+        return Ok(_factory.GetPremiumServices());
     }
 
     // ═══════════════════════════════════════════════════

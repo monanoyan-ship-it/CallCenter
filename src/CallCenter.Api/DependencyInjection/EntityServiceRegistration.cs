@@ -54,7 +54,6 @@ public static class EntityServiceRegistration
         services.AddScoped<ICampaignContactEntityService, CampaignContactEntityService>();
 
         // Faz 14 — Hizmet Abonelik Yönetimi
-        services.AddScoped<IServiceDefinitionEntityService, ServiceDefinitionEntityService>();
         services.AddScoped<ICustomerServiceSubscriptionEntityService, CustomerServiceSubscriptionEntityService>();
         services.AddScoped<IServiceBillingItemEntityService, ServiceBillingItemEntityService>();
 

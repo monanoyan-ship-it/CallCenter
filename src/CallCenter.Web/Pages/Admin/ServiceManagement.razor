@@ -263,7 +263,7 @@ else if (isLoadingSummary)
     private bool isLoadingSummary;
 
     // Hizmet listesi
-    private List<ServiceDefinitionDto>? services;
+    private List<ServiceTypeDto>? services;
     private bool isLoadingServices;
 
     // Toplu fiyat artirma
@@ -300,7 +300,7 @@ else if (isLoadingSummary)
         isLoadingServices = true;
         try
         {
-            services = await Http.GetFromJsonAsync<List<ServiceDefinitionDto>>("api/services");
+            services = await Http.GetFromJsonAsync<List<ServiceTypeDto>>("api/services");
         }
         catch (Exception ex) { Toast.ShowError($"Hizmetler yuklenemedi: {ex.Message}"); }
         finally { isLoadingServices = false; }
@@ -328,7 +328,7 @@ else if (isLoadingSummary)
             {
                 AdjustmentType = adjustType,
                 Value = adjustValue,
-                ServiceDefinitionId = string.IsNullOrEmpty(adjustServiceId) ? null : int.Parse(adjustServiceId)
+                ServiceTypeId = string.IsNullOrEmpty(adjustServiceId) ? null : int.Parse(adjustServiceId)
             };
             var response = await Http.PostAsJsonAsync("api/service-subscriptions/adjust-prices", dto);
             if (response.IsSuccessStatusCode)

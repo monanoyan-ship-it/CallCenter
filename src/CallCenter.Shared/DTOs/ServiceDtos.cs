@@ -2,20 +2,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CallCenter.Shared.DTOs;
 
-// ─── ServiceDefinition ───
+// ─── ServiceType (TypeDefinition bazli, DB entity yok) ───
 
-public class ServiceDefinitionDto
+public class ServiceTypeDto
 {
     public int Id { get; set; }
-    public Guid Uid { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string Icon { get; set; } = string.Empty;
+    public string BadgeCss { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public decimal DefaultPrice { get; set; }
-    public bool IsActive { get; set; }
-    public int SortOrder { get; set; }
+    public bool IsDefault { get; set; }
 }
 
 // ─── CustomerServiceSubscription ───
@@ -25,7 +25,7 @@ public class SubscriptionDto
     public int Id { get; set; }
     public Guid Uid { get; set; }
     public int CustomerId { get; set; }
-    public int ServiceDefinitionId { get; set; }
+    public int ServiceTypeId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public string ServiceCode { get; set; } = string.Empty;
     public int StatusId { get; set; }
@@ -42,7 +42,7 @@ public class SubscriptionCreateDto
     public int CustomerId { get; set; }
 
     [Required]
-    public int ServiceDefinitionId { get; set; }
+    public int ServiceTypeId { get; set; }
 
     public decimal? MonthlyPrice { get; set; }
     public string? Notes { get; set; }
@@ -84,7 +84,7 @@ public class BulkPriceAdjustDto
     [Required]
     public decimal Value { get; set; }
 
-    public int? ServiceDefinitionId { get; set; }
+    public int? ServiceTypeId { get; set; }
 }
 
 public class BulkPriceAdjustResultDto

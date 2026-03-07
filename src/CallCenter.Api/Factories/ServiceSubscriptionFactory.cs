@@ -10,43 +10,38 @@ namespace CallCenter.Api.Factories;
 
 public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
 {
-    private readonly IServiceDefinitionEntityService _serviceDefEs;
     private readonly ICustomerServiceSubscriptionEntityService _subscriptionEs;
     private readonly IServiceBillingItemEntityService _billingItemEs;
     private readonly IUnitOfWork _uow;
 
     public ServiceSubscriptionFactory(
-        IServiceDefinitionEntityService serviceDefEs,
         ICustomerServiceSubscriptionEntityService subscriptionEs,
         IServiceBillingItemEntityService billingItemEs,
         IUnitOfWork uow)
     {
-        _serviceDefEs = serviceDefEs;
         _subscriptionEs = subscriptionEs;
         _billingItemEs = billingItemEs;
         _uow = uow;
     }
 
     // ═══════════════════════════════════════════════════
-    // HİZMET TANIMLARI
+    // HİZMET TANIMLARI (TypeDefinition bazlı)
     // ═══════════════════════════════════════════════════
 
-    public async Task<List<ServiceDefinitionDto>> GetAllServicesAsync()
+    public List<ServiceTypeDto> GetAllServices()
     {
-        return await _serviceDefEs.GetAllQueryable()
-            .Where(s => s.IsActive)
-            .OrderBy(s => s.SortOrder)
-            .Select(s => MapServiceDto(s))
-            .ToListAsync();
+        return ServiceTypes.All
+            .OrderBy(s => s.DisplayOrder)
+            .Select(MapServiceTypeDto)
+            .ToList();
     }
 
-    public async Task<List<ServiceDefinitionDto>> GetPremiumServicesAsync()
+    public List<ServiceTypeDto> GetPremiumServices()
     {
-        return await _serviceDefEs.GetAllQueryable()
-            .Where(s => s.IsActive && s.CategoryId == ServiceCategories.Ids.Premium)
-            .OrderBy(s => s.SortOrder)
-            .Select(s => MapServiceDto(s))
-            .ToListAsync();
+        return ServiceTypes.Premium
+            .OrderBy(s => s.DisplayOrder)
+            .Select(MapServiceTypeDto)
+            .ToList();
     }
 
     // ═══════════════════════════════════════════════════
@@ -55,32 +50,33 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
 
     public async Task<List<SubscriptionDto>> GetSubscriptionsByCustomerAsync(int customerId)
     {
-        return await _subscriptionEs.GetAllQueryable()
-            .Include(s => s.ServiceDefinition)
+        var list = await _subscriptionEs.GetAllQueryable()
             .Where(s => s.CustomerId == customerId)
-            .OrderBy(s => s.ServiceDefinition.SortOrder)
-            .Select(s => MapSubscriptionDto(s))
+            .OrderBy(s => s.ServiceTypeId)
             .ToListAsync();
+
+        return list.Select(MapSubscriptionDto).ToList();
     }
 
     public async Task<(SubscriptionDto? Result, string? Error)> CreateSubscriptionAsync(SubscriptionCreateDto dto)
     {
+        // TypeDefinition kontrolü
+        var serviceType = ServiceTypes.GetById(dto.ServiceTypeId);
+        if (serviceType == null)
+            return (null, "Hizmet tanimi bulunamadi.");
+
         // Duplicate kontrolü
         var exists = await _subscriptionEs.GetAllQueryable()
-            .AnyAsync(s => s.CustomerId == dto.CustomerId && s.ServiceDefinitionId == dto.ServiceDefinitionId);
+            .AnyAsync(s => s.CustomerId == dto.CustomerId && s.ServiceTypeId == dto.ServiceTypeId);
         if (exists)
             return (null, "Bu musteri icin bu hizmet zaten tanimli.");
-
-        var serviceDef = await _serviceDefEs.GetByIdAsync(dto.ServiceDefinitionId);
-        if (serviceDef == null)
-            return (null, "Hizmet tanimi bulunamadi.");
 
         var entity = new CustomerServiceSubscription
         {
             CustomerId = dto.CustomerId,
-            ServiceDefinitionId = dto.ServiceDefinitionId,
+            ServiceTypeId = dto.ServiceTypeId,
             StatusId = SubscriptionStatuses.Ids.Active,
-            MonthlyPrice = dto.MonthlyPrice ?? serviceDef.DefaultPrice,
+            MonthlyPrice = dto.MonthlyPrice ?? ServiceTypes.GetDefaultPrice(dto.ServiceTypeId),
             StartDate = DateTime.UtcNow,
             Notes = dto.Notes
         };
@@ -88,12 +84,7 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
         _subscriptionEs.Add(entity);
         await _uow.SaveChangesAsync();
 
-        // Reload with ServiceDefinition for DTO mapping
-        var saved = await _subscriptionEs.GetAllQueryable()
-            .Include(s => s.ServiceDefinition)
-            .FirstAsync(s => s.Id == entity.Id);
-
-        return (MapSubscriptionDto(saved), null);
+        return (MapSubscriptionDto(entity), null);
     }
 
     public async Task<(bool Success, string? Error)> UpdateSubscriptionAsync(Guid uid, SubscriptionUpdateDto dto)
@@ -147,8 +138,8 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
         var query = _subscriptionEs.GetAllQueryable()
             .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active);
 
-        if (dto.ServiceDefinitionId.HasValue)
-            query = query.Where(s => s.ServiceDefinitionId == dto.ServiceDefinitionId.Value);
+        if (dto.ServiceTypeId.HasValue)
+            query = query.Where(s => s.ServiceTypeId == dto.ServiceTypeId.Value);
 
         var subscriptions = await query.ToListAsync();
         if (subscriptions.Count == 0)
@@ -163,7 +154,6 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
             else
                 sub.MonthlyPrice *= (1 + dto.Value / 100);
 
-            // Fiyat negatife dusmesin
             if (sub.MonthlyPrice < 0)
                 sub.MonthlyPrice = 0;
 
@@ -231,7 +221,6 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
     {
         var query = _billingItemEs.GetAllQueryable()
             .Include(b => b.CustomerServiceSubscription)
-                .ThenInclude(s => s.ServiceDefinition)
             .Where(b => b.CustomerId == customerId);
 
         if (year.HasValue)
@@ -239,25 +228,25 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
         if (month.HasValue)
             query = query.Where(b => b.Month == month.Value);
 
-        return await query
+        var items = await query
             .OrderByDescending(b => b.Year).ThenByDescending(b => b.Month)
-            .Select(b => new ServiceBillingItemDto
-            {
-                Id = b.Id,
-                CustomerId = b.CustomerId,
-                SubscriptionId = b.CustomerServiceSubscriptionId,
-                ServiceName = b.CustomerServiceSubscription.ServiceDefinition.Name,
-                StatusId = b.StatusId,
-                StatusName = BillingItemStatuses.GetById(b.StatusId) != null
-                    ? BillingItemStatuses.GetById(b.StatusId)!.SystemName : "?",
-                Year = b.Year,
-                Month = b.Month,
-                Amount = b.Amount,
-                IsPaid = b.IsPaid,
-                PaidAt = b.PaidAt,
-                Notes = b.Notes
-            })
             .ToListAsync();
+
+        return items.Select(b => new ServiceBillingItemDto
+        {
+            Id = b.Id,
+            CustomerId = b.CustomerId,
+            SubscriptionId = b.CustomerServiceSubscriptionId,
+            ServiceName = ServiceTypes.GetById(b.CustomerServiceSubscription.ServiceTypeId)?.Description ?? "?",
+            StatusId = b.StatusId,
+            StatusName = BillingItemStatuses.GetById(b.StatusId)?.SystemName ?? "?",
+            Year = b.Year,
+            Month = b.Month,
+            Amount = b.Amount,
+            IsPaid = b.IsPaid,
+            PaidAt = b.PaidAt,
+            Notes = b.Notes
+        }).ToList();
     }
 
     public async Task<(bool Success, string? Error)> MarkServiceBillingPaidAsync(int billingItemId)
@@ -282,12 +271,11 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
     public async Task<ServiceSubscriptionSummaryDto> GetSubscriptionSummaryAsync()
     {
         var activeSubscriptions = await _subscriptionEs.GetAllQueryable()
-            .Include(s => s.ServiceDefinition)
             .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active)
             .ToListAsync();
 
         var breakdown = activeSubscriptions
-            .GroupBy(s => s.ServiceDefinition.Name)
+            .GroupBy(s => ServiceTypes.GetById(s.ServiceTypeId)?.Description ?? "?")
             .Select(g => new ServiceRevenueItem
             {
                 ServiceName = g.Key,
@@ -309,33 +297,37 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
     // MAPPING HELPERS
     // ═══════════════════════════════════════════════════
 
-    private static ServiceDefinitionDto MapServiceDto(ServiceDefinition s) => new()
+    private static ServiceTypeDto MapServiceTypeDto(TypeItem s) => new()
     {
         Id = s.Id,
-        Uid = s.Uid,
-        Name = s.Name,
-        Code = s.Code,
+        Name = s.Description ?? s.SystemName,
+        Code = s.SystemName,
         Description = s.Description,
-        CategoryId = s.CategoryId,
-        CategoryName = ServiceCategories.GetById(s.CategoryId)?.SystemName ?? "?",
-        DefaultPrice = s.DefaultPrice,
-        IsActive = s.IsActive,
-        SortOrder = s.SortOrder
+        Icon = s.Icon ?? "",
+        BadgeCss = s.CssClass ?? "",
+        CategoryId = ServiceTypes.GetCategoryId(s.Id),
+        CategoryName = s.IsDefault ? "Standart" : "Premium",
+        DefaultPrice = ServiceTypes.GetDefaultPrice(s.Id),
+        IsDefault = s.IsDefault
     };
 
-    private static SubscriptionDto MapSubscriptionDto(CustomerServiceSubscription s) => new()
+    private static SubscriptionDto MapSubscriptionDto(CustomerServiceSubscription s)
     {
-        Id = s.Id,
-        Uid = s.Uid,
-        CustomerId = s.CustomerId,
-        ServiceDefinitionId = s.ServiceDefinitionId,
-        ServiceName = s.ServiceDefinition.Name,
-        ServiceCode = s.ServiceDefinition.Code,
-        StatusId = s.StatusId,
-        StatusName = SubscriptionStatuses.GetById(s.StatusId)?.SystemName ?? "?",
-        MonthlyPrice = s.MonthlyPrice,
-        StartDate = s.StartDate,
-        EndDate = s.EndDate,
-        Notes = s.Notes
-    };
+        var serviceType = ServiceTypes.GetById(s.ServiceTypeId);
+        return new()
+        {
+            Id = s.Id,
+            Uid = s.Uid,
+            CustomerId = s.CustomerId,
+            ServiceTypeId = s.ServiceTypeId,
+            ServiceName = serviceType?.Description ?? "?",
+            ServiceCode = serviceType?.SystemName ?? "?",
+            StatusId = s.StatusId,
+            StatusName = SubscriptionStatuses.GetById(s.StatusId)?.SystemName ?? "?",
+            MonthlyPrice = s.MonthlyPrice,
+            StartDate = s.StartDate,
+            EndDate = s.EndDate,
+            Notes = s.Notes
+        };
+    }
 }

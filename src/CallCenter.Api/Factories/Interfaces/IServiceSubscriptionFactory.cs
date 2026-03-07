@@ -4,9 +4,9 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface IServiceSubscriptionFactory
 {
-    // Hizmet Tanımları
-    Task<List<ServiceDefinitionDto>> GetAllServicesAsync();
-    Task<List<ServiceDefinitionDto>> GetPremiumServicesAsync();
+    // Hizmet Tanımları (TypeDefinition bazlı, DB yok)
+    List<ServiceTypeDto> GetAllServices();
+    List<ServiceTypeDto> GetPremiumServices();
 
     // Abonelik CRUD
     Task<List<SubscriptionDto>> GetSubscriptionsByCustomerAsync(int customerId);

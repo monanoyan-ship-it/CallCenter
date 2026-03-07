@@ -6,8 +6,8 @@ public class CustomerServiceSubscription
     public Guid Uid { get; set; } = Guid.NewGuid();
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
-    public int ServiceDefinitionId { get; set; }
-    public ServiceDefinition ServiceDefinition { get; set; } = null!;
+    /// <summary>ServiceTypes TypeDefinition ID (FK yok, sabit katalog)</summary>
+    public int ServiceTypeId { get; set; }
     public int StatusId { get; set; }
     public decimal MonthlyPrice { get; set; }
     public DateTime StartDate { get; set; }

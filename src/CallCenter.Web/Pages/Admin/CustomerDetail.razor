@@ -933,7 +933,7 @@
     // ─── HİZMETLER ───
     private List<SubscriptionDto>? subscriptions;
     private List<ServiceBillingItemDto>? serviceBillingItems;
-    private List<ServiceDefinitionDto>? premiumServices;
+    private List<ServiceTypeDto>? premiumServices;
     private bool isLoadingSubscriptions;
     private bool isLoadingServiceBilling;
     private bool isUpdatingSubscription;
@@ -1306,7 +1306,7 @@
         {
             try
             {
-                premiumServices = await Http.GetFromJsonAsync<List<ServiceDefinitionDto>>("api/services/premium");
+                premiumServices = await Http.GetFromJsonAsync<List<ServiceTypeDto>>("api/services/premium");
             }
             catch (Exception ex) { Toast.ShowError($"Hizmet listesi yuklenemedi: {ex.Message}"); }
         }
@@ -1325,7 +1325,7 @@
             var dto = new SubscriptionCreateDto
             {
                 CustomerId = Id,
-                ServiceDefinitionId = newSubServiceId,
+                ServiceTypeId = newSubServiceId,
                 MonthlyPrice = newSubPrice,
                 Notes = newSubNotes
             };
