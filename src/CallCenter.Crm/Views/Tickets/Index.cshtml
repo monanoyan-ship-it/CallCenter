@@ -1,0 +1,228 @@
+@{
+    ViewData["Title"] = "Talepler";
+}
+
+<div id="tickets-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <div class="input-group" style="max-width: 280px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Talep ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            </div>
+            <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: statusFilter">
+                <option value="">Tum Durumlar</option>
+                <option value="open">Acik</option>
+                <option value="inprogress">Devam Ediyor</option>
+                <option value="resolved">Cozuldu</option>
+                <option value="closed">Kapandi</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ticketModal" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Talep
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-2 mb-3">
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Acik</div>
+                    <div class="fw-bold text-warning" data-bind="text: stats().open">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Devam Ediyor</div>
+                    <div class="fw-bold text-info" data-bind="text: stats().inprogress">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Cozuldu</div>
+                    <div class="fw-bold text-success" data-bind="text: stats().resolved">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Kapandi</div>
+                    <div class="fw-bold text-secondary" data-bind="text: stats().closed">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 60px;">#</th>
+                            <th>Baslik</th>
+                            <th>Kisi</th>
+                            <th>Oncelik</th>
+                            <th>Durum</th>
+                            <th>Atanan</th>
+                            <th>Tarih</th>
+                            <th style="width: 80px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredTickets">
+                        <tr>
+                            <td class="small text-muted" data-bind="text: '#' + id"></td>
+                            <td>
+                                <a href="#" class="text-decoration-none fw-semibold small" data-bind="text: subject, click: $parent.openDetail"></a>
+                            </td>
+                            <td class="small" data-bind="text: contactName"></td>
+                            <td>
+                                <span class="badge" data-bind="text: priorityName, css: priorityCss"></span>
+                            </td>
+                            <td>
+                                <span class="badge" data-bind="text: statusName, css: statusCss"></span>
+                            </td>
+                            <td class="small" data-bind="text: assignedTo"></td>
+                            <td class="small text-muted" data-bind="text: createdDate"></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit" data-bs-toggle="modal" data-bs-target="#ticketModal">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: filteredTickets().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-ticket-detailed" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Henuz talep yok</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="ticketModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Talep Duzenle' : 'Yeni Talep'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Baslik</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.subject" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Aciklama</label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Kisi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Oncelik</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.priority">
+                                <option value="low">Dusuk</option>
+                                <option value="medium">Orta</option>
+                                <option value="high">Yuksek</option>
+                                <option value="urgent">Acil</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save">
+                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function TicketsViewModel() {
+        var self = this;
+        self.tickets = ko.observableArray([]);
+        self.contactsList = ko.observableArray([]);
+        self.searchQuery = ko.observable('');
+        self.statusFilter = ko.observable('');
+        self.isEditing = ko.observable(false);
+        self.editingId = ko.observable(null);
+
+        self.form = {
+            subject: ko.observable(''),
+            description: ko.observable(''),
+            contactId: ko.observable(null),
+            priority: ko.observable('medium')
+        };
+
+        self.stats = ko.computed(function() {
+            var all = self.tickets();
+            return {
+                open: all.filter(function(t) { return t.status === 'open'; }).length,
+                inprogress: all.filter(function(t) { return t.status === 'inprogress'; }).length,
+                resolved: all.filter(function(t) { return t.status === 'resolved'; }).length,
+                closed: all.filter(function(t) { return t.status === 'closed'; }).length
+            };
+        });
+
+        self.filteredTickets = ko.computed(function() {
+            var q = (self.searchQuery() || '').toLowerCase();
+            var s = self.statusFilter();
+            return self.tickets().filter(function(t) {
+                var matchSearch = !q || (t.subject || '').toLowerCase().indexOf(q) >= 0
+                    || (t.contactName || '').toLowerCase().indexOf(q) >= 0;
+                var matchStatus = !s || t.status === s;
+                return matchSearch && matchStatus;
+            });
+        });
+
+        self.resetForm = function() {
+            self.form.subject('');
+            self.form.description('');
+            self.form.contactId(null);
+            self.form.priority('medium');
+            self.isEditing(false);
+            self.editingId(null);
+        };
+
+        self.openNew = function() { self.resetForm(); };
+
+        self.openEdit = function(ticket) {
+            self.isEditing(true);
+            self.editingId(ticket.id);
+            self.form.subject(ticket.subject || '');
+            self.form.description(ticket.description || '');
+            self.form.contactId(ticket.contactId);
+            self.form.priority(ticket.priority || 'medium');
+        };
+
+        self.openDetail = function(ticket) {
+            // TODO: navigate to ticket detail
+        };
+
+        self.save = function() {
+            // TODO: CRM.apiPost / CRM.apiPut
+        };
+
+        // TODO: CRM.apiGet('/api/crm/tickets').then(...)
+    }
+
+    ko.applyBindings(new TicketsViewModel(), document.getElementById('tickets-vm'));
+</script>
+}

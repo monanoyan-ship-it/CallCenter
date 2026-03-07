@@ -1,0 +1,129 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div id="dashboard-vm">
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Toplam Kisi</div>
+                    <div class="fs-3 fw-bold text-primary" data-bind="text: totalContacts">-</div>
+                    <i class="bi bi-people-fill text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Acik Talepler</div>
+                    <div class="fs-3 fw-bold text-warning" data-bind="text: openTickets">-</div>
+                    <i class="bi bi-ticket-detailed-fill text-warning"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Aktif Firsatlar</div>
+                    <div class="fs-3 fw-bold text-success" data-bind="text: activeDeals">-</div>
+                    <i class="bi bi-kanban-fill text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Bugun Etkilesim</div>
+                    <div class="fs-3 fw-bold text-info" data-bind="text: todayActivities">-</div>
+                    <i class="bi bi-clock-history text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Son Etkilesimler -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 fw-semibold">
+                    <i class="bi bi-clock-history me-1"></i>Son Etkilesimler
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Kisi</th>
+                                    <th>Tur</th>
+                                    <th>Ozet</th>
+                                    <th>Zaman</th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: recentActivities">
+                                <tr>
+                                    <td class="small" data-bind="text: contactName"></td>
+                                    <td><span class="badge bg-secondary" data-bind="text: typeName"></span></td>
+                                    <td class="small" data-bind="text: summary"></td>
+                                    <td class="small text-muted" data-bind="text: timeAgo"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: recentActivities().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-2 small">Henuz etkilesim yok</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Yaklaşan Görevler -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 fw-semibold">
+                    <i class="bi bi-check2-square me-1"></i>Yaklasan Gorevler
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" data-bind="foreach: upcomingTasks">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <small class="fw-semibold" data-bind="text: title"></small>
+                                <small class="text-muted" data-bind="text: dueDate"></small>
+                            </div>
+                            <small class="text-muted" data-bind="text: contactName"></small>
+                        </div>
+                    </div>
+                    <!-- ko if: upcomingTasks().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-check" style="font-size: 2rem;"></i>
+                        <p class="mt-2 small">Yaklasan gorev yok</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function DashboardViewModel() {
+        var self = this;
+        self.totalContacts = ko.observable(0);
+        self.openTickets = ko.observable(0);
+        self.activeDeals = ko.observable(0);
+        self.todayActivities = ko.observable(0);
+        self.recentActivities = ko.observableArray([]);
+        self.upcomingTasks = ko.observableArray([]);
+
+        // TODO: CRM API endpoint'leri hazir olunca buradan yuklenecek
+        // CRM.apiGet('/api/crm/dashboard').then(function(data) { ... });
+    }
+
+    ko.applyBindings(new DashboardViewModel(), document.getElementById('dashboard-vm'));
+</script>
+}

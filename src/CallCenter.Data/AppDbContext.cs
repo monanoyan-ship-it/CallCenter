@@ -50,13 +50,18 @@ public class AppDbContext : DbContext
     public DbSet<CrossBorderTransfer> CrossBorderTransfers => Set<CrossBorderTransfer>();
 
     // ─── Service Subscription ───
-    public DbSet<ServiceDefinition> ServiceDefinitions => Set<ServiceDefinition>();
     public DbSet<CustomerServiceSubscription> CustomerServiceSubscriptions => Set<CustomerServiceSubscription>();
     public DbSet<ServiceBillingItem> ServiceBillingItems => Set<ServiceBillingItem>();
 
     // ─── Campaign (Gunluk Arama Listesi) ───
     public DbSet<CallCampaign> CallCampaigns => Set<CallCampaign>();
     public DbSet<CampaignContact> CampaignContacts => Set<CampaignContact>();
+
+    // ─── CRM ───
+    public DbSet<CrmTicket> CrmTickets => Set<CrmTicket>();
+    public DbSet<CrmDeal> CrmDeals => Set<CrmDeal>();
+    public DbSet<CrmActivity> CrmActivities => Set<CrmActivity>();
+    public DbSet<CrmTask> CrmTasks => Set<CrmTask>();
 
     // ─── IVR & Auto-Attendant ───
     public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
@@ -741,37 +746,147 @@ public class AppDbContext : DbContext
         });
 
         // ═══════════════════════════════════════════════════════════════
-        // HİZMET ABONELİK YÖNETİMİ (Faz 14)
+        // CRM ENTITY'LERİ
         // ═══════════════════════════════════════════════════════════════
 
-        // ServiceDefinition (hizmet tanimi)
-        modelBuilder.Entity<ServiceDefinition>(e =>
+        // CrmTicket (destek talebi)
+        modelBuilder.Entity<CrmTicket>(e =>
         {
-            e.HasKey(s => s.Id);
-            e.HasIndex(s => s.Uid).IsUnique();
-            e.HasIndex(s => s.Code).IsUnique();
-            e.Property(s => s.Name).IsRequired().HasMaxLength(200);
-            e.Property(s => s.Code).IsRequired().HasMaxLength(50);
-            e.Property(s => s.Description).HasMaxLength(500);
-            e.Property(s => s.DefaultPrice).HasPrecision(18, 2);
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => t.Uid).IsUnique();
+            e.Property(t => t.Subject).IsRequired().HasMaxLength(300);
+            e.Property(t => t.Description).HasMaxLength(5000);
+            e.HasIndex(t => new { t.CustomerId, t.StatusId });
+            e.HasIndex(t => t.AssignedToPersonnelId);
+            e.HasOne(t => t.Contact)
+             .WithMany()
+             .HasForeignKey(t => t.ContactId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.AssignedToPersonnel)
+             .WithMany()
+             .HasForeignKey(t => t.AssignedToPersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.CreatedByPersonnel)
+             .WithMany()
+             .HasForeignKey(t => t.CreatedByPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.Customer)
+             .WithMany()
+             .HasForeignKey(t => t.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // CrmDeal (satis firsati)
+        modelBuilder.Entity<CrmDeal>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => d.Uid).IsUnique();
+            e.Property(d => d.Title).IsRequired().HasMaxLength(300);
+            e.Property(d => d.Value).HasPrecision(18, 2);
+            e.Property(d => d.Notes).HasMaxLength(5000);
+            e.HasIndex(d => new { d.CustomerId, d.StageId });
+            e.HasOne(d => d.Contact)
+             .WithMany()
+             .HasForeignKey(d => d.ContactId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(d => d.OwnerPersonnel)
+             .WithMany()
+             .HasForeignKey(d => d.OwnerPersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(d => d.CreatedByPersonnel)
+             .WithMany()
+             .HasForeignKey(d => d.CreatedByPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.Customer)
+             .WithMany()
+             .HasForeignKey(d => d.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmActivity (etkilesim kaydi)
+        modelBuilder.Entity<CrmActivity>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Summary).HasMaxLength(500);
+            e.Property(a => a.Detail).HasMaxLength(5000);
+            e.HasIndex(a => new { a.CustomerId, a.CreatedAt });
+            e.HasIndex(a => a.ContactId);
+            e.HasOne(a => a.Contact)
+             .WithMany()
+             .HasForeignKey(a => a.ContactId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Ticket)
+             .WithMany(t => t.Activities)
+             .HasForeignKey(a => a.TicketId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Deal)
+             .WithMany(d => d.Activities)
+             .HasForeignKey(a => a.DealId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.CallRecord)
+             .WithMany()
+             .HasForeignKey(a => a.CallRecordId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Personnel)
+             .WithMany()
+             .HasForeignKey(a => a.PersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.Customer)
+             .WithMany()
+             .HasForeignKey(a => a.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmTask (gorev)
+        modelBuilder.Entity<CrmTask>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Title).IsRequired().HasMaxLength(300);
+            e.Property(t => t.Description).HasMaxLength(5000);
+            e.HasIndex(t => new { t.CustomerId, t.StatusId });
+            e.HasIndex(t => new { t.AssignedToPersonnelId, t.DueDate });
+            e.HasOne(t => t.Contact)
+             .WithMany()
+             .HasForeignKey(t => t.ContactId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.Ticket)
+             .WithMany()
+             .HasForeignKey(t => t.TicketId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.Deal)
+             .WithMany()
+             .HasForeignKey(t => t.DealId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.AssignedToPersonnel)
+             .WithMany()
+             .HasForeignKey(t => t.AssignedToPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.CreatedByPersonnel)
+             .WithMany()
+             .HasForeignKey(t => t.CreatedByPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.Customer)
+             .WithMany()
+             .HasForeignKey(t => t.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // HİZMET ABONELİK YÖNETİMİ (Faz 14)
+        // ═══════════════════════════════════════════════════════════════
 
         // CustomerServiceSubscription (musteri hizmet aboneligi)
         modelBuilder.Entity<CustomerServiceSubscription>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.Uid).IsUnique();
-            e.HasIndex(s => new { s.CustomerId, s.ServiceDefinitionId }).IsUnique();
+            e.HasIndex(s => new { s.CustomerId, s.ServiceTypeId }).IsUnique();
             e.Property(s => s.MonthlyPrice).HasPrecision(18, 2);
             e.Property(s => s.Notes).HasMaxLength(1000);
             e.HasOne(s => s.Customer)
              .WithMany(c => c.ServiceSubscriptions)
              .HasForeignKey(s => s.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(s => s.ServiceDefinition)
-             .WithMany(sd => sd.Subscriptions)
-             .HasForeignKey(s => s.ServiceDefinitionId)
-             .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ServiceBillingItem (hizmet fatura kalemi)
@@ -823,8 +938,6 @@ public class AppDbContext : DbContext
         // Varsayılan sistem ayarları
         SeedSystemSettings(modelBuilder);
 
-        // Hizmet tanımları
-        SeedServiceDefinitions(modelBuilder);
     }
 
     private static void SeedTranslations(ModelBuilder modelBuilder)
@@ -957,19 +1070,4 @@ public class AppDbContext : DbContext
         }
     }
 
-    private static void SeedServiceDefinitions(ModelBuilder modelBuilder)
-    {
-        var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        modelBuilder.Entity<ServiceDefinition>().HasData(
-            new ServiceDefinition { Id = 1, Uid = Guid.Parse("10000000-0000-0000-0000-000000000001"), Code = "CALL_DIST", Name = "Cagri Dagitimi", CategoryId = ServiceCategories.Ids.Default, DefaultPrice = 0, SortOrder = 1, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 2, Uid = Guid.Parse("10000000-0000-0000-0000-000000000002"), Code = "CALL_REC", Name = "Cagri Kaydi", CategoryId = ServiceCategories.Ids.Default, DefaultPrice = 0, SortOrder = 2, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 3, Uid = Guid.Parse("10000000-0000-0000-0000-000000000003"), Code = "VOICE_REC", Name = "Ses Kayitlari", CategoryId = ServiceCategories.Ids.Default, DefaultPrice = 0, SortOrder = 3, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 4, Uid = Guid.Parse("10000000-0000-0000-0000-000000000004"), Code = "IVR", Name = "Sesli Yonlendirme (IVR)", CategoryId = ServiceCategories.Ids.Premium, DefaultPrice = 500, SortOrder = 4, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 5, Uid = Guid.Parse("10000000-0000-0000-0000-000000000005"), Code = "QUALITY", Name = "Kalite Yonetimi", CategoryId = ServiceCategories.Ids.Premium, DefaultPrice = 300, SortOrder = 5, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 6, Uid = Guid.Parse("10000000-0000-0000-0000-000000000006"), Code = "CRM_INT", Name = "CRM Entegrasyonu", CategoryId = ServiceCategories.Ids.Premium, DefaultPrice = 400, SortOrder = 6, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 7, Uid = Guid.Parse("10000000-0000-0000-0000-000000000007"), Code = "CAMPAIGN", Name = "Kampanya Modulu", CategoryId = ServiceCategories.Ids.Premium, DefaultPrice = 350, SortOrder = 7, IsActive = true, CreatedAt = seedDate },
-            new ServiceDefinition { Id = 8, Uid = Guid.Parse("10000000-0000-0000-0000-000000000008"), Code = "REPORTING", Name = "Gelismis Raporlama", CategoryId = ServiceCategories.Ids.Premium, DefaultPrice = 250, SortOrder = 8, IsActive = true, CreatedAt = seedDate }
-        );
-    }
 }
