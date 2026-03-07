@@ -12,15 +12,15 @@
             </div>
             <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: stageFilter">
                 <option value="">Tum Asamalar</option>
-                <option value="lead">Lead</option>
-                <option value="qualified">Nitelikli</option>
-                <option value="proposal">Teklif</option>
-                <option value="negotiation">Muzakere</option>
-                <option value="won">Kazanildi</option>
-                <option value="lost">Kaybedildi</option>
+                <option value="1">Lead</option>
+                <option value="2">Nitelikli</option>
+                <option value="3">Teklif</option>
+                <option value="4">Muzakere</option>
+                <option value="5">Kazanildi</option>
+                <option value="6">Kaybedildi</option>
             </select>
         </div>
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#dealModal" data-bind="click: openNew">
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
             <i class="bi bi-plus-lg me-1"></i>Yeni Firsat
         </button>
     </div>
@@ -89,25 +89,23 @@
                             <th>Deger</th>
                             <th>Asama</th>
                             <th>Olasilik</th>
-                            <th>Kapanma Tarihi</th>
+                            <th>Kapanma</th>
                             <th style="width: 80px;"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredDeals">
                         <tr>
-                            <td>
-                                <a href="#" class="text-decoration-none fw-semibold small" data-bind="text: title, click: $parent.openDetail"></a>
-                            </td>
+                            <td class="small fw-semibold" data-bind="text: title"></td>
                             <td class="small" data-bind="text: contactName"></td>
-                            <td class="small fw-semibold" data-bind="text: valueFormatted"></td>
+                            <td class="small fw-semibold" data-bind="text: value.toLocaleString('tr-TR') + ' TL'"></td>
                             <td>
                                 <span class="badge" data-bind="text: stageName, css: stageCss"></span>
                             </td>
                             <td class="small" data-bind="text: probability + '%'"></td>
-                            <td class="small text-muted" data-bind="text: expectedCloseDate"></td>
+                            <td class="small text-muted" data-bind="text: expectedCloseDate ? new Date(expectedCloseDate).toLocaleDateString('tr-TR') : '-'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit" data-bs-toggle="modal" data-bs-target="#dealModal">
+                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
@@ -145,7 +143,7 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Firsat Adi</label>
+                            <label class="form-label small">Firsat Adi *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
                         </div>
                         <div class="col-6">
@@ -158,13 +156,13 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Asama</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.stage">
-                                <option value="lead">Lead</option>
-                                <option value="qualified">Nitelikli</option>
-                                <option value="proposal">Teklif</option>
-                                <option value="negotiation">Muzakere</option>
-                                <option value="won">Kazanildi</option>
-                                <option value="lost">Kaybedildi</option>
+                            <select class="form-select form-select-sm" data-bind="value: form.stageId">
+                                <option value="1">Lead</option>
+                                <option value="2">Nitelikli</option>
+                                <option value="3">Teklif</option>
+                                <option value="4">Muzakere</option>
+                                <option value="5">Kazanildi</option>
+                                <option value="6">Kaybedildi</option>
                             </select>
                         </div>
                         <div class="col-6">
@@ -183,8 +181,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
-                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save">
-                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
                     </button>
                 </div>
             </div>
@@ -193,97 +192,5 @@
 </div>
 
 @section Scripts {
-<script>
-    function DealsViewModel() {
-        var self = this;
-        self.deals = ko.observableArray([]);
-        self.contactsList = ko.observableArray([]);
-        self.searchQuery = ko.observable('');
-        self.stageFilter = ko.observable('');
-        self.isEditing = ko.observable(false);
-        self.editingId = ko.observable(null);
-
-        self.form = {
-            title: ko.observable(''),
-            contactId: ko.observable(null),
-            value: ko.observable(0),
-            stage: ko.observable('lead'),
-            probability: ko.observable(0),
-            expectedCloseDate: ko.observable(''),
-            notes: ko.observable('')
-        };
-
-        self.stageCounts = ko.computed(function() {
-            var all = self.deals();
-            return {
-                lead: all.filter(function(d) { return d.stage === 'lead'; }).length,
-                qualified: all.filter(function(d) { return d.stage === 'qualified'; }).length,
-                proposal: all.filter(function(d) { return d.stage === 'proposal'; }).length,
-                negotiation: all.filter(function(d) { return d.stage === 'negotiation'; }).length,
-                won: all.filter(function(d) { return d.stage === 'won'; }).length,
-                lost: all.filter(function(d) { return d.stage === 'lost'; }).length
-            };
-        });
-
-        self.filteredDeals = ko.computed(function() {
-            var q = (self.searchQuery() || '').toLowerCase();
-            var s = self.stageFilter();
-            return self.deals().filter(function(d) {
-                var matchSearch = !q || (d.title || '').toLowerCase().indexOf(q) >= 0
-                    || (d.contactName || '').toLowerCase().indexOf(q) >= 0;
-                var matchStage = !s || d.stage === s;
-                return matchSearch && matchStage;
-            });
-        });
-
-        self.totalPipeline = ko.computed(function() {
-            var active = self.deals().filter(function(d) { return d.stage !== 'lost'; });
-            var total = active.reduce(function(sum, d) { return sum + (d.value || 0); }, 0);
-            return total.toLocaleString('tr-TR') + ' TL';
-        });
-
-        self.resetForm = function() {
-            self.form.title('');
-            self.form.contactId(null);
-            self.form.value(0);
-            self.form.stage('lead');
-            self.form.probability(0);
-            self.form.expectedCloseDate('');
-            self.form.notes('');
-            self.isEditing(false);
-            self.editingId(null);
-        };
-
-        self.openNew = function() { self.resetForm(); };
-
-        self.openEdit = function(deal) {
-            self.isEditing(true);
-            self.editingId(deal.id);
-            self.form.title(deal.title || '');
-            self.form.contactId(deal.contactId);
-            self.form.value(deal.value || 0);
-            self.form.stage(deal.stage || 'lead');
-            self.form.probability(deal.probability || 0);
-            self.form.expectedCloseDate(deal.expectedCloseDate || '');
-            self.form.notes(deal.notes || '');
-        };
-
-        self.openDetail = function(deal) {
-            // TODO: navigate to deal detail
-        };
-
-        self.save = function() {
-            // TODO: CRM.apiPost / CRM.apiPut
-        };
-
-        self.remove = function(deal) {
-            if (!confirm('Bu firsati silmek istediginize emin misiniz?')) return;
-            // TODO: CRM.apiDelete
-        };
-
-        // TODO: CRM.apiGet('/api/crm/deals').then(...)
-    }
-
-    ko.applyBindings(new DealsViewModel(), document.getElementById('deals-vm'));
-</script>
+    <script src="~/js/Deals.js"></script>
 }

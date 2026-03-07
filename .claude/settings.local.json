@@ -131,7 +131,10 @@
       "WebFetch(domain:gun.av.tr)",
       "WebFetch(domain:www.organikhaberlesme.com.tr)",
       "WebFetch(domain:organikhaberlesme.com)",
-      "WebFetch(domain:www.engagebay.com)"
+      "WebFetch(domain:www.engagebay.com)",
+      "Bash(ipconfig /flushdns)",
+      "Bash(nslookup crm.corplynk.com 1.1.1.1)",
+      "Bash(nslookup crm.corplynk.com)"
     ]
   }
 }

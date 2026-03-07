@@ -110,20 +110,5 @@
 </div>
 
 @section Scripts {
-<script>
-    function DashboardViewModel() {
-        var self = this;
-        self.totalContacts = ko.observable(0);
-        self.openTickets = ko.observable(0);
-        self.activeDeals = ko.observable(0);
-        self.todayActivities = ko.observable(0);
-        self.recentActivities = ko.observableArray([]);
-        self.upcomingTasks = ko.observableArray([]);
-
-        // TODO: CRM API endpoint'leri hazir olunca buradan yuklenecek
-        // CRM.apiGet('/api/crm/dashboard').then(function(data) { ... });
-    }
-
-    ko.applyBindings(new DashboardViewModel(), document.getElementById('dashboard-vm'));
-</script>
+    <script src="~/js/Dashboard.js"></script>
 }
