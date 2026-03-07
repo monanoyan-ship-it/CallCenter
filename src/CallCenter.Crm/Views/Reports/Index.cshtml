@@ -2,48 +2,147 @@
     ViewData["Title"] = "Raporlar";
 }
 
-<div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 fw-semibold">
-                <i class="bi bi-bar-chart-fill me-1"></i>Yaklasim
+<div id="reports-vm">
+    <!-- KPI Ozet -->
+    <div class="row g-2 mb-3">
+        <div class="col-lg-3 col-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Toplam Kisi</div>
+                    <div class="fw-bold text-primary fs-5" data-bind="text: dashboard().totalContacts || 0">0</div>
+                </div>
             </div>
-            <div class="card-body text-center text-muted py-5">
-                <i class="bi bi-graph-up-arrow" style="font-size: 3rem;"></i>
-                <p class="mt-3 small">CRM raporlari yakinda burada olacak.</p>
-                <p class="small text-muted">Talep istatistikleri, pipeline analizi, etkilesim raporlari</p>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Acik Talepler</div>
+                    <div class="fw-bold text-danger fs-5" data-bind="text: dashboard().openTickets || 0">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Aktif Firsatlar</div>
+                    <div class="fw-bold text-success fs-5" data-bind="text: dashboard().activeDeals || 0">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Pipeline Degeri</div>
+                    <div class="fw-bold text-info fs-5" data-bind="text: pipelineText">0 TL</div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 fw-semibold">
-                <i class="bi bi-pie-chart-fill me-1"></i>Planlanan Raporlar
+
+    <div class="row g-3">
+        <!-- Talep Dagilimi -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 fw-semibold">
+                    <i class="bi bi-ticket-detailed-fill me-1"></i>Talep Durum Dagilimi
+                </div>
+                <div class="card-body">
+                    <div data-bind="foreach: ticketStats">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small" data-bind="text: name"></span>
+                            <div class="d-flex align-items-center gap-2" style="min-width: 140px;">
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar" data-bind="style: { width: pct + '%' }, css: css"></div>
+                                </div>
+                                <span class="small fw-semibold" style="min-width: 24px; text-align: right;" data-bind="text: count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ko if: ticketStats().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Veri yok</div>
+                    <!-- /ko -->
+                </div>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush small">
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Talep Durum Dagilimi</span>
-                        <span class="badge bg-secondary">Yakinda</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Pipeline Degeri (Aylik)</span>
-                        <span class="badge bg-secondary">Yakinda</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Etkilesim Aktivitesi</span>
-                        <span class="badge bg-secondary">Yakinda</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Personel Performansi</span>
-                        <span class="badge bg-secondary">Yakinda</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Musteri Memnuniyeti</span>
-                        <span class="badge bg-secondary">Yakinda</span>
-                    </li>
-                </ul>
+        </div>
+
+        <!-- Firsat Asamalari -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 fw-semibold">
+                    <i class="bi bi-kanban-fill me-1"></i>Firsat Pipeline Dagilimi
+                </div>
+                <div class="card-body">
+                    <div data-bind="foreach: dealStats">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small" data-bind="text: name"></span>
+                            <div class="d-flex align-items-center gap-2" style="min-width: 140px;">
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar" data-bind="style: { width: pct + '%' }, css: css"></div>
+                                </div>
+                                <span class="small fw-semibold" style="min-width: 24px; text-align: right;" data-bind="text: count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ko if: dealStats().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Veri yok</div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Son Etkilesimler -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 fw-semibold">
+                    <i class="bi bi-clock-history me-1"></i>Son Etkilesimler
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody data-bind="foreach: recentActivities">
+                                <tr>
+                                    <td class="text-center" style="width: 32px;"><i data-bind="css: typeIcon"></i></td>
+                                    <td class="small" data-bind="text: summary"></td>
+                                    <td class="small text-muted" data-bind="text: contactName"></td>
+                                    <td class="small text-muted text-end" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: recentActivities().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Etkilesim yok</div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Yaklasan Gorevler -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 fw-semibold">
+                    <i class="bi bi-check2-square me-1"></i>Yaklasan Gorevler
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody data-bind="foreach: upcomingTasks">
+                                <tr data-bind="css: { 'table-danger': dueDate && new Date(dueDate) < new Date() && statusId < 3 }">
+                                    <td class="small fw-semibold" data-bind="text: title"></td>
+                                    <td><span class="badge" data-bind="text: statusName, css: statusCss"></span></td>
+                                    <td class="small text-muted text-end" data-bind="text: dueDate ? new Date(dueDate).toLocaleDateString('tr-TR') : '-'"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: upcomingTasks().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Gorev yok</div>
+                    <!-- /ko -->
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/Reports.js"></script>
+}

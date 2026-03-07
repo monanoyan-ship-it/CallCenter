@@ -97,6 +97,56 @@ public class CrmFactory : ICrmFactory
     // CONTACTS
     // ═══════════════════════════════════════
 
+    public async Task<CrmCallerIdDto?> LookupByPhoneAsync(int customerId, string phoneNumber)
+    {
+        // Numara normalizasyonu: sadece rakamlari al, son 10 haneyle karsilastir
+        var digits = new string(phoneNumber.Where(char.IsDigit).ToArray());
+        var suffix = digits.Length > 10 ? digits[^10..] : digits;
+
+        var contacts = await _contactEs.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId)
+            .ToListAsync();
+
+        // Client-side numara eslestirme (normalize edilmis son haneler)
+        var match = contacts.FirstOrDefault(c =>
+        {
+            var p1 = new string(c.PhoneNumber.Where(char.IsDigit).ToArray());
+            if (p1.Length > 10) p1 = p1[^10..];
+            if (p1 == suffix) return true;
+
+            if (!string.IsNullOrEmpty(c.PhoneNumber2))
+            {
+                var p2 = new string(c.PhoneNumber2.Where(char.IsDigit).ToArray());
+                if (p2.Length > 10) p2 = p2[^10..];
+                if (p2 == suffix) return true;
+            }
+            return false;
+        });
+
+        if (match == null) return null;
+
+        var openTickets = await _ticketEs.GetAllQueryable()
+            .CountAsync(t => t.ContactId == match.Id
+                && t.StatusId != TicketStatuses.Ids.Closed
+                && t.StatusId != TicketStatuses.Ids.Resolved);
+
+        var activeDeals = await _dealEs.GetAllQueryable()
+            .CountAsync(d => d.ContactId == match.Id
+                && d.StageId != DealStages.Ids.Won
+                && d.StageId != DealStages.Ids.Lost);
+
+        return new CrmCallerIdDto
+        {
+            ContactId = match.Id,
+            FullName = match.FullName,
+            Company = match.Company,
+            Email = match.Email,
+            PhoneNumber = match.PhoneNumber,
+            OpenTickets = openTickets,
+            ActiveDeals = activeDeals
+        };
+    }
+
     public async Task<List<CrmContactDto>> GetContactsAsync(int customerId, string? search)
     {
         var query = _contactEs.GetAllQueryable()

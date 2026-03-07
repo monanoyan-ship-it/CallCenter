@@ -17,7 +17,19 @@
             @* ─── Arayan bilgisi ─── *@
             <div class="caller-details">
                 <span class="call-label">Gelen Arama</span>
-                <span class="caller-number">@(incomingCall.CallerNumber)</span>
+                @if (!string.IsNullOrEmpty(incomingCall.CrmContactName))
+                {
+                    <span class="caller-name">@incomingCall.CrmContactName</span>
+                    @if (!string.IsNullOrEmpty(incomingCall.CrmContactCompany))
+                    {
+                        <span class="caller-company">@incomingCall.CrmContactCompany</span>
+                    }
+                    <span class="caller-number" style="font-size: .85rem; opacity: .8;">@incomingCall.CallerNumber</span>
+                }
+                else
+                {
+                    <span class="caller-number">@(incomingCall.CallerNumber)</span>
+                }
                 @if (!string.IsNullOrEmpty(incomingCall.QueueName))
                 {
                     <span class="call-queue">

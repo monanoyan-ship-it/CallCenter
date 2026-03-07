@@ -1,0 +1,224 @@
+@{
+    ViewData["Title"] = "Kisi Detay";
+    var contactId = (int)ViewData["ContactId"]!;
+}
+
+<div id="contact-detail-vm">
+    <!-- Ust Kart: Kisi Bilgisi -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="mb-1" data-bind="text: contact().fullName">...</h5>
+                    <div class="text-muted small">
+                        <span data-bind="text: contact().company || '-'"></span>
+                        <span data-bind="visible: contact().department"> / <span data-bind="text: contact().department"></span></span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="me-3"><i class="bi bi-telephone me-1"></i><span data-bind="text: contact().phoneNumber"></span></span>
+                        <!-- ko if: contact().phoneNumber2 -->
+                        <span class="me-3"><i class="bi bi-telephone me-1"></i><span data-bind="text: contact().phoneNumber2"></span></span>
+                        <!-- /ko -->
+                        <!-- ko if: contact().email -->
+                        <span><i class="bi bi-envelope me-1"></i><span data-bind="text: contact().email"></span></span>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <div class="text-end">
+                    <a href="/Contacts" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Listeye Don
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Kartlari -->
+    <div class="row g-2 mb-3">
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Talepler</div>
+                    <div class="fw-bold text-primary" data-bind="text: contact().ticketCount || 0">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Firsatlar</div>
+                    <div class="fw-bold text-success" data-bind="text: contact().dealCount || 0">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Etkilesimler</div>
+                    <div class="fw-bold text-info" data-bind="text: contact().activityCount || 0">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Gorevler</div>
+                    <div class="fw-bold text-warning" data-bind="text: contact().taskCount || 0">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Yapisi -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-tickets">
+                <i class="bi bi-ticket-detailed me-1"></i>Talepler
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-deals">
+                <i class="bi bi-kanban me-1"></i>Firsatlar
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-activities">
+                <i class="bi bi-clock-history me-1"></i>Etkilesimler
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tasks">
+                <i class="bi bi-check2-square me-1"></i>Gorevler
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notes">
+                <i class="bi bi-sticky me-1"></i>Notlar
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-0">
+        <!-- Talepler -->
+        <div class="tab-pane fade show active" id="tab-tickets">
+            <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Baslik</th><th>Durum</th><th>Oncelik</th><th>Tarih</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: tickets">
+                                <tr>
+                                    <td class="small fw-semibold" data-bind="text: subject"></td>
+                                    <td><span class="badge" data-bind="text: statusName, css: statusCss"></span></td>
+                                    <td><span class="badge" data-bind="text: priorityName, css: priorityCss"></span></td>
+                                    <td class="small text-muted" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: tickets().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Talep bulunamadi</div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Firsatlar -->
+        <div class="tab-pane fade" id="tab-deals">
+            <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Firsat</th><th>Asama</th><th>Deger</th><th>Olasilik</th><th>Tarih</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: deals">
+                                <tr>
+                                    <td class="small fw-semibold" data-bind="text: title"></td>
+                                    <td><span class="badge" data-bind="text: stageName, css: stageCss"></span></td>
+                                    <td class="small" data-bind="text: (value || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                    <td class="small" data-bind="text: (probability || 0) + '%'"></td>
+                                    <td class="small text-muted" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: deals().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Firsat bulunamadi</div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Etkilesimler -->
+        <div class="tab-pane fade" id="tab-activities">
+            <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th style="width:40px;"></th><th>Tur</th><th>Ozet</th><th>Personel</th><th>Zaman</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: activities">
+                                <tr>
+                                    <td class="text-center"><i data-bind="css: typeIcon"></i></td>
+                                    <td><span class="badge" data-bind="text: typeName, css: typeCss"></span></td>
+                                    <td class="small" data-bind="text: summary"></td>
+                                    <td class="small" data-bind="text: personnelName"></td>
+                                    <td class="small text-muted" data-bind="text: new Date(createdAt).toLocaleString('tr-TR')"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: activities().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Etkilesim bulunamadi</div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Gorevler -->
+        <div class="tab-pane fade" id="tab-tasks">
+            <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Gorev</th><th>Durum</th><th>Atanan</th><th>Son Tarih</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: tasks">
+                                <tr data-bind="css: { 'table-danger': dueDate && new Date(dueDate) < new Date() && statusId < 3 }">
+                                    <td class="small fw-semibold" data-bind="text: title"></td>
+                                    <td><span class="badge" data-bind="text: statusName, css: statusCss"></span></td>
+                                    <td class="small" data-bind="text: assignedToName"></td>
+                                    <td class="small text-muted" data-bind="text: dueDate ? new Date(dueDate).toLocaleDateString('tr-TR') : '-'"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: tasks().length === 0 -->
+                    <div class="text-center text-muted py-3 small">Gorev bulunamadi</div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Notlar -->
+        <div class="tab-pane fade" id="tab-notes">
+            <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+                <div class="card-body">
+                    <p class="small text-muted" data-bind="text: contact().notes || 'Not girilmemis'"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var contactDetailId = @contactId;
+    </script>
+    <script src="~/js/ContactDetail.js"></script>
+}

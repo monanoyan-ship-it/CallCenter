@@ -32,7 +32,7 @@
                     </thead>
                     <tbody data-bind="foreach: filteredContacts">
                         <tr>
-                            <td class="fw-semibold small" data-bind="text: fullName"></td>
+                            <td class="fw-semibold small"><a data-bind="text: fullName, attr: { href: '/Contacts/Detail/' + id }" class="text-decoration-none"></a></td>
                             <td class="small" data-bind="text: company"></td>
                             <td class="small" data-bind="text: phoneNumber"></td>
                             <td class="small" data-bind="text: email"></td>

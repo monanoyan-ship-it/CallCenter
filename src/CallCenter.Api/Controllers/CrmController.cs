@@ -26,6 +26,19 @@ public class CrmController : ControllerBase
         return Ok(await _crm.GetDashboardAsync(cid.Value));
     }
 
+    // ─── Caller ID Lookup ───
+
+    [HttpGet("contacts/lookup")]
+    public async Task<ActionResult<CrmCallerIdDto>> LookupContact([FromQuery] string phone)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        if (string.IsNullOrWhiteSpace(phone)) return BadRequest(new { error = "phone parametresi gerekli" });
+
+        var result = await _crm.LookupByPhoneAsync(cid.Value, phone);
+        return result != null ? Ok(result) : NotFound();
+    }
+
     // ─── Contacts ───
 
     [HttpGet("contacts")]

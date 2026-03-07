@@ -185,6 +185,19 @@ public class CrmTaskUpdateDto : CrmTaskCreateDto
     public int StatusId { get; set; }
 }
 
+// ─── Caller ID Lookup ───
+
+public class CrmCallerIdDto
+{
+    public int ContactId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string? Company { get; set; }
+    public string? Email { get; set; }
+    public string PhoneNumber { get; set; } = string.Empty;
+    public int OpenTickets { get; set; }
+    public int ActiveDeals { get; set; }
+}
+
 // ─── Dashboard ───
 
 public class CrmDashboardDto

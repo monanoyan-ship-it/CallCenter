@@ -23,12 +23,15 @@ public class CallDistributionService
     private readonly AppDbContext _db;
     private readonly IHubContext<CallCenterHub> _hub;
     private readonly ICallForwardingFactory _forwardingFactory;
+    private readonly ICrmFactory _crmFactory;
 
-    public CallDistributionService(AppDbContext db, IHubContext<CallCenterHub> hub, ICallForwardingFactory forwardingFactory)
+    public CallDistributionService(AppDbContext db, IHubContext<CallCenterHub> hub,
+        ICallForwardingFactory forwardingFactory, ICrmFactory crmFactory)
     {
         _db = db;
         _hub = hub;
         _forwardingFactory = forwardingFactory;
+        _crmFactory = crmFactory;
     }
 
     /// <summary>
@@ -87,6 +90,14 @@ public class CallDistributionService
         callRecord.AgentId = selectedAgent.Id;
         await _db.SaveChangesAsync();
 
+        // CRM Caller ID Lookup — arayan numarayi rehberde ara
+        CrmCallerIdDto? callerInfo = null;
+        if (queue.CustomerId > 0)
+        {
+            try { callerInfo = await _crmFactory.LookupByPhoneAsync(queue.CustomerId, callRecord.CallerNumber); }
+            catch { /* CRM lookup basarisiz olursa arama akisini engelleme */ }
+        }
+
         // Agent'a SignalR bildirimi gönder
         var notification = new CallNotification
         {
@@ -95,7 +106,10 @@ public class CallDistributionService
             CalleeNumber = callRecord.CalleeNumber,
             DirectionId = callRecord.DirectionId,
             StatusId = CallStatuses.Ids.Ringing,
-            QueueName = queue.Name
+            QueueName = queue.Name,
+            CrmContactId = callerInfo?.ContactId,
+            CrmContactName = callerInfo?.FullName,
+            CrmContactCompany = callerInfo?.Company
         };
 
         // Belirli agent'a bildirim gönder (User claim'indeki NameIdentifier ile)

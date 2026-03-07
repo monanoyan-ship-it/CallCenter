@@ -8,6 +8,7 @@ public interface ICrmFactory
     Task<CrmDashboardDto> GetDashboardAsync(int customerId);
 
     // Contacts
+    Task<CrmCallerIdDto?> LookupByPhoneAsync(int customerId, string phoneNumber);
     Task<List<CrmContactDto>> GetContactsAsync(int customerId, string? search);
     Task<CrmContactDto?> GetContactDetailAsync(int contactId, int customerId);
     Task<(bool success, int id, string? error)> CreateContactAsync(CrmContactCreateDto dto, int customerId, int personnelId);

@@ -7,4 +7,11 @@ public class ContactsController : CrmBaseController
         ViewData["Title"] = "Kisiler";
         return View();
     }
+
+    public IActionResult Detail(int id)
+    {
+        ViewData["Title"] = "Kisi Detay";
+        ViewData["ContactId"] = id;
+        return View();
+    }
 }
