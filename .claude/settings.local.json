@@ -139,7 +139,8 @@
       "Bash(tail:*)",
       "Bash(head:*)",
       "Bash(cat:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cp:*)"
     ]
   }
 }
