@@ -613,9 +613,19 @@ public class BillingPeriodDto
     public int UserCount { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Amount { get; set; }
+    public decimal ServiceAmount { get; set; }
+    public decimal TotalAmount => Amount + ServiceAmount;
     public bool IsPaid { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? Notes { get; set; }
+    public List<BillingServiceLineDto> ServiceLines { get; set; } = new();
+}
+
+public class BillingServiceLineDto
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public string ServiceCode { get; set; } = string.Empty;
+    public decimal MonthlyPrice { get; set; }
 }
 
 public class BillingPeriodUpdateDto

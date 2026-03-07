@@ -13,23 +13,29 @@ public class BillingFactory : IBillingFactory
     private readonly IBillingPeriodEntityService _billingEs;
     private readonly ICustomerEntityService _customerEs;
     private readonly ICustomerPersonnelEntityService _personnelEs;
+    private readonly ICustomerServiceSubscriptionEntityService _subscriptionEs;
+    private readonly IServiceBillingItemEntityService _billingItemEs;
     private readonly IUnitOfWork _uow;
 
     public BillingFactory(
         IBillingPeriodEntityService billingEs,
         ICustomerEntityService customerEs,
         ICustomerPersonnelEntityService personnelEs,
+        ICustomerServiceSubscriptionEntityService subscriptionEs,
+        IServiceBillingItemEntityService billingItemEs,
         IUnitOfWork uow)
     {
         _billingEs = billingEs;
         _customerEs = customerEs;
         _personnelEs = personnelEs;
+        _subscriptionEs = subscriptionEs;
+        _billingItemEs = billingItemEs;
         _uow = uow;
     }
 
     public async Task<List<BillingPeriodDto>> GetByCustomerAsync(int customerId)
     {
-        return await _billingEs.GetAllQueryable()
+        var periods = await _billingEs.GetAllQueryable()
             .Where(b => b.CustomerId == customerId)
             .OrderByDescending(b => b.Year).ThenByDescending(b => b.Month)
             .Select(b => new BillingPeriodDto
@@ -44,11 +50,41 @@ public class BillingFactory : IBillingFactory
                 UserCount = b.UserCount,
                 UnitPrice = b.UnitPrice,
                 Amount = b.Amount,
+                ServiceAmount = b.ServiceAmount,
                 IsPaid = b.IsPaid,
                 PaidAt = b.PaidAt,
                 Notes = b.Notes
             })
             .ToListAsync();
+
+        // Her donem icin hizmet kalemlerini yukle
+        if (periods.Count > 0)
+        {
+            var billingItems = await _billingItemEs.GetAllQueryable()
+                .Include(bi => bi.CustomerServiceSubscription)
+                .Where(bi => bi.CustomerId == customerId)
+                .ToListAsync();
+
+            foreach (var period in periods)
+            {
+                var items = billingItems
+                    .Where(bi => bi.Year == period.Year && bi.Month == period.Month)
+                    .ToList();
+
+                period.ServiceLines = items.Select(bi =>
+                {
+                    var svc = ServiceTypes.GetById(bi.CustomerServiceSubscription.ServiceTypeId);
+                    return new BillingServiceLineDto
+                    {
+                        ServiceName = svc?.Description ?? "?",
+                        ServiceCode = svc?.SystemName ?? "?",
+                        MonthlyPrice = bi.Amount
+                    };
+                }).ToList();
+            }
+        }
+
+        return periods;
     }
 
     public async Task<(bool Success, string? Error)> UpdatePeriodAsync(int periodId, BillingPeriodUpdateDto dto)
@@ -94,6 +130,18 @@ public class BillingFactory : IBillingFactory
             .Select(b => b.CustomerId)
             .ToListAsync();
 
+        // Aktif hizmet abonelikleri (tum musteriler icin)
+        var activeSubscriptions = await _subscriptionEs.GetAllQueryable()
+            .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active && s.MonthlyPrice > 0)
+            .ToListAsync();
+
+        // Bu donem icin zaten olusturulmus hizmet faturaları
+        var existingBillingItemKeys = await _billingItemEs.GetAllQueryable()
+            .Where(b => b.Year == year && b.Month == month)
+            .Select(b => b.CustomerServiceSubscriptionId)
+            .ToListAsync();
+        var existingBillingSet = new HashSet<int>(existingBillingItemKeys);
+
         var created = 0;
         var skipped = 0;
 
@@ -123,6 +171,10 @@ public class BillingFactory : IBillingFactory
                 .CountAsync(p => p.CustomerId == customer.Id && p.IsActive
                     && p.CustomerRoleId == CustomerRoles.Ids.Operator);
 
+            // Bu musterinin aktif ucretli hizmetleri
+            var customerSubs = activeSubscriptions.Where(s => s.CustomerId == customer.Id).ToList();
+            var serviceAmount = customerSubs.Sum(s => s.MonthlyPrice);
+
             _billingEs.Add(new CustomerBillingPeriod
             {
                 CustomerId = customer.Id,
@@ -133,9 +185,27 @@ public class BillingFactory : IBillingFactory
                 UserCount = userCount,
                 UnitPrice = customer.MonthlyUnitPrice,
                 Amount = userCount * customer.MonthlyUnitPrice,
+                ServiceAmount = serviceAmount,
                 IsPaid = false,
                 CreatedAt = DateTime.UtcNow
             });
+
+            // Hizmet fatura kalemleri olustur
+            foreach (var sub in customerSubs)
+            {
+                if (existingBillingSet.Contains(sub.Id)) continue;
+
+                _billingItemEs.Add(new ServiceBillingItem
+                {
+                    CustomerId = customer.Id,
+                    CustomerServiceSubscriptionId = sub.Id,
+                    StatusId = BillingItemStatuses.Ids.Pending,
+                    Year = year,
+                    Month = month,
+                    Amount = sub.MonthlyPrice,
+                    IsPaid = false
+                });
+            }
 
             created++;
         }

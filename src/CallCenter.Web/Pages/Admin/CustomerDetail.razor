@@ -610,20 +610,21 @@
                 {
                     <div class="alert alert-danger m-3 py-2 small d-flex align-items-center">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <span><strong>@billingPeriods.Count(b => !b.IsPaid)</strong> odenmemis donem bulunuyor. Toplam: <strong>@billingPeriods.Where(b => !b.IsPaid).Sum(b => b.Amount).ToString("N2") TL</strong></span>
+                        <span><strong>@billingPeriods.Count(b => !b.IsPaid)</strong> odenmemis donem bulunuyor. Toplam: <strong>@billingPeriods.Where(b => !b.IsPaid).Sum(b => b.TotalAmount).ToString("N2") TL</strong></span>
                     </div>
                 }
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
+                                <th></th>
                                 <th>Donem</th>
                                 <th>Donem Tarihi</th>
                                 <th class="text-center">Operator</th>
-                                <th class="text-end">Birim Fiyat</th>
-                                <th class="text-end">Tutar</th>
+                                <th class="text-end">Operator Tutari</th>
+                                <th class="text-end">Hizmet Tutari</th>
+                                <th class="text-end">Toplam</th>
                                 <th>Durum</th>
-                                <th>Odeme Tarihi</th>
                                 <th>Not</th>
                                 <th style="width: 120px;"></th>
                             </tr>
@@ -632,11 +633,31 @@
                             @foreach (var b in billingPeriods)
                             {
                                 <tr class="@(!b.IsPaid ? "table-warning" : "")">
+                                    <td>
+                                        @if (b.ServiceLines.Count > 0)
+                                        {
+                                            <button class="btn btn-sm btn-link p-0" @onclick="() => ToggleBillingDetail(b.Id)">
+                                                <i class="bi @(expandedBillingId == b.Id ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                                            </button>
+                                        }
+                                    </td>
                                     <td class="fw-medium">@b.Month.ToString("00")/@b.Year</td>
                                     <td class="small text-muted">@b.PeriodStartDate.ToString("dd.MM.yyyy") — @b.PeriodEndDate.ToString("dd.MM.yyyy")</td>
                                     <td class="text-center">@b.UserCount</td>
-                                    <td class="text-end small">@b.UnitPrice.ToString("N2") TL</td>
-                                    <td class="text-end fw-medium">@b.Amount.ToString("N2") TL</td>
+                                    <td class="text-end small">
+                                        <span class="text-muted">@b.UserCount x @b.UnitPrice.ToString("N2") =</span> @b.Amount.ToString("N2") TL
+                                    </td>
+                                    <td class="text-end small">
+                                        @if (b.ServiceAmount > 0)
+                                        {
+                                            <span>@b.ServiceAmount.ToString("N2") TL</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-end fw-semibold">@b.TotalAmount.ToString("N2") TL</td>
                                     <td>
                                         @if (b.IsPaid)
                                         {
@@ -647,7 +668,6 @@
                                             <span class="badge bg-danger-subtle text-danger">Odenmedi</span>
                                         }
                                     </td>
-                                    <td class="small text-muted">@(b.PaidAt?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
                                     <td class="small text-muted">@(b.Notes ?? "-")</td>
                                     <td>
                                         @if (!b.IsPaid)
@@ -670,6 +690,40 @@
                                         }
                                     </td>
                                 </tr>
+                                @if (expandedBillingId == b.Id && b.ServiceLines.Count > 0)
+                                {
+                                    <tr class="table-light">
+                                        <td colspan="10" class="ps-5 py-2">
+                                            <div class="small">
+                                                <strong class="text-muted d-block mb-1">
+                                                    <i class="bi bi-receipt me-1"></i>Hizmet Detayi (@b.Month.ToString("00")/@b.Year)
+                                                </strong>
+                                                <table class="table table-sm table-borderless mb-0" style="max-width:500px;">
+                                                    <tbody>
+                                                        <tr class="text-muted border-bottom">
+                                                            <td class="fw-medium">Operator Ucreti</td>
+                                                            <td class="text-end">@b.UserCount kisi x @b.UnitPrice.ToString("N2") TL</td>
+                                                            <td class="text-end fw-semibold">@b.Amount.ToString("N2") TL</td>
+                                                        </tr>
+                                                        @foreach (var line in b.ServiceLines)
+                                                        {
+                                                            <tr>
+                                                                <td>@line.ServiceName <code class="ms-1">@line.ServiceCode</code></td>
+                                                                <td></td>
+                                                                <td class="text-end">@line.MonthlyPrice.ToString("N2") TL</td>
+                                                            </tr>
+                                                        }
+                                                        <tr class="border-top fw-bold">
+                                                            <td>TOPLAM</td>
+                                                            <td></td>
+                                                            <td class="text-end">@b.TotalAmount.ToString("N2") TL</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                     </table>
@@ -929,6 +983,7 @@
     private bool isUpdatingBilling;
     private ConfirmDialog billingConfirmDialog = null!;
     private BillingPeriodDto? deleteBillingTarget;
+    private int? expandedBillingId;
 
     // ─── HİZMETLER ───
     private List<SubscriptionDto>? subscriptions;
@@ -1191,6 +1246,11 @@
         }
         catch (Exception ex) { Toast.ShowError($"Faturalama donemi yuklenemedi: {ex.Message}"); }
         finally { isLoadingBilling = false; }
+    }
+
+    private void ToggleBillingDetail(int periodId)
+    {
+        expandedBillingId = expandedBillingId == periodId ? null : periodId;
     }
 
     private async Task MarkAsPaid(BillingPeriodDto period)

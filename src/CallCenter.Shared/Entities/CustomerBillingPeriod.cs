@@ -12,6 +12,8 @@ public class CustomerBillingPeriod
     public int UserCount { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Amount { get; set; }
+    /// <summary>Hizmet abonelikleri toplam tutari</summary>
+    public decimal ServiceAmount { get; set; }
     public bool IsPaid { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? Notes { get; set; }
