@@ -33,12 +33,32 @@ public class AccountController : CrmBaseController
         var root = doc.RootElement;
 
         HttpContext.Session.SetString("Token", root.GetProperty("token").GetString() ?? "");
-        HttpContext.Session.SetString("UserName", root.GetProperty("userName").GetString() ?? "");
+        HttpContext.Session.SetString("UserName", root.GetProperty("fullName").GetString() ?? "");
 
-        if (root.TryGetProperty("customerName", out var cn))
-            HttpContext.Session.SetString("CustomerName", cn.GetString() ?? "");
-        if (root.TryGetProperty("customerId", out var ci))
-            HttpContext.Session.SetString("CustomerId", ci.GetInt32().ToString());
+        // JWT token'dan customer bilgilerini coz
+        var jwtToken = root.GetProperty("token").GetString() ?? "";
+        try
+        {
+            var jwtParts = jwtToken.Split('.');
+            if (jwtParts.Length == 3)
+            {
+                var jwtPayload = jwtParts[1].Replace('-', '+').Replace('_', '/');
+                switch (jwtPayload.Length % 4)
+                {
+                    case 2: jwtPayload += "=="; break;
+                    case 3: jwtPayload += "="; break;
+                }
+                var payloadBytes = Convert.FromBase64String(jwtPayload);
+                using var claims = JsonDocument.Parse(payloadBytes);
+                var claimRoot = claims.RootElement;
+
+                if (claimRoot.TryGetProperty("CustomerName", out var cn))
+                    HttpContext.Session.SetString("CustomerName", cn.GetString() ?? "");
+                if (claimRoot.TryGetProperty("CustomerId", out var ci))
+                    HttpContext.Session.SetString("CustomerId", ci.GetString() ?? "");
+            }
+        }
+        catch { /* JWT parse hatasi olursa login akisini engelleme */ }
 
         return RedirectToAction("Index", "Home");
     }

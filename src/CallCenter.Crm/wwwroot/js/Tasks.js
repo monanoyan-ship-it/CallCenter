@@ -46,7 +46,7 @@ function TasksViewModel() {
 
     self.loadData = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/tasks',
+            url: '/proxy/crm/tasks',
             method: 'GET'
         }).done(function(data) {
             self.tasks(data);
@@ -57,7 +57,7 @@ function TasksViewModel() {
 
     self.loadContacts = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts',
+            url: '/proxy/crm/contacts',
             method: 'GET'
         }).done(function(data) {
             self.contactsList(data);
@@ -105,7 +105,7 @@ function TasksViewModel() {
         }
 
         self.isSaving(true);
-        var url = apiBaseUrl + '/api/crm/tasks';
+        var url = '/proxy/crm/tasks';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();

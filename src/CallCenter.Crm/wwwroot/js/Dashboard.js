@@ -10,7 +10,7 @@ function DashboardViewModel() {
 
     self.loadData = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/dashboard',
+            url: '/proxy/crm/dashboard',
             method: 'GET'
         }).done(function(data) {
             self.totalContacts(data.totalContacts);

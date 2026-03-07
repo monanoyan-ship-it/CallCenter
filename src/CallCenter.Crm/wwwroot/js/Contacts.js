@@ -33,7 +33,7 @@ function ContactsViewModel() {
 
     self.loadData = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts',
+            url: '/proxy/crm/contacts',
             method: 'GET'
         }).done(function(data) {
             self.contacts(data);
@@ -95,7 +95,7 @@ function ContactsViewModel() {
         }
 
         self.isSaving(true);
-        var url = apiBaseUrl + '/api/crm/contacts';
+        var url = '/proxy/crm/contacts';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();
@@ -121,7 +121,7 @@ function ContactsViewModel() {
     self.remove = function(contact) {
         if (!confirm('Bu kisiyi silmek istediginize emin misiniz?')) return;
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts/' + contact.id,
+            url: '/proxy/crm/contacts/' + contact.id,
             method: 'DELETE'
         }).done(function() {
             self.loadData();

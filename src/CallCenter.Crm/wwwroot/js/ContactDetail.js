@@ -10,7 +10,7 @@ function ContactDetailViewModel() {
 
     self.loadContact = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts/' + id,
+            url: '/proxy/crm/contacts/' + id,
             method: 'GET'
         }).done(function(data) {
             self.contact(data);
@@ -21,7 +21,7 @@ function ContactDetailViewModel() {
 
     self.loadTickets = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/tickets',
+            url: '/proxy/crm/tickets',
             method: 'GET'
         }).done(function(data) {
             self.tickets(data.filter(function(t) { return t.contactId === id; }));
@@ -30,7 +30,7 @@ function ContactDetailViewModel() {
 
     self.loadDeals = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/deals',
+            url: '/proxy/crm/deals',
             method: 'GET'
         }).done(function(data) {
             self.deals(data.filter(function(d) { return d.contactId === id; }));
@@ -39,7 +39,7 @@ function ContactDetailViewModel() {
 
     self.loadActivities = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/activities?contactId=' + id,
+            url: '/proxy/crm/activities?contactId=' + id,
             method: 'GET'
         }).done(function(data) {
             self.activities(data);
@@ -48,7 +48,7 @@ function ContactDetailViewModel() {
 
     self.loadTasks = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/tasks',
+            url: '/proxy/crm/tasks',
             method: 'GET'
         }).done(function(data) {
             self.tasks(data.filter(function(t) { return t.contactId === id; }));

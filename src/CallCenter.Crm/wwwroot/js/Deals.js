@@ -51,7 +51,7 @@ function DealsViewModel() {
 
     self.loadData = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/deals',
+            url: '/proxy/crm/deals',
             method: 'GET'
         }).done(function(data) {
             self.deals(data);
@@ -62,7 +62,7 @@ function DealsViewModel() {
 
     self.loadContacts = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts',
+            url: '/proxy/crm/contacts',
             method: 'GET'
         }).done(function(data) {
             self.contactsList(data);
@@ -116,7 +116,7 @@ function DealsViewModel() {
         }
 
         self.isSaving(true);
-        var url = apiBaseUrl + '/api/crm/deals';
+        var url = '/proxy/crm/deals';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();
@@ -142,7 +142,7 @@ function DealsViewModel() {
     self.remove = function(deal) {
         if (!confirm('Bu firsati silmek istediginize emin misiniz?')) return;
         $.ajax({
-            url: apiBaseUrl + '/api/crm/deals/' + deal.id,
+            url: '/proxy/crm/deals/' + deal.id,
             method: 'DELETE'
         }).done(function() {
             self.loadData();

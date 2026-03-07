@@ -42,7 +42,7 @@ function TicketsViewModel() {
 
     self.loadData = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/tickets',
+            url: '/proxy/crm/tickets',
             method: 'GET'
         }).done(function(data) {
             self.tickets(data);
@@ -53,7 +53,7 @@ function TicketsViewModel() {
 
     self.loadContacts = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts',
+            url: '/proxy/crm/contacts',
             method: 'GET'
         }).done(function(data) {
             self.contactsList(data);
@@ -104,7 +104,7 @@ function TicketsViewModel() {
         }
 
         self.isSaving(true);
-        var url = apiBaseUrl + '/api/crm/tickets';
+        var url = '/proxy/crm/tickets';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();

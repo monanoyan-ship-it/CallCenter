@@ -26,7 +26,7 @@ function ReportsViewModel() {
 
     self.loadDashboard = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/dashboard',
+            url: '/proxy/crm/dashboard',
             method: 'GET'
         }).done(function(data) {
             self.dashboard(data);
@@ -40,7 +40,7 @@ function ReportsViewModel() {
 
     self.loadTicketStats = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/tickets',
+            url: '/proxy/crm/tickets',
             method: 'GET'
         }).done(function(data) {
             var counts = {};
@@ -64,7 +64,7 @@ function ReportsViewModel() {
 
     self.loadDealStats = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/deals',
+            url: '/proxy/crm/deals',
             method: 'GET'
         }).done(function(data) {
             var counts = {};

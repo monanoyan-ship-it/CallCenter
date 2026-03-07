@@ -29,7 +29,7 @@ function ActivitiesViewModel() {
 
     self.loadData = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/activities',
+            url: '/proxy/crm/activities',
             method: 'GET'
         }).done(function(data) {
             self.activities(data);
@@ -40,7 +40,7 @@ function ActivitiesViewModel() {
 
     self.loadContacts = function() {
         $.ajax({
-            url: apiBaseUrl + '/api/crm/contacts',
+            url: '/proxy/crm/contacts',
             method: 'GET'
         }).done(function(data) {
             self.contactsList(data);
@@ -74,7 +74,7 @@ function ActivitiesViewModel() {
 
         self.isSaving(true);
         $.ajax({
-            url: apiBaseUrl + '/api/crm/activities',
+            url: '/proxy/crm/activities',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(data)
