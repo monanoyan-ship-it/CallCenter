@@ -98,14 +98,14 @@ public class ProvisioningFactory : IProvisioningFactory
         SipConnectionInfoDto? sipConnection = null;
         try
         {
-            var customerId = await _personnelEs.GetAllQueryable()
+            var personnel = await _personnelEs.GetAllQueryable()
                 .Where(cp => cp.UserId == userId)
-                .Select(cp => cp.CustomerId)
+                .Select(cp => new { cp.CustomerId, cp.Id })
                 .FirstOrDefaultAsync();
 
-            if (customerId > 0)
+            if (personnel != null && personnel.CustomerId > 0)
             {
-                sipConnection = await _sipFactory.GetMyConnectionAsync(customerId, user.FullName);
+                sipConnection = await _sipFactory.GetMyConnectionAsync(personnel.CustomerId, personnel.Id, user.FullName);
             }
         }
         catch

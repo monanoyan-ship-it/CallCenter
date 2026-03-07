@@ -65,7 +65,7 @@
                             <th>Port</th>
                             <th>Kullanici</th>
                             <th>Transport</th>
-                            <th>Varsayilan</th>
+                            <th>Atanan Personel</th>
                             <th>Durum</th>
                             <th style="width: 100px;"></th>
                         </tr>
@@ -82,10 +82,16 @@
                                 <td>
                                     <span class="badge bg-secondary-subtle text-secondary">@(sip.Transport ?? "UDP")</span>
                                 </td>
-                                <td class="text-center">
-                                    @if (sip.IsDefault)
+                                <td class="small">
+                                    @if (!string.IsNullOrEmpty(sip.AssignedPersonnelName))
                                     {
-                                        <i class="bi bi-star-fill text-warning"></i>
+                                        <span class="badge bg-info-subtle text-info">
+                                            <i class="bi bi-person-fill me-1"></i>@sip.AssignedPersonnelName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Bos</span>
                                     }
                                 </td>
                                 <td>

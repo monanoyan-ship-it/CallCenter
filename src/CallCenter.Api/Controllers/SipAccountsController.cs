@@ -27,8 +27,13 @@ public class SipAccountsController : AuditableControllerBase
             return BadRequest(new { message = "Musteri bilgisi bulunamadi. Lutfen tekrar giris yapin." });
         }
 
+        int? personnelId = null;
+        var personnelIdClaim = User.FindFirstValue("CustomerPersonnelId");
+        if (!string.IsNullOrEmpty(personnelIdClaim) && int.TryParse(personnelIdClaim, out var pid))
+            personnelId = pid;
+
         var displayName = User.FindFirstValue(ClaimTypes.GivenName) ?? "User";
-        var result = await _sipFactory.GetMyConnectionAsync(customerId, displayName);
+        var result = await _sipFactory.GetMyConnectionAsync(customerId, personnelId, displayName);
 
         if (result == null)
             return NotFound(new { message = "Firmaniza ait aktif SIP hesabi bulunamadi." });

@@ -4,7 +4,7 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface ISipAccountFactory
 {
-    Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, string displayName);
+    Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName);
     Task<PagedResult<SipAccountListDto>> GetAllAsync(int page, int pageSize, int? customerId);
     Task<object?> GetByIdAsync(int id);
     Task<(bool Success, int? Id, string? Error)> CreateAsync(SipAccountCreateDto dto);

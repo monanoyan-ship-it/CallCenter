@@ -304,6 +304,8 @@ public class SipAccountListDto
     public string CustomerName { get; set; } = string.Empty;
     public int? OrganizationUnitId { get; set; }
     public string? OrganizationUnitName { get; set; }
+    public int? AssignedPersonnelId { get; set; }
+    public string? AssignedPersonnelName { get; set; }
 }
 
 public class SipAccountCreateDto
@@ -353,6 +355,8 @@ public class SipAccountCreateDto
     public string? PreferredCodecs { get; set; }
     public int JitterBufferMinMs { get; set; }
     public int JitterBufferMaxMs { get; set; }
+
+    public int? AssignedPersonnelId { get; set; }
 
     [Required(ErrorMessage = "Firma secimi zorunludur.")]
     public int CustomerId { get; set; }
@@ -404,6 +408,8 @@ public class SipAccountUpdateDto
     public string? PreferredCodecs { get; set; }
     public int JitterBufferMinMs { get; set; }
     public int JitterBufferMaxMs { get; set; }
+
+    public int? AssignedPersonnelId { get; set; }
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -34,6 +34,12 @@ public class SipAccountEntityService : ISipAccountEntityService
         return query.FirstOrDefaultAsync();
     }
 
+    public Task<SipAccount?> GetByPersonnelAsync(int personnelId)
+        => _db.SipAccounts.FirstOrDefaultAsync(s => s.AssignedPersonnelId == personnelId && s.IsActive);
+
+    public Task<SipAccount?> GetFirstUnassignedAsync(int customerId)
+        => _db.SipAccounts.FirstOrDefaultAsync(s => s.CustomerId == customerId && s.IsActive && s.AssignedPersonnelId == null);
+
     public void Add(SipAccount entity) => _db.SipAccounts.Add(entity);
     public void Update(SipAccount entity) => _db.SipAccounts.Update(entity);
 }

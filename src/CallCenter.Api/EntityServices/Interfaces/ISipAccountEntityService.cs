@@ -10,6 +10,8 @@ public interface ISipAccountEntityService
     Task<SipAccount?> GetDefaultByCustomerAsync(int customerId);
     Task<SipAccount?> GetFirstActiveByCustomerAsync(int customerId);
     Task<SipAccount?> GetExistingDefaultAsync(int customerId, int? excludeId = null);
+    Task<SipAccount?> GetByPersonnelAsync(int personnelId);
+    Task<SipAccount?> GetFirstUnassignedAsync(int customerId);
     void Add(SipAccount entity);
     void Update(SipAccount entity);
 }

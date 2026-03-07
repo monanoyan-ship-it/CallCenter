@@ -21,9 +21,26 @@ public class SipAccountFactory : ISipAccountFactory
         _uow = uow;
     }
 
-    public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, string displayName)
+    public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName)
     {
-        var sip = await _sipEs.GetDefaultByCustomerAsync(customerId);
+        // 1. Bu personele zaten atanmis hesap var mi?
+        SipAccount? sip = null;
+        if (personnelId.HasValue)
+            sip = await _sipEs.GetByPersonnelAsync(personnelId.Value);
+
+        // 2. Yoksa atanmamis bos bir hat bul ve otomatik ata
+        if (sip == null && personnelId.HasValue)
+        {
+            sip = await _sipEs.GetFirstUnassignedAsync(customerId);
+            if (sip != null)
+            {
+                sip.AssignedPersonnelId = personnelId.Value;
+                await _uow.SaveChangesAsync();
+            }
+        }
+
+        // 3. Hala yoksa firma default veya ilk aktifi dene (fallback)
+        sip ??= await _sipEs.GetDefaultByCustomerAsync(customerId);
         sip ??= await _sipEs.GetFirstActiveByCustomerAsync(customerId);
 
         if (sip == null) return null;
@@ -64,7 +81,7 @@ public class SipAccountFactory : ISipAccountFactory
 
     public async Task<PagedResult<SipAccountListDto>> GetAllAsync(int page, int pageSize, int? customerId)
     {
-        var query = _sipEs.GetAllQueryable().Include(s => s.Customer).AsQueryable();
+        var query = _sipEs.GetAllQueryable().Include(s => s.Customer).Include(s => s.AssignedPersonnel).ThenInclude(p => p!.User).AsQueryable();
 
         if (customerId.HasValue && customerId.Value > 0)
         {
@@ -95,6 +112,8 @@ public class SipAccountFactory : ISipAccountFactory
                 CustomerName = s.Customer.Name,
                 OrganizationUnitId = s.OrganizationUnitId,
                 OrganizationUnitName = s.OrganizationUnit != null ? s.OrganizationUnit.Name : null,
+                AssignedPersonnelId = s.AssignedPersonnelId,
+                AssignedPersonnelName = s.AssignedPersonnel != null ? s.AssignedPersonnel.User.FullName : null,
                 PreferredCodecs = s.PreferredCodecs,
                 JitterBufferMinMs = s.JitterBufferMinMs,
                 JitterBufferMaxMs = s.JitterBufferMaxMs
@@ -137,7 +156,8 @@ public class SipAccountFactory : ISipAccountFactory
             s.IsDefault,
             s.IsActive,
             s.CustomerId,
-            CustomerName = s.Customer.Name
+            CustomerName = s.Customer.Name,
+            s.AssignedPersonnelId
         };
     }
 
@@ -174,6 +194,7 @@ public class SipAccountFactory : ISipAccountFactory
             IsDefault = dto.IsDefault,
             IsActive = true,
             CustomerId = dto.CustomerId,
+            AssignedPersonnelId = dto.AssignedPersonnelId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -217,6 +238,7 @@ public class SipAccountFactory : ISipAccountFactory
         sip.JitterBufferMaxMs = dto.JitterBufferMaxMs;
         sip.IsDefault = dto.IsDefault;
         sip.IsActive = dto.IsActive;
+        sip.AssignedPersonnelId = dto.AssignedPersonnelId;
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {

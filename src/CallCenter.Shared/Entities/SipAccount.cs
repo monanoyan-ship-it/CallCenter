@@ -48,4 +48,8 @@ public class SipAccount
     // Opsiyonel organizasyon birimi baglantisi
     public int? OrganizationUnitId { get; set; }
     public CustomerOrganizationUnit? OrganizationUnit { get; set; }
+
+    // Hangi personele atanmis (null = atanmamis, firma geneli)
+    public int? AssignedPersonnelId { get; set; }
+    public CustomerPersonnel? AssignedPersonnel { get; set; }
 }
