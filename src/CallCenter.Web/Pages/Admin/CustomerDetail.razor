@@ -33,14 +33,6 @@
         </h4>
     </div>
     <div class="d-flex gap-2">
-        <button class="btn btn-outline-primary btn-sm" @onclick="DownloadSetupPackage"
-                disabled="@isDownloadingSetup" title="Offline kurulum paketi indir">
-            @if (isDownloadingSetup)
-            {
-                <span class="spinner-border spinner-border-sm me-1"></span>
-            }
-            <i class="bi bi-box-seam me-1"></i>Kurulum Paketi
-        </button>
     </div>
 </div>
 
@@ -1021,9 +1013,6 @@
     private string? addSubError;
     private bool isSavingSubscription;
 
-    // ─── SETUP PACKAGE ───
-    private bool isDownloadingSetup;
-
     protected override async Task OnInitializedAsync()
     {
         await LoadGeneral();
@@ -1523,29 +1512,6 @@
     // ═══════════════════════════════════════════════════
     // NAVİGASYON
     // ═══════════════════════════════════════════════════
-
-    private async Task DownloadSetupPackage()
-    {
-        isDownloadingSetup = true;
-        StateHasChanged();
-        try
-        {
-            var response = await Http.PostAsync($"api/customers/{Id}/setup-package", null);
-            if (response.IsSuccessStatusCode)
-            {
-                var bytes = await response.Content.ReadAsByteArrayAsync();
-                await JS.InvokeVoidAsync("downloadFile", "setup.dat", "application/octet-stream", bytes);
-                Toast.ShowSuccess("Kurulum paketi indirildi.");
-            }
-            else
-            {
-                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
-                Toast.ShowError(error?.Message ?? "Paket olusturulamadi.");
-            }
-        }
-        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
-        finally { isDownloadingSetup = false; }
-    }
 
     private void GoBack() => Nav.NavigateTo("admin/customers");
 

@@ -51,6 +51,9 @@ try
     builder.Services.AddSingleton<InboundCallHandler>();
     builder.Services.AddSingleton<SipRequestHandler>();
 
+    // Auto-update
+    builder.Services.AddHostedService<UpdateCheckService>();
+
     // PBX Worker
     builder.Services.AddHostedService<Worker>();
 

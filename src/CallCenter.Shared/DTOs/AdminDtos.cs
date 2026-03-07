@@ -668,3 +668,22 @@ public class BulkBillingGenerateDto
     public int Year { get; set; }
     public int Month { get; set; }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// GÜNCELLEME (UPDATE)
+// ═══════════════════════════════════════════════════════════════
+
+public class AppVersionInfoDto
+{
+    public string AppName { get; set; } = string.Empty;
+    public string LatestVersion { get; set; } = string.Empty;
+    public string? DownloadUrl { get; set; }
+    public string? ReleaseNotes { get; set; }
+    public bool IsMandatory { get; set; }
+}
+
+public class AppVersionCheckDto
+{
+    public string AppName { get; set; } = string.Empty;
+    public string CurrentVersion { get; set; } = string.Empty;
+}

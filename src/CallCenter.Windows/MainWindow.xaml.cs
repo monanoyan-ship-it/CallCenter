@@ -108,6 +108,7 @@ public partial class MainWindow : Window
         services.AddSingleton<Services.RecordingUploadService>();
         services.AddSingleton<Services.BackgroundSyncService>();
         services.AddSingleton<Services.LocalReportService>();
+        services.AddSingleton<Services.UpdateService>();
 
         blazorWebView.Services = services.BuildServiceProvider();
 

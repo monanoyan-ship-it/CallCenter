@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject SecureStorage Storage
+@inject UpdateService UpdateSvc
 @implements IAsyncDisposable
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -61,6 +62,47 @@
             </div>
         </header>
 
+        @* ─── GUNCELLEME BILDIRIMI ─── *@
+        @if (updateInfo != null)
+        {
+            <div class="update-banner alert alert-info alert-dismissible mb-0 rounded-0 py-2 px-3 d-flex align-items-center">
+                <i class="bi bi-arrow-repeat me-2"></i>
+                <span class="flex-grow-1">
+                    Yeni versiyon mevcut: <strong>v@(updateInfo.LatestVersion)</strong>
+                    @if (!string.IsNullOrEmpty(updateInfo.ReleaseNotes))
+                    {
+                        <small class="text-muted ms-2">— @updateInfo.ReleaseNotes</small>
+                    }
+                </span>
+                @if (isDownloading)
+                {
+                    <div class="d-flex align-items-center gap-2 me-2">
+                        <div class="progress" style="width:120px;height:6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 style="width:@(downloadProgress)%"></div>
+                        </div>
+                        <small>@(downloadProgress)%</small>
+                    </div>
+                }
+                else if (downloadedPath != null)
+                {
+                    <button class="btn btn-success btn-sm me-2" @onclick="LaunchUpdate">
+                        <i class="bi bi-play-fill me-1"></i>Kur
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-primary btn-sm me-2" @onclick="StartDownload">
+                        <i class="bi bi-download me-1"></i>Guncelle
+                    </button>
+                }
+                @if (!updateInfo.IsMandatory)
+                {
+                    <button type="button" class="btn-close btn-close-sm" @onclick="DismissUpdate"></button>
+                }
+            </div>
+        }
+
         @* ─── SAYFA ICERIGI ─── *@
         <main class="main-content">
             @Body
@@ -77,6 +119,12 @@
 @code {
     private bool statusDropdownOpen;
     private int currentStatusId = AgentStatuses.Ids.Offline;
+
+    // ─── GUNCELLEME ───
+    private AppVersionInfoDto? updateInfo;
+    private bool isDownloading;
+    private int downloadProgress;
+    private string? downloadedPath;
 
     // Durum adlarini Turkce goster
     private static readonly Dictionary<string, string> StatusDisplayNames = new()
@@ -118,6 +166,11 @@
             HubService.OnConnectionStateChanged += HandleConnectionStateChanged;
             HubService.OnForceLogout += HandleForceLogout;
 
+            // Guncelleme event'lerini dinle
+            UpdateSvc.UpdateAvailable += OnUpdateAvailable;
+            UpdateSvc.DownloadProgressChanged += OnDownloadProgress;
+            UpdateSvc.DownloadCompleted += OnDownloadCompleted;
+
             // Hub'a baglan
             await HubService.ConnectAsync();
 
@@ -126,6 +179,9 @@
             {
                 currentStatusId = AgentStatuses.Ids.Available;
             }
+
+            // Guncelleme kontrolu (arka planda)
+            _ = UpdateSvc.CheckForUpdateAsync();
 
             StateHasChanged();
         }
@@ -179,10 +235,54 @@
         NavigationManager.NavigateTo("/login", forceLoad: false);
     }
 
+    // ═══ GUNCELLEME ═══
+
+    private void OnUpdateAvailable(AppVersionInfoDto info)
+    {
+        updateInfo = info;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDownloadProgress(int progress)
+    {
+        downloadProgress = progress;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDownloadCompleted()
+    {
+        isDownloading = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartDownload()
+    {
+        isDownloading = true;
+        downloadProgress = 0;
+        downloadedPath = await UpdateSvc.DownloadUpdateAsync();
+    }
+
+    private void LaunchUpdate()
+    {
+        if (downloadedPath != null)
+        {
+            UpdateSvc.LaunchInstaller(downloadedPath);
+            // Uygulama kapanacak, installer baslatildi
+        }
+    }
+
+    private void DismissUpdate()
+    {
+        updateInfo = null;
+    }
+
     public async ValueTask DisposeAsync()
     {
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
         HubService.OnForceLogout -= HandleForceLogout;
+        UpdateSvc.UpdateAvailable -= OnUpdateAvailable;
+        UpdateSvc.DownloadProgressChanged -= OnDownloadProgress;
+        UpdateSvc.DownloadCompleted -= OnDownloadCompleted;
     }
 }
