@@ -1,0 +1,157 @@
+@{
+    ViewData["Title"] = "Gorevler";
+}
+
+<div id="tasks-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <div class="input-group" style="max-width: 280px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Gorev ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            </div>
+            <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: statusFilter">
+                <option value="">Tum Durumlar</option>
+                <option value="1">Yapilacak</option>
+                <option value="2">Devam Ediyor</option>
+                <option value="3">Tamamlandi</option>
+                <option value="4">Iptal</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Gorev
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-2 mb-3">
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Yapilacak</div>
+                    <div class="fw-bold text-secondary" data-bind="text: stats().todo">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Devam Ediyor</div>
+                    <div class="fw-bold text-info" data-bind="text: stats().inProgress">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Tamamlandi</div>
+                    <div class="fw-bold text-success" data-bind="text: stats().done">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-2 text-center">
+                    <div class="text-muted" style="font-size: .7rem;">Geciken</div>
+                    <div class="fw-bold text-danger" data-bind="text: stats().overdue">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Gorev</th>
+                            <th>Kisi</th>
+                            <th>Durum</th>
+                            <th>Atanan</th>
+                            <th>Son Tarih</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredTasks">
+                        <tr data-bind="css: { 'table-danger': dueDate && new Date(dueDate) < new Date() && statusId < 3 }">
+                            <td class="small fw-semibold" data-bind="text: title"></td>
+                            <td class="small" data-bind="text: contactName"></td>
+                            <td>
+                                <span class="badge" data-bind="text: statusName, css: statusCss"></span>
+                            </td>
+                            <td class="small" data-bind="text: assignedToName"></td>
+                            <td class="small text-muted" data-bind="text: dueDate ? new Date(dueDate).toLocaleDateString('tr-TR') : '-'"></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: filteredTasks().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-check2-square" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Henuz gorev yok</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="taskModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Gorev Duzenle' : 'Yeni Gorev'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Baslik *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Aciklama</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.description"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Kisi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Son Tarih</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: form.dueDate" />
+                        </div>
+                        <!-- ko if: isEditing -->
+                        <div class="col-6">
+                            <label class="form-label small">Durum</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.statusId">
+                                <option value="1">Yapilacak</option>
+                                <option value="2">Devam Ediyor</option>
+                                <option value="3">Tamamlandi</option>
+                                <option value="4">Iptal</option>
+                            </select>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Tasks.js"></script>
+}

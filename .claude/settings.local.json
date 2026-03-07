@@ -134,7 +134,12 @@
       "WebFetch(domain:www.engagebay.com)",
       "Bash(ipconfig /flushdns)",
       "Bash(nslookup crm.corplynk.com 1.1.1.1)",
-      "Bash(nslookup crm.corplynk.com)"
+      "Bash(nslookup crm.corplynk.com)",
+      "Bash(cd:*)",
+      "Bash(tail:*)",
+      "Bash(head:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)"
     ]
   }
 }

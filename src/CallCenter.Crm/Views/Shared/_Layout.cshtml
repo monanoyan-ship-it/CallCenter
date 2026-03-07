@@ -47,15 +47,15 @@
             </a>
 
             <div class="nav-section mt-3">Takip</div>
-            <a class="nav-link" href="/Activities">
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Activities" ? "active" : "")" href="/Activities">
                 <i class="bi bi-clock-history me-2"></i>Etkilesimler
             </a>
-            <a class="nav-link" href="/Tasks">
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tasks" ? "active" : "")" href="/Tasks">
                 <i class="bi bi-check2-square me-2"></i>Gorevler
             </a>
 
             <div class="nav-section mt-3">Raporlar</div>
-            <a class="nav-link" href="/Reports">
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")" href="/Reports">
                 <i class="bi bi-bar-chart-fill me-2"></i>Raporlar
             </a>
 

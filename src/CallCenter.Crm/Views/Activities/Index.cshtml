@@ -1,0 +1,113 @@
+@{
+    ViewData["Title"] = "Etkilesimler";
+}
+
+<div id="activities-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <div class="input-group" style="max-width: 280px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Etkilesim ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            </div>
+            <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: typeFilter">
+                <option value="">Tum Turler</option>
+                <option value="1">Arama</option>
+                <option value="2">E-posta</option>
+                <option value="3">Toplanti</option>
+                <option value="4">Not</option>
+                <option value="5">Gorev</option>
+                <option value="6">SMS</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Etkilesim
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Tur</th>
+                            <th>Ozet</th>
+                            <th>Kisi</th>
+                            <th>Personel</th>
+                            <th>Zaman</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredActivities">
+                        <tr>
+                            <td class="text-center"><i data-bind="css: typeIcon"></i></td>
+                            <td><span class="badge" data-bind="text: typeName, css: typeCss"></span></td>
+                            <td class="small" data-bind="text: summary"></td>
+                            <td class="small" data-bind="text: contactName"></td>
+                            <td class="small" data-bind="text: personnelName"></td>
+                            <td class="small text-muted" data-bind="text: new Date(createdAt).toLocaleString('tr-TR')"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: filteredActivities().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Henuz etkilesim yok</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="activityModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Yeni Etkilesim</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Tur *</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.typeId">
+                                <option value="1">Arama</option>
+                                <option value="2">E-posta</option>
+                                <option value="3">Toplanti</option>
+                                <option value="4">Not</option>
+                                <option value="5">Gorev</option>
+                                <option value="6">SMS</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Kisi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Ozet *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.summary" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Detay</label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.detail"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Activities.js"></script>
+}

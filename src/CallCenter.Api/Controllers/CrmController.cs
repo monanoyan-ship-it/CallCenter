@@ -233,7 +233,7 @@ public class CrmController : ControllerBase
 
     private int? GetPersonnelId()
     {
-        var claim = User.FindFirst("PersonnelId")?.Value;
+        var claim = User.FindFirst("CustomerPersonnelId")?.Value;
         return claim != null ? int.Parse(claim) : null;
     }
 
