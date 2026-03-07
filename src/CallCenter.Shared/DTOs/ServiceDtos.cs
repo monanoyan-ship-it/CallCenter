@@ -14,7 +14,6 @@ public class ServiceTypeDto
     public string BadgeCss { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
-    public decimal DefaultPrice { get; set; }
     public bool IsDefault { get; set; }
 }
 

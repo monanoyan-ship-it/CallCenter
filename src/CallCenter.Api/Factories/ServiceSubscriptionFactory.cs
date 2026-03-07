@@ -76,7 +76,7 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
             CustomerId = dto.CustomerId,
             ServiceTypeId = dto.ServiceTypeId,
             StatusId = SubscriptionStatuses.Ids.Active,
-            MonthlyPrice = dto.MonthlyPrice ?? ServiceTypes.GetDefaultPrice(dto.ServiceTypeId),
+            MonthlyPrice = dto.MonthlyPrice ?? 0,
             StartDate = DateTime.UtcNow,
             Notes = dto.Notes
         };
@@ -307,7 +307,6 @@ public class ServiceSubscriptionFactory : IServiceSubscriptionFactory
         BadgeCss = s.CssClass ?? "",
         CategoryId = ServiceTypes.GetCategoryId(s.Id),
         CategoryName = s.IsDefault ? "Standart" : "Premium",
-        DefaultPrice = ServiceTypes.GetDefaultPrice(s.Id),
         IsDefault = s.IsDefault
     };
 

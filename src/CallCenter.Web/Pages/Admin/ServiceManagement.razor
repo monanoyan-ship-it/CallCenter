@@ -118,13 +118,13 @@ else if (isLoadingSummary)
                                     }
                                 </td>
                                 <td class="text-end">
-                                    @if (svc.DefaultPrice > 0)
+                                    @if (svc.IsDefault)
                                     {
-                                        <span class="fw-semibold">@svc.DefaultPrice.ToString("N2") TL</span>
+                                        <span class="text-muted">Dahil</span>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">Dahil</span>
+                                        <span class="badge bg-warning-subtle text-warning">Ucretli</span>
                                     }
                                 </td>
                             </tr>
