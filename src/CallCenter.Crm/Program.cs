@@ -4,7 +4,8 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddHttpClient("CrmApi", client =>
 {
-    var baseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://cc-api.corplynk.com";
+    var baseUrl = builder.Configuration["ApiBaseUrl"]
+        ?? throw new InvalidOperationException("ApiBaseUrl yapilandirilmamis. appsettings.json kontrol edin.");
     client.BaseAddress = new Uri(baseUrl);
 });
 

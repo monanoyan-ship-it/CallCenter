@@ -48,7 +48,8 @@ public partial class MainWindow : Window
         services.AddAuthorizationCore();
 
         // HttpClient + Bearer token
-        var apiBaseUrl = config["ApiBaseUrl"] ?? "https://localhost:7147";
+        var apiBaseUrl = config["ApiBaseUrl"]
+            ?? throw new InvalidOperationException("ApiBaseUrl yapilandirilmamis. wwwroot/appsettings.json kontrol edin.");
         services.AddSingleton<Services.WindowsAuthHeaderHandler>();
         services.AddSingleton(sp =>
         {

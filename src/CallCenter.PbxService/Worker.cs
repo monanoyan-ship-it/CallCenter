@@ -11,7 +11,8 @@ public class Worker(
     SipRequestHandler requestHandler,
     ICallSessionManager sessionManager,
     ITrunkManager trunkManager,
-    InboundCallHandler inboundHandler) : BackgroundService
+    InboundCallHandler inboundHandler,
+    AcdService acdService) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -38,7 +39,10 @@ public class Worker(
         await trunkManager.LoadTrunksAsync(config.CustomerUid);
         await trunkManager.RegisterAllAsync();
 
-        logger.LogInformation("PBX Service hazir. {TrunkCount} trunk, cagri bekleniyor...",
+        // 5. ACD servisi baslat (kuyruk polling + agent yonlendirme)
+        acdService.Start(stoppingToken);
+
+        logger.LogInformation("PBX Service hazir. {TrunkCount} trunk, ACD aktif, cagri bekleniyor...",
             trunkManager.RegisteredTrunkCount);
 
         // Periyodik durum raporu
@@ -68,6 +72,7 @@ public class Worker(
             logger.LogWarning("{ActiveCalls} aktif cagri var, kapatiliyor...", activeCalls);
         }
 
+        acdService.Stop();
         await trunkManager.UnregisterAllAsync();
         await transportService.StopAsync();
         await base.StopAsync(cancellationToken);

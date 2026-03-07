@@ -1,4 +1,5 @@
 using CallCenter.Shared.DTOs;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace CallCenter.Web.Services;
@@ -33,10 +34,12 @@ public class HubService : IAsyncDisposable
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
-    public HubService(AuthService authService, IConfiguration config)
+    public HubService(AuthService authService, IConfiguration config, NavigationManager nav)
     {
         _authService = authService;
-        var apiBase = config["ApiBaseUrl"] ?? "https://localhost:7147";
+        var apiBase = config["ApiBaseUrl"];
+        if (string.IsNullOrWhiteSpace(apiBase))
+            apiBase = nav.BaseUri.TrimEnd('/');
         _hubUrl = $"{apiBase}/hubs/callcenter";
     }
 

@@ -1,3 +1,4 @@
+using System.Net;
 using SIPSorcery.SIP;
 
 namespace CallCenter.PbxService.Services;
@@ -12,6 +13,7 @@ public class InboundCallHandler
     private readonly IApiClient _apiClient;
     private readonly ICallSessionManager _sessionManager;
     private readonly ISipTransportService _transport;
+    private readonly QueueManager _queueManager;
 
     // Startup'ta API'den yuklenir, cache'lenir
     private BusinessHoursInfo? _businessHours;
@@ -21,12 +23,14 @@ public class InboundCallHandler
         ILogger<InboundCallHandler> logger,
         IApiClient apiClient,
         ICallSessionManager sessionManager,
-        ISipTransportService transport)
+        ISipTransportService transport,
+        QueueManager queueManager)
     {
         _logger = logger;
         _apiClient = apiClient;
         _sessionManager = sessionManager;
         _transport = transport;
+        _queueManager = queueManager;
     }
 
     /// <summary>Startup'ta API'den mesai/config bilgilerini yukle</summary>
@@ -104,9 +108,41 @@ public class InboundCallHandler
         {
             session.State = CallSessionState.Queued;
             session.QueueId = _customerConfig.DefaultQueueId;
-            _logger.LogInformation("Kuyruga yonlendiriliyor: QueueId={QueueId}",
-                _customerConfig.DefaultQueueId);
-            // TODO 11.7+11.8: Kuyruk bekleme + ACD
+
+            // Arayanin RTP endpoint bilgisini SDP'den cikar
+            var callerRtpEp = ExtractRtpEndpointFromSdp(invite.Body);
+            if (callerRtpEp == null)
+            {
+                _logger.LogWarning("SDP'den RTP endpoint cikarilmadi, cagri reddediliyor: CallId={CallId}", callId);
+                var noSdp = SIPResponse.GetResponse(invite,
+                    SIPResponseStatusCodesEnum.NotAcceptable, "SDP gerekli");
+                await _transport.SendResponseAsync(noSdp);
+                _sessionManager.RemoveSession(callId);
+                return;
+            }
+
+            // Arayana RTP gondermek icin sender olustur
+            var callerEndpoint = ParseEndpoint(callerRtpEp);
+            var rtpSender = new CallerRtpSender(callerEndpoint);
+
+            // Session'a caller RTP bilgisi kaydet (ACD bridge icin)
+            session.CallerRtpEndpoint = callerRtpEp;
+            session.CallerNumber = callerNumber;
+
+            // 200 OK + SDP answer gonder (medya akisi baslasin)
+            var localIp = localEp.GetIPEndPoint().Address.ToString();
+            var sdpAnswer = BuildSdpAnswer(localIp, rtpSender.LocalPort);
+            var ok = SIPResponse.GetResponse(invite, SIPResponseStatusCodesEnum.Ok, null);
+            ok.Header.ContentType = "application/sdp";
+            ok.Body = sdpAnswer;
+            await _transport.SendResponseAsync(ok);
+
+            _logger.LogInformation(
+                "Kuyruga yonlendiriliyor: QueueId={QueueId}, CallerRtp={CallerRtp}, LocalRtp=:{LocalPort}",
+                _customerConfig.DefaultQueueId, callerRtpEp, rtpSender.LocalPort);
+
+            // Kuyruga ekle - bekleme muzigi otomatik baslar
+            _ = _queueManager.EnqueueAsync(callId, _customerConfig.DefaultQueueId.Value, rtpSender, CancellationToken.None);
         }
         else
         {
@@ -124,6 +160,12 @@ public class InboundCallHandler
     {
         var callId = bye.Header.CallId;
         var session = _sessionManager.GetSession(callId);
+
+        // Kuyrukta bekliyorsa cikar
+        _queueManager.RemoveByCallId(callId);
+
+        // RTP Bridge aktifse durdur
+        session?.Bridge?.Dispose();
 
         if (session?.CallRecordId != null)
         {
@@ -184,5 +226,56 @@ public class InboundCallHandler
             user = "0" + user[3..]; // +90 kaldir, 0 ekle
 
         return user;
+    }
+
+    /// <summary>SDP'den RTP endpoint cikar (c= IP, m=audio port)</summary>
+    private static string? ExtractRtpEndpointFromSdp(string? sdp)
+    {
+        if (string.IsNullOrEmpty(sdp)) return null;
+
+        string? ip = null;
+        int? port = null;
+
+        foreach (var line in sdp.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("c=IN IP4 "))
+            {
+                ip = trimmed["c=IN IP4 ".Length..].Trim();
+            }
+            else if (trimmed.StartsWith("m=audio "))
+            {
+                var parts = trimmed.Split(' ');
+                if (parts.Length >= 2 && int.TryParse(parts[1], out var p))
+                    port = p;
+            }
+        }
+
+        return ip != null && port != null ? $"{ip}:{port}" : null;
+    }
+
+    /// <summary>SDP answer olustur</summary>
+    private static string BuildSdpAnswer(string localIp, int rtpPort)
+    {
+        return $"""
+            v=0
+            o=PbxService 0 0 IN IP4 {localIp}
+            s=CallCenter PBX
+            c=IN IP4 {localIp}
+            t=0 0
+            m=audio {rtpPort} RTP/AVP 0 8
+            a=rtpmap:0 PCMU/8000
+            a=rtpmap:8 PCMA/8000
+            a=ptime:20
+            a=sendrecv
+            """.Replace("            ", "");
+    }
+
+    private static IPEndPoint ParseEndpoint(string endpoint)
+    {
+        var parts = endpoint.Split(':');
+        var ip = IPAddress.Parse(parts[0]);
+        var port = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+        return new IPEndPoint(ip, port);
     }
 }
