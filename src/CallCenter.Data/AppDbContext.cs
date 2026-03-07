@@ -587,6 +587,7 @@ public class AppDbContext : DbContext
             e.HasIndex(b => new { b.CustomerId, b.Year, b.Month }).IsUnique();
             e.Property(b => b.UnitPrice).HasPrecision(18, 2);
             e.Property(b => b.Amount).HasPrecision(18, 2);
+            e.Property(b => b.ServiceAmount).HasPrecision(18, 2);
             e.Property(b => b.Notes).HasMaxLength(1000);
             e.HasOne(b => b.Customer)
              .WithMany(c => c.BillingPeriods)

@@ -14,6 +14,7 @@ public class CustomerBillingPeriod
     public decimal Amount { get; set; }
     /// <summary>Hizmet abonelikleri toplam tutari</summary>
     public decimal ServiceAmount { get; set; }
+    public int StatusId { get; set; } = 1; // BillingPeriodStatuses
     public bool IsPaid { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? Notes { get; set; }

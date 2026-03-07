@@ -38,4 +38,7 @@ public class Customer
 
     // Hizmet abonelikleri
     public ICollection<CustomerServiceSubscription> ServiceSubscriptions { get; set; } = new List<CustomerServiceSubscription>();
+
+    /// <summary>Tahakkuk gunu (ayin kaci). null = ilk tahakkuk henuz olusturulmadi</summary>
+    public int? BillingAnchorDay { get; set; }
 }

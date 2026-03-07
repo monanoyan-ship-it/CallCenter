@@ -114,6 +114,7 @@ public class CustomerFactory : ICustomerFactory
             SaveRecordingToPlatform = c.SaveRecordingToPlatform,
             SaveRecordingToOwnStorage = c.SaveRecordingToOwnStorage,
             CreatedAt = c.CreatedAt,
+            BillingAnchorDay = c.BillingAnchorDay,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
             {
                 Id = p.Id,

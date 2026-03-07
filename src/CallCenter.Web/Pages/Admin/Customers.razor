@@ -104,10 +104,6 @@
                                             @onclick="() => GoToDetail(customer)">
                                         <i class="bi bi-sliders2"></i>
                                     </button>
-                                    <button class="btn btn-outline-success btn-sm me-1" title="Portal"
-                                            @onclick="() => GoToPortal(customer)">
-                                        <i class="bi bi-building"></i>
-                                    </button>
                                     <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(customer)">
                                         <i class="bi bi-pencil"></i>
@@ -297,10 +293,6 @@
         Nav.NavigateTo($"admin/customers/{customer.Id}");
     }
 
-    private void GoToPortal(CustomerListDto customer)
-    {
-        Nav.NavigateTo($"customer/portal/dashboard?customerId={customer.Id}");
-    }
 
     // ═══════════════════════════════════════════════════
     // FATURALAMA
@@ -332,7 +324,10 @@
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<BillingGenerateResult>();
-                billingSuccess = $"{result?.Created} donem olusturuldu, {result?.Skipped} atlandi.";
+                var msg = $"{result?.Created} donem olusturuldu, {result?.Skipped} atlandi.";
+                if (result?.SkippedNoAnchor > 0)
+                    msg += $" {result.SkippedNoAnchor} musteri ilk tahakkuku yok (atlanmis).";
+                billingSuccess = msg;
                 Toast.ShowSuccess(billingSuccess);
             }
             else
@@ -346,5 +341,5 @@
     }
 
     private record ErrorMsg(string? Message);
-    private record BillingGenerateResult(int Created, int Skipped);
+    private record BillingGenerateResult(int Created, int Skipped, int SkippedNoAnchor);
 }

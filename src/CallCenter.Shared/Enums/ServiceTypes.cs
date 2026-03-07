@@ -96,6 +96,25 @@ public static class SubscriptionStatuses
     }
 }
 
+public static class BillingPeriodStatuses
+{
+    public static readonly TypeItem Draft = new(1, "Draft", "BillingPeriodStatus.Draft", "Tahakkuk", "bi-pencil-fill", "bg-warning text-dark", 1, isDefault: true);
+    public static readonly TypeItem Invoiced = new(2, "Invoiced", "BillingPeriodStatus.Invoiced", "Faturalanmis", "bi-receipt", "bg-info", 2);
+    public static readonly TypeItem Paid = new(3, "Paid", "BillingPeriodStatus.Paid", "Odenmis", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem Overdue = new(4, "Overdue", "BillingPeriodStatus.Overdue", "Gecikme", "bi-exclamation-triangle-fill", "bg-danger", 4);
+
+    public static IEnumerable<TypeItem> All => new[] { Draft, Invoiced, Paid, Overdue };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Draft = 1;
+        public const int Invoiced = 2;
+        public const int Paid = 3;
+        public const int Overdue = 4;
+    }
+}
+
 public static class BillingItemStatuses
 {
     public static readonly TypeItem Pending = new(1, "Pending", "BillingItemStatus.Pending", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);

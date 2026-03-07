@@ -179,6 +179,7 @@ public class CustomerDetailDto
     public bool SaveRecordingToPlatform { get; set; }
     public bool SaveRecordingToOwnStorage { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int? BillingAnchorDay { get; set; }
     public List<PersonnelSimpleDto> Personnel { get; set; } = new();
 
     // Admin kullanici bilgileri
@@ -615,6 +616,8 @@ public class BillingPeriodDto
     public decimal Amount { get; set; }
     public decimal ServiceAmount { get; set; }
     public decimal TotalAmount => Amount + ServiceAmount;
+    public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
     public bool IsPaid { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? Notes { get; set; }
@@ -630,8 +633,34 @@ public class BillingServiceLineDto
 
 public class BillingPeriodUpdateDto
 {
+    public int? StatusId { get; set; }
     public bool IsPaid { get; set; }
     public string? Notes { get; set; }
+}
+
+public class BillingPeriodCreateDto
+{
+    [Required(ErrorMessage = "Musteri secimi zorunludur.")]
+    public int CustomerId { get; set; }
+    [Required(ErrorMessage = "Donem baslangic tarihi zorunludur.")]
+    public DateTime PeriodStartDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class BillingReportDto
+{
+    public int PeriodId { get; set; }
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public DateTime PeriodStartDate { get; set; }
+    public DateTime PeriodEndDate { get; set; }
+    public decimal Amount { get; set; }
+    public decimal ServiceAmount { get; set; }
+    public decimal TotalAmount => Amount + ServiceAmount;
+    public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
 }
 
 public class BulkBillingGenerateDto
