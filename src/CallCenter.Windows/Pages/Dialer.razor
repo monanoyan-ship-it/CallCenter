@@ -221,6 +221,45 @@
             </button>
         }
     </div>
+
+    @* ─── Not Paneli (cagri sirasinda + sonrasinda sag tarafta) ─── *@
+    @if (showNotesPanel)
+    {
+        <div class="notes-panel">
+            <div class="notes-panel-header">
+                <i class="bi bi-journal-text me-1"></i>Cagri Notlari
+                <button class="btn btn-sm btn-link notes-close-btn" @onclick="CloseNotesPanel" title="Kapat">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <textarea class="notes-textarea" placeholder="Cagri ile ilgili notlarinizi buraya yazin..."
+                      @bind="callNotes" @bind:event="oninput" @bind:after="OnNotesChanged"></textarea>
+            <div class="notes-panel-footer">
+                <span class="text-muted" style="font-size: 0.65rem;">
+                    @if (!string.IsNullOrEmpty(callNotes))
+                    {
+                        @($"{callNotes.Length} karakter")
+                    }
+                </span>
+                <button class="btn btn-sm btn-primary notes-save-btn" @onclick="SaveNotesToServer"
+                        disabled="@(isNotesSaving || string.IsNullOrWhiteSpace(callNotes))">
+                    @if (isNotesSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    else if (isNotesSavedToServer)
+                    {
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-cloud-upload me-1"></i>
+                    }
+                    <span>@(isNotesSavedToServer ? "Kaydedildi" : "Kaydet")</span>
+                </button>
+            </div>
+        </div>
+    }
 </div>
 
 @* ─── Rehber Secici ─── *@
@@ -293,6 +332,13 @@
     private bool showContactPicker;
     private string contactSearch = "";
     private List<ContactDto>? contactResults;
+    private string callNotes = "";
+    private bool showNotesPanel;
+    private bool isNotesSaving;
+    private bool isNotesSavedToServer;
+    private Guid? notesCallUid;
+    private int? notesCallId;
+    private System.Timers.Timer? notesDebounceTimer;
 
     private readonly (string digit, string letters)[][] keypadRows = new[]
     {
@@ -493,6 +539,14 @@
             isCallStarting = false;
             lines = (await SipService.GetLinesAsync()).ToList();
 
+            // Bekleyen notu lokale kaydet
+            StopNotesTimer();
+            if (currentCallUid.HasValue && !string.IsNullOrWhiteSpace(callNotes))
+            {
+                try { await CallSync.SaveNotesLocalAsync(currentCallUid.Value, callNotes); }
+                catch { }
+            }
+
             // Cift yazim: lokal DB + backend'e "bitti" bilgisi
             if (currentCallUid.HasValue)
             {
@@ -581,6 +635,9 @@
         if (string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered) return;
 
         isCallStarting = true;
+        callNotes = "";
+        isNotesSavedToServer = false;
+        showNotesPanel = true;
         statusMessage = $"{phoneNumber} araniyor...";
         statusClass = "text-info";
 
@@ -590,6 +647,8 @@
             var syncResult = await CallSync.StartCallAsync("me", phoneNumber);
             currentCallUid = syncResult.Uid;
             currentCallId = syncResult.BackendCallId;
+            notesCallUid = syncResult.Uid;
+            notesCallId = syncResult.BackendCallId;
 
             await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
             var success = await SipService.MakeCallAsync(phoneNumber);
@@ -750,6 +809,74 @@
         showContactPicker = false;
     }
 
+    // ─── Not Paneli ───
+
+    private void OnNotesChanged()
+    {
+        isNotesSavedToServer = false;
+        notesDebounceTimer?.Stop();
+        notesDebounceTimer?.Dispose();
+        notesDebounceTimer = new System.Timers.Timer(1000);
+        notesDebounceTimer.AutoReset = false;
+        notesDebounceTimer.Elapsed += async (s, e) =>
+        {
+            await SaveNotesLocalAsync();
+        };
+        notesDebounceTimer.Start();
+    }
+
+    private async Task SaveNotesLocalAsync()
+    {
+        if (!notesCallUid.HasValue) return;
+
+        try
+        {
+            await CallSync.SaveNotesLocalAsync(notesCallUid.Value, callNotes);
+        }
+        catch { }
+    }
+
+    private async Task SaveNotesToServer()
+    {
+        if (!notesCallUid.HasValue || string.IsNullOrWhiteSpace(callNotes)) return;
+
+        isNotesSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            StopNotesTimer();
+            await CallSync.SaveNotesToServerAsync(notesCallUid.Value, notesCallId, callNotes);
+            isNotesSaving = false;
+            isNotesSavedToServer = true;
+            Toast.ShowInfo("Cagri notu kaydedildi");
+        }
+        catch
+        {
+            isNotesSaving = false;
+            Toast.ShowError("Not kaydedilemedi");
+        }
+
+        StateHasChanged();
+    }
+
+    private void CloseNotesPanel()
+    {
+        StopNotesTimer();
+        showNotesPanel = false;
+        callNotes = "";
+        isNotesSavedToServer = false;
+        notesCallUid = null;
+        notesCallId = null;
+    }
+
+    private void StopNotesTimer()
+    {
+        notesDebounceTimer?.Stop();
+        notesDebounceTimer?.Dispose();
+        notesDebounceTimer = null;
+    }
+
     // ─── Timer ───
 
     private void StopTimer()
@@ -769,5 +896,6 @@
         SipService.OnLineChanged -= HandleLineChanged;
         SipService.OnMuteChanged -= HandleMuteChanged;
         StopTimer();
+        StopNotesTimer();
     }
 }

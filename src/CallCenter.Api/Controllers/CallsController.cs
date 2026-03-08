@@ -124,6 +124,19 @@ public class CallsController : AuditableControllerBase
         return Ok(result);
     }
 
+    /// <summary>Cagri notunu guncelle</summary>
+    [HttpPut("{callId}/notes")]
+    public async Task<IActionResult> UpdateNotes(int callId, [FromBody] UpdateCallNotesRequest request)
+    {
+        var (success, error) = await _callFactory.UpdateNotesAsync(callId, request.Notes);
+        if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("UpdateNotes", "CallRecord", callId.ToString(),
+            $"Cagri notu guncellendi: ID={callId}");
+
+        return Ok();
+    }
+
     /// <summary>
     /// Windows uygulamasindan lokal DB senkronizasyonu.
     /// </summary>

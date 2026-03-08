@@ -14,4 +14,5 @@ public interface ICallFactory
     Task<object> IncomingCallAsync(IncomingCallRequest request);
     Task<CallSyncPushResponse> SyncPushAsync(int userId, CallSyncPushRequest request);
     Task<MyStatsResponse> GetMyStatsAsync(int userId);
+    Task<(bool Success, string? Error)> UpdateNotesAsync(int callId, string? notes);
 }

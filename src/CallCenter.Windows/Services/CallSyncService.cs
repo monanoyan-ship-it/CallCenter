@@ -263,6 +263,72 @@ public class CallSyncService
     }
 
     // ═══════════════════════════════════════
+    // NOT GUNCELLE
+    // ═══════════════════════════════════════
+
+    /// <summary>
+    /// Cagri notunu sadece lokal DB'ye kaydeder (server'a gondermez).
+    /// Debounce ile her 1 saniyede otomatik cagrilir.
+    /// </summary>
+    public async Task SaveNotesLocalAsync(Guid uid, string? notes)
+    {
+        if (!_localRepo.IsConfigured) return;
+
+        try
+        {
+            var record = await _localRepo.GetCallRecordByUidAsync(uid);
+            if (record != null)
+            {
+                record.Notes = notes;
+                await _localRepo.UpdateCallRecordAsync(record);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lokal DB guncelleme hatasi (SaveNotesLocal)");
+        }
+    }
+
+    /// <summary>
+    /// Cagri notunu hem lokal hem backend'e kaydeder.
+    /// Kullanici "Kaydet" butonuna bastiginda cagrilir.
+    /// </summary>
+    public async Task SaveNotesToServerAsync(Guid uid, int? backendCallId, string? notes)
+    {
+        // ── 1. Lokale yaz ──
+        await SaveNotesLocalAsync(uid, notes);
+
+        // ── 2. Backend'e gonder ──
+        if (backendCallId.HasValue)
+        {
+            try
+            {
+                var request = new { Notes = notes };
+                await _http.PutAsJsonAsync($"api/calls/{backendCallId.Value}/notes", request);
+                _logger.LogInformation("Cagri notu server'a kaydedildi: CallId={CallId}", backendCallId.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Backend notes bildirimi basarisiz — sync ile gonderilecek");
+                // Lokal kaydi unsynced isaretle ki BackgroundSync push etsin
+                if (_localRepo.IsConfigured)
+                {
+                    try
+                    {
+                        var record = await _localRepo.GetCallRecordByUidAsync(uid);
+                        if (record != null)
+                        {
+                            record.IsSyncedToBackend = false;
+                            await _localRepo.UpdateCallRecordAsync(record);
+                        }
+                    }
+                    catch { }
+                }
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════
     // CEVAPSIZ ARAMA
     // ═══════════════════════════════════════
 

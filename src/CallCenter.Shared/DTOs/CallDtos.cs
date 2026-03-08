@@ -84,3 +84,9 @@ public class CallSyncPushResponse
     public int Id { get; set; }
     public bool IsNew { get; set; }
 }
+
+/// <summary>Cagri notu guncelleme request'i</summary>
+public class UpdateCallNotesRequest
+{
+    public string? Notes { get; set; }
+}

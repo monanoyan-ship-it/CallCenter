@@ -395,6 +395,16 @@ public class CallFactory : ICallFactory
         };
     }
 
+    public async Task<(bool Success, string? Error)> UpdateNotesAsync(int callId, string? notes)
+    {
+        var call = await _calls.GetByIdAsync(callId);
+        if (call == null) return (false, "Arama bulunamadi.");
+
+        call.Notes = notes;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     private static int MapStatusNameToId(string statusName)
     {
         var status = CallStatuses.GetBySystemName(statusName);
