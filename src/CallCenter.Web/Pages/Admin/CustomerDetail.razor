@@ -71,15 +71,6 @@
         </button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(activeTab == "sip" ? "active" : "")" @onclick='() => SetTab("sip")'>
-            <i class="bi bi-router-fill me-1"></i>SIP Hesaplari
-            @if (sipAccounts != null)
-            {
-                <span class="badge bg-warning-subtle text-warning rounded-pill ms-1">@sipAccounts.Count</span>
-            }
-        </button>
-    </li>
-    <li class="nav-item">
         <button class="nav-link @(activeTab == "odemeler" ? "active" : "")" @onclick='() => SetTab("odemeler")'>
             <i class="bi bi-credit-card me-1"></i>Odemeler
             @if (billingPeriods != null)
@@ -509,87 +500,6 @@
 }
 
 @* ═══════════════════════════════════════════════════════════ *@
-@* SIP HESAPLARI SEKMESİ                                       *@
-@* ═══════════════════════════════════════════════════════════ *@
-@if (activeTab == "sip")
-{
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            @if (isLoadingSip)
-            {
-                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-            }
-            else if (sipAccounts == null || sipAccounts.Count == 0)
-            {
-                <div class="text-center text-muted py-4">
-                    <i class="bi bi-router fs-1 d-block mb-2 opacity-25"></i>
-                    <span>SIP hesabi bulunamadi</span>
-                    <div class="mt-2">
-                        <a href="admin/sip" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-plus-lg me-1"></i>SIP Ayarlarina Git
-                        </a>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Hesap Adi</th>
-                                <th>Sunucu</th>
-                                <th>Port</th>
-                                <th>Kullanici</th>
-                                <th>Transport</th>
-                                <th>Varsayilan</th>
-                                <th>Durum</th>
-                                <th style="width: 60px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var sip in sipAccounts)
-                            {
-                                <tr class="@(!sip.IsActive ? "table-secondary" : "")">
-                                    <td class="fw-medium">@sip.Name</td>
-                                    <td class="text-muted small">@sip.Server</td>
-                                    <td class="text-muted small">@sip.Port</td>
-                                    <td class="small">@sip.Username</td>
-                                    <td>
-                                        <span class="badge bg-light text-dark border">@(sip.Transport ?? "UDP")</span>
-                                    </td>
-                                    <td class="text-center">
-                                        @if (sip.IsDefault)
-                                        {
-                                            <i class="bi bi-star-fill text-warning"></i>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (sip.IsActive)
-                                        {
-                                            <span class="badge bg-success-subtle text-success">Aktif</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <a href="admin/sip" class="btn btn-outline-secondary btn-sm" title="Yapilandir">
-                                            <i class="bi bi-gear"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-}
-
-@* ═══════════════════════════════════════════════════════════ *@
 @* ODEMELER SEKMESİ                                            *@
 @* ═══════════════════════════════════════════════════════════ *@
 @if (activeTab == "odemeler")
@@ -984,10 +894,6 @@
     private List<OrgUnitListDto>? orgUnits;
     private bool isLoadingOrg;
 
-    // ─── SIP ───
-    private List<SipAccountListDto>? sipAccounts;
-    private bool isLoadingSip;
-
     // ─── ODEMELER ───
     private List<BillingPeriodDto>? billingPeriods;
     private bool isLoadingBilling;
@@ -1035,9 +941,6 @@
                 break;
             case "kuyruklar" when queues == null:
                 await LoadQueues();
-                break;
-            case "sip" when sipAccounts == null:
-                await LoadSip();
                 break;
             case "odemeler" when billingPeriods == null:
                 await LoadBilling();
@@ -1222,23 +1125,6 @@
         }
         catch (Exception ex) { Toast.ShowError($"Kuyruklar yuklenemedi: {ex.Message}"); }
         finally { isLoadingQueues = false; }
-    }
-
-    // ═══════════════════════════════════════════════════
-    // SIP
-    // ═══════════════════════════════════════════════════
-
-    private async Task LoadSip()
-    {
-        isLoadingSip = true;
-        StateHasChanged();
-        try
-        {
-            var result = await Http.GetFromJsonAsync<PagedResult<SipAccountListDto>>($"api/sipaccounts?customerId={Id}&pageSize=100");
-            sipAccounts = result?.Items ?? new();
-        }
-        catch (Exception ex) { Toast.ShowError($"SIP hesaplari yuklenemedi: {ex.Message}"); }
-        finally { isLoadingSip = false; }
     }
 
     // ═══════════════════════════════════════════════════

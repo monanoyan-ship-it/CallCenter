@@ -144,7 +144,8 @@
       "Bash(mv:*)",
       "Bash(CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 curl:*)",
       "Bash(gcloud run:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npx wrangler:*)"
     ]
   }
 }

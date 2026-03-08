@@ -132,10 +132,6 @@
                         <i class="bi bi-journal-text"></i>
                         <span>Denetim Kayitlari</span>
                     </NavLink>
-                    <NavLink class="nav-link" href="admin/storage">
-                        <i class="bi bi-cloud-upload"></i>
-                        <span>Depolama Ayarlari</span>
-                    </NavLink>
                     <NavLink class="nav-link" href="admin/gateway-health">
                         <i class="bi bi-router-fill"></i>
                         <span>Gateway Durumu</span>
@@ -222,7 +218,7 @@
     private static readonly Dictionary<int, string[]> GroupRoutes = new()
     {
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/storage", "admin/gateway-health", "admin/services", "admin/billing-report", "admin/kvkk" } },
+        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/gateway-health", "admin/services", "admin/billing-report", "admin/kvkk" } },
         { 4, new[] { "admin/customers", "admin/organizations", "admin/personnel" } },
         { 6, new[] { "supervisor/" } }
     };
