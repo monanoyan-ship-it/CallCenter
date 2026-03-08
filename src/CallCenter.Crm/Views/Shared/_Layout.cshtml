@@ -20,6 +20,17 @@
         .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.1); }
         .sidebar .nav-link.active { color: #fff; background: rgba(79,195,247,.2); }
         .sidebar .nav-section { color: rgba(255,255,255,.4); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; padding: .8rem 1rem .3rem; }
+        .sidebar .nav-group-toggle {
+            display: flex; align-items: center; width: 100%; padding: .6rem 1rem;
+            color: rgba(255,255,255,.5); background: none; border: none;
+            font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; cursor: pointer;
+        }
+        .sidebar .nav-group-toggle:hover { color: rgba(255,255,255,.7); }
+        .sidebar .nav-group-toggle span { flex: 1; text-align: left; }
+        .sidebar .nav-group-toggle .chevron { font-size: .6rem; transition: transform .2s ease; opacity: .5; }
+        .sidebar .nav-group-toggle .chevron.open { transform: rotate(180deg); }
+        .sidebar .nav-group-items { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
+        .sidebar .nav-group-items.show { max-height: 300px; }
         .content-area { margin-left: var(--sidebar-width); padding: 1.5rem; min-height: 100vh; }
         .topbar { background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
     </style>
@@ -32,32 +43,54 @@
             <div class="brand">
                 <i class="bi bi-person-lines-fill me-2"></i>CorpLynk <span>CRM</span>
             </div>
-            <div class="nav-section mt-2">Ana Menu</div>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")" href="/">
-                <i class="bi bi-speedometer2 me-2"></i>Dashboard
-            </a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Contacts" ? "active" : "")" href="/Contacts">
-                <i class="bi bi-people-fill me-2"></i>Kisiler
-            </a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tickets" ? "active" : "")" href="/Tickets">
-                <i class="bi bi-ticket-detailed-fill me-2"></i>Talepler
-            </a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Deals" ? "active" : "")" href="/Deals">
-                <i class="bi bi-kanban-fill me-2"></i>Firsatlar
-            </a>
+            @{
+                var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+                var mainOpen = ctrl is "Home" or "Contacts" or "Tickets" or "Deals";
+                var trackOpen = ctrl is "Activities" or "Tasks";
+                var reportOpen = ctrl is "Reports";
+            }
 
-            <div class="nav-section mt-3">Takip</div>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Activities" ? "active" : "")" href="/Activities">
-                <i class="bi bi-clock-history me-2"></i>Etkilesimler
-            </a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tasks" ? "active" : "")" href="/Tasks">
-                <i class="bi bi-check2-square me-2"></i>Gorevler
-            </a>
+            <button class="nav-group-toggle mt-2" onclick="toggleGroup(this)">
+                <span>Ana Menu</span>
+                <i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(mainOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </a>
+                <a class="nav-link @(ctrl == "Contacts" ? "active" : "")" href="/Contacts">
+                    <i class="bi bi-people-fill me-2"></i>Kisiler
+                </a>
+                <a class="nav-link @(ctrl == "Tickets" ? "active" : "")" href="/Tickets">
+                    <i class="bi bi-ticket-detailed-fill me-2"></i>Talepler
+                </a>
+                <a class="nav-link @(ctrl == "Deals" ? "active" : "")" href="/Deals">
+                    <i class="bi bi-kanban-fill me-2"></i>Firsatlar
+                </a>
+            </div>
 
-            <div class="nav-section mt-3">Raporlar</div>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")" href="/Reports">
-                <i class="bi bi-bar-chart-fill me-2"></i>Raporlar
-            </a>
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Takip</span>
+                <i class="bi bi-chevron-down chevron @(trackOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(trackOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Activities" ? "active" : "")" href="/Activities">
+                    <i class="bi bi-clock-history me-2"></i>Etkilesimler
+                </a>
+                <a class="nav-link @(ctrl == "Tasks" ? "active" : "")" href="/Tasks">
+                    <i class="bi bi-check2-square me-2"></i>Gorevler
+                </a>
+            </div>
+
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Raporlar</span>
+                <i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(reportOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports">
+                    <i class="bi bi-bar-chart-fill me-2"></i>Raporlar
+                </a>
+            </div>
 
             <div class="position-absolute bottom-0 w-100 p-3 border-top" style="border-color: rgba(255,255,255,.1) !important;">
                 <div class="d-flex align-items-center justify-content-between">
@@ -99,6 +132,26 @@
 
         // Toastr ayarlari
         toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3000 };
+
+        // Sidebar menu group toggle
+        function toggleGroup(btn) {
+            var items = btn.nextElementSibling;
+            var chevron = btn.querySelector('.chevron');
+            var isOpen = items.classList.contains('show');
+
+            // Diger gruplari kapat
+            document.querySelectorAll('.nav-group-items.show').forEach(function(el) {
+                el.classList.remove('show');
+                var ch = el.previousElementSibling.querySelector('.chevron');
+                if (ch) ch.classList.remove('open');
+            });
+
+            // Tiklanani ac/kapat
+            if (!isOpen) {
+                items.classList.add('show');
+                if (chevron) chevron.classList.add('open');
+            }
+        }
     </script>
     @RenderSection("Scripts", required: false)
 </body>

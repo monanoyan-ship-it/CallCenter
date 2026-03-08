@@ -8,7 +8,7 @@ namespace CallCenter.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Supervisor")]
+[Authorize(Roles = "CustomerUser")]
 public class CloudStorageController : AuditableControllerBase
 {
     private readonly ICloudStorageFactory _cloudStorageFactory;
@@ -27,6 +27,11 @@ public class CloudStorageController : AuditableControllerBase
     [HttpGet("configs")]
     public async Task<ActionResult<List<StorageConfigListDto>>> GetConfigs([FromQuery] int? customerId)
     {
+        // CustomerUser sadece kendi firmasini gorebilir
+        var cid = CurrentCustomerId;
+        if (cid != null)
+            customerId = cid.Value;
+
         return Ok(await _cloudStorageFactory.GetConfigsAsync(customerId));
     }
 
@@ -35,12 +40,21 @@ public class CloudStorageController : AuditableControllerBase
     {
         var config = await _cloudStorageFactory.GetConfigByIdAsync(id);
         if (config == null) return NotFound("Config bulunamadi");
+
+        // CustomerUser baska firmanin config'ini goremez
+        if (CurrentCustomerId != null && config.CustomerId != CurrentCustomerId.Value)
+            return Forbid();
+
         return Ok(config);
     }
 
     [HttpPost("configs")]
     public async Task<ActionResult> CreateConfig(StorageConfigCreateDto dto)
     {
+        // CustomerUser sadece kendi firmasi icin olusturabilir
+        if (CurrentCustomerId != null)
+            dto.CustomerId = CurrentCustomerId.Value;
+
         var (success, id, error) = await _cloudStorageFactory.CreateConfigAsync(dto);
         if (!success) return BadRequest(error);
 
@@ -53,6 +67,14 @@ public class CloudStorageController : AuditableControllerBase
     [HttpPut("configs/{id:int}")]
     public async Task<ActionResult> UpdateConfig(int id, StorageConfigUpdateDto dto)
     {
+        // CustomerUser baska firmanin config'ini guncelleyemez
+        if (CurrentCustomerId != null)
+        {
+            var existing = await _cloudStorageFactory.GetConfigByIdAsync(id);
+            if (existing == null || existing.CustomerId != CurrentCustomerId.Value)
+                return Forbid();
+        }
+
         var (success, error) = await _cloudStorageFactory.UpdateConfigAsync(id, dto);
         if (!success) return BadRequest(error);
 
@@ -64,6 +86,14 @@ public class CloudStorageController : AuditableControllerBase
     [HttpDelete("configs/{id:int}")]
     public async Task<ActionResult> DeleteConfig(int id)
     {
+        // CustomerUser baska firmanin config'ini silemez
+        if (CurrentCustomerId != null)
+        {
+            var existing = await _cloudStorageFactory.GetConfigByIdAsync(id);
+            if (existing == null || existing.CustomerId != CurrentCustomerId.Value)
+                return Forbid();
+        }
+
         var (success, error) = await _cloudStorageFactory.DeleteConfigAsync(id);
         if (!success) return BadRequest(error);
 
@@ -75,6 +105,14 @@ public class CloudStorageController : AuditableControllerBase
     [HttpPost("configs/{id:int}/test")]
     public async Task<ActionResult<StorageTestResultDto>> TestConnection(int id, CancellationToken ct)
     {
+        // CustomerUser baska firmanin config'ini test edemez
+        if (CurrentCustomerId != null)
+        {
+            var existing = await _cloudStorageFactory.GetConfigByIdAsync(id);
+            if (existing == null || existing.CustomerId != CurrentCustomerId.Value)
+                return Forbid();
+        }
+
         return Ok(await _cloudStorageFactory.TestConnectionAsync(id, ct));
     }
 }
