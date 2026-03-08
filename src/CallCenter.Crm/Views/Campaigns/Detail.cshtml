@@ -1,0 +1,241 @@
+@{
+    ViewData["Title"] = "Kampanya Detay";
+    var uid = ViewData["CampaignUid"]?.ToString();
+}
+
+<div id="campaign-detail-vm">
+    <!-- ko if: isLoading() -->
+    <div class="text-center py-5"><div class="spinner-border" role="status"></div></div>
+    <!-- /ko -->
+
+    <!-- ko if: !isLoading() && campaign() -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="/Campaigns" class="text-muted small text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i>Kampanyalar
+            </a>
+            <h5 class="mb-0 mt-1">
+                <span data-bind="text: campaign().name"></span>
+                <span class="badge ms-2" style="font-size:0.7rem;" data-bind="text: campaign().statusName, css: statusCss()"></span>
+            </h5>
+            <!-- ko if: campaign().description -->
+            <div class="text-muted small" data-bind="text: campaign().description"></div>
+            <!-- /ko -->
+        </div>
+        <div class="btn-group btn-group-sm">
+            <!-- ko if: campaign().statusId === 1 -->
+            <button class="btn btn-success" data-bind="click: function() { changeStatus(2) }">
+                <i class="bi bi-play-fill me-1"></i>Baslat
+            </button>
+            <!-- /ko -->
+            <!-- ko if: campaign().statusId === 2 -->
+            <button class="btn btn-warning" data-bind="click: function() { changeStatus(3) }">
+                <i class="bi bi-pause-fill me-1"></i>Duraklat
+            </button>
+            <button class="btn btn-primary" data-bind="click: function() { changeStatus(4) }">
+                <i class="bi bi-check-circle me-1"></i>Tamamla
+            </button>
+            <!-- /ko -->
+            <!-- ko if: campaign().statusId === 3 -->
+            <button class="btn btn-success" data-bind="click: function() { changeStatus(2) }">
+                <i class="bi bi-play-fill me-1"></i>Devam Ettir
+            </button>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Ozet Kartlari -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Toplam</div>
+                    <div class="fs-4 fw-bold" data-bind="text: campaign().totalContacts"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Ulasildi</div>
+                    <div class="fs-4 fw-bold text-success" data-bind="text: campaign().reachedCount"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Ulasilamadi</div>
+                    <div class="fs-4 fw-bold text-danger" data-bind="text: campaign().notReachedCount"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Bekliyor</div>
+                    <div class="fs-4 fw-bold text-secondary" data-bind="text: campaign().pendingCount"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <!-- ko if: campaign().totalContacts > 0 -->
+    <div class="progress mb-3" style="height: 8px;">
+        <div class="progress-bar bg-success" data-bind="style: { width: pctReached() + '%' }"></div>
+        <div class="progress-bar bg-danger" data-bind="style: { width: pctNotReached() + '%' }"></div>
+        <div class="progress-bar bg-dark" data-bind="style: { width: pctCancelled() + '%' }"></div>
+    </div>
+    <!-- /ko -->
+
+    <!-- Aksiyonlar -->
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-outline-primary btn-sm" data-bind="click: openAddContacts">
+            <i class="bi bi-person-plus me-1"></i>Kisi Ekle
+        </button>
+        <!-- ko if: selectedIds().length > 0 -->
+        <button class="btn btn-outline-info btn-sm" data-bind="click: openAssign">
+            <i class="bi bi-person-check me-1"></i>Secilenleri Ata (<span data-bind="text: selectedIds().length"></span>)
+        </button>
+        <!-- /ko -->
+    </div>
+
+    <!-- Kisi Tablosu -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0 align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:30px;">
+                            <input type="checkbox" class="form-check-input" data-bind="checked: allSelected, click: toggleSelectAll" />
+                        </th>
+                        <th>Kisi</th>
+                        <th>Telefon</th>
+                        <th>Firma</th>
+                        <th>Atanan</th>
+                        <th>Durum</th>
+                        <th>Deneme</th>
+                        <th>Not</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: campaign().contacts">
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input" data-bind="checked: $parent.selectedIds, checkedValue: id" />
+                        </td>
+                        <td class="fw-medium" data-bind="text: contactName"></td>
+                        <td data-bind="text: phoneNumber"></td>
+                        <td class="text-muted" data-bind="text: company || '-'"></td>
+                        <td class="text-muted" data-bind="text: assignedPersonnelName || '-'"></td>
+                        <td>
+                            <span class="badge" data-bind="text: statusName, css: $parent.contactStatusCss(statusId)"></span>
+                        </td>
+                        <td class="text-center" data-bind="text: attemptCount"></td>
+                        <td class="text-muted small" data-bind="text: resultNotes || ''"></td>
+                        <td>
+                            <button class="btn btn-outline-danger btn-sm" title="Cikar" data-bind="click: $parent.removeContact">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- ko if: campaign().contacts.length === 0 -->
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-people" style="font-size:2rem;"></i>
+            <p class="mt-2 small">Henuz kisi eklenmemis</p>
+        </div>
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+
+    <!-- Kisi Ekleme Modal -->
+    <div class="modal fade" id="addContactsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-person-plus me-2"></i>Rehberden Kisi Ekle</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control form-control-sm" placeholder="Kisi ara..."
+                               data-bind="value: contactSearch, valueUpdate: 'afterkeydown'" />
+                        <button class="btn btn-outline-primary btn-sm" data-bind="click: searchContacts">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <!-- ko if: availableContacts() -->
+                    <div style="max-height:300px; overflow-y:auto;">
+                        <!-- ko foreach: availableContacts() -->
+                        <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+                            <div>
+                                <span class="fw-medium" data-bind="text: fullName"></span>
+                                <span class="text-muted ms-2 small" data-bind="text: phoneNumber"></span>
+                                <!-- ko if: company -->
+                                <span class="text-muted ms-2 small">(<span data-bind="text: company"></span>)</span>
+                                <!-- /ko -->
+                            </div>
+                            <div>
+                                <!-- ko if: $parent.isAlreadyAdded(id) -->
+                                <span class="badge bg-secondary">Eklendi</span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: $parent.isAlreadyAdded(id) -->
+                                <input type="checkbox" class="form-check-input" data-bind="checked: $parent.contactIdsToAdd, checkedValue: id" />
+                                <!-- /ko -->
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+                </div>
+                <div class="modal-footer">
+                    <span class="text-muted small me-auto" data-bind="text: contactIdsToAdd().length + ' kisi secildi'"></span>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: addSelectedContacts, disable: contactIdsToAdd().length === 0 || isAdding()">
+                        <span data-bind="visible: isAdding()" class="spinner-border spinner-border-sm me-1"></span>
+                        Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Atama Modal -->
+    <div class="modal fade" id="assignModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-person-check me-2"></i>Operatore Ata</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted"><span data-bind="text: selectedIds().length"></span> kisi secildi. Atanacak operatoru secin:</p>
+                    <!-- ko if: operators() === null -->
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+                    <!-- /ko -->
+                    <!-- ko if: operators() !== null -->
+                    <select class="form-select form-select-sm" data-bind="value: assignPersonnelId, options: operators(), optionsText: 'fullName', optionsValue: 'id', optionsCaption: '-- Operator Secin --'"></select>
+                    <!-- /ko -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: assignSelected, disable: !assignPersonnelId() || isAssigning()">
+                        <span data-bind="visible: isAssigning()" class="spinner-border spinner-border-sm me-1"></span>
+                        Ata
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var campaignUid = '@uid';
+    </script>
+    <script src="~/js/CampaignDetail.js"></script>
+}

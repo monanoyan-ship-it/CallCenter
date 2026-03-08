@@ -109,7 +109,9 @@ public class CampaignFactory : ICampaignFactory
         {
             Name = req.Name,
             Description = req.Description,
-            ScheduledDate = req.ScheduledDate,
+            ScheduledDate = req.ScheduledDate.HasValue
+                ? DateTime.SpecifyKind(req.ScheduledDate.Value, DateTimeKind.Utc)
+                : null,
             CreatedByPersonnelId = personnelId,
             CustomerId = customerId ?? 0
         };
@@ -134,7 +136,7 @@ public class CampaignFactory : ICampaignFactory
         if (req.Name != null) campaign.Name = req.Name;
         if (req.Description != null) campaign.Description = req.Description;
         if (req.StatusId.HasValue) campaign.StatusId = req.StatusId.Value;
-        if (req.ScheduledDate.HasValue) campaign.ScheduledDate = req.ScheduledDate.Value;
+        if (req.ScheduledDate.HasValue) campaign.ScheduledDate = DateTime.SpecifyKind(req.ScheduledDate.Value, DateTimeKind.Utc);
         campaign.UpdatedAt = DateTime.UtcNow;
 
         _campaignEs.Update(campaign);
