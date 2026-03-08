@@ -165,7 +165,15 @@ else
                     @* BasePath *@
                     <div class="mb-3">
                         <label class="form-label">Klasor Yolu (opsiyonel)</label>
-                        <input class="form-control" @bind="formDto.BasePath" placeholder="/recordings/" />
+                        <input class="form-control" @bind="formDto.BasePath" @bind:event="oninput" placeholder="/recordings/" />
+                        @if (IsNetworkPath(formDto.BasePath))
+                        {
+                            <div class="alert alert-warning py-2 mt-2 small mb-0">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                <strong>Ag yolu tespit edildi.</strong> Bu klasorun hedef bilgisayarda erisime acik oldugundan emin olun.
+                                Klasor mevcut degilse veya erisim izni yoksa ses kayitlari yapilamayacaktir.
+                            </div>
+                        }
                     </div>
 
                     <div class="form-check mb-3">
@@ -523,6 +531,13 @@ else
         {
             ShowToast($"Hata: {ex.Message}", true);
         }
+    }
+
+    private static bool IsNetworkPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var trimmed = path.Trim();
+        return trimmed.StartsWith(@"\\") || trimmed.StartsWith("//");
     }
 
     private void ShowToast(string message, bool error)

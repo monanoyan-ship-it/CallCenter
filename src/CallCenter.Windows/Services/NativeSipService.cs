@@ -740,7 +740,23 @@ public class NativeSipService : ISipService
 
             var dir = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
+            {
+                try
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                catch (Exception dirEx)
+                {
+                    Console.WriteLine($"[SIP] Kayit klasoru olusturulamadi: {dir} — {dirEx.Message}");
+                    // Ag yolu erisilemediyse varsayilan lokale dusur
+                    var fallbackDir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "CorpLynk", "Recordings");
+                    Directory.CreateDirectory(fallbackDir);
+                    path = Path.Combine(fallbackDir, Path.GetFileName(path));
+                    Console.WriteLine($"[SIP] Varsayilan klasore dusuldu: {path}");
+                }
+            }
 
             // Aktif aramanin codec'ini tespit et (SDP'den)
             _recordingPayloadType = DetectActiveCodecPayloadType();
