@@ -251,6 +251,11 @@
     protected override async Task OnInitializedAsync()
     {
         await PermService.LoadAsync();
+        if (!PermService.IsAdmin && !PermService.IsFirmaAdmin)
+        {
+            Nav.NavigateTo("/customer/dashboard", replace: true);
+            return;
+        }
         await LoadData();
     }
 

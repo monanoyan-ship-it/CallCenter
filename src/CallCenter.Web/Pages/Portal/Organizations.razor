@@ -265,6 +265,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         await PermService.LoadAsync();
+        if (!PermService.IsAdmin && !PermService.IsFirmaAdmin)
+        {
+            Nav.NavigateTo("/customer/dashboard", replace: true);
+            return;
+        }
 
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);

@@ -2,6 +2,8 @@
 @page "/customer/queues"
 @attribute [Authorize]
 @inject HttpClient Http
+@inject PermissionService PermService
+@inject NavigationManager Nav
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 @using System.Security.Claims
@@ -122,6 +124,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await PermService.LoadAsync();
+        // Operator kullanici kuyruklara erisemez
+        if (PermService.CustomerRoleId == CustomerRoles.Ids.Operator)
+        {
+            Nav.NavigateTo("/customer/dashboard", replace: true);
+            return;
+        }
+
         // Rol kontrolu
         if (AuthState != null)
         {

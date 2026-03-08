@@ -1,10 +1,24 @@
 @page "/admin/storage"
-@attribute [Authorize(Roles = "Admin")]
+@page "/customer/portal/storage"
+@attribute [Authorize(Roles = "Admin,CustomerUser")]
 @inject HttpClient Http
+@inject AuthService AuthService
+@inject PermissionService PermService
+@inject NavigationManager NavigationManager
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 
 <PageTitle>Depolama Ayarlari - CorpLynk</PageTitle>
+
+@if (accessDenied)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-shield-lock fs-1 text-danger"></i>
+        <p class="text-muted mt-2">Bu sayfaya erisim yetkiniz yok.</p>
+    </div>
+}
+else
+{
 
 @* ─── BASLIK ─── *@
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
@@ -12,13 +26,16 @@
         <i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i>Depolama Ayarlari
     </h4>
     <div class="d-flex align-items-center gap-2">
-        <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
-            <option value="0">Tum Musteriler</option>
-            @foreach (var c in customers)
-            {
-                <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
-            }
-        </select>
+        @if (isAdmin)
+        {
+            <select class="form-select form-select-sm" style="min-width: 200px;" @onchange="OnCustomerChanged">
+                <option value="0">Tum Musteriler</option>
+                @foreach (var c in customers)
+                {
+                    <option value="@c.Id" selected="@(c.Id == selectedCustomerId)">@c.Name</option>
+                }
+            </select>
+        }
         <button class="btn btn-sm btn-primary" @onclick="ShowCreateModal">
             <i class="bi bi-plus-lg me-1"></i>Yeni Ekle
         </button>
@@ -135,17 +152,20 @@ else
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
-                    @* Musteri secimi *@
-                    <div class="mb-3">
-                        <label class="form-label">Musteri</label>
-                        <select class="form-select" @bind="formDto.CustomerId">
-                            <option value="0">Secin...</option>
-                            @foreach (var c in customers)
-                            {
-                                <option value="@c.Id">@c.Name</option>
-                            }
-                        </select>
-                    </div>
+                    @* Musteri secimi (sadece admin) *@
+                    @if (isAdmin)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Musteri</label>
+                            <select class="form-select" @bind="formDto.CustomerId">
+                                <option value="0">Secin...</option>
+                                @foreach (var c in customers)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
 
                     @* Provider secimi *@
                     <div class="mb-3">
@@ -307,7 +327,11 @@ else
     </div>
 }
 
+} @* accessDenied else kapanisi *@
+
 @code {
+    private bool isAdmin;
+    private bool accessDenied;
     private List<StorageConfigListDto> configs = new();
     private List<CustomerSimpleDto> customers = new();
     private int selectedCustomerId;
@@ -327,7 +351,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCustomersAsync();
+        var role = await AuthService.GetRoleAsync();
+        isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAdmin)
+        {
+            // Musteri kullanicisi: FirmaAdmin mi kontrol et
+            await PermService.LoadAsync();
+            if (PermService.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+            {
+                accessDenied = true;
+                return;
+            }
+        }
+
+        if (isAdmin)
+            await LoadCustomersAsync();
         await LoadConfigsAsync();
     }
 

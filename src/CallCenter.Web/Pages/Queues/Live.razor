@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject HubService HubService
 @inject PermissionService PermService
+@inject NavigationManager Nav
 @implements IDisposable
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
@@ -133,6 +134,12 @@ else
     protected override async Task OnInitializedAsync()
     {
         await PermService.LoadAsync();
+        // Operator kullanici canli izlemeye erisemez
+        if (PermService.CustomerRoleId == CustomerRoles.Ids.Operator)
+        {
+            Nav.NavigateTo("/customer/dashboard", replace: true);
+            return;
+        }
         if (PermService.CustomerId != null)
         {
             isCustomerUser = true;

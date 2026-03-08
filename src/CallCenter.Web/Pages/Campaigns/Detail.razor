@@ -311,6 +311,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         await PermService.LoadAsync();
+        if (!PermService.IsAdmin && !PermService.IsFirmaAdmin && !PermService.IsEkipLideri)
+        {
+            Nav.NavigateTo("/customer/dashboard", replace: true);
+            return;
+        }
         await LoadCampaign();
     }
 

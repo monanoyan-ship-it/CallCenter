@@ -4,7 +4,9 @@
 @inject HttpClient Http
 @inject ChartJsInterop ChartJs
 @inject PermissionService PermService
+@inject NavigationManager Nav
 @using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
 @using CallCenter.Web.Services
 @implements IAsyncDisposable
 
@@ -209,6 +211,12 @@ else if (report != null)
         fromDate = DateTime.Today.AddDays(-30);
 
         await PermService.LoadAsync();
+        // Operator kullanici raporlara erisemez
+        if (PermService.CustomerRoleId == CustomerRoles.Ids.Operator)
+        {
+            Nav.NavigateTo("/customer/dashboard", replace: true);
+            return;
+        }
         if (PermService.CustomerId != null)
         {
             isCustomerUser = true;
