@@ -206,6 +206,11 @@ public class NativeSipService : ISipService
             var transport = config.Transport?.ToUpperInvariant() ?? "UDP";
             switch (transport)
             {
+                case "WSS":
+                case "WS":
+                    _sipTransport.AddSIPChannel(new SIPWebSocketChannel(new IPEndPoint(IPAddress.Any, 0), null));
+                    Console.WriteLine("[SIP] WebSocket (WSS) transport kanali eklendi");
+                    break;
                 case "TCP":
                     _sipTransport.AddSIPChannel(new SIPTCPChannel(new IPEndPoint(IPAddress.Any, 0)));
                     break;
@@ -217,8 +222,8 @@ public class NativeSipService : ISipService
                     break;
             }
 
-            // STUN ile NAT arkasindaki public IP'yi kesfet
-            if (!string.IsNullOrEmpty(_stunServer))
+            // STUN ile NAT arkasindaki public IP'yi kesfet (WSS disinda)
+            if (!string.IsNullOrEmpty(_stunServer) && transport is not "WSS" and not "WS")
             {
                 try
                 {
@@ -230,7 +235,6 @@ public class NativeSipService : ISipService
                     var publicEp = STUNClient.GetPublicIPEndPoint(stunHost, stunPort);
                     if (publicEp != null)
                     {
-                        // SIPTransport contact header'inda public IP kullan
                         _sipTransport.ContactHost = publicEp.Address.ToString();
                         Console.WriteLine($"[NativeSipService] STUN public address: {publicEp}");
                     }
@@ -241,8 +245,37 @@ public class NativeSipService : ISipService
                 }
             }
 
-            // Registration
-            var regUri = new SIPURI(sipUri.User, sipUri.Host, null, SIPSchemesEnum.sip, SIPProtocolsEnum.udp);
+            // Registration — transport'a gore protokol ve host belirle
+            var sipProtocol = transport switch
+            {
+                "WSS" => SIPProtocolsEnum.wss,
+                "WS" => SIPProtocolsEnum.ws,
+                "TCP" => SIPProtocolsEnum.tcp,
+                "TLS" => SIPProtocolsEnum.tls,
+                _ => SIPProtocolsEnum.udp
+            };
+            var sipScheme = sipProtocol is SIPProtocolsEnum.wss or SIPProtocolsEnum.tls
+                ? SIPSchemesEnum.sips : SIPSchemesEnum.sip;
+
+            // WSS icin WsUri'den host:port al (SIP sunucusu farkli portta dinliyor olabilir)
+            var regHost = sipUri.Host;
+            if (transport is "WSS" or "WS" && !string.IsNullOrEmpty(config.WsUri))
+            {
+                try
+                {
+                    var wsUri = new Uri(config.WsUri);
+                    regHost = wsUri.Port > 0 && wsUri.Port != 443
+                        ? $"{wsUri.Host}:{wsUri.Port}"
+                        : wsUri.Host;
+                    Console.WriteLine($"[SIP] WSS registration hedefi: {regHost} (WsUri: {config.WsUri})");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SIP] WsUri parse hatasi, SIP host kullaniliyor: {ex.Message}");
+                }
+            }
+
+            var regUri = new SIPURI(sipUri.User, regHost, null, sipScheme, sipProtocol);
             _regAgent = new SIPRegistrationUserAgent(
                 _sipTransport,
                 config.AuthUsername,
@@ -1533,11 +1566,15 @@ public class NativeSipService : ISipService
 
     private SIPURI? BuildTargetUri(string destination)
     {
-        if (destination.StartsWith("sip:"))
+        if (destination.StartsWith("sip:") || destination.StartsWith("sips:"))
             return SIPURI.ParseSIPURI(destination);
 
-        var host = SIPURI.ParseSIPURI(_config!.SipUri)?.Host;
-        return host != null ? SIPURI.ParseSIPURI($"sip:{destination}@{host}") : null;
+        var configUri = SIPURI.ParseSIPURI(_config!.SipUri);
+        if (configUri?.Host == null) return null;
+
+        var transport = _config.Transport?.ToUpperInvariant() ?? "UDP";
+        var scheme = transport is "WSS" or "TLS" ? "sips" : "sip";
+        return SIPURI.ParseSIPURI($"{scheme}:{destination}@{configUri.Host}");
     }
 
     private void CleanupLine(CallLine line)
