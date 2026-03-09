@@ -41,6 +41,9 @@ public class CloudStorageFactory : ICloudStorageFactory
         if (config == null)
             return new StorageUploadResult { Success = false, Error = "Musteri icin depolama yapilandirilmamis" };
 
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk)
+            return new StorageUploadResult { Success = false, Error = "LocalDisk deposu sunucu tarafindan erisilemez" };
+
         var provider = _providerFactory.Create(config);
         try
         {
@@ -56,6 +59,8 @@ public class CloudStorageFactory : ICloudStorageFactory
     {
         var config = await GetDefaultConfigAsync(customerId);
         if (config == null) return null;
+
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk) return null;
 
         var provider = _providerFactory.Create(config);
         try
@@ -74,6 +79,8 @@ public class CloudStorageFactory : ICloudStorageFactory
         var config = await GetDefaultConfigAsync(customerId);
         if (config == null) return false;
 
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk) return false;
+
         var provider = _providerFactory.Create(config);
         try
         {
@@ -89,6 +96,8 @@ public class CloudStorageFactory : ICloudStorageFactory
     {
         var config = await GetDefaultConfigAsync(customerId);
         if (config == null) return null;
+
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk) return null;
 
         var provider = _providerFactory.Create(config);
         try
@@ -319,6 +328,16 @@ public class CloudStorageFactory : ICloudStorageFactory
         var config = await _configEs.GetByIdAsync(configId);
         if (config == null)
             return new StorageTestResultDto { Success = false, Error = "Config bulunamadi", TestedAt = DateTime.UtcNow };
+
+        // LocalDisk: sunucu tarafindan test edilemez, klasor erisimi istemci tarafinda dogrulanir
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk)
+        {
+            config.LastTestedAt = DateTime.UtcNow;
+            config.LastTestSuccess = true;
+            config.LastTestError = null;
+            await _uow.SaveChangesAsync();
+            return new StorageTestResultDto { Success = true, TestedAt = DateTime.UtcNow };
+        }
 
         var provider = _providerFactory.Create(config);
         try

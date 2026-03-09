@@ -32,9 +32,12 @@ public class CloudStorageFactory
             StorageProviders.Ids.GoogleDrive => CreateGoogleDriveProvider(credentialsJson),
             StorageProviders.Ids.OneDrive => CreateOneDriveProvider(credentialsJson),
             StorageProviders.Ids.YandexDisk => CreateYandexDiskProvider(credentialsJson),
+            StorageProviders.Ids.LocalDisk => throw new InvalidOperationException(
+                "LocalDisk deposu sunucu tarafindan erisilemez. " +
+                "Dosya islemleri istemci (Windows app) tarafindan yapilir."),
             _ => throw new NotSupportedException(
                 $"StorageProvider {config.ProviderTypeId} desteklenmiyor. " +
-                $"Desteklenen: GoogleDrive, OneDrive, YandexDisk, AmazonS3, MinIO")
+                $"Desteklenen: GoogleDrive, OneDrive, YandexDisk, AmazonS3, MinIO, LocalDisk")
         };
     }
 

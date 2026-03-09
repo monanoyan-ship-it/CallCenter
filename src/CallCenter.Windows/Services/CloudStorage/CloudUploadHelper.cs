@@ -42,6 +42,7 @@ public static class CloudUploadHelper
                 StorageProviders.Ids.GoogleDrive => await UploadToGoogleDriveAsync(config, fileStream, fileName, ct),
                 StorageProviders.Ids.OneDrive => await UploadToOneDriveAsync(config, fileStream, fileName, ct),
                 StorageProviders.Ids.YandexDisk => await UploadToYandexAsync(config, fileStream, fileName, ct),
+                StorageProviders.Ids.LocalDisk => (false, null, "LocalDisk islemi RecordingUploadService tarafindan yapilir"),
                 _ => (false, null, $"Desteklenmeyen provider: {config.ProviderTypeId}")
             };
         }

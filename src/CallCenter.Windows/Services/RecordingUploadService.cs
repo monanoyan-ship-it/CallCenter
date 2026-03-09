@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using CallCenter.Windows.LocalData;
 using CallCenter.Windows.LocalData.Entities;
 using CallCenter.Windows.Services.CloudStorage;
@@ -116,6 +117,13 @@ public class RecordingUploadService
         string targetName,
         CancellationToken ct)
     {
+        // LocalDisk: dosyayi yerel klasore kopyala (cloud upload degil)
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk)
+        {
+            await CopyToLocalDiskAsync(config, recording, targetName);
+            return;
+        }
+
         try
         {
             await using var fileStream = new FileStream(
@@ -158,6 +166,82 @@ public class RecordingUploadService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "{Target} upload hatasi: {Uid}", targetName, recording.Uid);
+            if (targetName == "platform")
+                await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+            else
+                await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
+        }
+    }
+
+    /// <summary>
+    /// LocalDisk hedefi: .enc dosyasini kullanicinin ayarladigi klasore kopyalar.
+    /// Kopyalama tamamlaninca kayit "uploaded" olarak isaretlenir.
+    /// Tum hedefler tamamlaninca orijinal dosya silinir (UploadPendingRecordingsAsync'teki cleanup).
+    /// </summary>
+    private async Task CopyToLocalDiskAsync(
+        CloudConfigForClientDto config,
+        LocalRecording recording,
+        string targetName)
+    {
+        try
+        {
+            var targetDir = config.BasePath;
+            if (string.IsNullOrWhiteSpace(targetDir))
+            {
+                _logger.LogWarning("LocalDisk hedefi icin klasor yolu tanimlanmamis — atlaniyor");
+                return;
+            }
+
+            if (!Directory.Exists(targetDir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(targetDir);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LocalDisk hedef klasoru olusturulamadi: {Path}", targetDir);
+                    if (targetName == "platform")
+                        await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+                    else
+                        await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
+                    return;
+                }
+            }
+
+            var fileName = Path.GetFileName(recording.FilePath);
+            var targetPath = Path.Combine(targetDir, fileName);
+
+            if (File.Exists(targetPath))
+            {
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                var ext = Path.GetExtension(fileName);
+                targetPath = Path.Combine(targetDir, $"{nameWithoutExt}_{DateTime.UtcNow:yyyyMMddHHmmss}{ext}");
+            }
+
+            File.Copy(recording.FilePath, targetPath);
+            _logger.LogInformation("{Target} LocalDisk'e kopyalandi: {Source} → {Dest}",
+                targetName, recording.FilePath, targetPath);
+
+            if (targetName == "platform")
+                await _localRepo.MarkRecordingAsUploadedToPlatformAsync(recording.Uid, targetPath);
+            else
+                await _localRepo.MarkRecordingAsUploadedAsync(recording.Uid, targetPath);
+
+            if (targetName == "platform")
+            {
+                recording.IsUploadedToPlatform = true;
+                recording.PlatformFileId = targetPath;
+            }
+            else
+            {
+                recording.IsUploadedToCloud = true;
+                recording.CloudFileId = targetPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "{Target} LocalDisk kopyalama hatasi: {Uid}", targetName, recording.Uid);
             if (targetName == "platform")
                 await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
             else
