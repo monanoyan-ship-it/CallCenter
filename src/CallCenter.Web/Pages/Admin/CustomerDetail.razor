@@ -163,6 +163,12 @@
                                 <label class="form-check-label small">Musteri deposuna kaydet</label>
                             </div>
                         </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4">
+                                <InputCheckbox class="form-check-input" @bind-Value="editModel.AutoRecordCalls" />
+                                <label class="form-check-label small">Aramalari otomatik kaydet</label>
+                            </div>
+                        </div>
                     </div>
                     <div class="mt-3">
                         <button type="submit" class="btn btn-primary btn-sm" disabled="@isSavingGeneral">
@@ -975,7 +981,8 @@
                     MonthlyUnitPrice = customer.MonthlyUnitPrice,
                     IsActive = customer.IsActive,
                     SaveRecordingToPlatform = customer.SaveRecordingToPlatform,
-                    SaveRecordingToOwnStorage = customer.SaveRecordingToOwnStorage
+                    SaveRecordingToOwnStorage = customer.SaveRecordingToOwnStorage,
+                    AutoRecordCalls = customer.AutoRecordCalls
                 };
             }
         }

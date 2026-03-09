@@ -113,6 +113,7 @@ public class CustomerFactory : ICustomerFactory
             MonthlyUnitPrice = c.MonthlyUnitPrice,
             SaveRecordingToPlatform = c.SaveRecordingToPlatform,
             SaveRecordingToOwnStorage = c.SaveRecordingToOwnStorage,
+            AutoRecordCalls = c.AutoRecordCalls,
             CreatedAt = c.CreatedAt,
             BillingAnchorDay = c.BillingAnchorDay,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
@@ -215,6 +216,7 @@ public class CustomerFactory : ICustomerFactory
         customer.MonthlyUnitPrice = dto.MonthlyUnitPrice;
         customer.SaveRecordingToPlatform = dto.SaveRecordingToPlatform;
         customer.SaveRecordingToOwnStorage = dto.SaveRecordingToOwnStorage;
+        customer.AutoRecordCalls = dto.AutoRecordCalls;
 
         await _uow.SaveChangesAsync();
         return (true, null);

@@ -163,6 +163,7 @@ public class CustomerUpdateDto
 
     public bool SaveRecordingToPlatform { get; set; } = true;
     public bool SaveRecordingToOwnStorage { get; set; }
+    public bool AutoRecordCalls { get; set; }
 }
 
 public class CustomerDetailDto
@@ -178,6 +179,7 @@ public class CustomerDetailDto
     public decimal MonthlyUnitPrice { get; set; }
     public bool SaveRecordingToPlatform { get; set; }
     public bool SaveRecordingToOwnStorage { get; set; }
+    public bool AutoRecordCalls { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? BillingAnchorDay { get; set; }
     public List<PersonnelSimpleDto> Personnel { get; set; } = new();

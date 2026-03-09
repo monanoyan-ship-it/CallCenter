@@ -19,6 +19,7 @@ public class RecordingUploadTargetsDto
     public CloudConfigForClientDto? PlatformConfig { get; set; }
     public bool UploadToCustomerStorage { get; set; }
     public CloudConfigForClientDto? CustomerConfig { get; set; }
+    public bool AutoRecordCalls { get; set; }
 }
 
 /// <summary>Oturum acik kullanici bilgisi (yetki kontrolu icin)</summary>

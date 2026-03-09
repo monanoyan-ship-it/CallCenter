@@ -316,10 +316,18 @@ public class NativeSipService : ISipService
             _voicemailNumber = config.AuthUsername; // Varsayilan: kendi extension'imiz
 
             _regAgent.Start();
+
+            // Ag degisikligi algilama (VPN, Wi-Fi degisimi vb.)
+            StartNetworkChangeDetection();
+
             return true;
         }
         catch (Exception ex)
         {
+            // Baglanti basarisiz olsa bile ag dinlemeyi baslat
+            // VPN sonradan baglaninca re-register denenecek
+            StartNetworkChangeDetection();
+
             await (OnRegistrationFailed?.Invoke($"SIP init hatasi: {ex.Message}") ?? Task.CompletedTask);
             return false;
         }
@@ -1161,41 +1169,49 @@ public class NativeSipService : ISipService
     private async void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e)
     {
         Console.WriteLine($"[SIP] Ag durumu degisti: {(e.IsAvailable ? "bagli" : "baglanti yok")}");
-        if (e.IsAvailable && _sipTransport != null && _regAgent != null)
-        {
-            // Ag geldi — yeniden register ol
-            await Task.Delay(2000); // Ag stabilizasyonu icin bekle
-            try
-            {
-                _regAgent.Stop();
-                await Task.Delay(500);
-                _regAgent.Start();
-                Console.WriteLine("[SIP] Ag degisikligi sonrasi re-register baslatildi.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[SIP] Re-register hatasi: {ex.Message}");
-            }
-        }
+        if (!e.IsAvailable) return;
+
+        await Task.Delay(2000); // Ag stabilizasyonu icin bekle
+        await ReRegisterOrReinitializeAsync("Ag durumu degisikligi");
     }
 
     private async void OnNetworkAddressChanged(object? sender, EventArgs e)
     {
-        Console.WriteLine("[SIP] Ag adresi degisti — re-register planlanıyor...");
-        if (_sipTransport != null && _regAgent != null)
+        Console.WriteLine("[SIP] Ag adresi degisti (VPN, Wi-Fi vb.)");
+        await Task.Delay(3000); // Adres degisikligi stabilize olsun
+        await ReRegisterOrReinitializeAsync("Ag adresi degisikligi");
+    }
+
+    /// <summary>
+    /// Ag degisikliginde SIP'i yeniden kayit eder.
+    /// _regAgent varsa stop/start, yoksa (ilk baglanti basarisiz olduysa) tamamen yeniden initialize eder.
+    /// </summary>
+    private async Task ReRegisterOrReinitializeAsync(string reason)
+    {
+        try
         {
-            await Task.Delay(3000); // Adres degisikligi stabilize olsun
-            try
+            if (_sipTransport != null && _regAgent != null)
             {
+                // Normal re-register
                 _regAgent.Stop();
                 await Task.Delay(500);
                 _regAgent.Start();
-                Console.WriteLine("[SIP] Adres degisikligi sonrasi re-register baslatildi.");
+                Console.WriteLine($"[SIP] {reason} sonrasi re-register baslatildi.");
             }
-            catch (Exception ex)
+            else if (_config != null)
             {
-                Console.WriteLine($"[SIP] Re-register hatasi: {ex.Message}");
+                // Ilk baglanti basarisiz olduysa tamamen yeniden initialize et
+                Console.WriteLine($"[SIP] {reason}: SIP transport/agent null — tam yeniden baglanti deneniyor...");
+                await InitializeAsync(_config);
             }
+            else
+            {
+                Console.WriteLine($"[SIP] {reason}: Config yok — re-register atalanıyor.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SIP] {reason} sonrasi re-register hatasi: {ex.Message}");
         }
     }
 

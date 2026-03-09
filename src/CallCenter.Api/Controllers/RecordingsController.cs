@@ -111,7 +111,8 @@ public class RecordingsController : AuditableControllerBase
         var result = new RecordingUploadTargetsDto
         {
             UploadToPlatform = customer.SaveRecordingToPlatform,
-            UploadToCustomerStorage = customer.SaveRecordingToOwnStorage
+            UploadToCustomerStorage = customer.SaveRecordingToOwnStorage,
+            AutoRecordCalls = customer.AutoRecordCalls
         };
 
         if (customer.SaveRecordingToPlatform)

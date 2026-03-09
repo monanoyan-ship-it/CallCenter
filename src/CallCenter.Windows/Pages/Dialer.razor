@@ -90,6 +90,12 @@
                             }
                         </button>
                     }
+                    <span class="btn btn-sm @(_autoRecordEnabled ? "btn-info" : "btn-outline-secondary") quick-btn"
+                          title="@(_autoRecordEnabled ? "Otomatik kayit aktif (admin tarafindan)" : "Otomatik kayit kapali")"
+                          style="cursor: default;">
+                        <i class="bi bi-record-circle-fill me-1"></i>
+                        <span class="d-none d-md-inline">OTO</span>
+                    </span>
                     @if (SipService.VoicemailCount > 0)
                     {
                         <button class="btn btn-sm btn-outline-info quick-btn position-relative"
@@ -447,9 +453,13 @@
         if (!string.IsNullOrEmpty(encKey))
             SipService.SetEncryptionKey(encKey);
 
-        // Otomatik kayit ayarini yukle
-        var autoRecordStr = await Storage.GetAsync("auto_record");
-        _autoRecordEnabled = autoRecordStr == "true";
+        // Otomatik kayit ayarini API'den yukle (admin yonetir)
+        try
+        {
+            var targets = await Http.GetFromJsonAsync<CallCenter.Shared.DTOs.RecordingUploadTargetsDto>("api/recordings/upload-targets");
+            _autoRecordEnabled = targets?.AutoRecordCalls ?? false;
+        }
+        catch { _autoRecordEnabled = false; }
 
         // Kayitli volume degerlerini yukle
         var savedMicVol = await Storage.GetAsync("audio_mic_volume");
@@ -691,10 +701,15 @@
         });
     }
 
+    private bool _callEndProcessing; // Cift tetiklenme korumasi
+
     private async Task HandleCallEnded()
     {
         await InvokeAsync(async () =>
         {
+            if (_callEndProcessing) return; // Zaten isleniyor (karsi taraf + manuel kapat)
+            _callEndProcessing = true;
+
             StopTimer();
             isCallStarting = false;
             lines = (await SipService.GetLinesAsync()).ToList();
@@ -708,30 +723,66 @@
             }
 
             // Cift yazim: lokal DB + backend'e "bitti" bilgisi
-            if (currentCallUid.HasValue)
-            {
-                try
-                {
-                    // Aktif kayit varsa durdur (WAV -> AES-256 .enc)
-                    if (SipService.IsRecording)
-                        await SipService.StopRecordingAsync();
-
-                    // Kayit yolunu al (sifreli .enc dosyasi)
-                    string? recordingPath = SipService.LastRecordingPath;
-
-                    await CallSync.EndCallAsync(currentCallUid.Value, currentCallId, recordingPath);
-                }
-                catch { }
-                currentCallId = null;
-                currentCallUid = null;
-            }
+            var endCallUid = currentCallUid;
+            var endCallId = currentCallId;
+            var wasRecording = SipService.IsRecording;
+            currentCallId = null;
+            currentCallUid = null;
 
             statusMessage = $"Arama sonlandirildi ({callDuration})";
             statusClass = "text-muted";
             callDuration = "00:00";
 
+            if (wasRecording)
+            {
+                statusMessage = "Ses kaydi isleniyor...";
+                statusClass = "text-info";
+            }
+
             await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
             StateHasChanged();
+
+            // Sifreleme + sync arka planda (UI kitlenmesin)
+            if (endCallUid.HasValue)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (wasRecording)
+                            await SipService.StopRecordingAsync();
+
+                        string? recordingPath = SipService.LastRecordingPath;
+                        await CallSync.EndCallAsync(endCallUid.Value, endCallId, recordingPath);
+
+                        await InvokeAsync(() =>
+                        {
+                            if (statusMessage == "Ses kaydi isleniyor...")
+                            {
+                                statusMessage = "Kayit tamamlandi";
+                                statusClass = "text-success";
+                                StateHasChanged();
+                            }
+                            _callEndProcessing = false;
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Dialer] Kayit isleme hatasi: {ex.Message}");
+                        await InvokeAsync(() =>
+                        {
+                            statusMessage = "Kayit isleme hatasi!";
+                            statusClass = "text-danger";
+                            _callEndProcessing = false;
+                            StateHasChanged();
+                        });
+                    }
+                });
+            }
+            else
+            {
+                _callEndProcessing = false;
+            }
         });
 
         _ = Task.Run(async () =>
@@ -795,6 +846,7 @@
         if (string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered) return;
 
         isCallStarting = true;
+        _callEndProcessing = false;
         callNotes = "";
         isNotesSavedToServer = false;
         showNotesPanel = true;
