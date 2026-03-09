@@ -193,34 +193,39 @@
                 }
             </div>
 
-    @* ─── Hat Paneli (sag taraf, dikey) ─── *@
-    <div class="line-panel">
-        <div class="line-panel-header">Hatlar</div>
-        @for (int i = 0; i < SipService.LineCount; i++)
-        {
-            var idx = i;
-            var lineInfo = lines.Count > idx ? lines[idx] : null;
-            var isActive = idx == SipService.ActiveLineIndex;
-            var stateClass = lineInfo?.State switch
+    @* ─── Aktif Aramalar Gostergesi ─── *@
+    @{
+        var activeLines = lines.Where(l => l.State is LineState.Connected or LineState.OnHold or LineState.Ringing or LineState.Connecting or LineState.TransferPending).ToList();
+    }
+    @if (activeLines.Count > 1)
+    {
+        <div class="line-panel">
+            <div class="line-panel-header">Aktif Aramalar</div>
+            @foreach (var lineInfo in activeLines)
             {
-                LineState.Ringing => "line-ringing",
-                LineState.Connected => "line-connected",
-                LineState.OnHold => "line-hold",
-                LineState.Connecting => "line-connecting",
-                LineState.TransferPending => "line-transfer",
-                _ => "line-idle"
-            };
-            <button class="line-item @stateClass @(isActive ? "line-active" : "")"
-                    @onclick="() => SwitchLine(idx)"
-                    title="@(lineInfo?.RemoteParty ?? "Bos")">
-                <span class="line-number">Hat @(idx + 1)</span>
-                @if (lineInfo?.State is LineState.Connected or LineState.OnHold or LineState.Ringing or LineState.Connecting or LineState.TransferPending)
+                var idx = lineInfo.Index;
+                var isActive = idx == SipService.ActiveLineIndex;
+                var stateClass = lineInfo.State switch
                 {
+                    LineState.Ringing => "line-ringing",
+                    LineState.Connected => "line-connected",
+                    LineState.OnHold => "line-hold",
+                    LineState.Connecting => "line-connecting",
+                    LineState.TransferPending => "line-transfer",
+                    _ => "line-idle"
+                };
+                <button class="line-item @stateClass @(isActive ? "line-active" : "")"
+                        @onclick="() => SwitchLine(idx)"
+                        title="@(lineInfo.RemoteParty ?? "...")">
                     <span class="line-remote">@(lineInfo.RemoteParty ?? "...")</span>
-                }
-            </button>
-        }
-    </div>
+                    @if (lineInfo.State == LineState.OnHold)
+                    {
+                        <span class="line-status-badge">Beklemede</span>
+                    }
+                </button>
+            }
+        </div>
+    }
 
     @* ─── Not Paneli (cagri sirasinda + sonrasinda sag tarafta) ─── *@
     @if (showNotesPanel)

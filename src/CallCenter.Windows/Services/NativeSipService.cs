@@ -284,7 +284,19 @@ public class NativeSipService : ISipService
 
     public async Task<bool> MakeCallAsync(string destination)
     {
-        return await MakeCallOnLineAsync(_activeLineIndex, destination);
+        // Aktif hat bossa onu kullan, degilse otomatik bos hat bul
+        if (ActiveLine.State == LineState.Idle)
+            return await MakeCallOnLineAsync(_activeLineIndex, destination);
+
+        var freeLine = FindFreeLine();
+        if (freeLine == null)
+        {
+            Console.WriteLine("[SIP] Tum hatlar dolu, arama baslatilemiyor");
+            return false;
+        }
+
+        _activeLineIndex = freeLine.Index;
+        return await MakeCallOnLineAsync(freeLine.Index, destination);
     }
 
     public async Task<bool> AnswerCallAsync()
