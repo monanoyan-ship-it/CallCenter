@@ -20,6 +20,16 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Ikonu runtime'da dosya sisteminden yukle (single-file publish uyumlu)
+        var icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "corplynk.ico");
+        if (System.IO.File.Exists(icoPath))
+        {
+            using var stream = System.IO.File.OpenRead(icoPath);
+            Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
+                stream, System.Windows.Media.Imaging.BitmapCreateOptions.None,
+                System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+        }
+
         var services = new ServiceCollection();
         services.AddWpfBlazorWebView();
 #if DEBUG

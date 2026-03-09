@@ -24,6 +24,9 @@
 
     <!-- Ikon -->
     <ApplicationIcon>Assets\corplynk.ico</ApplicationIcon>
+
+    <!-- Release publish: PDB dahil etme -->
+    <DebugType Condition="'$(Configuration)'=='Release'">none</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -54,7 +57,7 @@
     <Content Update="wwwroot\appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\appsettings.Development.json">
+    <Content Update="wwwroot\appsettings.Development.json" Condition="'$(Configuration)'=='Debug'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -64,5 +67,14 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <!-- Post-publish: ico kopyala, gereksiz dosyalari temizle -->
+  <Target Name="PostPublishCleanup" AfterTargets="Publish">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Assets\corplynk.ico"
+          DestinationFolder="$(PublishDir)\Assets"
+          SkipUnchangedFiles="true" />
+    <Delete Files="$(PublishDir)\wwwroot\appsettings.Development.json" Condition="Exists('$(PublishDir)\wwwroot\appsettings.Development.json')" />
+    <Delete Files="$(PublishDir)\CallCenter.Windows.staticwebassets.endpoints.json" Condition="Exists('$(PublishDir)\CallCenter.Windows.staticwebassets.endpoints.json')" />
+  </Target>
 
 </Project>
