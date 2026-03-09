@@ -113,7 +113,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var (success, error) = await _portalFactory.UpdatePersonnelAsync(cid.Value, id, dto);
+        var (success, error) = await _portalFactory.UpdatePersonnelAsync(cid.Value, id, dto, IsAdmin);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Update", "Personnel", id.ToString(),

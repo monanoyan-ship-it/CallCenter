@@ -229,14 +229,18 @@ public class PortalFactory : IPortalFactory
         });
     }
 
-    public async Task<(bool Success, string? Error)> UpdatePersonnelAsync(int customerId, int id, PortalPersonnelUpdateDto dto)
+    public async Task<(bool Success, string? Error)> UpdatePersonnelAsync(int customerId, int id, PortalPersonnelUpdateDto dto, bool isSystemAdmin = false)
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
             return (false, "Personel bulunamadi.");
 
+        // Kullanici adi degisikligi sadece sistem admin tarafindan yapilabilir
         if (!string.IsNullOrWhiteSpace(dto.UserName) && dto.UserName != personnel.User.UserName)
         {
+            if (!isSystemAdmin)
+                return (false, "Kullanici adi sadece sistem yoneticisi tarafindan degistirilebilir.");
+
             var userNameExists = await _userEs.GetAllQueryable()
                 .AnyAsync(u => u.UserName == dto.UserName && u.Id != personnel.UserId);
             if (userNameExists)
@@ -278,6 +282,9 @@ public class PortalFactory : IPortalFactory
             var newHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             personnel.User.PasswordHash = newHash;
             personnel.User.PasswordChangedAt = DateTime.UtcNow;
+            personnel.User.MustChangePassword = false;
+            personnel.User.FailedLoginCount = 0;
+            personnel.User.LockedUntil = null;
 
             await _uow.SaveChangesAsync();
             await _passwordPolicy.RecordPasswordAsync(personnel.UserId, newHash);
