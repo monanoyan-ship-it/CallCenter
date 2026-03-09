@@ -162,7 +162,11 @@
       "Bash(\"C:\\\\Users\\\\Ahmet\\\\AppData\\\\Local\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\":*)",
       "Read(//c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/$LOCALAPPDATA/Programs/CorpLynk/**)",
       "Read(//c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/**)",
-      "Bash(gsutil cp:*)"
+      "Bash(gsutil cp:*)",
+      "Bash(gh issue:*)",
+      "Bash(ls -d \"/c/Program Files\"*/Inno*/)",
+      "Read(//c/Users/Ahmet/AppData/Local/Programs/**)",
+      "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\":*)"
     ]
   }
 }

@@ -1,0 +1,185 @@
+@inject HttpClient Http
+@inject CallCenter.Windows.Services.ToastService Toast
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<div class="tasks-panel-inner">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small">
+            @if (items.Count > 0)
+            {
+                var pending = items.Count(i => i.StatusId == CampaignContactStatuses.Ids.Pending);
+                @($"{pending} bekliyor / {items.Count} toplam")
+            }
+        </span>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="LoadList" title="Yenile" disabled="@isLoading">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
+    }
+    else if (items.Count == 0)
+    {
+        <div class="text-center py-4 text-muted small">
+            <i class="bi bi-clipboard-check d-block mb-1" style="font-size: 2rem;"></i>
+            Atanmis gorev yok
+        </div>
+    }
+    else
+    {
+        <div class="side-panel-list">
+            @foreach (var item in items)
+            {
+                var status = CampaignContactStatuses.GetById(item.StatusId);
+                var isFinished = CampaignContactStatuses.FinishedIds.Contains(item.StatusId);
+                <div class="task-item @(isFinished ? "task-done" : "") mb-1">
+                    <div class="d-flex align-items-start gap-2 p-2 rounded border @(isFinished ? "bg-light" : "bg-white")">
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center gap-1 mb-1">
+                                <span class="badge @(status?.CssClass ?? "bg-secondary")" style="font-size:0.6rem;">
+                                    @(status?.Description ?? "")
+                                </span>
+                                <span class="text-muted" style="font-size:0.6rem;">@item.CampaignName</span>
+                            </div>
+                            <div class="fw-bold small text-truncate">@item.ContactName</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                <i class="bi bi-telephone me-1"></i>@item.PhoneNumber
+                                @if (!string.IsNullOrEmpty(item.Company))
+                                {
+                                    <span class="ms-1"><i class="bi bi-building"></i> @item.Company</span>
+                                }
+                            </div>
+                            @if (item.AttemptCount > 0)
+                            {
+                                <div class="text-muted" style="font-size:0.65rem;">
+                                    <i class="bi bi-arrow-repeat me-1"></i>@item.AttemptCount deneme
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(item.ResultNotes))
+                            {
+                                <div class="text-muted fst-italic" style="font-size:0.65rem;">@item.ResultNotes</div>
+                            }
+                        </div>
+                        <div class="d-flex flex-column gap-1 flex-shrink-0">
+                            @if (!isFinished)
+                            {
+                                <button class="btn btn-sm btn-success py-0 px-1" title="Ara"
+                                        @onclick="() => CallItem(item)">
+                                    <i class="bi bi-telephone-fill"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success py-0 px-1" title="Ulasildi"
+                                        @onclick="() => MarkStatus(item, CampaignContactStatuses.Ids.Reached)">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Ulasilamadi"
+                                        @onclick="() => MarkStatus(item, CampaignContactStatuses.Ids.NotReached)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Sonuc notu dialog *@
+@if (showNoteDialog)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title small">Sonuc Notu</h6>
+                    <button type="button" class="btn-close btn-close-sm" @onclick="CloseNoteDialog"></button>
+                </div>
+                <div class="modal-body py-2">
+                    <textarea class="form-control form-control-sm" rows="3" placeholder="Not ekleyin (istege bagli)..."
+                              @bind="noteText"></textarea>
+                </div>
+                <div class="modal-footer py-1">
+                    <button class="btn btn-sm btn-secondary" @onclick="CloseNoteDialog">Iptal</button>
+                    <button class="btn btn-sm btn-primary" @onclick="ConfirmStatusUpdate">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback<string> OnCallRequested { get; set; }
+
+    private List<MyCallListItemDto> items = new();
+    private bool isLoading;
+
+    private bool showNoteDialog;
+    private string noteText = "";
+    private int pendingItemId;
+    private int pendingStatusId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadList();
+    }
+
+    private async Task LoadList()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            items = await Http.GetFromJsonAsync<List<MyCallListItemDto>>("api/campaigns/my-list") ?? new();
+        }
+        catch { items = new(); }
+        finally { isLoading = false; }
+    }
+
+    private async Task CallItem(MyCallListItemDto item)
+    {
+        // Durumu "Araniyor" yap
+        await UpdateStatus(item.CampaignContactId, CampaignContactStatuses.Ids.Calling, null);
+        await OnCallRequested.InvokeAsync(item.PhoneNumber);
+    }
+
+    private void MarkStatus(MyCallListItemDto item, int statusId)
+    {
+        pendingItemId = item.CampaignContactId;
+        pendingStatusId = statusId;
+        noteText = "";
+        showNoteDialog = true;
+    }
+
+    private async Task ConfirmStatusUpdate()
+    {
+        showNoteDialog = false;
+        await UpdateStatus(pendingItemId, pendingStatusId, string.IsNullOrWhiteSpace(noteText) ? null : noteText);
+        await LoadList();
+    }
+
+    private void CloseNoteDialog() => showNoteDialog = false;
+
+    private async Task UpdateStatus(int campaignContactId, int statusId, string? notes)
+    {
+        try
+        {
+            var dto = new UpdateCampaignContactStatusRequest
+            {
+                StatusId = statusId,
+                ResultNotes = notes
+            };
+            // my-list update endpoint
+            await Http.PutAsJsonAsync($"api/campaigns/my-list/{campaignContactId}", dto);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Durum guncellenemedi: {ex.Message}");
+        }
+    }
+}

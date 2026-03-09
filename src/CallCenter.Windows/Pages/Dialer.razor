@@ -1,4 +1,6 @@
 @page "/dialer"
+@page "/dashboard"
+@page "/"
 @attribute [Authorize]
 @inject CallCenter.Windows.Services.WindowsHubService HubService
 @inject CallCenter.Windows.Services.ISipService SipService
@@ -25,8 +27,10 @@
     </div>
 }
 
-<div class="dialer-page" style="@(isAdminRole ? "opacity: 0.5; pointer-events: none;" : "")">
-    <div class="dialer-card">
+<div class="single-page-layout" style="@(isAdminRole ? "opacity: 0.5; pointer-events: none;" : "")">
+    @* ═══ SOL: DIALER ═══ *@
+    <div class="dialer-section">
+        <div class="dialer-card">
                 <div class="dialer-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5><i class="bi bi-telephone-fill me-2"></i>Cagri Takip</h5>
@@ -212,78 +216,117 @@
                 }
             </div>
 
-    @* ─── Aktif Aramalar Gostergesi ─── *@
-    @{
-        var activeLines = lines.Where(l => l.State is LineState.Connected or LineState.OnHold or LineState.Ringing or LineState.Connecting or LineState.TransferPending).ToList();
-    }
-    @if (activeLines.Count > 1)
-    {
-        <div class="line-panel">
-            <div class="line-panel-header">Aktif Aramalar</div>
-            @foreach (var lineInfo in activeLines)
-            {
-                var idx = lineInfo.Index;
-                var isActive = idx == SipService.ActiveLineIndex;
-                var stateClass = lineInfo.State switch
+        @* ─── Aktif Aramalar Gostergesi ─── *@
+        @{
+            var activeLines = lines.Where(l => l.State is LineState.Connected or LineState.OnHold or LineState.Ringing or LineState.Connecting or LineState.TransferPending).ToList();
+        }
+        @if (activeLines.Count > 1)
+        {
+            <div class="line-panel">
+                <div class="line-panel-header">Aktif Aramalar</div>
+                @foreach (var lineInfo in activeLines)
                 {
-                    LineState.Ringing => "line-ringing",
-                    LineState.Connected => "line-connected",
-                    LineState.OnHold => "line-hold",
-                    LineState.Connecting => "line-connecting",
-                    LineState.TransferPending => "line-transfer",
-                    _ => "line-idle"
-                };
-                <button class="line-item @stateClass @(isActive ? "line-active" : "")"
-                        @onclick="() => SwitchLine(idx)"
-                        title="@(lineInfo.RemoteParty ?? "...")">
-                    <span class="line-remote">@(lineInfo.RemoteParty ?? "...")</span>
-                    @if (lineInfo.State == LineState.OnHold)
+                    var idx = lineInfo.Index;
+                    var isActive = idx == SipService.ActiveLineIndex;
+                    var stateClass = lineInfo.State switch
                     {
-                        <span class="line-status-badge">Beklemede</span>
-                    }
+                        LineState.Ringing => "line-ringing",
+                        LineState.Connected => "line-connected",
+                        LineState.OnHold => "line-hold",
+                        LineState.Connecting => "line-connecting",
+                        LineState.TransferPending => "line-transfer",
+                        _ => "line-idle"
+                    };
+                    <button class="line-item @stateClass @(isActive ? "line-active" : "")"
+                            @onclick="() => SwitchLine(idx)"
+                            title="@(lineInfo.RemoteParty ?? "...")">
+                        <span class="line-remote">@(lineInfo.RemoteParty ?? "...")</span>
+                        @if (lineInfo.State == LineState.OnHold)
+                        {
+                            <span class="line-status-badge">Beklemede</span>
+                        }
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    @* ═══ SAG: PANEL (Rehber / Gecmis / Notlar) ═══ *@
+    <div class="side-panel">
+        <ul class="nav nav-tabs nav-tabs-sm">
+            <li class="nav-item">
+                <button class="nav-link @(sideTab == "contacts" ? "active" : "")" @onclick='() => sideTab = "contacts"'>
+                    <i class="bi bi-person-vcard-fill me-1"></i>Rehber
                 </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(sideTab == "tasks" ? "active" : "")" @onclick='() => sideTab = "tasks"'>
+                    <i class="bi bi-clipboard-check me-1"></i>Gorevler
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(sideTab == "history" ? "active" : "")" @onclick='() => sideTab = "history"'>
+                    <i class="bi bi-clock-history me-1"></i>Gecmis
+                </button>
+            </li>
+            @if (showNotesPanel)
+            {
+                <li class="nav-item">
+                    <button class="nav-link @(sideTab == "notes" ? "active" : "")" @onclick='() => sideTab = "notes"'>
+                        <i class="bi bi-journal-text me-1"></i>Notlar
+                        @if (!string.IsNullOrWhiteSpace(callNotes))
+                        {
+                            <span class="badge bg-primary rounded-pill ms-1" style="font-size:0.6rem;">@callNotes.Length</span>
+                        }
+                    </button>
+                </li>
+            }
+        </ul>
+        <div class="side-panel-body">
+            <div style="display: @(sideTab == "tasks" ? "block" : "none")">
+                <TasksPanel OnCallRequested="HandleCallFromContact" />
+            </div>
+            <div style="display: @(sideTab == "contacts" ? "block" : "none")">
+                <ContactsPanel OnCallRequested="HandleCallFromContact" />
+            </div>
+            <div style="display: @(sideTab == "history" ? "block" : "none")">
+                <HistoryPanel />
+            </div>
+            @if (showNotesPanel)
+            {
+                <div style="display: @(sideTab == "notes" ? "block" : "none")">
+                    <div class="notes-panel-inline">
+                        <textarea class="notes-textarea" placeholder="Cagri ile ilgili notlarinizi buraya yazin..."
+                                  @bind="callNotes" @bind:event="oninput" @bind:after="OnNotesChanged"></textarea>
+                        <div class="notes-panel-footer">
+                            <span class="text-muted" style="font-size: 0.65rem;">
+                                @if (!string.IsNullOrEmpty(callNotes))
+                                {
+                                    @($"{callNotes.Length} karakter")
+                                }
+                            </span>
+                            <button class="btn btn-sm btn-primary notes-save-btn" @onclick="SaveNotesToServer"
+                                    disabled="@(isNotesSaving || string.IsNullOrWhiteSpace(callNotes))">
+                                @if (isNotesSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                else if (isNotesSavedToServer)
+                                {
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-cloud-upload me-1"></i>
+                                }
+                                <span>@(isNotesSavedToServer ? "Kaydedildi" : "Kaydet")</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             }
         </div>
-    }
-
-    @* ─── Not Paneli (cagri sirasinda + sonrasinda sag tarafta) ─── *@
-    @if (showNotesPanel)
-    {
-        <div class="notes-panel">
-            <div class="notes-panel-header">
-                <i class="bi bi-journal-text me-1"></i>Cagri Notlari
-                <button class="btn btn-sm btn-link notes-close-btn" @onclick="CloseNotesPanel" title="Kapat">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </div>
-            <textarea class="notes-textarea" placeholder="Cagri ile ilgili notlarinizi buraya yazin..."
-                      @bind="callNotes" @bind:event="oninput" @bind:after="OnNotesChanged"></textarea>
-            <div class="notes-panel-footer">
-                <span class="text-muted" style="font-size: 0.65rem;">
-                    @if (!string.IsNullOrEmpty(callNotes))
-                    {
-                        @($"{callNotes.Length} karakter")
-                    }
-                </span>
-                <button class="btn btn-sm btn-primary notes-save-btn" @onclick="SaveNotesToServer"
-                        disabled="@(isNotesSaving || string.IsNullOrWhiteSpace(callNotes))">
-                    @if (isNotesSaving)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    }
-                    else if (isNotesSavedToServer)
-                    {
-                        <i class="bi bi-check-circle-fill me-1"></i>
-                    }
-                    else
-                    {
-                        <i class="bi bi-cloud-upload me-1"></i>
-                    }
-                    <span>@(isNotesSavedToServer ? "Kaydedildi" : "Kaydet")</span>
-                </button>
-            </div>
-        </div>
-    }
+    </div>
 </div>
 
 @* ─── Rehber Secici ─── *@
@@ -358,6 +401,7 @@
     private List<SipGatewaySummaryDto> _gateways = new();
     private int _selectedGatewayId;
     private bool _isSwitchingGateway;
+    private string sideTab = "contacts";
     private string contactSearch = "";
     private List<ContactDto>? contactResults;
     private string callNotes = "";
@@ -754,6 +798,7 @@
         callNotes = "";
         isNotesSavedToServer = false;
         showNotesPanel = true;
+        sideTab = "notes";
         statusMessage = $"{phoneNumber} araniyor...";
         statusClass = "text-info";
 
@@ -897,6 +942,15 @@
         {
             lines = await SipService.GetLinesAsync();
         }
+    }
+
+    // ─── Side panel: Rehberden arama ───
+
+    private void HandleCallFromContact(string number)
+    {
+        phoneNumber = number;
+        sideTab = "contacts"; // Numara ayarlandi, dialer'da gorunecek
+        StateHasChanged();
     }
 
     // ─── Rehber Secici ───

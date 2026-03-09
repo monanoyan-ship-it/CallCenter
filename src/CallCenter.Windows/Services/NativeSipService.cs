@@ -69,11 +69,16 @@ public class NativeSipService : ISipService
     private string? _ringtonePath;
     private IPAddress? _stunPublicAddress;
 
-    // ─── Recording ───
+    // ─── Recording (iki yonlu mono mix) ───
     private WaveFileWriter? _waveWriter;
     private bool _isRecording;
     private string? _recordingWavPath; // Sifrelemeden onceki WAV yolu
     private int _recordingPayloadType; // Aktif codec: 0=PCMU, 8=PCMA, 9=G722
+    private WindowsAudioEndPoint? _winAudioEndPoint; // Mikrofon event'i icin referans
+    private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _recInQueue = new(); // Gelen ses (karsi taraf)
+    private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _recOutQueue = new(); // Giden ses (mikrofon)
+    private readonly object _recWriteLock = new();
+    private const int MaxRecordQueueDepth = 50; // ~1sn (20ms chunk basina)
 
     // ─── Voicemail (MWI) ───
     private int _voicemailCount;
@@ -820,12 +825,27 @@ public class NativeSipService : ISipService
             _recordingWavPath = path;
             _isRecording = true;
 
-            Console.WriteLine($"[SIP] Recording baslatildi — codec PT={_recordingPayloadType}, sampleRate={sampleRate}Hz, dosya={path}");
+            // Kuyruklari temizle
+            while (_recInQueue.TryDequeue(out _)) { }
+            while (_recOutQueue.TryDequeue(out _)) { }
 
-            // RTP event'lerine baglanarak kayit yapilir
+            Console.WriteLine($"[SIP] Recording baslatildi (iki yonlu mono mix) — codec PT={_recordingPayloadType}, sampleRate={sampleRate}Hz, dosya={path}");
+
+            // Gelen ses: RTP paketlerinden (karsi taraf)
             if (ActiveLine.MediaSession != null)
             {
                 ActiveLine.MediaSession.OnRtpPacketReceived += OnRtpPacketForRecording;
+            }
+
+            // Giden ses: Mikrofon encode edilmis sample'lar
+            if (_winAudioEndPoint != null)
+            {
+                _winAudioEndPoint.OnAudioSourceEncodedSample += OnMicSampleForRecording;
+                Console.WriteLine("[SIP] Mikrofon kaydi aktif (OnAudioSourceEncodedSample)");
+            }
+            else
+            {
+                Console.WriteLine("[SIP] UYARI: WindowsAudioEndPoint null — sadece gelen ses kaydedilecek!");
             }
 
             return Task.FromResult(true);
@@ -873,6 +893,14 @@ public class NativeSipService : ISipService
                 ActiveLine.MediaSession.OnRtpPacketReceived -= OnRtpPacketForRecording;
             }
 
+            if (_winAudioEndPoint != null)
+            {
+                _winAudioEndPoint.OnAudioSourceEncodedSample -= OnMicSampleForRecording;
+            }
+
+            // Kuyruklardaki kalan veriyi yaz
+            FlushRemainingRecordingQueues();
+
             _waveWriter?.Flush();
             _waveWriter?.Dispose();
             _waveWriter = null;
@@ -911,23 +939,122 @@ public class NativeSipService : ISipService
         }
     }
 
+    /// <summary>Gelen ses (karsi taraf) — RTP paketlerinden PCM'e decode edip kuyruga ekler.</summary>
     private void OnRtpPacketForRecording(IPEndPoint remoteEP, SDPMediaTypesEnum mediaType, RTPPacket rtpPacket)
     {
         if (mediaType != SDPMediaTypesEnum.audio || _waveWriter == null) return;
 
         try
         {
-            // RTP payload type'dan gelen codec bilgisini kullan
-            // Oncelik: RTP header'daki PT > recording baslatilirken tespit edilen PT
             int pt = rtpPacket.Header.PayloadType;
-
-            // Bazi PBX'ler dynamic PT kullanir (96+), bu durumda basta tespit edilen codec'i kullan
             if (pt >= 96) pt = _recordingPayloadType;
 
             var pcm = AudioCodecDecoder.Decode(rtpPacket.Payload, pt);
-            _waveWriter.Write(pcm, 0, pcm.Length);
+            _recInQueue.Enqueue(pcm);
+            TryWriteMixedAudio();
         }
         catch { /* Kayit hatasi sessizce gecilebilir */ }
+    }
+
+    /// <summary>Giden ses (mikrofon) — encode edilmis sample'i PCM'e decode edip kuyruga ekler.</summary>
+    private void OnMicSampleForRecording(uint durationRtpUnits, byte[] sample)
+    {
+        if (_waveWriter == null) return;
+
+        try
+        {
+            var pcm = AudioCodecDecoder.Decode(sample, _recordingPayloadType);
+            _recOutQueue.Enqueue(pcm);
+            TryWriteMixedAudio();
+        }
+        catch { /* Kayit hatasi sessizce gecilebilir */ }
+    }
+
+    /// <summary>
+    /// Iki kuyruktan eslestirilmis chunk'lari alip mono mix yaparak WAV'a yazar.
+    /// Her iki taraftan da veri varsa sample-by-sample toplanir.
+    /// Bir taraf sessizse ve kuyruk doluysa tek tarafli yazilir.
+    /// </summary>
+    private void TryWriteMixedAudio()
+    {
+        lock (_recWriteLock)
+        {
+            if (_waveWriter == null) return;
+
+            // 1. Eslestirilmis mix: Her iki kuyrukta veri varsa birlikte yaz
+            while (_recInQueue.TryPeek(out _) && _recOutQueue.TryPeek(out _))
+            {
+                _recInQueue.TryDequeue(out var inPcm);
+                _recOutQueue.TryDequeue(out var outPcm);
+                if (inPcm == null || outPcm == null) break;
+
+                var mixed = MixPcmMono(inPcm, outPcm);
+                _waveWriter.Write(mixed, 0, mixed.Length);
+            }
+
+            // 2. Tasmasi onle: Bir taraf sessizse (ornegin hold) kuyruk buyumesin
+            while (_recInQueue.Count > MaxRecordQueueDepth && _recInQueue.TryDequeue(out var overflow))
+                _waveWriter.Write(overflow, 0, overflow.Length);
+            while (_recOutQueue.Count > MaxRecordQueueDepth && _recOutQueue.TryDequeue(out var overflow))
+                _waveWriter.Write(overflow, 0, overflow.Length);
+        }
+    }
+
+    /// <summary>Recording durdurulurken kuyruklardaki kalan veriyi yazar.</summary>
+    private void FlushRemainingRecordingQueues()
+    {
+        lock (_recWriteLock)
+        {
+            if (_waveWriter == null) return;
+
+            // Once eslestirebilenler
+            while (_recInQueue.TryPeek(out _) && _recOutQueue.TryPeek(out _))
+            {
+                _recInQueue.TryDequeue(out var inPcm);
+                _recOutQueue.TryDequeue(out var outPcm);
+                if (inPcm == null || outPcm == null) break;
+                var mixed = MixPcmMono(inPcm, outPcm);
+                _waveWriter.Write(mixed, 0, mixed.Length);
+            }
+
+            // Kalanlar tek tarafli
+            while (_recInQueue.TryDequeue(out var remaining))
+                _waveWriter.Write(remaining, 0, remaining.Length);
+            while (_recOutQueue.TryDequeue(out var remaining))
+                _waveWriter.Write(remaining, 0, remaining.Length);
+        }
+    }
+
+    /// <summary>
+    /// Iki PCM16 byte dizisini sample-by-sample toplayip mono mix uretir.
+    /// Clipping korumasıyla short tasmasi onlenir.
+    /// </summary>
+    private static byte[] MixPcmMono(byte[] a, byte[] b)
+    {
+        int len = Math.Max(a.Length, b.Length);
+        var result = new byte[len];
+        int samples = len / 2;
+
+        for (int i = 0; i < samples; i++)
+        {
+            int offset = i * 2;
+            short sA = offset + 1 < a.Length
+                ? (short)(a[offset] | (a[offset + 1] << 8))
+                : (short)0;
+            short sB = offset + 1 < b.Length
+                ? (short)(b[offset] | (b[offset + 1] << 8))
+                : (short)0;
+
+            // Toplama + clipping
+            int mixed = sA + sB;
+            if (mixed > short.MaxValue) mixed = short.MaxValue;
+            if (mixed < short.MinValue) mixed = short.MinValue;
+
+            result[offset] = (byte)(mixed & 0xFF);
+            result[offset + 1] = (byte)((mixed >> 8) & 0xFF);
+        }
+
+        return result;
     }
 
     // ═══════════════════════════════════════════════════
@@ -1558,6 +1685,7 @@ public class NativeSipService : ISipService
     {
         Console.WriteLine($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}], srtp={_srtpEnabled}");
         var winAudio = new WindowsAudioEndPoint(new AudioEncoder(), _outputDeviceIndex, _inputDeviceIndex);
+        _winAudioEndPoint = winAudio; // Recording icin mikrofon event'ine erisim
 
         // Codec filtresi: Sadece etkinlestirilmis codec'ler
         winAudio.RestrictFormats(x =>
@@ -1835,10 +1963,14 @@ public class NativeSipService : ISipService
 
         if (_waveWriter != null)
         {
+            if (_winAudioEndPoint != null)
+                _winAudioEndPoint.OnAudioSourceEncodedSample -= OnMicSampleForRecording;
+            FlushRemainingRecordingQueues();
             _waveWriter.Dispose();
             _waveWriter = null;
             _isRecording = false;
         }
+        _winAudioEndPoint = null;
 
         if (_regAgent != null)
         {

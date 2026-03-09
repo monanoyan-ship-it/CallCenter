@@ -1,0 +1,248 @@
+@inject CallCenter.Windows.Services.ContactService ContactService
+@inject CallCenter.Windows.Services.ISipService SipService
+@inject CallCenter.Windows.Services.ToastService Toast
+@inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Helpers
+@using CallCenter.Shared.Enums
+
+<div class="contacts-panel-inner">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex gap-1">
+            @if (!isReadOnly)
+            {
+                <button class="btn btn-sm btn-primary" @onclick="OpenAddDialog">
+                    <i class="bi bi-plus-circle me-1"></i>Yeni Kisi
+                </button>
+            }
+            <button class="btn btn-sm btn-outline-secondary" @onclick="RefreshListAsync" title="Yenile" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <span class="text-muted small">@filteredContacts.Count kisi</span>
+    </div>
+
+    <div class="mb-2">
+        <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Isim, numara veya firma ara..."
+                   value="@searchQuery" @oninput="OnSearch" />
+        </div>
+    </div>
+
+    <div class="mb-2">
+        <button class="btn btn-sm @(showFavoritesOnly ? "btn-warning" : "btn-outline-secondary")"
+                @onclick="ToggleFavorites">
+            <i class="bi bi-star-fill me-1"></i>
+            @(showFavoritesOnly ? "Tum Kisiler" : "Favoriler")
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
+    }
+    else if (filteredContacts.Count == 0)
+    {
+        <div class="text-center py-4 text-muted small">
+            <i class="bi bi-people d-block mb-1" style="font-size: 2rem;"></i>
+            @(string.IsNullOrEmpty(searchQuery) ? "Henuz kisi eklenmemis." : "Sonuc bulunamadi.")
+        </div>
+    }
+    else
+    {
+        <div class="list-group list-group-flush side-panel-list">
+            @foreach (var contact in filteredContacts)
+            {
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-2 py-1">
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                        <button class="btn btn-sm btn-link p-0" @onclick="() => ToggleFavorite(contact.Id)">
+                            <i class="bi @(contact.IsFavorite ? "bi-star-fill text-warning" : "bi-star text-muted")"></i>
+                        </button>
+                        <div class="min-w-0">
+                            <div class="fw-bold small text-truncate">@contact.FullName</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                <i class="bi bi-telephone me-1"></i>@contact.PhoneNumber
+                                @if (!string.IsNullOrEmpty(contact.Company))
+                                {
+                                    <span class="ms-1"><i class="bi bi-building"></i> @contact.Company</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                        <button class="btn btn-sm btn-success py-0 px-1" @onclick="() => CallContact(contact.PhoneNumber)"
+                                title="Ara" disabled="@(!SipService.IsRegistered)">
+                            <i class="bi bi-telephone-fill"></i>
+                        </button>
+                        @if (!isReadOnly)
+                        {
+                            <button class="btn btn-sm btn-outline-primary py-0 px-1" @onclick="() => OpenEditDialog(contact)" title="Duzenle">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-1" @onclick="() => DeleteContact(contact.Id)" title="Sil">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Kisi Ekleme/Duzenleme Modal *@
+@if (showDialog)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi @(isEditing ? "bi-pencil" : "bi-person-plus") me-2"></i>
+                        @(isEditing ? "Kisi Duzenle" : "Yeni Kisi")
+                    </h6>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label small">Isim *</label>
+                        <input type="text" class="form-control form-control-sm" @bind="editFullName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Numara *</label>
+                        <input type="text" class="form-control form-control-sm" @bind="editPhoneNumber" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Firma</label>
+                        <input type="text" class="form-control form-control-sm" @bind="editCompany" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">E-posta</label>
+                        <input type="email" class="form-control form-control-sm" @bind="editEmail" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-secondary" @onclick="CloseDialog">Iptal</button>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveContact" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-check-circle me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback<string> OnCallRequested { get; set; }
+
+    private List<ContactDto> filteredContacts = new();
+    private string searchQuery = "";
+    private bool showFavoritesOnly;
+    private bool isLoading;
+    private bool showDialog;
+    private bool isEditing;
+    private bool isSaving;
+    private bool isReadOnly => PermService.CustomerRoleId == CustomerRoles.Ids.Operator && !PermService.IsAdmin;
+
+    private int editContactId;
+    private string editFullName = "";
+    private string editPhoneNumber = "";
+    private string? editCompany;
+    private string? editEmail;
+    private bool editIsFavorite;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshListAsync();
+    }
+
+    private async Task RefreshListAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            filteredContacts = showFavoritesOnly
+                ? await ContactService.GetFavoritesAsync()
+                : await ContactService.GetAllAsync(searchQuery);
+        }
+        catch { filteredContacts = new(); }
+        finally { isLoading = false; }
+    }
+
+    private async Task OnSearch(ChangeEventArgs e)
+    {
+        searchQuery = e.Value?.ToString() ?? "";
+        await RefreshListAsync();
+    }
+
+    private async Task ToggleFavorites()
+    {
+        showFavoritesOnly = !showFavoritesOnly;
+        await RefreshListAsync();
+    }
+
+    private async Task ToggleFavorite(int id)
+    {
+        if (await ContactService.ToggleFavoriteAsync(id))
+            await RefreshListAsync();
+        else
+            Toast.ShowError("Favori durumu guncellenemedi.");
+    }
+
+    private async Task CallContact(string number)
+    {
+        await OnCallRequested.InvokeAsync(number);
+    }
+
+    private void OpenAddDialog()
+    {
+        editContactId = 0; editFullName = ""; editPhoneNumber = "";
+        editCompany = null; editEmail = null; editIsFavorite = false;
+        isEditing = false; showDialog = true;
+    }
+
+    private void OpenEditDialog(ContactDto contact)
+    {
+        editContactId = contact.Id; editFullName = contact.FullName;
+        editPhoneNumber = contact.PhoneNumber; editCompany = contact.Company;
+        editEmail = contact.Email; editIsFavorite = contact.IsFavorite;
+        isEditing = true; showDialog = true;
+    }
+
+    private async Task SaveContact()
+    {
+        if (string.IsNullOrWhiteSpace(editFullName) || string.IsNullOrWhiteSpace(editPhoneNumber)) return;
+        isSaving = true; StateHasChanged();
+        try
+        {
+            var phone = PhoneHelper.Sanitize(editPhoneNumber);
+            if (isEditing)
+                await ContactService.UpdateAsync(editContactId, editFullName, phone, editCompany, editEmail, editIsFavorite);
+            else
+                await ContactService.CreateAsync(editFullName, phone, editCompany, editEmail);
+            Toast.ShowSuccess(isEditing ? "Kisi guncellendi" : "Kisi eklendi");
+            CloseDialog();
+            await RefreshListAsync();
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isSaving = false; }
+    }
+
+    private async Task DeleteContact(int id)
+    {
+        await ContactService.DeleteAsync(id);
+        Toast.ShowInfo("Kisi silindi");
+        await RefreshListAsync();
+    }
+
+    private void CloseDialog() => showDialog = false;
+}

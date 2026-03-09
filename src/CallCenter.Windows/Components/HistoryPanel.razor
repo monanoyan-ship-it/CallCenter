@@ -1,0 +1,139 @@
+@inject HttpClient Http
+@using CallCenter.Shared.Enums
+
+<div class="history-panel-inner">
+    <div class="d-flex gap-2 mb-2 flex-wrap">
+        <div class="input-group input-group-sm" style="max-width:160px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Numara..."
+                   @bind="searchTerm" @bind:event="oninput" />
+        </div>
+        <select class="form-select form-select-sm" style="width:auto;" @bind="filterDirection">
+            <option value="0">Tumu</option>
+            <option value="@CallDirections.Ids.Inbound">Gelen</option>
+            <option value="@CallDirections.Ids.Outbound">Giden</option>
+        </select>
+        <select class="form-select form-select-sm" style="width:auto;" @bind="filterStatus">
+            <option value="0">Tumu</option>
+            @foreach (var status in CallStatuses.FinishedStatuses)
+            {
+                <option value="@status.Id">@(StatusNames.TryGetValue(status.SystemName, out var n) ? n : status.SystemName)</option>
+            }
+        </select>
+        <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="LoadHistory" title="Yenile">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
+    }
+    else if (filteredRecords.Count == 0)
+    {
+        <div class="text-center py-4 text-muted small">
+            <i class="bi bi-clock d-block mb-1" style="font-size: 2rem;"></i>
+            Arama gecmisi bos
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive side-panel-list">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:28px;"></th>
+                        <th>Arayan</th>
+                        <th>Aranan</th>
+                        <th>Durum</th>
+                        <th>Tarih</th>
+                        <th>Sure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in filteredRecords)
+                    {
+                        var dirItem = CallDirections.GetById(record.DirectionId);
+                        var statusItem = CallStatuses.GetById(record.StatusId);
+                        <tr>
+                            <td class="text-center">
+                                <i class="bi @(dirItem?.Icon ?? "bi-telephone-fill") @(dirItem?.CssClass ?? "")"
+                                   title="@(dirItem?.SystemName == "Inbound" ? "Gelen" : "Giden")"></i>
+                            </td>
+                            <td class="fw-medium small">@record.CallerNumber</td>
+                            <td class="small">@record.CalleeNumber</td>
+                            <td>
+                                <span class="badge @(statusItem?.CssClass ?? "bg-secondary")" style="font-size:0.65rem;">
+                                    @(StatusNames.TryGetValue(statusItem?.SystemName ?? "", out var sn) ? sn : statusItem?.SystemName ?? "")
+                                </span>
+                            </td>
+                            <td class="text-muted" style="font-size:0.7rem;">@record.StartedAt.ToString("dd.MM HH:mm")</td>
+                            <td class="fw-medium small">@FormatDuration(record.DurationSeconds)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<CallHistoryItem> callRecords = new();
+    private string searchTerm = "";
+    private int filterDirection;
+    private int filterStatus;
+
+    private static readonly Dictionary<string, string> StatusNames = new()
+    {
+        { "Completed", "Tamamlandi" }, { "Missed", "Cevapsiz" },
+        { "Failed", "Basarisiz" }, { "Transferred", "Transfer" }
+    };
+
+    private List<CallHistoryItem> filteredRecords => callRecords
+        .Where(r => string.IsNullOrEmpty(searchTerm) ||
+                     r.CallerNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                     r.CalleeNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+        .Where(r => filterDirection == 0 || r.DirectionId == filterDirection)
+        .Where(r => filterStatus == 0 || r.StatusId == filterStatus)
+        .OrderByDescending(r => r.StartedAt)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistory();
+    }
+
+    private async Task LoadHistory()
+    {
+        isLoading = true;
+        StateHasChanged();
+        try
+        {
+            callRecords = await Http.GetFromJsonAsync<List<CallHistoryItem>>("api/calls/history") ?? new();
+        }
+        catch { callRecords = new(); }
+        finally { isLoading = false; }
+    }
+
+    private string FormatDuration(int seconds)
+    {
+        if (seconds <= 0) return "-";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
+    }
+
+    private class CallHistoryItem
+    {
+        public int Id { get; set; }
+        public string CallerNumber { get; set; } = "";
+        public string CalleeNumber { get; set; } = "";
+        public int DirectionId { get; set; }
+        public int StatusId { get; set; }
+        public DateTime StartedAt { get; set; }
+        public int DurationSeconds { get; set; }
+        public string? QueueName { get; set; }
+    }
+}

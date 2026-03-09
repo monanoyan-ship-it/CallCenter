@@ -1,25 +1,33 @@
 @inherits LayoutComponentBase
 @inject WindowsAuthService AuthService
 @inject WindowsHubService HubService
+@inject WindowsPermissionService PermService
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject SecureStorage Storage
 @inject UpdateService UpdateSvc
+@inject AuthenticationStateProvider AuthStateProvider
 @implements IAsyncDisposable
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
 
-<div class="app-layout">
-    @* ─── SOL PANEL ─── *@
-    <aside class="sidebar">
-        <NavMenu />
-    </aside>
-
+<div class="app-layout no-sidebar">
     @* ─── ANA ICERIK ─── *@
     <div class="main-wrapper">
         @* ─── UST BAR ─── *@
         <header class="top-bar">
             <div class="top-bar-content">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="brand-mini">
+                        <i class="bi bi-headset text-primary me-1"></i>
+                        <strong>CorpLynk</strong>
+                    </span>
+                    <span class="agent-info-bar text-muted small">
+                        <i class="bi bi-person-circle me-1"></i>@agentName
+                        <span class="badge bg-light text-dark ms-1" style="font-size:0.65rem;">@agentRole</span>
+                    </span>
+                </div>
                 <div class="d-flex align-items-center gap-2 ms-auto">
                     @* ─── DURUM DROPDOWN ─── *@
                     <div class="status-dropdown-wrapper">
@@ -119,6 +127,8 @@
 @code {
     private bool statusDropdownOpen;
     private int currentStatusId = AgentStatuses.Ids.Offline;
+    private string agentName = "...";
+    private string agentRole = "";
 
     // ─── GUNCELLEME ───
     private AppVersionInfoDto? updateInfo;
@@ -160,6 +170,12 @@
                 NavigationManager.NavigateTo("/change-password", forceLoad: false);
                 return;
             }
+
+            // Agent bilgilerini yukle
+            agentName = await AuthService.GetFullNameAsync() ?? "Kullanici";
+            await PermService.LoadAsync();
+            var role = CustomerRoles.GetById(PermService.CustomerRoleId);
+            agentRole = role?.Description ?? "Operator";
 
             // SignalR event'lerini dinle
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
