@@ -67,6 +67,7 @@ public class NativeSipService : ISipService
     private string? _turnUsername;
     private string? _turnPassword;
     private string? _ringtonePath;
+    private IPAddress? _stunPublicAddress;
 
     // ─── Recording ───
     private WaveFileWriter? _waveWriter;
@@ -225,8 +226,9 @@ public class NativeSipService : ISipService
                     break;
             }
 
-            // STUN ile NAT arkasindaki public IP'yi kesfet (WSS disinda)
-            if (!string.IsNullOrEmpty(_stunServer) && transport is not "WSS" and not "WS")
+            // STUN ile NAT arkasindaki public IP'yi kesfet
+            // SIP sinyallesme WSS ile gidse bile RTP medya UDP uzerinden gider — STUN her zaman gerekli
+            if (!string.IsNullOrEmpty(_stunServer))
             {
                 try
                 {
@@ -238,13 +240,17 @@ public class NativeSipService : ISipService
                     var publicEp = STUNClient.GetPublicIPEndPoint(stunHost, stunPort);
                     if (publicEp != null)
                     {
-                        _sipTransport.ContactHost = publicEp.Address.ToString();
-                        Console.WriteLine($"[NativeSipService] STUN public address: {publicEp}");
+                        _stunPublicAddress = publicEp.Address;
+                        // WSS'de SIP ContactHost degistirmeyiz (sinyallesme WSS uzerinden)
+                        // Ama UDP/TCP/TLS'de ContactHost'u STUN adresiyle set ediyoruz
+                        if (transport is not "WSS" and not "WS")
+                            _sipTransport.ContactHost = publicEp.Address.ToString();
+                        Console.WriteLine($"[SIP] STUN public address: {publicEp} (transport={transport})");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[NativeSipService] STUN discovery hatasi: {ex.Message}");
+                    Console.WriteLine($"[SIP] STUN discovery hatasi: {ex.Message}");
                 }
             }
 
@@ -1572,6 +1578,13 @@ public class NativeSipService : ISipService
             Console.WriteLine("[SIP] SRTP aktif — SDP crypto negotiation etkinlestirildi");
         }
 
+        // NAT arkasinda: STUN ile bulunan public IP'yi RTP bind address olarak kullan
+        if (_stunPublicAddress != null)
+        {
+            sessionConfig.BindAddress = _stunPublicAddress;
+            Console.WriteLine($"[SIP] RTP bind address: {_stunPublicAddress} (STUN)");
+        }
+
         var mediaSession = new VoIPMediaSession(sessionConfig);
         mediaSession.AcceptRtpFromAny = true;
 
@@ -1840,6 +1853,7 @@ public class NativeSipService : ISipService
         }
 
         IsRegistered = false;
+        _stunPublicAddress = null;
         return ValueTask.CompletedTask;
     }
 
