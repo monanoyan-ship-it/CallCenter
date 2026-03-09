@@ -629,6 +629,105 @@ body {
 }
 
 /* ========================================
+   Download Page
+   ======================================== */
+.download-section {
+    padding: 0 2rem 5rem; max-width: 1000px; margin: 0 auto;
+}
+.download-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;
+}
+.download-card {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); padding: 2rem;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; transition: var(--transition);
+    position: relative;
+}
+.download-card:hover {
+    border-color: var(--border-accent); transform: translateY(-3px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.download-card-featured {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: linear-gradient(180deg, rgba(99,102,241,0.06) 0%, var(--bg-card) 100%);
+}
+.download-card-badge {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    padding: 0.25rem 0.75rem; border-radius: 50px;
+    background: var(--accent); color: #fff;
+    font-size: 0.6875rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.03em;
+}
+.download-card-soon { opacity: 0.6; }
+.download-icon {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: var(--accent-glow); color: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; margin-bottom: 1.25rem;
+}
+.download-card h3 {
+    font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem;
+}
+.download-desc {
+    font-size: 0.8125rem; color: var(--text-secondary);
+    line-height: 1.6; margin-bottom: 1.25rem; flex: 1;
+}
+.download-meta {
+    display: flex; flex-direction: column; gap: 0.4rem;
+    margin-bottom: 1.5rem; width: 100%;
+}
+.download-meta span {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.75rem; color: var(--text-muted);
+    justify-content: center;
+}
+.download-meta span i { color: var(--accent-light); font-size: 0.8125rem; }
+.download-btn {
+    width: 100%; justify-content: center; margin-bottom: 0.75rem;
+}
+.download-btn:disabled {
+    opacity: 0.5; cursor: not-allowed; transform: none !important;
+    box-shadow: none !important;
+}
+.download-note {
+    font-size: 0.6875rem; color: var(--text-muted);
+    display: flex; align-items: center; gap: 0.35rem;
+    line-height: 1.4;
+}
+.download-note i { flex-shrink: 0; }
+
+/* Requirements */
+.requirements-section {
+    padding: 3rem 2rem 5rem; max-width: 800px; margin: 0 auto;
+}
+.requirements-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem;
+}
+.requirement-card {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 1.5rem;
+}
+.requirement-card h4 {
+    font-size: 0.9375rem; font-weight: 600; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.requirement-card h4 i { color: var(--accent-light); }
+.requirement-card ul {
+    list-style: none; padding: 0; margin: 0;
+}
+.requirement-card li {
+    font-size: 0.8125rem; color: var(--text-secondary);
+    padding: 0.35rem 0; padding-left: 1.25rem; position: relative;
+    line-height: 1.5;
+}
+.requirement-card li::before {
+    content: '\F26A'; font-family: 'bootstrap-icons';
+    position: absolute; left: 0; color: var(--accent-light);
+    font-size: 0.625rem;
+}
+
+/* ========================================
    Animations
    ======================================== */
 @keyframes fadeInUp {
@@ -646,6 +745,8 @@ body {
     .tech-grid { grid-template-columns: repeat(3, 1fr); }
     .stakeholders-grid { grid-template-columns: repeat(2, 1fr); }
     .platforms-grid { grid-template-columns: 1fr; }
+    .download-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+    .requirements-grid { grid-template-columns: 1fr; }
     .comparison-row { grid-template-columns: 1.5fr 1fr 1fr 1fr; }
     .footer-top { grid-template-columns: 1fr 1fr; }
     .steps-grid { flex-direction: column; }

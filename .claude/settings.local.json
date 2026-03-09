@@ -153,7 +153,8 @@
       "Bash(PGPASSWORD=admin123 \"/c/Program Files/PostgreSQL/17/bin/psql.exe\":*)",
       "Bash(PGPASSWORD='1123Azs+-' \"/c/Program Files/PostgreSQL/17/bin/psql.exe\":*)",
       "WebFetch(domain:api.github.com)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(gcloud storage:*)"
     ]
   }
 }

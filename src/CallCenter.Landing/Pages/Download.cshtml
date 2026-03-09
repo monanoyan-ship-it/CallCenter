@@ -1,0 +1,169 @@
+@page "/download"
+@model DownloadModel
+
+@section Styles {
+    <meta property="og:title" content="CorpLynk — Download" />
+    <meta property="og:description" content="Download CorpLynk Call Center for Windows, or use the web app directly from your browser." />
+}
+
+<!-- Background -->
+<div class="landing-bg">
+    <div class="grid-overlay"></div>
+</div>
+
+<div class="landing-wrapper">
+    <!-- Nav -->
+    <nav class="landing-nav">
+        <a href="/" class="landing-brand">
+            <i class="bi bi-hexagon-fill"></i> CorpLynk
+        </a>
+        <div class="landing-nav-links">
+            <a href="/">Home</a>
+            <a href="/call-center">Call Center</a>
+            <a href="/download" style="color: var(--accent-light);">Download</a>
+            <a href="https://cc.corplynk.com" class="nav-btn">Open App</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <main class="landing-main" style="justify-content: flex-start; padding-top: 4rem;">
+        <div class="landing-badge">
+            <span class="dot dot-amber"></span>
+            Beta
+        </div>
+
+        <h1 class="landing-title" style="font-size: clamp(2rem, 5vw, 3.5rem);">
+            Download<br />
+            <span class="gradient-text">CorpLynk</span>
+        </h1>
+
+        <p class="landing-subtitle">
+            Choose your platform and start managing calls in minutes.
+        </p>
+    </main>
+
+    <!-- Download Cards -->
+    <section class="download-section">
+        <div class="download-grid">
+            <!-- Windows Desktop -->
+            <div class="download-card download-card-featured">
+                <div class="download-card-badge">Recommended</div>
+                <div class="download-icon">
+                    <i class="bi bi-pc-display"></i>
+                </div>
+                <h3>Windows Desktop</h3>
+                <p class="download-desc">
+                    Full-featured desktop application with native SIP support,
+                    system tray, call recording, and auto-updates.
+                </p>
+                <div class="download-meta">
+                    <span><i class="bi bi-tag"></i> v@(Model.WindowsVersion)</span>
+                    <span><i class="bi bi-cpu"></i> Windows 10/11 (x64)</span>
+                </div>
+                <a href="@Model.WindowsDownloadUrl" class="cta-btn cta-primary download-btn">
+                    <i class="bi bi-download"></i>
+                    <span>Download for Windows</span>
+                </a>
+                <div class="download-note">
+                    <i class="bi bi-info-circle"></i>
+                    Installer includes auto-update. Future versions will be installed automatically.
+                </div>
+            </div>
+
+            <!-- Web App -->
+            <div class="download-card">
+                <div class="download-icon">
+                    <i class="bi bi-globe2"></i>
+                </div>
+                <h3>Web Browser</h3>
+                <p class="download-desc">
+                    No installation required. Works in Chrome, Edge, Firefox.
+                    WebRTC calling via SIP.js.
+                </p>
+                <div class="download-meta">
+                    <span><i class="bi bi-check-circle"></i> Always up to date</span>
+                    <span><i class="bi bi-browser-chrome"></i> Any modern browser</span>
+                </div>
+                <a href="https://cc.corplynk.com" class="cta-btn cta-outline download-btn" target="_blank">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Open Web App</span>
+                </a>
+            </div>
+
+            <!-- Android -->
+            <div class="download-card download-card-soon">
+                <div class="download-icon">
+                    <i class="bi bi-phone"></i>
+                </div>
+                <h3>Android Mobile</h3>
+                <p class="download-desc">
+                    Push-based mobile app for field staff.
+                    FCM notifications for incoming calls.
+                </p>
+                <div class="download-meta">
+                    <span><i class="bi bi-hourglass-split"></i> Coming soon</span>
+                    <span><i class="bi bi-android2"></i> Android 8.0+</span>
+                </div>
+                <button class="cta-btn cta-outline download-btn" disabled>
+                    <i class="bi bi-clock-history"></i>
+                    <span>Coming Soon</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Requirements -->
+    <section class="requirements-section">
+        <div class="section-header">
+            <div class="section-badge">Requirements</div>
+            <h2 class="section-title">System Requirements</h2>
+        </div>
+        <div class="requirements-grid">
+            <div class="requirement-card">
+                <h4><i class="bi bi-pc-display"></i> Windows Desktop</h4>
+                <ul>
+                    <li>Windows 10 version 1809 or later (x64)</li>
+                    <li>WebView2 Runtime (included in Windows 11)</li>
+                    <li>Microphone and speakers/headset</li>
+                    <li>Internet connection</li>
+                    <li>~500 MB disk space</li>
+                </ul>
+            </div>
+            <div class="requirement-card">
+                <h4><i class="bi bi-globe2"></i> Web Browser</h4>
+                <ul>
+                    <li>Chrome 90+, Edge 90+, or Firefox 90+</li>
+                    <li>WebRTC support (enabled by default)</li>
+                    <li>Microphone permission</li>
+                    <li>Stable internet connection</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <a href="/" class="landing-brand">
+                    <i class="bi bi-hexagon-fill"></i> CorpLynk
+                </a>
+                <p>Enterprise software solutions that connect businesses.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Products</h4>
+                <a href="/call-center">Cloud Call Center</a>
+                <a href="/b2b-trade">B2B Trade Platform</a>
+                <a href="/download">Download</a>
+            </div>
+            <div class="footer-col">
+                <h4>Connect</h4>
+                <a href="https://x.com/corplynkcmon" target="_blank" rel="noopener"><i class="bi bi-twitter-x"></i> Twitter</a>
+                <a href="mailto:info@corplynk.com"><i class="bi bi-envelope"></i> Email</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 CorpLynk. All rights reserved.</p>
+        </div>
+    </footer>
+</div>
