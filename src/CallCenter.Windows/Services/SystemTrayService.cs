@@ -26,8 +26,11 @@ public class SystemTrayService : IDisposable
             Visibility = Visibility.Visible
         };
 
-        // Kod ile varsayilan ikon olustur (embedded resource gerektirmez)
-        _trayIcon.Icon = SystemIcons.Application;
+        // Markalanmis ikon — Assets klasorunden yukle
+        var icoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "corplynk.ico");
+        _trayIcon.Icon = System.IO.File.Exists(icoPath)
+            ? new Icon(icoPath)
+            : SystemIcons.Application;
 
         // Sag tik menusu
         var contextMenu = new System.Windows.Controls.ContextMenu();
