@@ -281,7 +281,7 @@ public class QueueAgentAssignDto
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SIP HESABI
+// SIP GATEWAY
 // ═══════════════════════════════════════════════════════════════
 
 public class SipAccountListDto
@@ -290,7 +290,6 @@ public class SipAccountListDto
     public string Name { get; set; } = string.Empty;
     public string Server { get; set; } = string.Empty;
     public int Port { get; set; }
-    public string Username { get; set; } = string.Empty;
     public string? Transport { get; set; }
     public string? WsUri { get; set; }
     public bool UseSrtp { get; set; }
@@ -305,8 +304,8 @@ public class SipAccountListDto
     public string CustomerName { get; set; } = string.Empty;
     public int? OrganizationUnitId { get; set; }
     public string? OrganizationUnitName { get; set; }
-    public int? AssignedPersonnelId { get; set; }
-    public string? AssignedPersonnelName { get; set; }
+    public int LineCount { get; set; }
+    public int ActiveLineCount { get; set; }
 }
 
 public class SipAccountCreateDto
@@ -323,14 +322,6 @@ public class SipAccountCreateDto
 
     [StringLength(200)]
     public string? Domain { get; set; }
-
-    [Required(ErrorMessage = "Kullanici adi zorunludur.")]
-    [StringLength(100)]
-    public string Username { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Sifre zorunludur.")]
-    [StringLength(256)]
-    public string Password { get; set; } = string.Empty;
 
     [StringLength(10)]
     public string? Transport { get; set; } = "UDP";
@@ -352,15 +343,15 @@ public class SipAccountCreateDto
     public string? TurnPassword { get; set; }
 
     // Codec tercihleri
-    /// <summary>Codec oncelik sirasi, JSON array: ["opus","g722","pcmu","pcma"]. Bos ise varsayilan.</summary>
     public string? PreferredCodecs { get; set; }
     public int JitterBufferMinMs { get; set; }
     public int JitterBufferMaxMs { get; set; }
 
-    public int? AssignedPersonnelId { get; set; }
-
     [Required(ErrorMessage = "Firma secimi zorunludur.")]
     public int CustomerId { get; set; }
+
+    /// <summary>Gateway olusturulurken hatlar da eklenebilir</summary>
+    public List<SipLineCreateDto>? Lines { get; set; }
 }
 
 public class SipAccountUpdateDto
@@ -377,13 +368,6 @@ public class SipAccountUpdateDto
 
     [StringLength(200)]
     public string? Domain { get; set; }
-
-    [Required(ErrorMessage = "Kullanici adi zorunludur.")]
-    [StringLength(100)]
-    public string Username { get; set; } = string.Empty;
-
-    [StringLength(256)]
-    public string? Password { get; set; }
 
     [StringLength(10)]
     public string? Transport { get; set; } = "UDP";
@@ -409,8 +393,54 @@ public class SipAccountUpdateDto
     public string? PreferredCodecs { get; set; }
     public int JitterBufferMinMs { get; set; }
     public int JitterBufferMaxMs { get; set; }
+}
 
+// SIP HAT (LINE)
+// ═══════════════════════════════════════════════════════════════
+
+public class SipLineListDto
+{
+    public int Id { get; set; }
+    public int ChannelNumber { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+    public int SipAccountId { get; set; }
+    public string GatewayName { get; set; } = string.Empty;
     public int? AssignedPersonnelId { get; set; }
+    public string? AssignedPersonnelName { get; set; }
+}
+
+public class SipLineCreateDto
+{
+    public int ChannelNumber { get; set; } = 1;
+
+    [Required(ErrorMessage = "Kullanici adi zorunludur.")]
+    [StringLength(100)]
+    public string Username { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Sifre zorunludur.")]
+    [StringLength(256)]
+    public string Password { get; set; } = string.Empty;
+
+    [StringLength(200)]
+    public string? Description { get; set; }
+}
+
+public class SipLineUpdateDto
+{
+    public int ChannelNumber { get; set; }
+
+    [StringLength(100)]
+    public string? Username { get; set; }
+
+    [StringLength(256)]
+    public string? Password { get; set; }
+
+    [StringLength(200)]
+    public string? Description { get; set; }
+
+    public bool IsActive { get; set; } = true;
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -18,6 +18,10 @@ public class SipAccountsController : AuditableControllerBase
         _sipFactory = sipFactory;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // OPERATOR
+    // ═══════════════════════════════════════════════════════════════
+
     [HttpGet("my/connection")]
     public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection()
     {
@@ -36,10 +40,25 @@ public class SipAccountsController : AuditableControllerBase
         var result = await _sipFactory.GetMyConnectionAsync(customerId, personnelId, displayName);
 
         if (result == null)
-            return NotFound(new { message = "Firmaniza ait aktif SIP hesabi bulunamadi." });
+            return NotFound(new { message = "Firmaniza ait bos hat bulunamadi. Tum hatlar dolu veya gateway tanimli degil." });
 
         return Ok(result);
     }
+
+    [HttpPost("my/release")]
+    public async Task<ActionResult> ReleaseMyLine()
+    {
+        var personnelIdClaim = User.FindFirstValue("CustomerPersonnelId");
+        if (string.IsNullOrEmpty(personnelIdClaim) || !int.TryParse(personnelIdClaim, out var personnelId))
+            return BadRequest(new { message = "Personel bilgisi bulunamadi." });
+
+        await _sipFactory.ReleaseLineAsync(personnelId);
+        return Ok();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN: GATEWAY
+    // ═══════════════════════════════════════════════════════════════
 
     [HttpGet]
     [Authorize(Roles = "Admin,CustomerUser")]
@@ -48,7 +67,6 @@ public class SipAccountsController : AuditableControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] int? customerId = null)
     {
-        // CustomerUser sadece kendi firmasinin SIP hesaplarini gorebilir
         if (User.IsInRole("CustomerUser"))
         {
             var cid = User.FindFirstValue("CustomerId");
@@ -70,15 +88,13 @@ public class SipAccountsController : AuditableControllerBase
     public async Task<ActionResult> GetById(int id)
     {
         var result = await _sipFactory.GetByIdAsync(id);
-        if (result == null) return NotFound(new { message = "SIP hesabi bulunamadi." });
+        if (result == null) return NotFound(new { message = "Gateway bulunamadi." });
 
-        // CustomerUser firma kontrolu
         if (User.IsInRole("CustomerUser"))
         {
             var cid = User.FindFirstValue("CustomerId");
             if (string.IsNullOrEmpty(cid) || !int.TryParse(cid, out var customerIdFromClaim))
                 return Forbid();
-            // Anonymous type - dynamic ile CustomerId kontrolu
             var customerId = (int)((dynamic)result).CustomerId;
             if (customerId != customerIdFromClaim)
                 return Forbid();
@@ -95,7 +111,7 @@ public class SipAccountsController : AuditableControllerBase
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "SipAccount", id.ToString(),
-            $"SIP hesabi olusturuldu: '{dto.Name}' (server: {dto.Server})", customerId: dto.CustomerId);
+            $"Gateway olusturuldu: '{dto.Name}' (server: {dto.Server})", customerId: dto.CustomerId);
 
         return CreatedAtAction(nameof(GetById), new { id }, new { id });
     }
@@ -108,7 +124,7 @@ public class SipAccountsController : AuditableControllerBase
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Update", "SipAccount", id.ToString(),
-            $"SIP hesabi guncellendi: ID={id}");
+            $"Gateway guncellendi: ID={id}");
 
         return NoContent();
     }
@@ -121,7 +137,57 @@ public class SipAccountsController : AuditableControllerBase
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Delete", "SipAccount", id.ToString(),
-            $"SIP hesabi silindi: ID={id}");
+            $"Gateway silindi: ID={id}");
+
+        return NoContent();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN: LINE
+    // ═══════════════════════════════════════════════════════════════
+
+    [HttpGet("{gatewayId}/lines")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<SipLineListDto>>> GetLines(int gatewayId)
+    {
+        return Ok(await _sipFactory.GetLinesByGatewayAsync(gatewayId));
+    }
+
+    [HttpPost("{gatewayId}/lines")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> CreateLine(int gatewayId, SipLineCreateDto dto)
+    {
+        var (success, id, error) = await _sipFactory.CreateLineAsync(gatewayId, dto);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Create", "SipLine", id.ToString(),
+            $"Hat olusturuldu: CH{dto.ChannelNumber} '{dto.Username}' (gateway: {gatewayId})");
+
+        return Ok(new { id });
+    }
+
+    [HttpPut("lines/{lineId}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> UpdateLine(int lineId, SipLineUpdateDto dto)
+    {
+        var (success, error) = await _sipFactory.UpdateLineAsync(lineId, dto);
+        if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Update", "SipLine", lineId.ToString(),
+            $"Hat guncellendi: ID={lineId}");
+
+        return NoContent();
+    }
+
+    [HttpDelete("lines/{lineId}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> DeleteLine(int lineId)
+    {
+        var (success, error) = await _sipFactory.DeleteLineAsync(lineId);
+        if (!success) return NotFound(new { message = error });
+
+        await AuditCrudAsync("Delete", "SipLine", lineId.ToString(),
+            $"Hat silindi: ID={lineId}");
 
         return NoContent();
     }

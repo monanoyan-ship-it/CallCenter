@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Queue> Queues => Set<Queue>();
     public DbSet<QueueAgent> QueueAgents => Set<QueueAgent>();
     public DbSet<SipAccount> SipAccounts => Set<SipAccount>();
+    public DbSet<SipLine> SipLines => Set<SipLine>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerPersonnel> CustomerPersonnel => Set<CustomerPersonnel>();
     public DbSet<CustomerPortalModule> CustomerPortalModules => Set<CustomerPortalModule>();
@@ -218,15 +219,13 @@ public class AppDbContext : DbContext
             e.HasOne(qa => qa.Agent).WithMany().HasForeignKey(qa => qa.AgentId);
         });
 
-        // SipAccount
+        // SipAccount (Gateway)
         modelBuilder.Entity<SipAccount>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.Uid).IsUnique();
             e.Property(s => s.Name).HasMaxLength(100).IsRequired();
             e.Property(s => s.Server).HasMaxLength(200).IsRequired();
-            e.Property(s => s.Username).HasMaxLength(100).IsRequired();
-            e.Property(s => s.Password).HasMaxLength(512).IsRequired();
             e.Property(s => s.Domain).HasMaxLength(200);
             e.Property(s => s.Transport).HasMaxLength(10);
             e.Property(s => s.StunServer).HasMaxLength(200);
@@ -241,6 +240,19 @@ public class AppDbContext : DbContext
              .WithMany(o => o.SipAccounts)
              .HasForeignKey(s => s.OrganizationUnitId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // SipLine (Hat)
+        modelBuilder.Entity<SipLine>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Username).HasMaxLength(100).IsRequired();
+            e.Property(l => l.Password).HasMaxLength(512).IsRequired();
+            e.Property(l => l.Description).HasMaxLength(200);
+            e.HasOne(l => l.SipAccount)
+             .WithMany(s => s.Lines)
+             .HasForeignKey(l => l.SipAccountId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Language

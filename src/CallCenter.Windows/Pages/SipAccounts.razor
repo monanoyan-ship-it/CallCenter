@@ -57,7 +57,7 @@
                             <th>Gateway Adi</th>
                             <th>Sunucu</th>
                             <th>Port</th>
-                            <th>Kullanici</th>
+                            <th>Hatlar</th>
                             <th>Transport</th>
                             <th>Varsayilan</th>
                             <th>Durum</th>
@@ -71,7 +71,9 @@
                                 <td class="fw-medium">@sip.Name</td>
                                 <td>@sip.Server</td>
                                 <td class="text-muted">@sip.Port</td>
-                                <td>@sip.Username</td>
+                                <td>
+                                    <span class="badge bg-info-subtle text-info">@sip.ActiveLineCount / @sip.LineCount</span>
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary-subtle text-secondary">@(sip.Transport ?? "UDP")</span>
                                 </td>

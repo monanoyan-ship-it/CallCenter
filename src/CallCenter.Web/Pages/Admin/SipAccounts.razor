@@ -15,7 +15,7 @@
     </button>
 </div>
 
-@* ─── FİLTRELER ─── *@
+@* ─── FILTRELER ─── *@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
         <div class="row g-2 align-items-center">
@@ -63,9 +63,8 @@
                             <th>Firma</th>
                             <th>Sunucu</th>
                             <th>Port</th>
-                            <th>Kullanici</th>
                             <th>Transport</th>
-                            <th>Atanan Personel</th>
+                            <th class="text-center">Hatlar</th>
                             <th>Durum</th>
                             <th style="width: 100px;"></th>
                         </tr>
@@ -78,21 +77,13 @@
                                 <td class="text-muted small">@sip.CustomerName</td>
                                 <td>@sip.Server</td>
                                 <td class="text-muted">@sip.Port</td>
-                                <td>@sip.Username</td>
                                 <td>
                                     <span class="badge bg-secondary-subtle text-secondary">@(sip.Transport ?? "UDP")</span>
                                 </td>
-                                <td class="small">
-                                    @if (!string.IsNullOrEmpty(sip.AssignedPersonnelName))
-                                    {
-                                        <span class="badge bg-info-subtle text-info">
-                                            <i class="bi bi-person-fill me-1"></i>@sip.AssignedPersonnelName
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Bos</span>
-                                    }
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info">
+                                        @sip.ActiveLineCount / @sip.LineCount
+                                    </span>
                                 </td>
                                 <td>
                                     @if (sip.IsActive)

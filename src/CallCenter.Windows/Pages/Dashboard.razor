@@ -193,59 +193,22 @@
 }
 else
 {
-    @* ═══ ADMIN / SUPERVISOR DASHBOARD ═══ *@
-    <div class="page-header mb-3">
-        <h5><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h5>
-    </div>
-
-    <div class="row g-3">
-        <div class="col-12 col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="mb-2">
-                        <i class="bi bi-telephone-fill text-primary" style="font-size: 2rem;"></i>
-                    </div>
-                    <h6 class="text-muted small mb-0">Windows Masaustu</h6>
-                    <p class="small text-muted mt-1 mb-0">Softphone uygulamasi hazir.</p>
-                </div>
+    @* ═══ OPERATOR DEGIL — YONETIM PANELINE YONLENDIR ═══ *@
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+        <div class="text-center">
+            <i class="bi bi-display text-primary" style="font-size: 4rem;"></i>
+            <h5 class="mt-3">Bu uygulama operatorler icindir</h5>
+            <p class="text-muted">
+                Yonetim islemleri icin web panelini kullanin.
+            </p>
+            <div class="d-flex gap-2 justify-content-center mt-3">
+                <a href="https://crm.corplynk.com" target="_blank" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>CRM Paneli
+                </a>
+                <a href="https://cc.corplynk.com" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Web Paneli
+                </a>
             </div>
-        </div>
-        <div class="col-12 col-md-6 col-lg-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="mb-2">
-                        <i class="bi bi-wifi text-success" style="font-size: 2rem;"></i>
-                    </div>
-                    <h6 class="text-muted small mb-0">Baglanti Durumu</h6>
-                    <p class="small text-muted mt-1 mb-0">SignalR + SIP baglantisi ust bardan kontrol edilebilir.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-lg-3">
-            <a href="calls/active" class="text-decoration-none">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body text-center">
-                        <div class="mb-2">
-                            <i class="bi bi-telephone-inbound-fill text-info" style="font-size: 2rem;"></i>
-                        </div>
-                        <h6 class="text-muted small mb-0">Aktif Aramalar</h6>
-                        <p class="small text-muted mt-1 mb-0">Devam eden aramalari izleyin.</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-12 col-md-6 col-lg-3">
-            <a href="calls/history" class="text-decoration-none">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body text-center">
-                        <div class="mb-2">
-                            <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
-                        </div>
-                        <h6 class="text-muted small mb-0">Arama Gecmisi</h6>
-                        <p class="small text-muted mt-1 mb-0">Tum aramalari goruntuleyin.</p>
-                    </div>
-                </div>
-            </a>
         </div>
     </div>
 }

@@ -1,5 +1,9 @@
 namespace CallCenter.Shared.Entities;
 
+/// <summary>
+/// SIP Gateway (GoIP, Asterisk, FreeSWITCH vb.)
+/// Sunucu baglanti bilgilerini tutar. Hatlar (SipLine) alt tablodadir.
+/// </summary>
 public class SipAccount
 {
     public int Id { get; set; }
@@ -8,8 +12,6 @@ public class SipAccount
     public string Server { get; set; } = string.Empty;
     public int Port { get; set; } = 5060;
     public string? Domain { get; set; }
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
     public string? Transport { get; set; } = "UDP";
     /// <summary>
     /// Ozel WebSocket URI. Doluysa dogrudan kullanilir.
@@ -41,7 +43,7 @@ public class SipAccount
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Hangi musteriye ait (her SIP hesabi bir firmaya baglidir)
+    // Hangi musteriye ait (her gateway bir firmaya baglidir)
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
 
@@ -49,7 +51,6 @@ public class SipAccount
     public int? OrganizationUnitId { get; set; }
     public CustomerOrganizationUnit? OrganizationUnit { get; set; }
 
-    // Hangi personele atanmis (null = atanmamis, firma geneli)
-    public int? AssignedPersonnelId { get; set; }
-    public CustomerPersonnel? AssignedPersonnel { get; set; }
+    // ─── Hatlar (alt tablo) ───
+    public ICollection<SipLine> Lines { get; set; } = new List<SipLine>();
 }

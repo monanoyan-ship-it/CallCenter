@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260308221835_AddSipAccountAssignedAt")]
+    partial class AddSipAccountAssignedAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2263,6 +2266,12 @@ namespace CallCenter.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("AssignedPersonnelId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2292,6 +2301,11 @@ namespace CallCenter.Data.Migrations
 
                     b.Property<int?>("OrganizationUnitId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<int>("Port")
                         .HasColumnType("integer");
@@ -2330,10 +2344,17 @@ namespace CallCenter.Data.Migrations
                     b.Property<bool>("UseSrtp")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("WsUri")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignedPersonnelId");
 
                     b.HasIndex("CustomerId");
 
@@ -2343,55 +2364,6 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("SipAccounts");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SipLine", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("AssignedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("AssignedPersonnelId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ChannelNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<int>("SipAccountId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedPersonnelId");
-
-                    b.HasIndex("SipAccountId");
-
-                    b.ToTable("SipLines");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SystemSetting", b =>
@@ -4257,6 +4229,10 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SipAccount", b =>
                 {
+                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "AssignedPersonnel")
+                        .WithMany()
+                        .HasForeignKey("AssignedPersonnelId");
+
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany("SipAccounts")
                         .HasForeignKey("CustomerId")
@@ -4268,26 +4244,11 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("OrganizationUnitId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("AssignedPersonnel");
+
                     b.Navigation("Customer");
 
                     b.Navigation("OrganizationUnit");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SipLine", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "AssignedPersonnel")
-                        .WithMany()
-                        .HasForeignKey("AssignedPersonnelId");
-
-                    b.HasOne("CallCenter.Shared.Entities.SipAccount", "SipAccount")
-                        .WithMany("Lines")
-                        .HasForeignKey("SipAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssignedPersonnel");
-
-                    b.Navigation("SipAccount");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Translation", b =>
@@ -4383,11 +4344,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("CallRecords");
 
                     b.Navigation("QueueAgents");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SipAccount", b =>
-                {
-                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.TranslationKey", b =>

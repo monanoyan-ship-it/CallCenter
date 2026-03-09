@@ -359,15 +359,13 @@ public class BackgroundSyncService
             {
                 if (account.BackendSipAccountId == null)
                 {
-                    // Yeni — POST
+                    // Yeni — POST (Username/Password artik SipLine'da, gateway DTO'sunda yok)
                     var createDto = new SipAccountCreateDto
                     {
                         Name = account.Name,
                         Server = account.Server,
                         Port = account.Port,
                         Domain = account.Domain,
-                        Username = account.Username,
-                        Password = account.Password,
                         Transport = account.Transport,
                         WsUri = account.WsUri,
                         UseSrtp = account.UseSrtp,
@@ -394,15 +392,13 @@ public class BackgroundSyncService
                 }
                 else
                 {
-                    // Mevcut — PUT
+                    // Mevcut — PUT (Username/Password artik SipLine'da, gateway DTO'sunda yok)
                     var updateDto = new SipAccountUpdateDto
                     {
                         Name = account.Name,
                         Server = account.Server,
                         Port = account.Port,
                         Domain = account.Domain,
-                        Username = account.Username,
-                        Password = account.Password,
                         Transport = account.Transport,
                         WsUri = account.WsUri,
                         UseSrtp = account.UseSrtp,

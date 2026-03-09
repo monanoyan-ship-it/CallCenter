@@ -53,6 +53,7 @@ public class PbxFactory : IPbxFactory
             return new PbxTrunkListResult();
 
         var sips = await _sipEs.GetAllQueryable()
+            .Include(s => s.Lines)
             .Where(s => s.CustomerId == customer.Id && s.IsActive)
             .ToListAsync();
 
@@ -64,12 +65,18 @@ public class PbxFactory : IPbxFactory
                 Name = s.Name,
                 Server = s.Server,
                 Port = s.Port,
-                Username = s.Username,
-                Password = _encryption.Decrypt(s.Password),
                 Domain = s.Domain,
                 Transport = s.Transport ?? "UDP",
                 UseSrtp = s.UseSrtp,
-                IsActive = s.IsActive
+                IsActive = s.IsActive,
+                Lines = s.Lines.Where(l => l.IsActive).Select(l => new PbxTrunkLineDto
+                {
+                    Id = l.Id,
+                    ChannelNumber = l.ChannelNumber,
+                    Username = l.Username,
+                    Password = _encryption.Decrypt(l.Password),
+                    IsActive = l.IsActive
+                }).OrderBy(l => l.ChannelNumber).ToList()
             }).ToList()
         };
     }

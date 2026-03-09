@@ -35,11 +35,19 @@ public class PbxTrunkDto
     public string Name { get; set; } = string.Empty;
     public string Server { get; set; } = string.Empty;
     public int Port { get; set; } = 5060;
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
     public string? Domain { get; set; }
     public string Transport { get; set; } = "UDP";
     public bool UseSrtp { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<PbxTrunkLineDto> Lines { get; set; } = [];
+}
+
+public class PbxTrunkLineDto
+{
+    public int Id { get; set; }
+    public int ChannelNumber { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 }
 

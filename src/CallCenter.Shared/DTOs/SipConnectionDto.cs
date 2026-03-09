@@ -51,4 +51,10 @@ public class SipConnectionInfoDto
 
     /// <summary>Jitter buffer maksimum gecikme (ms). 0 = varsayilan.</summary>
     public int JitterBufferMaxMs { get; set; }
+
+    /// <summary>Tahsis edilen hat ID'si (release icin)</summary>
+    public int SipLineId { get; set; }
+
+    /// <summary>Gateway ID'si</summary>
+    public int SipAccountId { get; set; }
 }

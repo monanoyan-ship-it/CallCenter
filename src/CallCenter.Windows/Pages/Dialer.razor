@@ -5,7 +5,6 @@
 @inject HttpClient Http
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject CallCenter.Windows.Services.CallSyncService CallSync
-@inject CallCenter.Windows.LocalData.ILocalRepository LocalRepo
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
 @inject CallCenter.Windows.Services.SecureStorage Storage
 @inject NavigationManager NavigationManager
@@ -15,6 +14,7 @@
 @using CallCenter.Shared.DTOs
 @using CallCenter.Windows.Models
 @using CallCenter.Shared.Helpers
+@using System.IO
 @implements IAsyncDisposable
 
 @if (isAdminRole)
@@ -330,6 +330,7 @@
     private bool isAdminRole;
     private List<LineInfo> lines = new();
     private bool showContactPicker;
+    private SipConnectionInfoDto? _activeSipInfo;
     private string contactSearch = "";
     private List<ContactDto>? contactResults;
     private string callNotes = "";
@@ -396,41 +397,72 @@
         await InitializeSip();
     }
 
+    private static readonly string SipCachePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "CallCenter", "Data", "sip-connection.json");
+
     private async Task InitializeSip()
     {
         try
         {
-            var account = await LocalRepo.GetDefaultSipAccountAsync();
+            SipConnectionInfoDto? sipInfo = null;
 
-            if (account == null)
+            // 1. Lokal dosyadan hizli yukle
+            try
+            {
+                if (File.Exists(SipCachePath))
+                {
+                    var json = await File.ReadAllTextAsync(SipCachePath);
+                    sipInfo = System.Text.Json.JsonSerializer.Deserialize<SipConnectionInfoDto>(json);
+                }
+            }
+            catch { /* bozuk dosya — API'den alacagiz */ }
+
+            // 2. API'den guncelle (basariliysa lokale yaz)
+            try
+            {
+                sipStatusText = "API'den hat isteniyor...";
+                StateHasChanged();
+
+                var response = await Http.GetAsync("api/sipaccounts/my/connection");
+                if (response.IsSuccessStatusCode)
+                {
+                    var apiInfo = await response.Content.ReadFromJsonAsync<SipConnectionInfoDto>();
+                    if (apiInfo != null)
+                    {
+                        sipInfo = apiInfo;
+                        // Lokale kaydet
+                        var dir = Path.GetDirectoryName(SipCachePath)!;
+                        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                        await File.WriteAllTextAsync(SipCachePath,
+                            System.Text.Json.JsonSerializer.Serialize(sipInfo));
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[Dialer] API hat istegi basarisiz: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dialer] API erisim hatasi: {ex.Message}");
+                // API erisim yok — lokal varsa onunla devam
+            }
+
+            if (sipInfo == null)
             {
                 sipStatusText = "SIP Yok";
-                statusMessage = "Gateway tanimli degil. Gateway Yonetimi sayfasindan ekleyin.";
+                statusMessage = "Gateway tanimli degil. Portal SIP Ayarlarindan ekleyin.";
                 statusClass = "text-warning";
                 return;
             }
 
-            var sipInfo = new SipConnectionInfoDto
-            {
-                SipUri = $"sip:{account.Username}@{account.Server}",
-                WsUri = account.WsUri ?? $"wss://{account.Server}:8089/ws",
-                AuthUsername = account.Username,
-                AuthPassword = account.Password,
-                DisplayName = account.Name,
-                Transport = account.Transport ?? "UDP",
-                UseSrtp = account.UseSrtp,
-                StunServer = account.StunServer,
-                TurnServer = account.TurnServer,
-                TurnUsername = account.TurnUsername,
-                TurnPassword = account.TurnPassword,
-                PreferredCodecs = account.PreferredCodecs,
-                JitterBufferMinMs = account.JitterBufferMinMs,
-                JitterBufferMaxMs = account.JitterBufferMaxMs
-            };
-
-            sipStatusText = "Kayit olunuyor...";
+            _activeSipInfo = sipInfo;
+            sipStatusText = $"Kayit olunuyor... ({sipInfo.AuthUsername}@{sipInfo.SipUri?.Split('@').LastOrDefault()})";
+            statusMessage = $"Transport: {sipInfo.Transport}";
             StateHasChanged();
 
+            Console.WriteLine($"[Dialer] SIP register baslatiliyor: {sipInfo.AuthUsername} -> {sipInfo.SipUri} (Transport={sipInfo.Transport})");
             await SipService.InitializeAsync(sipInfo);
         }
         catch (Exception ex)
@@ -449,13 +481,12 @@
         statusMessage = "";
 
         // Gateway saglik bilgisini hub'a bildir
-        var account = await LocalRepo.GetDefaultSipAccountAsync();
         await HubService.UpdateGatewayHealthAsync(new GatewayHealthUpdate
         {
             IsRegistered = true,
-            GatewayName = account?.Name,
-            SipServer = account?.Server,
-            Transport = account?.Transport ?? "UDP"
+            GatewayName = _activeSipInfo?.DisplayName,
+            SipServer = _activeSipInfo?.SipUri,
+            Transport = _activeSipInfo?.Transport ?? "UDP"
         });
 
         await InvokeAsync(StateHasChanged);
@@ -468,13 +499,12 @@
         statusClass = "text-danger";
 
         // Gateway hata bilgisini hub'a bildir
-        var account = await LocalRepo.GetDefaultSipAccountAsync();
         await HubService.UpdateGatewayHealthAsync(new GatewayHealthUpdate
         {
             IsRegistered = false,
-            GatewayName = account?.Name,
-            SipServer = account?.Server,
-            Transport = account?.Transport ?? "UDP",
+            GatewayName = _activeSipInfo?.DisplayName,
+            SipServer = _activeSipInfo?.SipUri,
+            Transport = _activeSipInfo?.Transport ?? "UDP",
             ErrorMessage = error
         });
 
@@ -897,5 +927,9 @@
         SipService.OnMuteChanged -= HandleMuteChanged;
         StopTimer();
         StopNotesTimer();
+
+        // Hat tahsisini serbest birak
+        try { await Http.PostAsync("api/sipaccounts/my/release", null); }
+        catch { /* best effort — SignalR disconnect de yakalayacak */ }
     }
 }

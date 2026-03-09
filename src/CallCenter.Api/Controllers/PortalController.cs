@@ -237,6 +237,24 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
+    [HttpDelete("sip/{id}")]
+    public async Task<IActionResult> DeleteSipAccount(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.SipManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.DeleteSipAccountAsync(cid.Value, id);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Delete", "SipAccount", id.ToString(),
+            $"Portal SIP hesabi silindi: ID={id}", customerId: cid);
+
+        return NoContent();
+    }
+
     // ORGANIZATIONS
 
     [HttpGet("organizations/tree")]

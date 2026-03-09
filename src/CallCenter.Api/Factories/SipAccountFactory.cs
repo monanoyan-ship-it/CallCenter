@@ -11,82 +11,110 @@ namespace CallCenter.Api.Factories;
 public class SipAccountFactory : ISipAccountFactory
 {
     private readonly ISipAccountEntityService _sipEs;
+    private readonly ISipLineEntityService _lineEs;
     private readonly AesEncryptionService _encryption;
     private readonly IUnitOfWork _uow;
 
-    public SipAccountFactory(ISipAccountEntityService sipEs, AesEncryptionService encryption, IUnitOfWork uow)
+    public SipAccountFactory(
+        ISipAccountEntityService sipEs,
+        ISipLineEntityService lineEs,
+        AesEncryptionService encryption,
+        IUnitOfWork uow)
     {
         _sipEs = sipEs;
+        _lineEs = lineEs;
         _encryption = encryption;
         _uow = uow;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // OPERATOR HAT TAHSISI
+    // ═══════════════════════════════════════════════════════════════
+
     public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName)
     {
-        // 1. Bu personele zaten atanmis hesap var mi?
-        SipAccount? sip = null;
-        if (personnelId.HasValue)
-            sip = await _sipEs.GetByPersonnelAsync(personnelId.Value);
+        SipLine? line = null;
 
-        // 2. Yoksa atanmamis bos bir hat bul ve otomatik ata
-        if (sip == null && personnelId.HasValue)
+        // 1. Bu personele zaten tahsis edilmis hat var mi? (idempotent)
+        if (personnelId.HasValue)
+            line = await _lineEs.GetByPersonnelAsync(personnelId.Value);
+
+        // 2. Yoksa bos hat bul ve dinamik tahsis et
+        if (line == null && personnelId.HasValue)
         {
-            sip = await _sipEs.GetFirstUnassignedAsync(customerId);
-            if (sip != null)
+            line = await _lineEs.AcquireUnassignedAsync(customerId);
+            if (line != null)
             {
-                sip.AssignedPersonnelId = personnelId.Value;
+                line.AssignedPersonnelId = personnelId.Value;
+                line.AssignedAt = DateTime.UtcNow;
                 await _uow.SaveChangesAsync();
             }
         }
 
-        // 3. Hala yoksa firma default veya ilk aktifi dene (fallback)
-        sip ??= await _sipEs.GetDefaultByCustomerAsync(customerId);
-        sip ??= await _sipEs.GetFirstActiveByCustomerAsync(customerId);
+        // 3. Hat bulunamadiysa — tum hatlar dolu (fallback YOK)
+        if (line == null) return null;
 
-        if (sip == null) return null;
+        return BuildConnectionDto(line, displayName);
+    }
 
-        var domain = sip.Domain ?? sip.Server;
+    public async Task ReleaseLineAsync(int personnelId)
+    {
+        await _lineEs.ReleaseByPersonnelAsync(personnelId);
+        await _uow.SaveChangesAsync();
+    }
+
+    private SipConnectionInfoDto BuildConnectionDto(SipLine line, string displayName)
+    {
+        var gw = line.SipAccount;
+        var domain = gw.Domain ?? gw.Server;
 
         string wsUri;
-        if (!string.IsNullOrWhiteSpace(sip.WsUri))
+        if (!string.IsNullOrWhiteSpace(gw.WsUri))
         {
-            wsUri = sip.WsUri;
+            wsUri = gw.WsUri;
         }
         else
         {
-            var wsPort = sip.Transport?.ToUpper() == "WSS" ? sip.Port : 8089;
-            wsUri = $"wss://{sip.Server}:{wsPort}/ws";
+            var wsPort = gw.Transport?.ToUpper() == "WSS" ? gw.Port : 8089;
+            wsUri = $"wss://{gw.Server}:{wsPort}/ws";
         }
 
         return new SipConnectionInfoDto
         {
+            SipLineId = line.Id,
+            SipAccountId = gw.Id,
             WsUri = wsUri,
-            SipUri = $"sip:{sip.Username}@{domain}",
-            AuthUsername = sip.Username,
-            AuthPassword = _encryption.Decrypt(sip.Password),
+            SipUri = $"sip:{line.Username}@{domain}",
+            AuthUsername = line.Username,
+            AuthPassword = _encryption.Decrypt(line.Password),
             DisplayName = displayName,
-            Transport = "WSS",
-            UseSrtp = sip.UseSrtp,
-            StunServer = sip.StunServer,
-            TurnServer = sip.TurnServer,
-            TurnUsername = sip.TurnUsername,
-            TurnPassword = !string.IsNullOrWhiteSpace(sip.TurnPassword)
-                ? _encryption.Decrypt(sip.TurnPassword)
+            Transport = gw.Transport ?? "UDP",
+            UseSrtp = gw.UseSrtp,
+            StunServer = gw.StunServer,
+            TurnServer = gw.TurnServer,
+            TurnUsername = gw.TurnUsername,
+            TurnPassword = !string.IsNullOrWhiteSpace(gw.TurnPassword)
+                ? _encryption.Decrypt(gw.TurnPassword)
                 : null,
-            PreferredCodecs = sip.PreferredCodecs,
-            JitterBufferMinMs = sip.JitterBufferMinMs,
-            JitterBufferMaxMs = sip.JitterBufferMaxMs
+            PreferredCodecs = gw.PreferredCodecs,
+            JitterBufferMinMs = gw.JitterBufferMinMs,
+            JitterBufferMaxMs = gw.JitterBufferMaxMs
         };
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN: GATEWAY CRUD
+    // ═══════════════════════════════════════════════════════════════
+
     public async Task<PagedResult<SipAccountListDto>> GetAllAsync(int page, int pageSize, int? customerId)
     {
-        var query = _sipEs.GetAllQueryable().Include(s => s.Customer).Include(s => s.AssignedPersonnel).ThenInclude(p => p!.User).AsQueryable();
+        var query = _sipEs.GetAllQueryable()
+            .Include(s => s.Customer)
+            .Include(s => s.Lines)
+            .AsQueryable();
 
         if (customerId.HasValue && customerId.Value > 0)
-        {
             query = query.Where(s => s.CustomerId == customerId.Value);
-        }
 
         var totalCount = await query.CountAsync();
 
@@ -100,7 +128,6 @@ public class SipAccountFactory : ISipAccountFactory
                 Name = s.Name,
                 Server = s.Server,
                 Port = s.Port,
-                Username = s.Username,
                 Transport = s.Transport,
                 WsUri = s.WsUri,
                 UseSrtp = s.UseSrtp,
@@ -112,11 +139,11 @@ public class SipAccountFactory : ISipAccountFactory
                 CustomerName = s.Customer.Name,
                 OrganizationUnitId = s.OrganizationUnitId,
                 OrganizationUnitName = s.OrganizationUnit != null ? s.OrganizationUnit.Name : null,
-                AssignedPersonnelId = s.AssignedPersonnelId,
-                AssignedPersonnelName = s.AssignedPersonnel != null ? s.AssignedPersonnel.User.FullName : null,
                 PreferredCodecs = s.PreferredCodecs,
                 JitterBufferMinMs = s.JitterBufferMinMs,
-                JitterBufferMaxMs = s.JitterBufferMaxMs
+                JitterBufferMaxMs = s.JitterBufferMaxMs,
+                LineCount = s.Lines.Count,
+                ActiveLineCount = s.Lines.Count(l => l.IsActive)
             })
             .ToListAsync();
 
@@ -134,6 +161,19 @@ public class SipAccountFactory : ISipAccountFactory
         var s = await _sipEs.GetByIdWithCustomerAsync(id);
         if (s == null) return null;
 
+        var lines = await _lineEs.GetAllQueryable()
+            .Where(l => l.SipAccountId == id)
+            .Select(l => new
+            {
+                l.Id,
+                l.ChannelNumber,
+                l.Username,
+                l.Description,
+                l.IsActive,
+                l.AssignedPersonnelId
+            })
+            .ToListAsync();
+
         return new
         {
             s.Id,
@@ -141,8 +181,6 @@ public class SipAccountFactory : ISipAccountFactory
             s.Server,
             s.Port,
             s.Domain,
-            s.Username,
-            Password = "********",
             s.Transport,
             s.WsUri,
             s.UseSrtp,
@@ -157,7 +195,7 @@ public class SipAccountFactory : ISipAccountFactory
             s.IsActive,
             s.CustomerId,
             CustomerName = s.Customer.Name,
-            s.AssignedPersonnelId
+            Lines = lines
         };
     }
 
@@ -167,9 +205,7 @@ public class SipAccountFactory : ISipAccountFactory
         {
             var existingDefault = await _sipEs.GetExistingDefaultAsync(dto.CustomerId);
             if (existingDefault != null)
-            {
                 existingDefault.IsDefault = false;
-            }
         }
 
         var sip = new SipAccount
@@ -178,8 +214,6 @@ public class SipAccountFactory : ISipAccountFactory
             Server = dto.Server,
             Port = dto.Port,
             Domain = dto.Domain,
-            Username = dto.Username,
-            Password = _encryption.Encrypt(dto.Password),
             Transport = dto.Transport,
             WsUri = dto.WsUri,
             UseSrtp = dto.UseSrtp,
@@ -194,9 +228,25 @@ public class SipAccountFactory : ISipAccountFactory
             IsDefault = dto.IsDefault,
             IsActive = true,
             CustomerId = dto.CustomerId,
-            AssignedPersonnelId = dto.AssignedPersonnelId,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Gateway ile birlikte hatlar da eklenebilir
+        if (dto.Lines?.Count > 0)
+        {
+            foreach (var lineDto in dto.Lines)
+            {
+                sip.Lines.Add(new SipLine
+                {
+                    ChannelNumber = lineDto.ChannelNumber,
+                    Username = lineDto.Username,
+                    Password = _encryption.Encrypt(lineDto.Password),
+                    Description = lineDto.Description,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
 
         _sipEs.Add(sip);
         await _uow.SaveChangesAsync();
@@ -207,22 +257,19 @@ public class SipAccountFactory : ISipAccountFactory
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, SipAccountUpdateDto dto)
     {
         var sip = await _sipEs.GetByIdAsync(id);
-        if (sip == null) return (false, "SIP hesabi bulunamadi.");
+        if (sip == null) return (false, "Gateway bulunamadi.");
 
         if (dto.IsDefault && !sip.IsDefault)
         {
             var existingDefault = await _sipEs.GetExistingDefaultAsync(sip.CustomerId, excludeId: id);
             if (existingDefault != null)
-            {
                 existingDefault.IsDefault = false;
-            }
         }
 
         sip.Name = dto.Name;
         sip.Server = dto.Server;
         sip.Port = dto.Port;
         sip.Domain = dto.Domain;
-        sip.Username = dto.Username;
         sip.Transport = dto.Transport;
         sip.WsUri = dto.WsUri;
         sip.UseSrtp = dto.UseSrtp;
@@ -230,20 +277,12 @@ public class SipAccountFactory : ISipAccountFactory
         sip.TurnServer = dto.TurnServer;
         sip.TurnUsername = dto.TurnUsername;
         if (!string.IsNullOrWhiteSpace(dto.TurnPassword))
-        {
             sip.TurnPassword = _encryption.Encrypt(dto.TurnPassword);
-        }
         sip.PreferredCodecs = dto.PreferredCodecs;
         sip.JitterBufferMinMs = dto.JitterBufferMinMs;
         sip.JitterBufferMaxMs = dto.JitterBufferMaxMs;
         sip.IsDefault = dto.IsDefault;
         sip.IsActive = dto.IsActive;
-        sip.AssignedPersonnelId = dto.AssignedPersonnelId;
-
-        if (!string.IsNullOrWhiteSpace(dto.Password))
-        {
-            sip.Password = _encryption.Encrypt(dto.Password);
-        }
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -252,11 +291,94 @@ public class SipAccountFactory : ISipAccountFactory
     public async Task<(bool Success, string? Error)> DeleteAsync(int id)
     {
         var sip = await _sipEs.GetByIdAsync(id);
-        if (sip == null) return (false, "SIP hesabi bulunamadi.");
+        if (sip == null) return (false, "Gateway bulunamadi.");
 
         sip.IsActive = false;
         await _uow.SaveChangesAsync();
 
+        return (true, null);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ADMIN: LINE CRUD
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task<List<SipLineListDto>> GetLinesByGatewayAsync(int gatewayId)
+    {
+        return await _lineEs.GetAllQueryable()
+            .Include(l => l.SipAccount)
+            .Include(l => l.AssignedPersonnel).ThenInclude(p => p!.User)
+            .Where(l => l.SipAccountId == gatewayId)
+            .OrderBy(l => l.ChannelNumber)
+            .Select(l => new SipLineListDto
+            {
+                Id = l.Id,
+                ChannelNumber = l.ChannelNumber,
+                Username = l.Username,
+                Description = l.Description,
+                IsActive = l.IsActive,
+                SipAccountId = l.SipAccountId,
+                GatewayName = l.SipAccount.Name,
+                AssignedPersonnelId = l.AssignedPersonnelId,
+                AssignedPersonnelName = l.AssignedPersonnel != null ? l.AssignedPersonnel.User.FullName : null
+            })
+            .ToListAsync();
+    }
+
+    public async Task<(bool Success, int? Id, string? Error)> CreateLineAsync(int gatewayId, SipLineCreateDto dto)
+    {
+        var gw = await _sipEs.GetByIdAsync(gatewayId);
+        if (gw == null) return (false, null, "Gateway bulunamadi.");
+
+        var line = new SipLine
+        {
+            SipAccountId = gatewayId,
+            ChannelNumber = dto.ChannelNumber,
+            Username = dto.Username,
+            Password = _encryption.Encrypt(dto.Password),
+            Description = dto.Description,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _lineEs.Add(line);
+        await _uow.SaveChangesAsync();
+
+        return (true, line.Id, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateLineAsync(int lineId, SipLineUpdateDto dto)
+    {
+        var line = await _lineEs.GetByIdAsync(lineId);
+        if (line == null) return (false, "Hat bulunamadi.");
+
+        line.ChannelNumber = dto.ChannelNumber;
+        line.IsActive = dto.IsActive;
+
+        if (!string.IsNullOrWhiteSpace(dto.Username))
+            line.Username = dto.Username;
+
+        if (!string.IsNullOrWhiteSpace(dto.Password))
+            line.Password = _encryption.Encrypt(dto.Password);
+
+        if (dto.Description != null)
+            line.Description = dto.Description;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteLineAsync(int lineId)
+    {
+        var line = await _lineEs.GetByIdAsync(lineId);
+        if (line == null) return (false, "Hat bulunamadi.");
+
+        line.IsActive = false;
+        // Tahsis varsa serbest birak
+        line.AssignedPersonnelId = null;
+        line.AssignedAt = null;
+
+        await _uow.SaveChangesAsync();
         return (true, null);
     }
 }

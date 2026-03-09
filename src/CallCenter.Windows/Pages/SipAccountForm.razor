@@ -85,31 +85,6 @@
                         </div>
 
                         <hr class="my-3" />
-                        <h6 class="small text-muted mb-3"><i class="bi bi-key me-1"></i>Kimlik Bilgileri</h6>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label small">Kullanici Adi</label>
-                                <InputText class="form-control form-control-sm" @bind-Value="model.Username" />
-                                <ValidationMessage For="@(() => model.Username)" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small">
-                                    Sifre
-                                    @if (isEditMode)
-                                    {
-                                        <span class="text-muted">(bos birakirsaniz degismez)</span>
-                                    }
-                                </label>
-                                <InputText type="password" class="form-control form-control-sm" @bind-Value="model.Password" />
-                                @if (!isEditMode)
-                                {
-                                    <ValidationMessage For="@(() => model.Password)" />
-                                }
-                            </div>
-                        </div>
-
-                        <hr class="my-3" />
                         <h6 class="small text-muted mb-3"><i class="bi bi-shield-lock me-1"></i>Guvenlik</h6>
 
                         <div class="row g-3">
@@ -154,6 +129,141 @@
                                 <InputText type="password" class="form-control form-control-sm" @bind-Value="model.TurnPassword" />
                             </div>
                         </div>
+
+                        <hr class="my-3" />
+                        <h6 class="small text-muted mb-3"><i class="bi bi-telephone me-1"></i>Hatlar (SIP Lines)</h6>
+
+                        @if (!isEditMode)
+                        {
+                            @* Yeni gateway olusturulurken hat ekleme *@
+                            @if (createLines.Count == 0)
+                            {
+                                <div class="text-center text-muted py-3 border rounded">
+                                    <small>Henuz hat eklenmedi. Gateway olusturulduktan sonra da hat ekleyebilirsiniz.</small>
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var (line, idx) in createLines.Select((l, i) => (l, i)))
+                                {
+                                    <div class="border rounded p-2 mb-2">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <small class="fw-medium">Hat @(idx + 1)</small>
+                                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" @onclick="() => RemoveCreateLine(idx)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                        <div class="row g-2">
+                                            <div class="col-md-2">
+                                                <label class="form-label small">Kanal</label>
+                                                <input type="number" class="form-control form-control-sm" value="@line.ChannelNumber"
+                                                       @onchange="(e) => line.ChannelNumber = int.TryParse(e.Value?.ToString(), out var v) ? v : line.ChannelNumber" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small">Kullanici Adi</label>
+                                                <input type="text" class="form-control form-control-sm" value="@line.Username"
+                                                       @onchange="(e) => line.Username = e.Value?.ToString() ?? string.Empty" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small">Sifre</label>
+                                                <input type="password" class="form-control form-control-sm" value="@line.Password"
+                                                       @onchange="(e) => line.Password = e.Value?.ToString() ?? string.Empty" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small">Aciklama</label>
+                                                <input type="text" class="form-control form-control-sm" value="@line.Description"
+                                                       @onchange="(e) => line.Description = e.Value?.ToString()" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-1" @onclick="AddCreateLine">
+                                <i class="bi bi-plus-lg me-1"></i>Hat Ekle
+                            </button>
+                        }
+                        else
+                        {
+                            @* Duzenle modunda hatlar ayri API ile yonetilir *@
+                            @if (isLoadingLines)
+                            {
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    <small class="ms-2 text-muted">Hatlar yukleniyor...</small>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (editLines.Count == 0)
+                                {
+                                    <div class="text-center text-muted py-3 border rounded">
+                                        <small>Bu gateway'e ait hat bulunamadi.</small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @foreach (var line in editLines)
+                                    {
+                                        <div class="border rounded p-2 mb-2">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <small class="fw-medium">Kanal @line.ChannelNumber — @line.Username</small>
+                                                <div>
+                                                    <span class="badge @(line.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") me-1">
+                                                        @(line.IsActive ? "Aktif" : "Pasif")
+                                                    </span>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" @onclick="() => DeleteLineAsync(line.Id)" disabled="@isSavingLine">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(line.Description))
+                                            {
+                                                <small class="text-muted">@line.Description</small>
+                                            }
+                                            @if (!string.IsNullOrEmpty(line.AssignedPersonnelName))
+                                            {
+                                                <small class="text-muted d-block">Atanan: @line.AssignedPersonnelName</small>
+                                            }
+                                        </div>
+                                    }
+                                }
+
+                                @* Yeni hat ekleme formu *@
+                                @if (showAddLineForm)
+                                {
+                                    <div class="border border-primary rounded p-2 mb-2">
+                                        <div class="row g-2">
+                                            <div class="col-md-2">
+                                                <label class="form-label small">Kanal</label>
+                                                <input type="number" class="form-control form-control-sm" @bind="newLine.ChannelNumber" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small">Kullanici Adi</label>
+                                                <input type="text" class="form-control form-control-sm" @bind="newLine.Username" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small">Sifre</label>
+                                                <input type="password" class="form-control form-control-sm" @bind="newLine.Password" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small">Aciklama</label>
+                                                <input type="text" class="form-control form-control-sm" @bind="newLine.Description" />
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-primary btn-sm" @onclick="AddLineToGatewayAsync" disabled="@isSavingLine">
+                                                <i class="bi bi-check-lg me-1"></i>Kaydet
+                                            </button>
+                                            <button type="button" class="btn btn-secondary btn-sm ms-1" @onclick="() => showAddLineForm = false">Vazgec</button>
+                                        </div>
+                                    </div>
+                                }
+
+                                <button type="button" class="btn btn-outline-primary btn-sm mt-1" @onclick="ShowAddLineForm">
+                                    <i class="bi bi-plus-lg me-1"></i>Hat Ekle
+                                </button>
+                            }
+                        }
 
                         <hr class="my-3" />
                         <h6 class="small text-muted mb-3"><i class="bi bi-soundwave me-1"></i>Codec Tercihleri (Opsiyonel)</h6>
@@ -226,6 +336,14 @@
     private int? editingBackendId;
     private bool showDeleteConfirm;
 
+    // Hat yonetimi
+    private List<SipLineCreateDto> createLines = new();
+    private List<SipLineListDto> editLines = new();
+    private SipLineCreateDto newLine = new();
+    private bool isLoadingLines;
+    private bool isSavingLine;
+    private bool showAddLineForm;
+
     private SipAccountFormModel model = new();
     private List<string> selectedCodecs = new();
 
@@ -270,6 +388,7 @@
     {
         isEditMode = false;
         editingBackendId = null;
+        createLines = new();
         model = new()
         {
             Port = 5060,
@@ -282,17 +401,17 @@
         StateHasChanged();
     }
 
-    public void OpenForEdit(SipAccountListDto sip)
+    public async void OpenForEdit(SipAccountListDto sip)
     {
         isEditMode = true;
         editingBackendId = sip.Id;
+        editLines = new();
+        showAddLineForm = false;
         model = new()
         {
             Name = sip.Name,
             Server = sip.Server,
             Port = sip.Port,
-            Username = sip.Username,
-            Password = "", // bos kalir — degismez
             Transport = sip.Transport ?? "UDP",
             WsUri = sip.WsUri,
             UseSrtp = sip.UseSrtp,
@@ -308,12 +427,16 @@
         errorMessage = null;
         isVisible = true;
         StateHasChanged();
+
+        // Hatlari API'den yukle
+        await LoadLinesAsync(sip.Id);
     }
 
     private void Close()
     {
         isVisible = false;
         showDeleteConfirm = false;
+        showAddLineForm = false;
     }
 
     private void ShowDeleteConfirm()
@@ -363,12 +486,6 @@
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(model.Username))
-            {
-                errorMessage = "Kullanici adi zorunludur.";
-                return;
-            }
-
             if (isEditMode && editingBackendId.HasValue)
             {
                 // PUT ile API'ye gonder
@@ -378,8 +495,6 @@
                     Server = model.Server,
                     Port = model.Port,
                     Domain = model.Domain,
-                    Username = model.Username,
-                    Password = string.IsNullOrWhiteSpace(model.Password) ? null : model.Password,
                     Transport = model.Transport,
                     WsUri = model.WsUri,
                     UseSrtp = model.UseSrtp,
@@ -409,20 +524,12 @@
             else
             {
                 // POST ile API'ye gonder
-                if (string.IsNullOrWhiteSpace(model.Password))
-                {
-                    errorMessage = "Sifre zorunludur.";
-                    return;
-                }
-
                 var createDto = new SipAccountCreateDto
                 {
                     Name = model.Name,
                     Server = model.Server,
                     Port = model.Port,
                     Domain = model.Domain,
-                    Username = model.Username,
-                    Password = model.Password,
                     Transport = model.Transport,
                     WsUri = model.WsUri,
                     UseSrtp = model.UseSrtp,
@@ -434,7 +541,8 @@
                     JitterBufferMinMs = model.JitterBufferMinMs,
                     JitterBufferMaxMs = model.JitterBufferMaxMs,
                     IsDefault = model.IsDefault,
-                    CustomerId = PermService.CustomerId ?? 0
+                    CustomerId = PermService.CustomerId ?? 0,
+                    Lines = createLines.Count > 0 ? createLines : null
                 };
 
                 var response = await HttpClient.PostAsJsonAsync("api/sipaccounts", createDto);
@@ -474,6 +582,125 @@
         }
     }
 
+    // ═══════════════════════════════════════
+    // HAT YONETIMI
+    // ═══════════════════════════════════════
+
+    private void AddCreateLine()
+    {
+        createLines.Add(new SipLineCreateDto
+        {
+            ChannelNumber = createLines.Count + 1,
+            Username = string.Empty,
+            Password = string.Empty
+        });
+    }
+
+    private void RemoveCreateLine(int index)
+    {
+        if (index >= 0 && index < createLines.Count)
+            createLines.RemoveAt(index);
+    }
+
+    private async Task LoadLinesAsync(int sipAccountId)
+    {
+        isLoadingLines = true;
+        StateHasChanged();
+
+        try
+        {
+            var lines = await HttpClient.GetFromJsonAsync<List<SipLineListDto>>($"api/sipaccounts/{sipAccountId}/lines");
+            editLines = lines ?? new();
+        }
+        catch
+        {
+            editLines = new();
+        }
+        finally
+        {
+            isLoadingLines = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowAddLineForm()
+    {
+        newLine = new SipLineCreateDto
+        {
+            ChannelNumber = editLines.Count + 1,
+            Username = string.Empty,
+            Password = string.Empty
+        };
+        showAddLineForm = true;
+    }
+
+    private async Task AddLineToGatewayAsync()
+    {
+        if (!editingBackendId.HasValue) return;
+        if (string.IsNullOrWhiteSpace(newLine.Username))
+        {
+            errorMessage = "Hat kullanici adi zorunludur.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(newLine.Password))
+        {
+            errorMessage = "Hat sifresi zorunludur.";
+            return;
+        }
+
+        isSavingLine = true;
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync($"api/sipaccounts/{editingBackendId.Value}/lines", newLine);
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Hat eklendi.");
+                showAddLineForm = false;
+                errorMessage = null;
+                await LoadLinesAsync(editingBackendId.Value);
+            }
+            else
+            {
+                errorMessage = "Hat ekleme basarisiz.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Hat ekleme hatasi: {ex.Message}";
+        }
+        finally
+        {
+            isSavingLine = false;
+        }
+    }
+
+    private async Task DeleteLineAsync(int lineId)
+    {
+        isSavingLine = true;
+        try
+        {
+            var response = await HttpClient.DeleteAsync($"api/sipaccounts/lines/{lineId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Hat silindi.");
+                if (editingBackendId.HasValue)
+                    await LoadLinesAsync(editingBackendId.Value);
+            }
+            else
+            {
+                Toast.ShowError("Hat silme basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hat silme hatasi: {ex.Message}");
+        }
+        finally
+        {
+            isSavingLine = false;
+        }
+    }
+
     private async Task SaveToLocalBuffer(string operation)
     {
         var localAccount = new LocalSipAccount
@@ -483,8 +710,8 @@
             Server = model.Server,
             Port = model.Port,
             Domain = model.Domain,
-            Username = model.Username,
-            Password = model.Password ?? "",
+            Username = string.Empty,
+            Password = string.Empty,
             Transport = model.Transport,
             WsUri = model.WsUri,
             UseSrtp = model.UseSrtp,
@@ -512,8 +739,6 @@
         public string Server { get; set; } = string.Empty;
         public int Port { get; set; } = 5060;
         public string? Domain { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string? Password { get; set; }
         public string Transport { get; set; } = "UDP";
         public string? WsUri { get; set; }
         public bool UseSrtp { get; set; }

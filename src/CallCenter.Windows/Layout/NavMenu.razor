@@ -20,66 +20,25 @@
     <nav>
         @* ─── ANA SAYFA ─── *@
         <div class="nav-item">
-            <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
-                <i class="bi bi-grid-1x2-fill"></i>
-                <span>Dashboard</span>
+            <NavLink class="nav-link" href="dialer" Match="NavLinkMatch.All">
+                <i class="bi bi-telephone-fill"></i>
+                <span>Cagri Takip</span>
             </NavLink>
         </div>
 
-        @* ─── CAGRI YONETIMI ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
-                <i class="bi bi-telephone-fill"></i>
-                <span>Arama</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
-                @if (!IsFirmaAdmin)
-                {
-                    <NavLink class="nav-link" href="dialer">
-                        <i class="bi bi-telephone-fill"></i>
-                        <span>Cagri Takip</span>
-                    </NavLink>
-                }
-                @if (IsAdmin || IsFirmaAdmin || IsEkipLideri)
-                {
-                    <NavLink class="nav-link" href="calls/active">
-                        <i class="bi bi-telephone-inbound-fill"></i>
-                        <span>Aktif Aramalar</span>
-                    </NavLink>
-                }
-                <NavLink class="nav-link" href="calls/history">
-                    <i class="bi bi-clock-history"></i>
-                    <span>Arama Gecmisi</span>
-                </NavLink>
-                <NavLink class="nav-link" href="contacts">
-                    <i class="bi bi-person-vcard-fill"></i>
-                    <span>Rehber</span>
-                </NavLink>
-            </div>
+        <div class="nav-item">
+            <NavLink class="nav-link" href="calls/history">
+                <i class="bi bi-clock-history"></i>
+                <span>Arama Gecmisi</span>
+            </NavLink>
         </div>
 
-        @* ─── AYARLAR (Sadece Platform Admin + FirmaAdmin) ─── *@
-        @if (IsAdmin || IsFirmaAdmin)
-        {
-            <div class="nav-group">
-                <button class="nav-group-toggle" @onclick="() => ToggleGroup(4)">
-                    <i class="bi bi-sliders"></i>
-                    <span>Ayarlar</span>
-                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(4) ? "open" : "")"></i>
-                </button>
-                <div class="nav-group-items @(IsGroupOpen(4) ? "show" : "")">
-                    <NavLink class="nav-link" href="sip-accounts">
-                        <i class="bi bi-router-fill"></i>
-                        <span>SIP Hesaplari</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="sip-settings">
-                        <i class="bi bi-telephone-fill"></i>
-                        <span>SIP Ayarlari</span>
-                    </NavLink>
-                </div>
-            </div>
-        }
+        <div class="nav-item">
+            <NavLink class="nav-link" href="contacts">
+                <i class="bi bi-person-vcard-fill"></i>
+                <span>Rehber</span>
+            </NavLink>
+        </div>
     </nav>
 </div>
 
@@ -99,45 +58,18 @@
 </div>
 
 @code {
-    private HashSet<int> openGroups = new();
     private string fullName = "...";
     private string roleName = "";
-    private string userRole = "";
-
-    private bool IsAdmin => string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase);
-    private bool IsFirmaAdmin => PermService.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
-    private bool IsEkipLideri => PermService.CustomerRoleId == CustomerRoles.Ids.EkipLideri;
-    private bool IsOperator => PermService.CustomerRoleId == CustomerRoles.Ids.Operator;
-
-    // Rol adlarini Turkce goster
-    private static readonly Dictionary<string, string> RoleNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        { "Admin", "Yonetici" },
-        { "Supervisor", "Supervisor" },
-        { "Agent", "Temsilci" },
-        { "CustomerUser", "Musteri" }
-    };
-
-    // Grup index → URL prefix eslestirmesi
-    private static readonly Dictionary<int, string[]> GroupRoutes = new()
-    {
-        { 0, new[] { "dialer", "calls/", "contacts" } },
-        { 4, new[] { "sip-accounts", "sip-settings" } }
-    };
 
     protected override void OnInitialized()
     {
-        NavigationManager.LocationChanged += OnLocationChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
-        OpenGroupByCurrentUrl();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-        {
             await RefreshUserInfo();
-        }
     }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
@@ -147,52 +79,17 @@
 
     private async Task RefreshUserInfo()
     {
-        var name = await AuthService.GetFullNameAsync();
-        var role = await AuthService.GetRoleAsync();
+        fullName = await AuthService.GetFullNameAsync() ?? "Kullanici";
 
-        fullName = name ?? "Kullanici";
-        userRole = role ?? "";
-        roleName = role != null && RoleNames.TryGetValue(role, out var tr) ? tr : role ?? "";
-
-        // Portal yetkileri yukle
         await PermService.LoadAsync();
+        var role = CustomerRoles.GetById(PermService.CustomerRoleId);
+        roleName = role?.Description ?? "Operator";
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-    {
-        OpenGroupByCurrentUrl();
-        InvokeAsync(StateHasChanged);
-    }
-
-    private void OpenGroupByCurrentUrl()
-    {
-        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
-
-        foreach (var (groupIndex, prefixes) in GroupRoutes)
-        {
-            if (prefixes.Any(p => relativePath.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
-            {
-                openGroups.Add(groupIndex);
-                return;
-            }
-        }
-    }
-
-    private void ToggleGroup(int index)
-    {
-        if (openGroups.Contains(index))
-            openGroups.Remove(index);
-        else
-            openGroups.Add(index);
-    }
-
-    private bool IsGroupOpen(int index) => openGroups.Contains(index);
-
     public void Dispose()
     {
-        NavigationManager.LocationChanged -= OnLocationChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 }

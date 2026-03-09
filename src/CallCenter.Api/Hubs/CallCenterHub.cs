@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Claims;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Services;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
@@ -17,11 +18,13 @@ public class CallCenterHub : Hub
 
     private readonly AppDbContext _db;
     private readonly CallDistributionService _distribution;
+    private readonly ISipAccountFactory _sipFactory;
 
-    public CallCenterHub(AppDbContext db, CallDistributionService distribution)
+    public CallCenterHub(AppDbContext db, CallDistributionService distribution, ISipAccountFactory sipFactory)
     {
         _db = db;
         _distribution = distribution;
+        _sipFactory = sipFactory;
     }
 
     public override async Task OnConnectedAsync()
@@ -92,6 +95,14 @@ public class CallCenterHub : Hub
 
                 // Dashboard KPI guncelle (musait temsilci sayisi degisti)
                 await BroadcastKpiUpdateAsync(groupName);
+
+                // Dinamik hat tahsisini serbest birak
+                var personnelIdClaim = Context.User?.FindFirst("CustomerPersonnelId")?.Value;
+                if (!string.IsNullOrEmpty(personnelIdClaim) && int.TryParse(personnelIdClaim, out var personnelId))
+                {
+                    try { await _sipFactory.ReleaseLineAsync(personnelId); }
+                    catch { /* best effort */ }
+                }
 
                 // Gateway durumunu "kayit disi" olarak guncelle
                 if (_gatewayStates.TryGetValue(user.Id, out var gwState))

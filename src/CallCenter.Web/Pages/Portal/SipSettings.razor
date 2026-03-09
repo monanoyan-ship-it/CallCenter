@@ -44,8 +44,8 @@
                             <th>Hesap Adi</th>
                             <th>Sunucu</th>
                             <th>Port</th>
-                            <th>Kullanici Adi</th>
                             <th>Transport</th>
+                            <th class="text-center">Hatlar</th>
                             <th class="text-center">Varsayilan</th>
                             <th>Durum</th>
                             <th style="width: 60px;"></th>
@@ -58,8 +58,12 @@
                                 <td class="fw-medium">@item.Name</td>
                                 <td class="small text-muted">@item.Server</td>
                                 <td class="small">@item.Port</td>
-                                <td class="small">@item.Username</td>
                                 <td><span class="badge bg-light text-dark border">@(item.Transport ?? "UDP")</span></td>
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info">
+                                        @item.ActiveLineCount / @item.LineCount
+                                    </span>
+                                </td>
                                 <td class="text-center">
                                     @if (item.IsDefault)
                                     {
@@ -83,6 +87,52 @@
                                     </button>
                                 </td>
                             </tr>
+
+                            @* ─── Inline Lines display ─── *@
+                            @if (item.Lines != null && item.Lines.Count > 0)
+                            {
+                                <tr>
+                                    <td colspan="8" class="p-0">
+                                        <div class="bg-light border-top px-4 py-2">
+                                            <small class="fw-medium text-muted d-block mb-1">
+                                                <i class="bi bi-telephone me-1"></i>Hatlar
+                                            </small>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-borderless mb-0">
+                                                    <thead>
+                                                        <tr class="small text-muted">
+                                                            <th style="width: 80px;">Kanal</th>
+                                                            <th>Kullanici Adi</th>
+                                                            <th>Aciklama</th>
+                                                            <th class="text-center" style="width: 80px;">Durum</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var line in item.Lines)
+                                                        {
+                                                            <tr class="small">
+                                                                <td>@line.ChannelNumber</td>
+                                                                <td>@line.Username</td>
+                                                                <td class="text-muted">@(line.Description ?? "-")</td>
+                                                                <td class="text-center">
+                                                                    @if (line.IsActive)
+                                                                    {
+                                                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                                                    }
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
@@ -96,7 +146,7 @@
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -104,11 +154,13 @@
                     </h5>
                     <button type="button" class="btn-close" @onclick="CloseCreate"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                     @if (!string.IsNullOrEmpty(createError))
                     {
                         <div class="alert alert-danger py-2 small">@createError</div>
                     }
+
+                    <h6 class="small text-muted mb-3"><i class="bi bi-hdd-network me-1"></i>Gateway Bilgileri</h6>
 
                     <div class="mb-3">
                         <label class="form-label small">Hesap Adi <span class="text-danger">*</span></label>
@@ -127,16 +179,6 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small">Kullanici Adi <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" @bind="createModel.Username" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small">Sifre <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control form-control-sm" @bind="createModel.Password" />
-                    </div>
-
-                    <div class="mb-3">
                         <label class="form-label small">Transport</label>
                         <select class="form-select form-select-sm" @bind="createModel.Transport">
                             <option value="UDP">UDP</option>
@@ -146,10 +188,64 @@
                         </select>
                     </div>
 
-                    <div class="form-check">
+                    <div class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" @bind="createModel.IsDefault" />
                         <label class="form-check-label small">Varsayilan hesap olarak ayarla</label>
                     </div>
+
+                    @* ─── Lines section ─── *@
+                    <hr class="my-3" />
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="small text-muted mb-0"><i class="bi bi-telephone me-1"></i>Hatlar</h6>
+                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddCreateLine">
+                            <i class="bi bi-plus-lg me-1"></i>Hat Ekle
+                        </button>
+                    </div>
+
+                    @if (createLines.Count == 0)
+                    {
+                        <div class="text-center text-muted py-3 border rounded">
+                            <small>Henuz hat eklenmedi.</small>
+                        </div>
+                    }
+                    else
+                    {
+                        @for (int i = 0; i < createLines.Count; i++)
+                        {
+                            var idx = i;
+                            <div class="border rounded p-2 mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="fw-medium text-muted">Hat @(idx + 1)</small>
+                                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1"
+                                            @onclick="() => RemoveCreateLine(idx)" title="Kaldir">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Kanal No</label>
+                                        <input type="number" class="form-control form-control-sm"
+                                               @bind="createLines[idx].ChannelNumber" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Kullanici Adi</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                               @bind="createLines[idx].Username" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Sifre</label>
+                                        <input type="password" class="form-control form-control-sm"
+                                               @bind="createLines[idx].Password" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Aciklama</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                               @bind="createLines[idx].Description" placeholder="(opsiyonel)" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseCreate">Iptal</button>
@@ -200,16 +296,6 @@
                         <input type="text" class="form-control form-control-sm" value="@editTarget?.Port" readonly />
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small">Kullanici Adi</label>
-                        <input type="text" class="form-control form-control-sm" @bind="editModel.Username" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small">Sifre <span class="text-muted">(bos birakirsaniz degismez)</span></label>
-                        <input type="password" class="form-control form-control-sm" @bind="editModel.Password" />
-                    </div>
-
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" @bind="editIsDefault" />
                         <label class="form-check-label small">Varsayilan hesap olarak ayarla</label>
@@ -239,6 +325,7 @@
     private bool isCreating;
     private string? createError;
     private PortalSipCreateDto createModel = new();
+    private List<PortalSipLineCreateDto> createLines = new();
 
     // Edit
     private bool showEdit;
@@ -280,9 +367,11 @@
         finally { isLoading = false; }
     }
 
+    // ─── Create ───
     private void OpenCreate()
     {
         createModel = new PortalSipCreateDto();
+        createLines = new();
         createError = null;
         showCreate = true;
     }
@@ -292,6 +381,18 @@
         showCreate = false;
     }
 
+    private void AddCreateLine()
+    {
+        var nextChannel = createLines.Count > 0 ? createLines.Max(l => l.ChannelNumber) + 1 : 1;
+        createLines.Add(new PortalSipLineCreateDto { ChannelNumber = nextChannel });
+    }
+
+    private void RemoveCreateLine(int index)
+    {
+        if (index >= 0 && index < createLines.Count)
+            createLines.RemoveAt(index);
+    }
+
     private async Task SaveCreate()
     {
         isCreating = true;
@@ -299,6 +400,7 @@
 
         try
         {
+            createModel.Lines = createLines.Count > 0 ? createLines : null;
             var response = await Http.PostAsJsonAsync(BuildUrl("api/portal/sip"), createModel);
             if (response.IsSuccessStatusCode)
             {
@@ -316,10 +418,11 @@
         finally { isCreating = false; }
     }
 
+    // ─── Edit ───
     private void OpenEdit(PortalSipAccountDto item)
     {
         editTarget = item;
-        editModel = new() { Name = item.Name, Username = item.Username };
+        editModel = new() { Name = item.Name };
         editIsDefault = item.IsDefault;
         errorMessage = null;
         showEdit = true;

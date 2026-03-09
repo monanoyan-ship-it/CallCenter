@@ -329,6 +329,7 @@ public class PortalService : IPortalService
     public async Task<List<PortalSipAccountDto>> GetSipAccountsAsync(int customerId)
     {
         return await _db.SipAccounts
+            .Include(s => s.Lines)
             .Where(s => s.CustomerId == customerId)
             .Select(s => new PortalSipAccountDto
             {
@@ -336,10 +337,19 @@ public class PortalService : IPortalService
                 Name = s.Name,
                 Server = s.Server,
                 Port = s.Port,
-                Username = s.Username,
                 Transport = s.Transport,
                 IsDefault = s.IsDefault,
-                IsActive = s.IsActive
+                IsActive = s.IsActive,
+                LineCount = s.Lines.Count,
+                ActiveLineCount = s.Lines.Count(l => l.IsActive),
+                Lines = s.Lines.Select(l => new PortalSipLineDto
+                {
+                    Id = l.Id,
+                    ChannelNumber = l.ChannelNumber,
+                    Username = l.Username,
+                    Description = l.Description,
+                    IsActive = l.IsActive
+                }).OrderBy(l => l.ChannelNumber).ToList()
             })
             .OrderBy(s => s.Name)
             .ToListAsync();
@@ -350,18 +360,13 @@ public class PortalService : IPortalService
         var account = await _db.SipAccounts
             .FirstOrDefaultAsync(s => s.Id == id && s.CustomerId == customerId);
         if (account == null)
-            return (false, "SIP hesabi bulunamadi.");
+            return (false, "Gateway bulunamadi.");
 
         if (!string.IsNullOrWhiteSpace(dto.Name))
             account.Name = dto.Name;
-        if (!string.IsNullOrWhiteSpace(dto.Username))
-            account.Username = dto.Username;
-        if (!string.IsNullOrWhiteSpace(dto.Password))
-            account.Password = _encryption.Encrypt(dto.Password);
 
         if (dto.IsDefault == true)
         {
-            // Diger hesaplarin IsDefault'unu kapat
             var others = await _db.SipAccounts
                 .Where(s => s.CustomerId == customerId && s.Id != id && s.IsDefault)
                 .ToListAsync();

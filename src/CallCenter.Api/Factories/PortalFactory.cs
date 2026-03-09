@@ -425,6 +425,7 @@ public class PortalFactory : IPortalFactory
     public async Task<List<PortalSipAccountDto>> GetSipAccountsAsync(int customerId)
     {
         return await _sipEs.GetAllQueryable()
+            .Include(s => s.Lines)
             .Where(s => s.CustomerId == customerId)
             .Select(s => new PortalSipAccountDto
             {
@@ -432,10 +433,19 @@ public class PortalFactory : IPortalFactory
                 Name = s.Name,
                 Server = s.Server,
                 Port = s.Port,
-                Username = s.Username,
                 Transport = s.Transport,
                 IsDefault = s.IsDefault,
-                IsActive = s.IsActive
+                IsActive = s.IsActive,
+                LineCount = s.Lines.Count,
+                ActiveLineCount = s.Lines.Count(l => l.IsActive),
+                Lines = s.Lines.Select(l => new PortalSipLineDto
+                {
+                    Id = l.Id,
+                    ChannelNumber = l.ChannelNumber,
+                    Username = l.Username,
+                    Description = l.Description,
+                    IsActive = l.IsActive
+                }).OrderBy(l => l.ChannelNumber).ToList()
             })
             .OrderBy(s => s.Name)
             .ToListAsync();
@@ -446,14 +456,10 @@ public class PortalFactory : IPortalFactory
         var account = await _sipEs.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == id && s.CustomerId == customerId);
         if (account == null)
-            return (false, "SIP hesabi bulunamadi.");
+            return (false, "Gateway bulunamadi.");
 
         if (!string.IsNullOrWhiteSpace(dto.Name))
             account.Name = dto.Name;
-        if (!string.IsNullOrWhiteSpace(dto.Username))
-            account.Username = dto.Username;
-        if (!string.IsNullOrWhiteSpace(dto.Password))
-            account.Password = _encryption.Encrypt(dto.Password);
 
         if (dto.IsDefault == true)
         {
@@ -477,7 +483,7 @@ public class PortalFactory : IPortalFactory
         var exists = await _sipEs.GetAllQueryable()
             .AnyAsync(s => s.CustomerId == customerId && s.Name == dto.Name);
         if (exists)
-            return (false, null, "Bu isimde bir SIP hesabi zaten mevcut.");
+            return (false, null, "Bu isimde bir gateway zaten mevcut.");
 
         var account = new SipAccount
         {
@@ -485,12 +491,27 @@ public class PortalFactory : IPortalFactory
             Name = dto.Name,
             Server = dto.Server,
             Port = dto.Port,
-            Username = dto.Username,
-            Password = _encryption.Encrypt(dto.Password),
             Transport = dto.Transport,
             IsDefault = dto.IsDefault,
             IsActive = true
         };
+
+        // Gateway ile birlikte hatlar da eklenebilir
+        if (dto.Lines?.Count > 0)
+        {
+            foreach (var lineDto in dto.Lines)
+            {
+                account.Lines.Add(new SipLine
+                {
+                    ChannelNumber = lineDto.ChannelNumber,
+                    Username = lineDto.Username,
+                    Password = _encryption.Encrypt(lineDto.Password),
+                    Description = lineDto.Description,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
 
         if (dto.IsDefault)
         {
@@ -504,5 +525,18 @@ public class PortalFactory : IPortalFactory
         await _uow.SaveChangesAsync();
 
         return (true, account.Id, null);
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteSipAccountAsync(int customerId, int id)
+    {
+        var account = await _sipEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.Id == id && s.CustomerId == customerId);
+        if (account == null)
+            return (false, "Gateway bulunamadi.");
+
+        account.IsActive = false;
+        await _uow.SaveChangesAsync();
+
+        return (true, null);
     }
 }

@@ -42,32 +42,37 @@ public class SipAccountService : ISipAccountService
             wsUri = $"wss://{sip.Server}:{wsPort}/ws";
         }
 
+        // Ilk aktif hatti bul
+        var line = await _db.SipLines
+            .FirstOrDefaultAsync(l => l.SipAccountId == sip.Id && l.IsActive);
+        if (line == null) return null;
+
         return new SipConnectionInfoDto
         {
             WsUri = wsUri,
-            SipUri = $"sip:{sip.Username}@{domain}",
-            AuthUsername = sip.Username,
-            AuthPassword = _encryption.Decrypt(sip.Password),
+            SipUri = $"sip:{line.Username}@{domain}",
+            AuthUsername = line.Username,
+            AuthPassword = _encryption.Decrypt(line.Password),
             DisplayName = displayName,
             Transport = "WSS",
             UseSrtp = sip.UseSrtp,
-            // TURN/ICE NAT traversal
             StunServer = sip.StunServer,
             TurnServer = sip.TurnServer,
             TurnUsername = sip.TurnUsername,
             TurnPassword = !string.IsNullOrWhiteSpace(sip.TurnPassword)
                 ? _encryption.Decrypt(sip.TurnPassword)
                 : null,
-            // Codec tercihleri
             PreferredCodecs = sip.PreferredCodecs,
             JitterBufferMinMs = sip.JitterBufferMinMs,
-            JitterBufferMaxMs = sip.JitterBufferMaxMs
+            JitterBufferMaxMs = sip.JitterBufferMaxMs,
+            SipLineId = line.Id,
+            SipAccountId = sip.Id
         };
     }
 
     public async Task<PagedResult<SipAccountListDto>> GetAllAsync(int page, int pageSize, int? customerId)
     {
-        var query = _db.SipAccounts.Include(s => s.Customer).AsQueryable();
+        var query = _db.SipAccounts.Include(s => s.Customer).Include(s => s.Lines).AsQueryable();
 
         if (customerId.HasValue && customerId.Value > 0)
         {
@@ -86,7 +91,6 @@ public class SipAccountService : ISipAccountService
                 Name = s.Name,
                 Server = s.Server,
                 Port = s.Port,
-                Username = s.Username,
                 Transport = s.Transport,
                 WsUri = s.WsUri,
                 UseSrtp = s.UseSrtp,
@@ -100,7 +104,9 @@ public class SipAccountService : ISipAccountService
                 OrganizationUnitName = s.OrganizationUnit != null ? s.OrganizationUnit.Name : null,
                 PreferredCodecs = s.PreferredCodecs,
                 JitterBufferMinMs = s.JitterBufferMinMs,
-                JitterBufferMaxMs = s.JitterBufferMaxMs
+                JitterBufferMaxMs = s.JitterBufferMaxMs,
+                LineCount = s.Lines.Count,
+                ActiveLineCount = s.Lines.Count(l => l.IsActive)
             })
             .ToListAsync();
 
@@ -125,8 +131,6 @@ public class SipAccountService : ISipAccountService
             s.Server,
             s.Port,
             s.Domain,
-            s.Username,
-            Password = "********",
             s.Transport,
             s.WsUri,
             s.UseSrtp,
@@ -162,8 +166,6 @@ public class SipAccountService : ISipAccountService
             Server = dto.Server,
             Port = dto.Port,
             Domain = dto.Domain,
-            Username = dto.Username,
-            Password = _encryption.Encrypt(dto.Password),
             Transport = dto.Transport,
             WsUri = dto.WsUri,
             UseSrtp = dto.UseSrtp,
@@ -206,7 +208,6 @@ public class SipAccountService : ISipAccountService
         sip.Server = dto.Server;
         sip.Port = dto.Port;
         sip.Domain = dto.Domain;
-        sip.Username = dto.Username;
         sip.Transport = dto.Transport;
         sip.WsUri = dto.WsUri;
         sip.UseSrtp = dto.UseSrtp;
@@ -222,11 +223,6 @@ public class SipAccountService : ISipAccountService
         sip.JitterBufferMaxMs = dto.JitterBufferMaxMs;
         sip.IsDefault = dto.IsDefault;
         sip.IsActive = dto.IsActive;
-
-        if (!string.IsNullOrWhiteSpace(dto.Password))
-        {
-            sip.Password = _encryption.Encrypt(dto.Password);
-        }
 
         await _db.SaveChangesAsync();
         return (true, null);

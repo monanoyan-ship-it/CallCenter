@@ -111,11 +111,21 @@ public class PortalSipAccountDto
     public string Name { get; set; } = string.Empty;
     public string Server { get; set; } = string.Empty;
     public int Port { get; set; }
-    public string Username { get; set; } = string.Empty;
     public string? Transport { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; }
-    // Password portal'da GOSTERILMEZ
+    public int LineCount { get; set; }
+    public int ActiveLineCount { get; set; }
+    public List<PortalSipLineDto> Lines { get; set; } = new();
+}
+
+public class PortalSipLineDto
+{
+    public int Id { get; set; }
+    public int ChannelNumber { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class PortalSipCreateDto
@@ -123,10 +133,17 @@ public class PortalSipCreateDto
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
     [Required, MaxLength(200)] public string Server { get; set; } = string.Empty;
     public int Port { get; set; } = 5060;
-    [Required, MaxLength(100)] public string Username { get; set; } = string.Empty;
-    [Required] public string Password { get; set; } = string.Empty;
     [MaxLength(10)] public string? Transport { get; set; } = "UDP";
     public bool IsDefault { get; set; }
+    public List<PortalSipLineCreateDto>? Lines { get; set; }
+}
+
+public class PortalSipLineCreateDto
+{
+    public int ChannelNumber { get; set; } = 1;
+    [Required, MaxLength(100)] public string Username { get; set; } = string.Empty;
+    [Required] public string Password { get; set; } = string.Empty;
+    [MaxLength(200)] public string? Description { get; set; }
 }
 
 public class PortalSipUpdateDto
@@ -134,10 +151,20 @@ public class PortalSipUpdateDto
     [MaxLength(100)]
     public string? Name { get; set; }
 
+    public bool? IsDefault { get; set; }
+}
+
+public class PortalSipLineUpdateDto
+{
+    public int ChannelNumber { get; set; }
+
     [MaxLength(100)]
     public string? Username { get; set; }
 
     public string? Password { get; set; }
 
-    public bool? IsDefault { get; set; }
+    [MaxLength(200)]
+    public string? Description { get; set; }
+
+    public bool IsActive { get; set; } = true;
 }

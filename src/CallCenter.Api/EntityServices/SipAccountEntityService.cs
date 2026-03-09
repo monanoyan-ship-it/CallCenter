@@ -20,6 +20,9 @@ public class SipAccountEntityService : ISipAccountEntityService
     public Task<SipAccount?> GetByIdWithCustomerAsync(int id)
         => _db.SipAccounts.Include(s => s.Customer).FirstOrDefaultAsync(s => s.Id == id);
 
+    public Task<SipAccount?> GetByIdWithLinesAsync(int id)
+        => _db.SipAccounts.Include(s => s.Lines).FirstOrDefaultAsync(s => s.Id == id);
+
     public Task<SipAccount?> GetDefaultByCustomerAsync(int customerId)
         => _db.SipAccounts.FirstOrDefaultAsync(s => s.CustomerId == customerId && s.IsDefault && s.IsActive);
 
@@ -33,12 +36,6 @@ public class SipAccountEntityService : ISipAccountEntityService
             query = query.Where(s => s.Id != excludeId.Value);
         return query.FirstOrDefaultAsync();
     }
-
-    public Task<SipAccount?> GetByPersonnelAsync(int personnelId)
-        => _db.SipAccounts.FirstOrDefaultAsync(s => s.AssignedPersonnelId == personnelId && s.IsActive);
-
-    public Task<SipAccount?> GetFirstUnassignedAsync(int customerId)
-        => _db.SipAccounts.FirstOrDefaultAsync(s => s.CustomerId == customerId && s.IsActive && s.AssignedPersonnelId == null);
 
     public void Add(SipAccount entity) => _db.SipAccounts.Add(entity);
     public void Update(SipAccount entity) => _db.SipAccounts.Update(entity);

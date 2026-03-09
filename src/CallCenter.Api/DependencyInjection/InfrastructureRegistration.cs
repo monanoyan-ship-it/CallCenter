@@ -25,6 +25,7 @@ public static class InfrastructureRegistration
 
         // Background Services
         services.AddHostedService<AuditPartitionMaintenanceService>();
+        services.AddHostedService<SipLineCleanupService>();
 
         return services;
     }
