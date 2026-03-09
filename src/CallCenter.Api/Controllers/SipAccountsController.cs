@@ -23,7 +23,7 @@ public class SipAccountsController : AuditableControllerBase
     // ═══════════════════════════════════════════════════════════════
 
     [HttpGet("my/connection")]
-    public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection()
+    public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection([FromQuery] int? gatewayId = null)
     {
         var customerIdClaim = User.FindFirstValue("CustomerId");
         if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
@@ -37,12 +37,22 @@ public class SipAccountsController : AuditableControllerBase
             personnelId = pid;
 
         var displayName = User.FindFirstValue(ClaimTypes.GivenName) ?? "User";
-        var result = await _sipFactory.GetMyConnectionAsync(customerId, personnelId, displayName);
+        var result = await _sipFactory.GetMyConnectionAsync(customerId, personnelId, displayName, gatewayId);
 
         if (result == null)
             return NotFound(new { message = "Firmaniza ait bos hat bulunamadi. Tum hatlar dolu veya gateway tanimli degil." });
 
         return Ok(result);
+    }
+
+    [HttpGet("my/gateways")]
+    public async Task<ActionResult<List<SipGatewaySummaryDto>>> GetMyGateways()
+    {
+        var customerIdClaim = User.FindFirstValue("CustomerId");
+        if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            return BadRequest(new { message = "Musteri bilgisi bulunamadi." });
+
+        return Ok(await _sipFactory.GetMyGatewaysAsync(customerId));
     }
 
     [HttpPost("my/release")]

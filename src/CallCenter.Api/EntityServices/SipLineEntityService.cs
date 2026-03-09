@@ -50,6 +50,19 @@ public class SipLineEntityService : ISipLineEntityService
         return line;
     }
 
+    /// <summary>Belirli bir gateway'den bos hat tahsisi</summary>
+    public async Task<SipLine?> AcquireUnassignedAsync(int customerId, int gatewayId)
+    {
+        return await _db.SipLines
+            .Include(l => l.SipAccount)
+            .FirstOrDefaultAsync(l =>
+                l.SipAccount.CustomerId == customerId &&
+                l.SipAccountId == gatewayId &&
+                l.SipAccount.IsActive &&
+                l.IsActive &&
+                l.AssignedPersonnelId == null);
+    }
+
     public async Task ReleaseByPersonnelAsync(int personnelId)
     {
         var line = await _db.SipLines

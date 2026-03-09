@@ -30,10 +30,29 @@
                 <div class="dialer-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5><i class="bi bi-telephone-fill me-2"></i>Cagri Takip</h5>
-                        <span class="badge @(SipService.IsRegistered ? "bg-success" : "bg-secondary") sip-badge">
-                            <i class="bi @(SipService.IsRegistered ? "bi-wifi" : "bi-wifi-off") me-1"></i>
-                            @(SipService.IsRegistered ? "SIP Kayitli" : sipStatusText)
-                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            @if (_gateways.Count > 1)
+                            {
+                                <select class="form-select form-select-sm" style="width:auto;max-width:160px;"
+                                        value="@_selectedGatewayId" @onchange="OnGatewayChanged"
+                                        disabled="@(SipService.IsInCall || _isSwitchingGateway)">
+                                    @foreach (var gw in _gateways)
+                                    {
+                                        <option value="@gw.Id">@gw.Name (@gw.Transport)</option>
+                                    }
+                                </select>
+                            }
+                            else if (_activeSipInfo != null)
+                            {
+                                <span class="badge bg-info text-dark" title="Aktif gateway">
+                                    <i class="bi bi-hdd-network me-1"></i>@_activeSipInfo.GatewayName
+                                </span>
+                            }
+                            <span class="badge @(SipService.IsRegistered ? "bg-success" : "bg-secondary") sip-badge">
+                                <i class="bi @(SipService.IsRegistered ? "bi-wifi" : "bi-wifi-off") me-1"></i>
+                                @(SipService.IsRegistered ? "SIP Kayitli" : sipStatusText)
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -336,6 +355,9 @@
     private List<LineInfo> lines = new();
     private bool showContactPicker;
     private SipConnectionInfoDto? _activeSipInfo;
+    private List<SipGatewaySummaryDto> _gateways = new();
+    private int _selectedGatewayId;
+    private bool _isSwitchingGateway;
     private string contactSearch = "";
     private List<ContactDto>? contactResults;
     private string callNotes = "";
@@ -423,19 +445,32 @@
             }
             catch { /* bozuk dosya — API'den alacagiz */ }
 
-            // 2. API'den guncelle (basariliysa lokale yaz)
+            // 2. Gateway listesini yukle (hibrit destek — birden fazla gateway)
+            try
+            {
+                var gwResponse = await Http.GetAsync("api/sipaccounts/my/gateways");
+                if (gwResponse.IsSuccessStatusCode)
+                    _gateways = await gwResponse.Content.ReadFromJsonAsync<List<SipGatewaySummaryDto>>() ?? new();
+            }
+            catch { /* gateway listesi alinamazsa tek gateway ile devam */ }
+
+            // 3. API'den hat al (gatewayId varsa o gateway'den)
             try
             {
                 sipStatusText = "API'den hat isteniyor...";
                 StateHasChanged();
 
-                var response = await Http.GetAsync("api/sipaccounts/my/connection");
+                var connUrl = _selectedGatewayId > 0
+                    ? $"api/sipaccounts/my/connection?gatewayId={_selectedGatewayId}"
+                    : "api/sipaccounts/my/connection";
+                var response = await Http.GetAsync(connUrl);
                 if (response.IsSuccessStatusCode)
                 {
                     var apiInfo = await response.Content.ReadFromJsonAsync<SipConnectionInfoDto>();
                     if (apiInfo != null)
                     {
                         sipInfo = apiInfo;
+                        _selectedGatewayId = apiInfo.SipAccountId;
                         // Lokale kaydet
                         var dir = Path.GetDirectoryName(SipCachePath)!;
                         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
@@ -463,6 +498,8 @@
             }
 
             _activeSipInfo = sipInfo;
+            if (_selectedGatewayId == 0)
+                _selectedGatewayId = sipInfo.SipAccountId;
             sipStatusText = $"Kayit olunuyor... ({sipInfo.AuthUsername}@{sipInfo.SipUri?.Split('@').LastOrDefault()})";
             statusMessage = $"Transport: {sipInfo.Transport}";
             StateHasChanged();
@@ -475,6 +512,50 @@
             sipStatusText = "SIP Hata";
             statusMessage = "SIP baglanti hatasi: " + ex.Message;
             statusClass = "text-danger";
+        }
+    }
+
+    private async Task OnGatewayChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var newGatewayId) || newGatewayId == _selectedGatewayId)
+            return;
+
+        if (SipService.IsInCall)
+        {
+            Toast.ShowWarning("Aktif arama sirasinda gateway degistirilemez.");
+            return;
+        }
+
+        _isSwitchingGateway = true;
+        _selectedGatewayId = newGatewayId;
+        sipStatusText = "Gateway degistiriliyor...";
+        StateHasChanged();
+
+        try
+        {
+            // Mevcut SIP baglantisini kapat
+            await SipService.DisposeAsync();
+
+            // Event handler'lari yeniden bagla (DisposeAsync sonrasi)
+            SipService.OnRegistered += HandleSipRegistered;
+            SipService.OnRegistrationFailed += HandleSipRegistrationFailed;
+            SipService.OnCallAnswered += HandleCallAnswered;
+            SipService.OnCallEnded += HandleCallEnded;
+            SipService.OnCallFailed += HandleCallFailed;
+            SipService.OnLineChanged += HandleLineChanged;
+            SipService.OnMuteChanged += HandleMuteChanged;
+
+            // Yeni gateway ile tekrar baglan
+            await InitializeSip();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Gateway degistirme hatasi: {ex.Message}");
+        }
+        finally
+        {
+            _isSwitchingGateway = false;
+            StateHasChanged();
         }
     }
 

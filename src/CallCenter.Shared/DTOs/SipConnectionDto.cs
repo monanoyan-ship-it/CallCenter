@@ -1,6 +1,19 @@
 namespace CallCenter.Shared.DTOs;
 
 /// <summary>
+/// Operatorun secebilecegi gateway listesi icin ozet bilgi.
+/// GET /api/sipaccounts/my/gateways endpoint'inden doner.
+/// </summary>
+public class SipGatewaySummaryDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Transport { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+    public int AvailableLineCount { get; set; }
+}
+
+/// <summary>
 /// Agent'ın SIP bağlantı bilgilerini taşır.
 /// GET /api/sipaccounts/my/connection endpoint'inden döner.
 /// </summary>
@@ -57,4 +70,7 @@ public class SipConnectionInfoDto
 
     /// <summary>Gateway ID'si</summary>
     public int SipAccountId { get; set; }
+
+    /// <summary>Gateway adi (Dialer'da gosterim icin)</summary>
+    public string GatewayName { get; set; } = string.Empty;
 }

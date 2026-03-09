@@ -31,18 +31,32 @@ public class SipAccountFactory : ISipAccountFactory
     // OPERATOR HAT TAHSISI
     // ═══════════════════════════════════════════════════════════════
 
-    public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName)
+    public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName, int? gatewayId = null)
     {
         SipLine? line = null;
 
         // 1. Bu personele zaten tahsis edilmis hat var mi? (idempotent)
         if (personnelId.HasValue)
+        {
             line = await _lineEs.GetByPersonnelAsync(personnelId.Value);
+
+            // Farkli gateway istendiyse mevcut hatti serbest birak
+            if (line != null && gatewayId.HasValue && line.SipAccountId != gatewayId.Value)
+            {
+                line.AssignedPersonnelId = null;
+                line.AssignedAt = null;
+                await _uow.SaveChangesAsync();
+                line = null;
+            }
+        }
 
         // 2. Yoksa bos hat bul ve dinamik tahsis et
         if (line == null && personnelId.HasValue)
         {
-            line = await _lineEs.AcquireUnassignedAsync(customerId);
+            line = gatewayId.HasValue
+                ? await _lineEs.AcquireUnassignedAsync(customerId, gatewayId.Value)
+                : await _lineEs.AcquireUnassignedAsync(customerId);
+
             if (line != null)
             {
                 line.AssignedPersonnelId = personnelId.Value;
@@ -55,6 +69,23 @@ public class SipAccountFactory : ISipAccountFactory
         if (line == null) return null;
 
         return BuildConnectionDto(line, displayName);
+    }
+
+    public async Task<List<SipGatewaySummaryDto>> GetMyGatewaysAsync(int customerId)
+    {
+        return await _sipEs.GetAllQueryable()
+            .Where(s => s.CustomerId == customerId && s.IsActive)
+            .Include(s => s.Lines)
+            .OrderByDescending(s => s.IsDefault).ThenBy(s => s.Name)
+            .Select(s => new SipGatewaySummaryDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Transport = s.Transport ?? "UDP",
+                IsDefault = s.IsDefault,
+                AvailableLineCount = s.Lines.Count(l => l.IsActive && l.AssignedPersonnelId == null)
+            })
+            .ToListAsync();
     }
 
     public async Task ReleaseLineAsync(int personnelId)
@@ -83,6 +114,7 @@ public class SipAccountFactory : ISipAccountFactory
         {
             SipLineId = line.Id,
             SipAccountId = gw.Id,
+            GatewayName = gw.Name,
             WsUri = wsUri,
             SipUri = $"sip:{line.Username}@{domain}",
             AuthUsername = line.Username,
