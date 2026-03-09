@@ -68,13 +68,17 @@
     </Content>
   </ItemGroup>
 
-  <!-- Post-publish: ico kopyala, gereksiz dosyalari temizle -->
+  <!-- Post-publish: ico kopyala, scoped CSS birlestir, gereksiz dosyalari temizle -->
   <Target Name="PostPublishCleanup" AfterTargets="Publish">
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Assets\corplynk.ico"
           DestinationFolder="$(PublishDir)\Assets"
           SkipUnchangedFiles="true" />
+    <!-- .NET 10 BlazorWebView bug: scoped CSS dosyasi serve edilmiyor (dotnet/maui#33718).
+         Workaround: CorpLynk.styles.css icerigini app.css'e birlestir. -->
+    <Exec Command="type &quot;$(PublishDir)wwwroot\CorpLynk.styles.css&quot; >> &quot;$(PublishDir)wwwroot\css\app.css&quot;"
+          Condition="Exists('$(PublishDir)wwwroot\CorpLynk.styles.css')" />
     <Delete Files="$(PublishDir)\wwwroot\appsettings.Development.json" Condition="Exists('$(PublishDir)\wwwroot\appsettings.Development.json')" />
-    <Delete Files="$(PublishDir)\CallCenter.Windows.staticwebassets.endpoints.json" Condition="Exists('$(PublishDir)\CallCenter.Windows.staticwebassets.endpoints.json')" />
+    <Delete Files="$(PublishDir)\CorpLynk.staticwebassets.endpoints.json" Condition="Exists('$(PublishDir)\CorpLynk.staticwebassets.endpoints.json')" />
   </Target>
 
 </Project>
