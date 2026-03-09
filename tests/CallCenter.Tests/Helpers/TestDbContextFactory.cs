@@ -105,7 +105,7 @@ public static class TestDbContextFactory
         };
         db.Customers.Add(customer);
 
-        // Test SIP hesabi
+        // Test SIP gateway
         var sipAccount = new SipAccount
         {
             Id = 300,
@@ -114,14 +114,25 @@ public static class TestDbContextFactory
             Name = "Test SIP",
             Server = "sip.test.local",
             Port = 5060,
-            Username = "1001",
-            Password = "encrypted_pass",
             Transport = "UDP",
             IsDefault = true,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
         db.SipAccounts.Add(sipAccount);
+
+        // Test SIP hat
+        var sipLine = new SipLine
+        {
+            Id = 400,
+            SipAccountId = 300,
+            ChannelNumber = 1,
+            Username = "1001",
+            Password = "encrypted_pass",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        db.SipLines.Add(sipLine);
 
         db.SaveChanges();
     }
