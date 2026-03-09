@@ -187,6 +187,9 @@ public class NativeSipService : ISipService
         {
             _config = config;
 
+            // SRTP ayarini config'den al
+            _srtpEnabled = config.UseSrtp;
+
             // ICE/TURN bilgilerini config'den al
             if (!string.IsNullOrEmpty(config.StunServer) || !string.IsNullOrEmpty(config.TurnServer))
             {
@@ -1547,7 +1550,7 @@ public class NativeSipService : ISipService
 
     private VoIPMediaSession CreateMediaSession()
     {
-        Console.WriteLine($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}]");
+        Console.WriteLine($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}], srtp={_srtpEnabled}");
         var winAudio = new WindowsAudioEndPoint(new AudioEncoder(), _outputDeviceIndex, _inputDeviceIndex);
 
         // Codec filtresi: Sadece etkinlestirilmis codec'ler
@@ -1557,7 +1560,19 @@ public class NativeSipService : ISipService
             return _enabledCodecNames.Any(c => c.Equals(codecName, StringComparison.OrdinalIgnoreCase));
         });
 
-        var mediaSession = new VoIPMediaSession(winAudio.ToMediaEndPoints());
+        var sessionConfig = new VoIPMediaSessionConfig
+        {
+            MediaEndPoint = winAudio.ToMediaEndPoints()
+        };
+
+        // SRTP: Online SIP saglayicilari icin zorunlu (medya sifreleme)
+        if (_srtpEnabled)
+        {
+            sessionConfig.RtpSecureMediaOption = RtpSecureMediaOptionEnum.SdpCryptoNegotiation;
+            Console.WriteLine("[SIP] SRTP aktif — SDP crypto negotiation etkinlestirildi");
+        }
+
+        var mediaSession = new VoIPMediaSession(sessionConfig);
         mediaSession.AcceptRtpFromAny = true;
 
         Console.WriteLine("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true)");
