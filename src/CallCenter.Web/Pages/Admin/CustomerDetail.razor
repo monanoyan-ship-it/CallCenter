@@ -342,7 +342,7 @@
         </div>
     </div>
 
-    <PersonnelForm @ref="personnelForm" CustomerIdParam="@Id.ToString()" OnSaved="LoadPersonnel" />
+    <PersonnelForm @ref="personnelForm" CustomerIdParam="@Id.ToString()" OnSaved="LoadPersonnel" AllowEditUserName="true" />
     <ConfirmDialog @ref="personnelConfirmDialog" OnConfirm="ExecuteDeactivatePersonnel"
                    Message="@($"'{deactivateTarget?.FullName}' personelini deaktive etmek istediginize emin misiniz?")" />
 }

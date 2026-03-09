@@ -23,7 +23,7 @@
                             <div class="alert alert-danger py-2 small">@errorMessage</div>
                         }
 
-                        @if (!isEditMode)
+                        @if (!isEditMode || AllowEditUserName)
                         {
                             <div class="mb-3">
                                 <label class="form-label small">Kullanici Adi</label>
@@ -95,6 +95,7 @@
 @code {
     [Parameter] public string? CustomerIdParam { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public bool AllowEditUserName { get; set; }
 
     private bool isVisible;
     private bool isEditMode;
@@ -127,6 +128,7 @@
         selectedRoleId = item.CustomerRoleId;
         formModel = new()
         {
+            UserName = item.UserName,
             FullName = item.FullName,
             Email = item.Email,
             Title = item.Title,
@@ -152,6 +154,7 @@
             {
                 var updateDto = new PortalPersonnelUpdateDto
                 {
+                    UserName = AllowEditUserName ? formModel.UserName : null,
                     FullName = formModel.FullName,
                     Email = formModel.Email,
                     Password = string.IsNullOrWhiteSpace(formModel.Password) ? null : formModel.Password,

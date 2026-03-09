@@ -154,7 +154,15 @@
       "Bash(PGPASSWORD='1123Azs+-' \"/c/Program Files/PostgreSQL/17/bin/psql.exe\":*)",
       "WebFetch(domain:api.github.com)",
       "Bash(gh api:*)",
-      "Bash(gcloud storage:*)"
+      "Bash(gcloud storage:*)",
+      "WebFetch(domain:corplynk.com)",
+      "Read(//c/Program Files \\(x86\\)/Inno Setup 6/**)",
+      "Read(//c/Program Files/Inno Setup 6/**)",
+      "Bash(winget install:*)",
+      "Bash(\"C:\\\\Users\\\\Ahmet\\\\AppData\\\\Local\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\":*)",
+      "Read(//c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/$LOCALAPPDATA/Programs/CorpLynk/**)",
+      "Read(//c/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/**)",
+      "Bash(gsutil cp:*)"
     ]
   }
 }
