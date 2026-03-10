@@ -47,7 +47,7 @@
                             {
                                 <select class="form-select form-select-sm" style="width:auto;max-width:160px;"
                                         value="@_selectedGatewayId" @onchange="OnGatewayChanged"
-                                        disabled="@(SipService.IsInCall || _isSwitchingGateway)">
+                                        disabled="@(IsCallActive || _isSwitchingGateway)">
                                     @foreach (var gw in _gateways)
                                     {
                                         <option value="@gw.Id">@gw.Name (@gw.Transport)</option>
@@ -80,7 +80,7 @@
                         <i class="bi bi-lightning-fill"></i>
                         <span class="d-none d-md-inline ms-1">Oto</span>
                     </button>
-                    @if (SipService.IsInCall)
+                    @if (IsCallActive)
                     {
                         <button class="btn btn-sm @(SipService.IsMuted ? "btn-warning" : "btn-outline-secondary") quick-btn"
                                 @onclick="ToggleMute" title="Sustur">
@@ -88,7 +88,8 @@
                             <span class="d-none d-md-inline ms-1">@(SipService.IsMuted ? "Acik" : "Kapa")</span>
                         </button>
                         <button class="btn btn-sm @(SipService.IsRecording ? "btn-danger recording-pulse" : "btn-outline-secondary") quick-btn position-relative"
-                                @onclick="ToggleRecording" title="Kayit">
+                                @onclick="ToggleRecording" title="@(_autoRecordEnabled ? "Otomatik kayit aktif" : "Kayit")"
+                                disabled="@_autoRecordEnabled">
                             <i class="bi bi-record-circle-fill"></i>
                             <span class="d-none d-md-inline ms-1">Kayit</span>
                             @if (_autoRecordEnabled)
@@ -175,7 +176,7 @@
 
                 @* ─── Arama Butonlari ─── *@
                 <div class="call-actions">
-                    @if (!SipService.IsInCall && !isCallStarting)
+                    @if (!IsCallActive)
                     {
                         <button class="btn call-btn call-start"
                                 disabled="@(string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered)"
@@ -187,7 +188,7 @@
                     else
                     {
                         <div class="in-call-actions">
-                            @if (SipService.IsInCall && !isCallStarting)
+                            @if (IsCallActive && !isCallStarting)
                             {
                                 <button class="btn call-btn @(SipService.IsOnHold ? "call-resume" : "call-hold")"
                                         @onclick="ToggleHold">
@@ -470,10 +471,6 @@
 
             if (targets != null && !targets.UploadToPlatform && !targets.UploadToCustomerStorage)
                 _storageWarning = "Depolama ayari yapilmamis! Ses kayitlari sadece bu bilgisayarda kalacak.";
-            else if (targets != null && targets.UploadToPlatform && targets.PlatformConfig == null)
-                _storageWarning = "Platform deposu aktif ama yapilandirma eksik.";
-            else if (targets != null && targets.UploadToCustomerStorage && targets.CustomerConfig == null)
-                _storageWarning = "Musteri deposu aktif ama yapilandirma eksik.";
         }
         catch { _autoRecordEnabled = false; }
 
@@ -590,7 +587,7 @@
         if (!int.TryParse(e.Value?.ToString(), out var newGatewayId) || newGatewayId == _selectedGatewayId)
             return;
 
-        if (SipService.IsInCall)
+        if (IsCallActive)
         {
             Toast.ShowWarning("Aktif arama sirasinda gateway degistirilemez.");
             return;
@@ -672,6 +669,8 @@
         await InvokeAsync(async () =>
         {
             isCallStarting = false;
+            _callEndedLocally = false;
+            _callEndProcessing = false;
             lines = (await SipService.GetLinesAsync()).ToList();
 
             // Gelen aramada phoneNumber bos olabilir — aktif hattan al
@@ -718,16 +717,44 @@
     }
 
     private bool _callEndProcessing; // Cift tetiklenme korumasi
+    private bool _callEndedLocally;  // EndCall/HandleCallEnded sonrasi UI'yi hemen sifirla
+
+    // SipService.IsInCall yerine bunu kullan — EndCall/HandleCallEnded sonrasi hemen false doner
+    private bool IsCallActive => !_callEndedLocally && (SipService.IsInCall || isCallStarting);
+
+    private static void DiagLog(string msg)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "CorpLynk", "dialer-debug.log");
+            var line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}{Environment.NewLine}";
+            System.IO.File.AppendAllText(path, line);
+        }
+        catch { }
+    }
 
     private async Task HandleCallEnded()
     {
+        DiagLog("HandleCallEnded CAGIRILDI");
         await InvokeAsync(async () =>
         {
-            if (_callEndProcessing) return; // Zaten isleniyor (karsi taraf + manuel kapat)
+            DiagLog($"InvokeAsync icinde. _callEndProcessing={_callEndProcessing}");
+            if (_callEndProcessing) return;
             _callEndProcessing = true;
+            _callEndedLocally = true;
 
             StopTimer();
             isCallStarting = false;
+
+            // ONCE UI'yi guncelle — hicbir await'ten ONCE
+            statusMessage = "Arama sonlandirildi";
+            statusClass = "text-muted";
+            callDuration = "00:00";
+            StateHasChanged();
+            DiagLog($"UI sifirlandi. IsCallActive={IsCallActive}, IsInCall={SipService.IsInCall}");
+
             lines = (await SipService.GetLinesAsync()).ToList();
 
             // Bekleyen notu lokale kaydet
@@ -738,25 +765,21 @@
                 catch { }
             }
 
-            // Cift yazim: lokal DB + backend'e "bitti" bilgisi
             var endCallUid = currentCallUid;
             var endCallId = currentCallId;
             var wasRecording = SipService.IsRecording;
             currentCallId = null;
             currentCallUid = null;
 
-            statusMessage = $"Arama sonlandirildi ({callDuration})";
-            statusClass = "text-muted";
-            callDuration = "00:00";
-
             if (wasRecording)
             {
                 statusMessage = "Ses kaydi isleniyor...";
                 statusClass = "text-info";
+                StateHasChanged();
             }
 
-            await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
-            StateHasChanged();
+            try { await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork); }
+            catch (Exception ex) { DiagLog($"HubService hatasi: {ex.Message}"); }
 
             // Sifreleme + sync arka planda (UI kitlenmesin)
             if (endCallUid.HasValue)
@@ -841,7 +864,7 @@
     private void PressKey(string key)
     {
         phoneNumber += key;
-        if (SipService.IsInCall && !isCallStarting)
+        if (IsCallActive && !isCallStarting)
         {
             _ = SipService.SendDtmfAsync(key);
         }
@@ -851,7 +874,7 @@
 
     private void HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(phoneNumber) && !SipService.IsInCall)
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(phoneNumber) && !IsCallActive)
             _ = StartCall();
     }
 
@@ -863,6 +886,7 @@
 
         isCallStarting = true;
         _callEndProcessing = false;
+        _callEndedLocally = false;
         callNotes = "";
         isNotesSavedToServer = false;
         showNotesPanel = true;
@@ -928,14 +952,30 @@
     private async Task EndCall()
     {
         isCallStarting = false;
+        _callEndedLocally = true; // UI hemen sifirlansin
 
-        // UI'yi hemen guncelle — kapat butonunu devre disi birak
         var endUid = currentCallUid;
         var endId = currentCallId;
         var wasRec = SipService.IsRecording;
 
+        // UI'yi hemen sifirla — callback'e bagimli kalma
+        StopTimer();
+        StopNotesTimer();
+
+        // Bekleyen notu kaydet
+        if (endUid.HasValue && !string.IsNullOrWhiteSpace(callNotes))
+        {
+            try { await CallSync.SaveNotesLocalAsync(endUid.Value, callNotes); }
+            catch { }
+        }
+
+        currentCallId = null;
+        currentCallUid = null;
+        _callEndProcessing = true; // HandleCallEnded tekrar tetiklenirse engelle
+
         statusMessage = wasRec ? "Ses kaydi isleniyor..." : "Kapatiliyor...";
         statusClass = "text-info";
+        callDuration = "00:00";
         StateHasChanged();
 
         // SIP hangup + kayit isleme arka planda
@@ -944,11 +984,43 @@
             try
             {
                 await SipService.HangupAsync();
+
+                if (wasRec)
+                    await SipService.StopRecordingAsync();
+
+                string? recordingPath = SipService.LastRecordingPath;
+                if (endUid.HasValue)
+                    await CallSync.EndCallAsync(endUid.Value, endId, recordingPath);
+
+                await InvokeAsync(() =>
+                {
+                    statusMessage = wasRec ? "Kayit tamamlandi" : "Arama sonlandirildi";
+                    statusClass = wasRec ? "text-success" : "text-muted";
+                    _callEndProcessing = false;
+                    StateHasChanged();
+                });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Dialer] Hangup hatasi: {ex.Message}");
+                Console.WriteLine($"[Dialer] EndCall hatasi: {ex.Message}");
+                await InvokeAsync(() =>
+                {
+                    statusMessage = "Arama sonlandirildi";
+                    statusClass = "text-muted";
+                    _callEndProcessing = false;
+                    StateHasChanged();
+                });
             }
+        });
+
+        await HubService.UpdateStatusAsync(AgentStatuses.Ids.AfterCallWork);
+        lines = (await SipService.GetLinesAsync()).ToList();
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(5000);
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
         });
     }
 

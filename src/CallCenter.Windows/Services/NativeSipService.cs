@@ -24,6 +24,27 @@ namespace CallCenter.Windows.Services;
 /// </summary>
 public class NativeSipService : ISipService
 {
+    // ─── Dosya Logger ───
+    private static readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "CorpLynk", "sip-debug.log");
+    private static readonly object _logLock = new();
+
+    private static void Log(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss.fff}] {message}";
+        System.Diagnostics.Debug.WriteLine(line);
+        try
+        {
+            lock (_logLock)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_logPath)!);
+                File.AppendAllText(_logPath, line + Environment.NewLine);
+            }
+        }
+        catch { }
+    }
+
     // ═══════════════════════════════════════════════════
     // ALTYAPI
     // ═══════════════════════════════════════════════════
@@ -128,7 +149,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] SafeCallback hatasi ({caller}): {ex.Message}\n{ex.StackTrace}");
+            Log($"[SIP] SafeCallback hatasi ({caller}): {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -143,7 +164,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] SafeCallbackAsync hatasi ({caller}): {ex.Message}\n{ex.StackTrace}");
+            Log($"[SIP] SafeCallbackAsync hatasi ({caller}): {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -223,7 +244,7 @@ public class NativeSipService : ISipService
                 case "WSS":
                 case "WS":
                     _sipTransport.AddSIPChannel(new SIPWebSocketChannel(new IPEndPoint(IPAddress.Any, 0), null));
-                    Console.WriteLine("[SIP] WebSocket (WSS) transport kanali eklendi");
+                    Log("[SIP] WebSocket (WSS) transport kanali eklendi");
                     break;
                 case "TCP":
                     _sipTransport.AddSIPChannel(new SIPTCPChannel(new IPEndPoint(IPAddress.Any, 0)));
@@ -255,12 +276,12 @@ public class NativeSipService : ISipService
                         // Ama UDP/TCP/TLS'de ContactHost'u STUN adresiyle set ediyoruz
                         if (transport is not "WSS" and not "WS")
                             _sipTransport.ContactHost = publicEp.Address.ToString();
-                        Console.WriteLine($"[SIP] STUN public address: {publicEp} (transport={transport})");
+                        Log($"[SIP] STUN public address: {publicEp} (transport={transport})");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[SIP] STUN discovery hatasi: {ex.Message}");
+                    Log($"[SIP] STUN discovery hatasi: {ex.Message}");
                 }
             }
 
@@ -286,11 +307,11 @@ public class NativeSipService : ISipService
                     regHost = wsUri.Port > 0 && wsUri.Port != 443
                         ? $"{wsUri.Host}:{wsUri.Port}"
                         : wsUri.Host;
-                    Console.WriteLine($"[SIP] WSS registration hedefi: {regHost} (WsUri: {config.WsUri})");
+                    Log($"[SIP] WSS registration hedefi: {regHost} (WsUri: {config.WsUri})");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[SIP] WsUri parse hatasi, SIP host kullaniliyor: {ex.Message}");
+                    Log($"[SIP] WsUri parse hatasi, SIP host kullaniliyor: {ex.Message}");
                 }
             }
 
@@ -351,7 +372,7 @@ public class NativeSipService : ISipService
         var freeLine = FindFreeLine();
         if (freeLine == null)
         {
-            Console.WriteLine("[SIP] Tum hatlar dolu, arama baslatilemiyor");
+            Log("[SIP] Tum hatlar dolu, arama baslatilemiyor");
             return false;
         }
 
@@ -362,10 +383,10 @@ public class NativeSipService : ISipService
     public async Task<bool> AnswerCallAsync()
     {
         var line = FindRingingLine();
-        Console.WriteLine($"[SIP] AnswerCallAsync cagirildi. RingingLine={line?.Index.ToString() ?? "null"}");
+        Log($"[SIP] AnswerCallAsync cagirildi. RingingLine={line?.Index.ToString() ?? "null"}");
         if (line == null || _sipTransport == null)
         {
-            Console.WriteLine("[SIP] AnswerCallAsync: Ringing hat yok veya transport null");
+            Log("[SIP] AnswerCallAsync: Ringing hat yok veya transport null");
             return false;
         }
 
@@ -374,12 +395,12 @@ public class NativeSipService : ISipService
             // Mevcut aktif arama varsa hold'a al
             if (ActiveLine.State == LineState.Connected && ActiveLine.Index != line.Index)
             {
-                Console.WriteLine($"[SIP] Mevcut aktif hat {ActiveLine.Index} hold'a aliniyor");
+                Log($"[SIP] Mevcut aktif hat {ActiveLine.Index} hold'a aliniyor");
                 await HoldLineAsync(ActiveLine);
             }
 
             line.MediaSession = CreateMediaSession();
-            Console.WriteLine($"[SIP] Cevaplaniyor: hat={line.Index}, remote={line.RemoteUri}");
+            Log($"[SIP] Cevaplaniyor: hat={line.Index}, remote={line.RemoteUri}");
             var result = await line.UserAgent!.Answer(line.PendingUas!, line.MediaSession);
             line.PendingUas = null;
 
@@ -389,20 +410,20 @@ public class NativeSipService : ISipService
                 line.StartTime = DateTime.Now;
                 _activeLineIndex = line.Index;
                 StopRingtone();
-                Console.WriteLine($"[SIP] Gelen arama cevaplandi! Hat {line.Index} -> Connected");
+                Log($"[SIP] Gelen arama cevaplandi! Hat {line.Index} -> Connected");
                 await (OnCallAnswered?.Invoke() ?? Task.CompletedTask);
                 await (OnLineChanged?.Invoke(line.Index) ?? Task.CompletedTask);
             }
             else
             {
-                Console.WriteLine("[SIP] Answer basarisiz (Answer() false dondu)");
+                Log("[SIP] Answer basarisiz (Answer() false dondu)");
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Answer hatasi: {ex.Message}\n{ex.StackTrace}");
+            Log($"[SIP] Answer hatasi: {ex.Message}\n{ex.StackTrace}");
             return false;
         }
     }
@@ -410,7 +431,7 @@ public class NativeSipService : ISipService
     public async Task<bool> HangupAsync()
     {
         var line = ActiveLine;
-        Console.WriteLine($"[SIP] HangupAsync cagirildi. ActiveLine={line.Index}, State={line.State}");
+        Log($"[SIP] HangupAsync cagirildi. ActiveLine={line.Index}, State={line.State}");
 
         // Connecting hattı varsa (giden arama calıyor) onu kapat
         if (line.State == LineState.Idle)
@@ -419,13 +440,13 @@ public class NativeSipService : ISipService
             var ringing = FindRingingLine();
             var connecting = Array.Find(_lines, l => l.State == LineState.Connecting);
             line = ringing ?? connecting ?? line;
-            if (ringing != null) Console.WriteLine($"[SIP] Ringing hat bulundu: {ringing.Index}");
-            if (connecting != null) Console.WriteLine($"[SIP] Connecting hat bulundu: {connecting.Index}");
+            if (ringing != null) Log($"[SIP] Ringing hat bulundu: {ringing.Index}");
+            if (connecting != null) Log($"[SIP] Connecting hat bulundu: {connecting.Index}");
         }
 
         if (line.State == LineState.Idle && line.PendingUas == null)
         {
-            Console.WriteLine("[SIP] Hangup: Hat idle ve PendingUas yok, iptal");
+            Log("[SIP] Hangup: Hat idle ve PendingUas yok, iptal");
             return false;
         }
 
@@ -433,7 +454,7 @@ public class NativeSipService : ISipService
         {
             if (line.PendingUas != null)
             {
-                Console.WriteLine("[SIP] Gelen arama reddediliyor (BusyHere)");
+                Log("[SIP] Gelen arama reddediliyor (BusyHere)");
                 line.PendingUas.Reject(SIPResponseStatusCodesEnum.BusyHere, null);
                 line.PendingUas = null;
                 StopRingtone();
@@ -442,13 +463,14 @@ public class NativeSipService : ISipService
             if (line.UserAgent != null)
             {
                 // Connecting veya Connected — CANCEL veya BYE gonder
-                Console.WriteLine($"[SIP] UserAgent.Cancel/Hangup cagirildi (IsCallActive={line.UserAgent.IsCallActive})");
+                Log($"[SIP] UserAgent.Cancel/Hangup cagirildi (IsCallActive={line.UserAgent.IsCallActive})");
                 if (line.UserAgent.IsCallActive)
                     line.UserAgent.Hangup();
                 else
                     line.UserAgent.Cancel();
             }
 
+            StopRtpTimeoutTimer();
             CleanupLine(line);
             await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
 
@@ -457,30 +479,30 @@ public class NativeSipService : ISipService
             if (nextActive >= 0)
             {
                 _activeLineIndex = nextActive;
-                Console.WriteLine($"[SIP] Sonraki aktif hat: {nextActive}");
+                Log($"[SIP] Sonraki aktif hat: {nextActive}");
                 await (OnLineChanged?.Invoke(_activeLineIndex) ?? Task.CompletedTask);
             }
 
-            Console.WriteLine("[SIP] Hangup basarili");
+            Log("[SIP] Hangup basarili");
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Hangup hatasi: {ex.Message}\n{ex.StackTrace}");
+            Log($"[SIP] Hangup hatasi: {ex.Message}\n{ex.StackTrace}");
             return false;
         }
     }
 
     public async Task<bool> HoldAsync()
     {
-        Console.WriteLine($"[SIP] HoldAsync cagirildi. ActiveLine.State={ActiveLine.State}, MediaSession null={ActiveLine.MediaSession == null}");
+        Log($"[SIP] HoldAsync cagirildi. ActiveLine.State={ActiveLine.State}, MediaSession null={ActiveLine.MediaSession == null}");
         if (ActiveLine.State != LineState.Connected) return false;
         return await HoldLineAsync(ActiveLine);
     }
 
     public async Task<bool> UnholdAsync()
     {
-        Console.WriteLine($"[SIP] UnholdAsync cagirildi. ActiveLine.State={ActiveLine.State}");
+        Log($"[SIP] UnholdAsync cagirildi. ActiveLine.State={ActiveLine.State}");
         if (ActiveLine.State != LineState.OnHold) return false;
 
         try
@@ -490,19 +512,19 @@ public class NativeSipService : ISipService
             {
                 var source = _muted ? AudioSourcesEnum.Silence : AudioSourcesEnum.None;
                 ActiveLine.MediaSession.AudioExtrasSource.SetSource(source);
-                Console.WriteLine($"[SIP] AudioExtrasSource -> {source}");
+                Log($"[SIP] AudioExtrasSource -> {source}");
             }
 
             // 2. SDP hold'u kaldir
             ActiveLine.MediaSession?.TakeOffHold();
             ActiveLine.State = LineState.Connected;
-            Console.WriteLine("[SIP] Unhold basarili, State -> Connected");
+            Log("[SIP] Unhold basarili, State -> Connected");
             await (OnLineChanged?.Invoke(ActiveLine.Index) ?? Task.CompletedTask);
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Unhold hatasi: {ex.Message}");
+            Log($"[SIP] Unhold hatasi: {ex.Message}");
             return false;
         }
     }
@@ -533,7 +555,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] DTMF hatasi: {ex.Message}");
+            Log($"[SIP] DTMF hatasi: {ex.Message}");
             return false;
         }
     }
@@ -561,7 +583,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Blind transfer hatasi: {ex.Message}");
+            Log($"[SIP] Blind transfer hatasi: {ex.Message}");
             return false;
         }
     }
@@ -598,7 +620,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Attended transfer hatasi: {ex.Message}");
+            Log($"[SIP] Attended transfer hatasi: {ex.Message}");
             return false;
         }
     }
@@ -635,7 +657,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Attended transfer tamamlama hatasi: {ex.Message}");
+            Log($"[SIP] Attended transfer tamamlama hatasi: {ex.Message}");
             return false;
         }
     }
@@ -740,17 +762,17 @@ public class NativeSipService : ISipService
 
     public async Task<bool> MuteAsync()
     {
-        Console.WriteLine($"[SIP] MuteAsync cagirildi. ActiveLine.State={ActiveLine.State}, AudioExtrasSource null={ActiveLine.MediaSession?.AudioExtrasSource == null}");
+        Log($"[SIP] MuteAsync cagirildi. ActiveLine.State={ActiveLine.State}, AudioExtrasSource null={ActiveLine.MediaSession?.AudioExtrasSource == null}");
         _muted = true;
         // Sadece mikrofonu kapat — karsi tarafin sesi devam etsin
         if (ActiveLine.MediaSession?.AudioExtrasSource != null)
         {
             ActiveLine.MediaSession.AudioExtrasSource.SetSource(AudioSourcesEnum.Silence);
-            Console.WriteLine("[SIP] Mute: AudioExtrasSource -> Silence");
+            Log("[SIP] Mute: AudioExtrasSource -> Silence");
         }
         else
         {
-            Console.WriteLine("[SIP] UYARI: Mute icin AudioExtrasSource bulunamadi");
+            Log("[SIP] UYARI: Mute icin AudioExtrasSource bulunamadi");
         }
         await (OnMuteChanged?.Invoke(true) ?? Task.CompletedTask);
         return true;
@@ -758,24 +780,24 @@ public class NativeSipService : ISipService
 
     public async Task<bool> UnmuteAsync()
     {
-        Console.WriteLine($"[SIP] UnmuteAsync cagirildi. ActiveLine.State={ActiveLine.State}");
+        Log($"[SIP] UnmuteAsync cagirildi. ActiveLine.State={ActiveLine.State}");
         _muted = false;
         // Mikrofonu tekrar ac (hold'da degilse)
         if (ActiveLine.MediaSession?.AudioExtrasSource != null)
         {
             if (ActiveLine.State == LineState.OnHold)
             {
-                Console.WriteLine("[SIP] Unmute: Hat hold'da, sessizlik devam ediyor");
+                Log("[SIP] Unmute: Hat hold'da, sessizlik devam ediyor");
             }
             else
             {
                 ActiveLine.MediaSession.AudioExtrasSource.SetSource(AudioSourcesEnum.None);
-                Console.WriteLine("[SIP] Unmute: AudioExtrasSource -> None (mikrofon acildi)");
+                Log("[SIP] Unmute: AudioExtrasSource -> None (mikrofon acildi)");
             }
         }
         else
         {
-            Console.WriteLine("[SIP] UYARI: Unmute icin AudioExtrasSource bulunamadi");
+            Log("[SIP] UYARI: Unmute icin AudioExtrasSource bulunamadi");
         }
         await (OnMuteChanged?.Invoke(false) ?? Task.CompletedTask);
         return true;
@@ -819,14 +841,14 @@ public class NativeSipService : ISipService
                 }
                 catch (Exception dirEx)
                 {
-                    Console.WriteLine($"[SIP] Kayit klasoru olusturulamadi: {dir} — {dirEx.Message}");
+                    Log($"[SIP] Kayit klasoru olusturulamadi: {dir} — {dirEx.Message}");
                     // Ag yolu erisilemediyse varsayilan lokale dusur
                     var fallbackDir = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "CorpLynk", "Recordings");
                     Directory.CreateDirectory(fallbackDir);
                     path = Path.Combine(fallbackDir, Path.GetFileName(path));
-                    Console.WriteLine($"[SIP] Varsayilan klasore dusuldu: {path}");
+                    Log($"[SIP] Varsayilan klasore dusuldu: {path}");
                 }
             }
 
@@ -842,7 +864,7 @@ public class NativeSipService : ISipService
             while (_recInQueue.TryDequeue(out _)) { }
             while (_recOutQueue.TryDequeue(out _)) { }
 
-            Console.WriteLine($"[SIP] Recording baslatildi (iki yonlu mono mix) — codec PT={_recordingPayloadType}, sampleRate={sampleRate}Hz, dosya={path}");
+            Log($"[SIP] Recording baslatildi (iki yonlu mono mix) — codec PT={_recordingPayloadType}, sampleRate={sampleRate}Hz, dosya={path}");
 
             // Gelen ses: RTP paketlerinden (karsi taraf)
             if (ActiveLine.MediaSession != null)
@@ -854,18 +876,18 @@ public class NativeSipService : ISipService
             if (_winAudioEndPoint != null)
             {
                 _winAudioEndPoint.OnAudioSourceEncodedSample += OnMicSampleForRecording;
-                Console.WriteLine("[SIP] Mikrofon kaydi aktif (OnAudioSourceEncodedSample)");
+                Log("[SIP] Mikrofon kaydi aktif (OnAudioSourceEncodedSample)");
             }
             else
             {
-                Console.WriteLine("[SIP] UYARI: WindowsAudioEndPoint null — sadece gelen ses kaydedilecek!");
+                Log("[SIP] UYARI: WindowsAudioEndPoint null — sadece gelen ses kaydedilecek!");
             }
 
             return Task.FromResult(true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Recording baslatilamadi: {ex.Message}");
+            Log($"[SIP] Recording baslatilamadi: {ex.Message}");
             return Task.FromResult(false);
         }
     }
@@ -888,7 +910,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Codec tespit hatasi: {ex.Message}");
+            Log($"[SIP] Codec tespit hatasi: {ex.Message}");
         }
 
         // Varsayilan: PCMU
@@ -934,11 +956,11 @@ public class NativeSipService : ISipService
                     File.Delete(_recordingWavPath);
                     _recordingWavPath = encPath;
 
-                    Console.WriteLine($"[SIP] Recording sifrelendi: {encPath}");
+                    Log($"[SIP] Recording sifrelendi: {encPath}");
                 }
                 catch (Exception encEx)
                 {
-                    Console.WriteLine($"[SIP] Recording sifreleme hatasi (WAV korundu): {encEx.Message}");
+                    Log($"[SIP] Recording sifreleme hatasi (WAV korundu): {encEx.Message}");
                     // Sifreleme basarisiz olursa WAV oldugu gibi kalir
                 }
             }
@@ -947,7 +969,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Recording durdurulamadi: {ex.Message}");
+            Log($"[SIP] Recording durdurulamadi: {ex.Message}");
             return false;
         }
     }
@@ -1166,7 +1188,7 @@ public class NativeSipService : ISipService
 
         NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
-        Console.WriteLine("[SIP] Ag degisikligi algilama baslatildi.");
+        Log("[SIP] Ag degisikligi algilama baslatildi.");
     }
 
     public void StopNetworkChangeDetection()
@@ -1180,7 +1202,7 @@ public class NativeSipService : ISipService
 
     private async void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e)
     {
-        Console.WriteLine($"[SIP] Ag durumu degisti: {(e.IsAvailable ? "bagli" : "baglanti yok")}");
+        Log($"[SIP] Ag durumu degisti: {(e.IsAvailable ? "bagli" : "baglanti yok")}");
         if (!e.IsAvailable) return;
 
         await Task.Delay(2000); // Ag stabilizasyonu icin bekle
@@ -1189,7 +1211,7 @@ public class NativeSipService : ISipService
 
     private async void OnNetworkAddressChanged(object? sender, EventArgs e)
     {
-        Console.WriteLine("[SIP] Ag adresi degisti (VPN, Wi-Fi vb.)");
+        Log("[SIP] Ag adresi degisti (VPN, Wi-Fi vb.)");
         await Task.Delay(3000); // Adres degisikligi stabilize olsun
         await ReRegisterOrReinitializeAsync("Ag adresi degisikligi");
     }
@@ -1208,22 +1230,22 @@ public class NativeSipService : ISipService
                 _regAgent.Stop();
                 await Task.Delay(500);
                 _regAgent.Start();
-                Console.WriteLine($"[SIP] {reason} sonrasi re-register baslatildi.");
+                Log($"[SIP] {reason} sonrasi re-register baslatildi.");
             }
             else if (_config != null)
             {
                 // Ilk baglanti basarisiz olduysa tamamen yeniden initialize et
-                Console.WriteLine($"[SIP] {reason}: SIP transport/agent null — tam yeniden baglanti deneniyor...");
+                Log($"[SIP] {reason}: SIP transport/agent null — tam yeniden baglanti deneniyor...");
                 await InitializeAsync(_config);
             }
             else
             {
-                Console.WriteLine($"[SIP] {reason}: Config yok — re-register atalanıyor.");
+                Log($"[SIP] {reason}: Config yok — re-register atalanıyor.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] {reason} sonrasi re-register hatasi: {ex.Message}");
+            Log($"[SIP] {reason} sonrasi re-register hatasi: {ex.Message}");
         }
     }
 
@@ -1247,7 +1269,7 @@ public class NativeSipService : ISipService
             var elapsed = (DateTime.UtcNow - _lastRtpReceived).TotalSeconds;
             if (elapsed > RtpTimeoutSeconds)
             {
-                Console.WriteLine($"[SIP] RTP timeout! {elapsed:F0}sn dir ses gelmedi — cagri sonlandiriliyor");
+                Log($"[SIP] RTP timeout! {elapsed:F0}sn dir ses gelmedi — cagri sonlandiriliyor");
                 StopRtpTimeoutTimer();
 
                 // Cagriyi sonlandir
@@ -1341,14 +1363,14 @@ public class NativeSipService : ISipService
 
     public Task<bool> SetAudioInputDeviceAsync(int deviceIndex)
     {
-        Console.WriteLine($"[SIP] Giris cihazi degistirildi: index={deviceIndex} (onceki={_inputDeviceIndex}). Sonraki aramada gecerli olacak.");
+        Log($"[SIP] Giris cihazi degistirildi: index={deviceIndex} (onceki={_inputDeviceIndex}). Sonraki aramada gecerli olacak.");
         _inputDeviceIndex = deviceIndex;
         return Task.FromResult(true);
     }
 
     public Task<bool> SetAudioOutputDeviceAsync(int deviceIndex)
     {
-        Console.WriteLine($"[SIP] Cikis cihazi degistirildi: index={deviceIndex} (onceki={_outputDeviceIndex}). Sonraki aramada gecerli olacak.");
+        Log($"[SIP] Cikis cihazi degistirildi: index={deviceIndex} (onceki={_outputDeviceIndex}). Sonraki aramada gecerli olacak.");
         _outputDeviceIndex = deviceIndex;
         return Task.FromResult(true);
     }
@@ -1376,7 +1398,7 @@ public class NativeSipService : ISipService
     public void SetHoldMusicEnabled(bool enabled)
     {
         _holdMusicEnabled = enabled;
-        Console.WriteLine($"[SIP] Hold muzigi: {(enabled ? "aktif" : "deaktif")}");
+        Log($"[SIP] Hold muzigi: {(enabled ? "aktif" : "deaktif")}");
     }
 
     private void PlayRingtone()
@@ -1404,7 +1426,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Ringtone hatasi: {ex.Message}");
+            Log($"[SIP] Ringtone hatasi: {ex.Message}");
         }
     }
 
@@ -1429,7 +1451,7 @@ public class NativeSipService : ISipService
     {
         var callId = sipRequest.Header.CallId;
         var toTag = sipRequest.Header.To?.ToTag;
-        Console.WriteLine($"[SIP] <<< Gelen SIP istegi: {sipRequest.Method} from {remoteEndPoint}, CallId={callId}, ToTag={toTag ?? "(yok)"}");
+        Log($"[SIP] <<< Gelen SIP istegi: {sipRequest.Method} from {remoteEndPoint}, CallId={callId}, ToTag={toTag ?? "(yok)"}");
 
         if (sipRequest.Method == SIPMethodsEnum.INVITE)
         {
@@ -1441,33 +1463,51 @@ public class NativeSipService : ISipService
         }
         else if (sipRequest.Method == SIPMethodsEnum.BYE)
         {
-            Console.WriteLine($"[SIP] BYE istegi alindi, CallId={callId}");
-            // Dialog ile eslesen hat varsa temizle
+            Log($"[SIP] BYE istegi alindi, CallId={callId}");
+
+            // 1) Dialog CallId ile eslestir
             var byeLine = Array.Find(_lines, l =>
                 l.UserAgent?.Dialogue?.CallId == callId && l.State != LineState.Idle);
-            if (byeLine != null)
+
+            // 2) Eslesmezse, aktif hat varsa onu al (GoIP farkli CallId gonderebilir)
+            if (byeLine == null)
             {
-                Console.WriteLine($"[SIP] BYE eslesti, hat {byeLine.Index} temizleniyor");
-                CleanupLine(byeLine);
-                await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
-                // 200 OK yanit
+                byeLine = Array.Find(_lines, l => l.State is LineState.Connected or LineState.OnHold);
+                if (byeLine != null)
+                    Log($"[SIP] BYE CallId eslesmedi ama aktif hat {byeLine.Index} bulundu — kapatiliyor");
+                else
+                    Log($"[SIP] BYE CallId eslesmedi ve aktif hat yok — loglandi");
+            }
+
+            // 200 OK her durumda gonder (GoIP tekrar gondermesin)
+            try
+            {
                 var okResp = SIPResponse.GetResponse(sipRequest, SIPResponseStatusCodesEnum.Ok, null);
                 await _sipTransport!.SendResponseAsync(okResp);
+            }
+            catch { }
+
+            if (byeLine != null)
+            {
+                Log($"[SIP] BYE eslesti, hat {byeLine.Index} temizleniyor");
+                StopRtpTimeoutTimer();
+                CleanupLine(byeLine);
+                await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
             }
         }
         else if (sipRequest.Method == SIPMethodsEnum.ACK)
         {
             // ACK normal SIP akisi — loglama yeterli
-            Console.WriteLine($"[SIP] ACK alindi, CallId={callId}");
+            Log($"[SIP] ACK alindi, CallId={callId}");
         }
         else if (sipRequest.Method == SIPMethodsEnum.CANCEL)
         {
-            Console.WriteLine($"[SIP] CANCEL alindi, CallId={callId}");
+            Log($"[SIP] CANCEL alindi, CallId={callId}");
             // Ringing hatlarda eslesen varsa temizle
             var cancelLine = Array.Find(_lines, l => l.State == LineState.Ringing);
             if (cancelLine != null)
             {
-                Console.WriteLine($"[SIP] CANCEL eslesti, hat {cancelLine.Index} temizleniyor");
+                Log($"[SIP] CANCEL eslesti, hat {cancelLine.Index} temizleniyor");
                 // 200 OK to CANCEL
                 var okCancel = SIPResponse.GetResponse(sipRequest, SIPResponseStatusCodesEnum.Ok, null);
                 await _sipTransport!.SendResponseAsync(okCancel);
@@ -1485,14 +1525,14 @@ public class NativeSipService : ISipService
         var callId = sipRequest.Header.CallId;
         var toTag = sipRequest.Header.To?.ToTag;
 
-        Console.WriteLine($"[SIP] === GELEN INVITE === From: {fromName} <{fromUri}>, CallId={callId}, ToTag={toTag ?? "(yok)"}");
+        Log($"[SIP] === GELEN INVITE === From: {fromName} <{fromUri}>, CallId={callId}, ToTag={toTag ?? "(yok)"}");
 
         // ── re-INVITE kontrolu ──
         // To tag varsa bu mevcut dialog icindeki bir re-INVITE (hold, codec degisikligi vb.)
         // Yeni arama degil — mevcut UserAgent kendi icerisinde handle etmeli
         if (!string.IsNullOrEmpty(toTag))
         {
-            Console.WriteLine($"[SIP] re-INVITE algilandi (ToTag={toTag}), yeni arama degil — atlanıyor");
+            Log($"[SIP] re-INVITE algilandi (ToTag={toTag}), yeni arama degil — atlanıyor");
             // Mevcut hatlardaki UserAgent'lar bunu dialog handler uzerinden alacak.
             // Eger hicbir dialog eslesmediyse 481 (Call/Transaction Does Not Exist) gonder
             var existingLine = Array.Find(_lines, l =>
@@ -1500,7 +1540,7 @@ public class NativeSipService : ISipService
                 l.State is LineState.Connected or LineState.OnHold);
             if (existingLine == null)
             {
-                Console.WriteLine("[SIP] re-INVITE icin eslesen dialog bulunamadi, 481 gonderiliyor");
+                Log("[SIP] re-INVITE icin eslesen dialog bulunamadi, 481 gonderiliyor");
                 var noDialog = SIPResponse.GetResponse(sipRequest,
                     SIPResponseStatusCodesEnum.CallLegTransactionDoesNotExist, null);
                 await _sipTransport!.SendResponseAsync(noDialog);
@@ -1516,14 +1556,14 @@ public class NativeSipService : ISipService
         if (duplicateLine != null)
         {
             // Zaten ringing durumunda bir hat var — ayni Call-ID mi kontrol et
-            Console.WriteLine($"[SIP] Zaten ringing hat mevcut (hat={duplicateLine.Index}), muhtemel retransmission — atlanıyor");
+            Log($"[SIP] Zaten ringing hat mevcut (hat={duplicateLine.Index}), muhtemel retransmission — atlanıyor");
             return;
         }
 
         // DND aktifse reject
         if (_dndEnabled)
         {
-            Console.WriteLine("[SIP] DND aktif, arama reddediliyor (BusyHere)");
+            Log("[SIP] DND aktif, arama reddediliyor (BusyHere)");
             var dndResponse = SIPResponse.GetResponse(sipRequest, SIPResponseStatusCodesEnum.BusyHere, "DND aktif");
             await _sipTransport!.SendResponseAsync(dndResponse);
             return;
@@ -1533,19 +1573,25 @@ public class NativeSipService : ISipService
         var freeLine = FindFreeLine();
         if (freeLine == null)
         {
-            Console.WriteLine("[SIP] Bos hat yok, arama reddediliyor (BusyHere)");
+            Log("[SIP] Bos hat yok, arama reddediliyor (BusyHere)");
             var busyResponse = SIPResponse.GetResponse(sipRequest, SIPResponseStatusCodesEnum.BusyHere, null);
             await _sipTransport!.SendResponseAsync(busyResponse);
             return;
         }
 
-        Console.WriteLine($"[SIP] Bos hat bulundu: {freeLine.Index}");
+        Log($"[SIP] Bos hat bulundu: {freeLine.Index}");
 
         // SIPUserAgent olustur
         freeLine.UserAgent = new SIPUserAgent(_sipTransport!, null);
         freeLine.UserAgent.OnCallHungup += (dialog) => SafeCallbackAsync(async () =>
         {
-            Console.WriteLine($"[SIP] Gelen arama OnCallHungup (hat={freeLine.Index})");
+            Log($"[SIP] Gelen arama OnCallHungup (hat={freeLine.Index}, State={freeLine.State})");
+            if (freeLine.State == LineState.Idle)
+            {
+                Log("[SIP] Hat zaten Idle — BYE handler temizlemis, OnCallEnded atlaniyor");
+                return;
+            }
+            StopRtpTimeoutTimer();
             CleanupLine(freeLine);
             await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
         });
@@ -1553,7 +1599,7 @@ public class NativeSipService : ISipService
         // DTMF alma — karsi tarafin tuslamalarini dinle
         freeLine.UserAgent.OnDtmfTone += (tone, duration) => SafeCallbackAsync(async () =>
         {
-            Console.WriteLine($"[SIP] DTMF alindi: tone={tone}, duration={duration}ms (hat={freeLine.Index})");
+            Log($"[SIP] DTMF alindi: tone={tone}, duration={duration}ms (hat={freeLine.Index})");
             await (OnDtmfReceived?.Invoke(tone, duration) ?? Task.CompletedTask);
         });
 
@@ -1566,7 +1612,7 @@ public class NativeSipService : ISipService
         freeLine.RemoteUri = callerUri;
         freeLine.RemoteDisplayName = callerDisplay;
 
-        Console.WriteLine($"[SIP] 180 Ringing gonderildi. Hat {freeLine.Index} Ringing durumunda");
+        Log($"[SIP] 180 Ringing gonderildi. Hat {freeLine.Index} Ringing durumunda");
 
         // Zil sesi cal
         PlayRingtone();
@@ -1574,13 +1620,13 @@ public class NativeSipService : ISipService
         // Auto-answer
         if (_autoAnswerEnabled)
         {
-            Console.WriteLine("[SIP] Auto-answer aktif, otomatik cevaplaniyor");
+            Log("[SIP] Auto-answer aktif, otomatik cevaplaniyor");
             _activeLineIndex = freeLine.Index;
             await AnswerCallAsync();
             return;
         }
 
-        Console.WriteLine("[SIP] OnIncomingCall event tetikleniyor (UI popup)");
+        Log("[SIP] OnIncomingCall event tetikleniyor (UI popup)");
         await (OnIncomingCall?.Invoke(callerUri, callerDisplay) ?? Task.CompletedTask);
     }
 
@@ -1617,7 +1663,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] NOTIFY isleme hatasi: {ex.Message}");
+            Log($"[SIP] NOTIFY isleme hatasi: {ex.Message}");
         }
     }
 
@@ -1628,10 +1674,10 @@ public class NativeSipService : ISipService
     private async Task<bool> MakeCallOnLineAsync(int lineIndex, string destination)
     {
         var line = _lines[lineIndex];
-        Console.WriteLine($"[SIP] MakeCallOnLineAsync hat={lineIndex}, hedef={destination}");
+        Log($"[SIP] MakeCallOnLineAsync hat={lineIndex}, hedef={destination}");
         if (_sipTransport == null || _config == null)
         {
-            Console.WriteLine("[SIP] HATA: SIPTransport veya config null");
+            Log("[SIP] HATA: SIPTransport veya config null");
             return false;
         }
 
@@ -1640,14 +1686,14 @@ public class NativeSipService : ISipService
         {
             if (line.UserAgent == null || line.UserAgent.IsCallActive != true)
             {
-                Console.WriteLine($"[SIP] Hat {lineIndex} takili kalmis (State={line.State}), temizleniyor...");
+                Log($"[SIP] Hat {lineIndex} takili kalmis (State={line.State}), temizleniyor...");
                 CleanupLine(line);
                 // Audio kaynaginin serbest kalmasi icin kisa bekleme
                 await Task.Delay(300);
             }
             else
             {
-                Console.WriteLine($"[SIP] Hat {lineIndex} aktif arama mevcut, yeni arama baslatilmiyor");
+                Log($"[SIP] Hat {lineIndex} aktif arama mevcut, yeni arama baslatilmiyor");
                 return false; // Gercekten aktif arama var
             }
         }
@@ -1657,13 +1703,19 @@ public class NativeSipService : ISipService
             line.UserAgent = new SIPUserAgent(_sipTransport, null);
             line.UserAgent.ClientCallFailed += (uac, error, response) => SafeCallbackAsync(async () =>
             {
-                Console.WriteLine($"[SIP] ClientCallFailed: {error}");
+                Log($"[SIP] ClientCallFailed: {error}");
                 CleanupLine(line);
                 await (OnCallFailed?.Invoke(error ?? "Arama basarisiz") ?? Task.CompletedTask);
             });
             line.UserAgent.OnCallHungup += (dialog) => SafeCallbackAsync(async () =>
             {
-                Console.WriteLine($"[SIP] OnCallHungup event tetiklendi (hat={line.Index})");
+                Log($"[SIP] OnCallHungup event tetiklendi (hat={line.Index}, State={line.State})");
+                if (line.State == LineState.Idle)
+                {
+                    Log("[SIP] Hat zaten Idle — BYE handler temizlemis, OnCallEnded atlaniyor");
+                    return;
+                }
+                StopRtpTimeoutTimer();
                 CleanupLine(line);
                 await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
             });
@@ -1674,7 +1726,7 @@ public class NativeSipService : ISipService
             var destUri = BuildTargetUri(destination);
             if (destUri == null)
             {
-                Console.WriteLine($"[SIP] HATA: Gecersiz hedef numara: {destination}");
+                Log($"[SIP] HATA: Gecersiz hedef numara: {destination}");
                 CleanupLine(line);
                 await (OnCallFailed?.Invoke("Gecersiz hedef numara") ?? Task.CompletedTask);
                 return false;
@@ -1683,19 +1735,19 @@ public class NativeSipService : ISipService
             line.RemoteUri = destination;
             line.RemoteDisplayName = destination;
 
-            Console.WriteLine($"[SIP] Call baslatiliyor: {destUri}, auth={_config.AuthUsername}");
+            Log($"[SIP] Call baslatiliyor: {destUri}, auth={_config.AuthUsername}");
             var result = await line.UserAgent.Call(destUri.ToString(), _config.AuthUsername, _config.AuthPassword, line.MediaSession);
 
             if (result)
             {
                 line.State = LineState.Connected;
                 line.StartTime = DateTime.Now;
-                Console.WriteLine($"[SIP] Arama basarili! Hat {lineIndex} -> Connected");
+                Log($"[SIP] Arama basarili! Hat {lineIndex} -> Connected");
                 await (OnCallAnswered?.Invoke() ?? Task.CompletedTask);
             }
             else
             {
-                Console.WriteLine("[SIP] Arama basarisiz (Call() false dondu)");
+                Log("[SIP] Arama basarisiz (Call() false dondu)");
                 CleanupLine(line);
                 await (OnCallFailed?.Invoke("Arama baglanamiyor") ?? Task.CompletedTask);
             }
@@ -1704,7 +1756,7 @@ public class NativeSipService : ISipService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] MakeCallOnLineAsync exception: {ex.Message}\n{ex.StackTrace}");
+            Log($"[SIP] MakeCallOnLineAsync exception: {ex.Message}\n{ex.StackTrace}");
             CleanupLine(line);
             await (OnCallFailed?.Invoke(ex.Message) ?? Task.CompletedTask);
             return false;
@@ -1713,7 +1765,7 @@ public class NativeSipService : ISipService
 
     private async Task<bool> HoldLineAsync(CallLine line)
     {
-        Console.WriteLine($"[SIP] HoldLineAsync hat={line.Index}, State={line.State}, MediaSession null={line.MediaSession == null}");
+        Log($"[SIP] HoldLineAsync hat={line.Index}, State={line.State}, MediaSession null={line.MediaSession == null}");
         if (line.State != LineState.Connected || line.MediaSession == null) return false;
 
         try
@@ -1723,25 +1775,25 @@ public class NativeSipService : ISipService
             {
                 var holdSource = _holdMusicEnabled ? AudioSourcesEnum.Music : AudioSourcesEnum.Silence;
                 line.MediaSession.AudioExtrasSource.SetSource(holdSource);
-                Console.WriteLine($"[SIP] AudioExtrasSource -> {holdSource} (hold icin)");
+                Log($"[SIP] AudioExtrasSource -> {holdSource} (hold icin)");
             }
             else
             {
-                Console.WriteLine("[SIP] UYARI: AudioExtrasSource null — hold muzigi gonderilemedi");
+                Log("[SIP] UYARI: AudioExtrasSource null — hold muzigi gonderilemedi");
             }
 
             // 2. SDP hold sinyali (re-INVITE gerekmese de durum dogru olsun)
             await line.MediaSession.PutOnHold();
-            Console.WriteLine("[SIP] PutOnHold() cagirildi");
+            Log("[SIP] PutOnHold() cagirildi");
 
             line.State = LineState.OnHold;
-            Console.WriteLine($"[SIP] Hat {line.Index} hold'a alindi basariyla");
+            Log($"[SIP] Hat {line.Index} hold'a alindi basariyla");
             await (OnLineChanged?.Invoke(line.Index) ?? Task.CompletedTask);
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SIP] Hold hatasi: {ex.Message}\n{ex.StackTrace}");
+            Log($"[SIP] Hold hatasi: {ex.Message}\n{ex.StackTrace}");
             return false;
         }
     }
@@ -1758,7 +1810,7 @@ public class NativeSipService : ISipService
 
     private VoIPMediaSession CreateMediaSession()
     {
-        Console.WriteLine($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}], srtp={_srtpEnabled}");
+        Log($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}], srtp={_srtpEnabled}");
         var winAudio = new WindowsAudioEndPoint(new AudioEncoder(), _outputDeviceIndex, _inputDeviceIndex);
         _winAudioEndPoint = winAudio; // Recording icin mikrofon event'ine erisim
 
@@ -1778,14 +1830,14 @@ public class NativeSipService : ISipService
         if (_srtpEnabled)
         {
             sessionConfig.RtpSecureMediaOption = RtpSecureMediaOptionEnum.SdpCryptoNegotiation;
-            Console.WriteLine("[SIP] SRTP aktif — SDP crypto negotiation etkinlestirildi");
+            Log("[SIP] SRTP aktif — SDP crypto negotiation etkinlestirildi");
         }
 
         // NAT arkasinda: STUN ile bulunan public IP'yi RTP bind address olarak kullan
         if (_stunPublicAddress != null)
         {
             sessionConfig.BindAddress = _stunPublicAddress;
-            Console.WriteLine($"[SIP] RTP bind address: {_stunPublicAddress} (STUN)");
+            Log($"[SIP] RTP bind address: {_stunPublicAddress} (STUN)");
         }
 
         var mediaSession = new VoIPMediaSession(sessionConfig);
@@ -1800,7 +1852,7 @@ public class NativeSipService : ISipService
         };
         StartRtpTimeoutTimer();
 
-        Console.WriteLine("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true, RTP timeout=8sn)");
+        Log("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true, RTP timeout=8sn)");
         return mediaSession;
     }
 
@@ -1819,38 +1871,47 @@ public class NativeSipService : ISipService
 
     private void CleanupLine(CallLine line)
     {
-        Console.WriteLine($"[SIP] CleanupLine hat={line.Index}, State={line.State}, RemoteUri={line.RemoteUri}");
-        if (line.MediaSession != null)
+        // Zaten temizlenmis — tekrar yapma
+        if (line.State == LineState.Idle)
         {
-            try
-            {
-                line.MediaSession.Close(null);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[SIP] MediaSession.Close hatasi: {ex.Message}");
-            }
-            line.MediaSession = null;
+            Log($"[SIP] CleanupLine hat={line.Index} — zaten Idle, atlaniyor");
+            return;
         }
 
-        if (line.UserAgent != null)
-        {
-            try
-            {
-                // UserAgent aktifse once hangup yap
-                if (line.UserAgent.IsCallActive)
-                    line.UserAgent.Hangup();
-            }
-            catch { }
-            line.UserAgent = null;
-        }
+        var prevState = line.State;
+        Log($"[SIP] CleanupLine hat={line.Index}, State={prevState}, RemoteUri={line.RemoteUri}");
 
-        line.PendingUas = null;
+        // ONCE State'i Idle yap — boylece re-entrant cagrilar (OnCallHungup)
+        // yukaridaki guard'a takilir ve tekrar calismaz
         line.State = LineState.Idle;
         line.RemoteUri = null;
         line.RemoteDisplayName = null;
         line.StartTime = null;
-        Console.WriteLine($"[SIP] Hat {line.Index} temizlendi -> Idle");
+        line.PendingUas = null;
+
+        // Sonra kaynaklari temizle
+        var ms = line.MediaSession;
+        var ua = line.UserAgent;
+        line.MediaSession = null;
+        line.UserAgent = null;
+
+        if (ms != null)
+        {
+            try { ms.Close(null); }
+            catch (Exception ex) { Log($"[SIP] MediaSession.Close hatasi: {ex.Message}"); }
+        }
+
+        if (ua != null)
+        {
+            try
+            {
+                if (ua.IsCallActive)
+                    ua.Hangup();
+            }
+            catch { }
+        }
+
+        Log($"[SIP] Hat {line.Index} temizlendi -> Idle (onceki={prevState})");
     }
 
     // ═══════════════════════════════════════════════════

@@ -22,6 +22,11 @@ public class RecordingUploadTargetsDto
     public bool AutoRecordCalls { get; set; }
 }
 
+public class ToggleAutoRecordRequest
+{
+    public bool Enabled { get; set; }
+}
+
 /// <summary>Oturum acik kullanici bilgisi (yetki kontrolu icin)</summary>
 public class CurrentUserInfo
 {

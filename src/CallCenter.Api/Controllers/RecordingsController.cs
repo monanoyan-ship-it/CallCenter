@@ -24,6 +24,7 @@ public class RecordingsController : AuditableControllerBase
     private readonly ISettingEntityService _settingEs;
     private readonly ICustomerEntityService _customerEs;
     private readonly AesEncryptionService _aes;
+    private readonly Infrastructure.IUnitOfWork _uow;
 
     public RecordingsController(
         IAuditFactory auditFactory,
@@ -31,13 +32,15 @@ public class RecordingsController : AuditableControllerBase
         IRecordingPlaybackFactory playbackFactory,
         ISettingEntityService settingEs,
         ICustomerEntityService customerEs,
-        AesEncryptionService aes) : base(auditFactory)
+        AesEncryptionService aes,
+        Infrastructure.IUnitOfWork uow) : base(auditFactory)
     {
         _cloudStorageFactory = cloudStorageFactory;
         _playbackFactory = playbackFactory;
         _settingEs = settingEs;
         _customerEs = customerEs;
         _aes = aes;
+        _uow = uow;
     }
 
     /// <summary>
@@ -94,8 +97,8 @@ public class RecordingsController : AuditableControllerBase
 
     /// <summary>
     /// Windows app icin cift upload hedeflerini dondur.
-    /// Musterinin SaveRecordingToPlatform/SaveRecordingToOwnStorage tercihlerine gore
-    /// platform ve/veya musteri cloud config'ini birlikte dondurur.
+    /// Platform: config varsa aktif, yoksa pasif (SaveRecordingToPlatform flag'i yalnizca override).
+    /// Musteri: aktif storage config varsa otomatik aktif (SaveRecordingToOwnStorage flag'i yalnizca override).
     /// </summary>
     [HttpGet("upload-targets")]
     public async Task<ActionResult<RecordingUploadTargetsDto>> GetUploadTargets()
@@ -110,18 +113,47 @@ public class RecordingsController : AuditableControllerBase
 
         var result = new RecordingUploadTargetsDto
         {
-            UploadToPlatform = customer.SaveRecordingToPlatform,
-            UploadToCustomerStorage = customer.SaveRecordingToOwnStorage,
             AutoRecordCalls = customer.AutoRecordCalls
         };
 
+        // Platform deposu: config varsa aktif
         if (customer.SaveRecordingToPlatform)
+        {
             result.PlatformConfig = await GetPlatformConfigInternalAsync();
+            result.UploadToPlatform = result.PlatformConfig != null;
+        }
 
-        if (customer.SaveRecordingToOwnStorage)
-            result.CustomerConfig = await _cloudStorageFactory.GetConfigForClientAsync(customerId.Value);
+        // Musteri deposu: aktif config varsa otomatik aktif
+        var customerConfig = await _cloudStorageFactory.GetConfigForClientAsync(customerId.Value);
+        if (customerConfig != null)
+        {
+            result.UploadToCustomerStorage = true;
+            result.CustomerConfig = customerConfig;
+        }
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Musteri admini otomatik kayit ayarini toggle eder.
+    /// </summary>
+    [HttpPut("auto-record")]
+    public async Task<IActionResult> ToggleAutoRecord([FromBody] ToggleAutoRecordRequest request)
+    {
+        var customerId = CurrentCustomerId;
+        if (customerId == null) return Unauthorized();
+
+        // Sadece CustomerAdmin yapabilir
+        var isAdmin = User.FindFirstValue("IsCustomerAdmin") == "true";
+        if (!isAdmin) return Forbid();
+
+        var customer = await _customerEs.GetByIdAsync(customerId.Value);
+        if (customer == null) return NotFound();
+
+        customer.AutoRecordCalls = request.Enabled;
+        await _uow.SaveChangesAsync();
+
+        return Ok(new { customer.AutoRecordCalls });
     }
 
     private async Task<CloudConfigForClientDto?> GetPlatformConfigInternalAsync()
