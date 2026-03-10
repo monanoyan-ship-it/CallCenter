@@ -102,9 +102,15 @@ public partial class MainWindow : Window
         // ── Lokal Dosya Deposu (temp buffer) + Cift Yazim ──
         services.AddLogging();
 
-        var localDataPath = Path.Combine(
+        var corpLynkBase = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CorpLynk", "Data");
+            "CorpLynk");
+        var localDataPath = Path.Combine(corpLynkBase, "Data");
+        var recordingsPath = Path.Combine(corpLynkBase, "Recordings");
+
+        // Uygulama baslandiginda gerekli klasorleri olustur
+        Directory.CreateDirectory(localDataPath);
+        Directory.CreateDirectory(recordingsPath);
 
         services.AddSingleton<ILocalRepository>(sp =>
         {

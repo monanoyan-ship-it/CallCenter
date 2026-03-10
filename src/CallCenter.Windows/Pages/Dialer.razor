@@ -27,6 +27,14 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(_storageWarning))
+{
+    <div class="alert alert-warning alert-dismissible d-flex align-items-center py-1 px-2 mb-1" style="font-size:0.75rem;">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span>@_storageWarning</span>
+    </div>
+}
+
 <div class="single-page-layout" style="@(isAdminRole ? "opacity: 0.5; pointer-events: none;" : "")">
     @* ═══ SOL: DIALER ═══ *@
     <div class="dialer-section">
@@ -400,6 +408,7 @@
     private Guid? currentCallUid;       // Lokal DB referansi (cift yazim)
     private bool showTransferDialog;
     private bool _autoRecordEnabled;
+    private string? _storageWarning;
     private bool isAdminRole;
     private List<LineInfo> lines = new();
     private bool showContactPicker;
@@ -453,11 +462,18 @@
         if (!string.IsNullOrEmpty(encKey))
             SipService.SetEncryptionKey(encKey);
 
-        // Otomatik kayit ayarini API'den yukle (admin yonetir)
+        // Depolama ve otomatik kayit ayarlarini API'den yukle
         try
         {
             var targets = await Http.GetFromJsonAsync<CallCenter.Shared.DTOs.RecordingUploadTargetsDto>("api/recordings/upload-targets");
             _autoRecordEnabled = targets?.AutoRecordCalls ?? false;
+
+            if (targets != null && !targets.UploadToPlatform && !targets.UploadToCustomerStorage)
+                _storageWarning = "Depolama ayari yapilmamis! Ses kayitlari sadece bu bilgisayarda kalacak.";
+            else if (targets != null && targets.UploadToPlatform && targets.PlatformConfig == null)
+                _storageWarning = "Platform deposu aktif ama yapilandirma eksik.";
+            else if (targets != null && targets.UploadToCustomerStorage && targets.CustomerConfig == null)
+                _storageWarning = "Musteri deposu aktif ama yapilandirma eksik.";
         }
         catch { _autoRecordEnabled = false; }
 
