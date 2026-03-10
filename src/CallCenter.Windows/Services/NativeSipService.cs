@@ -80,6 +80,11 @@ public class NativeSipService : ISipService
     private readonly object _recWriteLock = new();
     private const int MaxRecordQueueDepth = 50; // ~1sn (20ms chunk basina)
 
+    // ─── RTP Timeout (karsi taraf BYE gondermeden kapatirsa) ───
+    private DateTime _lastRtpReceived;
+    private System.Timers.Timer? _rtpTimeoutTimer;
+    private const int RtpTimeoutSeconds = 8; // 8sn RTP gelmezse cagri bitti say
+
     // ─── Voicemail (MWI) ───
     private int _voicemailCount;
     private string? _voicemailNumber;
@@ -959,7 +964,8 @@ public class NativeSipService : ISipService
 
             var pcm = AudioCodecDecoder.Decode(rtpPacket.Payload, pt);
             _recInQueue.Enqueue(pcm);
-            TryWriteMixedAudio();
+            // Mix islemini ayri thread'de yap - RTP alma pipeline'ini bloklama
+            ThreadPool.QueueUserWorkItem(_ => TryWriteMixedAudio());
         }
         catch { /* Kayit hatasi sessizce gecilebilir */ }
     }
@@ -969,13 +975,19 @@ public class NativeSipService : ISipService
     {
         if (_waveWriter == null) return;
 
-        try
+        // Mikrofon pipeline'ini bloklamamak icin tamamen asenkron
+        var payload = sample;
+        var pt = _recordingPayloadType;
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            var pcm = AudioCodecDecoder.Decode(sample, _recordingPayloadType);
-            _recOutQueue.Enqueue(pcm);
-            TryWriteMixedAudio();
-        }
-        catch { /* Kayit hatasi sessizce gecilebilir */ }
+            try
+            {
+                var pcm = AudioCodecDecoder.Decode(payload, pt);
+                _recOutQueue.Enqueue(pcm);
+                TryWriteMixedAudio();
+            }
+            catch { }
+        });
     }
 
     /// <summary>
@@ -1213,6 +1225,53 @@ public class NativeSipService : ISipService
         {
             Console.WriteLine($"[SIP] {reason} sonrasi re-register hatasi: {ex.Message}");
         }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // RTP TIMEOUT (karsi taraf BYE gondermeden kapatirsa)
+    // ═══════════════════════════════════════════════════
+
+    private void StartRtpTimeoutTimer()
+    {
+        StopRtpTimeoutTimer();
+        _rtpTimeoutTimer = new System.Timers.Timer(2000); // 2sn aralikla kontrol
+        _rtpTimeoutTimer.Elapsed += (s, e) =>
+        {
+            // Aktif arama yoksa timer'i durdur
+            if (!IsInCall)
+            {
+                StopRtpTimeoutTimer();
+                return;
+            }
+
+            var elapsed = (DateTime.UtcNow - _lastRtpReceived).TotalSeconds;
+            if (elapsed > RtpTimeoutSeconds)
+            {
+                Console.WriteLine($"[SIP] RTP timeout! {elapsed:F0}sn dir ses gelmedi — cagri sonlandiriliyor");
+                StopRtpTimeoutTimer();
+
+                // Cagriyi sonlandir
+                SafeCallbackAsync(async () =>
+                {
+                    var activeLine = ActiveLine;
+                    if (activeLine.State != LineState.Idle)
+                    {
+                        if (activeLine.UserAgent?.IsCallActive == true)
+                            activeLine.UserAgent.Hangup();
+                        CleanupLine(activeLine);
+                        await (OnCallEnded?.Invoke() ?? Task.CompletedTask);
+                    }
+                });
+            }
+        };
+        _rtpTimeoutTimer.Start();
+    }
+
+    private void StopRtpTimeoutTimer()
+    {
+        _rtpTimeoutTimer?.Stop();
+        _rtpTimeoutTimer?.Dispose();
+        _rtpTimeoutTimer = null;
     }
 
     // ═══════════════════════════════════════════════════
@@ -1732,7 +1791,16 @@ public class NativeSipService : ISipService
         var mediaSession = new VoIPMediaSession(sessionConfig);
         mediaSession.AcceptRtpFromAny = true;
 
-        Console.WriteLine("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true)");
+        // RTP timeout algilama: karsi taraf BYE gondermeden kapatirsa
+        _lastRtpReceived = DateTime.UtcNow;
+        mediaSession.OnRtpPacketReceived += (ep, mt, pkt) =>
+        {
+            if (mt == SDPMediaTypesEnum.audio)
+                _lastRtpReceived = DateTime.UtcNow;
+        };
+        StartRtpTimeoutTimer();
+
+        Console.WriteLine("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true, RTP timeout=8sn)");
         return mediaSession;
     }
 

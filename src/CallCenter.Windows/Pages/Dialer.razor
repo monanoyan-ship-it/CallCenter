@@ -928,7 +928,28 @@
     private async Task EndCall()
     {
         isCallStarting = false;
-        await SipService.HangupAsync();
+
+        // UI'yi hemen guncelle — kapat butonunu devre disi birak
+        var endUid = currentCallUid;
+        var endId = currentCallId;
+        var wasRec = SipService.IsRecording;
+
+        statusMessage = wasRec ? "Ses kaydi isleniyor..." : "Kapatiliyor...";
+        statusClass = "text-info";
+        StateHasChanged();
+
+        // SIP hangup + kayit isleme arka planda
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SipService.HangupAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dialer] Hangup hatasi: {ex.Message}");
+            }
+        });
     }
 
     // ─── Quick Actions ───
