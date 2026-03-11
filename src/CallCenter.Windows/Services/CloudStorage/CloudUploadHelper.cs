@@ -135,10 +135,21 @@ public static class CloudUploadHelper
 
         var fileMetadata = new Google.Apis.Drive.v3.Data.File { Name = fileName };
 
-        // Hedef klasor
+        // Hedef klasor — ID veya isim olabilir
         cred.TryGetValue("FolderId", out var folderId);
         if (!string.IsNullOrEmpty(folderId))
-            fileMetadata.Parents = new List<string> { folderId };
+        {
+            // Google Drive folder ID'leri genelde 25+ karakter alfanumerik olur.
+            // Kisa veya bosluk/Turkce karakter iceriyorsa isim olarak kabul et.
+            var looksLikeId = folderId.Length >= 20 && !folderId.Contains(' ');
+            if (!looksLikeId)
+            {
+                // Isim ile klasor ara, yoksa olustur
+                folderId = await ResolveOrCreateFolderAsync(driveService, folderId, ct);
+            }
+            if (!string.IsNullOrEmpty(folderId))
+                fileMetadata.Parents = new List<string> { folderId };
+        }
 
         var request = driveService.Files.Create(fileMetadata, fileStream, "application/octet-stream");
         request.Fields = "id";
@@ -148,6 +159,34 @@ public static class CloudUploadHelper
             return (false, null, $"Google Drive upload hatasi: {progress.Exception?.Message}");
 
         return (true, request.ResponseBody?.Id, null);
+    }
+
+    /// <summary>
+    /// Google Drive'da isimle klasor arar, yoksa olusturur. Folder ID dondurur.
+    /// </summary>
+    private static async Task<string?> ResolveOrCreateFolderAsync(
+        DriveService driveService, string folderName, CancellationToken ct)
+    {
+        // 1. Ara
+        var listReq = driveService.Files.List();
+        listReq.Q = $"name = '{folderName.Replace("'", "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        listReq.Fields = "files(id, name)";
+        listReq.PageSize = 1;
+        var result = await listReq.ExecuteAsync(ct);
+
+        if (result.Files?.Count > 0)
+            return result.Files[0].Id;
+
+        // 2. Yoksa olustur
+        var folderMeta = new Google.Apis.Drive.v3.Data.File
+        {
+            Name = folderName,
+            MimeType = "application/vnd.google-apps.folder"
+        };
+        var createReq = driveService.Files.Create(folderMeta);
+        createReq.Fields = "id";
+        var folder = await createReq.ExecuteAsync(ct);
+        return folder?.Id;
     }
 
     // ═══════════════════════════════════════

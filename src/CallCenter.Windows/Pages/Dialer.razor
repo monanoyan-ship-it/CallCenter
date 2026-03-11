@@ -793,7 +793,7 @@
                         if (wasRecording)
                         {
                             DiagLog("HandleCallEnded: StopRecordingAsync cagriliyor...");
-                            var stopTask = SipService.StopRecordingAsync();
+                            var stopTask = Task.Run(async () => await SipService.StopRecordingAsync());
                             if (await Task.WhenAny(stopTask, Task.Delay(15000)) != stopTask)
                             {
                                 DiagLog("HandleCallEnded: StopRecordingAsync 15sn TIMEOUT!");
@@ -1007,7 +1007,8 @@
                 }
 
                 DiagLog("EndCall: HangupAsync cagriliyor...");
-                var hangupTask = SipService.HangupAsync();
+                // HangupAsync senkron bloklanabilir — ayri thread'de calistir
+                var hangupTask = Task.Run(async () => await SipService.HangupAsync());
                 if (await Task.WhenAny(hangupTask, Task.Delay(10000)) != hangupTask)
                 {
                     DiagLog("EndCall: HangupAsync 10sn timeout! Devam ediliyor.");

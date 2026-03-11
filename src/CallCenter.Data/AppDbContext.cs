@@ -1061,7 +1061,7 @@ public class AppDbContext : DbContext
             (31, "notification.desktop_enabled", "true", "notification", "bool", "Masaustu bildirimi", false),
             (32, "notification.ring_duration", "30", "notification", "int", "Zil calma suresi (sn)", false),
 
-            // Platform Depolama
+            // Platform Depolama (varsayilan: devre disi)
             (40, "storage.platform_enabled", "false", "storage", "bool", "Platform depolamasi aktif mi", true),
             (41, "storage.platform_provider_type_id", "0", "storage", "int", "StorageProviders ID", true),
             (42, "storage.platform_credentials", "", "storage", "encrypted_json", "Sifrelenmis kimlik bilgileri (JSON)", true),

@@ -108,11 +108,12 @@ public class BackgroundSyncService
         {
             try
             {
+                // ONCE upload (CloudFileId set edilsin), SONRA sync (CloudFileId backend'e gitsin)
+                await _recordingUpload.UploadPendingRecordingsAsync(ct);
                 await SyncUnsyncedRecordsAsync(ct);
                 await SyncUnsyncedContactsAsync(ct);
                 await SyncUnsyncedSipAccountsAsync(ct);
                 await CleanupSyncedRecordsAsync();
-                await _recordingUpload.UploadPendingRecordingsAsync(ct);
             }
             catch (OperationCanceledException)
             {
