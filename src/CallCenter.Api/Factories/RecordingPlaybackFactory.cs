@@ -149,11 +149,24 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
 
     private async Task<int?> GetCallCustomerIdAsync(CallRecord call)
     {
-        if (call.QueueId == null) return null;
-        return await _calls.GetAllQueryable()
-            .Where(c => c.Id == call.Id && c.Queue != null)
-            .Select(c => c.Queue!.CustomerId)
-            .FirstOrDefaultAsync();
+        // 1. Queue uzerinden musteri bul
+        if (call.QueueId != null)
+        {
+            var customerId = await _calls.GetAllQueryable()
+                .Where(c => c.Id == call.Id && c.Queue != null)
+                .Select(c => c.Queue!.CustomerId)
+                .FirstOrDefaultAsync();
+            if (customerId != 0) return customerId;
+        }
+
+        // 2. Queue yoksa Agent uzerinden musteri bul (kuyruksuz aramalar)
+        if (call.AgentId != null)
+        {
+            var personnel = await _personnel.GetByUserIdAsync(call.AgentId.Value);
+            return personnel?.CustomerId;
+        }
+
+        return null;
     }
 
     private async Task LogAccessAsync(CallRecord call, CurrentUserInfo currentUser, int actionTypeId,
