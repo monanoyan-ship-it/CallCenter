@@ -5,21 +5,22 @@ window.audioPlayer = {
         var self = this;
         var existing = self._instances[audioElementId];
         if (existing && existing.objectUrl) {
-            // Resume paused playback
             existing.audio.play();
-            return;
+            return Promise.resolve(true);
         }
 
-        var audio = document.getElementById(audioElementId);
-        if (!audio) {
-            audio = document.createElement('audio');
-            audio.id = audioElementId;
-            audio.style.display = 'none';
-            document.body.appendChild(audio);
-        }
+        // Remove stale audio element if exists
+        var old = document.getElementById(audioElementId);
+        if (old) old.remove();
 
-        // Fetch with auth header
-        fetch(url, {
+        var audio = document.createElement('audio');
+        audio.id = audioElementId;
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
+
+        if (!url) return Promise.resolve(false);
+
+        return fetch(url, {
             headers: { 'Authorization': 'Bearer ' + authToken }
         })
         .then(function (response) {
@@ -29,11 +30,12 @@ window.audioPlayer = {
         .then(function (blob) {
             var objectUrl = URL.createObjectURL(blob);
             audio.src = objectUrl;
-            audio.play();
             self._instances[audioElementId] = { audio: audio, objectUrl: objectUrl };
+            return audio.play().then(function () { return true; });
         })
         .catch(function (err) {
             console.error('[audioPlayer] Error:', err);
+            return false;
         });
     },
 
@@ -46,12 +48,17 @@ window.audioPlayer = {
         var instance = this._instances[audioElementId];
         if (instance) {
             instance.audio.pause();
-            instance.audio.currentTime = 0;
+            instance.audio.removeAttribute('src');
+            instance.audio.load();
             if (instance.objectUrl) {
                 URL.revokeObjectURL(instance.objectUrl);
             }
+            instance.audio.remove();
             delete this._instances[audioElementId];
         }
+        // Cleanup any orphaned element
+        var el = document.getElementById(audioElementId);
+        if (el) el.remove();
     },
 
     seek: function (audioElementId, position) {
@@ -76,7 +83,6 @@ window.audioPlayer = {
         if (!instance) return { playing: false, currentTime: 0, duration: 0, ended: false };
         var ct = instance.audio.currentTime || 0;
         var dur = isNaN(instance.audio.duration) ? 0 : instance.audio.duration;
-        // Update slider DOM property directly (Blazor attribute binding doesn't move the thumb after user interaction)
         if (sliderId) {
             var slider = document.getElementById(sliderId);
             if (slider) {

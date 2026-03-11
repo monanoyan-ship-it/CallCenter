@@ -89,10 +89,20 @@
                         <span>Aktif Aramalar</span>
                     </NavLink>
                 }
-                <NavLink class="nav-link" href="customer/calls/history">
-                    <i class="bi bi-clock-history"></i>
-                    <span>Arama Gecmisi</span>
-                </NavLink>
+                @if (IsOperator)
+                {
+                    <NavLink class="nav-link" href="customer/calls/myhistory">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Aramalarim</span>
+                    </NavLink>
+                }
+                else
+                {
+                    <NavLink class="nav-link" href="customer/calls/history">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Arama Gecmisi</span>
+                    </NavLink>
+                }
                 <NavLink class="nav-link" href="customer/contacts" Match="NavLinkMatch.All">
                     <i class="bi bi-people-fill"></i>
                     <span>Rehber</span>

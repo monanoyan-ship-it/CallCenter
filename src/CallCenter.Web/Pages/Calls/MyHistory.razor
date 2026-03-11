@@ -1,4 +1,4 @@
-@page "/customer/calls/history"
+@page "/customer/calls/myhistory"
 @attribute [Authorize(Roles = "CustomerUser")]
 @inject HttpClient Http
 @using CallCenter.Shared.Enums
@@ -6,7 +6,7 @@
 <div class="history-page">
     <div class="page-header mb-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h5><i class="bi bi-clock-history me-2"></i>Arama Gecmisi</h5>
+            <h5><i class="bi bi-clock-history me-2"></i>Aramalarim</h5>
             <div class="d-flex gap-2">
                 <div class="input-group input-group-sm search-box">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -42,7 +42,7 @@
         <div class="empty-state">
             <i class="bi bi-clock"></i>
             <h6>Arama gecmisi bos</h6>
-            <p>Henuz tamamlanmis bir arama bulunmuyor.</p>
+            <p>Henuz tamamlanmis bir aramaniz bulunmuyor.</p>
         </div>
     }
     else
@@ -52,14 +52,12 @@
                 <thead>
                     <tr>
                         <th>Yon</th>
-                        <th>Temsilci</th>
                         <th>Arayan</th>
                         <th>Aranan</th>
                         <th>Durum</th>
                         <th>Tarih</th>
                         <th>Sure</th>
                         <th>Kuyruk</th>
-                        <th>Kayit</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -72,7 +70,6 @@
                                 <i class="bi @(dirItem?.Icon ?? "bi-telephone-fill") @(dirItem?.CssClass ?? "")"
                                    title="@(dirItem?.SystemName == "Inbound" ? "Gelen" : "Giden")"></i>
                             </td>
-                            <td class="small">@(record.AgentName ?? "-")</td>
                             <td class="fw-medium">@record.CallerNumber</td>
                             <td>@record.CalleeNumber</td>
                             <td>
@@ -83,21 +80,6 @@
                             <td class="text-muted small">@record.StartedAt.ToString("dd.MM.yyyy HH:mm")</td>
                             <td class="fw-medium">@FormatDuration(record.DurationSeconds)</td>
                             <td class="small text-muted">@(record.QueueName ?? "-")</td>
-                            <td>
-                                @if (record.HasRecording && !isOperator)
-                                {
-                                    var isCurrentlyPlaying = playingCallUid == record.Uid;
-                                    <button class="btn btn-sm @(isCurrentlyPlaying ? "btn-warning" : "btn-outline-success")"
-                                            @onclick="() => TogglePlay(record.Uid)"
-                                            title="@(isCurrentlyPlaying ? "Durdur" : "Dinle")">
-                                        <i class="bi @(isCurrentlyPlaying ? "bi-stop-fill" : "bi-play-circle")"></i>
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
                         </tr>
                     }
                 </tbody>
@@ -106,34 +88,12 @@
     }
 </div>
 
-@* Recording Player Modal *@
-@if (playingCallUid != null)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header py-2">
-                    <h6 class="modal-title"><i class="bi bi-soundwave me-2"></i>Ses Kaydi</h6>
-                    <button type="button" class="btn-close" @onclick="OnPlayerClose"></button>
-                </div>
-                <div class="modal-body">
-                    <AudioPlayer CallUid="playingCallUid.Value"
-                                 OnPlaybackEnded="OnPlaybackEnded"
-                                 OnClose="OnPlayerClose" />
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
 @code {
     private bool isLoading = true;
     private List<CallHistoryItem> callRecords = new();
     private string searchTerm = "";
     private int filterDirection;
     private int filterStatus;
-    private Guid? playingCallUid;
-    private bool isOperator;
 
     private static readonly Dictionary<string, string> StatusNames = new()
     {
@@ -152,19 +112,8 @@
         .OrderByDescending(r => r.StartedAt)
         .ToList();
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthState { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        if (AuthState != null)
-        {
-            var state = await AuthState;
-            var customerRoleStr = state.User.FindFirst("CustomerRoleId")?.Value;
-            if (int.TryParse(customerRoleStr, out var customerRoleId))
-                isOperator = customerRoleId == CustomerRoles.Ids.Operator;
-        }
-
         await LoadHistory();
     }
 
@@ -178,36 +127,13 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[History] Veri yuklenemedi: {ex.Message}");
+            Console.WriteLine($"[MyHistory] Veri yuklenemedi: {ex.Message}");
             callRecords = new();
         }
         finally
         {
             isLoading = false;
         }
-    }
-
-    private void TogglePlay(Guid callUid)
-    {
-        if (playingCallUid == callUid)
-        {
-            playingCallUid = null;
-        }
-        else
-        {
-            playingCallUid = callUid;
-        }
-    }
-
-    private void OnPlaybackEnded()
-    {
-        // Keep player visible, user can close manually
-    }
-
-    private void OnPlayerClose()
-    {
-        playingCallUid = null;
-        StateHasChanged();
     }
 
     private string FormatDuration(int seconds)
@@ -230,7 +156,5 @@
         public string? QueueName { get; set; }
         public string? AgentName { get; set; }
         public bool HasRecording { get; set; }
-        public bool IsRecordingEncrypted { get; set; }
-        public long? RecordingFileSize { get; set; }
     }
 }

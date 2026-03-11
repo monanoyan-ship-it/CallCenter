@@ -18,7 +18,7 @@ public static class PortalModules
 
     // Yeni moduller (Faz 4 — sektorel arastirma sonucu)
     public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9);
-    public static readonly TypeItem CallRecords = new(10, "CallRecords", "PortalModule.CallRecords", "Arama kaydi dinleme/yonetimi", "bi-record-circle", "bg-orange", 10);
+    public static readonly TypeItem CallRecords = new(10, "CallRecords", "PortalModule.CallRecords", "Arama kaydi dinleme/yonetimi", "bi-record-circle", "bg-orange", 10, isDefault: true);
     public static readonly TypeItem QualityManagement = new(11, "QualityManagement", "PortalModule.QualityManagement", "Kalite degerlendirme formlari", "bi-clipboard-check", "bg-pink", 11);
     public static readonly TypeItem KnowledgeBase = new(12, "KnowledgeBase", "PortalModule.KnowledgeBase", "Bilgi bankasi, agent senaryolari", "bi-book", "bg-cyan", 12);
     public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);

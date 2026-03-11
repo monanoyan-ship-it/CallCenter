@@ -5,8 +5,17 @@
 <div class="audio-player d-flex align-items-center gap-2 p-2 bg-light rounded">
     @if (isLoading)
     {
-        <div class="spinner-border spinner-border-sm text-primary" role="status">
-            <span class="visually-hidden">Yukleniyor...</span>
+        <div class="d-flex align-items-center gap-2 w-100 justify-content-center py-2">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Yukleniyor...</span>
+            </div>
+            <span class="text-muted small">Ses kaydi yukleniyor...</span>
+        </div>
+    }
+    else if (loadError)
+    {
+        <div class="text-danger small w-100 text-center py-2">
+            <i class="bi bi-exclamation-triangle me-1"></i>Ses kaydi yuklenemedi
         </div>
     }
     else
@@ -19,8 +28,8 @@
         </button>
 
         <div class="flex-grow-1 mx-2">
-            <input type="range" id="@sliderId" class="form-range" min="0" max="@duration" step="0.1"
-                   value="@currentTime" @onchange="OnSeek" style="height:20px;" />
+            <input type="range" id="@sliderId" class="form-range" min="0" max="1" step="0.1"
+                   @onchange="OnSeek" style="height:20px;" />
         </div>
 
         <span class="text-muted small text-nowrap">@FormatTime(currentTime) / @FormatTime(duration)</span>
@@ -30,13 +39,6 @@
             <input type="range" class="form-range" min="0" max="1" step="0.05"
                    value="@volume" @onchange="OnVolumeChange" style="width:60px;height:16px;" />
         </div>
-
-        @if (hasStarted)
-        {
-            <button class="btn btn-sm btn-outline-danger" @onclick="Close" title="Kapat">
-                <i class="bi bi-x"></i>
-            </button>
-        }
     }
 </div>
 
@@ -48,8 +50,10 @@
     private string audioElementId = "";
     private string sliderId = "";
     private bool isLoading = true;
+    private bool loadError;
     private bool isPlaying;
     private bool hasStarted;
+    private bool disposed;
     private double currentTime;
     private double duration;
     private double volume = 0.8;
@@ -64,18 +68,21 @@
         try
         {
             var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
-            if (string.IsNullOrEmpty(token)) return;
+            if (string.IsNullOrEmpty(token)) { loadError = true; return; }
 
             var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
             var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
 
-            await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, streamUrl, token);
+            var success = await JS.InvokeAsync<bool>("audioPlayer.play", audioElementId, streamUrl, token);
+            if (!success) { loadError = true; return; }
+
             isPlaying = true;
             hasStarted = true;
+            isLoading = false;
 
-            // Poll state every 250ms
             pollTimer = new Timer(async _ =>
             {
+                if (disposed) return;
                 try
                 {
                     var state = await JS.InvokeAsync<AudioState>("audioPlayer.getState", audioElementId, sliderId);
@@ -85,11 +92,11 @@
 
                     if (state.Ended && hasStarted)
                     {
-                        await NotifyStreamEnded();
                         hasStarted = false;
+                        await NotifyStreamEnded();
                     }
 
-                    await InvokeAsync(StateHasChanged);
+                    if (!disposed) await InvokeAsync(StateHasChanged);
                 }
                 catch { /* component disposed */ }
             }, null, 500, 250);
@@ -97,6 +104,7 @@
         catch (Exception ex)
         {
             Console.WriteLine($"[AudioPlayer] Error: {ex.Message}");
+            loadError = true;
         }
         finally
         {
@@ -118,12 +126,14 @@
         }
         else
         {
-            // First play
+            isLoading = true;
             var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
-            if (string.IsNullOrEmpty(token)) return;
+            if (string.IsNullOrEmpty(token)) { isLoading = false; return; }
             var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
             var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
-            await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, streamUrl, token);
+            var success = await JS.InvokeAsync<bool>("audioPlayer.play", audioElementId, streamUrl, token);
+            isLoading = false;
+            if (!success) { loadError = true; return; }
             isPlaying = true;
             hasStarted = true;
         }
@@ -131,11 +141,12 @@
 
     private async Task Stop()
     {
+        pollTimer?.Dispose();
+        pollTimer = null;
         await JS.InvokeVoidAsync("audioPlayer.stop", audioElementId);
         isPlaying = false;
-        currentTime = 0;
-        await NotifyStreamEnded();
         hasStarted = false;
+        currentTime = 0;
     }
 
     private async Task OnSeek(ChangeEventArgs e)
@@ -154,12 +165,6 @@
             await JS.InvokeVoidAsync("audioPlayer.setVolume", audioElementId, vol);
             volume = vol;
         }
-    }
-
-    private async Task Close()
-    {
-        await Stop();
-        await OnClose.InvokeAsync();
     }
 
     private async Task NotifyStreamEnded()
@@ -181,7 +186,9 @@
 
     public async ValueTask DisposeAsync()
     {
+        disposed = true;
         pollTimer?.Dispose();
+        pollTimer = null;
         try
         {
             await JS.InvokeVoidAsync("audioPlayer.stop", audioElementId);
