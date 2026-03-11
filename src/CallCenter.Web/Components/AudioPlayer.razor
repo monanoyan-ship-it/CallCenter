@@ -1,6 +1,5 @@
 @inject IJSRuntime JS
 @inject HttpClient Http
-@inject NavigationManager Nav
 @implements IAsyncDisposable
 
 <div class="audio-player d-flex align-items-center gap-2 p-2 bg-light rounded">
@@ -65,8 +64,8 @@
             var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
             if (string.IsNullOrEmpty(token)) return;
 
-            var baseUrl = Nav.BaseUri.TrimEnd('/');
-            var streamUrl = $"{baseUrl}/api/recordings/{CallUid}/stream";
+            var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
+            var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
 
             await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, streamUrl, token);
             isPlaying = true;
@@ -120,8 +119,8 @@
             // First play
             var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
             if (string.IsNullOrEmpty(token)) return;
-            var baseUrl = Nav.BaseUri.TrimEnd('/');
-            var streamUrl = $"{baseUrl}/api/recordings/{CallUid}/stream";
+            var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
+            var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
             await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, streamUrl, token);
             isPlaying = true;
             hasStarted = true;

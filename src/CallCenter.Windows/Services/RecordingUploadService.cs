@@ -119,8 +119,9 @@ public class RecordingUploadService
                 {
                     if (File.Exists(recording.FilePath))
                         File.Delete(recording.FilePath);
-                    await _localRepo.DeleteRecordingAsync(recording.Uid);
-                    UploadLog($"Tamamlandi — orijinal dosya ve metadata silindi: {recording.FilePath}");
+                    // Metadata silinmez — BackgroundSync CloudFileId'yi backend'e gondermek icin kullanir.
+                    // Metadata RetentionDate'e gore temizlenir (RecordingCleanupService).
+                    UploadLog($"Tamamlandi — orijinal dosya silindi: {recording.FilePath}");
                 }
                 catch (Exception ex)
                 {

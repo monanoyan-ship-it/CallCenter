@@ -92,6 +92,7 @@ public class CallSyncService
         {
             var request = new StartCallRequest
             {
+                Uid = localRecord.Uid, // Backend ayni Uid'yi kullansın — sync duplicate onleme
                 CallerNumber = callerNumber,
                 CalleeNumber = calleeNumber,
                 QueueId = queueId

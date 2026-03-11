@@ -42,9 +42,27 @@ public class CallFactory : ICallFactory
 
     public async Task<object> GetHistoryAsync(int userId, int page, int pageSize)
     {
-        return await _calls.GetAllQueryable()
-            .Where(c => c.AgentId == userId)
-            .Where(c => CallStatuses.FinishedStatuses.Select(s => s.Id).Contains(c.StatusId))
+        var query = _calls.GetAllQueryable()
+            .Where(c => CallStatuses.FinishedStatuses.Select(s => s.Id).Contains(c.StatusId));
+
+        // Operator -> sadece kendi cagrilari
+        // FirmaAdmin/EkipLideri -> firmanin tum cagrilari
+        var personnel = await _personnel.GetByUserIdAsync(userId);
+        if (personnel != null && personnel.CustomerRoleId != CustomerRoles.Ids.Operator)
+        {
+            // Firmanin tum agent ID lerini bul
+            var customerAgentIds = await _personnel.GetAllQueryable()
+                .Where(cp => cp.CustomerId == personnel.CustomerId)
+                .Select(cp => cp.UserId)
+                .ToListAsync();
+            query = query.Where(c => c.AgentId.HasValue && customerAgentIds.Contains(c.AgentId.Value));
+        }
+        else
+        {
+            query = query.Where(c => c.AgentId == userId);
+        }
+
+        return await query
             .OrderByDescending(c => c.StartedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -59,6 +77,7 @@ public class CallFactory : ICallFactory
                 c.StartedAt,
                 c.DurationSeconds,
                 QueueName = c.Queue != null ? c.Queue.Name : null,
+                AgentName = c.Agent != null ? c.Agent.FullName : null,
                 HasRecording = c.CloudFileId != null,
                 c.IsRecordingEncrypted,
                 c.RecordingFileSize
@@ -100,6 +119,10 @@ public class CallFactory : ICallFactory
             AgentId = userId,
             QueueId = request.QueueId
         };
+
+        // Windows app lokal Uid gonderdiyse ayni Uid'yi kullan (sync duplicate onleme)
+        if (request.Uid.HasValue && request.Uid.Value != Guid.Empty)
+            call.Uid = request.Uid.Value;
 
         _calls.Add(call);
         await _uow.SaveChangesAsync();

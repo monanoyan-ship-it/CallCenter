@@ -167,8 +167,12 @@ public class BackgroundSyncService
 
                 if (backendCallId.HasValue)
                 {
-                    // Sync basarili → lokalden sil (write-ahead buffer pattern)
+                    // Sync basarili → call record + recording metadata lokalden sil
                     await _localRepo.DeleteCallRecordAsync(record.Uid);
+                    // Recording metadata artik gerekli degil (CloudFileId backend'e gitti)
+                    var recs = await _localRepo.GetRecordingsAsync(record.Uid, 1, 1);
+                    foreach (var rec in recs)
+                        await _localRepo.DeleteRecordingAsync(rec.Uid);
                     successCount++;
                 }
                 else

@@ -3,6 +3,8 @@ namespace CallCenter.Shared.DTOs;
 /// <summary>Yeni arama baslatma request'i</summary>
 public class StartCallRequest
 {
+    /// <summary>Windows app lokal Uid gonderirse backend ayni Uid'yi kullanir (duplicate onleme)</summary>
+    public Guid? Uid { get; set; }
     public string CallerNumber { get; set; } = string.Empty;
     public string CalleeNumber { get; set; } = string.Empty;
     public int? QueueId { get; set; }

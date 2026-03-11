@@ -166,7 +166,8 @@
       "Bash(gh issue:*)",
       "Bash(ls -d \"/c/Program Files\"*/Inno*/)",
       "Read(//c/Users/Ahmet/AppData/Local/Programs/**)",
-      "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\":*)"
+      "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\":*)",
+      "WebFetch(domain:www.cloudflarestatus.com)"
     ]
   }
 }

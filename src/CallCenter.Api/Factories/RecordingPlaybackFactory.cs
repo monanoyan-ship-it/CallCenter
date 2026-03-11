@@ -99,6 +99,7 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
             var decryptedStream = new MemoryStream();
             await FileEncryptionService.DecryptStreamToStreamAsync(stream, decryptedStream, key);
             await stream.DisposeAsync();
+            decryptedStream.Position = 0;
             stream = decryptedStream;
         }
 

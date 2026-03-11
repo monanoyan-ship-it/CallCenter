@@ -1843,16 +1843,7 @@ public class NativeSipService : ISipService
         var mediaSession = new VoIPMediaSession(sessionConfig);
         mediaSession.AcceptRtpFromAny = true;
 
-        // RTP timeout algilama: karsi taraf BYE gondermeden kapatirsa
-        _lastRtpReceived = DateTime.UtcNow;
-        mediaSession.OnRtpPacketReceived += (ep, mt, pkt) =>
-        {
-            if (mt == SDPMediaTypesEnum.audio)
-                _lastRtpReceived = DateTime.UtcNow;
-        };
-        StartRtpTimeoutTimer();
-
-        Log("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true, RTP timeout=8sn)");
+        Log("[SIP] MediaSession olusturuldu (AcceptRtpFromAny=true)");
         return mediaSession;
     }
 
