@@ -167,7 +167,9 @@
       "Bash(ls -d \"/c/Program Files\"*/Inno*/)",
       "Read(//c/Users/Ahmet/AppData/Local/Programs/**)",
       "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\":*)",
-      "WebFetch(domain:www.cloudflarestatus.com)"
+      "WebFetch(domain:www.cloudflarestatus.com)",
+      "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler pages deploy publish-web/wwwroot --project-name=callcenter-web --commit-dirty=true 2>&1)",
+      "Bash(gcloud run services describe callcenter-api --region=europe-west1 --project=project-648e1c7b-87e5-472b-bf1 --format=\"value\\(spec.template.spec.containers[0].env\\)\" 2>&1 | tr ';' '\\\\n' | grep -i encrypt)"
     ]
   }
 }
