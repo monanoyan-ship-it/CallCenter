@@ -71,13 +71,23 @@ window.audioPlayer = {
         return 0;
     },
 
-    getState: function (audioElementId) {
+    getState: function (audioElementId, sliderId) {
         var instance = this._instances[audioElementId];
-        if (!instance) return { playing: false, currentTime: 0, duration: 0 };
+        if (!instance) return { playing: false, currentTime: 0, duration: 0, ended: false };
+        var ct = instance.audio.currentTime || 0;
+        var dur = isNaN(instance.audio.duration) ? 0 : instance.audio.duration;
+        // Update slider DOM property directly (Blazor attribute binding doesn't move the thumb after user interaction)
+        if (sliderId) {
+            var slider = document.getElementById(sliderId);
+            if (slider) {
+                slider.max = dur;
+                slider.value = ct;
+            }
+        }
         return {
             playing: !instance.audio.paused && !instance.audio.ended,
-            currentTime: instance.audio.currentTime || 0,
-            duration: isNaN(instance.audio.duration) ? 0 : instance.audio.duration,
+            currentTime: ct,
+            duration: dur,
             ended: instance.audio.ended
         };
     },

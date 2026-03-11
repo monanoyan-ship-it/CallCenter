@@ -62,6 +62,7 @@
                 <thead>
                     <tr>
                         <th>Yon</th>
+                        <th>Temsilci</th>
                         <th>Arayan</th>
                         <th>Aranan</th>
                         <th>Durum</th>
@@ -81,6 +82,7 @@
                                 <i class="bi @(dirItem?.Icon ?? "bi-telephone-fill") @(dirItem?.CssClass ?? "")"
                                    title="@(dirItem?.SystemName == "Inbound" ? "Gelen" : "Giden")"></i>
                             </td>
+                            <td class="small">@(record.AgentName ?? "-")</td>
                             <td class="fw-medium">@record.CallerNumber</td>
                             <td>@record.CalleeNumber</td>
                             <td>
@@ -220,6 +222,7 @@
         public DateTime StartedAt { get; set; }
         public int DurationSeconds { get; set; }
         public string? QueueName { get; set; }
+        public string? AgentName { get; set; }
         public bool HasRecording { get; set; }
         public bool IsRecordingEncrypted { get; set; }
         public long? RecordingFileSize { get; set; }

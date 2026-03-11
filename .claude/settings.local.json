@@ -169,7 +169,11 @@
       "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\":*)",
       "WebFetch(domain:www.cloudflarestatus.com)",
       "Bash(NODE_OPTIONS=\"--dns-result-order=ipv4first\" CLOUDFLARE_API_TOKEN=f37xnw_MP09uaPpoC5YvNFcwOs_GESuDj-LvBHh9 npx wrangler pages deploy publish-web/wwwroot --project-name=callcenter-web --commit-dirty=true 2>&1)",
-      "Bash(gcloud run services describe callcenter-api --region=europe-west1 --project=project-648e1c7b-87e5-472b-bf1 --format=\"value\\(spec.template.spec.containers[0].env\\)\" 2>&1 | tr ';' '\\\\n' | grep -i encrypt)"
+      "Bash(gcloud run services describe callcenter-api --region=europe-west1 --project=project-648e1c7b-87e5-472b-bf1 --format=\"value\\(spec.template.spec.containers[0].env\\)\" 2>&1 | tr ';' '\\\\n' | grep -i encrypt)",
+      "Bash(gcloud logging read \"resource.type=cloud_run_revision AND resource.labels.service_name=callcenter-api AND timestamp>=\\\\\"2026-03-11T11:00:00Z\\\\\"\" --project=project-648e1c7b-87e5-472b-bf1 --limit=10 --format=\"value\\(textPayload\\)\" 2>&1 | head -40)",
+      "Bash(gcloud logging read \"resource.type=cloud_run_revision AND resource.labels.service_name=callcenter-api AND severity>=ERROR AND timestamp>=\\\\\"2026-03-11T12:00:00Z\\\\\"\" --project=project-648e1c7b-87e5-472b-bf1 --limit=3 --format=\"value\\(textPayload\\)\" 2>&1 | head -30)",
+      "Bash(gcloud logging read \"resource.type=cloud_run_revision AND resource.labels.service_name=callcenter-api AND severity>=ERROR AND timestamp>=\\\\\"2026-03-11T12:00:00Z\\\\\"\" --project=project-648e1c7b-87e5-472b-bf1 --limit=2 --format=\"value\\(textPayload\\)\" 2>&1)",
+      "Bash(gcloud logging read \"resource.type=cloud_run_revision AND resource.labels.service_name=callcenter-api AND severity>=ERROR\" --project=project-648e1c7b-87e5-472b-bf1 --limit=1 --format=\"value\\(textPayload\\)\" --freshness=1h 2>&1)"
     ]
   }
 }

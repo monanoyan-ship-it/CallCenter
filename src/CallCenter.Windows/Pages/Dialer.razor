@@ -579,6 +579,7 @@
             sipStatusText = "SIP Hata";
             statusMessage = "SIP baglanti hatasi: " + ex.Message;
             statusClass = "text-danger";
+            DiagLog($"InitializeSip HATA: {ex}");
         }
     }
 
@@ -913,7 +914,8 @@
         try
         {
             // Cift yazim: hem lokal DB'ye hem backend'e yazar
-            var syncResult = await CallSync.StartCallAsync("me", phoneNumber);
+            var callerNum = _activeSipInfo?.AuthUsername ?? "unknown";
+            var syncResult = await CallSync.StartCallAsync(callerNum, phoneNumber);
             currentCallUid = syncResult.Uid;
             currentCallId = syncResult.BackendCallId;
             notesCallUid = syncResult.Uid;
