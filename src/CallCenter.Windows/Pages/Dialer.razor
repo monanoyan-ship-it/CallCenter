@@ -782,17 +782,32 @@
             catch (Exception ex) { DiagLog($"HubService hatasi: {ex.Message}"); }
 
             // Sifreleme + sync arka planda (UI kitlenmesin)
+            DiagLog($"HandleCallEnded: endCallUid={endCallUid}, endCallId={endCallId}, wasRecording={wasRecording}");
             if (endCallUid.HasValue)
             {
                 _ = Task.Run(async () =>
                 {
                     try
                     {
+                        DiagLog("HandleCallEnded Task.Run BASLADI");
                         if (wasRecording)
-                            await SipService.StopRecordingAsync();
+                        {
+                            DiagLog("HandleCallEnded: StopRecordingAsync cagriliyor...");
+                            var stopTask = SipService.StopRecordingAsync();
+                            if (await Task.WhenAny(stopTask, Task.Delay(15000)) != stopTask)
+                            {
+                                DiagLog("HandleCallEnded: StopRecordingAsync 15sn TIMEOUT!");
+                            }
+                            else
+                            {
+                                DiagLog($"HandleCallEnded: StopRecordingAsync tamamlandi. Path={SipService.LastRecordingPath}");
+                            }
+                        }
 
                         string? recordingPath = SipService.LastRecordingPath;
+                        DiagLog($"HandleCallEnded: EndCallAsync cagriliyor. uid={endCallUid.Value}, recPath={recordingPath}");
                         await CallSync.EndCallAsync(endCallUid.Value, endCallId, recordingPath);
+                        DiagLog("HandleCallEnded: EndCallAsync TAMAMLANDI.");
 
                         await InvokeAsync(() =>
                         {
@@ -807,7 +822,7 @@
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Dialer] Kayit isleme hatasi: {ex.Message}");
+                        DiagLog($"HandleCallEnded kayit isleme hatasi: {ex.Message}\n{ex.StackTrace}");
                         await InvokeAsync(() =>
                         {
                             statusMessage = "Kayit isleme hatasi!";
@@ -820,6 +835,7 @@
             }
             else
             {
+                DiagLog("HandleCallEnded: endCallUid NULL — EndCallAsync CAGRILMADI!");
                 _callEndProcessing = false;
             }
         });
@@ -978,19 +994,42 @@
         callDuration = "00:00";
         StateHasChanged();
 
-        // SIP hangup + kayit isleme arka planda
+        // ONCE kaydi durdur (MediaSession kapanmadan), SONRA SIP hangup
         _ = Task.Run(async () =>
         {
             try
             {
-                await SipService.HangupAsync();
-
                 if (wasRec)
+                {
+                    DiagLog("EndCall: StopRecordingAsync ONCE cagriliyor (HangupAsync oncesi)");
                     await SipService.StopRecordingAsync();
+                    DiagLog($"EndCall: StopRecordingAsync tamamlandi. Path={SipService.LastRecordingPath}");
+                }
+
+                DiagLog("EndCall: HangupAsync cagriliyor...");
+                var hangupTask = SipService.HangupAsync();
+                if (await Task.WhenAny(hangupTask, Task.Delay(10000)) != hangupTask)
+                {
+                    DiagLog("EndCall: HangupAsync 10sn timeout! Devam ediliyor.");
+                }
+                else
+                {
+                    DiagLog("EndCall: HangupAsync tamamlandi.");
+                }
 
                 string? recordingPath = SipService.LastRecordingPath;
+                DiagLog($"EndCall: endUid={endUid}, endId={endId}, recPath={recordingPath}");
+
                 if (endUid.HasValue)
+                {
+                    DiagLog("EndCall: CallSync.EndCallAsync cagriliyor...");
                     await CallSync.EndCallAsync(endUid.Value, endId, recordingPath);
+                    DiagLog("EndCall: EndCallAsync TAMAMLANDI.");
+                }
+                else
+                {
+                    DiagLog("EndCall: endUid null — EndCallAsync CAGRILMADI!");
+                }
 
                 await InvokeAsync(() =>
                 {
@@ -1002,7 +1041,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Dialer] EndCall hatasi: {ex.Message}");
+                DiagLog($"EndCall hatasi: {ex.Message}\n{ex.StackTrace}");
                 await InvokeAsync(() =>
                 {
                     statusMessage = "Arama sonlandirildi";

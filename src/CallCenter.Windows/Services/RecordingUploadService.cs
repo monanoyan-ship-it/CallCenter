@@ -57,11 +57,12 @@ public class RecordingUploadService
         var targets = await GetUploadTargetsAsync(ct);
         if (targets == null || (!targets.UploadToPlatform && !targets.UploadToCustomerStorage))
         {
-            _logger.LogDebug("Hic bir upload hedefi aktif degil — upload atlaniyor");
+            UploadLog($"Upload hedefi yok/inaktif. targets={targets != null}, platform={targets?.UploadToPlatform}, customer={targets?.UploadToCustomerStorage}");
             return;
         }
 
         var recordings = await _localRepo.GetUnuploadedRecordingsAsync(10);
+        UploadLog($"Bekleyen kayit sayisi: {recordings.Count} (platform={targets.UploadToPlatform}, customer={targets.UploadToCustomerStorage})");
         if (recordings.Count == 0) return;
 
         _logger.LogInformation("{Count} ses kaydi yuklenecek (platform={Platform}, musteri={Customer})",
@@ -70,11 +71,11 @@ public class RecordingUploadService
         foreach (var recording in recordings)
         {
             ct.ThrowIfCancellationRequested();
+            UploadLog($"Isleniyor: {recording.FilePath} (cloud={recording.IsUploadedToCloud}, platform={recording.IsUploadedToPlatform})");
 
             if (!File.Exists(recording.FilePath))
             {
-                _logger.LogWarning("Ses kaydi dosyasi bulunamadi: {Path}", recording.FilePath);
-                // Her iki hedef icin de attempt artir
+                UploadLog($"Dosya bulunamadi: {recording.FilePath}");
                 await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
                 await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
                 continue;
@@ -84,6 +85,7 @@ public class RecordingUploadService
             if (targets.UploadToPlatform && targets.PlatformConfig != null
                 && !recording.IsUploadedToPlatform && recording.PlatformUploadAttemptCount < MaxRetries)
             {
+                UploadLog($"Platform upload basliyor: provider={targets.PlatformConfig.ProviderTypeId}");
                 await UploadToTargetAsync(targets.PlatformConfig, recording, "platform", ct);
             }
 
@@ -91,21 +93,23 @@ public class RecordingUploadService
             if (targets.UploadToCustomerStorage && targets.CustomerConfig != null
                 && !recording.IsUploadedToCloud && recording.CloudUploadAttemptCount < MaxRetries)
             {
+                UploadLog($"Customer upload basliyor: provider={targets.CustomerConfig.ProviderTypeId}");
                 await UploadToTargetAsync(targets.CustomerConfig, recording, "customer", ct);
             }
 
             // Tum aktif hedefler tamamlandiysa lokal dosyayi sil
             var allDone = IsAllTargetsComplete(recording, targets);
+            UploadLog($"AllDone={allDone} (cloud={recording.IsUploadedToCloud}, platform={recording.IsUploadedToPlatform})");
             if (allDone)
             {
                 try
                 {
                     File.Delete(recording.FilePath);
-                    _logger.LogInformation("Tum hedeflere yuklendi, lokal silindi: {Path}", recording.FilePath);
+                    UploadLog($"Lokal dosya silindi: {recording.FilePath}");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Dosya silme hatasi: {Path}", recording.FilePath);
+                    UploadLog($"Dosya silme hatasi: {ex.Message}");
                 }
             }
         }
@@ -134,8 +138,7 @@ public class RecordingUploadService
 
             if (success && fileId != null)
             {
-                _logger.LogInformation("{Target} deposuna yuklendi: {FileName} → {FileId}",
-                    targetName, fileName, fileId);
+                UploadLog($"{targetName} BASARILI: {fileName} → {fileId}");
 
                 if (targetName == "platform")
                     await _localRepo.MarkRecordingAsUploadedToPlatformAsync(recording.Uid, fileId);
@@ -156,7 +159,7 @@ public class RecordingUploadService
             }
             else
             {
-                _logger.LogWarning("{Target} upload basarisiz: {Error}", targetName, error);
+                UploadLog($"{targetName} BASARISIZ: {error}");
                 if (targetName == "platform")
                     await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
                 else
@@ -165,7 +168,7 @@ public class RecordingUploadService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "{Target} upload hatasi: {Uid}", targetName, recording.Uid);
+            UploadLog($"{targetName} HATA: {ex.Message}");
             if (targetName == "platform")
                 await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
             else
@@ -220,8 +223,7 @@ public class RecordingUploadService
             }
 
             File.Copy(recording.FilePath, targetPath);
-            _logger.LogInformation("{Target} LocalDisk'e kopyalandi: {Source} → {Dest}",
-                targetName, recording.FilePath, targetPath);
+            UploadLog($"{targetName} LocalDisk KOPYALANDI: {recording.FilePath} → {targetPath}");
 
             if (targetName == "platform")
                 await _localRepo.MarkRecordingAsUploadedToPlatformAsync(recording.Uid, targetPath);
@@ -254,6 +256,19 @@ public class RecordingUploadService
         if (targets.UploadToPlatform && !recording.IsUploadedToPlatform) return false;
         if (targets.UploadToCustomerStorage && !recording.IsUploadedToCloud) return false;
         return true;
+    }
+
+    private static void UploadLog(string msg)
+    {
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "CorpLynk", "upload-debug.log");
+            var line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}{Environment.NewLine}";
+            File.AppendAllText(path, line);
+        }
+        catch { }
     }
 
     // ═══════════════════════════════════════

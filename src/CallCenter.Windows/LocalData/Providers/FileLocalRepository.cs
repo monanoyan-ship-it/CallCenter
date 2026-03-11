@@ -105,8 +105,9 @@ public class FileLocalRepository : ILocalRepository
     public async Task DeleteCallRecordAsync(Guid uid)
     {
         await _callRecords.RemoveAsync(r => r.Uid == uid);
-        // Iliskili ses kaydi metadata'sini da temizle
-        await _recordings.RemoveAllAsync(r => r.CallRecordUid == uid);
+        // Recording metadata silinmez — upload tamamlanana kadar kalir.
+        // Upload sonrasi UploadPendingRecordingsAsync lokal dosyayi siler,
+        // metadata ise RetentionDate'e gore temizlenir.
     }
 
     public async Task<List<LocalCallRecord>> GetCallRecordsAsync(DateTime? from, DateTime? to, int page, int pageSize)

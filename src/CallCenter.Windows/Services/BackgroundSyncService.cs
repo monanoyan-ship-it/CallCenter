@@ -139,6 +139,10 @@ public class BackgroundSyncService
     /// </summary>
     private async Task SyncUnsyncedRecordsAsync(CancellationToken ct)
     {
+        // Oncelikle: 1 saatten eski InProgress/Ringing kayitlari "Completed" yap
+        // (EndCallAsync calismadiysa bu kayitlar sonsuza dek takilir)
+        await RecoverStaleRecordsAsync();
+
         var unsyncedRecords = await _localRepo.GetUnsyncedRecordsAsync(BatchSize);
 
         if (unsyncedRecords.Count == 0) return;
@@ -435,6 +439,40 @@ public class BackgroundSyncService
         if (successCount > 0 || failCount > 0)
         {
             _logger.LogInformation("SIP account sync: {Success} basarili, {Fail} basarisiz", successCount, failCount);
+        }
+    }
+
+    /// <summary>
+    /// 1 saatten eski "InProgress" veya "Ringing" kayitlari kurtarir.
+    /// EndCallAsync calismadiysa bu kayitlar sonsuza dek takilir.
+    /// Status -> Completed, IsSyncedToBackend -> false (tekrar sync edilecek).
+    /// </summary>
+    private async Task RecoverStaleRecordsAsync()
+    {
+        try
+        {
+            var allRecords = await _localRepo.GetCallRecordsAsync(null, null, 1, 500);
+            var staleRecords = allRecords
+                .Where(r => r.Status is "Ringing" or "InProgress"
+                         && r.StartedAt < DateTime.UtcNow.AddHours(-1))
+                .ToList();
+
+            foreach (var record in staleRecords)
+            {
+                record.Status = "Completed";
+                record.EndedAt ??= record.AnsweredAt?.AddMinutes(30) ?? record.StartedAt.AddMinutes(1);
+                if (record.AnsweredAt.HasValue)
+                    record.DurationSeconds = (int)(record.EndedAt.Value - record.AnsweredAt.Value).TotalSeconds;
+                record.IsSyncedToBackend = false; // Tekrar sync et
+                await _localRepo.UpdateCallRecordAsync(record);
+            }
+
+            if (staleRecords.Count > 0)
+                _logger.LogWarning("{Count} eski InProgress kayit Completed olarak kurtarildi", staleRecords.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Stale record recovery hatasi");
         }
     }
 

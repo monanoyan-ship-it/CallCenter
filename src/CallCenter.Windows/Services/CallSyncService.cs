@@ -184,12 +184,15 @@ public class CallSyncService
     /// </summary>
     public async Task EndCallAsync(Guid uid, int? backendCallId, string? recordingFilePath = null)
     {
+        SyncLog($"EndCallAsync BASLADI. uid={uid}, backendCallId={backendCallId}, recPath={recordingFilePath}");
+
         // ── 1. Lokal kaydi guncelle ──
         if (_localRepo.IsConfigured)
         {
             try
             {
                 var record = await _localRepo.GetCallRecordByUidAsync(uid);
+                SyncLog($"GetCallRecordByUidAsync sonuc: {(record != null ? $"BULUNDU (Status={record.Status})" : "NULL — kayit bulunamadi!")}");
                 if (record != null)
                 {
                     record.Status = "Completed";
@@ -202,12 +205,12 @@ public class CallSyncService
                     // Re-sync zorunlu: guncellenmis veri (sure, kayit) backend'e push edilmeli
                     record.IsSyncedToBackend = false;
                     await _localRepo.UpdateCallRecordAsync(record);
-                    _logger.LogInformation("Lokal kayit guncellendi: {Uid}, Sure: {Duration}s",
-                        uid, record.DurationSeconds);
+                    SyncLog($"Lokal kayit guncellendi: Status=Completed, Sure={record.DurationSeconds}s, RecPath={recordingFilePath}");
                 }
             }
             catch (Exception ex)
             {
+                SyncLog($"Lokal DB guncelleme HATASI: {ex.Message}");
                 _logger.LogError(ex, "Lokal DB guncelleme hatasi (EndCall)");
             }
 
@@ -217,6 +220,7 @@ public class CallSyncService
                 try
                 {
                     var fileInfo = new FileInfo(recordingFilePath);
+                    SyncLog($"Recording file check: Exists={fileInfo.Exists}, Size={fileInfo.Length}");
                     if (fileInfo.Exists)
                     {
                         var isEncrypted = fileInfo.Extension.Equals(".enc", StringComparison.OrdinalIgnoreCase);
@@ -238,14 +242,19 @@ public class CallSyncService
                             RetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
                         };
                         await _localRepo.SaveRecordingMetadataAsync(recording);
-                        _logger.LogInformation("Ses kaydi metadata kaydedildi: {Path} (sifreli={Encrypted})", recordingFilePath, isEncrypted);
+                        SyncLog("Ses kaydi metadata KAYDEDILDI.");
                     }
                 }
                 catch (Exception ex)
                 {
+                    SyncLog($"Ses kaydi metadata HATASI: {ex.Message}");
                     _logger.LogError(ex, "Ses kaydi metadata yazim hatasi");
                 }
             }
+        }
+        else
+        {
+            SyncLog("_localRepo.IsConfigured=false — lokal DB guncelleme ATLANDI!");
         }
 
         // ── 2. Backend'e bildir ──
@@ -254,12 +263,29 @@ public class CallSyncService
             try
             {
                 await _http.PutAsync($"api/calls/{backendCallId.Value}/end", null);
+                SyncLog($"Backend end bildirimi gonderildi: CallId={backendCallId.Value}");
             }
             catch (Exception ex)
             {
+                SyncLog($"Backend end bildirimi BASARISIZ: {ex.Message}");
                 _logger.LogWarning(ex, "Backend end bildirimi basarisiz");
             }
         }
+
+        SyncLog("EndCallAsync TAMAMLANDI.");
+    }
+
+    private static void SyncLog(string msg)
+    {
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "CorpLynk", "sync-debug.log");
+            var line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}{Environment.NewLine}";
+            File.AppendAllText(path, line);
+        }
+        catch { }
     }
 
     // ═══════════════════════════════════════

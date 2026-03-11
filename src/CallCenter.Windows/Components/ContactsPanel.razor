@@ -1,5 +1,5 @@
 @inject CallCenter.Windows.Services.ContactService ContactService
-@inject CallCenter.Windows.Services.ISipService SipService
+
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
 @using CallCenter.Shared.DTOs
@@ -74,7 +74,7 @@
                     </div>
                     <div class="d-flex gap-1 flex-shrink-0">
                         <button class="btn btn-sm btn-success py-0 px-1" @onclick="() => CallContact(contact.PhoneNumber)"
-                                title="Ara" disabled="@(!SipService.IsRegistered)">
+                                title="Ara">
                             <i class="bi bi-telephone-fill"></i>
                         </button>
                         @if (!isReadOnly)
@@ -162,6 +162,13 @@
     protected override async Task OnInitializedAsync()
     {
         await RefreshListAsync();
+
+        // Ilk yuklemede bos donduyse (API cold start / token gecikme) tekrar dene
+        if (filteredContacts.Count == 0)
+        {
+            await Task.Delay(2000);
+            await RefreshListAsync();
+        }
     }
 
     private async Task RefreshListAsync()
