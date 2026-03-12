@@ -12,6 +12,7 @@ public class PermissionService
 {
     private readonly AuthenticationStateProvider _authState;
     private HashSet<int> _permissions = new();
+    private HashSet<int> _modules = new();
     private bool _loaded;
 
     public bool IsAdmin { get; private set; }
@@ -31,6 +32,7 @@ public class PermissionService
     {
         _loaded = false;
         _permissions = new();
+        _modules = new();
         IsAdmin = false;
         IsCustomerAdmin = false;
         CustomerId = null;
@@ -69,6 +71,16 @@ public class PermissionService
                 .ToHashSet();
         }
 
+        var modulesClaim = user.FindFirst("CustomerModules")?.Value;
+        if (!string.IsNullOrEmpty(modulesClaim))
+        {
+            _modules = modulesClaim
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Where(m => int.TryParse(m.Trim(), out _))
+                .Select(m => int.Parse(m.Trim()))
+                .ToHashSet();
+        }
+
         _loaded = true;
     }
 
@@ -79,6 +91,10 @@ public class PermissionService
         return _permissions.Contains(permTypeId);
     }
 
-    /// <summary>Tum moduller her zaman aktif (dinamik modul yonetimi kaldirildi).</summary>
-    public bool HasModule(int moduleId) => true;
+    /// <summary>Musteri bu modulu satin almis mi? Admin her zaman true.</summary>
+    public bool HasModule(int moduleId)
+    {
+        if (IsAdmin) return true;
+        return _modules.Contains(moduleId);
+    }
 }

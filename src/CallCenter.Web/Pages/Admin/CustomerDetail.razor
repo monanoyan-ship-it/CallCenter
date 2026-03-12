@@ -714,6 +714,49 @@
 @* ═══════════════════════════════════════════════════════════ *@
 @if (activeTab == "hizmetler")
 {
+    @* ─── MODUL YONETIMI ─── *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="bi bi-grid-3x3-gap-fill me-1"></i>Portal Modulleri</span>
+            <span class="badge bg-light text-muted border">
+                @(portalModules?.Count(m => m.IsActive) ?? 0) aktif / @(portalModules?.Count ?? 0) toplam
+            </span>
+        </div>
+        <div class="card-body">
+            @if (isLoadingModules)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>
+            }
+            else if (portalModules == null || portalModules.Count == 0)
+            {
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-grid-3x3-gap fs-3 d-block mb-2 opacity-25"></i>
+                    Modul bulunamadi.
+                </div>
+            }
+            else
+            {
+                <div class="row g-2">
+                    @foreach (var mod in portalModules)
+                    {
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="border rounded p-2 text-center @(mod.IsActive ? "border-success bg-success-subtle" : "")">
+                                <div class="form-check form-switch d-flex justify-content-center mb-1">
+                                    <input class="form-check-input" type="checkbox" checked="@mod.IsActive"
+                                           @onchange="() => ToggleModule(mod)" disabled="@isTogglingModule" />
+                                </div>
+                                <i class="bi @(mod.Icon ?? "bi-box") @(mod.IsActive ? "text-success" : "text-muted")"></i>
+                                <div class="small fw-medium">@mod.SystemName</div>
+                                <div class="text-muted" style="font-size:0.7rem;">@mod.Description</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ─── HIZMET ABONELIKLERI ─── *@
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <span class="fw-semibold"><i class="bi bi-box-seam me-1"></i>Hizmet Abonelikleri</span>
@@ -895,6 +938,11 @@
     private bool isCreatingBilling;
     private string? createBillingError;
 
+    // ─── MODULLER ───
+    private List<PortalModuleDto>? portalModules;
+    private bool isLoadingModules;
+    private bool isTogglingModule;
+
     // ─── HİZMETLER ───
     private List<SubscriptionDto>? subscriptions;
     private List<ServiceTypeDto>? premiumServices;
@@ -933,8 +981,9 @@
             case "odemeler" when billingPeriods == null:
                 await LoadBilling();
                 break;
-            case "hizmetler" when subscriptions == null:
-                await LoadSubscriptions();
+            case "hizmetler":
+                if (portalModules == null) await LoadModules();
+                if (subscriptions == null) await LoadSubscriptions();
                 break;
         }
     }
@@ -1252,6 +1301,56 @@
 
     // ═══════════════════════════════════════════════════
     // HİZMETLER
+    // ═══════════════════════════════════════════════════
+
+    // ═══════════════════════════════════════════════════
+    // MODULLER
+    // ═══════════════════════════════════════════════════
+
+    private async Task LoadModules()
+    {
+        isLoadingModules = true;
+        StateHasChanged();
+        try
+        {
+            portalModules = await Http.GetFromJsonAsync<List<PortalModuleDto>>($"api/customers/{Id}/modules");
+        }
+        catch (Exception ex) { Toast.ShowError($"Moduller yuklenemedi: {ex.Message}"); }
+        finally { isLoadingModules = false; }
+    }
+
+    private async Task ToggleModule(PortalModuleDto mod)
+    {
+        isTogglingModule = true;
+        try
+        {
+            HttpResponseMessage response;
+            if (mod.IsActive)
+            {
+                response = await Http.PostAsync($"api/customers/{Id}/modules/{mod.Id}/deactivate", null);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync($"api/customers/{Id}/modules/assign",
+                    new AssignModulesRequest { ModuleIds = new[] { mod.Id } });
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                mod.IsActive = !mod.IsActive;
+                Toast.ShowSuccess($"{mod.SystemName} {(mod.IsActive ? "aktif" : "pasif")} edildi.");
+            }
+            else
+            {
+                Toast.ShowError("Modul guncellenemedi.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isTogglingModule = false; }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // HIZMETLER
     // ═══════════════════════════════════════════════════
 
     private async Task LoadSubscriptions()

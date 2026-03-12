@@ -12,4 +12,5 @@ public interface IUserEntityService
     Task<int> GetActiveAdminCountAsync();
     void Add(User entity);
     void Update(User entity);
+    void Remove(User entity);
 }

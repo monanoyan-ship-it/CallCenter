@@ -3,6 +3,7 @@
 @inject AuthService AuthService
 @inject PermissionService PermService
 @inject AuthenticationStateProvider AuthStateProvider
+@using CallCenter.Shared.Enums
 @implements IDisposable
 
 <div class="sidebar-header">
@@ -19,7 +20,7 @@
 
 <div class="sidebar-body">
     <nav>
-        @* ─── DASHBOARD ─── *@
+        @* ─── DASHBOARD (her zaman) ─── *@
         <div class="nav-item">
             <NavLink class="nav-link" href="customer/dashboard" Match="NavLinkMatch.All">
                 <i class="bi bi-grid-1x2-fill"></i>
@@ -27,99 +28,119 @@
             </NavLink>
         </div>
 
-        @* ─── PORTAL YÖNETİMİ (FirmaAdmin + EkipLideri) ─── *@
+        @* ─── PORTAL YÖNETİMİ (FirmaAdmin + EkipLideri, modul bazli) ─── *@
         @if (IsFirmaAdmin || IsEkipLideri)
         {
+            var hasPortalItems = (IsFirmaAdmin && (HasModule(PortalModules.Ids.Personnel) || HasModule(PortalModules.Ids.Organizations) || HasModule(PortalModules.Ids.SipSettings) || HasModule(PortalModules.Ids.Settings)))
+                              || (IsEkipLideri && HasModule(PortalModules.Ids.Personnel));
+            @if (hasPortalItems)
+            {
+                <div class="nav-group">
+                    <button class="nav-group-toggle" @onclick="() => ToggleGroup(10)">
+                        <i class="bi bi-building"></i>
+                        <span>Portal</span>
+                        <i class="bi bi-chevron-down chevron @(IsGroupOpen(10) ? "open" : "")"></i>
+                    </button>
+                    <div class="nav-group-items @(IsGroupOpen(10) ? "show" : "")">
+                        @if (IsFirmaAdmin && HasModule(PortalModules.Ids.Personnel))
+                        {
+                            <NavLink class="nav-link" href="customer/portal/personnel">
+                                <i class="bi bi-person-badge"></i>
+                                <span>Personel Yonetimi</span>
+                            </NavLink>
+                        }
+                        @if (IsFirmaAdmin && HasModule(PortalModules.Ids.Organizations))
+                        {
+                            <NavLink class="nav-link" href="customer/portal/organizations">
+                                <i class="bi bi-diagram-3-fill"></i>
+                                <span>Organizasyonlar</span>
+                            </NavLink>
+                        }
+                        @if (IsFirmaAdmin && HasModule(PortalModules.Ids.SipSettings))
+                        {
+                            <NavLink class="nav-link" href="customer/portal/sip">
+                                <i class="bi bi-router-fill"></i>
+                                <span>SIP Ayarlari</span>
+                            </NavLink>
+                        }
+                        @if (IsFirmaAdmin && HasModule(PortalModules.Ids.Settings))
+                        {
+                            <NavLink class="nav-link" href="customer/portal/storage">
+                                <i class="bi bi-hdd-network"></i>
+                                <span>Depolama Ayarlari</span>
+                            </NavLink>
+                        }
+                        @if (IsEkipLideri && HasModule(PortalModules.Ids.Personnel))
+                        {
+                            <NavLink class="nav-link" href="customer/portal/personnel">
+                                <i class="bi bi-people-fill"></i>
+                                <span>Ekibim</span>
+                            </NavLink>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+        @* ─── ARAMALAR (Calls modulu) ─── *@
+        @if (HasModule(PortalModules.Ids.Calls))
+        {
             <div class="nav-group">
-                <button class="nav-group-toggle" @onclick="() => ToggleGroup(10)">
-                    <i class="bi bi-building"></i>
-                    <span>Portal</span>
-                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(10) ? "open" : "")"></i>
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>Arama</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
                 </button>
-                <div class="nav-group-items @(IsGroupOpen(10) ? "show" : "")">
-                    @if (IsFirmaAdmin)
+                <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
+                    @if (IsOperator)
                     {
-                        <NavLink class="nav-link" href="customer/portal/personnel">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Personel Yonetimi</span>
-                        </NavLink>
-                        <NavLink class="nav-link" href="customer/portal/organizations">
-                            <i class="bi bi-diagram-3-fill"></i>
-                            <span>Organizasyonlar</span>
-                        </NavLink>
-                        <NavLink class="nav-link" href="customer/portal/sip">
-                            <i class="bi bi-router-fill"></i>
-                            <span>SIP Ayarlari</span>
-                        </NavLink>
-                        <NavLink class="nav-link" href="customer/portal/storage">
-                            <i class="bi bi-hdd-network"></i>
-                            <span>Depolama Ayarlari</span>
+                        <NavLink class="nav-link" href="customer/dialer">
+                            <i class="bi bi-telephone-fill"></i>
+                            <span>Cagri Takip</span>
                         </NavLink>
                     }
-                    @if (IsEkipLideri)
+                    @if (IsFirmaAdmin || IsEkipLideri)
                     {
-                        <NavLink class="nav-link" href="customer/portal/personnel">
-                            <i class="bi bi-people-fill"></i>
-                            <span>Ekibim</span>
+                        <NavLink class="nav-link" href="customer/calls/active">
+                            <i class="bi bi-telephone-inbound-fill"></i>
+                            <span>Aktif Aramalar</span>
                         </NavLink>
                     }
+                    @if (IsOperator)
+                    {
+                        <NavLink class="nav-link" href="customer/calls/myhistory">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Aramalarim</span>
+                        </NavLink>
+                    }
+                    else
+                    {
+                        <NavLink class="nav-link" href="customer/calls/history">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Arama Gecmisi</span>
+                        </NavLink>
+                    }
+                    <NavLink class="nav-link" href="customer/contacts" Match="NavLinkMatch.All">
+                        <i class="bi bi-people-fill"></i>
+                        <span>Rehber</span>
+                    </NavLink>
                 </div>
             </div>
         }
 
-        @* ─── ARAMALAR ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(0)">
-                <i class="bi bi-telephone-fill"></i>
-                <span>Arama</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(0) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(0) ? "show" : "")">
-                @if (IsOperator)
-                {
-                    <NavLink class="nav-link" href="customer/dialer">
-                        <i class="bi bi-telephone-fill"></i>
-                        <span>Cagri Takip</span>
-                    </NavLink>
-                }
-                @if (!IsOperator)
-                {
-                    <NavLink class="nav-link" href="customer/calls/active">
-                        <i class="bi bi-telephone-inbound-fill"></i>
-                        <span>Aktif Aramalar</span>
-                    </NavLink>
-                }
-                @if (IsOperator)
-                {
-                    <NavLink class="nav-link" href="customer/calls/myhistory">
-                        <i class="bi bi-clock-history"></i>
-                        <span>Aramalarim</span>
-                    </NavLink>
-                }
-                else
-                {
-                    <NavLink class="nav-link" href="customer/calls/history">
-                        <i class="bi bi-clock-history"></i>
-                        <span>Arama Gecmisi</span>
-                    </NavLink>
-                }
-                <NavLink class="nav-link" href="customer/contacts" Match="NavLinkMatch.All">
-                    <i class="bi bi-people-fill"></i>
-                    <span>Rehber</span>
+        @* ─── MESAJLAR (Messaging modulu) ─── *@
+        @if (HasModule(PortalModules.Ids.Messaging))
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="customer/messaging">
+                    <i class="bi bi-chat-dots-fill"></i>
+                    <span>Mesajlar</span>
                 </NavLink>
             </div>
-        </div>
+        }
 
-        @* ─── MESAJLAR ─── *@
-        <div class="nav-item">
-            <NavLink class="nav-link" href="customer/messaging">
-                <i class="bi bi-chat-dots-fill"></i>
-                <span>Mesajlar</span>
-            </NavLink>
-        </div>
-
-        @* ─── KUYRUKLAR (Operator haric) ─── *@
-        @if (!IsOperator)
+        @* ─── KUYRUKLAR (Queues modulu, Operator haric) ─── *@
+        @if (HasModule(PortalModules.Ids.Queues) && !IsOperator)
         {
             <div class="nav-group">
                 <button class="nav-group-toggle" @onclick="() => ToggleGroup(1)">
@@ -140,8 +161,8 @@
             </div>
         }
 
-        @* ─── RAPORLAR (Operator haric) ─── *@
-        @if (!IsOperator)
+        @* ─── RAPORLAR (Reports modulu, Operator haric) ─── *@
+        @if (HasModule(PortalModules.Ids.Reports) && !IsOperator)
         {
             <div class="nav-group">
                 <button class="nav-group-toggle" @onclick="() => ToggleGroup(2)">
@@ -189,9 +210,10 @@
     private string fullName = "...";
     private string roleName = "";
 
-    private bool IsFirmaAdmin => PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.FirmaAdmin;
-    private bool IsEkipLideri => PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.EkipLideri;
-    private bool IsOperator => PermService.CustomerRoleId == CallCenter.Shared.Enums.CustomerRoles.Ids.Operator;
+    private bool IsFirmaAdmin => PermService.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin;
+    private bool IsEkipLideri => PermService.CustomerRoleId == CustomerRoles.Ids.EkipLideri;
+    private bool IsOperator => PermService.CustomerRoleId == CustomerRoles.Ids.Operator;
+    private bool HasModule(int moduleId) => PermService.HasModule(moduleId);
 
     private static readonly Dictionary<int, string[]> GroupRoutes = new()
     {
@@ -225,7 +247,7 @@
         var name = await AuthService.GetFullNameAsync();
         fullName = name ?? "Kullanici";
 
-        var role = CallCenter.Shared.Enums.CustomerRoles.GetById(PermService.CustomerRoleId);
+        var role = CustomerRoles.GetById(PermService.CustomerRoleId);
         roleName = role?.Description ?? "Musteri";
 
         await PermService.LoadAsync();

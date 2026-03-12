@@ -8,6 +8,7 @@ public class CallNotification
     public int DirectionId { get; set; }
     public int StatusId { get; set; }
     public string? QueueName { get; set; }
+    public string? AgentName { get; set; }
 
     // CRM Caller ID bilgileri
     public int? CrmContactId { get; set; }

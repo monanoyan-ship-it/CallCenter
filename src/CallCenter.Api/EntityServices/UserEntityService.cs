@@ -36,4 +36,5 @@ public class UserEntityService : IUserEntityService
 
     public void Add(User entity) => _db.Users.Add(entity);
     public void Update(User entity) => _db.Users.Update(entity);
+    public void Remove(User entity) => _db.Users.Remove(entity);
 }

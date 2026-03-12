@@ -21,7 +21,7 @@ public class TokenService
     /// JWT access token olusturur.
     /// Yetki tipleri CustomerRoles.GetPermissionsForRole() ile statik olarak belirlenir.
     /// </summary>
-    public string GenerateToken(User user, CustomerPersonnel? customerPersonnel = null)
+    public string GenerateToken(User user, CustomerPersonnel? customerPersonnel = null, IEnumerable<int>? activeModuleIds = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -51,6 +51,14 @@ public class TokenService
             var permIds = string.Join(",", CustomerRoles.GetPermissionsForRole(customerPersonnel.CustomerRoleId));
             if (!string.IsNullOrEmpty(permIds))
                 claims.Add(new Claim("CustomerPermissions", permIds));
+
+            // Musteri aktif modulleri
+            if (activeModuleIds != null)
+            {
+                var moduleIds = string.Join(",", activeModuleIds);
+                if (!string.IsNullOrEmpty(moduleIds))
+                    claims.Add(new Claim("CustomerModules", moduleIds));
+            }
         }
 
         var token = new JwtSecurityToken(

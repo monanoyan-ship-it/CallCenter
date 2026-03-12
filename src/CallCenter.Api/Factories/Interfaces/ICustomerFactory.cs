@@ -9,6 +9,7 @@ public interface ICustomerFactory
     Task<(int Id, string? Error)> CreateAsync(CustomerCreateDto dto);
     Task<(bool Success, string? Error)> UpdateAsync(int id, CustomerUpdateDto dto);
     Task<(bool Success, string? Error)> DeleteAsync(int id);
+    Task<(bool Success, string? Error)> HardDeleteAsync(int id);
     Task<(bool Success, string? TempPassword, string? Error)> ResetAdminPasswordAsync(int customerId);
     Task<object?> GetCustomerModulesAsync(int customerId);
     Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request);

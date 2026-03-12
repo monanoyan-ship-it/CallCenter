@@ -93,6 +93,51 @@ public class CustomersController : AuditableControllerBase
         return Ok(new { password = tempPassword });
     }
 
+    /// <summary>Musteriyi kalici sil (tum iliskili veriler dahil)</summary>
+    [HttpDelete("{id}/hard")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> HardDelete(int id)
+    {
+        var (success, error) = await _customerFactory.HardDeleteAsync(id);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("HardDelete", "Customer", id.ToString(),
+            $"Musteri kalici olarak silindi: ID={id}");
+
+        return Ok(new { message = "Musteri kalici olarak silindi." });
+    }
+
+    // MODULES
+
+    /// <summary>Musteri portal modulleri</summary>
+    [HttpGet("{id}/modules")]
+    public async Task<ActionResult> GetModules(int id)
+    {
+        var result = await _customerFactory.GetCustomerModulesAsync(id);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    /// <summary>Modulleri aktif et</summary>
+    [HttpPost("{id}/modules/assign")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> AssignModules(int id, AssignModulesRequest request)
+    {
+        var (success, error) = await _customerFactory.AssignModulesAsync(id, request);
+        if (!success) return BadRequest(new { message = error });
+        return Ok();
+    }
+
+    /// <summary>Modulu deaktif et</summary>
+    [HttpPost("{id}/modules/{moduleId}/deactivate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> DeactivateModule(int id, int moduleId)
+    {
+        var (success, error) = await _customerFactory.DeactivateModuleAsync(id, moduleId);
+        if (!success) return BadRequest(new { message = error });
+        return Ok();
+    }
+
     // BILLING
 
     /// <summary>Musteri faturalama donemleri listesi</summary>

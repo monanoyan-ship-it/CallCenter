@@ -87,9 +87,19 @@ public class CallFactory : ICallFactory
 
     public async Task<List<CallNotification>> GetActiveAsync(int userId)
     {
+        var personnel = await _personnel.GetByUserIdAsync(userId);
+        if (personnel == null) return new();
+
+        // Operator erisim engeli — sadece FirmaAdmin ve EkipLideri gorebilir
+        if (personnel.CustomerRoleId == CustomerRoles.Ids.Operator)
+            return new();
+
+        var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+
         return await _calls.GetAllQueryable()
-            .Where(c => c.AgentId == userId)
-            .Where(c => CallStatuses.ActiveStatuses.Select(s => s.Id).Contains(c.StatusId))
+            .Where(c => c.Agent != null && c.Agent.CustomerPersonnel != null
+                && c.Agent.CustomerPersonnel.CustomerId == personnel.CustomerId)
+            .Where(c => activeStatusIds.Contains(c.StatusId))
             .OrderByDescending(c => c.StartedAt)
             .Select(c => new CallNotification
             {
@@ -98,7 +108,8 @@ public class CallFactory : ICallFactory
                 CalleeNumber = c.CalleeNumber,
                 DirectionId = c.DirectionId,
                 StatusId = c.StatusId,
-                QueueName = c.Queue != null ? c.Queue.Name : null
+                QueueName = c.Queue != null ? c.Queue.Name : null,
+                AgentName = c.Agent != null ? c.Agent.FullName : null
             })
             .ToListAsync();
     }

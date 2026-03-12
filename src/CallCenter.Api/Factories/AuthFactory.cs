@@ -14,6 +14,7 @@ public class AuthFactory : IAuthFactory
     private readonly IUserEntityService _users;
     private readonly IRefreshTokenEntityService _refreshTokens;
     private readonly ICustomerEntityService _customers;
+    private readonly ICustomerPortalModuleEntityService _portalModules;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IBillingFactory _billingFactory;
     private readonly TokenService _tokenService;
@@ -28,6 +29,7 @@ public class AuthFactory : IAuthFactory
         IUserEntityService users,
         IRefreshTokenEntityService refreshTokens,
         ICustomerEntityService customers,
+        ICustomerPortalModuleEntityService portalModules,
         IPasswordPolicyFactory passwordPolicy,
         IBillingFactory billingFactory,
         TokenService tokenService,
@@ -38,6 +40,7 @@ public class AuthFactory : IAuthFactory
         _users = users;
         _refreshTokens = refreshTokens;
         _customers = customers;
+        _portalModules = portalModules;
         _passwordPolicy = passwordPolicy;
         _billingFactory = billingFactory;
         _tokenService = tokenService;
@@ -93,7 +96,11 @@ public class AuthFactory : IAuthFactory
                 return (false, null, reason ?? "Odenmemis fatura nedeniyle erisim engellendi.");
         }
 
-        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel);
+        List<int>? moduleIds = null;
+        if (user.CustomerPersonnel != null)
+            moduleIds = await _portalModules.GetActiveModuleIdsAsync(user.CustomerPersonnel.CustomerId);
+
+        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, moduleIds);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
         var oldTokens = await _refreshTokens.GetActiveByUserIdAsync(user.Id);
@@ -185,7 +192,11 @@ public class AuthFactory : IAuthFactory
         existingToken.ReplacedByToken = newRefreshToken.Token;
         _refreshTokens.Add(newRefreshToken);
 
-        var accessToken = _tokenService.GenerateToken(user, user.CustomerPersonnel);
+        List<int>? refreshModuleIds = null;
+        if (user.CustomerPersonnel != null)
+            refreshModuleIds = await _portalModules.GetActiveModuleIdsAsync(user.CustomerPersonnel.CustomerId);
+
+        var accessToken = _tokenService.GenerateToken(user, user.CustomerPersonnel, refreshModuleIds);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
         await _uow.SaveChangesAsync();

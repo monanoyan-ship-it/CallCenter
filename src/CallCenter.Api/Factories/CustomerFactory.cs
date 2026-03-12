@@ -154,7 +154,7 @@ public class CustomerFactory : ICustomerFactory
             {
                 CustomerId = customer.Id,
                 ModuleId = module.Id,
-                IsActive = true,
+                IsActive = module.IsDefault,
                 ActivatedAt = DateTime.UtcNow
             });
         }
@@ -228,6 +228,26 @@ public class CustomerFactory : ICustomerFactory
         if (customer == null) return (false, "Musteri bulunamadi.");
 
         customer.IsActive = false;
+        await _uow.SaveChangesAsync();
+
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> HardDeleteAsync(int id)
+    {
+        var customer = await _customerEs.GetByIdWithPersonnelAsync(id);
+        if (customer == null) return (false, "Musteri bulunamadi.");
+
+        // Personel'e bagli User'lari sil
+        foreach (var p in customer.Personnel.ToList())
+        {
+            if (p.User != null)
+                _userEs.Remove(p.User);
+        }
+
+        // Customer silinince cascade ile silinir: PortalModules, OrganizationUnits, Queues, SipAccounts
+        // Personnel cascade yok, EF tracked oldugu icin otomatik silinir
+        _customerEs.Remove(customer);
         await _uow.SaveChangesAsync();
 
         return (true, null);

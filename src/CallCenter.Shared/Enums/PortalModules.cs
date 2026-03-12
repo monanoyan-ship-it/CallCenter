@@ -12,20 +12,21 @@ public static class PortalModules
     public static readonly TypeItem Reports = new(3, "Reports", "PortalModule.Reports", "Raporlama", "bi-file-earmark-bar-graph", "bg-info", 3);
     public static readonly TypeItem Agents = new(4, "Agents", "PortalModule.Agents", "Temsilci yonetimi", "bi-headset", "bg-warning text-dark", 4);
     public static readonly TypeItem Queues = new(5, "Queues", "PortalModule.Queues", "Kuyruk yonetimi", "bi-people-fill", "bg-secondary", 5);
-    public static readonly TypeItem Settings = new(6, "Settings", "PortalModule.Settings", "Ayarlar", "bi-gear-fill", "bg-danger", 6);
+    public static readonly TypeItem Settings = new(6, "Settings", "PortalModule.Settings", "Ayarlar", "bi-gear-fill", "bg-danger", 6, isDefault: true);
     public static readonly TypeItem Personnel = new(7, "Personnel", "PortalModule.Personnel", "Personel yonetimi", "bi-person-badge", "bg-dark", 7, isDefault: true);
     public static readonly TypeItem Organizations = new(8, "Organizations", "PortalModule.Organizations", "Organizasyon yonetimi", "bi-diagram-3-fill", "bg-indigo", 8);
 
     // Yeni moduller (Faz 4 — sektorel arastirma sonucu)
-    public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9);
+    public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9, isDefault: true);
     public static readonly TypeItem CallRecords = new(10, "CallRecords", "PortalModule.CallRecords", "Arama kaydi dinleme/yonetimi", "bi-record-circle", "bg-orange", 10, isDefault: true);
     public static readonly TypeItem QualityManagement = new(11, "QualityManagement", "PortalModule.QualityManagement", "Kalite degerlendirme formlari", "bi-clipboard-check", "bg-pink", 11);
     public static readonly TypeItem KnowledgeBase = new(12, "KnowledgeBase", "PortalModule.KnowledgeBase", "Bilgi bankasi, agent senaryolari", "bi-book", "bg-cyan", 12);
     public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);
     public static readonly TypeItem Campaigns = new(14, "Campaigns", "PortalModule.Campaigns", "Giden arama kampanyalari", "bi-megaphone-fill", "bg-yellow text-dark", 14);
     public static readonly TypeItem KvkkCompliance = new(15, "KvkkCompliance", "PortalModule.KvkkCompliance", "KVKK uyumluluk yonetimi", "bi-shield-check", "bg-dark", 15);
+    public static readonly TypeItem Messaging = new(16, "Messaging", "PortalModule.Messaging", "Mesajlasma", "bi-chat-dots-fill", "bg-info", 16);
 
-    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns, KvkkCompliance };
+    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns, KvkkCompliance, Messaging };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
@@ -49,5 +50,6 @@ public static class PortalModules
         public const int Integrations = 13;
         public const int Campaigns = 14;
         public const int KvkkCompliance = 15;
+        public const int Messaging = 16;
     }
 }
