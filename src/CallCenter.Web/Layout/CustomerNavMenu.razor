@@ -161,6 +161,39 @@
             </div>
         }
 
+        @* ─── KALİTE YÖNETİMİ (QualityManagement modulu, Operator haric) ─── *@
+        @if (HasModule(PortalModules.Ids.QualityManagement) && !IsOperator)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>Kalite</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(3) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(3) ? "show" : "")">
+                    <NavLink class="nav-link" href="customer/quality/dashboard">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Kalite Paneli</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="customer/quality/evaluations">
+                        <i class="bi bi-card-checklist"></i>
+                        <span>Degerlendirmeler</span>
+                    </NavLink>
+                    @if (IsFirmaAdmin || HasPermission(CustomerPermissionTypes.Ids.QualityManage))
+                    {
+                        <NavLink class="nav-link" href="customer/quality/checklists">
+                            <i class="bi bi-list-check"></i>
+                            <span>Formlar</span>
+                        </NavLink>
+                        <NavLink class="nav-link" href="customer/quality/settings">
+                            <i class="bi bi-sliders"></i>
+                            <span>Esik Degerleri</span>
+                        </NavLink>
+                    }
+                </div>
+            </div>
+        }
+
         @* ─── RAPORLAR (Reports modulu, Operator haric) ─── *@
         @if (HasModule(PortalModules.Ids.Reports) && !IsOperator)
         {
@@ -214,12 +247,14 @@
     private bool IsEkipLideri => PermService.CustomerRoleId == CustomerRoles.Ids.EkipLideri;
     private bool IsOperator => PermService.CustomerRoleId == CustomerRoles.Ids.Operator;
     private bool HasModule(int moduleId) => PermService.HasModule(moduleId);
+    private bool HasPermission(int permTypeId) => PermService.HasPermission(permTypeId);
 
     private static readonly Dictionary<int, string[]> GroupRoutes = new()
     {
         { 0, new[] { "customer/dialer", "customer/calls/", "customer/contacts" } },
         { 1, new[] { "customer/queues" } },
         { 2, new[] { "customer/reports/" } },
+        { 3, new[] { "customer/quality/" } },
         { 5, new[] { "customer/messaging" } },
         { 10, new[] { "customer/portal/" } }
     };

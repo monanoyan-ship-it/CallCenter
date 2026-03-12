@@ -64,6 +64,15 @@ public static class EntityServiceRegistration
         services.AddScoped<ICustomerServiceSubscriptionEntityService, CustomerServiceSubscriptionEntityService>();
         services.AddScoped<IServiceBillingItemEntityService, ServiceBillingItemEntityService>();
 
+        // Kalite Yonetimi (Quality Management)
+        services.AddScoped<IQualityChecklistEntityService, QualityChecklistEntityService>();
+        services.AddScoped<IQualityQuestionEntityService, QualityQuestionEntityService>();
+        services.AddScoped<IQualitySubCriteriaEntityService, QualitySubCriteriaEntityService>();
+        services.AddScoped<IQualityEvaluationEntityService, QualityEvaluationEntityService>();
+        services.AddScoped<IQualityAnswerEntityService, QualityAnswerEntityService>();
+        services.AddScoped<IQualityAnswerSubCriteriaSelectionEntityService, QualityAnswerSubCriteriaSelectionEntityService>();
+        services.AddScoped<IQualityScoreThresholdEntityService, QualityScoreThresholdEntityService>();
+
         return services;
     }
 }

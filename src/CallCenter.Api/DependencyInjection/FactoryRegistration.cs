@@ -59,6 +59,9 @@ public static class FactoryRegistration
         // Faz 14 — Hizmet Abonelik Yönetimi
         services.AddScoped<IServiceSubscriptionFactory, ServiceSubscriptionFactory>();
 
+        // Kalite Yonetimi (Quality Management)
+        services.AddScoped<IQualityFactory, QualityFactory>();
+
         return services;
     }
 }

@@ -72,6 +72,15 @@ public class AppDbContext : DbContext
     public DbSet<BusinessHours> BusinessHours => Set<BusinessHours>();
     public DbSet<Holiday> Holidays => Set<Holiday>();
 
+    // ─── Quality Management (SecretCustomer Adaptasyonu) ───
+    public DbSet<QualityChecklist> QualityChecklists => Set<QualityChecklist>();
+    public DbSet<QualityQuestion> QualityQuestions => Set<QualityQuestion>();
+    public DbSet<QualityQuestionSubCriteria> QualityQuestionSubCriteria => Set<QualityQuestionSubCriteria>();
+    public DbSet<QualityEvaluation> QualityEvaluations => Set<QualityEvaluation>();
+    public DbSet<QualityAnswer> QualityAnswers => Set<QualityAnswer>();
+    public DbSet<QualityAnswerSubCriteriaSelection> QualityAnswerSubCriteriaSelections => Set<QualityAnswerSubCriteriaSelection>();
+    public DbSet<QualityScoreThreshold> QualityScoreThresholds => Set<QualityScoreThreshold>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -917,6 +926,142 @@ public class AppDbContext : DbContext
              .WithMany(s => s.BillingItems)
              .HasForeignKey(b => b.CustomerServiceSubscriptionId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // KALİTE YÖNETİMİ (Faz 18 - SecretCustomer Adaptasyonu)
+        // ═══════════════════════════════════════════════════════════════
+
+        // QualityChecklist (kalite değerlendirme kontrol listesi şablonu)
+        modelBuilder.Entity<QualityChecklist>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.Property(c => c.Name).IsRequired().HasMaxLength(200);
+            e.Property(c => c.Description).HasMaxLength(1000);
+            e.Property(c => c.Code).HasMaxLength(50);
+            e.Property(c => c.MaxTotalPoints).HasPrecision(18, 2);
+            e.HasIndex(c => new { c.CustomerId, c.Name }).IsUnique();
+            e.HasOne(c => c.Customer)
+             .WithMany()
+             .HasForeignKey(c => c.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // QualityQuestion (kalite kriteri/sorusu)
+        modelBuilder.Entity<QualityQuestion>(e =>
+        {
+            e.HasKey(q => q.Id);
+            e.Property(q => q.Text).IsRequired().HasMaxLength(500);
+            e.Property(q => q.WeightPoints).HasPrecision(18, 2);
+            e.Property(q => q.HelpText).HasMaxLength(1000);
+            e.Property(q => q.GroupName).HasMaxLength(100);
+            e.HasIndex(q => new { q.ChecklistId, q.Order });
+            e.HasOne(q => q.Checklist)
+             .WithMany(c => c.Questions)
+             .HasForeignKey(q => q.ChecklistId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // QualityQuestionSubCriteria (puan kırılma nedeni)
+        modelBuilder.Entity<QualityQuestionSubCriteria>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Description).IsRequired().HasMaxLength(500);
+            e.Property(s => s.WeightPoints).HasPrecision(18, 2);
+            e.HasIndex(s => new { s.QuestionId, s.Order });
+            e.HasOne(s => s.Question)
+             .WithMany(q => q.SubCriteria)
+             .HasForeignKey(s => s.QuestionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // QualityEvaluation (çağrı değerlendirmesi)
+        modelBuilder.Entity<QualityEvaluation>(e =>
+        {
+            e.HasKey(ev => ev.Id);
+            e.HasIndex(ev => ev.Uid).IsUnique();
+            e.Property(ev => ev.TotalScore).HasPrecision(18, 2);
+            e.Property(ev => ev.MaxScore).HasPrecision(18, 2);
+            e.Property(ev => ev.ScorePercentage).HasPrecision(18, 2);
+            e.Property(ev => ev.EvaluationComment).HasMaxLength(2000);
+            e.Property(ev => ev.Notes).HasMaxLength(2000);
+            e.HasIndex(ev => new { ev.CustomerId, ev.StatusId });
+            e.HasIndex(ev => ev.CallRecordId);
+            e.HasIndex(ev => ev.EvaluatedPersonnelId);
+            e.HasOne(ev => ev.Checklist)
+             .WithMany(c => c.Evaluations)
+             .HasForeignKey(ev => ev.ChecklistId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(ev => ev.CallRecord)
+             .WithMany()
+             .HasForeignKey(ev => ev.CallRecordId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(ev => ev.EvaluatorPersonnel)
+             .WithMany()
+             .HasForeignKey(ev => ev.EvaluatorPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(ev => ev.EvaluatedPersonnel)
+             .WithMany()
+             .HasForeignKey(ev => ev.EvaluatedPersonnelId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(ev => ev.Customer)
+             .WithMany()
+             .HasForeignKey(ev => ev.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // QualityAnswer (değerlendirme cevabı/puanı)
+        modelBuilder.Entity<QualityAnswer>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.GivenPoints).HasPrecision(18, 2);
+            e.Property(a => a.EarnedPoints).HasPrecision(18, 2);
+            e.Property(a => a.AnswerText).HasMaxLength(1000);
+            e.Property(a => a.Notes).HasMaxLength(1000);
+            e.Property(a => a.RecommendationNotes).HasMaxLength(1000);
+            e.HasIndex(a => new { a.EvaluationId, a.QuestionId }).IsUnique();
+            e.HasOne(a => a.Evaluation)
+             .WithMany(ev => ev.Answers)
+             .HasForeignKey(a => a.EvaluationId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Question)
+             .WithMany(q => q.Answers)
+             .HasForeignKey(a => a.QuestionId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // QualityAnswerSubCriteriaSelection (seçilen puan kırılma nedeni)
+        modelBuilder.Entity<QualityAnswerSubCriteriaSelection>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Notes).HasMaxLength(500);
+            e.HasIndex(s => new { s.AnswerId, s.SubCriteriaId }).IsUnique();
+            e.HasOne(s => s.Answer)
+             .WithMany(a => a.SubCriteriaSelections)
+             .HasForeignKey(s => s.AnswerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.SubCriteria)
+             .WithMany(sc => sc.Selections)
+             .HasForeignKey(s => s.SubCriteriaId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // QualityScoreThreshold (müşteri bazlı puan eşik değerleri)
+        modelBuilder.Entity<QualityScoreThreshold>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.SuccessThreshold).HasPrecision(18, 2);
+            e.Property(t => t.WarningThreshold).HasPrecision(18, 2);
+            e.HasIndex(t => new { t.CustomerId, t.ChecklistId }).IsUnique();
+            e.HasOne(t => t.Customer)
+             .WithMany()
+             .HasForeignKey(t => t.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(t => t.Checklist)
+             .WithMany()
+             .HasForeignKey(t => t.ChecklistId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // =============================================
