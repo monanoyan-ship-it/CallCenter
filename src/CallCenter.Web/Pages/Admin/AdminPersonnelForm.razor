@@ -30,9 +30,21 @@
                                     {
                                         <span class="badge bg-info-subtle text-info ms-1" style="font-size: 0.65rem;">otomatik</span>
                                     }
+                                    @if (usernameCheckState == 1)
+                                    {
+                                        <span class="spinner-border spinner-border-sm text-muted ms-1" style="width:0.7rem;height:0.7rem;"></span>
+                                    }
+                                    else if (usernameCheckState == 2)
+                                    {
+                                        <span class="badge bg-success-subtle text-success ms-1" style="font-size: 0.65rem;">musait</span>
+                                    }
+                                    else if (usernameCheckState == 3)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger ms-1" style="font-size: 0.65rem;">kullaniliyor</span>
+                                    }
                                 </label>
                                 <div class="input-group input-group-sm">
-                                    <InputText class="form-control form-control-sm font-monospace" @bind-Value="model.UserName"
+                                    <InputText class="@UserNameInputCss()" @bind-Value="model.UserName"
                                                @oninput="OnUserNameInput" />
                                     <button type="button" class="btn btn-outline-secondary" title="Ad Soyad'dan yeniden olustur"
                                             @onclick="RegenerateUserName">
@@ -110,6 +122,8 @@
     private int? editId;
     private string editUserName = ""; // Duzenleme modunda readonly gosterim icin
     private bool userNameManuallyEdited; // Kullanici elle degistirdiyse otomatik uretme
+    private int usernameCheckState; // 0=idle, 1=checking, 2=available, 3=taken
+    private CancellationTokenSource? _usernameCts;
     private List<OrgUnitListDto>? orgUnits;
     private List<PortalPersonnelListDto>? allPersonnel;
 
@@ -172,18 +186,66 @@
         if (!isEdit && !userNameManuallyEdited)
         {
             model.UserName = GenerateUserName(fullName);
+            _ = CheckUsernameAsync(model.UserName);
         }
     }
 
-    /// <summary>
-    /// Kullanici UserName alanina elle yazarsa otomatik uretimi durdur.
-    /// </summary>
     private void OnUserNameInput(ChangeEventArgs e)
     {
         var val = e.Value?.ToString() ?? "";
         model.UserName = val;
         userNameManuallyEdited = !string.IsNullOrWhiteSpace(val);
+        _ = CheckUsernameAsync(val);
     }
+
+    private async Task CheckUsernameAsync(string username)
+    {
+        _usernameCts?.Cancel();
+        if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
+        {
+            usernameCheckState = 0;
+            StateHasChanged();
+            return;
+        }
+
+        usernameCheckState = 1;
+        StateHasChanged();
+
+        _usernameCts = new CancellationTokenSource();
+        var token = _usernameCts.Token;
+
+        try
+        {
+            await Task.Delay(400, token);
+            if (token.IsCancellationRequested) return;
+
+            // Edit modunda mevcut kullanici adi ayni kaldiysa kontrol etme
+            if (isEdit && username == editUserName)
+            {
+                usernameCheckState = 2;
+                StateHasChanged();
+                return;
+            }
+
+            var excludeParam = isEdit && editId.HasValue ? $"&excludeUserId={editId}" : "";
+            var result = await Http.GetFromJsonAsync<UsernameCheckResult>(
+                $"api/portal/personnel/check-username?username={Uri.EscapeDataString(username)}{excludeParam}", token);
+
+            usernameCheckState = result?.Available == true ? 2 : 3;
+        }
+        catch (OperationCanceledException) { return; }
+        catch { usernameCheckState = 0; }
+        StateHasChanged();
+    }
+
+    private record UsernameCheckResult(bool Available);
+
+    private string UserNameInputCss() => usernameCheckState switch
+    {
+        3 => "form-control form-control-sm font-monospace is-invalid",
+        2 => "form-control form-control-sm font-monospace is-valid",
+        _ => "form-control form-control-sm font-monospace"
+    };
 
     /// <summary>
     /// Yeniden olustur butonuna basinca otomatik moda don + yeniden uret.
@@ -192,6 +254,7 @@
     {
         userNameManuallyEdited = false;
         model.UserName = GenerateUserName(model.FullName);
+        _ = CheckUsernameAsync(model.UserName);
     }
 
     /// <summary>
@@ -251,6 +314,12 @@
 
     private async Task HandleSubmit()
     {
+        if (usernameCheckState == 3)
+        {
+            Toast.ShowError("Bu kullanici adi zaten kullaniliyor.");
+            return;
+        }
+
         isSaving = true;
         StateHasChanged();
 

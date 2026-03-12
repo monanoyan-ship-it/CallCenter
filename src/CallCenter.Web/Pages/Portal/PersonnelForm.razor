@@ -26,8 +26,23 @@
                         @if (!isEditMode || AllowEditUserName)
                         {
                             <div class="mb-3">
-                                <label class="form-label small">Kullanici Adi</label>
-                                <InputText class="form-control form-control-sm" @bind-Value="formModel.UserName" />
+                                <label class="form-label small">
+                                    Kullanici Adi
+                                    @if (usernameCheckState == 1)
+                                    {
+                                        <span class="spinner-border spinner-border-sm text-muted ms-1" style="width:0.7rem;height:0.7rem;"></span>
+                                    }
+                                    else if (usernameCheckState == 2)
+                                    {
+                                        <span class="badge bg-success-subtle text-success ms-1" style="font-size: 0.65rem;">musait</span>
+                                    }
+                                    else if (usernameCheckState == 3)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger ms-1" style="font-size: 0.65rem;">kullaniliyor</span>
+                                    }
+                                </label>
+                                <InputText class="@UsernameInputCss()"
+                                           @bind-Value="formModel.UserName" @oninput="OnUserNameInput" />
                             </div>
                         }
 
@@ -103,8 +118,11 @@
     private string? errorMessage;
     private int editId;
     private int selectedRoleId;
+    private string originalUserName = "";
 
     private PersonnelFormModel formModel = new();
+    private int usernameCheckState; // 0=idle, 1=checking, 2=available, 3=taken
+    private CancellationTokenSource? _usernameCts;
 
     private string BuildUrl(string baseUrl)
     {
@@ -117,6 +135,8 @@
         formModel = new();
         selectedRoleId = 0;
         errorMessage = null;
+        originalUserName = "";
+        usernameCheckState = 0;
         isVisible = true;
         StateHasChanged();
     }
@@ -126,6 +146,8 @@
         isEditMode = true;
         editId = item.Id;
         selectedRoleId = item.CustomerRoleId;
+        originalUserName = item.UserName;
+        usernameCheckState = 0;
         formModel = new()
         {
             UserName = item.UserName,
@@ -141,8 +163,69 @@
 
     private void Close() => isVisible = false;
 
+    private void OnUserNameInput(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString() ?? "";
+        formModel.UserName = val;
+        _ = CheckUsernameAsync(val);
+    }
+
+    private async Task CheckUsernameAsync(string username)
+    {
+        _usernameCts?.Cancel();
+        if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
+        {
+            usernameCheckState = 0;
+            StateHasChanged();
+            return;
+        }
+
+        usernameCheckState = 1;
+        StateHasChanged();
+
+        _usernameCts = new CancellationTokenSource();
+        var token = _usernameCts.Token;
+
+        try
+        {
+            await Task.Delay(400, token);
+            if (token.IsCancellationRequested) return;
+
+            if (isEditMode && username == originalUserName)
+            {
+                usernameCheckState = 2;
+                StateHasChanged();
+                return;
+            }
+
+            var excludeParam = "";
+            var result = await Http.GetFromJsonAsync<UsernameCheckResult>(
+                $"api/portal/personnel/check-username?username={Uri.EscapeDataString(username)}{excludeParam}", token);
+
+            usernameCheckState = result?.Available == true ? 2 : 3;
+        }
+        catch (OperationCanceledException) { return; }
+        catch { usernameCheckState = 0; }
+        StateHasChanged();
+    }
+
+    private record UsernameCheckResult(bool Available);
+
+    private string UsernameInputCss() => usernameCheckState switch
+    {
+        3 => "form-control form-control-sm is-invalid",
+        2 => "form-control form-control-sm is-valid",
+        _ => "form-control form-control-sm"
+    };
+
     private async Task HandleSubmit()
     {
+        if (usernameCheckState == 3)
+        {
+            errorMessage = "Bu kullanici adi zaten kullaniliyor.";
+            return;
+        }
+
         isSaving = true;
         errorMessage = null;
 

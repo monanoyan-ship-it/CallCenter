@@ -74,6 +74,17 @@ public class PortalController : AuditableControllerBase
 
     // PERSONNEL
 
+    /// <summary>Kullanici adi musaitlik kontrolu</summary>
+    [HttpGet("personnel/check-username")]
+    public async Task<IActionResult> CheckUsername([FromQuery] string username, [FromQuery] int? excludeUserId)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return Ok(new { available = false });
+
+        var available = await _portalFactory.IsUsernameAvailableAsync(username.Trim(), excludeUserId);
+        return Ok(new { available });
+    }
+
     [HttpGet("personnel")]
     public async Task<IActionResult> GetPersonnel([FromQuery] int? customerId)
     {

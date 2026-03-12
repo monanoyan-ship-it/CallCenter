@@ -4,6 +4,7 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface IPortalFactory
 {
+    Task<bool> IsUsernameAvailableAsync(string username, int? excludeUserId = null);
     Task<PortalDashboardDto> GetDashboardAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null);
     Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null);
     Task<(bool Success, object Result)> CreatePersonnelAsync(int customerId, PortalPersonnelCreateDto dto, int createdByUserId);

@@ -43,6 +43,16 @@ public class PortalFactory : IPortalFactory
         _uow = uow;
     }
 
+    // USERNAME CHECK
+
+    public async Task<bool> IsUsernameAvailableAsync(string username, int? excludeUserId = null)
+    {
+        if (excludeUserId.HasValue)
+            return !await _userEs.GetAllQueryable().AnyAsync(u => u.UserName == username && u.Id != excludeUserId.Value);
+
+        return !await _userEs.ExistsByUsernameAsync(username);
+    }
+
     // DASHBOARD
 
     public async Task<PortalDashboardDto> GetDashboardAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null)
