@@ -14,4 +14,5 @@ public interface ICustomerFactory
     Task<object?> GetCustomerModulesAsync(int customerId);
     Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request);
     Task<(bool Success, string? Error)> DeactivateModuleAsync(int customerId, int moduleId);
+    Task<(bool Success, int AddedCount, string? Error)> SyncMissingModulesAsync(int customerId);
 }

@@ -138,6 +138,16 @@ public class CustomersController : AuditableControllerBase
         return Ok();
     }
 
+    /// <summary>Eksik modulleri tamamla (PortalModules.All ile senkronize et)</summary>
+    [HttpPost("{id}/modules/sync")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> SyncMissingModules(int id)
+    {
+        var (success, addedCount, error) = await _customerFactory.SyncMissingModulesAsync(id);
+        if (!success) return BadRequest(new { message = error });
+        return Ok(new { addedCount });
+    }
+
     // BILLING
 
     /// <summary>Musteri faturalama donemleri listesi</summary>

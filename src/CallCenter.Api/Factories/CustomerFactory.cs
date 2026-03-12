@@ -278,27 +278,32 @@ public class CustomerFactory : ICustomerFactory
         var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
         if (customer == null) return null;
 
-        return PortalModules.All.Select(m =>
-        {
-            var assigned = customer.PortalModules.FirstOrDefault(pm => pm.ModuleId == m.Id);
-            return new PortalModuleDto
+        return customer.PortalModules
+            .Select(pm =>
             {
-                Id = m.Id,
-                SystemName = m.SystemName,
-                Description = m.Description,
-                Icon = m.Icon,
-                IsActive = assigned?.IsActive ?? false,
-                Permissions = CustomerPermissionTypes.GetByModule(m.Id).Select(p => new PermissionTypeDto
+                var moduleDef = PortalModules.GetById(pm.ModuleId);
+                if (moduleDef == null) return null;
+                return new PortalModuleDto
                 {
-                    Id = p.Id,
-                    SystemName = p.SystemName,
-                    Description = p.Description,
-                    Icon = p.Icon,
-                    ModuleId = m.Id,
-                    ModuleName = m.SystemName
-                }).ToList()
-            };
-        }).ToList();
+                    Id = moduleDef.Id,
+                    SystemName = moduleDef.SystemName,
+                    Description = moduleDef.Description,
+                    Icon = moduleDef.Icon,
+                    IsActive = pm.IsActive,
+                    Permissions = CustomerPermissionTypes.GetByModule(moduleDef.Id).Select(p => new PermissionTypeDto
+                    {
+                        Id = p.Id,
+                        SystemName = p.SystemName,
+                        Description = p.Description,
+                        Icon = p.Icon,
+                        ModuleId = moduleDef.Id,
+                        ModuleName = moduleDef.SystemName
+                    }).ToList()
+                };
+            })
+            .Where(dto => dto != null)
+            .OrderBy(dto => dto!.Id)
+            .ToList();
     }
 
     public async Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request)
@@ -342,6 +347,35 @@ public class CustomerFactory : ICustomerFactory
         await _uow.SaveChangesAsync();
 
         return (true, null);
+    }
+
+    public async Task<(bool Success, int AddedCount, string? Error)> SyncMissingModulesAsync(int customerId)
+    {
+        var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
+        if (customer == null) return (false, 0, "Müşteri bulunamadı.");
+
+        var existingModuleIds = customer.PortalModules.Select(pm => pm.ModuleId).ToHashSet();
+        var allModules = PortalModules.All;
+        var addedCount = 0;
+
+        foreach (var module in allModules)
+        {
+            if (existingModuleIds.Contains(module.Id)) continue;
+
+            _moduleEs.Add(new CustomerPortalModule
+            {
+                CustomerId = customerId,
+                ModuleId = module.Id,
+                IsActive = false,
+                Notes = "Otomatik senkronizasyon ile eklendi"
+            });
+            addedCount++;
+        }
+
+        if (addedCount > 0)
+            await _uow.SaveChangesAsync();
+
+        return (true, addedCount, null);
     }
 
 }

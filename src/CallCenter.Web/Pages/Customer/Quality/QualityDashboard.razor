@@ -1,0 +1,271 @@
+@page "/customer/quality/dashboard"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Kalite Paneli - CorpLynk</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-speedometer2 me-2 text-primary"></i>Kalite Paneli
+    </h4>
+    <div class="d-flex gap-2 align-items-center">
+        <input type="date" class="form-control form-control-sm" style="width:140px;" @bind="dateFrom" />
+        <span class="text-muted">-</span>
+        <input type="date" class="form-control form-control-sm" style="width:140px;" @bind="dateTo" />
+        <button class="btn btn-outline-primary btn-sm" @onclick="LoadDashboard">
+            <i class="bi bi-funnel me-1"></i>Filtrele
+        </button>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Kalite paneli yukleniyor...</p>
+    </div>
+}
+else if (data == null)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-clipboard-x fs-1 d-block mb-2 text-muted opacity-25"></i>
+        <p class="text-muted">Veri bulunamadi.</p>
+    </div>
+}
+else
+{
+    @* ─── KPI KARTLARI ─── *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Toplam</div>
+                    <div class="fs-3 fw-bold text-primary">@data.TotalEvaluations</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Tamamlanan</div>
+                    <div class="fs-3 fw-bold text-success">@data.CompletedEvaluations</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Bekleyen</div>
+                    <div class="fs-3 fw-bold text-warning">@data.PendingEvaluations</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Ort. Puan</div>
+                    @if (data.AverageScore.HasValue)
+                    {
+                        var avgColor = data.AverageScore.Value >= 80 ? "text-success" : data.AverageScore.Value >= 60 ? "text-warning" : "text-danger";
+                        <div class="fs-3 fw-bold @avgColor">%@data.AverageScore.Value.ToString("F0")</div>
+                    }
+                    else
+                    {
+                        <div class="fs-3 fw-bold text-muted">-</div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Sari Kart</div>
+                    <div class="fs-3 fw-bold text-warning">@data.YellowCardTotal</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small">Kirmizi Kart</div>
+                    <div class="fs-3 fw-bold text-danger">@data.RedCardTotal</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ─── TOP/BOTTOM AGENTS ─── *@
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0"><i class="bi bi-trophy-fill text-success me-2"></i>En Iyi Temsilciler</h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (data.TopAgents.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-person-x fs-1 d-block mb-2 opacity-25"></i>
+                            <span>Veri yok</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Temsilci</th>
+                                        <th class="text-center">Ort. Puan</th>
+                                        <th class="text-center">Degerlendirme</th>
+                                        <th class="text-center">Kartlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ var rank = 1; }
+                                    @foreach (var agent in data.TopAgents)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (rank == 1) { <i class="bi bi-trophy-fill text-warning"></i> }
+                                                else if (rank == 2) { <i class="bi bi-trophy-fill text-secondary"></i> }
+                                                else if (rank == 3) { <i class="bi bi-trophy-fill" style="color:#cd7f32;"></i> }
+                                                else { <span class="text-muted">@rank</span> }
+                                            </td>
+                                            <td class="fw-medium small">@agent.PersonnelName</td>
+                                            <td class="text-center">
+                                                <span class="fw-bold text-success">%@agent.AverageScore.ToString("F0")</span>
+                                            </td>
+                                            <td class="text-center text-muted small">@agent.EvaluationCount</td>
+                                            <td class="text-center">
+                                                @if (agent.YellowCardCount > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark me-1">@agent.YellowCardCount</span>
+                                                }
+                                                @if (agent.RedCardCount > 0)
+                                                {
+                                                    <span class="badge bg-danger">@agent.RedCardCount</span>
+                                                }
+                                                @if (agent.YellowCardCount == 0 && agent.RedCardCount == 0)
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        rank++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Gelistirilmesi Gereken Temsilciler</h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (data.BottomAgents.Count == 0)
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-person-check fs-1 d-block mb-2 opacity-25"></i>
+                            <span>Veri yok</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Temsilci</th>
+                                        <th class="text-center">Ort. Puan</th>
+                                        <th class="text-center">Degerlendirme</th>
+                                        <th class="text-center">Kartlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ var bRank = 1; }
+                                    @foreach (var agent in data.BottomAgents)
+                                    {
+                                        <tr>
+                                            <td><span class="text-muted">@bRank</span></td>
+                                            <td class="fw-medium small">@agent.PersonnelName</td>
+                                            <td class="text-center">
+                                                @{
+                                                    var color = agent.AverageScore >= 60 ? "text-warning" : "text-danger";
+                                                }
+                                                <span class="fw-bold @color">%@agent.AverageScore.ToString("F0")</span>
+                                            </td>
+                                            <td class="text-center text-muted small">@agent.EvaluationCount</td>
+                                            <td class="text-center">
+                                                @if (agent.YellowCardCount > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark me-1">@agent.YellowCardCount</span>
+                                                }
+                                                @if (agent.RedCardCount > 0)
+                                                {
+                                                    <span class="badge bg-danger">@agent.RedCardCount</span>
+                                                }
+                                                @if (agent.YellowCardCount == 0 && agent.RedCardCount == 0)
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        bRank++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private QualityDashboardDto? data;
+    private bool isLoading = true;
+    private DateTime? dateFrom;
+    private DateTime? dateTo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Default: son 30 gun
+        dateTo = DateTime.Today;
+        dateFrom = DateTime.Today.AddDays(-30);
+        await LoadDashboard();
+    }
+
+    private async Task LoadDashboard()
+    {
+        isLoading = true;
+        try
+        {
+            var url = "api/quality/dashboard";
+            var queryParams = new List<string>();
+            if (dateFrom.HasValue)
+                queryParams.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+            if (dateTo.HasValue)
+                queryParams.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+            if (queryParams.Count > 0)
+                url += "?" + string.Join("&", queryParams);
+
+            data = await Http.GetFromJsonAsync<QualityDashboardDto>(url);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Dashboard yuklenemedi: {ex.Message}");
+        }
+        finally { isLoading = false; }
+    }
+}
