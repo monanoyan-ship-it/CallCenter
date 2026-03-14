@@ -1,0 +1,886 @@
+@page "/customer/integrations/{Uid:guid}"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject ToastService Toast
+@inject NavigationManager Nav
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Entegrasyon Detayi - CorpLynk</PageTitle>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Yukleniyor...</p>
+    </div>
+}
+else if (detail == null)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-plug fs-1 d-block mb-2 text-muted opacity-25"></i>
+        <p class="text-muted">Baglanti bulunamadi.</p>
+        <a href="customer/integrations" class="btn btn-outline-primary btn-sm">Geri Don</a>
+    </div>
+}
+else
+{
+    var platform = IntegrationPlatforms.GetById(detail.PlatformTypeId);
+
+    @* ─── HEADER ─── *@
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center">
+            <a href="customer/integrations" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <span class="badge @(platform?.CssClass ?? "bg-secondary") p-2 me-2">
+                <i class="bi @(platform?.Icon ?? "bi-plug") fs-5"></i>
+            </span>
+            <div>
+                <h4 class="mb-0">@detail.Name</h4>
+                <small class="text-muted">@(platform?.Description ?? "Bilinmiyor")</small>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            @if (detail.IsConnected && detail.IsActive)
+            {
+                <span class="badge bg-success p-2"><i class="bi bi-check-circle me-1"></i>Bagli</span>
+            }
+            else if (detail.IsActive)
+            {
+                <span class="badge bg-warning text-dark p-2"><i class="bi bi-exclamation-triangle me-1"></i>Baglanti Yok</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary p-2"><i class="bi bi-pause-circle me-1"></i>Pasif</span>
+            }
+        </div>
+    </div>
+
+    @* ─── TABS ─── *@
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 0 ? "active" : "")" @onclick="() => activeTab = 0">
+                <i class="bi bi-gear me-1"></i>Ayarlar
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 1 ? "active" : "")" @onclick="() => activeTab = 1">
+                <i class="bi bi-broadcast me-1"></i>Webhooklar
+                <span class="badge bg-primary rounded-pill ms-1">@detail.Webhooks.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == 2 ? "active" : "")" @onclick="() => activeTab = 2">
+                <i class="bi bi-key me-1"></i>API Anahtarlari
+                <span class="badge bg-primary rounded-pill ms-1">@detail.ApiKeys.Count</span>
+            </button>
+        </li>
+    </ul>
+
+    @* ═══ TAB 0: SETTINGS ═══ *@
+    @if (activeTab == 0)
+    {
+        <div class="row g-3">
+            @* ─── Connection Info Card ─── *@
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Baglanti Bilgileri</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Baglanti Adi</label>
+                                <input type="text" class="form-control form-control-sm" @bind="editName" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Durum</label>
+                                <select class="form-select form-select-sm" @bind="editIsActive">
+                                    <option value="true">Aktif</option>
+                                    <option value="false">Pasif</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-3">
+                                    <input type="checkbox" class="form-check-input" @bind="editAutoLogCalls" id="chkAutoLog" />
+                                    <label class="form-check-label small" for="chkAutoLog">Cagrilari otomatik logla</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Rehber Senkronizasyon</label>
+                                <select class="form-select form-select-sm" @bind="editSyncDirection">
+                                    @foreach (var sd in ContactSyncDirections.All)
+                                    {
+                                        <option value="@sd.Id">@sd.Description</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-primary btn-sm" @onclick="SaveSettings" disabled="@isSaving">
+                                @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                <i class="bi bi-save me-1"></i>Kaydet
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="DeleteConnection">
+                                <i class="bi bi-trash me-1"></i>Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ─── Connection Status Card ─── *@
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0"><i class="bi bi-activity me-2"></i>Durum</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <small class="text-muted d-block">Son Test</small>
+                            @if (detail.LastTestedAt.HasValue)
+                            {
+                                <span class="small">
+                                    @detail.LastTestedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                    @if (detail.LastTestSuccess == true)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success ms-1"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger ms-1"></i>
+                                    }
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Henuz test edilmedi</span>
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Son Senkronizasyon</small>
+                            <span class="small">@(detail.LastSyncAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(detail.LastError))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-3 small">@detail.LastError</div>
+                        }
+
+                        <button class="btn btn-outline-primary btn-sm w-100" @onclick="TestConnection" disabled="@isTesting">
+                            @if (isTesting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                            <i class="bi bi-lightning me-1"></i>Baglanti Testi
+                        </button>
+
+                        @if (testResult != null)
+                        {
+                            <div class="alert @(testResult.Success ? "alert-success" : "alert-danger") py-1 px-2 mt-2 mb-0 small">
+                                @if (testResult.Success)
+                                {
+                                    <i class="bi bi-check-circle me-1"></i>@(testResult.PlatformInfo ?? "Basarili")
+                                }
+                                else
+                                {
+                                    <i class="bi bi-x-circle me-1"></i>@(testResult.Error ?? "Basarisiz")
+                                }
+                            </div>
+                        }
+
+                        @* ─── OAuth2 Connect Buttons ─── *@
+                        @if (detail.PlatformTypeId == IntegrationPlatforms.Ids.Salesforce || detail.PlatformTypeId == IntegrationPlatforms.Ids.HubSpot)
+                        {
+                            <hr />
+                            <button class="btn btn-success btn-sm w-100" @onclick="InitiateOAuth" disabled="@isOAuthLoading">
+                                @if (isOAuthLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                <i class="bi bi-box-arrow-up-right me-1"></i>@(platform?.Description ?? "") ile Baglan
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ═══ TAB 1: WEBHOOKS ═══ *@
+    @if (activeTab == 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">Bu baglantiya ait webhook abonelikleri</span>
+            <button class="btn btn-primary btn-sm" @onclick="OpenWebhookModal">
+                <i class="bi bi-plus-lg me-1"></i>Webhook Ekle
+            </button>
+        </div>
+
+        @if (detail.Webhooks.Count == 0)
+        {
+            <div class="text-center py-4">
+                <i class="bi bi-broadcast fs-2 d-block mb-2 text-muted opacity-25"></i>
+                <p class="text-muted small">Henuz webhook yok.</p>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ad</th>
+                                <th>URL</th>
+                                <th>Event Filtresi</th>
+                                <th class="text-center">Durum</th>
+                                <th style="width:120px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var wh in detail.Webhooks)
+                            {
+                                <tr>
+                                    <td class="small fw-medium">@wh.Name</td>
+                                    <td class="small text-muted text-truncate" style="max-width:200px;" title="@wh.TargetUrl">@wh.TargetUrl</td>
+                                    <td>
+                                        @if (wh.EventFilter.Count == 0)
+                                        {
+                                            <span class="badge bg-light text-dark border">Tum eventler</span>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var evt in wh.EventFilter.Take(3))
+                                            {
+                                                <span class="badge bg-light text-dark border me-1 small">@evt</span>
+                                            }
+                                            @if (wh.EventFilter.Count > 3)
+                                            {
+                                                <span class="badge bg-secondary">+@(wh.EventFilter.Count - 3)</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @(wh.IsActive ? "bg-success" : "bg-secondary") rounded-pill">
+                                            @(wh.IsActive ? "Aktif" : "Pasif")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="Test Gonder" @onclick="() => TestWebhook(wh.Uid)">
+                                                <i class="bi bi-send"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" title="Deliverylari Gor" @onclick="() => ShowDeliveries(wh.Uid)">
+                                                <i class="bi bi-journal-text"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="Sil" @onclick="() => DeleteWebhook(wh.Uid)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        @* ─── Delivery Log ─── *@
+        @if (showDeliveryLog && deliveries != null)
+        {
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-journal-text me-2"></i>Gonderim Loglari</h6>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => showDeliveryLog = false">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Event</th>
+                                <th>Event ID</th>
+                                <th class="text-center">Status</th>
+                                <th>Deneme</th>
+                                <th>Hata</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var d in deliveries)
+                            {
+                                <tr>
+                                    <td class="small">@d.EventType</td>
+                                    <td class="small text-muted" style="max-width:100px;" title="@d.EventId">@d.EventId[..Math.Min(12, d.EventId.Length)]...</td>
+                                    <td class="text-center">
+                                        @if (d.StatusCode.HasValue)
+                                        {
+                                            var statusClass = d.StatusCode < 300 ? "bg-success" : d.StatusCode < 500 ? "bg-warning text-dark" : "bg-danger";
+                                            <span class="badge @statusClass">@d.StatusCode</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Bekliyor</span>
+                                        }
+                                    </td>
+                                    <td class="small">@d.Attempt/5</td>
+                                    <td class="small text-danger" style="max-width:150px;">@(d.ErrorMessage ?? "-")</td>
+                                    <td class="small text-muted">@d.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm:ss")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+
+    @* ═══ TAB 2: API KEYS ═══ *@
+    @if (activeTab == 2)
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">Dis sistemlerin API erisimi icin anahtarlar</span>
+            <button class="btn btn-primary btn-sm" @onclick="OpenApiKeyModal">
+                <i class="bi bi-plus-lg me-1"></i>API Key Olustur
+            </button>
+        </div>
+
+        @if (detail.ApiKeys.Count == 0)
+        {
+            <div class="text-center py-4">
+                <i class="bi bi-key fs-2 d-block mb-2 text-muted opacity-25"></i>
+                <p class="text-muted small">Henuz API anahtari yok.</p>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ad</th>
+                                <th>Key Prefix</th>
+                                <th>Yetkiler</th>
+                                <th class="text-center">Durum</th>
+                                <th>Son Kullanim</th>
+                                <th>Bitis</th>
+                                <th style="width:60px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var key in detail.ApiKeys)
+                            {
+                                <tr>
+                                    <td class="small fw-medium">@key.Name</td>
+                                    <td><code class="small">@key.ApiKeyPrefix***</code></td>
+                                    <td>
+                                        @foreach (var scope in key.Scopes.Take(3))
+                                        {
+                                            <span class="badge bg-light text-dark border me-1 small">@scope</span>
+                                        }
+                                        @if (key.Scopes.Count > 3)
+                                        {
+                                            <span class="badge bg-secondary">+@(key.Scopes.Count - 3)</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @(key.IsActive ? "bg-success" : "bg-secondary") rounded-pill">
+                                            @(key.IsActive ? "Aktif" : "Iptal")
+                                        </span>
+                                    </td>
+                                    <td class="small text-muted">@(key.LastUsedAt?.ToLocalTime().ToString("dd.MM HH:mm") ?? "-")</td>
+                                    <td class="small text-muted">@(key.ExpiresAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "Suresiz")</td>
+                                    <td>
+                                        @if (key.IsActive)
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm" title="Iptal Et" @onclick="() => RevokeApiKey(key.Uid)">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        @* ─── New API Key Created (shown once!) ─── *@
+        @if (newApiKeyResult != null)
+        {
+            <div class="alert alert-warning mt-3">
+                <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>API Anahtari Olusturuldu!</h6>
+                <p class="small mb-2">Bu anahtari simdi kopyalayin. Tekrar gorulemeyecektir!</p>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control font-monospace" value="@newApiKeyResult.ApiKey" readonly />
+                    <button class="btn btn-outline-primary" @onclick="CopyApiKey">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" @onclick="() => newApiKeyResult = null">Tamam, kopyaladim</button>
+            </div>
+        }
+    }
+}
+
+@* ─── WEBHOOK CREATE MODAL ─── *@
+@if (showWebhookModal)
+{
+    <div class="modal-backdrop-custom" @onclick="() => showWebhookModal = false"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-broadcast me-2"></i>Yeni Webhook</h5>
+                    <button type="button" class="btn-close" @onclick="() => showWebhookModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(webhookError))
+                    {
+                        <div class="alert alert-danger py-2 small">@webhookError</div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label small">Ad *</label>
+                        <input type="text" class="form-control form-control-sm" @bind="whName" placeholder="ornegin: Cagri Bildirimi" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Hedef URL *</label>
+                        <input type="url" class="form-control form-control-sm" @bind="whTargetUrl" placeholder="https://example.com/webhook" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Event Filtresi (bos = tum eventler)</label>
+                        <div class="row g-1">
+                            <div class="col-12 mb-1"><small class="text-muted fw-bold">Cagri</small></div>
+                            @foreach (var evt in WebhookEventTypes.CallEvents)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" checked="@whSelectedEvents.Contains(evt.SystemName)"
+                                               @onchange="e => ToggleEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label small">@evt.Description</label>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col-12 mt-2 mb-1"><small class="text-muted fw-bold">Agent</small></div>
+                            @foreach (var evt in WebhookEventTypes.AgentEvents)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" checked="@whSelectedEvents.Contains(evt.SystemName)"
+                                               @onchange="e => ToggleEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label small">@evt.Description</label>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col-12 mt-2 mb-1"><small class="text-muted fw-bold">Kuyruk</small></div>
+                            @foreach (var evt in WebhookEventTypes.QueueEvents)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" checked="@whSelectedEvents.Contains(evt.SystemName)"
+                                               @onchange="e => ToggleEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label small">@evt.Description</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showWebhookModal = false">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="CreateWebhook" disabled="@isCreatingWebhook">
+                        @if (isCreatingWebhook) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ─── API KEY CREATE MODAL ─── *@
+@if (showApiKeyModal)
+{
+    <div class="modal-backdrop-custom" @onclick="() => showApiKeyModal = false"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-key me-2"></i>Yeni API Anahtari</h5>
+                    <button type="button" class="btn-close" @onclick="() => showApiKeyModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(apiKeyError))
+                    {
+                        <div class="alert alert-danger py-2 small">@apiKeyError</div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label small">Ad *</label>
+                        <input type="text" class="form-control form-control-sm" @bind="akName" placeholder="ornegin: Salesforce CTI Key" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Yetkiler *</label>
+                        <div class="row g-1">
+                            @foreach (var scope in allScopes)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" checked="@akSelectedScopes.Contains(scope)"
+                                               @onchange="e => ToggleScope(scope, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label small">@scope</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showApiKeyModal = false">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="CreateApiKey" disabled="@isCreatingApiKey">
+                        @if (isCreatingApiKey) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .modal-backdrop-custom {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5); z-index: 1040;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid Uid { get; set; }
+
+    private IntegrationConnectionDetailDto? detail;
+    private bool isLoading = true;
+    private int activeTab;
+
+    // Settings
+    private string editName = "";
+    private bool editIsActive = true;
+    private bool editAutoLogCalls = true;
+    private int editSyncDirection;
+    private bool isSaving;
+
+    // Test
+    private bool isTesting;
+    private ConnectionTestResult? testResult;
+
+    // OAuth
+    private bool isOAuthLoading;
+
+    // Webhook create
+    private bool showWebhookModal;
+    private bool isCreatingWebhook;
+    private string? webhookError;
+    private string whName = "";
+    private string whTargetUrl = "";
+    private HashSet<string> whSelectedEvents = new();
+
+    // Webhook deliveries
+    private bool showDeliveryLog;
+    private List<WebhookDeliveryDto>? deliveries;
+
+    // API Key create
+    private bool showApiKeyModal;
+    private bool isCreatingApiKey;
+    private string? apiKeyError;
+    private string akName = "";
+    private HashSet<string> akSelectedScopes = new();
+    private CreateApiKeyResponse? newApiKeyResult;
+
+    private readonly string[] allScopes = { "calls:read", "calls:write", "contacts:read", "contacts:write", "agents:read", "tickets:write", "*" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDetail();
+    }
+
+    private async Task LoadDetail()
+    {
+        isLoading = true;
+        try
+        {
+            detail = await Http.GetFromJsonAsync<IntegrationConnectionDetailDto>($"api/integrations/connections/{Uid}");
+            if (detail != null)
+            {
+                editName = detail.Name;
+                editIsActive = detail.IsActive;
+                editAutoLogCalls = detail.AutoLogCalls;
+                editSyncDirection = detail.ContactSyncDirectionId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Yukleme hatasi: {ex.Message}");
+        }
+        finally { isLoading = false; }
+    }
+
+    // ─── SETTINGS ───
+    private async Task SaveSettings()
+    {
+        isSaving = true;
+        try
+        {
+            var dto = new UpdateIntegrationConnectionRequest
+            {
+                Name = editName,
+                IsActive = editIsActive,
+                AutoLogCalls = editAutoLogCalls,
+                ContactSyncDirectionId = editSyncDirection
+            };
+            var resp = await Http.PutAsJsonAsync($"api/integrations/connections/{Uid}", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Ayarlar kaydedildi.");
+                await LoadDetail();
+            }
+            else
+            {
+                Toast.ShowError("Kaydedilemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+        finally { isSaving = false; }
+    }
+
+    private async Task DeleteConnection()
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/integrations/connections/{Uid}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Baglanti silindi.");
+                Nav.NavigateTo("customer/integrations");
+            }
+            else
+            {
+                Toast.ShowError("Silinemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    // ─── CONNECTION TEST ───
+    private async Task TestConnection()
+    {
+        isTesting = true;
+        testResult = null;
+        try
+        {
+            var resp = await Http.PostAsync($"api/integrations/connections/{Uid}/test", null);
+            if (resp.IsSuccessStatusCode)
+            {
+                testResult = await resp.Content.ReadFromJsonAsync<ConnectionTestResult>();
+                await LoadDetail();
+            }
+            else
+            {
+                testResult = new ConnectionTestResult { Success = false, Error = "Test istegi basarisiz." };
+            }
+        }
+        catch (Exception ex)
+        {
+            testResult = new ConnectionTestResult { Success = false, Error = ex.Message };
+        }
+        finally { isTesting = false; }
+    }
+
+    // ─── OAUTH2 ───
+    private async Task InitiateOAuth()
+    {
+        if (detail == null) return;
+        isOAuthLoading = true;
+        try
+        {
+            var resp = await Http.PostAsync($"api/integrations/oauth/initiate?platformTypeId={detail.PlatformTypeId}", null);
+            if (resp.IsSuccessStatusCode)
+            {
+                var result = await resp.Content.ReadFromJsonAsync<OAuthInitiateResponse>();
+                if (result != null)
+                    Nav.NavigateTo(result.AuthorizationUrl, true);
+            }
+            else
+            {
+                Toast.ShowError("OAuth baslatilamadi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+        finally { isOAuthLoading = false; }
+    }
+
+    // ─── WEBHOOK ───
+    private void OpenWebhookModal()
+    {
+        whName = "";
+        whTargetUrl = "";
+        whSelectedEvents.Clear();
+        webhookError = null;
+        showWebhookModal = true;
+    }
+
+    private void ToggleEvent(string eventName, bool isChecked)
+    {
+        if (isChecked) whSelectedEvents.Add(eventName);
+        else whSelectedEvents.Remove(eventName);
+    }
+
+    private async Task CreateWebhook()
+    {
+        if (string.IsNullOrWhiteSpace(whName) || string.IsNullOrWhiteSpace(whTargetUrl))
+        {
+            webhookError = "Ad ve URL zorunludur.";
+            return;
+        }
+
+        isCreatingWebhook = true;
+        webhookError = null;
+        try
+        {
+            var dto = new CreateWebhookSubscriptionRequest
+            {
+                Name = whName,
+                TargetUrl = whTargetUrl,
+                EventFilter = whSelectedEvents.Count > 0 ? whSelectedEvents.ToList() : null,
+                IntegrationConnectionId = detail?.Id
+            };
+            var resp = await Http.PostAsJsonAsync("api/integrations/webhooks", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Webhook olusturuldu.");
+                showWebhookModal = false;
+                await LoadDetail();
+            }
+            else
+            {
+                webhookError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex) { webhookError = ex.Message; }
+        finally { isCreatingWebhook = false; }
+    }
+
+    private async Task TestWebhook(Guid uid)
+    {
+        try
+        {
+            var resp = await Http.PostAsync($"api/integrations/webhooks/{uid}/test", null);
+            if (resp.IsSuccessStatusCode)
+                Toast.ShowSuccess("Test webhook gonderildi.");
+            else
+                Toast.ShowError("Gonderilemedi: " + await resp.Content.ReadAsStringAsync());
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    private async Task ShowDeliveries(Guid uid)
+    {
+        try
+        {
+            deliveries = await Http.GetFromJsonAsync<List<WebhookDeliveryDto>>($"api/integrations/webhooks/{uid}/deliveries?page=1&pageSize=50");
+            showDeliveryLog = true;
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    private async Task DeleteWebhook(Guid uid)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/integrations/webhooks/{uid}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Webhook silindi.");
+                await LoadDetail();
+            }
+            else
+            {
+                Toast.ShowError("Silinemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    // ─── API KEY ───
+    private void OpenApiKeyModal()
+    {
+        akName = "";
+        akSelectedScopes.Clear();
+        apiKeyError = null;
+        showApiKeyModal = true;
+    }
+
+    private void ToggleScope(string scope, bool isChecked)
+    {
+        if (isChecked) akSelectedScopes.Add(scope);
+        else akSelectedScopes.Remove(scope);
+    }
+
+    private async Task CreateApiKey()
+    {
+        if (string.IsNullOrWhiteSpace(akName) || akSelectedScopes.Count == 0)
+        {
+            apiKeyError = "Ad ve en az bir yetki secimi zorunludur.";
+            return;
+        }
+        if (detail == null) return;
+
+        isCreatingApiKey = true;
+        apiKeyError = null;
+        try
+        {
+            var dto = new CreateApiKeyRequest
+            {
+                Name = akName,
+                IntegrationConnectionId = detail.Id,
+                Scopes = akSelectedScopes.ToList()
+            };
+            var resp = await Http.PostAsJsonAsync("api/integrations/api-keys", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                newApiKeyResult = await resp.Content.ReadFromJsonAsync<CreateApiKeyResponse>();
+                Toast.ShowSuccess("API anahtari olusturuldu. Simdi kopyalayin!");
+                showApiKeyModal = false;
+                await LoadDetail();
+            }
+            else
+            {
+                apiKeyError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex) { apiKeyError = ex.Message; }
+        finally { isCreatingApiKey = false; }
+    }
+
+    private async Task RevokeApiKey(Guid uid)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/integrations/api-keys/{uid}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("API anahtari iptal edildi.");
+                await LoadDetail();
+            }
+            else
+            {
+                Toast.ShowError("Iptal edilemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    private async Task CopyApiKey()
+    {
+        // Clipboard API Blazor WASM'de JSInterop gerektirir
+        // Simdilik toast ile bilgilendir
+        Toast.ShowInfo("API anahtarini seciniz ve Ctrl+C ile kopyalayiniz.");
+    }
+}

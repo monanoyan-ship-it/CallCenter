@@ -1,0 +1,378 @@
+@{
+    ViewData["Title"] = "Entegrasyon Detay";
+    var connectionUid = ViewData["ConnectionUid"]?.ToString() ?? "";
+}
+
+<div id="detail-vm">
+    <!-- Back Button -->
+    <a href="/Integrations" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="bi bi-arrow-left me-1"></i>Geri
+    </a>
+
+    <!-- Loading -->
+    <!-- ko if: isLoading() -->
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+        <p class="text-muted mt-2 small">Yukleniyor...</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- Content -->
+    <!-- ko ifnot: isLoading() -->
+
+    <!-- Connection Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge rounded-pill fs-5 px-3 py-2" data-bind="class: conn().platformCss">
+                        <i data-bind="class: conn().platformIcon"></i>
+                    </span>
+                    <div>
+                        <h5 class="mb-1" data-bind="text: conn().name"></h5>
+                        <span class="badge" data-bind="class: conn().platformCss, text: conn().platformName"></span>
+                        <!-- ko if: conn().isActive && conn().isConnected -->
+                        <span class="badge bg-success-subtle text-success ms-1"><i class="bi bi-check-circle me-1"></i>Aktif</span>
+                        <!-- /ko -->
+                        <!-- ko if: conn().isActive && !conn().isConnected -->
+                        <span class="badge bg-warning-subtle text-warning ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Baglanti Yok</span>
+                        <!-- /ko -->
+                        <!-- ko ifnot: conn().isActive -->
+                        <span class="badge bg-secondary-subtle text-secondary ms-1"><i class="bi bi-pause-circle me-1"></i>Pasif</span>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-info btn-sm" data-bind="click: testConnection, disable: isTesting">
+                        <span data-bind="visible: isTesting" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-lightning me-1" data-bind="visible: !isTesting()"></i>Test
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" data-bind="click: toggleActive">
+                        <!-- ko if: conn().isActive -->
+                        <i class="bi bi-pause-circle me-1"></i>Pasife Al
+                        <!-- /ko -->
+                        <!-- ko ifnot: conn().isActive -->
+                        <i class="bi bi-play-circle me-1"></i>Aktif Et
+                        <!-- /ko -->
+                    </button>
+                </div>
+            </div>
+
+            <!-- Info Row -->
+            <div class="row g-3 mt-3">
+                <div class="col-md-3">
+                    <div class="small text-muted">Olusturulma</div>
+                    <div class="small fw-semibold" data-bind="text: $root.formatDate(conn().createdAt)"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small text-muted">Son Senkronizasyon</div>
+                    <div class="small fw-semibold" data-bind="text: conn().lastSyncAt ? $root.formatDate(conn().lastSyncAt) : 'Henuz yapilmadi'"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small text-muted">Son Test</div>
+                    <div class="small">
+                        <!-- ko if: conn().lastTestedAt -->
+                        <span data-bind="text: $root.formatDate(conn().lastTestedAt)"></span>
+                        <!-- ko if: conn().lastTestSuccess -->
+                        <i class="bi bi-check-circle-fill text-success ms-1"></i>
+                        <!-- /ko -->
+                        <!-- ko ifnot: conn().lastTestSuccess -->
+                        <i class="bi bi-x-circle-fill text-danger ms-1"></i>
+                        <!-- /ko -->
+                        <!-- /ko -->
+                        <!-- ko ifnot: conn().lastTestedAt -->
+                        <span class="text-muted">-</span>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small text-muted">Cagri Loglama</div>
+                    <div class="small fw-semibold" data-bind="text: conn().autoLogCalls ? 'Aktif' : 'Kapali'"></div>
+                </div>
+            </div>
+
+            <!-- Last Error -->
+            <!-- ko if: conn().lastError -->
+            <div class="alert alert-danger small mt-3 mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                <span data-bind="text: conn().lastError"></span>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-settings">
+                <i class="bi bi-gear me-1"></i>Ayarlar
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-webhooks">
+                <i class="bi bi-broadcast me-1"></i>Webhooklar
+                <span class="badge bg-light text-dark ms-1" data-bind="text: conn().webhooks ? conn().webhooks.length : 0"></span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-apikeys">
+                <i class="bi bi-key me-1"></i>API Anahtarlari
+                <span class="badge bg-light text-dark ms-1" data-bind="text: conn().apiKeys ? conn().apiKeys.length : 0"></span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Settings Tab -->
+        <div class="tab-pane fade show active" id="tab-settings">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Baglanti Adi</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: editForm.name" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Rehber Senkronizasyon</label>
+                            <select class="form-select form-select-sm" data-bind="value: editForm.contactSyncDirectionId">
+                                <option value="0">Senkronizasyon yok</option>
+                                <option value="1">Dis sisteme gonder</option>
+                                <option value="2">Dis sistemden al</option>
+                                <option value="3">Cift yonlu</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="editAutoLog" data-bind="checked: editForm.autoLogCalls" />
+                                <label class="form-check-label small" for="editAutoLog">Cagrilari otomatik logla</label>
+                            </div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button class="btn btn-primary btn-sm" data-bind="click: saveSettings, disable: isSaving">
+                                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Webhooks Tab -->
+        <div class="tab-pane fade" id="tab-webhooks">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted small">Bu baglantiya ait webhooklar</span>
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewWebhook">
+                    <i class="bi bi-plus-lg me-1"></i>Yeni Webhook
+                </button>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ad</th>
+                                    <th>Hedef URL</th>
+                                    <th>Durum</th>
+                                    <th style="width:100px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: conn().webhooks || []">
+                                <tr>
+                                    <td class="small fw-semibold" data-bind="text: name"></td>
+                                    <td class="small text-truncate" style="max-width:300px;" data-bind="text: targetUrl"></td>
+                                    <td>
+                                        <!-- ko if: isActive -->
+                                        <span class="badge bg-success-subtle text-success">Aktif</span>
+                                        <!-- /ko -->
+                                        <!-- ko ifnot: isActive -->
+                                        <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                        <!-- /ko -->
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" title="Test" data-bind="click: $root.testWebhook">
+                                                <i class="bi bi-lightning"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="Sil" data-bind="click: $root.removeWebhook">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: !conn().webhooks || conn().webhooks.length === 0 -->
+                    <div class="text-center text-muted py-4 small">
+                        <i class="bi bi-broadcast" style="font-size: 1.5rem;"></i>
+                        <p class="mt-2">Henuz webhook eklenmemis</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys Tab -->
+        <div class="tab-pane fade" id="tab-apikeys">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted small">Bu baglantiya ait API anahtarlari</span>
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewApiKey">
+                    <i class="bi bi-plus-lg me-1"></i>Yeni API Key
+                </button>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ad</th>
+                                    <th>Prefix</th>
+                                    <th>Yetkiler</th>
+                                    <th>Son Kullanim</th>
+                                    <th style="width:80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: conn().apiKeys || []">
+                                <tr>
+                                    <td class="small fw-semibold" data-bind="text: name"></td>
+                                    <td class="small"><code data-bind="text: apiKeyPrefix + '...'"></code></td>
+                                    <td class="small" data-bind="text: (scopes || []).join(', ') || '-'"></td>
+                                    <td class="small text-muted" data-bind="text: lastUsedAt ? $root.formatDate(lastUsedAt) : 'Kullanilmadi'"></td>
+                                    <td>
+                                        <button class="btn btn-outline-danger btn-sm" title="Iptal Et" data-bind="click: $root.revokeApiKey">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: !conn().apiKeys || conn().apiKeys.length === 0 -->
+                    <div class="text-center text-muted py-4 small">
+                        <i class="bi bi-key" style="font-size: 1.5rem;"></i>
+                        <p class="mt-2">Henuz API key olusturulmamis</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- /ko -->
+
+    <!-- New Webhook Modal -->
+    <div class="modal fade" id="webhookModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Yeni Webhook</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Webhook Adi *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: webhookForm.name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Hedef URL *</label>
+                        <input type="url" class="form-control form-control-sm" placeholder="https://example.com/webhook" data-bind="value: webhookForm.targetUrl" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Event Filtresi</label>
+                        <div class="row g-2" data-bind="foreach: availableEventTypes">
+                            <div class="col-6">
+                                <div class="form-check form-check-sm">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: $root.webhookForm.selectedEvents, checkedValue: systemName, attr: { id: 'evt_' + id }" />
+                                    <label class="form-check-label small" data-bind="text: description, attr: { for: 'evt_' + id }"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">Bos birakirsaniz tum eventler gonderilir</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveWebhook, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New API Key Modal -->
+    <div class="modal fade" id="apiKeyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Yeni API Key</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">API Key Adi *</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="Ornegin: Production Key" data-bind="value: apiKeyForm.name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Yetkiler</label>
+                        <div class="row g-2">
+                            <div class="col-6" data-bind="foreach: availableScopes">
+                                <div class="form-check form-check-sm">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: $root.apiKeyForm.selectedScopes, checkedValue: $data, attr: { id: 'scope_' + $index() }" />
+                                    <label class="form-check-label small" data-bind="text: $data, attr: { for: 'scope_' + $index() }"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: createApiKey, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Created Modal (one-time display) -->
+    <div class="modal fade" id="apiKeyCreatedModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning-subtle">
+                    <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i>API Key Olusturuldu</h6>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Bu API key sadece bir kez gosterilecek! Lutfen kopyalayip guvenli bir yere kaydedin.
+                    </div>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-sm font-monospace" readonly data-bind="value: createdApiKey" />
+                        <button class="btn btn-outline-primary btn-sm" data-bind="click: copyApiKey">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal" data-bind="click: loadConnection">
+                        Kopyaladim, Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.__connectionUid = '@Html.Raw(connectionUid)';
+</script>
+
+@section Scripts {
+    <script src="~/js/IntegrationDetail.js"></script>
+}

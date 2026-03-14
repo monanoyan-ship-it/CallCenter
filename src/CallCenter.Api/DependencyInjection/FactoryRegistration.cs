@@ -62,6 +62,9 @@ public static class FactoryRegistration
         // Kalite Yonetimi (Quality Management)
         services.AddScoped<IQualityFactory, QualityFactory>();
 
+        // Faz 8 — Entegrasyon (Integration & Webhook)
+        services.AddScoped<IIntegrationFactory, IntegrationFactory>();
+
         return services;
     }
 }

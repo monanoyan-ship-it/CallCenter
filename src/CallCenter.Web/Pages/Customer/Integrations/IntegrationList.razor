@@ -1,0 +1,356 @@
+@page "/customer/integrations"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject ToastService Toast
+@inject NavigationManager Nav
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Entegrasyonlar - CorpLynk</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-plug-fill me-2 text-primary"></i>Entegrasyonlar
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="() => showNewConnectionModal = true">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Baglanti
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Entegrasyonlar yukleniyor...</p>
+    </div>
+}
+else if (connections == null || connections.Count == 0)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-plug fs-1 d-block mb-3 text-muted opacity-25"></i>
+        <h5 class="text-muted">Henuz entegrasyon baglantisi yok</h5>
+        <p class="text-muted small">Salesforce, HubSpot veya Zendesk ile baglanarak cagri yonetimini otomatiklestirin.</p>
+        <button class="btn btn-primary btn-sm" @onclick="() => showNewConnectionModal = true">
+            <i class="bi bi-plus-lg me-1"></i>Ilk Baglantiyi Olustur
+        </button>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var conn in connections)
+        {
+            var platform = IntegrationPlatforms.GetById(conn.PlatformTypeId);
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100 cursor-pointer" @onclick="() => NavigateToDetail(conn.Uid)">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge @(platform?.CssClass ?? "bg-secondary") p-2 me-2">
+                                    <i class="bi @(platform?.Icon ?? "bi-plug") fs-5"></i>
+                                </span>
+                                <div>
+                                    <h6 class="mb-0">@conn.Name</h6>
+                                    <small class="text-muted">@(platform?.Description ?? "Bilinmiyor")</small>
+                                </div>
+                            </div>
+                            <div>
+                                @if (conn.IsConnected && conn.IsActive)
+                                {
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="bi bi-check-circle me-1"></i>Bagli
+                                    </span>
+                                }
+                                else if (conn.IsActive)
+                                {
+                                    <span class="badge bg-warning text-dark rounded-pill">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>Baglanti Yok
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary rounded-pill">
+                                        <i class="bi bi-pause-circle me-1"></i>Pasif
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Webhook</small>
+                                <span class="fw-medium">@conn.WebhookCount</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">API Key</small>
+                                <span class="fw-medium">@conn.ApiKeyCount</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center small text-muted">
+                            <span>
+                                @if (conn.AutoLogCalls)
+                                {
+                                    <i class="bi bi-telephone-fill text-success me-1" title="Otomatik cagri loglama"></i>
+                                }
+                                Olusturma: @conn.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                            </span>
+                            @if (conn.LastSyncAt.HasValue)
+                            {
+                                <span title="Son senkronizasyon">
+                                    <i class="bi bi-arrow-repeat me-1"></i>@conn.LastSyncAt.Value.ToLocalTime().ToString("dd.MM HH:mm")
+                                </span>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(conn.LastError))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
+                                <i class="bi bi-exclamation-circle me-1"></i>@conn.LastError
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@* ─── NEW CONNECTION MODAL ─── *@
+@if (showNewConnectionModal)
+{
+    <div class="modal-backdrop-custom" @onclick="() => showNewConnectionModal = false"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Yeni Entegrasyon Baglantisi</h5>
+                    <button type="button" class="btn-close" @onclick="() => showNewConnectionModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(createError))
+                    {
+                        <div class="alert alert-danger py-2 small">@createError</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label small">Platform *</label>
+                        <div class="row g-2">
+                            @foreach (var p in IntegrationPlatforms.All)
+                            {
+                                var isSelected = selectedPlatformId == p.Id;
+                                <div class="col-6">
+                                    <div class="card cursor-pointer @(isSelected ? "border-primary bg-primary bg-opacity-10" : "border-0 bg-light")"
+                                         @onclick="() => SelectPlatform(p.Id)">
+                                        <div class="card-body text-center py-3">
+                                            <span class="badge @(p.CssClass) p-2 mb-2">
+                                                <i class="bi @(p.Icon) fs-5"></i>
+                                            </span>
+                                            <div class="small fw-medium">@p.Description</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Baglanti Adi *</label>
+                        <input type="text" class="form-control form-control-sm" @bind="createName"
+                               placeholder="ornegin: Salesforce Production" />
+                    </div>
+
+                    @* ─── Platform-specific credential fields ─── *@
+                    @if (selectedPlatformId == IntegrationPlatforms.Ids.Salesforce)
+                    {
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>Salesforce OAuth2 ile baglanir.
+                            Baglanti olusturduktan sonra "Salesforce ile Baglan" butonuna tiklayin.
+                        </div>
+                    }
+                    else if (selectedPlatformId == IntegrationPlatforms.Ids.HubSpot)
+                    {
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>HubSpot OAuth2 ile baglanir.
+                            Baglanti olusturduktan sonra "HubSpot ile Baglan" butonuna tiklayin.
+                        </div>
+                    }
+                    else if (selectedPlatformId == IntegrationPlatforms.Ids.Zendesk)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label small">Subdomain *</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" @bind="credSubdomain" placeholder="mycompany" />
+                                <span class="input-group-text">.zendesk.com</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">E-posta *</label>
+                            <input type="email" class="form-control form-control-sm" @bind="credEmail" placeholder="admin@mycompany.com" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">API Token *</label>
+                            <input type="password" class="form-control form-control-sm" @bind="credApiToken" placeholder="Zendesk API token" />
+                        </div>
+                    }
+
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" @bind="createAutoLogCalls" id="chkAutoLog" />
+                                <label class="form-check-label small" for="chkAutoLog">Cagrilari otomatik logla</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-0">Rehber Senkronizasyon</label>
+                            <select class="form-select form-select-sm" @bind="createSyncDirection">
+                                @foreach (var sd in ContactSyncDirections.All)
+                                {
+                                    <option value="@sd.Id">@sd.Description</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showNewConnectionModal = false">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="CreateConnection" disabled="@isCreating">
+                        @if (isCreating)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .modal-backdrop-custom {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5); z-index: 1040;
+    }
+</style>
+
+@code {
+    private List<IntegrationConnectionListDto>? connections;
+    private bool isLoading = true;
+
+    // Create modal
+    private bool showNewConnectionModal;
+    private bool isCreating;
+    private string? createError;
+    private int selectedPlatformId;
+    private string createName = "";
+    private bool createAutoLogCalls = true;
+    private int createSyncDirection;
+
+    // Zendesk credentials
+    private string credSubdomain = "";
+    private string credEmail = "";
+    private string credApiToken = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConnections();
+    }
+
+    private async Task LoadConnections()
+    {
+        isLoading = true;
+        try
+        {
+            connections = await Http.GetFromJsonAsync<List<IntegrationConnectionListDto>>("api/integrations/connections");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Yukleme hatasi: {ex.Message}");
+        }
+        finally { isLoading = false; }
+    }
+
+    private void NavigateToDetail(Guid uid)
+    {
+        Nav.NavigateTo($"customer/integrations/{uid}");
+    }
+
+    private void SelectPlatform(int platformId)
+    {
+        selectedPlatformId = platformId;
+        var platform = IntegrationPlatforms.GetById(platformId);
+        if (string.IsNullOrEmpty(createName) && platform != null)
+            createName = platform.Description;
+    }
+
+    private async Task CreateConnection()
+    {
+        if (selectedPlatformId == 0) { createError = "Platform secin."; return; }
+        if (string.IsNullOrWhiteSpace(createName)) { createError = "Baglanti adi girin."; return; }
+
+        // Zendesk credential validation
+        if (selectedPlatformId == IntegrationPlatforms.Ids.Zendesk)
+        {
+            if (string.IsNullOrWhiteSpace(credSubdomain) || string.IsNullOrWhiteSpace(credEmail) || string.IsNullOrWhiteSpace(credApiToken))
+            {
+                createError = "Zendesk icin subdomain, e-posta ve API token gerekli.";
+                return;
+            }
+        }
+
+        isCreating = true;
+        createError = null;
+        try
+        {
+            var dto = new CreateIntegrationConnectionRequest
+            {
+                Name = createName,
+                PlatformTypeId = selectedPlatformId,
+                AutoLogCalls = createAutoLogCalls,
+                ContactSyncDirectionId = createSyncDirection
+            };
+
+            // Platform-specific credentials
+            if (selectedPlatformId == IntegrationPlatforms.Ids.Zendesk)
+            {
+                dto.Credentials = new Dictionary<string, string>
+                {
+                    ["Subdomain"] = credSubdomain,
+                    ["Email"] = credEmail,
+                    ["ApiToken"] = credApiToken,
+                    ["AuthMethod"] = "api_token"
+                };
+            }
+
+            var resp = await Http.PostAsJsonAsync("api/integrations/connections", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Entegrasyon baglantisi olusturuldu.");
+                showNewConnectionModal = false;
+                ResetCreateForm();
+                await LoadConnections();
+            }
+            else
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                createError = body;
+            }
+        }
+        catch (Exception ex) { createError = ex.Message; }
+        finally { isCreating = false; }
+    }
+
+    private void ResetCreateForm()
+    {
+        selectedPlatformId = 0;
+        createName = "";
+        createAutoLogCalls = true;
+        createSyncDirection = 0;
+        credSubdomain = "";
+        credEmail = "";
+        credApiToken = "";
+        createError = null;
+    }
+}

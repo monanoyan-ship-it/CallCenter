@@ -1,0 +1,330 @@
+@page "/customer/integrations/connect/{PlatformName}"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject ToastService Toast
+@inject NavigationManager Nav
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>@(platform?.Description ?? "Platform") Baglantisi - CorpLynk</PageTitle>
+
+<div class="d-flex align-items-center mb-4">
+    <a href="customer/integrations" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <span class="badge @(platform?.CssClass ?? "bg-secondary") p-2 me-2">
+        <i class="bi @(platform?.Icon ?? "bi-plug") fs-5"></i>
+    </span>
+    <div>
+        <h4 class="mb-0">@(platform?.Description ?? "Platform") Baglantisi</h4>
+        <small class="text-muted">Adim adim baglanti kurulumu</small>
+    </div>
+</div>
+
+@if (platform == null)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>Gecersiz platform: @PlatformName
+    </div>
+}
+else
+{
+    @* ─── STEPS INDICATOR ─── *@
+    <div class="d-flex justify-content-center mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge @(step >= 1 ? "bg-primary" : "bg-light text-dark border") rounded-circle p-2">1</span>
+            <span class="small @(step >= 1 ? "fw-bold" : "text-muted")">Bilgiler</span>
+            <i class="bi bi-chevron-right text-muted"></i>
+            <span class="badge @(step >= 2 ? "bg-primary" : "bg-light text-dark border") rounded-circle p-2">2</span>
+            <span class="small @(step >= 2 ? "fw-bold" : "text-muted")">Kimlik Dogrulama</span>
+            <i class="bi bi-chevron-right text-muted"></i>
+            <span class="badge @(step >= 3 ? "bg-success" : "bg-light text-dark border") rounded-circle p-2">3</span>
+            <span class="small @(step >= 3 ? "fw-bold" : "text-muted")">Test</span>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            @* ═══ STEP 1: Basic Info ═══ *@
+            @if (step == 1)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Temel Bilgiler</h5>
+                        <div class="mb-3">
+                            <label class="form-label small">Baglanti Adi *</label>
+                            <input type="text" class="form-control form-control-sm" @bind="connectionName"
+                                   placeholder="@(platform.Description) Production" />
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" @bind="autoLogCalls" id="chkAuto" />
+                                <label class="form-check-label small" for="chkAuto">Cagrilari otomatik olarak dis sisteme logla</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Rehber Senkronizasyon</label>
+                            <select class="form-select form-select-sm" @bind="syncDirection">
+                                @foreach (var sd in ContactSyncDirections.All)
+                                {
+                                    <option value="@sd.Id">@sd.Description</option>
+                                }
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100" @onclick="GoToStep2" disabled="@string.IsNullOrWhiteSpace(connectionName)">
+                            Devam <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @* ═══ STEP 2: Authentication ═══ *@
+            @if (step == 2)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-shield-lock me-2"></i>Kimlik Dogrulama</h5>
+
+                        @if (!string.IsNullOrEmpty(stepError))
+                        {
+                            <div class="alert alert-danger py-2 small">@stepError</div>
+                        }
+
+                        @if (platformId == IntegrationPlatforms.Ids.Salesforce)
+                        {
+                            <div class="alert alert-info py-2 small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Salesforce OAuth2:</strong> Baglanti olusturduktan sonra Salesforce hesabinizla yetkilendirme yapilacaktir.
+                            </div>
+                            <p class="small text-muted">Salesforce Connected App ayarlari:</p>
+                            <ol class="small text-muted">
+                                <li>Salesforce Setup &rarr; App Manager &rarr; New Connected App</li>
+                                <li>OAuth scopes: <code>api</code>, <code>refresh_token</code>, <code>offline_access</code></li>
+                                <li>Callback URL: <code>@(Nav.BaseUri)api/integrations/oauth/callback</code></li>
+                            </ol>
+                        }
+                        else if (platformId == IntegrationPlatforms.Ids.HubSpot)
+                        {
+                            <div class="alert alert-info py-2 small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>HubSpot OAuth2:</strong> Baglanti olusturduktan sonra HubSpot hesabinizla yetkilendirme yapilacaktir.
+                            </div>
+                            <p class="small text-muted">HubSpot App ayarlari:</p>
+                            <ol class="small text-muted">
+                                <li>HubSpot Developer &rarr; Apps &rarr; Create App</li>
+                                <li>Scopes: <code>crm.objects.contacts.read</code>, <code>crm.objects.contacts.write</code></li>
+                                <li>Redirect URL: <code>@(Nav.BaseUri)api/integrations/oauth/callback</code></li>
+                            </ol>
+                        }
+                        else if (platformId == IntegrationPlatforms.Ids.Zendesk)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label small">Zendesk Subdomain *</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control" @bind="credSubdomain" placeholder="mycompany" />
+                                    <span class="input-group-text">.zendesk.com</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Admin E-posta *</label>
+                                <input type="email" class="form-control form-control-sm" @bind="credEmail" placeholder="admin@mycompany.com" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">API Token *</label>
+                                <input type="password" class="form-control form-control-sm" @bind="credApiToken" />
+                                <small class="text-muted">Zendesk Admin &rarr; Channels &rarr; API &rarr; Add API Token</small>
+                            </div>
+                        }
+                        else if (platformId == IntegrationPlatforms.Ids.GenericWebhook)
+                        {
+                            <div class="alert alert-info py-2 small">
+                                <i class="bi bi-info-circle me-1"></i>Genel webhook icin kimlik dogrulama gerekmez. Webhook olusturma detay sayfasindan yapilir.
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => step = 1">
+                                <i class="bi bi-arrow-left me-1"></i>Geri
+                            </button>
+                            <button class="btn btn-primary btn-sm flex-fill" @onclick="CreateAndGoToStep3" disabled="@isCreating">
+                                @if (isCreating) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Baglantiyi Olustur <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* ═══ STEP 3: Test ═══ *@
+            @if (step == 3)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        @if (testResult == null)
+                        {
+                            <div class="mb-3">
+                                <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+                                <h5>Baglanti Olusturuldu!</h5>
+                                <p class="text-muted small">Simdi baglantiyi test edebilirsiniz.</p>
+                            </div>
+                            <button class="btn btn-primary btn-sm" @onclick="RunTest" disabled="@isTesting">
+                                @if (isTesting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                <i class="bi bi-lightning me-1"></i>Baglanti Testi
+                            </button>
+                        }
+                        else if (testResult.Success)
+                        {
+                            <i class="bi bi-patch-check-fill text-success fs-1 d-block mb-2"></i>
+                            <h5 class="text-success">Baglanti Basarili!</h5>
+                            <p class="text-muted small">@testResult.PlatformInfo</p>
+                        }
+                        else
+                        {
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-1 d-block mb-2"></i>
+                            <h5>Baglanti Testi Basarisiz</h5>
+                            <p class="text-danger small">@testResult.Error</p>
+                            <button class="btn btn-outline-primary btn-sm" @onclick="RunTest" disabled="@isTesting">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Tekrar Dene
+                            </button>
+                        }
+
+                        <hr />
+                        <div class="d-flex gap-2 justify-content-center">
+                            @if (createdConnectionUid != Guid.Empty)
+                            {
+                                <a href="customer/integrations/@createdConnectionUid" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-gear me-1"></i>Detaya Git
+                                </a>
+                            }
+                            <a href="customer/integrations" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-left me-1"></i>Listeye Don
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string PlatformName { get; set; } = "";
+
+    private TypeItem? platform;
+    private int platformId;
+    private int step = 1;
+    private string? stepError;
+
+    // Step 1
+    private string connectionName = "";
+    private bool autoLogCalls = true;
+    private int syncDirection;
+
+    // Step 2 — Zendesk
+    private string credSubdomain = "";
+    private string credEmail = "";
+    private string credApiToken = "";
+
+    // Step 3
+    private bool isCreating;
+    private bool isTesting;
+    private Guid createdConnectionUid;
+    private ConnectionTestResult? testResult;
+
+    protected override void OnInitialized()
+    {
+        platform = IntegrationPlatforms.GetBySystemName(PlatformName);
+        if (platform == null)
+        {
+            // Try by ID
+            if (int.TryParse(PlatformName, out var id))
+                platform = IntegrationPlatforms.GetById(id);
+        }
+
+        if (platform != null)
+        {
+            platformId = platform.Id;
+            connectionName = platform.Description;
+        }
+    }
+
+    private void GoToStep2()
+    {
+        step = 2;
+    }
+
+    private async Task CreateAndGoToStep3()
+    {
+        // Validate Zendesk creds
+        if (platformId == IntegrationPlatforms.Ids.Zendesk)
+        {
+            if (string.IsNullOrWhiteSpace(credSubdomain) || string.IsNullOrWhiteSpace(credEmail) || string.IsNullOrWhiteSpace(credApiToken))
+            {
+                stepError = "Tum alanlar zorunludur.";
+                return;
+            }
+        }
+
+        isCreating = true;
+        stepError = null;
+        try
+        {
+            var dto = new CreateIntegrationConnectionRequest
+            {
+                Name = connectionName,
+                PlatformTypeId = platformId,
+                AutoLogCalls = autoLogCalls,
+                ContactSyncDirectionId = syncDirection
+            };
+
+            if (platformId == IntegrationPlatforms.Ids.Zendesk)
+            {
+                dto.Credentials = new Dictionary<string, string>
+                {
+                    ["Subdomain"] = credSubdomain,
+                    ["Email"] = credEmail,
+                    ["ApiToken"] = credApiToken,
+                    ["AuthMethod"] = "api_token"
+                };
+            }
+
+            var resp = await Http.PostAsJsonAsync("api/integrations/connections", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                // Get the created connection to find its Uid
+                var connections = await Http.GetFromJsonAsync<List<IntegrationConnectionListDto>>("api/integrations/connections");
+                var latest = connections?.OrderByDescending(c => c.CreatedAt).FirstOrDefault();
+                if (latest != null) createdConnectionUid = latest.Uid;
+
+                step = 3;
+            }
+            else
+            {
+                stepError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex) { stepError = ex.Message; }
+        finally { isCreating = false; }
+    }
+
+    private async Task RunTest()
+    {
+        if (createdConnectionUid == Guid.Empty) return;
+        isTesting = true;
+        testResult = null;
+        try
+        {
+            var resp = await Http.PostAsync($"api/integrations/connections/{createdConnectionUid}/test", null);
+            if (resp.IsSuccessStatusCode)
+                testResult = await resp.Content.ReadFromJsonAsync<ConnectionTestResult>();
+            else
+                testResult = new ConnectionTestResult { Success = false, Error = "Test istegi basarisiz." };
+        }
+        catch (Exception ex)
+        {
+            testResult = new ConnectionTestResult { Success = false, Error = ex.Message };
+        }
+        finally { isTesting = false; }
+    }
+}

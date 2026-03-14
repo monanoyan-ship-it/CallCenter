@@ -1,6 +1,7 @@
 using System.Text;
 using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Hubs;
+using CallCenter.Api.Middleware;
 using CallCenter.Data;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -138,6 +139,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("AllowBlazor");
 app.UseAuthentication();
+app.UseApiKeyAuth(); // Dis sistem API key dogrulamasi (/api/integration/v1/*)
 app.UseAuthorization();
 
 app.MapControllers();

@@ -1,0 +1,234 @@
+@{
+    ViewData["Title"] = "Webhook Yonetimi";
+}
+
+<div id="webhooks-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2 align-items-center">
+            <div class="input-group" style="max-width: 280px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control form-control-sm" placeholder="Webhook ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            </div>
+            <select class="form-select form-select-sm" style="max-width: 180px;" data-bind="value: statusFilter">
+                <option value="">Tum Durumlar</option>
+                <option value="active">Aktif</option>
+                <option value="inactive">Pasif</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Webhook
+        </button>
+    </div>
+
+    <!-- KPI -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3 py-2">
+                    <i class="bi bi-broadcast fs-4 text-primary"></i>
+                    <div>
+                        <div class="text-muted small">Toplam</div>
+                        <div class="fw-bold" data-bind="text: webhooks().length"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3 py-2">
+                    <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                    <div>
+                        <div class="text-muted small">Aktif</div>
+                        <div class="fw-bold" data-bind="text: activeWebhookCount()"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3 py-2">
+                    <i class="bi bi-pause-circle-fill fs-4 text-secondary"></i>
+                    <div>
+                        <div class="text-muted small">Pasif</div>
+                        <div class="fw-bold" data-bind="text: webhooks().length - activeWebhookCount()"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3 py-2">
+                    <i class="bi bi-plug-fill fs-4 text-info"></i>
+                    <div>
+                        <div class="text-muted small">Baglanti</div>
+                        <div class="fw-bold" data-bind="text: connections().length"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Webhooks Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ad</th>
+                            <th>Hedef URL</th>
+                            <th>Baglanti</th>
+                            <th>Event Filtresi</th>
+                            <th>Durum</th>
+                            <th style="width:140px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredWebhooks">
+                        <tr>
+                            <td class="small fw-semibold" data-bind="text: name"></td>
+                            <td class="small text-truncate" style="max-width:250px;">
+                                <code data-bind="text: targetUrl"></code>
+                            </td>
+                            <td class="small" data-bind="text: integrationConnectionName || 'Genel'"></td>
+                            <td class="small">
+                                <!-- ko if: eventFilter && eventFilter.length > 0 -->
+                                <span data-bind="text: eventFilter.length + ' event'"></span>
+                                <!-- /ko -->
+                                <!-- ko if: !eventFilter || eventFilter.length === 0 -->
+                                <span class="text-muted">Tumunu dinliyor</span>
+                                <!-- /ko -->
+                            </td>
+                            <td>
+                                <!-- ko if: isActive -->
+                                <span class="badge bg-success-subtle text-success">Aktif</span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: isActive -->
+                                <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
+                                <!-- /ko -->
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" title="Test gonder" data-bind="click: $root.testWebhook">
+                                        <i class="bi bi-lightning"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" title="Gonderim Loglari" data-bind="click: $root.showDeliveries">
+                                        <i class="bi bi-clock-history"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning" title="Aktif/Pasif" data-bind="click: $root.toggleWebhook">
+                                        <i data-bind="class: isActive ? 'bi bi-pause-circle' : 'bi bi-play-circle'"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $root.removeWebhook">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: webhooks().length === 0 -->
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-broadcast" style="font-size: 2.5rem;"></i>
+                <p class="mt-2 small">Henuz webhook eklenmemis</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Delivery Log Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="deliveryOffcanvas" style="width:500px;">
+        <div class="offcanvas-header">
+            <h6 class="offcanvas-title">
+                <i class="bi bi-clock-history me-1"></i>Gonderim Loglari
+                <small class="text-muted d-block" data-bind="text: selectedWebhookName"></small>
+            </h6>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <!-- ko if: isLoadingDeliveries() -->
+            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <!-- /ko -->
+            <div class="list-group list-group-flush" data-bind="foreach: deliveries">
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="badge bg-dark-subtle text-dark me-1" data-bind="text: eventType"></span>
+                            <!-- ko if: statusCode && statusCode >= 200 && statusCode < 300 -->
+                            <span class="badge bg-success-subtle text-success" data-bind="text: statusCode"></span>
+                            <!-- /ko -->
+                            <!-- ko if: statusCode && (statusCode < 200 || statusCode >= 300) -->
+                            <span class="badge bg-danger-subtle text-danger" data-bind="text: statusCode"></span>
+                            <!-- /ko -->
+                            <!-- ko ifnot: statusCode -->
+                            <span class="badge bg-warning-subtle text-warning">Bekliyor</span>
+                            <!-- /ko -->
+                        </div>
+                        <small class="text-muted" data-bind="text: $root.formatDate(createdAt)"></small>
+                    </div>
+                    <!-- ko if: errorMessage -->
+                    <div class="small text-danger mt-1" data-bind="text: errorMessage"></div>
+                    <!-- /ko -->
+                    <div class="small text-muted mt-1">
+                        Deneme: <span data-bind="text: attempt"></span>
+                        <!-- ko if: nextRetryAt -->
+                        | Sonraki: <span data-bind="text: $root.formatDate(nextRetryAt)"></span>
+                        <!-- /ko -->
+                    </div>
+                </div>
+            </div>
+            <!-- ko if: deliveries().length === 0 && !isLoadingDeliveries() -->
+            <div class="text-center text-muted py-4 small">Henuz gonderim yok</div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- New Webhook Modal -->
+    <div class="modal fade" id="webhookModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Yeni Webhook</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Webhook Adi *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Hedef URL *</label>
+                        <input type="url" class="form-control form-control-sm" placeholder="https://example.com/webhook" data-bind="value: form.targetUrl" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Baglanti (opsiyonel)</label>
+                        <select class="form-select form-select-sm" data-bind="value: form.connectionId, options: connectionOptions, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Baglantisiz (genel)'"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Event Filtresi</label>
+                        <div class="row g-2" data-bind="foreach: eventTypes">
+                            <div class="col-6">
+                                <div class="form-check form-check-sm">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: $root.form.selectedEvents, checkedValue: systemName, attr: { id: 'wevt_' + id }" />
+                                    <label class="form-check-label small" data-bind="text: description, attr: { for: 'wevt_' + id }"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text">Bos birakirsaniz tum eventler gonderilir</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Webhooks.js"></script>
+}

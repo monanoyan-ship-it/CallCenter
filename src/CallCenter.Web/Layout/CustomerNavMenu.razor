@@ -194,6 +194,28 @@
             </div>
         }
 
+        @* ─── ENTEGRASYONLAR (Integrations modulu, FirmaAdmin) ─── *@
+        @if (HasModule(PortalModules.Ids.Integrations) && IsFirmaAdmin)
+        {
+            <div class="nav-group">
+                <button class="nav-group-toggle" @onclick="() => ToggleGroup(4)">
+                    <i class="bi bi-plug-fill"></i>
+                    <span>Entegrasyonlar</span>
+                    <i class="bi bi-chevron-down chevron @(IsGroupOpen(4) ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(IsGroupOpen(4) ? "show" : "")">
+                    <NavLink class="nav-link" href="customer/integrations" Match="NavLinkMatch.All">
+                        <i class="bi bi-plug"></i>
+                        <span>Baglanti Listesi</span>
+                    </NavLink>
+                    <NavLink class="nav-link" href="customer/integrations/webhooks">
+                        <i class="bi bi-broadcast"></i>
+                        <span>Webhooklar</span>
+                    </NavLink>
+                </div>
+            </div>
+        }
+
         @* ─── RAPORLAR (Reports modulu, Operator haric) ─── *@
         @if (HasModule(PortalModules.Ids.Reports) && !IsOperator)
         {
@@ -255,6 +277,7 @@
         { 1, new[] { "customer/queues" } },
         { 2, new[] { "customer/reports/" } },
         { 3, new[] { "customer/quality/" } },
+        { 4, new[] { "customer/integrations" } },
         { 5, new[] { "customer/messaging" } },
         { 10, new[] { "customer/portal/" } }
     };

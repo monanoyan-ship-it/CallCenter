@@ -81,6 +81,12 @@ public class AppDbContext : DbContext
     public DbSet<QualityAnswerSubCriteriaSelection> QualityAnswerSubCriteriaSelections => Set<QualityAnswerSubCriteriaSelection>();
     public DbSet<QualityScoreThreshold> QualityScoreThresholds => Set<QualityScoreThreshold>();
 
+    // ─── Integration & Webhook ───
+    public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+    public DbSet<IntegrationApiKey> IntegrationApiKeys => Set<IntegrationApiKey>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -1062,6 +1068,79 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(t => t.ChecklistId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ─── IntegrationConnection ───
+        modelBuilder.Entity<IntegrationConnection>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Uid).IsUnique();
+            e.HasIndex(x => new { x.CustomerId, x.PlatformTypeId });
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.EncryptedCredentials).HasMaxLength(4000);
+            e.Property(x => x.LastError).HasMaxLength(2000);
+            e.HasOne(x => x.Customer)
+             .WithMany()
+             .HasForeignKey(x => x.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── WebhookSubscription ───
+        modelBuilder.Entity<WebhookSubscription>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Uid).IsUnique();
+            e.HasIndex(x => x.CustomerId);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.TargetUrl).HasMaxLength(2000);
+            e.Property(x => x.Secret).HasMaxLength(500);
+            e.Property(x => x.EventFilter).HasMaxLength(2000);
+            e.HasOne(x => x.Customer)
+             .WithMany()
+             .HasForeignKey(x => x.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.IntegrationConnection)
+             .WithMany(c => c.WebhookSubscriptions)
+             .HasForeignKey(x => x.IntegrationConnectionId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ─── WebhookDelivery (bigint PK — yuksek hacim) ───
+        modelBuilder.Entity<WebhookDelivery>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.EventId);
+            e.HasIndex(x => x.NextRetryAt).HasFilter("\"NextRetryAt\" IS NOT NULL");
+            e.HasIndex(x => x.CreatedAt);
+            e.Property(x => x.EventType).HasMaxLength(100);
+            e.Property(x => x.EventId).HasMaxLength(100);
+            e.Property(x => x.ResponseBody).HasMaxLength(4000);
+            e.Property(x => x.ErrorMessage).HasMaxLength(2000);
+            e.HasOne(x => x.WebhookSubscription)
+             .WithMany(s => s.Deliveries)
+             .HasForeignKey(x => x.WebhookSubscriptionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── IntegrationApiKey ───
+        modelBuilder.Entity<IntegrationApiKey>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Uid).IsUnique();
+            e.HasIndex(x => x.ApiKeyHash).IsUnique();
+            e.HasIndex(x => x.CustomerId);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.ApiKeyHash).HasMaxLength(128);
+            e.Property(x => x.ApiKeyPrefix).HasMaxLength(20);
+            e.Property(x => x.Scopes).HasMaxLength(1000);
+            e.HasOne(x => x.Customer)
+             .WithMany()
+             .HasForeignKey(x => x.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.IntegrationConnection)
+             .WithMany(c => c.ApiKeys)
+             .HasForeignKey(x => x.IntegrationConnectionId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // =============================================

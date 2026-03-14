@@ -1,0 +1,178 @@
+@{
+    ViewData["Title"] = "Entegrasyonlar";
+}
+
+<div id="integrations-vm">
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                        <i class="bi bi-plug-fill text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Toplam Baglanti</div>
+                        <div class="fw-bold fs-5" data-bind="text: connections().length">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-success-subtle d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Aktif</div>
+                        <div class="fw-bold fs-5" data-bind="text: activeCount()">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-info-subtle d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                        <i class="bi bi-broadcast text-info"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Webhooklar</div>
+                        <div class="fw-bold fs-5" data-bind="text: totalWebhooks()">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-warning-subtle d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                        <i class="bi bi-key-fill text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">API Anahtarlari</div>
+                        <div class="fw-bold fs-5" data-bind="text: totalApiKeys()">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Cards -->
+    <h6 class="text-muted mb-3"><i class="bi bi-grid-fill me-1"></i>Platformlar</h6>
+    <div class="row g-3 mb-4" data-bind="foreach: platforms">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-4">
+                    <div class="mb-2">
+                        <span class="badge rounded-pill fs-6 px-3 py-2" data-bind="class: cssClass">
+                            <i data-bind="class: icon"></i>
+                        </span>
+                    </div>
+                    <h6 class="mb-1" data-bind="text: systemName"></h6>
+                    <p class="text-muted small mb-3" data-bind="text: description"></p>
+                    <!-- ko if: isConnected -->
+                    <span class="badge bg-success-subtle text-success mb-2"><i class="bi bi-check-circle me-1"></i>Bagli</span>
+                    <!-- /ko -->
+                    <!-- ko ifnot: isConnected -->
+                    <a class="btn btn-outline-primary btn-sm" data-bind="attr: { href: '/Integrations/Connect/' + systemName }">
+                        <i class="bi bi-plus-lg me-1"></i>Baglan
+                    </a>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connections Table -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="text-muted mb-0"><i class="bi bi-link-45deg me-1"></i>Baglantilar</h6>
+        <div class="input-group" style="max-width: 280px;">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control form-control-sm" placeholder="Baglanti ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Platform</th>
+                            <th>Baglanti Adi</th>
+                            <th>Durum</th>
+                            <th>Son Senkronizasyon</th>
+                            <th>Webhook</th>
+                            <th>API Key</th>
+                            <th style="width:120px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredConnections">
+                        <tr>
+                            <td>
+                                <span class="badge" data-bind="class: platformCss">
+                                    <i data-bind="class: platformIcon" class="me-1"></i>
+                                    <span data-bind="text: platformName"></span>
+                                </span>
+                            </td>
+                            <td class="fw-semibold small">
+                                <a data-bind="text: name, attr: { href: '/Integrations/Detail/' + uid }" class="text-decoration-none"></a>
+                            </td>
+                            <td>
+                                <!-- ko if: isActive && isConnected -->
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Aktif</span>
+                                <!-- /ko -->
+                                <!-- ko if: isActive && !isConnected -->
+                                <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Baglanti Yok</span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: isActive -->
+                                <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-pause-circle me-1"></i>Pasif</span>
+                                <!-- /ko -->
+                            </td>
+                            <td class="small text-muted">
+                                <!-- ko if: lastSyncAt -->
+                                <span data-bind="text: $root.formatDate(lastSyncAt)"></span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: lastSyncAt -->
+                                <span class="text-muted">-</span>
+                                <!-- /ko -->
+                            </td>
+                            <td class="small">
+                                <span class="badge bg-light text-dark" data-bind="text: webhookCount"></span>
+                            </td>
+                            <td class="small">
+                                <span class="badge bg-light text-dark" data-bind="text: apiKeyCount"></span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" title="Test" data-bind="click: $root.testConnection">
+                                        <i class="bi bi-lightning"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" title="Detay" data-bind="click: $root.goToDetail">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $root.removeConnection">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: connections().length === 0 -->
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-plug" style="font-size: 2.5rem;"></i>
+                <p class="mt-2 small">Henuz entegrasyon baglantisi eklenmemis</p>
+                <p class="small">Yukaridaki platform kartlarindan birini secin</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Integrations.js"></script>
+}

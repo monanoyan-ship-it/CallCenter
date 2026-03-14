@@ -1,0 +1,419 @@
+@page "/customer/integrations/webhooks"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Webhooklar - CorpLynk</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-broadcast me-2 text-primary"></i>Webhook Yonetimi
+    </h4>
+    <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">
+        <i class="bi bi-plus-lg me-1"></i>Yeni Webhook
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Webhooklar yukleniyor...</p>
+    </div>
+}
+else if (webhooks == null || webhooks.Count == 0)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-broadcast fs-1 d-block mb-3 text-muted opacity-25"></i>
+        <h5 class="text-muted">Henuz webhook aboneligi yok</h5>
+        <p class="text-muted small">Cagri olaylarini otomatik olarak dis sistemlere push etmek icin webhook olusturun.</p>
+        <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">
+            <i class="bi bi-plus-lg me-1"></i>Ilk Webhook'u Olustur
+        </button>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ad</th>
+                        <th>Hedef URL</th>
+                        <th>Baglanti</th>
+                        <th>Event Filtresi</th>
+                        <th class="text-center">Durum</th>
+                        <th>Olusturma</th>
+                        <th style="width:140px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var wh in webhooks)
+                    {
+                        <tr>
+                            <td class="small fw-medium">@wh.Name</td>
+                            <td class="small text-muted text-truncate" style="max-width:220px;" title="@wh.TargetUrl">@wh.TargetUrl</td>
+                            <td class="small">@(wh.IntegrationConnectionName ?? "-")</td>
+                            <td>
+                                @if (wh.EventFilter.Count == 0)
+                                {
+                                    <span class="badge bg-light text-dark border">Tum eventler</span>
+                                }
+                                else
+                                {
+                                    @foreach (var evt in wh.EventFilter.Take(2))
+                                    {
+                                        var evType = WebhookEventTypes.GetBySystemName(evt);
+                                        <span class="badge @(evType?.CssClass ?? "bg-light text-dark border") me-1 small">
+                                            <i class="bi @(evType?.Icon ?? "bi-circle") me-1"></i>@(evType?.Description ?? evt)
+                                        </span>
+                                    }
+                                    @if (wh.EventFilter.Count > 2)
+                                    {
+                                        <span class="badge bg-secondary">+@(wh.EventFilter.Count - 2)</span>
+                                    }
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(wh.IsActive ? "bg-success" : "bg-secondary") rounded-pill">
+                                    @(wh.IsActive ? "Aktif" : "Pasif")
+                                </span>
+                            </td>
+                            <td class="small text-muted">@wh.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="Test Gonder" @onclick="() => TestWebhook(wh.Uid)">
+                                        <i class="bi bi-send"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" title="Gonderim Loglari" @onclick="() => ShowDeliveries(wh.Uid)">
+                                        <i class="bi bi-journal-text"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning" title="@(wh.IsActive ? "Pasife Al" : "Aktif Et")" @onclick="() => ToggleActive(wh)">
+                                        <i class="bi @(wh.IsActive ? "bi-pause" : "bi-play")"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Sil" @onclick="() => DeleteWebhook(wh.Uid)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@* ─── DELIVERY LOG ─── *@
+@if (showDeliveryLog && deliveries != null)
+{
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-journal-text me-2"></i>Gonderim Loglari (@selectedWebhookUid.ToString()[..8]...)</h6>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="() => showDeliveryLog = false">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Event</th>
+                        <th>Event ID</th>
+                        <th class="text-center">HTTP Status</th>
+                        <th>Deneme</th>
+                        <th>Hata</th>
+                        <th>Sonraki Deneme</th>
+                        <th>Tarih</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (deliveries.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-3">Henuz gonderim yok.</td>
+                        </tr>
+                    }
+                    @foreach (var d in deliveries)
+                    {
+                        var evType = WebhookEventTypes.GetBySystemName(d.EventType);
+                        <tr>
+                            <td class="small">
+                                <i class="bi @(evType?.Icon ?? "bi-circle") me-1 @(evType?.CssClass ?? "")"></i>
+                                @d.EventType
+                            </td>
+                            <td class="small text-muted font-monospace" style="max-width:100px;" title="@d.EventId">
+                                @(d.EventId.Length > 16 ? d.EventId[..16] + "..." : d.EventId)
+                            </td>
+                            <td class="text-center">
+                                @if (d.StatusCode.HasValue)
+                                {
+                                    var cls = d.StatusCode < 300 ? "bg-success" : d.StatusCode < 500 ? "bg-warning text-dark" : "bg-danger";
+                                    <span class="badge @cls">@d.StatusCode</span>
+                                }
+                                else if (d.DeliveredAt.HasValue)
+                                {
+                                    <span class="badge bg-success">OK</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Bekliyor</span>
+                                }
+                            </td>
+                            <td class="small">@d.Attempt / 5</td>
+                            <td class="small text-danger text-truncate" style="max-width:150px;" title="@d.ErrorMessage">@(d.ErrorMessage ?? "-")</td>
+                            <td class="small text-muted">@(d.NextRetryAt?.ToLocalTime().ToString("dd.MM HH:mm:ss") ?? "-")</td>
+                            <td class="small text-muted">@d.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@* ─── CREATE WEBHOOK MODAL ─── *@
+@if (showCreateModal)
+{
+    <div class="modal-backdrop-custom" @onclick="() => showCreateModal = false"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-broadcast me-2"></i>Yeni Webhook Aboneligi</h5>
+                    <button type="button" class="btn-close" @onclick="() => showCreateModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(createError))
+                    {
+                        <div class="alert alert-danger py-2 small">@createError</div>
+                    }
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Webhook Adi *</label>
+                            <input type="text" class="form-control form-control-sm" @bind="newWhName" placeholder="ornegin: Cagri Bildirimi" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Hedef URL *</label>
+                            <input type="url" class="form-control form-control-sm" @bind="newWhUrl" placeholder="https://example.com/webhook" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Hangi olaylari dinlesin? (bos = hepsi)</label>
+                            <div class="row g-1">
+                                <div class="col-12"><small class="text-primary fw-bold"><i class="bi bi-telephone-fill me-1"></i>Cagri Olaylari</small></div>
+                                @foreach (var evt in WebhookEventTypes.CallEvents)
+                                {
+                                    <div class="col-md-4 col-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" checked="@newWhEvents.Contains(evt.SystemName)"
+                                                   @onchange="e => ToggleNewEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                            <label class="form-check-label small"><i class="bi @evt.Icon me-1"></i>@evt.Description</label>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="col-12 mt-2"><small class="text-primary fw-bold"><i class="bi bi-person-fill me-1"></i>Agent Olaylari</small></div>
+                                @foreach (var evt in WebhookEventTypes.AgentEvents)
+                                {
+                                    <div class="col-md-4 col-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" checked="@newWhEvents.Contains(evt.SystemName)"
+                                                   @onchange="e => ToggleNewEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                            <label class="form-check-label small"><i class="bi @evt.Icon me-1"></i>@evt.Description</label>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="col-12 mt-2"><small class="text-primary fw-bold"><i class="bi bi-people-fill me-1"></i>Kuyruk Olaylari</small></div>
+                                @foreach (var evt in WebhookEventTypes.QueueEvents)
+                                {
+                                    <div class="col-md-4 col-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" checked="@newWhEvents.Contains(evt.SystemName)"
+                                                   @onchange="e => ToggleNewEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                            <label class="form-check-label small"><i class="bi @evt.Icon me-1"></i>@evt.Description</label>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="col-12 mt-2"><small class="text-primary fw-bold"><i class="bi bi-person-plus-fill me-1"></i>CRM Olaylari</small></div>
+                                @foreach (var evt in WebhookEventTypes.CrmEvents)
+                                {
+                                    <div class="col-md-4 col-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" checked="@newWhEvents.Contains(evt.SystemName)"
+                                                   @onchange="e => ToggleNewEvent(evt.SystemName, (bool)(e.Value ?? false))" />
+                                            <label class="form-check-label small"><i class="bi @evt.Icon me-1"></i>@evt.Description</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showCreateModal = false">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="CreateWebhook" disabled="@isCreating">
+                        @if (isCreating) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-backdrop-custom {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5); z-index: 1040;
+    }
+</style>
+
+@code {
+    private List<WebhookSubscriptionDto>? webhooks;
+    private bool isLoading = true;
+
+    // Delivery log
+    private bool showDeliveryLog;
+    private Guid selectedWebhookUid;
+    private List<WebhookDeliveryDto>? deliveries;
+
+    // Create modal
+    private bool showCreateModal;
+    private bool isCreating;
+    private string? createError;
+    private string newWhName = "";
+    private string newWhUrl = "";
+    private HashSet<string> newWhEvents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWebhooks();
+    }
+
+    private async Task LoadWebhooks()
+    {
+        isLoading = true;
+        try
+        {
+            webhooks = await Http.GetFromJsonAsync<List<WebhookSubscriptionDto>>("api/integrations/webhooks");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Yukleme hatasi: {ex.Message}");
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task TestWebhook(Guid uid)
+    {
+        try
+        {
+            var resp = await Http.PostAsync($"api/integrations/webhooks/{uid}/test", null);
+            if (resp.IsSuccessStatusCode)
+                Toast.ShowSuccess("Test webhook gonderildi.");
+            else
+                Toast.ShowError("Gonderilemedi: " + await resp.Content.ReadAsStringAsync());
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    private async Task ShowDeliveries(Guid uid)
+    {
+        selectedWebhookUid = uid;
+        try
+        {
+            deliveries = await Http.GetFromJsonAsync<List<WebhookDeliveryDto>>($"api/integrations/webhooks/{uid}/deliveries?page=1&pageSize=50");
+            showDeliveryLog = true;
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    private async Task ToggleActive(WebhookSubscriptionDto wh)
+    {
+        try
+        {
+            var dto = new UpdateWebhookSubscriptionRequest { IsActive = !wh.IsActive };
+            var resp = await Http.PutAsJsonAsync($"api/integrations/webhooks/{wh.Uid}", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess(wh.IsActive ? "Pasife alindi." : "Aktif edildi.");
+                await LoadWebhooks();
+            }
+            else
+            {
+                Toast.ShowError("Guncellenemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    private async Task DeleteWebhook(Guid uid)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/integrations/webhooks/{uid}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Webhook silindi.");
+                await LoadWebhooks();
+            }
+            else
+            {
+                Toast.ShowError("Silinemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex) { Toast.ShowError(ex.Message); }
+    }
+
+    // ─── CREATE ───
+    private void OpenCreateModal()
+    {
+        newWhName = "";
+        newWhUrl = "";
+        newWhEvents.Clear();
+        createError = null;
+        showCreateModal = true;
+    }
+
+    private void ToggleNewEvent(string eventName, bool isChecked)
+    {
+        if (isChecked) newWhEvents.Add(eventName);
+        else newWhEvents.Remove(eventName);
+    }
+
+    private async Task CreateWebhook()
+    {
+        if (string.IsNullOrWhiteSpace(newWhName) || string.IsNullOrWhiteSpace(newWhUrl))
+        {
+            createError = "Ad ve URL zorunludur.";
+            return;
+        }
+
+        isCreating = true;
+        createError = null;
+        try
+        {
+            var dto = new CreateWebhookSubscriptionRequest
+            {
+                Name = newWhName,
+                TargetUrl = newWhUrl,
+                EventFilter = newWhEvents.Count > 0 ? newWhEvents.ToList() : null
+            };
+            var resp = await Http.PostAsJsonAsync("api/integrations/webhooks", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Webhook olusturuldu.");
+                showCreateModal = false;
+                await LoadWebhooks();
+            }
+            else
+            {
+                createError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex) { createError = ex.Message; }
+        finally { isCreating = false; }
+    }
+}

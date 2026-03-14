@@ -73,6 +73,12 @@ public static class EntityServiceRegistration
         services.AddScoped<IQualityAnswerSubCriteriaSelectionEntityService, QualityAnswerSubCriteriaSelectionEntityService>();
         services.AddScoped<IQualityScoreThresholdEntityService, QualityScoreThresholdEntityService>();
 
+        // Integration & Webhook
+        services.AddScoped<IIntegrationConnectionEntityService, IntegrationConnectionEntityService>();
+        services.AddScoped<IWebhookSubscriptionEntityService, WebhookSubscriptionEntityService>();
+        services.AddScoped<IWebhookDeliveryEntityService, WebhookDeliveryEntityService>();
+        services.AddScoped<IIntegrationApiKeyEntityService, IntegrationApiKeyEntityService>();
+
         return services;
     }
 }
