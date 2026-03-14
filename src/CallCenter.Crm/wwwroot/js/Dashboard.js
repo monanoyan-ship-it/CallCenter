@@ -7,6 +7,14 @@ function DashboardViewModel() {
     self.pipelineValue = ko.observable('0 TL');
     self.recentActivities = ko.observableArray([]);
     self.upcomingTasks = ko.observableArray([]);
+    self.pendingCallbacks = ko.observableArray([]);
+    self.personnel = ko.observableArray([]);
+    self.isSaving = ko.observable(false);
+    self.assignForm = {
+        callId: ko.observable(null),
+        assignedToId: ko.observable(null),
+        note: ko.observable("")
+    };
 
     self.loadData = function() {
         $.ajax({
@@ -28,6 +36,50 @@ function DashboardViewModel() {
             }));
         }).fail(function() {
             toastr.error('Dashboard verileri yuklenemedi');
+        });
+
+        // Cevapsizlari yukle
+        self.loadCallbacks();
+        self.loadPersonnel();
+    };
+
+    self.loadCallbacks = function() {
+        $.get("/Calls/GetHistory?pageSize=10", function (data) {
+            var missed = data.filter(function(c) { 
+                return c.statusId === 6 && !c.callbackStatusId; 
+            });
+            self.pendingCallbacks(missed);
+        });
+    };
+
+    self.loadPersonnel = function() {
+        $.get("/Calls/GetPersonnel", function(data) {
+            self.personnel(data);
+        });
+    };
+
+    self.openAssignModal = function(item) {
+        self.assignForm.callId(item.id);
+        self.assignForm.assignedToId(null);
+        self.assignForm.note("");
+        $("#assignModal").modal("show");
+    };
+
+    self.saveAssignment = function() {
+        self.isSaving(true);
+        var id = self.assignForm.callId();
+        $.ajax({
+            url: "/Calls/AssignCallback?id=" + id + "&assignedToId=" + self.assignForm.assignedToId(),
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(self.assignForm.note()),
+            success: function() {
+                toastr.success("Atama yapildi");
+                $("#assignModal").modal("hide");
+                self.loadCallbacks();
+            },
+            error: function() { toastr.error("Hata olustu"); },
+            complete: function() { self.isSaving(false); }
         });
     };
 

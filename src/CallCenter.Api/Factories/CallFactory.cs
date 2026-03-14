@@ -45,12 +45,9 @@ public class CallFactory : ICallFactory
         var query = _calls.GetAllQueryable()
             .Where(c => CallStatuses.FinishedStatuses.Select(s => s.Id).Contains(c.StatusId));
 
-        // Operator -> sadece kendi cagrilari
-        // FirmaAdmin/EkipLideri -> firmanin tum cagrilari
         var personnel = await _personnel.GetByUserIdAsync(userId);
         if (personnel != null && personnel.CustomerRoleId != CustomerRoles.Ids.Operator)
         {
-            // Firmanin tum agent ID lerini bul
             var customerAgentIds = await _personnel.GetAllQueryable()
                 .Where(cp => cp.CustomerId == personnel.CustomerId)
                 .Select(cp => cp.UserId)
@@ -80,7 +77,9 @@ public class CallFactory : ICallFactory
                 AgentName = c.Agent != null ? c.Agent.FullName : null,
                 HasRecording = c.CloudFileId != null || c.PlatformFileId != null,
                 c.IsRecordingEncrypted,
-                c.RecordingFileSize
+                c.RecordingFileSize,
+                c.CallbackStatusId,
+                c.CallbackNote
             })
             .ToListAsync();
     }
@@ -90,7 +89,6 @@ public class CallFactory : ICallFactory
         var personnel = await _personnel.GetByUserIdAsync(userId);
         if (personnel == null) return new();
 
-        // Operator erisim engeli — sadece FirmaAdmin ve EkipLideri gorebilir
         if (personnel.CustomerRoleId == CustomerRoles.Ids.Operator)
             return new();
 
@@ -131,7 +129,6 @@ public class CallFactory : ICallFactory
             QueueId = request.QueueId
         };
 
-        // Windows app lokal Uid gonderdiyse ayni Uid'yi kullan (sync duplicate onleme)
         if (request.Uid.HasValue && request.Uid.Value != Guid.Empty)
             call.Uid = request.Uid.Value;
 
@@ -175,7 +172,6 @@ public class CallFactory : ICallFactory
         await _uow.SaveChangesAsync();
 
         var customerGroupName = await GetCustomerGroupNameAsync(userId);
-
         await SendToGroupAndAdminsAsync(customerGroupName, "CallEnded", callId);
 
         var user = await _users.GetByIdAsync(userId);
@@ -284,7 +280,6 @@ public class CallFactory : ICallFactory
 
         await SendToGroupAndAdminsAsync(groupName, "IncomingCall", notification);
 
-        // KPI broadcast — IncomingCall icin groupName'den customer bilgisi kullan
         try
         {
             var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
@@ -333,6 +328,26 @@ public class CallFactory : ICallFactory
                 existing.PlatformUploadedAt = request.PlatformUploadedAt;
             await _uow.SaveChangesAsync();
 
+            // ─── OTOMATIK CALLBACK KAPATMA KANCASI ───
+            if (request.Direction == "Outbound" && request.DurationSeconds > 0)
+            {
+                var sanitizedCallee = PhoneHelper.Sanitize(request.CalleeNumber);
+                var pendingTask = await _calls.GetAllQueryable()
+                    .Where(c => c.CallbackAssignedToId == userId && 
+                                c.CallbackStatusId == CallbackStatuses.Ids.InProgress)
+                    .OrderByDescending(c => c.StartedAt)
+                    .ToListAsync();
+
+                var matchingTask = pendingTask.FirstOrDefault(t => 
+                    PhoneHelper.Sanitize(t.CallerNumber) == sanitizedCallee || 
+                    PhoneHelper.Sanitize(t.CalleeNumber) == sanitizedCallee);
+
+                if (matchingTask != null)
+                {
+                    await CompleteCallbackAsync(matchingTask.Id, existing.Id);
+                }
+            }
+
             return new CallSyncPushResponse { Id = existing.Id, IsNew = false };
         }
 
@@ -379,7 +394,6 @@ public class CallFactory : ICallFactory
     public async Task<MyStatsResponse> GetMyStatsAsync(int userId)
     {
         var today = DateTime.UtcNow.Date;
-
         var todayCalls = await _calls.GetAllQueryable()
             .Where(c => c.AgentId == userId && c.StartedAt >= today)
             .Select(c => new { c.StatusId, c.DirectionId, c.DurationSeconds })
@@ -439,6 +453,60 @@ public class CallFactory : ICallFactory
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error)> AssignCallbackAsync(int callId, int assignedToId, string? note, int adminUserId)
+    {
+        var call = await _calls.GetByIdAsync(callId);
+        if (call == null) return (false, "Arama kaydi bulunamadi.");
+
+        if (call.StatusId != CallStatuses.Ids.Missed)
+            return (false, "Sadece cevapsiz aramalar geri arama gorevi olarak atanabilir.");
+
+        call.CallbackStatusId = CallbackStatuses.Ids.Todo;
+        call.CallbackAssignedToId = assignedToId;
+        call.CallbackNote = note;
+
+        await _uow.SaveChangesAsync();
+
+        await _hub.Clients.User(assignedToId.ToString()).SendAsync("NewCallbackTask", new {
+            CallId = call.Id,
+            Number = call.CallerNumber,
+            Note = note
+        });
+
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> StartCallbackAsync(int callId, int userId)
+    {
+        var call = await _calls.GetByIdAsync(callId);
+        if (call == null) return (false, "Arama bulunamadi.");
+
+        if (call.CallbackAssignedToId != userId)
+            return (false, "Bu gorev size atanmamis.");
+
+        call.CallbackStatusId = CallbackStatuses.Ids.InProgress;
+        await _uow.SaveChangesAsync();
+
+        await _hub.Clients.All.SendAsync("CallbackTaskStarted", new { CallId = call.Id, UserId = userId });
+
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> CompleteCallbackAsync(int callId, int resultCallId)
+    {
+        var call = await _calls.GetByIdAsync(callId);
+        if (call == null) return (false, "Orijinal arama bulunamadi.");
+
+        call.CallbackStatusId = CallbackStatuses.Ids.Completed;
+        call.CallbackResultCallId = resultCallId;
+
+        await _uow.SaveChangesAsync();
+
+        await _hub.Clients.All.SendAsync("CallbackTaskCompleted", new { CallId = call.Id });
+
+        return (true, null);
+    }
+
     private static int MapStatusNameToId(string statusName)
     {
         var status = CallStatuses.GetBySystemName(statusName);
@@ -455,15 +523,11 @@ public class CallFactory : ICallFactory
         return customerId > 0 ? $"customer_{customerId}" : null;
     }
 
-    /// <summary>
-    /// Arama durumu degistiginde Dashboard KPI guncellemesini broadcast eder.
-    /// </summary>
     private async Task BroadcastKpiUpdateAsync(int userId)
     {
         try
         {
             var customerGroupName = await GetCustomerGroupNameAsync(userId);
-
             List<int>? customerAgentIds = null;
             if (customerGroupName != null)
             {
@@ -478,7 +542,6 @@ public class CallFactory : ICallFactory
             }
 
             var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
-
             var activeCallCount = await _calls.GetAllQueryable()
                 .Where(c => activeStatusIds.Contains(c.StatusId))
                 .Where(c => customerAgentIds == null || (c.AgentId.HasValue && customerAgentIds.Contains(c.AgentId.Value)))
@@ -513,11 +576,7 @@ public class CallFactory : ICallFactory
 
             await SendToGroupAndAdminsAsync(customerGroupName, "DashboardKpiUpdated", kpi);
         }
-        catch (Exception ex)
-        {
-            // KPI broadcast hatasi arama islemini engellemeyecek
-            Console.WriteLine($"[CallFactory] KPI broadcast hatasi: {ex.Message}");
-        }
+        catch { }
     }
 
     private async Task SendToGroupAndAdminsAsync(string? groupName, string method, object arg)

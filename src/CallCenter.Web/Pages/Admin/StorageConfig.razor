@@ -29,20 +29,6 @@ else
     </div>
 </div>
 
-@* ─── OTOMATIK KAYIT ─── *@
-<div class="card mb-4 shadow-sm">
-    <div class="card-body d-flex align-items-center justify-content-between py-2 px-3">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-record-circle-fill @(_autoRecord ? "text-danger" : "text-muted")"></i>
-            <span class="small fw-semibold">Aramalari otomatik kaydet</span>
-        </div>
-        <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" checked="@_autoRecord"
-                   @onchange="ToggleAutoRecord" disabled="@_autoRecordSaving" />
-        </div>
-    </div>
-</div>
-
 @if (isLoading)
 {
     <div class="text-center py-5">
@@ -332,10 +318,6 @@ else
     private string? toast;
     private bool toastError;
 
-    // Otomatik kayit
-    private bool _autoRecord;
-    private bool _autoRecordSaving;
-
     protected override async Task OnInitializedAsync()
     {
         await PermService.LoadAsync();
@@ -345,39 +327,6 @@ else
             return;
         }
         await LoadConfigsAsync();
-        await LoadAutoRecordAsync();
-    }
-
-    private async Task LoadAutoRecordAsync()
-    {
-        try
-        {
-            var targets = await Http.GetFromJsonAsync<RecordingUploadTargetsDto>("api/recordings/upload-targets");
-            _autoRecord = targets?.AutoRecordCalls ?? false;
-        }
-        catch { }
-    }
-
-    private async Task ToggleAutoRecord()
-    {
-        _autoRecordSaving = true;
-        try
-        {
-            var newVal = !_autoRecord;
-            var resp = await Http.PutAsJsonAsync("api/recordings/auto-record", new ToggleAutoRecordRequest { Enabled = newVal });
-            if (resp.IsSuccessStatusCode)
-            {
-                _autoRecord = newVal;
-                ShowToast(newVal ? "Otomatik kayit aktif" : "Otomatik kayit kapatildi", false);
-            }
-            else
-                ShowToast("Ayar guncellenemedi", true);
-        }
-        catch (Exception ex)
-        {
-            ShowToast($"Hata: {ex.Message}", true);
-        }
-        _autoRecordSaving = false;
     }
 
     private async Task LoadConfigsAsync()

@@ -114,6 +114,7 @@ public class CustomerFactory : ICustomerFactory
             SaveRecordingToPlatform = c.SaveRecordingToPlatform,
             SaveRecordingToOwnStorage = c.SaveRecordingToOwnStorage,
             AutoRecordCalls = c.AutoRecordCalls,
+            IsCallbackManagementEnabled = c.IsCallbackManagementEnabled,
             CreatedAt = c.CreatedAt,
             BillingAnchorDay = c.BillingAnchorDay,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
@@ -124,6 +125,26 @@ public class CustomerFactory : ICustomerFactory
             }).ToList(),
             AdminInfo = adminInfo
         };
+    }
+
+    public async Task<Customer?> GetRawByIdAsync(int id)
+    {
+        return await _customerEs.GetByIdAsync(id);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateSettingsAsync(int id, UpdateCustomerSettingsRequest dto)
+    {
+        var customer = await _customerEs.GetByIdAsync(id);
+        if (customer == null) return (false, "Musteri bulunamadi.");
+
+        if (dto.AutoRecordCalls.HasValue)
+            customer.AutoRecordCalls = dto.AutoRecordCalls.Value;
+        
+        if (dto.IsCallbackManagementEnabled.HasValue)
+            customer.IsCallbackManagementEnabled = dto.IsCallbackManagementEnabled.Value;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
     }
 
     public async Task<(int Id, string? Error)> CreateAsync(CustomerCreateDto dto)

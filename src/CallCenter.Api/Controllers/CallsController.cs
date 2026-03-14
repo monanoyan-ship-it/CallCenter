@@ -1,8 +1,12 @@
-using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
+using CallCenter.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CallCenter.Api.Controllers;
 
@@ -12,10 +16,18 @@ namespace CallCenter.Api.Controllers;
 public class CallsController : AuditableControllerBase
 {
     private readonly ICallFactory _callFactory;
+    private readonly ICustomerPersonnelEntityService _personnel;
+    private readonly AppDbContext _db;
 
-    public CallsController(IAuditFactory auditFactory, ICallFactory callFactory) : base(auditFactory)
+    public CallsController(
+        IAuditFactory auditFactory, 
+        ICallFactory callFactory,
+        ICustomerPersonnelEntityService personnel,
+        AppDbContext db) : base(auditFactory)
     {
         _callFactory = callFactory;
+        _personnel = personnel;
+        _db = db;
     }
 
     /// <summary>Operatorun kendi gunluk istatistikleri</summary>
@@ -149,6 +161,58 @@ public class CallsController : AuditableControllerBase
             $"Cagri sync: {request.CallerNumber} -> {request.CalleeNumber}");
 
         return Ok(result);
+    }
+
+    // ─── Callback (Geri Arama) Yonetimi ───
+
+    /// <summary>Cevapsiz bir aramayi operatore geri arama gorevi olarak ata</summary>
+    [HttpPost("{id}/assign-callback")]
+    [Authorize(Roles = "Admin,Supervisor,CustomerUser")]
+    public async Task<IActionResult> AssignCallback(int id, [FromQuery] int assignedToId, [FromBody] string? note)
+    {
+        var userId = GetUserId();
+        var personnel = await _personnel.GetByUserIdAsync(userId);
+        
+        // Sadece FirmaAdmin ve EkipLideri ata yapabilir (veya bizim Admin/Supervisor)
+        if (!IsSystemAdmin && personnel?.CustomerRoleId == CustomerRoles.Ids.Operator)
+            return Forbid();
+
+        var result = await _callFactory.AssignCallbackAsync(id, assignedToId, note, userId);
+        if (!result.Success) return BadRequest(result.Error);
+
+        await AuditCrudAsync("AssignCallback", "CallRecord", id.ToString(), $"Geri arama atandi: OperatorId={assignedToId}");
+        return Ok();
+    }
+
+    /// <summary>Operatore atanmis bekleyen geri arama gorevlerini listeler</summary>
+    [HttpGet("pending-callbacks")]
+    public async Task<ActionResult<List<PendingCallbackDto>>> GetPendingCallbacks()
+    {
+        var userId = GetUserId();
+        var records = await _db.CallRecords
+            .Where(c => c.CallbackAssignedToId == userId && c.CallbackStatusId != CallbackStatuses.Ids.Completed && c.CallbackStatusId != CallbackStatuses.Ids.Cancelled)
+            .OrderByDescending(c => c.StartedAt)
+            .Select(c => new PendingCallbackDto {
+                Id = c.Id,
+                Uid = c.Uid,
+                CallerNumber = c.CallerNumber,
+                CalleeNumber = c.CalleeNumber,
+                StartedAt = c.StartedAt,
+                CallbackStatusId = c.CallbackStatusId ?? 0,
+                CallbackNote = c.CallbackNote
+            })
+            .ToListAsync();
+
+        return Ok(records);
+    }
+
+    /// <summary>Geri aramayi baslat (Durumu InProgress yapar)</summary>
+    [HttpPost("{id}/start-callback")]
+    public async Task<IActionResult> StartCallback(int id)
+    {
+        var result = await _callFactory.StartCallbackAsync(id, GetUserId());
+        if (!result.Success) return BadRequest(result.Error);
+        return Ok();
     }
 
     private bool IsSystemAdmin => User.IsInRole("Admin") || User.IsInRole("Supervisor");

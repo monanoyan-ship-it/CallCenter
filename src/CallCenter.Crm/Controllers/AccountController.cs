@@ -34,6 +34,7 @@ public class AccountController : CrmBaseController
 
         HttpContext.Session.SetString("Token", root.GetProperty("token").GetString() ?? "");
         HttpContext.Session.SetString("UserName", root.GetProperty("fullName").GetString() ?? "");
+        HttpContext.Session.SetString("UserRole", root.GetProperty("role").GetString() ?? "");
 
         // JWT token'dan customer bilgilerini coz
         var jwtToken = root.GetProperty("token").GetString() ?? "";
@@ -54,8 +55,11 @@ public class AccountController : CrmBaseController
 
                 if (claimRoot.TryGetProperty("CustomerName", out var cn))
                     HttpContext.Session.SetString("CustomerName", cn.GetString() ?? "");
-                if (claimRoot.TryGetProperty("CustomerId", out var ci))
-                    HttpContext.Session.SetString("CustomerId", ci.GetString() ?? "");
+                if (claimRoot.TryGetProperty("CustomerRole", out var cr))
+                    HttpContext.Session.SetString("CustomerRole", cr.GetString() ?? "");
+                if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
+                    HttpContext.Session.SetString("IsCustomerAdmin", ica.GetString() ?? "false");
+
             }
         }
         catch { /* JWT parse hatasi olursa login akisini engelleme */ }

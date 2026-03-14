@@ -206,8 +206,14 @@ public class AppDbContext : DbContext
             e.HasOne(c => c.Queue).WithMany(q => q.CallRecords).HasForeignKey(c => c.QueueId);
             e.HasOne(c => c.ConsentRecord).WithMany().HasForeignKey(c => c.ConsentRecordId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(c => c.PrivacyNotice).WithMany().HasForeignKey(c => c.PrivacyNoticeId).OnDelete(DeleteBehavior.SetNull);
+
+            // Callback Yonetimi
+            e.HasOne(c => c.CallbackAssignedTo).WithMany().HasForeignKey(c => c.CallbackAssignedToId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.CallbackResultCall).WithMany().HasForeignKey(c => c.CallbackResultCallId).OnDelete(DeleteBehavior.SetNull);
+
             e.HasIndex(c => c.StartedAt);
-        });
+            e.HasIndex(c => new { c.CallbackAssignedToId, c.CallbackStatusId }).HasFilter("\"CallbackStatusId\" IS NOT NULL");
+            });
 
         // Queue
         modelBuilder.Entity<Queue>(e =>

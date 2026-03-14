@@ -13,6 +13,32 @@ public abstract class CrmBaseController : Controller
             context.Result = RedirectToAction("Login", "Account");
             return;
         }
+
+        // Session'da musteri rolu yoksa (eski oturumlar icin) token'dan cikarip ekleyelim
+        if (!string.IsNullOrEmpty(token) && string.IsNullOrEmpty(HttpContext.Session.GetString("CustomerRole")))
+        {
+            try
+            {
+                var jwtParts = token.Split('.');
+                if (jwtParts.Length == 3)
+                {
+                    var jwtPayload = jwtParts[1].Replace('-', '+').Replace('_', '/');
+                    switch (jwtPayload.Length % 4)
+                    {
+                        case 2: jwtPayload += "=="; break;
+                        case 3: jwtPayload += "="; break;
+                    }
+                    var payloadBytes = Convert.FromBase64String(jwtPayload);
+                    using var claims = System.Text.Json.JsonDocument.Parse(payloadBytes);
+                    if (claims.RootElement.TryGetProperty("CustomerRole", out var cr))
+                    {
+                        HttpContext.Session.SetString("CustomerRole", cr.GetString() ?? "");
+                    }
+                }
+            }
+            catch { /* Hata olursa yoksay */ }
+        }
+
         base.OnActionExecuting(context);
     }
 

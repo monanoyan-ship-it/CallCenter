@@ -1,0 +1,186 @@
+@page "/customer/portal/settings"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject PermissionService PermService
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Genel Ayarlar - CorpLynk</PageTitle>
+
+@if (accessDenied)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-shield-lock fs-1 text-danger"></i>
+        <p class="text-muted mt-2">Bu sayfaya erisim yetkiniz yok.</p>
+    </div>
+}
+else
+{
+    <div class="d-flex align-items-center mb-4">
+        <h4 class="mb-0">
+            <i class="bi bi-gear-fill me-2 text-primary"></i>Genel Ayarlar
+        </h4>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @* ─── ARAMA AYARLARI ─── *@
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-transparent fw-bold py-3">
+                        <i class="bi bi-telephone-fill me-2 text-success"></i>Arama ve Kayit Ayarlari
+                    </div>
+                    <div class="card-body">
+                        @* Otomatik Kayit *@
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div>
+                                <h6 class="mb-0 small fw-bold">Otomatik Ses Kaydi</h6>
+                                <p class="text-muted small mb-0">Tum gelen ve giden aramalar otomatik olarak kaydedilir.</p>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" checked="@settings.AutoRecordCalls" 
+                                       @onchange="ToggleAutoRecord" disabled="@isSaving" />
+                            </div>
+                        </div>
+
+                        <hr class="opacity-10" />
+
+                        @* Geri Arama Yonetimi *@
+                        <div class="d-flex align-items-center justify-content-between mt-4">
+                            <div>
+                                <h6 class="mb-0 small fw-bold">Cevapsiz Cagri Yonetimi</h6>
+                                <p class="text-muted small mb-0">Cevapsiz aramalar CRM uzerinden operatörlere gorev olarak atanabilir.</p>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" checked="@settings.IsCallbackManagementEnabled" 
+                                       @onchange="ToggleCallbackManagement" disabled="@isSaving" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ─── BILGI KUTUSU ─── *@
+            <div class="col-md-6">
+                <div class="alert alert-info border-0 shadow-sm h-100 mb-0">
+                    <h6 class="alert-heading fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Bilgilendirme</h6>
+                    <hr />
+                    <p class="small mb-2">Buradaki ayarlar sirketinizin genel operasyonel akisini etkiler.</p>
+                    <ul class="small ps-3">
+                        <li><strong>Ses Kaydi:</strong> Yasal uyumluluk ve kalite takibi icin gereklidir.</li>
+                        <li><strong>Cevapsiz Cagri:</strong> Musteri memnuniyetini artirmak icin kacan cagrilara donus surecini yonetmenizi saglar.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@* ─── BILDIRIM ─── *@
+@if (!string.IsNullOrEmpty(toast))
+{
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show @(toastError ? "bg-danger" : "bg-success") text-white border-0 shadow">
+            <div class="toast-body d-flex align-items-center justify-content-between">
+                <span><i class="bi @(toastError ? "bi-exclamation-circle" : "bi-check-circle") me-2"></i>@toast</span>
+                <button class="btn-close btn-close-white ms-2" @onclick="() => toast = null"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool accessDenied;
+    private bool isLoading = true;
+    private bool isSaving;
+    private CustomerSettingsDto settings = new();
+    private string? toast;
+    private bool toastError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        if (PermService.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+        {
+            accessDenied = true;
+            return;
+        }
+        await LoadSettingsAsync();
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            settings = await Http.GetFromJsonAsync<CustomerSettingsDto>("api/portal/settings") ?? new();
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Ayarlar yuklenemedi: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ToggleAutoRecord()
+    {
+        var newVal = !settings.AutoRecordCalls;
+        await SaveSettingAsync(new UpdateCustomerSettingsRequest { AutoRecordCalls = newVal });
+    }
+
+    private async Task ToggleCallbackManagement()
+    {
+        var newVal = !settings.IsCallbackManagementEnabled;
+        await SaveSettingAsync(new UpdateCustomerSettingsRequest { IsCallbackManagementEnabled = newVal });
+    }
+
+    private async Task SaveSettingAsync(UpdateCustomerSettingsRequest request)
+    {
+        isSaving = true;
+        try
+        {
+            var resp = await Http.PutAsJsonAsync("api/portal/settings", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                if (request.AutoRecordCalls.HasValue) settings.AutoRecordCalls = request.AutoRecordCalls.Value;
+                if (request.IsCallbackManagementEnabled.HasValue) settings.IsCallbackManagementEnabled = request.IsCallbackManagementEnabled.Value;
+                
+                ShowToast("Ayarlar guncellendi", false);
+            }
+            else
+            {
+                ShowToast("Ayar kaydedilemedi", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Hata: {ex.Message}", true);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ShowToast(string message, bool error)
+    {
+        toast = message;
+        toastError = error;
+        StateHasChanged();
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            toast = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}

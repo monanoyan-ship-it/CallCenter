@@ -14,11 +14,48 @@ public class PortalController : AuditableControllerBase
 {
     private readonly IPortalFactory _portalFactory;
     private readonly IOrganizationFactory _orgFactory;
+    private readonly ICustomerFactory _customerFactory;
 
-    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory, IOrganizationFactory orgFactory) : base(auditFactory)
+    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory, IOrganizationFactory orgFactory, ICustomerFactory customerFactory) : base(auditFactory)
     {
         _portalFactory = portalFactory;
         _orgFactory = orgFactory;
+        _customerFactory = customerFactory;
+    }
+
+    // ... (Helpers buraya gelecek)
+
+    // ─── SETTINGS ───
+
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetMySettings()
+    {
+        var cid = CurrentCustomerId;
+        if (cid == null) return Unauthorized();
+
+        var customer = await _customerFactory.GetRawByIdAsync(cid.Value);
+        if (customer == null) return NotFound();
+
+        return Ok(new CustomerSettingsDto
+        {
+            AutoRecordCalls = customer.AutoRecordCalls,
+            IsCallbackManagementEnabled = customer.IsCallbackManagementEnabled
+        });
+    }
+
+    [HttpPut("settings")]
+    public async Task<IActionResult> UpdateMySettings([FromBody] UpdateCustomerSettingsRequest request)
+    {
+        if (!IsCustomerAdmin) return Forbid();
+
+        var cid = CurrentCustomerId;
+        if (cid == null) return Unauthorized();
+
+        var (success, error) = await _customerFactory.UpdateSettingsAsync(cid.Value, request);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("UpdateSettings", "Customer", cid.ToString(), "Musteri genel ayarlari guncellendi.", customerId: cid);
+        return Ok();
     }
 
     // HELPERS

@@ -75,4 +75,20 @@ public class CallRecord
 
     public int? QueueId { get; set; }
     public Queue? Queue { get; set; }
+
+    // ─── Geri Arama (Callback) Yonetimi ───
+
+    /// <summary>Geri arama gorev durumu (CallbackStatuses)</summary>
+    public int? CallbackStatusId { get; set; }
+
+    /// <summary>Gorevin atandigi temsilci</summary>
+    public int? CallbackAssignedToId { get; set; }
+    public User? CallbackAssignedTo { get; set; }
+
+    /// <summary>Gorevi atayanin notu</summary>
+    public string? CallbackNote { get; set; }
+
+    /// <summary>Geri arama sonucunda olusan yeni cagri kaydi</summary>
+    public int? CallbackResultCallId { get; set; }
+    public CallRecord? CallbackResultCall { get; set; }
 }

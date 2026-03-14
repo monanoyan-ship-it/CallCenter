@@ -15,4 +15,9 @@ public interface ICallFactory
     Task<CallSyncPushResponse> SyncPushAsync(int userId, CallSyncPushRequest request);
     Task<MyStatsResponse> GetMyStatsAsync(int userId);
     Task<(bool Success, string? Error)> UpdateNotesAsync(int callId, string? notes);
+
+    // ─── Callback (Geri Arama) Yonetimi ───
+    Task<(bool Success, string? Error)> AssignCallbackAsync(int callId, int assignedToId, string? note, int adminUserId);
+    Task<(bool Success, string? Error)> StartCallbackAsync(int callId, int userId);
+    Task<(bool Success, string? Error)> CompleteCallbackAsync(int callId, int resultCallId);
 }

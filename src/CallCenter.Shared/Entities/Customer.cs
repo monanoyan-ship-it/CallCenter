@@ -15,6 +15,7 @@ public class Customer
     public bool SaveRecordingToPlatform { get; set; } = true;
     public bool SaveRecordingToOwnStorage { get; set; }
     public bool AutoRecordCalls { get; set; }
+    public bool IsCallbackManagementEnabled { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();

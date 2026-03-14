@@ -54,3 +54,24 @@ public static class CallDirections
         public const int Outbound = 2;
     }
 }
+
+public static class CallbackStatuses
+{
+    public static readonly TypeItem Todo = new(1, "Todo", "CallbackStatus.Todo", "Bekliyor", "bi-clock-history", "bg-warning text-dark", 1, isDefault: true);
+    public static readonly TypeItem InProgress = new(2, "InProgress", "CallbackStatus.InProgress", "Araniyor", "bi-telephone-outbound", "bg-info", 2);
+    public static readonly TypeItem Completed = new(3, "Completed", "CallbackStatus.Completed", "Tamamlandi", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem Cancelled = new(4, "Cancelled", "CallbackStatus.Cancelled", "Iptal edildi", "bi-slash-circle", "bg-secondary", 4);
+
+    public static IEnumerable<TypeItem> All => new[] { Todo, InProgress, Completed, Cancelled };
+    public static TypeItem Default => All.First(x => x.IsDefault);
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+    public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
+
+    public static class Ids
+    {
+        public const int Todo = 1;
+        public const int InProgress = 2;
+        public const int Completed = 3;
+        public const int Cancelled = 4;
+    }
+}

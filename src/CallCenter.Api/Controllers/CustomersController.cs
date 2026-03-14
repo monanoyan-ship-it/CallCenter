@@ -2,6 +2,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CallCenter.Api.Controllers;
 
