@@ -58,7 +58,7 @@
                             <td class="small" data-bind="text: agentName"></td>
                             @if (isCustomerAdmin) {
                                 <td class="text-end pe-3">
-                                    <!-- ko if: statusId === 6 && !callbackStatusId -->
+                                    <!-- ko if: !callbackStatusId -->
                                     <button class="btn btn-xs btn-primary py-0" data-bind="click: $parent.openAssignModal">
                                         <i class="bi bi-person-plus-fill me-1"></i>Ata
                                     </button>

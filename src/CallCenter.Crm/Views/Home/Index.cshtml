@@ -43,6 +43,17 @@
         </div>
     </div>
 
+    <!-- Pipeline Value Banner -->
+    <div class="card border-0 shadow-sm mb-4 bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body py-3 text-white d-flex justify-content-between align-items-center">
+            <div>
+                <div class="small opacity-75">Pipeline Toplam Deger</div>
+                <div class="fs-4 fw-bold" data-bind="text: pipelineValue">0 TL</div>
+            </div>
+            <i class="bi bi-graph-up-arrow" style="font-size: 2.5rem; opacity: .3;"></i>
+        </div>
+    </div>
+
     <div class="row g-3">
         <!-- Son Etkilesimler -->
         <div class="col-lg-8">
@@ -55,7 +66,7 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Kisi</th>
+                                    <th class="ps-3">Kisi</th>
                                     <th>Tur</th>
                                     <th>Ozet</th>
                                     <th>Zaman</th>
@@ -63,7 +74,7 @@
                             </thead>
                             <tbody data-bind="foreach: recentActivities">
                                 <tr>
-                                    <td class="small" data-bind="text: contactName"></td>
+                                    <td class="ps-3 small" data-bind="text: contactName"></td>
                                     <td><span class="badge bg-secondary" data-bind="text: typeName"></span></td>
                                     <td class="small" data-bind="text: summary"></td>
                                     <td class="small text-muted" data-bind="text: timeAgo"></td>
@@ -81,7 +92,7 @@
             </div>
         </div>
 
-        <!-- Yaklaşan Görevler -->
+        <!-- Yaklasan Gorevler -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-0 fw-semibold">

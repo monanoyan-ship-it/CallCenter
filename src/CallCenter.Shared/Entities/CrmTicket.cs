@@ -17,6 +17,10 @@ public class CrmTicket
     /// <summary>TicketPriorities TypeItem referansi</summary>
     public int PriorityId { get; set; } = 2; // Medium
 
+    /// <summary>Kategori</summary>
+    public int? CategoryId { get; set; }
+    public CrmTicketCategory? Category { get; set; }
+
     /// <summary>Ilgili kisi</summary>
     public int? ContactId { get; set; }
     public Contact? Contact { get; set; }
@@ -38,4 +42,5 @@ public class CrmTicket
     public DateTime? ClosedAt { get; set; }
 
     public ICollection<CrmActivity> Activities { get; set; } = new List<CrmActivity>();
+    public ICollection<CrmTicketComment> Comments { get; set; } = new List<CrmTicketComment>();
 }

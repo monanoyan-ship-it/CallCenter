@@ -236,6 +236,115 @@ public class CrmController : ControllerBase
         return success ? Ok() : BadRequest(new { error });
     }
 
+    // ─── Surveys ───
+
+    [HttpGet("surveys")]
+    public async Task<ActionResult<List<CrmSurveyDto>>> GetSurveys()
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        return Ok(await _crm.GetSurveysAsync(cid.Value));
+    }
+
+    [HttpGet("surveys/{id}")]
+    public async Task<ActionResult<CrmSurveyDetailDto>> GetSurveyDetail(int id)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        var result = await _crm.GetSurveyDetailAsync(id, cid.Value);
+        return result != null ? Ok(result) : NotFound();
+    }
+
+    [HttpPost("surveys")]
+    public async Task<ActionResult> CreateSurvey([FromBody] CrmSurveyCreateDto dto)
+    {
+        var (cid, pid) = GetIds();
+        if (cid == null || pid == null) return Forbid();
+        var (success, id, error) = await _crm.CreateSurveyAsync(dto, cid.Value, pid.Value);
+        return success ? Ok(new { id }) : BadRequest(new { error });
+    }
+
+    [HttpPost("surveys/{id}/toggle")]
+    public async Task<ActionResult> ToggleSurvey(int id)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        var (success, error) = await _crm.ToggleSurveyAsync(id, cid.Value);
+        return success ? Ok() : BadRequest(new { error });
+    }
+
+    [HttpPost("surveys/responses")]
+    public async Task<ActionResult> SubmitSurveyResponse([FromBody] CrmSurveyResponseCreateDto dto)
+    {
+        var (cid, pid) = GetIds();
+        if (cid == null || pid == null) return Forbid();
+        var (success, id, error) = await _crm.SubmitSurveyResponseAsync(dto, cid.Value, pid.Value);
+        return success ? Ok(new { id }) : BadRequest(new { error });
+    }
+
+    [HttpGet("surveys/{id}/responses")]
+    public async Task<ActionResult<List<CrmSurveyResponseDto>>> GetSurveyResponses(int id)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        return Ok(await _crm.GetSurveyResponsesAsync(id, cid.Value));
+    }
+
+    // ─── Ticket Categories & Comments ───
+
+    [HttpGet("ticket-categories")]
+    public async Task<ActionResult<List<CrmTicketCategoryDto>>> GetTicketCategories()
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        return Ok(await _crm.GetTicketCategoriesAsync(cid.Value));
+    }
+
+    [HttpPost("ticket-categories")]
+    public async Task<ActionResult> CreateTicketCategory([FromBody] CrmTicketCategoryDto dto)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        var (success, id, error) = await _crm.CreateTicketCategoryAsync(dto.Name, cid.Value);
+        return success ? Ok(new { id }) : BadRequest(new { error });
+    }
+
+    [HttpGet("tickets/{id}/comments")]
+    public async Task<ActionResult<List<CrmTicketCommentDto>>> GetTicketComments(int id)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        return Ok(await _crm.GetTicketCommentsAsync(id, cid.Value));
+    }
+
+    [HttpPost("tickets/{id}/comments")]
+    public async Task<ActionResult> CreateTicketComment(int id, [FromBody] CrmTicketCommentCreateDto dto)
+    {
+        var (cid, pid) = GetIds();
+        if (cid == null || pid == null) return Forbid();
+        var (success, commentId, error) = await _crm.CreateTicketCommentAsync(id, dto, cid.Value, pid.Value);
+        return success ? Ok(new { id = commentId }) : BadRequest(new { error });
+    }
+
+    // ─── Contact Tags ───
+
+    [HttpGet("contact-tags")]
+    public async Task<ActionResult<List<CrmContactTagDto>>> GetContactTags()
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        return Ok(await _crm.GetContactTagsAsync(cid.Value));
+    }
+
+    [HttpPost("contact-tags")]
+    public async Task<ActionResult> CreateContactTag([FromBody] CrmContactTagDto dto)
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+        var (success, id, error) = await _crm.CreateContactTagAsync(dto.Name, dto.Color, cid.Value);
+        return success ? Ok(new { id }) : BadRequest(new { error });
+    }
+
     // ─── Helpers ───
 
     private int? GetCustomerId()

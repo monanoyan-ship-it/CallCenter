@@ -90,6 +90,44 @@ public static class ActivityTypes
     }
 }
 
+/// <summary>Anket turleri</summary>
+public static class SurveyTypes
+{
+    public static readonly TypeItem CSAT = new(1, "CSAT", "Survey.CSAT", "Musteri Memnuniyeti", "bi-emoji-smile-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem NPS = new(2, "NPS", "Survey.NPS", "Net Promoter Score", "bi-graph-up-arrow", "bg-primary", 2);
+    public static readonly TypeItem Custom = new(3, "Custom", "Survey.Custom", "Ozel Anket", "bi-card-checklist", "bg-info", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { CSAT, NPS, Custom };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int CSAT = 1;
+        public const int NPS = 2;
+        public const int Custom = 3;
+    }
+}
+
+/// <summary>Anket soru turleri</summary>
+public static class SurveyQuestionTypes
+{
+    public static readonly TypeItem Rating = new(1, "Rating", "SurveyQ.Rating", "Puan (1-5/1-10)", "bi-star-fill", "bg-warning text-dark", 1, isDefault: true);
+    public static readonly TypeItem MultiChoice = new(2, "MultiChoice", "SurveyQ.MultiChoice", "Coktan Secmeli", "bi-list-check", "bg-info", 2);
+    public static readonly TypeItem Text = new(3, "Text", "SurveyQ.Text", "Serbest Metin", "bi-chat-left-text-fill", "bg-secondary", 3);
+    public static readonly TypeItem YesNo = new(4, "YesNo", "SurveyQ.YesNo", "Evet/Hayir", "bi-toggle-on", "bg-primary", 4);
+
+    public static IEnumerable<TypeItem> All => new[] { Rating, MultiChoice, Text, YesNo };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Rating = 1;
+        public const int MultiChoice = 2;
+        public const int Text = 3;
+        public const int YesNo = 4;
+    }
+}
+
 /// <summary>CRM gorev durumlari</summary>
 public static class CrmTaskStatuses
 {

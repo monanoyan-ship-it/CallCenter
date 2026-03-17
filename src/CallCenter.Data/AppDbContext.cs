@@ -60,9 +60,17 @@ public class AppDbContext : DbContext
 
     // ─── CRM ───
     public DbSet<CrmTicket> CrmTickets => Set<CrmTicket>();
+    public DbSet<CrmTicketCategory> CrmTicketCategories => Set<CrmTicketCategory>();
+    public DbSet<CrmTicketComment> CrmTicketComments => Set<CrmTicketComment>();
     public DbSet<CrmDeal> CrmDeals => Set<CrmDeal>();
     public DbSet<CrmActivity> CrmActivities => Set<CrmActivity>();
     public DbSet<CrmTask> CrmTasks => Set<CrmTask>();
+    public DbSet<CrmSurvey> CrmSurveys => Set<CrmSurvey>();
+    public DbSet<CrmSurveyQuestion> CrmSurveyQuestions => Set<CrmSurveyQuestion>();
+    public DbSet<CrmSurveyResponse> CrmSurveyResponses => Set<CrmSurveyResponse>();
+    public DbSet<CrmSurveyAnswer> CrmSurveyAnswers => Set<CrmSurveyAnswer>();
+    public DbSet<CrmContactTag> CrmContactTags => Set<CrmContactTag>();
+    public DbSet<CrmContactTagLink> CrmContactTagLinks => Set<CrmContactTagLink>();
 
     // ─── IVR & Auto-Attendant ───
     public DbSet<GreetingMessage> GreetingMessages => Set<GreetingMessage>();
@@ -904,6 +912,101 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(t => t.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmTicketCategory
+        modelBuilder.Entity<CrmTicketCategory>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).IsRequired().HasMaxLength(100);
+            e.HasIndex(e2 => new { e2.CustomerId, e2.Name }).IsUnique();
+            e.HasOne(c => c.Customer).WithMany().HasForeignKey(c => c.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmTicket -> Category FK
+        modelBuilder.Entity<CrmTicket>(e =>
+        {
+            e.HasOne(t => t.Category)
+             .WithMany(c => c.Tickets)
+             .HasForeignKey(t => t.CategoryId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // CrmTicketComment
+        modelBuilder.Entity<CrmTicketComment>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Content).IsRequired().HasMaxLength(5000);
+            e.HasIndex(c => c.TicketId);
+            e.HasOne(c => c.Ticket).WithMany(t => t.Comments).HasForeignKey(c => c.TicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.CreatedByPersonnel).WithMany().HasForeignKey(c => c.CreatedByPersonnelId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // CrmContactTag
+        modelBuilder.Entity<CrmContactTag>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Name).IsRequired().HasMaxLength(50);
+            e.Property(t => t.Color).HasMaxLength(10);
+            e.HasIndex(e2 => new { e2.CustomerId, e2.Name }).IsUnique();
+            e.HasOne(t => t.Customer).WithMany().HasForeignKey(t => t.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmContactTagLink
+        modelBuilder.Entity<CrmContactTagLink>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.HasIndex(e2 => new { e2.ContactId, e2.TagId }).IsUnique();
+            e.HasOne(l => l.Contact).WithMany().HasForeignKey(l => l.ContactId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.Tag).WithMany(t => t.ContactLinks).HasForeignKey(l => l.TagId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmSurvey
+        modelBuilder.Entity<CrmSurvey>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.Uid).IsUnique();
+            e.Property(s => s.Title).IsRequired().HasMaxLength(300);
+            e.Property(s => s.Description).HasMaxLength(2000);
+            e.HasIndex(e2 => new { e2.CustomerId, e2.IsActive });
+            e.HasOne(s => s.Customer).WithMany().HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.CreatedByPersonnel).WithMany().HasForeignKey(s => s.CreatedByPersonnelId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // CrmSurveyQuestion
+        modelBuilder.Entity<CrmSurveyQuestion>(e =>
+        {
+            e.HasKey(q => q.Id);
+            e.Property(q => q.Text).IsRequired().HasMaxLength(500);
+            e.Property(q => q.Options).HasMaxLength(2000);
+            e.HasIndex(q => new { q.SurveyId, q.SortOrder });
+            e.HasOne(q => q.Survey).WithMany(s => s.Questions).HasForeignKey(q => q.SurveyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmSurveyResponse
+        modelBuilder.Entity<CrmSurveyResponse>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.Uid).IsUnique();
+            e.Property(r => r.RespondentPhone).HasMaxLength(50);
+            e.Property(r => r.RespondentName).HasMaxLength(200);
+            e.Property(r => r.OverallScore).HasPrecision(5, 2);
+            e.HasIndex(e2 => new { e2.SurveyId, e2.CreatedAt });
+            e.HasOne(r => r.Survey).WithMany(s => s.Responses).HasForeignKey(r => r.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Contact).WithMany().HasForeignKey(r => r.ContactId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.CallRecord).WithMany().HasForeignKey(r => r.CallRecordId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.CreatedByPersonnel).WithMany().HasForeignKey(r => r.CreatedByPersonnelId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Customer).WithMany().HasForeignKey(r => r.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // CrmSurveyAnswer
+        modelBuilder.Entity<CrmSurveyAnswer>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.AnswerText).HasMaxLength(2000);
+            e.HasIndex(e2 => new { e2.ResponseId, e2.QuestionId }).IsUnique();
+            e.HasOne(a => a.Response).WithMany(r => r.Answers).HasForeignKey(a => a.ResponseId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Question).WithMany().HasForeignKey(a => a.QuestionId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ═══════════════════════════════════════════════════════════════

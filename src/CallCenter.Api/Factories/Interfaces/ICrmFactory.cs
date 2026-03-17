@@ -36,4 +36,22 @@ public interface ICrmFactory
     Task<List<CrmTaskDto>> GetTasksAsync(int customerId, int? assignedTo, int? statusId);
     Task<(bool success, int id, string? error)> CreateTaskAsync(CrmTaskCreateDto dto, int customerId, int personnelId);
     Task<(bool success, string? error)> UpdateTaskAsync(int taskId, CrmTaskUpdateDto dto, int customerId);
+
+    // Surveys
+    Task<List<CrmSurveyDto>> GetSurveysAsync(int customerId);
+    Task<CrmSurveyDetailDto?> GetSurveyDetailAsync(int surveyId, int customerId);
+    Task<(bool success, int id, string? error)> CreateSurveyAsync(CrmSurveyCreateDto dto, int customerId, int personnelId);
+    Task<(bool success, string? error)> ToggleSurveyAsync(int surveyId, int customerId);
+    Task<(bool success, int id, string? error)> SubmitSurveyResponseAsync(CrmSurveyResponseCreateDto dto, int customerId, int personnelId);
+    Task<List<CrmSurveyResponseDto>> GetSurveyResponsesAsync(int surveyId, int customerId);
+
+    // Ticket Categories & Comments
+    Task<List<CrmTicketCategoryDto>> GetTicketCategoriesAsync(int customerId);
+    Task<(bool success, int id, string? error)> CreateTicketCategoryAsync(string name, int customerId);
+    Task<List<CrmTicketCommentDto>> GetTicketCommentsAsync(int ticketId, int customerId);
+    Task<(bool success, int id, string? error)> CreateTicketCommentAsync(int ticketId, CrmTicketCommentCreateDto dto, int customerId, int personnelId);
+
+    // Contact Tags
+    Task<List<CrmContactTagDto>> GetContactTagsAsync(int customerId);
+    Task<(bool success, int id, string? error)> CreateContactTagAsync(string name, string? color, int customerId);
 }

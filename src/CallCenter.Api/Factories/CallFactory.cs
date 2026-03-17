@@ -503,8 +503,9 @@ public class CallFactory : ICallFactory
         var call = await _calls.GetByIdAsync(callId);
         if (call == null) return (false, "Arama kaydi bulunamadi.");
 
-        if (call.StatusId != CallStatuses.Ids.Missed)
-            return (false, "Sadece cevapsiz aramalar geri arama gorevi olarak atanabilir.");
+        var finishedIds = CallStatuses.FinishedStatuses.Select(s => s.Id).ToList();
+        if (!finishedIds.Contains(call.StatusId))
+            return (false, "Sadece tamamlanmis aramalar icin geri arama gorevi atanabilir.");
 
         call.CallbackStatusId = CallbackStatuses.Ids.Todo;
         call.CallbackNote = note;

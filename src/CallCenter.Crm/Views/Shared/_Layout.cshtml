@@ -45,31 +45,34 @@
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-                var mainOpen = ctrl is "Home" or "Contacts" or "Tickets" or "Deals" or "Campaigns";
-                var trackOpen = ctrl is "Activities" or "Tasks" or "Calls";
+                var crmOpen = ctrl is "Home" or "Contacts" or "Tickets" or "Deals" or "CrmTasks" or "Surveys";
+                var trackOpen = ctrl is "Calls" or "Activities" or "Tasks" or "Campaigns";
                 var integrationOpen = ctrl is "Integrations";
                 var reportOpen = ctrl is "Reports";
             }
 
             <button class="nav-group-toggle mt-2" onclick="toggleGroup(this)">
-                <span>Ana Menu</span>
-                <i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
+                <span>CRM</span>
+                <i class="bi bi-chevron-down chevron @(crmOpen ? "open" : "")"></i>
             </button>
-            <div class="nav-group-items @(mainOpen ? "show" : "")">
+            <div class="nav-group-items @(crmOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/">
                     <i class="bi bi-speedometer2 me-2"></i>Dashboard
                 </a>
                 <a class="nav-link @(ctrl == "Contacts" ? "active" : "")" href="/Contacts">
                     <i class="bi bi-people-fill me-2"></i>Kisiler
                 </a>
-                <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
-                    <i class="bi bi-list-check me-2"></i>Kampanyalar
-                </a>
                 <a class="nav-link @(ctrl == "Tickets" ? "active" : "")" href="/Tickets">
                     <i class="bi bi-ticket-detailed-fill me-2"></i>Talepler
                 </a>
                 <a class="nav-link @(ctrl == "Deals" ? "active" : "")" href="/Deals">
                     <i class="bi bi-kanban-fill me-2"></i>Firsatlar
+                </a>
+                <a class="nav-link @(ctrl == "CrmTasks" ? "active" : "")" href="/CrmTasks">
+                    <i class="bi bi-check2-square me-2"></i>Gorevler
+                </a>
+                <a class="nav-link @(ctrl == "Surveys" ? "active" : "")" href="/Surveys">
+                    <i class="bi bi-clipboard2-data me-2"></i>Anketler
                 </a>
             </div>
 
@@ -85,7 +88,10 @@
                     <i class="bi bi-clock-history me-2"></i>Etkilesimler
                 </a>
                 <a class="nav-link @(ctrl == "Tasks" ? "active" : "")" href="/Tasks">
-                    <i class="bi bi-check2-square me-2"></i>Gorevler
+                    <i class="bi bi-list-task me-2"></i>Gorevler
+                </a>
+                <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
+                    <i class="bi bi-megaphone-fill me-2"></i>Kampanyalar
                 </a>
             </div>
 

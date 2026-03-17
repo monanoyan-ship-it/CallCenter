@@ -59,6 +59,11 @@ public static class EntityServiceRegistration
         services.AddScoped<ICrmDealEntityService, CrmDealEntityService>();
         services.AddScoped<ICrmActivityEntityService, CrmActivityEntityService>();
         services.AddScoped<ICrmTaskEntityService, CrmTaskEntityService>();
+        services.AddScoped<ICrmSurveyEntityService, CrmSurveyEntityService>();
+        services.AddScoped<ICrmSurveyResponseEntityService, CrmSurveyResponseEntityService>();
+        services.AddScoped<ICrmTicketCategoryEntityService, CrmTicketCategoryEntityService>();
+        services.AddScoped<ICrmTicketCommentEntityService, CrmTicketCommentEntityService>();
+        services.AddScoped<ICrmContactTagEntityService, CrmContactTagEntityService>();
 
         // Faz 14 — Hizmet Abonelik Yönetimi
         services.AddScoped<ICustomerServiceSubscriptionEntityService, CustomerServiceSubscriptionEntityService>();

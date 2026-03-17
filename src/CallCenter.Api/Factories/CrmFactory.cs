@@ -12,24 +12,39 @@ public class CrmFactory : ICrmFactory
 {
     private readonly IContactEntityService _contactEs;
     private readonly ICrmTicketEntityService _ticketEs;
+    private readonly ICrmTicketCategoryEntityService _ticketCategoryEs;
+    private readonly ICrmTicketCommentEntityService _ticketCommentEs;
     private readonly ICrmDealEntityService _dealEs;
     private readonly ICrmActivityEntityService _activityEs;
     private readonly ICrmTaskEntityService _taskEs;
+    private readonly ICrmSurveyEntityService _surveyEs;
+    private readonly ICrmSurveyResponseEntityService _surveyResponseEs;
+    private readonly ICrmContactTagEntityService _contactTagEs;
     private readonly IUnitOfWork _uow;
 
     public CrmFactory(
         IContactEntityService contactEs,
         ICrmTicketEntityService ticketEs,
+        ICrmTicketCategoryEntityService ticketCategoryEs,
+        ICrmTicketCommentEntityService ticketCommentEs,
         ICrmDealEntityService dealEs,
         ICrmActivityEntityService activityEs,
         ICrmTaskEntityService taskEs,
+        ICrmSurveyEntityService surveyEs,
+        ICrmSurveyResponseEntityService surveyResponseEs,
+        ICrmContactTagEntityService contactTagEs,
         IUnitOfWork uow)
     {
         _contactEs = contactEs;
         _ticketEs = ticketEs;
+        _ticketCategoryEs = ticketCategoryEs;
+        _ticketCommentEs = ticketCommentEs;
         _dealEs = dealEs;
         _activityEs = activityEs;
         _taskEs = taskEs;
+        _surveyEs = surveyEs;
+        _surveyResponseEs = surveyResponseEs;
+        _contactTagEs = contactTagEs;
         _uow = uow;
     }
 
@@ -582,6 +597,329 @@ public class CrmFactory : ICrmFactory
         _taskEs.Update(task);
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    // ═══════════════════════════════════════
+    // SURVEYS (Musteri Memnuniyet Anketi)
+    // ═══════════════════════════════════════
+
+    public async Task<List<CrmSurveyDto>> GetSurveysAsync(int customerId)
+    {
+        var surveys = await _surveyEs.GetAllQueryable()
+            .Where(s => s.CustomerId == customerId)
+            .OrderByDescending(s => s.CreatedAt)
+            .Include(s => s.CreatedByPersonnel).ThenInclude(p => p.User)
+            .ToListAsync();
+
+        var surveyIds = surveys.Select(s => s.Id).ToList();
+
+        var questionCounts = await _surveyEs.GetAllQueryable()
+            .Where(s => surveyIds.Contains(s.Id))
+            .Select(s => new { s.Id, Count = s.Questions.Count })
+            .ToListAsync();
+
+        var responseCounts = await _surveyResponseEs.GetAllQueryable()
+            .Where(r => surveyIds.Contains(r.SurveyId))
+            .GroupBy(r => r.SurveyId)
+            .Select(g => new { SurveyId = g.Key, Count = g.Count(), Avg = g.Average(r => r.OverallScore) })
+            .ToListAsync();
+
+        return surveys.Select(s =>
+        {
+            var rc = responseCounts.FirstOrDefault(r => r.SurveyId == s.Id);
+            var type = SurveyTypes.GetById(s.TypeId);
+            return new CrmSurveyDto
+            {
+                Id = s.Id,
+                Uid = s.Uid,
+                Title = s.Title,
+                Description = s.Description,
+                TypeId = s.TypeId,
+                TypeName = type?.Description,
+                IsActive = s.IsActive,
+                QuestionCount = questionCounts.FirstOrDefault(q => q.Id == s.Id)?.Count ?? 0,
+                ResponseCount = rc?.Count ?? 0,
+                AverageScore = rc?.Avg,
+                CreatedByName = s.CreatedByPersonnel?.User?.FullName,
+                CreatedAt = s.CreatedAt
+            };
+        }).ToList();
+    }
+
+    public async Task<CrmSurveyDetailDto?> GetSurveyDetailAsync(int surveyId, int customerId)
+    {
+        var survey = await _surveyEs.GetAllQueryable()
+            .Where(s => s.Id == surveyId && s.CustomerId == customerId)
+            .Include(s => s.Questions.OrderBy(q => q.SortOrder))
+            .Include(s => s.CreatedByPersonnel).ThenInclude(p => p.User)
+            .FirstOrDefaultAsync();
+        if (survey == null) return null;
+
+        var responseCount = await _surveyResponseEs.GetAllQueryable().CountAsync(r => r.SurveyId == surveyId);
+        var avgScore = await _surveyResponseEs.GetAllQueryable()
+            .Where(r => r.SurveyId == surveyId && r.OverallScore != null)
+            .AverageAsync(r => (decimal?)r.OverallScore);
+
+        var type = SurveyTypes.GetById(survey.TypeId);
+        return new CrmSurveyDetailDto
+        {
+            Id = survey.Id,
+            Uid = survey.Uid,
+            Title = survey.Title,
+            Description = survey.Description,
+            TypeId = survey.TypeId,
+            TypeName = type?.Description,
+            IsActive = survey.IsActive,
+            QuestionCount = survey.Questions.Count,
+            ResponseCount = responseCount,
+            AverageScore = avgScore,
+            CreatedByName = survey.CreatedByPersonnel?.User?.FullName,
+            CreatedAt = survey.CreatedAt,
+            Questions = survey.Questions.Select(q =>
+            {
+                var qType = SurveyQuestionTypes.GetById(q.QuestionTypeId);
+                return new CrmSurveyQuestionDto
+                {
+                    Id = q.Id,
+                    Text = q.Text,
+                    QuestionTypeId = q.QuestionTypeId,
+                    QuestionTypeName = qType?.Description,
+                    Options = q.Options,
+                    MinValue = q.MinValue,
+                    MaxValue = q.MaxValue,
+                    SortOrder = q.SortOrder,
+                    IsRequired = q.IsRequired
+                };
+            }).ToList()
+        };
+    }
+
+    public async Task<(bool success, int id, string? error)> CreateSurveyAsync(
+        CrmSurveyCreateDto dto, int customerId, int personnelId)
+    {
+        var survey = new CrmSurvey
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            TypeId = dto.TypeId,
+            CustomerId = customerId,
+            CreatedByPersonnelId = personnelId
+        };
+
+        foreach (var q in dto.Questions)
+        {
+            survey.Questions.Add(new CrmSurveyQuestion
+            {
+                Text = q.Text,
+                QuestionTypeId = q.QuestionTypeId,
+                Options = q.Options,
+                MinValue = q.MinValue,
+                MaxValue = q.MaxValue,
+                SortOrder = q.SortOrder,
+                IsRequired = q.IsRequired
+            });
+        }
+
+        _surveyEs.Add(survey);
+        await _uow.SaveChangesAsync();
+        return (true, survey.Id, null);
+    }
+
+    public async Task<(bool success, string? error)> ToggleSurveyAsync(int surveyId, int customerId)
+    {
+        var survey = await _surveyEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.Id == surveyId && s.CustomerId == customerId);
+        if (survey == null) return (false, "Anket bulunamadi");
+
+        survey.IsActive = !survey.IsActive;
+        survey.UpdatedAt = DateTime.UtcNow;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool success, int id, string? error)> SubmitSurveyResponseAsync(
+        CrmSurveyResponseCreateDto dto, int customerId, int personnelId)
+    {
+        var survey = await _surveyEs.GetAllQueryable()
+            .Where(s => s.Id == dto.SurveyId && s.CustomerId == customerId && s.IsActive)
+            .Include(s => s.Questions)
+            .FirstOrDefaultAsync();
+        if (survey == null) return (false, 0, "Anket bulunamadi veya aktif degil");
+
+        var response = new CrmSurveyResponse
+        {
+            SurveyId = dto.SurveyId,
+            ContactId = dto.ContactId,
+            CallRecordId = dto.CallRecordId,
+            RespondentPhone = dto.RespondentPhone,
+            RespondentName = dto.RespondentName,
+            CreatedByPersonnelId = personnelId,
+            CustomerId = customerId,
+            CompletedAt = DateTime.UtcNow
+        };
+
+        decimal totalScore = 0;
+        int scoreCount = 0;
+
+        foreach (var ans in dto.Answers)
+        {
+            response.Answers.Add(new CrmSurveyAnswer
+            {
+                QuestionId = ans.QuestionId,
+                AnswerText = ans.AnswerText,
+                AnswerScore = ans.AnswerScore
+            });
+
+            if (ans.AnswerScore.HasValue)
+            {
+                totalScore += ans.AnswerScore.Value;
+                scoreCount++;
+            }
+        }
+
+        if (scoreCount > 0)
+            response.OverallScore = totalScore / scoreCount;
+
+        _surveyResponseEs.Add(response);
+        await _uow.SaveChangesAsync();
+        return (true, response.Id, null);
+    }
+
+    public async Task<List<CrmSurveyResponseDto>> GetSurveyResponsesAsync(int surveyId, int customerId)
+    {
+        var responses = await _surveyResponseEs.GetAllQueryable()
+            .Where(r => r.SurveyId == surveyId && r.CustomerId == customerId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Include(r => r.Contact)
+            .Include(r => r.CreatedByPersonnel).ThenInclude(p => p!.User)
+            .Include(r => r.Answers)
+            .ToListAsync();
+
+        return responses.Select(r => new CrmSurveyResponseDto
+        {
+            Id = r.Id,
+            Uid = r.Uid,
+            ContactName = r.Contact?.FullName,
+            RespondentPhone = r.RespondentPhone,
+            RespondentName = r.RespondentName ?? r.Contact?.FullName,
+            OverallScore = r.OverallScore,
+            CompletedAt = r.CompletedAt,
+            CreatedAt = r.CreatedAt,
+            CreatedByName = r.CreatedByPersonnel?.User?.FullName,
+            Answers = r.Answers.Select(a => new CrmSurveyAnswerDto
+            {
+                QuestionId = a.QuestionId,
+                AnswerText = a.AnswerText,
+                AnswerScore = a.AnswerScore
+            }).ToList()
+        }).ToList();
+    }
+
+    // ═══════════════════════════════════════
+    // TICKET CATEGORIES & COMMENTS
+    // ═══════════════════════════════════════
+
+    public async Task<List<CrmTicketCategoryDto>> GetTicketCategoriesAsync(int customerId)
+    {
+        return await _ticketCategoryEs.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId && c.IsActive)
+            .OrderBy(c => c.SortOrder)
+            .Select(c => new CrmTicketCategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                SortOrder = c.SortOrder,
+                IsActive = c.IsActive
+            })
+            .ToListAsync();
+    }
+
+    public async Task<(bool success, int id, string? error)> CreateTicketCategoryAsync(
+        string name, int customerId)
+    {
+        var maxOrder = await _ticketCategoryEs.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId)
+            .MaxAsync(c => (int?)c.SortOrder) ?? 0;
+
+        var cat = new CrmTicketCategory
+        {
+            Name = name,
+            SortOrder = maxOrder + 1,
+            CustomerId = customerId
+        };
+        _ticketCategoryEs.Add(cat);
+        await _uow.SaveChangesAsync();
+        return (true, cat.Id, null);
+    }
+
+    public async Task<List<CrmTicketCommentDto>> GetTicketCommentsAsync(int ticketId, int customerId)
+    {
+        // Firma erisim kontrolu
+        var ticketExists = await _ticketEs.GetAllQueryable()
+            .AnyAsync(t => t.Id == ticketId && t.CustomerId == customerId);
+        if (!ticketExists) return new();
+
+        return await _ticketCommentEs.GetAllQueryable()
+            .Where(c => c.TicketId == ticketId)
+            .OrderBy(c => c.CreatedAt)
+            .Include(c => c.CreatedByPersonnel).ThenInclude(p => p.User)
+            .Select(c => new CrmTicketCommentDto
+            {
+                Id = c.Id,
+                Content = c.Content,
+                IsInternal = c.IsInternal,
+                CreatedByName = c.CreatedByPersonnel.User!.FullName,
+                CreatedAt = c.CreatedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task<(bool success, int id, string? error)> CreateTicketCommentAsync(
+        int ticketId, CrmTicketCommentCreateDto dto, int customerId, int personnelId)
+    {
+        var ticket = await _ticketEs.GetAllQueryable()
+            .FirstOrDefaultAsync(t => t.Id == ticketId && t.CustomerId == customerId);
+        if (ticket == null) return (false, 0, "Talep bulunamadi");
+
+        var comment = new CrmTicketComment
+        {
+            TicketId = ticketId,
+            Content = dto.Content,
+            IsInternal = dto.IsInternal,
+            CreatedByPersonnelId = personnelId
+        };
+
+        _ticketCommentEs.Add(comment);
+        ticket.UpdatedAt = DateTime.UtcNow;
+        await _uow.SaveChangesAsync();
+        return (true, comment.Id, null);
+    }
+
+    // ═══════════════════════════════════════
+    // CONTACT TAGS
+    // ═══════════════════════════════════════
+
+    public async Task<List<CrmContactTagDto>> GetContactTagsAsync(int customerId)
+    {
+        return await _contactTagEs.GetAllQueryable()
+            .Where(t => t.CustomerId == customerId)
+            .OrderBy(t => t.Name)
+            .Select(t => new CrmContactTagDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Color = t.Color
+            })
+            .ToListAsync();
+    }
+
+    public async Task<(bool success, int id, string? error)> CreateContactTagAsync(
+        string name, string? color, int customerId)
+    {
+        var tag = new CrmContactTag { Name = name, Color = color, CustomerId = customerId };
+        _contactTagEs.Add(tag);
+        await _uow.SaveChangesAsync();
+        return (true, tag.Id, null);
     }
 
     // ═══════════════════════════════════════
