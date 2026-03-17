@@ -190,7 +190,9 @@
       "WebFetch(domain:www.verimor.com.tr)",
       "WebFetch(domain:www.tekme.org)",
       "Bash(curl -s -X POST http://127.0.0.1:41847/api/phases/183/tasks -H \"Content-Type: application/json\" -d '{:*)",
-      "Bash(curl -s -X POST http://127.0.0.1:41847/api/phases/186/tasks -H \"Content-Type: application/json\" -d '{:*)"
+      "Bash(curl -s -X POST http://127.0.0.1:41847/api/phases/186/tasks -H \"Content-Type: application/json\" -d '{:*)",
+      "Bash(cp Dockerfile Dockerfile.api.bak)",
+      "Bash(cp src/CallCenter.Crm/Dockerfile Dockerfile)"
     ]
   }
 }
