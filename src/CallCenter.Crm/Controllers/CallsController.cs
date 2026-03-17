@@ -50,6 +50,17 @@ public class CallsController : CrmBaseController
     }
 
     [HttpGet]
+    public async Task<IActionResult> GetNumberHistory(string number)
+    {
+        if (string.IsNullOrWhiteSpace(number)) return BadRequest();
+        using var client = CreateApiClient();
+        var response = await client.GetAsync($"api/calls/number-history?number={Uri.EscapeDataString(number)}");
+        if (!response.IsSuccessStatusCode) return BadRequest();
+        var json = await response.Content.ReadAsStringAsync();
+        return Content(json, "application/json");
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetPersonnel()
     {
         using var client = CreateApiClient();

@@ -6,52 +6,56 @@ namespace CallCenter.Windows.Services;
 
 /// <summary>
 /// SignalR hub baglantisini yoneten servis.
-/// JWT ile authenticate olur, otomatik reconnect yapar.
+/// JWT ile yetkilendirilmis baglanti kurar ve event'leri expose eder.
 /// </summary>
 public class WindowsHubService : IAsyncDisposable
 {
-    private readonly WindowsAuthService _authService;
-    private readonly string _hubUrl;
+    private readonly IConfiguration _config;
+    private readonly WindowsAuthService _auth;
     private HubConnection? _connection;
 
     // ─── Events ───
     public event Action<AgentStatusUpdate>? OnAgentStatusChanged;
     public event Action<CallNotification>? OnIncomingCall;
+    public event Action<object>? OnNewCallbackTask;
+    public event Action<object>? OnCallbackTaskStarted;
+    public event Action<object>? OnCallbackTaskCompleted;
+    public event Action<object>? OnCallbackTaskReverted;
     public event Action<int>? OnCallEnded;
     public event Action<HubConnectionState>? OnConnectionStateChanged;
 
     // ─── Force Logout Event ───
     public event Func<Task>? OnForceLogout;
 
+    public WindowsHubService(IConfiguration config, WindowsAuthService auth)
+    {
+        _config = config;
+        _auth = auth;
+    }
+
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
-    public WindowsHubService(WindowsAuthService authService, IConfiguration config)
-    {
-        _authService = authService;
-        var apiBase = config["ApiBaseUrl"] ?? "https://localhost:7147";
-        _hubUrl = $"{apiBase}/hubs/callcenter";
-    }
-
-    /// <summary>Hub'a baglanir. Token yoksa veya gecersizse baglanmaz.</summary>
     public async Task ConnectAsync()
     {
-        if (_connection is { State: HubConnectionState.Connected or HubConnectionState.Connecting })
+        if (_connection != null && _connection.State != HubConnectionState.Disconnected)
             return;
 
-        var token = await _authService.GetTokenAsync();
-        if (string.IsNullOrEmpty(token))
-            return;
+        var token = await _auth.GetTokenAsync();
+        if (string.IsNullOrEmpty(token)) return;
+
+        var hubUrl = _config["ApiBaseUrl"]?.TrimEnd('/') + "/hubs/callcenter";
 
         _connection = new HubConnectionBuilder()
-            .WithUrl(_hubUrl, options =>
+            .WithUrl(hubUrl, options =>
             {
-                options.AccessTokenProvider = () => _authService.GetTokenAsync()!;
+                options.AccessTokenProvider = () => _auth.GetTokenAsync()!;
             })
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
             .Build();
 
-        // Event handler'lari kaydet
+        // ─── Listeners ───
+
         _connection.On<AgentStatusUpdate>("AgentStatusChanged", update =>
         {
             OnAgentStatusChanged?.Invoke(update);
@@ -62,49 +66,58 @@ public class WindowsHubService : IAsyncDisposable
             OnIncomingCall?.Invoke(notification);
         });
 
+        _connection.On<object>("NewCallbackTask", data =>
+        {
+            OnNewCallbackTask?.Invoke(data);
+        });
+
+        _connection.On<object>("CallbackTaskStarted", data =>
+        {
+            OnCallbackTaskStarted?.Invoke(data);
+        });
+
+        _connection.On<object>("CallbackTaskCompleted", data =>
+        {
+            OnCallbackTaskCompleted?.Invoke(data);
+        });
+
+        _connection.On<object>("CallbackTaskReverted", data =>
+        {
+            OnCallbackTaskReverted?.Invoke(data);
+        });
+
         _connection.On<int>("CallEnded", callId =>
         {
             OnCallEnded?.Invoke(callId);
         });
 
-        // Force logout (tek oturum zorunlulugu)
-        _connection.On("ForceLogout", async () =>
+        _connection.On<string>("ForceLogout", async reason =>
         {
-            if (OnForceLogout != null)
-                await OnForceLogout.Invoke();
+            if (OnForceLogout != null) await OnForceLogout.Invoke();
         });
 
-        _connection.Reconnecting += _ =>
+        _connection.Closed += (error) =>
+        {
+            OnConnectionStateChanged?.Invoke(HubConnectionState.Disconnected);
+            return Task.CompletedTask;
+        };
+
+        _connection.Reconnecting += (error) =>
         {
             OnConnectionStateChanged?.Invoke(HubConnectionState.Reconnecting);
             return Task.CompletedTask;
         };
 
-        _connection.Reconnected += _ =>
+        _connection.Reconnected += (connectionId) =>
         {
             OnConnectionStateChanged?.Invoke(HubConnectionState.Connected);
             return Task.CompletedTask;
         };
 
-        _connection.Closed += _ =>
-        {
-            OnConnectionStateChanged?.Invoke(HubConnectionState.Disconnected);
-            return Task.CompletedTask;
-        };
-
-        try
-        {
-            await _connection.StartAsync();
-            OnConnectionStateChanged?.Invoke(HubConnectionState.Connected);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[HubService] Baglanti hatasi: {ex.Message}");
-            OnConnectionStateChanged?.Invoke(HubConnectionState.Disconnected);
-        }
+        await _connection.StartAsync();
+        OnConnectionStateChanged?.Invoke(HubConnectionState.Connected);
     }
 
-    /// <summary>Hub baglantisini kapatir.</summary>
     public async Task DisconnectAsync()
     {
         if (_connection != null)
@@ -116,39 +129,37 @@ public class WindowsHubService : IAsyncDisposable
         }
     }
 
-    /// <summary>Agent durumunu gunceller (SignalR uzerinden).</summary>
+    public async Task SendAsync(string methodName, object? arg1 = null)
+    {
+        if (_connection?.State == HubConnectionState.Connected)
+        {
+            if (arg1 != null) await _connection.SendAsync(methodName, arg1);
+            else await _connection.SendAsync(methodName);
+        }
+    }
+
+    // ─── Helpers (Missing methods restored) ───
+
     public async Task UpdateStatusAsync(int statusId)
     {
-        if (_connection?.State == HubConnectionState.Connected)
-        {
-            await _connection.InvokeAsync("UpdateMyStatus", statusId);
-        }
+        await SendAsync("UpdateMyStatus", statusId);
     }
 
-    /// <summary>Gelen arama bildirimi gonderir.</summary>
-    public async Task NotifyIncomingCallAsync(CallNotification notification)
-    {
-        if (_connection?.State == HubConnectionState.Connected)
-        {
-            await _connection.InvokeAsync("NotifyIncomingCall", notification);
-        }
-    }
-
-    /// <summary>Arama bitti bildirimi gonderir.</summary>
     public async Task NotifyCallEndedAsync(int callId)
     {
-        if (_connection?.State == HubConnectionState.Connected)
-        {
-            await _connection.InvokeAsync("NotifyCallEnded", callId);
-        }
+        await SendAsync("NotifyCallEnded", callId);
     }
 
-    /// <summary>Gateway (SIP) saglik durumunu hub'a bildirir.</summary>
-    public async Task UpdateGatewayHealthAsync(GatewayHealthUpdate update)
+    public async Task UpdateGatewayHealthAsync(object update)
     {
-        if (_connection?.State == HubConnectionState.Connected)
+        await SendAsync("UpdateGatewayHealth", update);
+    }
+
+    public void OnGatewayHealthUpdate(Action<object> action)
+    {
+        if (_connection != null)
         {
-            await _connection.InvokeAsync("UpdateGatewayHealth", update);
+            _connection.On("UpdateGatewayHealth", action);
         }
     }
 

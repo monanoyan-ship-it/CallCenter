@@ -10,14 +10,16 @@ function CallsViewModel() {
 
     self.assignForm = {
         callId: ko.observable(null),
-        assignedToId: ko.observable(null),
+        assignedToId: ko.observable(0), // 0 = Havuz
         note: ko.observable("")
     };
 
     self.load = function () {
         self.isLoading(true);
         $.get("/Calls/GetHistory", function (data) {
-            self.calls(data.map(function(c) {
+            // PagedResult veya Array kontrolu
+            var list = Array.isArray(data) ? data : (data.items || []);
+            self.calls(list.map(function(c) {
                 return new CallItem(c);
             }));
         }).always(function() {
@@ -31,12 +33,22 @@ function CallsViewModel() {
         });
     };
 
+    // Atama listesinden sadece Operator olanları filtrele
+    self.filteredPersonnel = ko.computed(function() {
+        return self.personnel().filter(function(p) {
+            // CustomerRoleId 3 = Operator
+            return p.customerRoleId === 3;
+        });
+    });
+
     self.filteredCalls = ko.computed(function () {
         var q = self.searchQuery().toLowerCase();
         var s = self.statusFilter();
         
         return self.calls().filter(function (c) {
-            var matchSearch = !q || c.callerNumber.toLowerCase().indexOf(q) > -1 || c.calleeNumber.toLowerCase().indexOf(q) > -1;
+            var caller = c.callerNumber ? c.callerNumber.toLowerCase() : "";
+            var callee = c.calleeNumber ? c.calleeNumber.toLowerCase() : "";
+            var matchSearch = !q || caller.indexOf(q) > -1 || callee.indexOf(q) > -1;
             var matchStatus = !s || c.statusId == s;
             return matchSearch && matchStatus;
         });
@@ -44,7 +56,7 @@ function CallsViewModel() {
 
     self.openAssignModal = function(item) {
         self.assignForm.callId(item.id);
-        self.assignForm.assignedToId(null);
+        self.assignForm.assignedToId(0);
         self.assignForm.note("");
         $("#assignModal").modal("show");
     };
@@ -52,18 +64,15 @@ function CallsViewModel() {
     self.saveAssignment = function() {
         self.isSaving(true);
         var id = self.assignForm.callId();
-        var data = {
-            assignedToId: self.assignForm.assignedToId(),
-            note: self.assignForm.note()
-        };
+        var targetId = parseInt(self.assignForm.assignedToId());
 
         $.ajax({
-            url: "/Calls/AssignCallback?id=" + id + "&assignedToId=" + data.assignedToId,
+            url: "/Calls/AssignCallback?id=" + id + "&assignedToId=" + targetId,
             type: "POST",
             contentType: "application/json",
-            data: JSON.stringify(data.note),
+            data: JSON.stringify(self.assignForm.note()),
             success: function() {
-                toastr.success("Gorev başarıyla atandı.");
+                toastr.success(targetId === 0 ? "Havuza atandı" : "Temsilciye atandı");
                 $("#assignModal").modal("hide");
                 self.load();
             },
@@ -77,7 +86,26 @@ function CallsViewModel() {
         });
     };
 
-    // Initial Load
+    // ─── Numara Gecmisi ───
+    self.historyNumber = ko.observable("");
+    self.numberHistory = ko.observableArray([]);
+    self.isHistoryLoading = ko.observable(false);
+
+    self.showNumberHistory = function(number) {
+        if (!number) return;
+        self.historyNumber(number);
+        self.numberHistory([]);
+        self.isHistoryLoading(true);
+        $("#numberHistoryModal").modal("show");
+
+        $.get("/Calls/GetNumberHistory?number=" + encodeURIComponent(number), function(data) {
+            var list = Array.isArray(data) ? data : (data.items || []);
+            self.numberHistory(list.map(function(c) { return new CallItem(c); }));
+        }).always(function() {
+            self.isHistoryLoading(false);
+        });
+    };
+
     self.load();
     self.loadPersonnel();
 }
@@ -85,7 +113,6 @@ function CallsViewModel() {
 function CallItem(data) {
     var self = this;
     self.id = data.id;
-    self.uid = data.uid;
     self.callerNumber = data.callerNumber;
     self.calleeNumber = data.calleeNumber;
     self.startedAt = data.startedAt;
@@ -93,24 +120,19 @@ function CallItem(data) {
     self.durationSeconds = data.durationSeconds || 0;
     self.agentName = data.agentName || "-";
     
-    // Callback fields
     self.callbackStatusId = data.callbackStatusId;
     self.callbackNote = data.callbackNote;
 
     self.statusName = ko.computed(function() {
         if (self.statusId === 1) return "Çalıyor";
-        if (self.statusId === 2) return "Kuyrukta";
-        if (self.statusId === 3) return "Beklemede";
-        if (self.statusId === 4) return "Bağlandı";
         if (self.statusId === 5) return "Tamamlandı";
         if (self.statusId === 6) return "Cevapsız";
-        return "Bilinmiyor";
+        return "Bitti";
     });
 
     self.statusCss = ko.computed(function() {
         if (self.statusId === 6) return "bg-danger";
         if (self.statusId === 5) return "bg-success";
-        if (self.statusId === 4) return "bg-info";
         return "bg-secondary";
     });
 

@@ -76,6 +76,9 @@ public class CallRecord
     public int? QueueId { get; set; }
     public Queue? Queue { get; set; }
 
+    public int? CustomerId { get; set; }
+    public Customer? Customer { get; set; }
+
     // ─── Geri Arama (Callback) Yonetimi ───
 
     /// <summary>Geri arama gorev durumu (CallbackStatuses)</summary>

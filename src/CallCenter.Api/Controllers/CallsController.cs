@@ -163,6 +163,14 @@ public class CallsController : AuditableControllerBase
         return Ok(result);
     }
 
+    /// <summary>Belirli bir numaranin arama gecmisini getirir</summary>
+    [HttpGet("number-history")]
+    public async Task<IActionResult> GetNumberHistory([FromQuery] string number)
+    {
+        if (string.IsNullOrWhiteSpace(number)) return BadRequest("Numara gerekli.");
+        return Ok(await _callFactory.GetNumberHistoryAsync(GetUserId(), number));
+    }
+
     // ─── Callback (Geri Arama) Yonetimi ───
 
     /// <summary>Cevapsiz bir aramayi operatore geri arama gorevi olarak ata</summary>
@@ -184,13 +192,20 @@ public class CallsController : AuditableControllerBase
         return Ok();
     }
 
-    /// <summary>Operatore atanmis bekleyen geri arama gorevlerini listeler</summary>
+    /// <summary>Operatore atanmis veya havuza bırakılmıs bekleyen geri arama gorevlerini listeler</summary>
     [HttpGet("pending-callbacks")]
     public async Task<ActionResult<List<PendingCallbackDto>>> GetPendingCallbacks()
     {
         var userId = GetUserId();
+        var customerId = CurrentCustomerId;
+        if (customerId == null) return Unauthorized();
+
         var records = await _db.CallRecords
-            .Where(c => c.CallbackAssignedToId == userId && c.CallbackStatusId != CallbackStatuses.Ids.Completed && c.CallbackStatusId != CallbackStatuses.Ids.Cancelled)
+            .Where(c => c.CustomerId == customerId &&
+                        (c.CallbackAssignedToId == userId || c.CallbackAssignedToId == null) && 
+                        c.CallbackStatusId != null &&
+                        c.CallbackStatusId != CallbackStatuses.Ids.Completed && 
+                        c.CallbackStatusId != CallbackStatuses.Ids.Cancelled)
             .OrderByDescending(c => c.StartedAt)
             .Select(c => new PendingCallbackDto {
                 Id = c.Id,
@@ -211,6 +226,15 @@ public class CallsController : AuditableControllerBase
     public async Task<IActionResult> StartCallback(int id)
     {
         var result = await _callFactory.StartCallbackAsync(id, GetUserId());
+        if (!result.Success) return BadRequest(result.Error);
+        return Ok();
+    }
+
+    /// <summary>Cevapsiz geri aramayi geri al (InProgress → Todo, havuza birak)</summary>
+    [HttpPost("{id}/revert-callback")]
+    public async Task<IActionResult> RevertCallback(int id)
+    {
+        var result = await _callFactory.RevertCallbackAsync(id);
         if (!result.Success) return BadRequest(result.Error);
         return Ok();
     }

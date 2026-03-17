@@ -204,6 +204,7 @@ public class AppDbContext : DbContext
             e.Property(c => c.CalleeNumber).HasMaxLength(50).IsRequired();
             e.HasOne(c => c.Agent).WithMany(u => u.CallRecords).HasForeignKey(c => c.AgentId);
             e.HasOne(c => c.Queue).WithMany(q => q.CallRecords).HasForeignKey(c => c.QueueId);
+            e.HasOne(c => c.Customer).WithMany().HasForeignKey(c => c.CustomerId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(c => c.ConsentRecord).WithMany().HasForeignKey(c => c.ConsentRecordId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(c => c.PrivacyNotice).WithMany().HasForeignKey(c => c.PrivacyNoticeId).OnDelete(DeleteBehavior.SetNull);
 

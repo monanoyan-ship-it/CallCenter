@@ -299,7 +299,7 @@
         </ul>
         <div class="side-panel-body">
             <div style="display: @(sideTab == "tasks" ? "block" : "none")">
-                <TasksPanel OnCallRequested="HandleCallFromContact" />
+                <TasksPanel OnCallRequested="HandleCallFromContact" OnActiveCallbackChanged="@(id => _activeCallbackCallId = id)" />
             </div>
             <div style="display: @(sideTab == "contacts" ? "block" : "none")">
                 <ContactsPanel OnCallRequested="HandleCallFromContact" />
@@ -672,6 +672,7 @@
             isCallStarting = false;
             _callEndedLocally = false;
             _callEndProcessing = false;
+            _callAnswered = true;
             lines = (await SipService.GetLinesAsync()).ToList();
 
             // Gelen aramada phoneNumber bos olabilir — aktif hattan al
@@ -719,6 +720,8 @@
 
     private bool _callEndProcessing; // Cift tetiklenme korumasi
     private bool _callEndedLocally;  // EndCall/HandleCallEnded sonrasi UI'yi hemen sifirla
+    private int? _activeCallbackCallId; // Callback gorevi takibi (geri arama icin)
+    private bool _callAnswered; // Arama cevaplanip cevaplanmadigini takip eder
 
     // SipService.IsInCall yerine bunu kullan — EndCall/HandleCallEnded sonrasi hemen false doner
     private bool IsCallActive => !_callEndedLocally && (SipService.IsInCall || isCallStarting);
@@ -810,6 +813,9 @@
                         await CallSync.EndCallAsync(endCallUid.Value, endCallId, recordingPath);
                         DiagLog("HandleCallEnded: EndCallAsync TAMAMLANDI.");
 
+                        // Callback revert: cevapsiz arama sonrasi gorevi geri al
+                        await RevertCallbackIfUnansweredAsync();
+
                         await InvokeAsync(() =>
                         {
                             if (statusMessage == "Ses kaydi isleniyor...")
@@ -850,7 +856,7 @@
 
     private async Task HandleCallFailed(string error)
     {
-        await InvokeAsync(() =>
+        await InvokeAsync(async () =>
         {
             StopTimer();
             isCallStarting = false;
@@ -859,6 +865,9 @@
             callDuration = "00:00";
             Toast.ShowError($"Arama basarisiz: {error}");
             StateHasChanged();
+
+            // Callback revert: basarisiz arama sonrasi gorevi geri al
+            await RevertCallbackIfUnansweredAsync();
         });
     }
 
@@ -1034,6 +1043,9 @@
                     DiagLog("EndCall: endUid null — EndCallAsync CAGRILMADI!");
                 }
 
+                // Callback revert: cevapsiz arama sonrasi gorevi geri al
+                await RevertCallbackIfUnansweredAsync();
+
                 await InvokeAsync(() =>
                 {
                     statusMessage = wasRec ? "Kayit tamamlandi" : "Arama sonlandirildi";
@@ -1147,13 +1159,39 @@
         }
     }
 
+    // ─── Callback Revert ───
+
+    private async Task RevertCallbackIfUnansweredAsync()
+    {
+        if (_activeCallbackCallId.HasValue && !_callAnswered)
+        {
+            try
+            {
+                DiagLog($"Callback revert: callId={_activeCallbackCallId.Value}, cevapsiz arama");
+                await Http.PostAsync($"api/calls/{_activeCallbackCallId.Value}/revert-callback", null);
+            }
+            catch (Exception ex)
+            {
+                DiagLog($"Callback revert hatasi: {ex.Message}");
+            }
+        }
+        _activeCallbackCallId = null;
+        _callAnswered = false;
+    }
+
     // ─── Side panel: Rehberden arama ───
 
-    private void HandleCallFromContact(string number)
+    private async Task HandleCallFromContact(string number)
     {
         phoneNumber = number;
-        sideTab = "contacts"; // Numara ayarlandi, dialer'da gorunecek
-        StateHasChanged();
+        _callAnswered = false;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+
+        if (!string.IsNullOrEmpty(phoneNumber))
+        {
+            await StartCall();
+        }
     }
 
     // ─── Rehber Secici ───

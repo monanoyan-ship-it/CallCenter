@@ -1,5 +1,7 @@
 @inject HttpClient Http
 @inject CallCenter.Windows.Services.ToastService Toast
+@inject CallCenter.Windows.Services.WindowsHubService HubService
+@implements IDisposable
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 
@@ -104,11 +106,19 @@
                 <div class="side-panel-list">
                     @foreach (var item in callbackItems)
                     {
+                        var isInProgress = item.CallbackStatusId == CallbackStatuses.Ids.InProgress;
                         <div class="task-item mb-1">
-                            <div class="d-flex align-items-start gap-2 p-2 rounded border bg-white shadow-sm border-start border-4 border-danger">
+                            <div class="d-flex align-items-start gap-2 p-2 rounded border bg-white shadow-sm border-start border-4 @(isInProgress ? "border-primary" : "border-danger")">
                                 <div class="flex-grow-1 min-w-0">
                                     <div class="d-flex align-items-center gap-1 mb-1">
-                                        <span class="badge bg-warning text-dark" style="font-size:0.6rem;">CEVAPSIZ</span>
+                                        @if (isInProgress)
+                                        {
+                                            <span class="badge bg-primary" style="font-size:0.6rem;">ARANIYOR</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark" style="font-size:0.6rem;">BEKLIYOR</span>
+                                        }
                                         <span class="text-muted" style="font-size:0.6rem;">@item.StartedAt.ToLocalTime().ToString("dd.MM HH:mm")</span>
                                     </div>
                                     <div class="fw-bold small text-truncate">@item.CallerNumber</div>
@@ -120,9 +130,16 @@
                                     }
                                 </div>
                                 <div class="flex-shrink-0">
-                                    <button class="btn btn-sm btn-primary py-1 px-2" title="Geri Ara" @onclick="() => StartCallback(item)">
-                                        <i class="bi bi-telephone-outbound-fill"></i>
-                                    </button>
+                                    @if (!isInProgress)
+                                    {
+                                        <button class="btn btn-sm btn-primary py-1 px-2" title="Geri Ara" @onclick="() => StartCallback(item)">
+                                            <i class="bi bi-telephone-outbound-fill"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="spinner-border spinner-border-sm text-primary" title="Arama devam ediyor"></span>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -159,6 +176,7 @@
 
 @code {
     [Parameter] public EventCallback<string> OnCallRequested { get; set; }
+    [Parameter] public EventCallback<int?> OnActiveCallbackChanged { get; set; }
 
     private string activeTab = "campaign";
     private List<MyCallListItemDto> items = new();
@@ -172,7 +190,33 @@
 
     protected override async Task OnInitializedAsync()
     {
+        HubService.OnNewCallbackTask += HandleNewCallbackTask;
+        HubService.OnCallbackTaskStarted += HandleCallbackUpdate;
+        HubService.OnCallbackTaskCompleted += HandleCallbackUpdate;
+        HubService.OnCallbackTaskReverted += HandleCallbackUpdate;
         await LoadList();
+    }
+
+    private void HandleNewCallbackTask(object data)
+    {
+        InvokeAsync(async () =>
+        {
+            await LoadList();
+            Toast.ShowInfo("Yeni bir geri arama gorevi atandi.");
+        });
+    }
+
+    private void HandleCallbackUpdate(object data)
+    {
+        InvokeAsync(async () => await LoadList());
+    }
+
+    public void Dispose()
+    {
+        HubService.OnNewCallbackTask -= HandleNewCallbackTask;
+        HubService.OnCallbackTaskStarted -= HandleCallbackUpdate;
+        HubService.OnCallbackTaskCompleted -= HandleCallbackUpdate;
+        HubService.OnCallbackTaskReverted -= HandleCallbackUpdate;
     }
 
     private async Task SetTab(string tab)
@@ -211,26 +255,30 @@
 
     private async Task StartCallback(PendingCallbackDto item)
     {
+        // 1. Callback ID'sini Dialer'a bildir (arama sonucu takibi icin)
+        await OnActiveCallbackChanged.InvokeAsync(item.Id);
+
+        // 2. Gorevi uzerine al (InProgress)
         try
         {
-            // API'ye baslatma sinyali gonder
             var response = await Http.PostAsync($"api/calls/{item.Id}/start-callback", null);
-            if (response.IsSuccessStatusCode)
-            {
-                // Aramayi baslat
-                await OnCallRequested.InvokeAsync(item.CallerNumber);
-                await LoadList(); // Durumu guncelle
-            }
-            else
+            if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Toast.ShowError($"Baslatilamadi: {error}");
+                Toast.ShowError($"Gorev alinamadi: {error}");
+                await OnActiveCallbackChanged.InvokeAsync(null);
+                return;
             }
         }
         catch (Exception ex)
         {
-            Toast.ShowError($"Hata: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"StartCallback error: {ex.Message}");
+            await OnActiveCallbackChanged.InvokeAsync(null);
+            return;
         }
+
+        // 3. Aramayi baslat
+        await OnCallRequested.InvokeAsync(item.CallerNumber);
     }
 
     private void MarkStatus(MyCallListItemDto item, int statusId)
