@@ -119,6 +119,19 @@ public class CloudStorageController : AuditableControllerBase
         return Ok(new OneDriveAuthUrlDto { AuthUrl = url, State = state });
     }
 
+    /// <summary>Microsoft OAuth2 redirect callback — popup'a kodu iletir</summary>
+    [HttpGet("onedrive/callback")]
+    [AllowAnonymous]
+    public ContentResult OneDriveCallback([FromQuery] string? code, [FromQuery] string? error, [FromQuery] string? error_description)
+    {
+        var html = "<!DOCTYPE html><html><body><script>" +
+            (string.IsNullOrEmpty(code)
+                ? $"window.opener && window.opener.postMessage({{type:'onedrive-auth-error',error:'{error_description ?? error ?? "Bilinmeyen hata"}'}}, '*'); window.close();"
+                : $"window.opener && window.opener.postMessage({{type:'onedrive-auth-success',code:'{code}'}}, '*'); window.close();") +
+            "</script><p>Yonlendiriliyorsunuz...</p></body></html>";
+        return Content(html, "text/html");
+    }
+
     /// <summary>Authorization code ile token exchange + drive kesfet</summary>
     [HttpPost("onedrive/exchange-code")]
     public async Task<ActionResult<OneDriveAuthResultDto>> ExchangeOneDriveCode([FromBody] OneDriveExchangeCodeDto dto)
