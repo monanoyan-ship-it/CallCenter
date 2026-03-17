@@ -93,11 +93,27 @@ public class CallFactory : ICallFactory
             return new();
 
         var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+        // 2 saatten eski "aktif" kayitlar orphan — gostermeyecegiz
+        var cutoff = DateTime.UtcNow.AddHours(-2);
+
+        // Orphan kayitlari temizle (2 saatten eski aktif aramalar → Failed)
+        var orphans = await _calls.GetAllQueryable()
+            .Where(c => activeStatusIds.Contains(c.StatusId) && c.StartedAt < cutoff)
+            .ToListAsync();
+        if (orphans.Count > 0)
+        {
+            foreach (var o in orphans)
+            {
+                o.StatusId = CallStatuses.Ids.Failed;
+                o.EndedAt = o.StartedAt.AddMinutes(1); // tahmini
+            }
+            await _uow.SaveChangesAsync();
+        }
 
         return await _calls.GetAllQueryable()
             .Where(c => c.Agent != null && c.Agent.CustomerPersonnel != null
                 && c.Agent.CustomerPersonnel.CustomerId == personnel.CustomerId)
-            .Where(c => activeStatusIds.Contains(c.StatusId))
+            .Where(c => activeStatusIds.Contains(c.StatusId) && c.StartedAt >= cutoff)
             .OrderByDescending(c => c.StartedAt)
             .Select(c => new CallNotification
             {
