@@ -1,0 +1,43 @@
+@page "/oauth/callback"
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="text-center py-5">
+    @if (!string.IsNullOrEmpty(errorMsg))
+    {
+        <i class="bi bi-x-circle-fill text-danger fs-1"></i>
+        <p class="text-danger mt-2">@errorMsg</p>
+        <p class="text-muted small">Bu pencere kapanmadiysa manuel kapatabilirsiniz.</p>
+    }
+    else
+    {
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Yonlendiriliyorsunuz...</p>
+    }
+</div>
+
+@code {
+    private string? errorMsg;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var provider = query["provider"] ?? "";
+        var code = query["code"];
+        var error = query["error"];
+
+        if (!string.IsNullOrEmpty(code))
+        {
+            await JS.InvokeVoidAsync("postOAuthResult", provider, code, null);
+        }
+        else
+        {
+            errorMsg = error ?? "Bilinmeyen hata";
+            await JS.InvokeVoidAsync("postOAuthResult", provider, null, errorMsg);
+            StateHasChanged();
+        }
+    }
+}

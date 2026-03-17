@@ -18,6 +18,8 @@ public static class InfrastructureRegistration
         services.AddSingleton<ITranslationService, TranslationService>();
         services.AddSingleton<CloudStorageFactory>();
         services.AddSingleton<OneDriveOAuthService>();
+        services.AddSingleton<GoogleDriveOAuthService>();
+        services.AddSingleton<YandexOAuthService>();
 
         // Scoped utilities
         services.AddScoped<TokenService>();

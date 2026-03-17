@@ -14,11 +14,23 @@ public class CloudStorageController : AuditableControllerBase
 {
     private readonly ICloudStorageFactory _cloudStorageFactory;
     private readonly OneDriveOAuthService _oneDriveOAuth;
+    private readonly GoogleDriveOAuthService _googleDriveOAuth;
+    private readonly YandexOAuthService _yandexOAuth;
+    private readonly string _webAppBaseUrl;
 
-    public CloudStorageController(IAuditFactory auditFactory, ICloudStorageFactory cloudStorageFactory, OneDriveOAuthService oneDriveOAuth) : base(auditFactory)
+    public CloudStorageController(
+        IAuditFactory auditFactory,
+        ICloudStorageFactory cloudStorageFactory,
+        OneDriveOAuthService oneDriveOAuth,
+        GoogleDriveOAuthService googleDriveOAuth,
+        YandexOAuthService yandexOAuth,
+        IConfiguration config) : base(auditFactory)
     {
         _cloudStorageFactory = cloudStorageFactory;
         _oneDriveOAuth = oneDriveOAuth;
+        _googleDriveOAuth = googleDriveOAuth;
+        _yandexOAuth = yandexOAuth;
+        _webAppBaseUrl = config["WebApp:BaseUrl"] ?? "https://cc.corplynk.com";
     }
 
     [HttpGet("providers")]
@@ -119,17 +131,14 @@ public class CloudStorageController : AuditableControllerBase
         return Ok(new OneDriveAuthUrlDto { AuthUrl = url, State = state });
     }
 
-    /// <summary>Microsoft OAuth2 redirect callback — popup'a kodu iletir</summary>
+    /// <summary>Microsoft OAuth2 redirect callback — Blazor callback sayfasina yonlendirir</summary>
     [HttpGet("onedrive/callback")]
     [AllowAnonymous]
-    public ContentResult OneDriveCallback([FromQuery] string? code, [FromQuery] string? error, [FromQuery] string? error_description)
+    public IActionResult OneDriveCallback([FromQuery] string? code, [FromQuery] string? error, [FromQuery] string? error_description)
     {
-        var html = "<!DOCTYPE html><html><body><script>" +
-            (string.IsNullOrEmpty(code)
-                ? $"window.opener && window.opener.postMessage({{type:'onedrive-auth-error',error:'{error_description ?? error ?? "Bilinmeyen hata"}'}}, '*'); window.close();"
-                : $"window.opener && window.opener.postMessage({{type:'onedrive-auth-success',code:'{code}'}}, '*'); window.close();") +
-            "</script><p>Yonlendiriliyorsunuz...</p></body></html>";
-        return Content(html, "text/html");
+        if (!string.IsNullOrEmpty(code))
+            return Redirect($"{_webAppBaseUrl}/oauth/callback?provider=onedrive&code={Uri.EscapeDataString(code)}");
+        return Redirect($"{_webAppBaseUrl}/oauth/callback?provider=onedrive&error={Uri.EscapeDataString(error_description ?? error ?? "Bilinmeyen hata")}");
     }
 
     /// <summary>Authorization code ile token exchange + drive kesfet</summary>
@@ -159,6 +168,105 @@ public class CloudStorageController : AuditableControllerBase
                 TotalSpace = d.TotalSpace,
                 UsedSpace = d.UsedSpace
             }).ToList()
+        });
+    }
+
+    // ─── Google Drive OAuth2 Flow ───
+
+    /// <summary>Google Drive OAuth2 baslatma URL'i doner</summary>
+    [HttpGet("googledrive/auth-url")]
+    public ActionResult<GoogleDriveAuthUrlDto> GetGoogleDriveAuthUrl()
+    {
+        if (!_googleDriveOAuth.IsConfigured)
+            return BadRequest(new { error = "Google Drive OAuth yapilandirilmamis. appsettings'te GoogleDrive:ClientId/ClientSecret ayarlayin." });
+
+        var state = Guid.NewGuid().ToString("N");
+        var url = _googleDriveOAuth.GetAuthorizationUrl(state);
+        return Ok(new GoogleDriveAuthUrlDto { AuthUrl = url, State = state });
+    }
+
+    /// <summary>Google OAuth2 redirect callback — Blazor callback sayfasina yonlendirir</summary>
+    [HttpGet("googledrive/callback")]
+    [AllowAnonymous]
+    public IActionResult GoogleDriveCallback([FromQuery] string? code, [FromQuery] string? error)
+    {
+        if (!string.IsNullOrEmpty(code))
+            return Redirect($"{_webAppBaseUrl}/oauth/callback?provider=googledrive&code={Uri.EscapeDataString(code)}");
+        return Redirect($"{_webAppBaseUrl}/oauth/callback?provider=googledrive&error={Uri.EscapeDataString(error ?? "Bilinmeyen hata")}");
+    }
+
+    /// <summary>Google Drive authorization code ile token exchange + kullanici bilgisi</summary>
+    [HttpPost("googledrive/exchange-code")]
+    public async Task<ActionResult<GoogleDriveAuthResultDto>> ExchangeGoogleDriveCode([FromBody] GoogleDriveExchangeCodeDto dto)
+    {
+        if (!_googleDriveOAuth.IsConfigured)
+            return BadRequest(new GoogleDriveAuthResultDto { Success = false, Error = "Google Drive OAuth yapilandirilmamis" });
+
+        var token = await _googleDriveOAuth.ExchangeCodeAsync(dto.Code);
+        if (token == null)
+            return Ok(new GoogleDriveAuthResultDto { Success = false, Error = "Google'dan token alinamadi. Kod gecersiz veya suresi dolmus olabilir." });
+
+        var userInfo = await _googleDriveOAuth.GetUserInfoAsync(token.AccessToken);
+        var folders = await _googleDriveOAuth.GetRootFoldersAsync(token.AccessToken);
+
+        return Ok(new GoogleDriveAuthResultDto
+        {
+            Success = true,
+            RefreshToken = token.RefreshToken,
+            Email = userInfo?.Email,
+            DisplayName = userInfo?.DisplayName,
+            Folders = folders.Select(f => new GoogleDriveFolderDto
+            {
+                Id = f.Id,
+                Name = f.Name
+            }).ToList()
+        });
+    }
+
+    // ─── Yandex OAuth2 Flow ───
+
+    /// <summary>Yandex OAuth2 baslatma URL'i doner</summary>
+    [HttpGet("yandex/auth-url")]
+    public ActionResult<YandexAuthUrlDto> GetYandexAuthUrl()
+    {
+        if (!_yandexOAuth.IsConfigured)
+            return BadRequest(new { error = "Yandex OAuth yapilandirilmamis. appsettings'te Yandex:ClientId/ClientSecret ayarlayin." });
+
+        var state = Guid.NewGuid().ToString("N");
+        var url = _yandexOAuth.GetAuthorizationUrl(state);
+        return Ok(new YandexAuthUrlDto { AuthUrl = url, State = state });
+    }
+
+    /// <summary>Yandex OAuth2 redirect callback — Blazor callback sayfasina yonlendirir</summary>
+    [HttpGet("yandex/callback")]
+    [AllowAnonymous]
+    public IActionResult YandexCallback([FromQuery] string? code, [FromQuery] string? error)
+    {
+        if (!string.IsNullOrEmpty(code))
+            return Redirect($"{_webAppBaseUrl}/oauth/callback?provider=yandex&code={Uri.EscapeDataString(code)}");
+        return Redirect($"{_webAppBaseUrl}/oauth/callback?provider=yandex&error={Uri.EscapeDataString(error ?? "Bilinmeyen hata")}");
+    }
+
+    /// <summary>Yandex authorization code ile token exchange + kullanici bilgisi</summary>
+    [HttpPost("yandex/exchange-code")]
+    public async Task<ActionResult<YandexAuthResultDto>> ExchangeYandexCode([FromBody] YandexExchangeCodeDto dto)
+    {
+        if (!_yandexOAuth.IsConfigured)
+            return BadRequest(new YandexAuthResultDto { Success = false, Error = "Yandex OAuth yapilandirilmamis" });
+
+        var token = await _yandexOAuth.ExchangeCodeAsync(dto.Code);
+        if (token == null)
+            return Ok(new YandexAuthResultDto { Success = false, Error = "Yandex'ten token alinamadi. Kod gecersiz veya suresi dolmus olabilir." });
+
+        var userInfo = await _yandexOAuth.GetUserInfoAsync(token.AccessToken);
+
+        return Ok(new YandexAuthResultDto
+        {
+            Success = true,
+            OAuthToken = token.AccessToken,
+            Login = userInfo?.Login,
+            TotalSpace = userInfo?.TotalSpace ?? 0,
+            UsedSpace = userInfo?.UsedSpace ?? 0
         });
     }
 

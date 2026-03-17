@@ -180,6 +180,69 @@ public class OneDriveAuthResultDto
     public List<OneDriveDriveDto> Drives { get; set; } = new();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE DRIVE OAUTH DTO'LAR
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Google Drive OAuth baslama yaniti</summary>
+public class GoogleDriveAuthUrlDto
+{
+    public string AuthUrl { get; set; } = "";
+    public string State { get; set; } = "";
+}
+
+/// <summary>Google Drive OAuth code exchange istegi</summary>
+public class GoogleDriveExchangeCodeDto
+{
+    public string Code { get; set; } = "";
+}
+
+/// <summary>Google Drive klasor bilgisi</summary>
+public class GoogleDriveFolderDto
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+}
+
+/// <summary>Google Drive OAuth tamamlanma yaniti</summary>
+public class GoogleDriveAuthResultDto
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+    public string? RefreshToken { get; set; }
+    public string? Email { get; set; }
+    public string? DisplayName { get; set; }
+    public List<GoogleDriveFolderDto> Folders { get; set; } = new();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// YANDEX DISK OAUTH DTO'LAR
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>Yandex OAuth baslama yaniti</summary>
+public class YandexAuthUrlDto
+{
+    public string AuthUrl { get; set; } = "";
+    public string State { get; set; } = "";
+}
+
+/// <summary>Yandex OAuth code exchange istegi</summary>
+public class YandexExchangeCodeDto
+{
+    public string Code { get; set; } = "";
+}
+
+/// <summary>Yandex OAuth tamamlanma yaniti</summary>
+public class YandexAuthResultDto
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+    public string? OAuthToken { get; set; }
+    public string? Login { get; set; }
+    public long TotalSpace { get; set; }
+    public long UsedSpace { get; set; }
+}
+
 /// <summary>Desteklenen provider listesi icin</summary>
 public class StorageProviderInfoDto
 {
