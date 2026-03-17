@@ -17,6 +17,7 @@ public static class InfrastructureRegistration
         services.AddSingleton<AesEncryptionService>();
         services.AddSingleton<ITranslationService, TranslationService>();
         services.AddSingleton<CloudStorageFactory>();
+        services.AddSingleton<OneDriveOAuthService>();
 
         // Scoped utilities
         services.AddScoped<TokenService>();

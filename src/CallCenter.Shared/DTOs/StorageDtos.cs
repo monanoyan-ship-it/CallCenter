@@ -61,6 +61,8 @@ public class StorageConfigCreateDto
     public string? GoogleFolderId { get; set; }
 
     // ─── OneDrive (Microsoft 365) ───
+    /// <summary>"ClientCredential" (gelismis) veya "Delegated" (kolay/orta)</summary>
+    public string? MsAuthMode { get; set; }
     public string? MsClientId { get; set; }
     public string? MsClientSecret { get; set; }
     public string? MsRefreshToken { get; set; }
@@ -96,6 +98,7 @@ public class StorageConfigUpdateDto
     public string? GoogleFolderId { get; set; }
 
     // OneDrive
+    public string? MsAuthMode { get; set; }
     public string? MsClientId { get; set; }
     public string? MsClientSecret { get; set; }
     public string? MsRefreshToken { get; set; }
@@ -140,6 +143,41 @@ public class CloudConfigForClientDto
     public int ProviderTypeId { get; set; }
     public string? BasePath { get; set; }
     public Dictionary<string, string> Credentials { get; set; } = new();
+}
+
+/// <summary>OneDrive OAuth baslama yaniti</summary>
+public class OneDriveAuthUrlDto
+{
+    public string AuthUrl { get; set; } = "";
+    public string State { get; set; } = "";
+}
+
+/// <summary>OneDrive OAuth code exchange istegi</summary>
+public class OneDriveExchangeCodeDto
+{
+    public string Code { get; set; } = "";
+    public string? TenantId { get; set; }
+}
+
+/// <summary>OneDrive drive bilgisi</summary>
+public class OneDriveDriveDto
+{
+    public string DriveId { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string DriveType { get; set; } = "";
+    public string? OwnerName { get; set; }
+    public long TotalSpace { get; set; }
+    public long UsedSpace { get; set; }
+}
+
+/// <summary>OneDrive OAuth tamamlanma yaniti (token + drive listesi)</summary>
+public class OneDriveAuthResultDto
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+    public string? RefreshToken { get; set; }
+    public string? TenantId { get; set; }
+    public List<OneDriveDriveDto> Drives { get; set; } = new();
 }
 
 /// <summary>Desteklenen provider listesi icin</summary>

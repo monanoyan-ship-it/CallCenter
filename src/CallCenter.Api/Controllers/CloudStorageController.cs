@@ -1,4 +1,5 @@
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services.CloudStorage;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -12,10 +13,12 @@ namespace CallCenter.Api.Controllers;
 public class CloudStorageController : AuditableControllerBase
 {
     private readonly ICloudStorageFactory _cloudStorageFactory;
+    private readonly OneDriveOAuthService _oneDriveOAuth;
 
-    public CloudStorageController(IAuditFactory auditFactory, ICloudStorageFactory cloudStorageFactory) : base(auditFactory)
+    public CloudStorageController(IAuditFactory auditFactory, ICloudStorageFactory cloudStorageFactory, OneDriveOAuthService oneDriveOAuth) : base(auditFactory)
     {
         _cloudStorageFactory = cloudStorageFactory;
+        _oneDriveOAuth = oneDriveOAuth;
     }
 
     [HttpGet("providers")]
@@ -100,6 +103,50 @@ public class CloudStorageController : AuditableControllerBase
         await AuditCrudAsync("Delete", "CloudStorage", id.ToString(), $"Storage config {id} silindi");
 
         return NoContent();
+    }
+
+    // ─── OneDrive OAuth2 Flow ───
+
+    /// <summary>OneDrive OAuth2 baslatma URL'i doner</summary>
+    [HttpGet("onedrive/auth-url")]
+    public ActionResult<OneDriveAuthUrlDto> GetOneDriveAuthUrl([FromQuery] string? tenantId)
+    {
+        if (!_oneDriveOAuth.IsConfigured)
+            return BadRequest(new { error = "OneDrive OAuth yapilandirilmamis. appsettings'te OneDrive:ClientId/ClientSecret ayarlayin." });
+
+        var state = Guid.NewGuid().ToString("N");
+        var url = _oneDriveOAuth.GetAuthorizationUrl(tenantId, state);
+        return Ok(new OneDriveAuthUrlDto { AuthUrl = url, State = state });
+    }
+
+    /// <summary>Authorization code ile token exchange + drive kesfet</summary>
+    [HttpPost("onedrive/exchange-code")]
+    public async Task<ActionResult<OneDriveAuthResultDto>> ExchangeOneDriveCode([FromBody] OneDriveExchangeCodeDto dto)
+    {
+        if (!_oneDriveOAuth.IsConfigured)
+            return BadRequest(new OneDriveAuthResultDto { Success = false, Error = "OneDrive OAuth yapilandirilmamis" });
+
+        var token = await _oneDriveOAuth.ExchangeCodeAsync(dto.Code, dto.TenantId);
+        if (token == null)
+            return Ok(new OneDriveAuthResultDto { Success = false, Error = "Microsoft'tan token alinamadi. Kod gecersiz veya suresi dolmus olabilir." });
+
+        var drives = await _oneDriveOAuth.GetDrivesAsync(token.AccessToken);
+
+        return Ok(new OneDriveAuthResultDto
+        {
+            Success = true,
+            RefreshToken = token.RefreshToken,
+            TenantId = dto.TenantId,
+            Drives = drives.Select(d => new OneDriveDriveDto
+            {
+                DriveId = d.DriveId,
+                Name = d.Name,
+                DriveType = d.DriveType,
+                OwnerName = d.OwnerName,
+                TotalSpace = d.TotalSpace,
+                UsedSpace = d.UsedSpace
+            }).ToList()
+        });
     }
 
     [HttpPost("configs/{id:int}/test")]

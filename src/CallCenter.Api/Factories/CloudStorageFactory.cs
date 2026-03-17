@@ -477,6 +477,7 @@ public class CloudStorageFactory : ICloudStorageFactory
             },
             StorageProviders.Ids.OneDrive => new
             {
+                AuthMode = dto.MsAuthMode ?? "ClientCredential",
                 ClientId = dto.MsClientId ?? "",
                 ClientSecret = dto.MsClientSecret ?? "",
                 RefreshToken = dto.MsRefreshToken ?? "",
@@ -511,6 +512,7 @@ public class CloudStorageFactory : ICloudStorageFactory
         if (dto.GoogleClientSecret != null) existing["ClientSecret"] = dto.GoogleClientSecret;
         if (dto.GoogleRefreshToken != null) existing["RefreshToken"] = dto.GoogleRefreshToken;
         if (dto.GoogleFolderId != null) existing["FolderId"] = dto.GoogleFolderId;
+        if (dto.MsAuthMode != null) existing["AuthMode"] = dto.MsAuthMode;
         if (dto.MsClientId != null) existing["ClientId"] = dto.MsClientId;
         if (dto.MsClientSecret != null) existing["ClientSecret"] = dto.MsClientSecret;
         if (dto.MsRefreshToken != null) existing["RefreshToken"] = dto.MsRefreshToken;
@@ -538,7 +540,8 @@ public class CloudStorageFactory : ICloudStorageFactory
         StorageProviders.Ids.AmazonS3 => new() { "AccessKey", "SecretKey", "BucketName", "Region" },
         StorageProviders.Ids.MinIO => new() { "Endpoint", "AccessKey", "SecretKey", "BucketName" },
         StorageProviders.Ids.GoogleDrive => new() { "GoogleClientId", "GoogleClientSecret", "GoogleRefreshToken" },
-        StorageProviders.Ids.OneDrive => new() { "MsClientId", "MsClientSecret", "MsTenantId", "MsDriveId" },
+        // Delegated modda ClientId/Secret appsettings'ten gelir, sadece RefreshToken+DriveId lazim
+        StorageProviders.Ids.OneDrive => new() { "MsDriveId" },
         StorageProviders.Ids.YandexDisk => new() { "YandexOAuthToken" },
         _ => new()
     };

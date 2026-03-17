@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "CustomerUser")]
 @inject HttpClient Http
 @inject PermissionService PermService
+@inject IJSRuntime JS
 @using CallCenter.Shared.DTOs
 @using CallCenter.Shared.Enums
 
@@ -234,26 +235,126 @@ else
                     {
                         <hr />
                         <h6 class="text-muted">Microsoft OneDrive Ayarlari</h6>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Client ID <span class="text-danger">*</span></label>
-                                <input class="form-control" @bind="formDto.MsClientId" />
+                        <ul class="nav nav-pills nav-fill mb-3">
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(oneDriveTab == "easy" ? "active" : "")" @onclick='() => SetOneDriveTab("easy")'>
+                                    <i class="bi bi-lightning-fill me-1"></i>Kolay
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(oneDriveTab == "medium" ? "active" : "")" @onclick='() => SetOneDriveTab("medium")'>
+                                    <i class="bi bi-sliders me-1"></i>Orta
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(oneDriveTab == "advanced" ? "active" : "")" @onclick='() => SetOneDriveTab("advanced")'>
+                                    <i class="bi bi-gear-fill me-1"></i>Gelismis
+                                </button>
+                            </li>
+                        </ul>
+
+                        @if (oneDriveTab == "easy")
+                        {
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Microsoft hesabinizla giris yapin, izin verin — hepsi bu kadar.
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Client Secret <span class="text-danger">*</span></label>
-                                <input class="form-control" type="password" @bind="formDto.MsClientSecret" />
+                            @if (oneDriveConnected)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Microsoft hesabi basariyla baglandi!
+                                </div>
+                                @if (oneDriveDrives.Count > 0)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Drive Secin</label>
+                                        <select class="form-select" @bind="formDto.MsDriveId">
+                                            @foreach (var d in oneDriveDrives)
+                                            {
+                                                <option value="@d.DriveId">@d.Name (@d.DriveType) @(d.OwnerName != null ? $"- {d.OwnerName}" : "")</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-primary" @onclick="StartOneDriveOAuth" disabled="@oneDriveAuthLoading">
+                                    @if (oneDriveAuthLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-microsoft me-1"></i>Microsoft ile Baglan
+                                </button>
+                            }
+                        }
+                        else if (oneDriveTab == "medium")
+                        {
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Azure Tenant ID'nizi girin, ardindan Microsoft ile baglanti kurun.
                             </div>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
-                                <input class="form-control" @bind="formDto.MsTenantId" />
+                            <div class="mb-3">
+                                <label class="form-label">Tenant ID</label>
+                                <input class="form-control" @bind="formDto.MsTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                                <div class="form-text">Azure Portal > Azure Active Directory > Overview > Tenant ID</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Drive ID <span class="text-danger">*</span></label>
-                                <input class="form-control" @bind="formDto.MsDriveId" />
+                            @if (oneDriveConnected)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Baglanti kuruldu!
+                                </div>
+                                @if (oneDriveDrives.Count > 0)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Drive Secin</label>
+                                        <select class="form-select" @bind="formDto.MsDriveId">
+                                            @foreach (var d in oneDriveDrives)
+                                            {
+                                                <option value="@d.DriveId">@d.Name (@d.DriveType)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-primary mt-2" @onclick="StartOneDriveOAuth" disabled="@oneDriveAuthLoading">
+                                    @if (oneDriveAuthLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-microsoft me-1"></i>Baglan
+                                </button>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-secondary small">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Kendi Azure AD uygulamaniz uzerinden baglanti kurun. Tam kontrol sizde.
                             </div>
-                        </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.MsClientId" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Client Secret <span class="text-danger">*</span></label>
+                                    <input class="form-control" type="password" @bind="formDto.MsClientSecret" />
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.MsTenantId" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Drive ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.MsDriveId" />
+                                </div>
+                            </div>
+                        }
                     }
                     else if (formDto.ProviderTypeId == StorageProviders.Ids.YandexDisk)
                     {
@@ -313,6 +414,12 @@ else
     private StorageConfigCreateDto formDto = new();
     private string? formError;
     private bool isSaving;
+
+    // OneDrive OAuth
+    private string oneDriveTab = "easy";
+    private bool oneDriveConnected;
+    private bool oneDriveAuthLoading;
+    private List<OneDriveDriveDto> oneDriveDrives = new();
 
     // Toast
     private string? toast;
@@ -384,6 +491,68 @@ else
     private void SelectProvider(int providerId)
     {
         formDto.ProviderTypeId = providerId;
+    }
+
+    private void SetOneDriveTab(string tab)
+    {
+        oneDriveTab = tab;
+        formDto.MsAuthMode = tab == "advanced" ? "ClientCredential" : "Delegated";
+    }
+
+    private async Task StartOneDriveOAuth()
+    {
+        oneDriveAuthLoading = true;
+        try
+        {
+            var tenantId = formDto.MsTenantId;
+            var url = $"api/CloudStorage/onedrive/auth-url" + (!string.IsNullOrEmpty(tenantId) ? $"?tenantId={tenantId}" : "");
+            var result = await Http.GetFromJsonAsync<OneDriveAuthUrlDto>(url);
+            if (result != null)
+            {
+                // Popup pencere ac
+                await JS.InvokeVoidAsync("openOneDriveAuth", result.AuthUrl, DotNetObjectReference.Create(this));
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"OAuth baslatma hatasi: {ex.Message}";
+        }
+        finally
+        {
+            oneDriveAuthLoading = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnOneDriveAuthCallback(string code)
+    {
+        try
+        {
+            var dto = new OneDriveExchangeCodeDto { Code = code, TenantId = formDto.MsTenantId };
+            var result = await Http.PostAsJsonAsync("api/CloudStorage/onedrive/exchange-code", dto);
+            var authResult = await result.Content.ReadFromJsonAsync<OneDriveAuthResultDto>();
+
+            if (authResult?.Success == true)
+            {
+                formDto.MsAuthMode = "Delegated";
+                formDto.MsRefreshToken = authResult.RefreshToken;
+                if (!string.IsNullOrEmpty(authResult.TenantId))
+                    formDto.MsTenantId = authResult.TenantId;
+                oneDriveDrives = authResult.Drives;
+                if (oneDriveDrives.Count > 0)
+                    formDto.MsDriveId = oneDriveDrives[0].DriveId;
+                oneDriveConnected = true;
+            }
+            else
+            {
+                formError = authResult?.Error ?? "Baglanti kurulamadi";
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"Token exchange hatasi: {ex.Message}";
+        }
+        StateHasChanged();
     }
 
     private async Task SaveConfigAsync()

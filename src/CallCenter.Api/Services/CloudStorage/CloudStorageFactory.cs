@@ -12,10 +12,12 @@ namespace CallCenter.Api.Services.CloudStorage;
 public class CloudStorageFactory
 {
     private readonly AesEncryptionService _encryption;
+    private readonly IConfiguration _config;
 
-    public CloudStorageFactory(AesEncryptionService encryption)
+    public CloudStorageFactory(AesEncryptionService encryption, IConfiguration config)
     {
         _encryption = encryption;
+        _config = config;
     }
 
     /// <summary>
@@ -55,10 +57,18 @@ public class CloudStorageFactory
         return new GoogleDriveStorageProvider(creds);
     }
 
-    private static OneDriveStorageProvider CreateOneDriveProvider(string json)
+    private OneDriveStorageProvider CreateOneDriveProvider(string json)
     {
         var creds = JsonSerializer.Deserialize<OneDriveCredentials>(json, JsonOpts)
             ?? throw new InvalidOperationException("OneDrive credential bilgileri okunamadi");
+
+        // Delegated modda ClientId/Secret appsettings'ten gelir
+        if (creds.IsDelegated && string.IsNullOrEmpty(creds.ClientId))
+        {
+            creds.ClientId = _config["OneDrive:ClientId"] ?? "";
+            creds.ClientSecret = _config["OneDrive:ClientSecret"] ?? "";
+        }
+
         return new OneDriveStorageProvider(creds);
     }
 

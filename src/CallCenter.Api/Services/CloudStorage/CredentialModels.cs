@@ -24,12 +24,17 @@ public class GoogleDriveCredentials
 /// <summary>Microsoft OneDrive (Graph API) credential bilgileri</summary>
 public class OneDriveCredentials
 {
+    /// <summary>"ClientCredential" (gelismis) veya "Delegated" (kolay/orta)</summary>
+    public string AuthMode { get; set; } = "ClientCredential";
+
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
     public string? TenantId { get; set; }       // Azure AD tenant (varsayilan: common)
     public string? DriveId { get; set; }        // OneDrive drive ID'si
     public string? FolderId { get; set; }       // Klasor ID'si
+
+    public bool IsDelegated => AuthMode == "Delegated";
 }
 
 /// <summary>Yandex Disk credential bilgileri</summary>

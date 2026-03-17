@@ -24,16 +24,25 @@ public class OneDriveStorageProvider : ICloudStorageProvider
         _driveId = credentials.DriveId;
         _folderId = credentials.FolderId;
 
-        var tenantId = credentials.TenantId ?? "common";
-
-        // Client credential + refresh token ile token alma
-        // AuthorizationCodeCredential yerine ClientSecretCredential + OnBehalfOf daha stabil
-        var credential = new ClientSecretCredential(
-            tenantId,
-            credentials.ClientId,
-            credentials.ClientSecret);
-
-        _graphClient = new GraphServiceClient(credential);
+        if (credentials.IsDelegated && !string.IsNullOrEmpty(credentials.RefreshToken))
+        {
+            // Delegated auth: Refresh token ile access token alinir (kolay/orta mod)
+            var tokenCredential = new OneDriveRefreshTokenCredential(
+                credentials.ClientId,
+                credentials.ClientSecret,
+                credentials.RefreshToken,
+                credentials.TenantId);
+            _graphClient = new GraphServiceClient(tokenCredential);
+        }
+        else
+        {
+            // Application auth: Client credential (gelismis mod)
+            var credential = new ClientSecretCredential(
+                credentials.TenantId ?? "common",
+                credentials.ClientId,
+                credentials.ClientSecret);
+            _graphClient = new GraphServiceClient(credential);
+        }
     }
 
     public async Task<StorageUploadResult> UploadAsync(Stream fileStream, string fileName,
@@ -190,8 +199,18 @@ public class OneDriveStorageProvider : ICloudStorageProvider
         {
             return _graphClient.Drives[_driveId];
         }
-        // Varsayilan: current user'in drive'i (app credential ile calismaz — DriveId zorunlu)
         throw new InvalidOperationException("OneDrive DriveId yapilandirilmamis. Admin panelde DriveId girin.");
+    }
+
+    /// <summary>Delegated modda /me/drive ile otomatik drive kesfeder.</summary>
+    public async Task<string?> DiscoverDriveIdAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var drive = await _graphClient.Me.Drive.GetAsync(cancellationToken: ct);
+            return drive?.Id;
+        }
+        catch { return null; }
     }
 
     private string BuildPath(string fileName, string? folder)
