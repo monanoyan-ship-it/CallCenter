@@ -199,7 +199,9 @@
       "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)",
       "WebFetch(domain:cc-api.corplynk.com)",
       "WebFetch(domain:callcenter-api-267313553839.europe-west1.run.app)",
-      "Bash(gcloud builds:*)"
+      "Bash(gcloud builds:*)",
+      "WebFetch(domain:www.lomasoft.com.tr)",
+      "WebFetch(domain:www.limasoft.com.tr)"
     ]
   }
 }
