@@ -49,6 +49,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Ad Soyad</th>
+                            <th>Kullanici Adi</th>
                             <th>E-posta</th>
                             <th>Unvan</th>
                             <th>Rol</th>
@@ -61,6 +62,7 @@
                         {
                             <tr class="@(!item.IsActive ? "table-secondary" : "")">
                                 <td class="fw-medium">@item.FullName</td>
+                                <td class="text-muted small">@item.UserName</td>
                                 <td class="text-muted small">@item.Email</td>
                                 <td class="small">@item.Title</td>
                                 <td>

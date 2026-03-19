@@ -1,24 +1,29 @@
-# Build stage
+# ============================================================
+# CallCenter Landing — Multi-Stage Docker Build
+# ============================================================
+
+# --- Stage 1: Build ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY CallCenter.Landing.csproj .
-RUN dotnet restore
+COPY src/CallCenter.Landing/CallCenter.Landing.csproj CallCenter.Landing/
+RUN dotnet restore CallCenter.Landing/CallCenter.Landing.csproj
 
-COPY . .
-RUN dotnet publish -c Release -o /app/publish
+COPY src/CallCenter.Landing/ CallCenter.Landing/
+RUN dotnet publish CallCenter.Landing/CallCenter.Landing.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
 
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# --- Stage 2: Runtime ---
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+
+USER app
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
-
 EXPOSE 8080
-
-USER app
+ENV ASPNETCORE_URLS=http://+:8080
 
 ENTRYPOINT ["dotnet", "CallCenter.Landing.dll"]

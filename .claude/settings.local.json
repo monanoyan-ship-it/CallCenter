@@ -196,7 +196,10 @@
       "Bash(timeout /t 30 /nobreak)",
       "Bash(iscc installer/corplynk-setup.iss)",
       "Bash(powershell.exe -Command \"Get-ChildItem -Path 'C:\\\\' -Recurse -Filter 'ISCC.exe' -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName\" 2>/dev/null)",
-      "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)"
+      "Bash(\"/c/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)",
+      "WebFetch(domain:cc-api.corplynk.com)",
+      "WebFetch(domain:callcenter-api-267313553839.europe-west1.run.app)",
+      "Bash(gcloud builds:*)"
     ]
   }
 }
