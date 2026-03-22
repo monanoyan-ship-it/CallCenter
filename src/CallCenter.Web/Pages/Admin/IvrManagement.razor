@@ -111,6 +111,12 @@ else
     private bool showGreetingForm;
     private string greetingFormName = "";
     private string greetingFormType = "business_hours";
+    private bool greetingFormIsTts;
+    private string greetingFormTtsText = "";
+    private string greetingFormTtsLang = "tr-TR";
+    private string greetingFormTtsVoice = "";
+    private List<TtsVoiceItem>? ttsVoices;
+    private bool isTtsGenerating;
 
     private bool showMenuForm;
     private string menuFormName = "";
@@ -203,12 +209,12 @@ else
         {
             <div class="card mb-3">
                 <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-5">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
                             <label class="form-label">Ad</label>
                             <input class="form-control form-control-sm" @bind="greetingFormName" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Tip</label>
                             <select class="form-select form-select-sm" @bind="greetingFormType">
                                 <option value="business_hours">Mesai Saati</option>
@@ -217,10 +223,60 @@ else
                                 <option value="custom">Ozel</option>
                             </select>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end gap-1">
-                            <button class="btn btn-sm btn-success" @onclick="CreateGreeting">Kaydet</button>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => showGreetingForm = false">Iptal</button>
+                        <div class="col-md-3">
+                            <label class="form-label">Kaynak</label>
+                            <select class="form-select form-select-sm" value="@(greetingFormIsTts ? "tts" : "file")"
+                                    @onchange="OnGreetingSourceChanged">
+                                <option value="file">Dosya Yukle</option>
+                                <option value="tts">Metinden Olustur (TTS)</option>
+                            </select>
                         </div>
+                    </div>
+
+                    @if (greetingFormIsTts)
+                    {
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Dil</label>
+                                <select class="form-select form-select-sm" value="@greetingFormTtsLang" @onchange="OnTtsLanguageChanged">
+                                    <option value="tr-TR">Turkce</option>
+                                    <option value="en-US">English (US)</option>
+                                    <option value="en-GB">English (UK)</option>
+                                    <option value="de-DE">Deutsch</option>
+                                    <option value="fr-FR">Francais</option>
+                                    <option value="ar-XA">Arabic</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Ses</label>
+                                <select class="form-select form-select-sm" @bind="greetingFormTtsVoice">
+                                    <option value="">Varsayilan</option>
+                                    @if (ttsVoices != null)
+                                    {
+                                        @foreach (var v in ttsVoices)
+                                        {
+                                            <option value="@v.Name">@v.DisplayName</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Metin</label>
+                            <textarea class="form-control form-control-sm" rows="3" @bind="greetingFormTtsText"
+                                      placeholder="Ornek: CorpLynk cagri merkezine hosgeldiniz. Satis icin 1, destek icin 2 tusuna basiniz."></textarea>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-success" @onclick="CreateGreeting" disabled="@isTtsGenerating">
+                            @if (isTtsGenerating)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            Kaydet
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="ResetGreetingForm">Iptal</button>
                     </div>
                 </div>
             </div>
@@ -228,16 +284,32 @@ else
 
         <div class="table-responsive">
             <table class="table table-hover table-sm">
-                <thead><tr><th>Ad</th><th>Tip</th><th>Ses Dosyasi</th><th>Durum</th><th></th></tr></thead>
+                <thead><tr><th>Ad</th><th>Tip</th><th>Kaynak</th><th>Sure</th><th>Durum</th><th></th></tr></thead>
                 <tbody>
                     @if (greetings?.Count > 0)
                     {
                         @foreach (var g in greetings)
                         {
                             <tr>
-                                <td class="fw-medium">@g.Name</td>
+                                <td class="fw-medium">
+                                    @g.Name
+                                    @if (g.IsTextToSpeech && !string.IsNullOrEmpty(g.TextContent))
+                                    {
+                                        <div class="text-muted small text-truncate" style="max-width:250px;" title="@g.TextContent">@g.TextContent</div>
+                                    }
+                                </td>
                                 <td><span class="badge bg-info-subtle text-info">@g.Type</span></td>
-                                <td>@(g.AudioFileName ?? "-")</td>
+                                <td>
+                                    @if (g.IsTextToSpeech)
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-soundwave me-1"></i>TTS @(g.TtsLanguage ?? "")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">@(g.AudioFileName ?? "-")</span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@(g.DurationSeconds.HasValue ? $"{g.DurationSeconds}s" : "-")</td>
                                 <td>
                                     <span class="badge @(g.IsActive ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")">
                                         @(g.IsActive ? "Aktif" : "Pasif")
@@ -253,7 +325,7 @@ else
                     }
                     else
                     {
-                        <tr><td colspan="5" class="text-muted text-center">Henuz karsilama mesaji yok</td></tr>
+                        <tr><td colspan="6" class="text-muted text-center">Henuz karsilama mesaji yok</td></tr>
                     }
                 </tbody>
             </table>
@@ -263,24 +335,55 @@ else
     private async Task CreateGreeting()
     {
         if (string.IsNullOrWhiteSpace(greetingFormName)) return;
+        if (greetingFormIsTts && string.IsNullOrWhiteSpace(greetingFormTtsText))
+        {
+            Toast.ShowWarning("TTS icin metin giriniz.");
+            return;
+        }
+
+        isTtsGenerating = true;
+        StateHasChanged();
 
         try
         {
             var content = new MultipartFormDataContent();
             content.Add(new StringContent(greetingFormName), "Name");
             content.Add(new StringContent(greetingFormType), "Type");
+            content.Add(new StringContent(greetingFormIsTts.ToString()), "IsTextToSpeech");
+
+            if (greetingFormIsTts)
+            {
+                content.Add(new StringContent(greetingFormTtsText), "TextContent");
+                content.Add(new StringContent(greetingFormTtsLang), "TtsLanguage");
+                if (!string.IsNullOrEmpty(greetingFormTtsVoice))
+                    content.Add(new StringContent(greetingFormTtsVoice), "TtsVoice");
+            }
 
             var resp = await Http.PostAsync($"api/ivr/greetings?customerId={selectedCustomerId}", content);
             if (resp.IsSuccessStatusCode)
             {
-                Toast.ShowSuccess("Karsilama mesaji olusturuldu.");
-                showGreetingForm = false;
-                greetingFormName = "";
+                Toast.ShowSuccess(greetingFormIsTts ? "TTS mesaji olusturuldu." : "Karsilama mesaji olusturuldu.");
+                ResetGreetingForm();
                 greetings = await Http.GetFromJsonAsync<List<GreetingMessageDto>>($"api/ivr/greetings?customerId={selectedCustomerId}");
             }
-            else Toast.ShowError("Kayit basarisiz.");
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                Toast.ShowError($"Kayit basarisiz: {error}");
+            }
         }
         catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+        finally { isTtsGenerating = false; }
+    }
+
+    private void ResetGreetingForm()
+    {
+        showGreetingForm = false;
+        greetingFormName = "";
+        greetingFormIsTts = false;
+        greetingFormTtsText = "";
+        greetingFormTtsLang = "tr-TR";
+        greetingFormTtsVoice = "";
     }
 
     private void ConfirmDeleteGreeting(GreetingMessageDto g)
@@ -788,5 +891,38 @@ else
             await pendingDeleteAction();
             pendingDeleteAction = null;
         }
+    }
+
+    // ═══════════════════════════════════════════
+    // TTS HELPERS
+    // ═══════════════════════════════════════════
+
+    private class TtsVoiceItem
+    {
+        public string Name { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Gender { get; set; } = "";
+    }
+
+    private async Task OnGreetingSourceChanged(ChangeEventArgs e)
+    {
+        greetingFormIsTts = e.Value?.ToString() == "tts";
+        if (greetingFormIsTts) await LoadTtsVoices();
+    }
+
+    private async Task OnTtsLanguageChanged(ChangeEventArgs e)
+    {
+        greetingFormTtsLang = e.Value?.ToString() ?? "tr-TR";
+        greetingFormTtsVoice = "";
+        await LoadTtsVoices();
+    }
+
+    private async Task LoadTtsVoices()
+    {
+        try
+        {
+            ttsVoices = await Http.GetFromJsonAsync<List<TtsVoiceItem>>($"api/ivr/tts/voices?language={greetingFormTtsLang}");
+        }
+        catch { ttsVoices = null; }
     }
 }

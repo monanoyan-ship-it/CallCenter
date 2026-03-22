@@ -57,7 +57,8 @@ public class IvrController : AuditableControllerBase
         string? audioFilePath = null;
         string? audioFileName = null;
 
-        if (audioFile != null && audioFile.Length > 0)
+        // Dosya yukleme (TTS degilse)
+        if (!request.IsTextToSpeech && audioFile != null && audioFile.Length > 0)
         {
             var dir = EnsureAudioDirectory();
             audioFileName = audioFile.FileName;
@@ -68,10 +69,14 @@ public class IvrController : AuditableControllerBase
             await audioFile.CopyToAsync(stream);
         }
 
-        var result = await _ivrFactory.CreateGreetingAsync(cid, request, audioFilePath!, audioFileName);
+        // TTS ise metin zorunlu
+        if (request.IsTextToSpeech && string.IsNullOrWhiteSpace(request.TextContent))
+            return BadRequest(new { message = "TTS icin metin gereklidir." });
+
+        var result = await _ivrFactory.CreateGreetingAsync(cid, request, audioFilePath, audioFileName);
 
         await AuditCrudAsync("Create", "GreetingMessage", result.Id.ToString(),
-            $"Karsilama mesaji olusturuldu: {result.Name}", customerId: cid);
+            $"Karsilama mesaji olusturuldu: {result.Name} (TTS={request.IsTextToSpeech})", customerId: cid);
 
         return CreatedAtAction(nameof(GetGreeting), new { id = result.Id }, result);
     }
@@ -245,5 +250,19 @@ public class IvrController : AuditableControllerBase
         [FromQuery] int? customerId = null, [FromQuery] int? queueId = null)
     {
         return Ok(await _ivrFactory.GetIncomingCallConfigAsync(ResolveCustomerId(customerId), queueId));
+    }
+
+    // TTS
+
+    [HttpGet("tts/languages")]
+    public async Task<IActionResult> GetTtsLanguages()
+    {
+        return Ok(await _ivrFactory.GetTtsLanguagesAsync());
+    }
+
+    [HttpGet("tts/voices")]
+    public async Task<IActionResult> GetTtsVoices([FromQuery] string language = "tr-TR")
+    {
+        return Ok(await _ivrFactory.GetTtsVoicesAsync(language));
     }
 }

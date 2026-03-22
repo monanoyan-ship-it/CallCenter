@@ -3,6 +3,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -11,13 +12,17 @@ public class IvrFactory : IIvrFactory
 {
     private readonly IIvrEntityService _ivrEs;
     private readonly IUnitOfWork _uow;
+    private readonly ITtsService _ttsService;
+    private readonly IWebHostEnvironment _env;
 
     private static readonly string[] DayNames = { "Pazar", "Pazartesi", "Sali", "Carsamba", "Persembe", "Cuma", "Cumartesi" };
 
-    public IvrFactory(IIvrEntityService ivrEs, IUnitOfWork uow)
+    public IvrFactory(IIvrEntityService ivrEs, IUnitOfWork uow, ITtsService ttsService, IWebHostEnvironment env)
     {
         _ivrEs = ivrEs;
         _uow = uow;
+        _ttsService = ttsService;
+        _env = env;
     }
 
     // GREETING MESSAGES
@@ -31,6 +36,8 @@ public class IvrFactory : IIvrFactory
             {
                 Id = g.Id, Uid = g.Uid, Name = g.Name, Type = g.Type,
                 AudioFileName = g.AudioFileName, DurationSeconds = g.DurationSeconds,
+                IsTextToSpeech = g.IsTextToSpeech, TextContent = g.TextContent,
+                TtsLanguage = g.TtsLanguage, TtsVoice = g.TtsVoice,
                 IsActive = g.IsActive, CreatedAt = g.CreatedAt
             })
             .ToListAsync();
@@ -44,20 +51,41 @@ public class IvrFactory : IIvrFactory
             {
                 Id = g.Id, Uid = g.Uid, Name = g.Name, Type = g.Type,
                 AudioFileName = g.AudioFileName, DurationSeconds = g.DurationSeconds,
+                IsTextToSpeech = g.IsTextToSpeech, TextContent = g.TextContent,
+                TtsLanguage = g.TtsLanguage, TtsVoice = g.TtsVoice,
                 IsActive = g.IsActive, CreatedAt = g.CreatedAt
             })
             .FirstOrDefaultAsync();
     }
 
-    public async Task<GreetingMessageDto> CreateGreetingAsync(int customerId, CreateGreetingMessageRequest request, string audioFilePath, string? audioFileName)
+    public async Task<GreetingMessageDto> CreateGreetingAsync(int customerId, CreateGreetingMessageRequest request, string? audioFilePath, string? audioFileName)
     {
+        int? duration = null;
+
+        // TTS: metin varsa sese cevir
+        if (request.IsTextToSpeech && !string.IsNullOrWhiteSpace(request.TextContent))
+        {
+            var dir = Path.Combine(_env.ContentRootPath, "Data", "Audio");
+            Directory.CreateDirectory(dir);
+            var ttsFile = $"tts_{customerId}_{Guid.NewGuid():N}.wav";
+            audioFilePath = Path.Combine(dir, ttsFile);
+            audioFileName = ttsFile;
+            duration = await _ttsService.SynthesizeToFileAsync(
+                request.TextContent, request.TtsLanguage ?? "tr-TR", request.TtsVoice, audioFilePath);
+        }
+
         var entity = new GreetingMessage
         {
             CustomerId = customerId,
             Name = request.Name,
             Type = request.Type,
-            AudioFilePath = audioFilePath,
-            AudioFileName = audioFileName
+            AudioFilePath = audioFilePath ?? string.Empty,
+            AudioFileName = audioFileName,
+            DurationSeconds = duration,
+            IsTextToSpeech = request.IsTextToSpeech,
+            TextContent = request.TextContent,
+            TtsLanguage = request.TtsLanguage,
+            TtsVoice = request.TtsVoice
         };
         _ivrEs.AddGreeting(entity);
         await _uow.SaveChangesAsync();
@@ -65,7 +93,10 @@ public class IvrFactory : IIvrFactory
         return new GreetingMessageDto
         {
             Id = entity.Id, Uid = entity.Uid, Name = entity.Name, Type = entity.Type,
-            AudioFileName = entity.AudioFileName, IsActive = true, CreatedAt = entity.CreatedAt
+            AudioFileName = entity.AudioFileName, DurationSeconds = entity.DurationSeconds,
+            IsTextToSpeech = entity.IsTextToSpeech, TextContent = entity.TextContent,
+            TtsLanguage = entity.TtsLanguage, TtsVoice = entity.TtsVoice,
+            IsActive = true, CreatedAt = entity.CreatedAt
         };
     }
 
@@ -77,6 +108,27 @@ public class IvrFactory : IIvrFactory
         if (request.Name != null) entity.Name = request.Name;
         if (request.Type != null) entity.Type = request.Type;
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
+        if (request.TtsLanguage != null) entity.TtsLanguage = request.TtsLanguage;
+        if (request.TtsVoice != null) entity.TtsVoice = request.TtsVoice;
+        if (request.TextContent != null) entity.TextContent = request.TextContent;
+
+        // TTS yeniden uret
+        if (request.RegenerateTts && entity.IsTextToSpeech && !string.IsNullOrWhiteSpace(entity.TextContent))
+        {
+            var dir = Path.Combine(_env.ContentRootPath, "Data", "Audio");
+            Directory.CreateDirectory(dir);
+            var ttsFile = $"tts_{customerId}_{Guid.NewGuid():N}.wav";
+            var newPath = Path.Combine(dir, ttsFile);
+            entity.DurationSeconds = await _ttsService.SynthesizeToFileAsync(
+                entity.TextContent, entity.TtsLanguage ?? "tr-TR", entity.TtsVoice, newPath);
+
+            // Eski dosyayi sil
+            if (!string.IsNullOrEmpty(entity.AudioFilePath) && File.Exists(entity.AudioFilePath))
+                File.Delete(entity.AudioFilePath);
+
+            entity.AudioFilePath = newPath;
+            entity.AudioFileName = ttsFile;
+        }
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -374,6 +426,11 @@ public class IvrFactory : IIvrFactory
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    // TTS
+
+    public Task<List<TtsLanguageInfo>> GetTtsLanguagesAsync() => _ttsService.GetSupportedLanguagesAsync();
+    public Task<List<TtsVoiceInfo>> GetTtsVoicesAsync(string language) => _ttsService.GetVoicesAsync(language);
 
     // INCOMING CALL PIPELINE CONFIG
 

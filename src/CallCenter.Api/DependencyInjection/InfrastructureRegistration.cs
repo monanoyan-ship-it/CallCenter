@@ -3,6 +3,7 @@ using CallCenter.Api.Services;
 using CallCenter.Api.Services.CloudStorage;
 using CallCenter.Api.Services.Connectors;
 using CallCenter.Shared.Services;
+using Google.Cloud.TextToSpeech.V1;
 
 namespace CallCenter.Api.DependencyInjection;
 
@@ -35,6 +36,21 @@ public static class InfrastructureRegistration
         services.AddScoped<HubSpotConnectorAdapter>();
         services.AddScoped<ZendeskConnectorAdapter>();
         services.AddScoped<ConnectorFactory>();
+
+        // Text-to-Speech
+        var ttsCredPath = configuration["Tts:GoogleCredentialsPath"];
+        if (!string.IsNullOrEmpty(ttsCredPath) && File.Exists(ttsCredPath))
+        {
+            var credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(ttsCredPath);
+            var ttsClient = new TextToSpeechClientBuilder { GoogleCredential = credential }.Build();
+            services.AddSingleton(ttsClient);
+        }
+        else
+        {
+            // GCP ortaminda Application Default Credentials kullanilir
+            services.AddSingleton(TextToSpeechClient.Create());
+        }
+        services.AddSingleton<ITtsService, GoogleTtsService>();
 
         // Background Services
         services.AddHostedService<AuditPartitionMaintenanceService>();

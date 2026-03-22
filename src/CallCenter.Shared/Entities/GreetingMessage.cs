@@ -25,6 +25,18 @@ public class GreetingMessage
     /// <summary>Dosya suresi (saniye)</summary>
     public int? DurationSeconds { get; set; }
 
+    /// <summary>TTS ile mi olusturuldu</summary>
+    public bool IsTextToSpeech { get; set; }
+
+    /// <summary>TTS kaynak metni</summary>
+    public string? TextContent { get; set; }
+
+    /// <summary>TTS dil kodu (tr-TR, en-US vb.)</summary>
+    public string? TtsLanguage { get; set; }
+
+    /// <summary>TTS ses adi (provider'a ozel, orn: tr-TR-Standard-A)</summary>
+    public string? TtsVoice { get; set; }
+
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

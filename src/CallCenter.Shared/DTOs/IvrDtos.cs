@@ -12,6 +12,10 @@ public class GreetingMessageDto
     public string Type { get; set; } = string.Empty;
     public string? AudioFileName { get; set; }
     public int? DurationSeconds { get; set; }
+    public bool IsTextToSpeech { get; set; }
+    public string? TextContent { get; set; }
+    public string? TtsLanguage { get; set; }
+    public string? TtsVoice { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -20,6 +24,10 @@ public class CreateGreetingMessageRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = "business_hours";
+    public bool IsTextToSpeech { get; set; }
+    public string? TextContent { get; set; }
+    public string? TtsLanguage { get; set; }
+    public string? TtsVoice { get; set; }
 }
 
 public class UpdateGreetingMessageRequest
@@ -27,6 +35,10 @@ public class UpdateGreetingMessageRequest
     public string? Name { get; set; }
     public string? Type { get; set; }
     public bool? IsActive { get; set; }
+    public string? TextContent { get; set; }
+    public string? TtsLanguage { get; set; }
+    public string? TtsVoice { get; set; }
+    public bool RegenerateTts { get; set; }
 }
 
 // ═══════════════════════════════════════════
