@@ -8,7 +8,7 @@
 ;   - Publish ciktisi: publish/win-x64/ klasorunde
 
 #define MyAppName "CorpLynk"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.3.0"
 #define MyAppPublisher "CorpLynk"
 #define MyAppURL "https://corplynk.com"
 #define MyAppExeName "CorpLynk.exe"
@@ -49,7 +49,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startup"; Description: "Windows baslangicindan otomatik baslat"; GroupDescription: "Ek secenekler:"
 
 [Files]
-; Framework-dependent publish ciktisi (.NET 10 runtime gerekli)
+; Self-contained publish ciktisi (.NET runtime gomulu)
 Source: "..\publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -65,16 +65,6 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-function IsDotNet10Installed(): Boolean;
-var
-  ResultCode: Integer;
-begin
-  // dotnet --list-runtimes ile .NET 10 Desktop Runtime kontrol
-  Result := False;
-  if Exec('cmd.exe', '/c dotnet --list-runtimes 2>nul | findstr /C:"Microsoft.WindowsDesktop.App 10."', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-    Result := (ResultCode = 0);
-end;
-
 // Eski versiyon yukluyse otomatik kaldirma
 function InitializeSetup(): Boolean;
 var
@@ -94,20 +84,5 @@ begin
     end
     else
       Result := False;
-  end;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  ResultCode: Integer;
-begin
-  if CurStep = ssPostInstall then
-  begin
-    if not IsDotNet10Installed() then
-    begin
-      MsgBox('CorpLynk calistirilabilmesi icin .NET 10 Desktop Runtime gereklidir.' + #13#10 +
-             'Simdi indirme sayfasi acilacak. Lutfen "Windows x64" surumunu yukleyin.', mbInformation, MB_OK);
-      ShellExec('open', 'https://dotnet.microsoft.com/download/dotnet/10.0', '', '', SW_SHOW, ewNoWait, ResultCode);
-    end;
   end;
 end;
