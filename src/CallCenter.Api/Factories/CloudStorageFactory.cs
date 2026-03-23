@@ -18,19 +18,22 @@ public class CloudStorageFactory : ICloudStorageFactory
     private readonly Services.CloudStorage.CloudStorageFactory _providerFactory;
     private readonly AesEncryptionService _encryption;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<CloudStorageFactory> _logger;
 
     public CloudStorageFactory(
         IStorageConfigEntityService configEs,
         ICallRecordEntityService callEs,
         Services.CloudStorage.CloudStorageFactory providerFactory,
         AesEncryptionService encryption,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        ILogger<CloudStorageFactory> logger)
     {
         _configEs = configEs;
         _callEs = callEs;
         _providerFactory = providerFactory;
         _encryption = encryption;
         _uow = uow;
+        _logger = logger;
     }
 
     // FILE OPERATIONS
@@ -58,17 +61,32 @@ public class CloudStorageFactory : ICloudStorageFactory
     public async Task<Stream?> DownloadRecordingAsync(int customerId, string fileId, CancellationToken ct = default)
     {
         var config = await GetDefaultConfigAsync(customerId);
-        if (config == null) return null;
+        if (config == null)
+        {
+            _logger.LogWarning("[CloudStorage] Download: Config bulunamadi CustomerId={CustomerId}", customerId);
+            return null;
+        }
 
-        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk) return null;
+        _logger.LogInformation("[CloudStorage] Download: CustomerId={CustomerId}, Provider={Provider}, FileId={FileId}",
+            customerId, config.ProviderTypeId, fileId);
+
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk)
+        {
+            _logger.LogWarning("[CloudStorage] Download: LocalDisk desteklenmiyor");
+            return null;
+        }
 
         var provider = _providerFactory.Create(config);
         try
         {
-            return await provider.DownloadAsync(fileId, ct);
+            var stream = await provider.DownloadAsync(fileId, ct);
+            _logger.LogInformation("[CloudStorage] Download basarili: FileId={FileId}", fileId);
+            return stream;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "[CloudStorage] Download HATA: CustomerId={CustomerId}, FileId={FileId}, Provider={Provider}",
+                customerId, fileId, config.ProviderTypeId);
             if (provider is IDisposable d) d.Dispose();
             return null;
         }

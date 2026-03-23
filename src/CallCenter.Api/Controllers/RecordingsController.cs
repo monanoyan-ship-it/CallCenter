@@ -25,6 +25,7 @@ public class RecordingsController : AuditableControllerBase
     private readonly ICustomerEntityService _customerEs;
     private readonly AesEncryptionService _aes;
     private readonly Infrastructure.IUnitOfWork _uow;
+    private readonly ILogger<RecordingsController> _logger;
 
     public RecordingsController(
         IAuditFactory auditFactory,
@@ -33,7 +34,8 @@ public class RecordingsController : AuditableControllerBase
         ISettingEntityService settingEs,
         ICustomerEntityService customerEs,
         AesEncryptionService aes,
-        Infrastructure.IUnitOfWork uow) : base(auditFactory)
+        Infrastructure.IUnitOfWork uow,
+        ILogger<RecordingsController> logger) : base(auditFactory)
     {
         _cloudStorageFactory = cloudStorageFactory;
         _playbackFactory = playbackFactory;
@@ -41,6 +43,7 @@ public class RecordingsController : AuditableControllerBase
         _customerEs = customerEs;
         _aes = aes;
         _uow = uow;
+        _logger = logger;
     }
 
     /// <summary>
@@ -235,14 +238,26 @@ public class RecordingsController : AuditableControllerBase
     public async Task<IActionResult> StreamRecording(Guid callUid)
     {
         var user = BuildCurrentUser();
-        if (user == null) return Unauthorized();
+        if (user == null)
+        {
+            _logger.LogWarning("[StreamRecording] BuildCurrentUser null dondu - Unauthorized");
+            return Unauthorized();
+        }
+
+        _logger.LogInformation("[StreamRecording] Istek: CallUid={CallUid}, User={UserName}, Role={Role}, IsCustomerAdmin={IsCA}",
+            callUid, user.UserName, User.FindFirstValue(System.Security.Claims.ClaimTypes.Role), user.IsCustomerAdmin);
 
         var result = await _playbackFactory.StreamRecordingAsync(callUid, user, ClientIp, ClientUserAgent);
-        if (result == null) return Forbid();
+        if (result == null)
+        {
+            _logger.LogWarning("[StreamRecording] PlaybackFactory null dondu -> 403 Forbid: CallUid={CallUid}", callUid);
+            return Forbid();
+        }
 
         var (audioStream, contentType) = result.Value;
         if (audioStream == null) return NotFound("Ses kaydi bulunamadi");
 
+        _logger.LogInformation("[StreamRecording] Stream basarili: CallUid={CallUid}, ContentType={CT}", callUid, contentType);
         return File(audioStream, contentType, enableRangeProcessing: true);
     }
 

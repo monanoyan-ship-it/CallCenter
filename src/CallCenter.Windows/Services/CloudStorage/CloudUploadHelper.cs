@@ -204,10 +204,26 @@ public static class CloudUploadHelper
         if (string.IsNullOrEmpty(driveId))
             return (false, null, "OneDrive DriveId yapilandirilmamis");
 
-        var credential = new ClientSecretCredential(
-            tenantId,
-            cred.GetValueOrDefault("ClientId", ""),
-            cred.GetValueOrDefault("ClientSecret", ""));
+        // AuthMode'a gore credential sec: Delegated (RefreshToken) veya ClientCredential
+        var authMode = cred.GetValueOrDefault("AuthMode", "ClientCredential");
+        var refreshToken = cred.GetValueOrDefault("RefreshToken", "");
+
+        Azure.Core.TokenCredential credential;
+        if (authMode == "Delegated" && !string.IsNullOrEmpty(refreshToken))
+        {
+            credential = new OneDriveRefreshTokenCredential(
+                cred.GetValueOrDefault("ClientId", ""),
+                cred.GetValueOrDefault("ClientSecret", ""),
+                refreshToken,
+                tenantId);
+        }
+        else
+        {
+            credential = new ClientSecretCredential(
+                tenantId,
+                cred.GetValueOrDefault("ClientId", ""),
+                cred.GetValueOrDefault("ClientSecret", ""));
+        }
 
         var graphClient = new GraphServiceClient(credential);
 

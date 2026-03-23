@@ -202,7 +202,12 @@
       "Bash(gcloud builds:*)",
       "WebFetch(domain:www.lomasoft.com.tr)",
       "WebFetch(domain:www.limasoft.com.tr)",
-      "Bash(\"C:/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\installer\\\\corplynk-setup.iss\" 2>&1)"
+      "Bash(\"C:/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" \"C:\\\\Users\\\\Ahmet\\\\source\\\\repos\\\\monanoyan-ship-it\\\\callcenter\\\\installer\\\\corplynk-setup.iss\" 2>&1)",
+      "Bash(cp src/CallCenter.Landing/Dockerfile Dockerfile)",
+      "Bash(nslookup:*)",
+      "Bash(gcloud logging:*)",
+      "Bash(\"C:/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)",
+      "Bash(find C:UsersAhmetsourcereposmonanoyan-ship-itcallcenter -type f \\\\\\(-name *.html -o -name *.razor -o -name *.json -o -name *.config -o -name *.xml -o -name *.md -o -name *.ts -o -name *.js \\\\\\))"
     ]
   }
 }

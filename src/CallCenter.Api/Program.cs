@@ -142,6 +142,7 @@ app.UseAuthentication();
 app.UseApiKeyAuth(); // Dis sistem API key dogrulamasi (/api/integration/v1/*)
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 app.MapControllers();
 app.MapHub<CallCenterHub>("/hubs/callcenter");
 

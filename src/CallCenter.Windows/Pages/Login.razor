@@ -2,6 +2,8 @@
 @layout LoginLayout
 @inject WindowsAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
 
 <PageTitle>Giris - CorpLynk</PageTitle>
 
@@ -13,6 +15,24 @@
         <h4 class="mb-1">CorpLynk</h4>
         <p class="text-muted small mb-0">Windows Uygulamasi</p>
     </div>
+
+    @if (!serverReachable && serverChecked)
+    {
+        <div class="alert alert-warning py-2 mb-3" role="alert">
+            <i class="bi bi-wifi-off me-2"></i>
+            <span class="small">Sunucuya baglanılamıyor. Internet baglantınızı kontrol edin.</span>
+            <button class="btn btn-sm btn-outline-warning ms-2" @onclick="CheckServerAsync" disabled="@isCheckingServer">
+                @if (isCheckingServer)
+                {
+                    <span class="spinner-border spinner-border-sm"></span>
+                }
+                else
+                {
+                    <i class="bi bi-arrow-clockwise"></i>
+                }
+            </button>
+        </div>
+    }
 
     <EditForm Model="@model" OnValidSubmit="HandleLogin" FormName="LoginForm">
         <DataAnnotationsValidator />
@@ -27,7 +47,7 @@
 
         <div class="form-floating mb-3">
             <InputText id="username" class="form-control" @bind-Value="model.UserName"
-                       placeholder="Kullanici adi" disabled="@isLoading" />
+                       placeholder="Kullanici adi" disabled="@(isLoading || !serverReachable)" />
             <label for="username">
                 <i class="bi bi-person me-1"></i>Kullanici Adi
             </label>
@@ -36,14 +56,14 @@
 
         <div class="form-floating mb-3">
             <InputText id="password" type="password" class="form-control" @bind-Value="model.Password"
-                       placeholder="Sifre" disabled="@isLoading" />
+                       placeholder="Sifre" disabled="@(isLoading || !serverReachable)" />
             <label for="password">
                 <i class="bi bi-lock me-1"></i>Sifre
             </label>
             <ValidationMessage For="@(() => model.Password)" />
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 py-2" disabled="@isLoading">
+        <button type="submit" class="btn btn-primary w-100 py-2" disabled="@(isLoading || !serverReachable)">
             @if (isLoading)
             {
                 <span class="spinner-border spinner-border-sm me-2" role="status"></span>
@@ -66,6 +86,34 @@
     private LoginModel model = new();
     private string? errorMessage;
     private bool isLoading;
+    private bool serverReachable = true;
+    private bool serverChecked;
+    private bool isCheckingServer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckServerAsync();
+    }
+
+    private async Task CheckServerAsync()
+    {
+        isCheckingServer = true;
+        try
+        {
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var response = await Http.GetAsync("health", cts.Token);
+            serverReachable = response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            serverReachable = false;
+        }
+        finally
+        {
+            serverChecked = true;
+            isCheckingServer = false;
+        }
+    }
 
     private async Task HandleLogin()
     {
