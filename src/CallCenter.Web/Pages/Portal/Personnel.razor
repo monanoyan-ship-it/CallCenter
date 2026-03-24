@@ -84,12 +84,23 @@
                                     {
                                         <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
                                     }
+                                    @if (item.IsLocked)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger ms-1">Kilitli</span>
+                                    }
                                 </td>
                                 <td>
                                     <button class="btn btn-outline-primary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(item)">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    @if (item.IsLocked)
+                                    {
+                                        <button class="btn btn-outline-warning btn-sm me-1" title="Kilidi Kaldir"
+                                                @onclick="() => UnlockPersonnel(item)">
+                                            <i class="bi bi-unlock"></i>
+                                        </button>
+                                    }
                                     <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
                                             @onclick="() => ConfirmDeactivate(item)">
                                         <i class="bi bi-trash"></i>
@@ -172,6 +183,25 @@
             if (response.IsSuccessStatusCode)
             {
                 Toast.ShowSuccess("Personel deaktive edildi.");
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<ErrorMsg>();
+                Toast.ShowError(error?.Message ?? "Islem basarisiz.");
+            }
+        }
+        catch (Exception ex) { Toast.ShowError($"Hata: {ex.Message}"); }
+    }
+
+    private async Task UnlockPersonnel(PortalPersonnelListDto item)
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync(BuildUrl($"api/portal/personnel/{item.Id}/unlock"), new { });
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Hesap kilidi kaldirildi.");
                 await LoadData();
             }
             else

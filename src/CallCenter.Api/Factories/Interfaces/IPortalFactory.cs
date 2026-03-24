@@ -11,6 +11,7 @@ public interface IPortalFactory
     Task<(bool Success, string? Error)> UpdatePersonnelAsync(int customerId, int id, PortalPersonnelUpdateDto dto, bool isSystemAdmin = false);
     Task<(bool Success, string? Error)> DeactivatePersonnelAsync(int customerId, int id);
     Task<(bool Success, string? Error)> ReactivatePersonnelAsync(int customerId, int id);
+    Task<(bool Success, string? Error)> UnlockPersonnelAsync(int customerId, int id);
     Task<List<PortalModuleDto>> GetModulesAsync(int customerId);
     Task<List<PortalSipAccountDto>> GetSipAccountsAsync(int customerId);
     Task<(bool Success, string? Error)> UpdateSipAccountAsync(int customerId, int id, PortalSipUpdateDto dto);

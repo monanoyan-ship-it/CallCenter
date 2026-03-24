@@ -92,12 +92,23 @@
                                     {
                                         <span class="badge bg-secondary-subtle text-secondary">Pasif</span>
                                     }
+                                    @if (p.IsLocked)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger ms-1">Kilitli</span>
+                                    }
                                 </td>
                                 <td>
                                     <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle"
                                             @onclick="() => OpenEditForm(p)">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    @if (p.IsLocked)
+                                    {
+                                        <button class="btn btn-outline-warning btn-sm me-1" title="Kilidi Kaldir"
+                                                @onclick="() => UnlockPersonnel(p)">
+                                            <i class="bi bi-unlock"></i>
+                                        </button>
+                                    }
                                     <button class="btn btn-outline-danger btn-sm" title="Deaktive Et"
                                             @onclick="() => ConfirmDeactivate(p)" disabled="@(!p.IsActive)">
                                         <i class="bi bi-toggle-off"></i>
@@ -193,6 +204,27 @@
             if (response.IsSuccessStatusCode)
             {
                 Toast.ShowSuccess("Personel deaktive edildi.");
+                await LoadData();
+            }
+            else
+            {
+                Toast.ShowError("Islem basarisiz.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Hata: {ex.Message}");
+        }
+    }
+
+    private async Task UnlockPersonnel(PortalPersonnelListDto p)
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/portal/personnel/{p.Id}/unlock?customerId={selectedCustomerId}", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Hesap kilidi kaldirildi.");
                 await LoadData();
             }
             else

@@ -20,6 +20,7 @@ public class PortalPersonnelListDto
     public int? ReportsToPersonnelId { get; set; }
     public string? ReportsToPersonnelName { get; set; }
     public bool IsActive { get; set; }
+    public bool IsLocked { get; set; }
 }
 
 public class PortalPersonnelCreateDto

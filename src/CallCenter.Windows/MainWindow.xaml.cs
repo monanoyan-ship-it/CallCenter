@@ -1,5 +1,8 @@
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Security;
+using System.Net.Sockets;
 using System.Windows;
 using CallCenter.Windows.LocalData;
 using CallCenter.Windows.LocalData.Entities;
@@ -64,10 +67,29 @@ public partial class MainWindow : Window
         services.AddSingleton(sp =>
         {
             var handler = sp.GetRequiredService<Services.WindowsAuthHeaderHandler>();
-            handler.InnerHandler = new HttpClientHandler
+            handler.InnerHandler = new SocketsHttpHandler
             {
-                // HTTP ve self-signed sertifika destegi (test/on-premise ortami)
-                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                // IPv4 zorla - bazi PC'lerde IPv6 DNS cozumlemesi sorun yaratir
+                ConnectCallback = async (context, cancellationToken) =>
+                {
+                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    socket.NoDelay = true;
+                    try
+                    {
+                        await socket.ConnectAsync(context.DnsEndPoint, cancellationToken);
+                        return new NetworkStream(socket, ownsSocket: true);
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        throw;
+                    }
+                },
+                SslOptions = new SslClientAuthenticationOptions
+                {
+                    // HTTP ve self-signed sertifika destegi (test/on-premise ortami)
+                    RemoteCertificateValidationCallback = (_, _, _, _) => true
+                }
             };
             return new HttpClient(handler) { BaseAddress = new Uri(apiBaseUrl) };
         });

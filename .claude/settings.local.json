@@ -207,7 +207,9 @@
       "Bash(nslookup:*)",
       "Bash(gcloud logging:*)",
       "Bash(\"C:/Users/Ahmet/AppData/Local/Programs/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)",
-      "Bash(find C:UsersAhmetsourcereposmonanoyan-ship-itcallcenter -type f \\\\\\(-name *.html -o -name *.razor -o -name *.json -o -name *.config -o -name *.xml -o -name *.md -o -name *.ts -o -name *.js \\\\\\))"
+      "Bash(find C:UsersAhmetsourcereposmonanoyan-ship-itcallcenter -type f \\\\\\(-name *.html -o -name *.razor -o -name *.json -o -name *.config -o -name *.xml -o -name *.md -o -name *.ts -o -name *.js \\\\\\))",
+      "Bash(ipconfig /all)",
+      "Bash(ipconfig.exe /flushdns)"
     ]
   }
 }

@@ -224,6 +224,24 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
+    [HttpPut("personnel/{id}/unlock")]
+    public async Task<IActionResult> UnlockPersonnel(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.UnlockPersonnelAsync(cid.Value, id);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("Unlock", "Personnel", id.ToString(),
+            $"Personel hesap kilidi kaldirildi: ID={id}", customerId: cid);
+
+        return NoContent();
+    }
+
     // MODULES
 
     [HttpGet("modules")]

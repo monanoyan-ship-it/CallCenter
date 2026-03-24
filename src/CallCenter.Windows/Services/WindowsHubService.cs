@@ -1,3 +1,7 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Security;
+using System.Net.Sockets;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
@@ -50,6 +54,29 @@ public class WindowsHubService : IAsyncDisposable
             .WithUrl(hubUrl, options =>
             {
                 options.AccessTokenProvider = () => _auth.GetTokenAsync()!;
+                // IPv4 zorla - bazi PC'lerde IPv6 DNS cozumlemesi sorun yaratir
+                options.HttpMessageHandlerFactory = _ => new SocketsHttpHandler
+                {
+                    ConnectCallback = async (context, ct) =>
+                    {
+                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        socket.NoDelay = true;
+                        try
+                        {
+                            await socket.ConnectAsync(context.DnsEndPoint, ct);
+                            return new NetworkStream(socket, ownsSocket: true);
+                        }
+                        catch
+                        {
+                            socket.Dispose();
+                            throw;
+                        }
+                    },
+                    SslOptions = new SslClientAuthenticationOptions
+                    {
+                        RemoteCertificateValidationCallback = (_, _, _, _) => true
+                    }
+                };
             })
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
             .Build();

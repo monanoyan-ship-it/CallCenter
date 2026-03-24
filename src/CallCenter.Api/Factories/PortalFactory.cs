@@ -158,7 +158,8 @@ public class PortalFactory : IPortalFactory
                 OrganizationUnitName = p.OrganizationUnit != null ? p.OrganizationUnit.Name : null,
                 ReportsToPersonnelId = p.ReportsToPersonnelId,
                 ReportsToPersonnelName = p.ReportsToPersonnel != null ? p.ReportsToPersonnel.User.FullName : null,
-                IsActive = p.IsActive && p.User.IsActive
+                IsActive = p.IsActive && p.User.IsActive,
+                IsLocked = p.User.LockedUntil.HasValue && p.User.LockedUntil.Value > DateTime.UtcNow
             })
             .OrderBy(p => p.FullName)
             .ToListAsync();
@@ -353,6 +354,22 @@ public class PortalFactory : IPortalFactory
 
         personnel.IsActive = true;
         personnel.User.IsActive = true;
+        await _uow.SaveChangesAsync();
+
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UnlockPersonnelAsync(int customerId, int id)
+    {
+        var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
+        if (personnel == null)
+            return (false, "Personel bulunamadi.");
+
+        if (!personnel.User.LockedUntil.HasValue || personnel.User.LockedUntil.Value <= DateTime.UtcNow)
+            return (false, "Hesap zaten kilitli degil.");
+
+        personnel.User.LockedUntil = null;
+        personnel.User.FailedLoginCount = 0;
         await _uow.SaveChangesAsync();
 
         return (true, null);
