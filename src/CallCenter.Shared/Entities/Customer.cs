@@ -10,6 +10,9 @@ public class Customer
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Urun tipi: 1=CallCenter, 2=Salon, 3=Her ikisi</summary>
+    public int ProductTypeId { get; set; } = 1;
     public int MaxUsers { get; set; } = 1;
     public decimal MonthlyUnitPrice { get; set; }
     public bool SaveRecordingToPlatform { get; set; } = true;
