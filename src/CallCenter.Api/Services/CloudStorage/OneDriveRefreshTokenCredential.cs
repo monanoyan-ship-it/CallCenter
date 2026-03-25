@@ -21,7 +21,7 @@ public class OneDriveRefreshTokenCredential : TokenCredential
         _clientId = clientId;
         _clientSecret = clientSecret;
         _refreshToken = refreshToken;
-        _tenantId = tenantId ?? "common";
+        _tenantId = string.IsNullOrEmpty(tenantId) ? "common" : tenantId;
     }
 
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)

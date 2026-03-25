@@ -224,13 +224,22 @@ public static class CloudUploadHelper
         // AuthMode'a gore credential sec: Delegated (RefreshToken) veya ClientCredential
         var authMode = cred.GetValueOrDefault("AuthMode", "ClientCredential");
         var refreshToken = cred.GetValueOrDefault("RefreshToken", "");
+        var clientId = cred.GetValueOrDefault("ClientId", "");
+        var clientSecret = cred.GetValueOrDefault("ClientSecret", "");
+
+        // Debug: credentials'da ne var kontrol
+        UploadDebugLog($"OneDrive creds: AuthMode={authMode}, ClientId={clientId?[..Math.Min(clientId.Length,10)]}..., " +
+            $"Secret={(string.IsNullOrEmpty(clientSecret) ? "BOS" : "DOLU")}, " +
+            $"RefreshToken={(string.IsNullOrEmpty(refreshToken) ? "BOS" : "DOLU")}, " +
+            $"DriveId={driveId}, TenantId={tenantId}, " +
+            $"CredKeys=[{string.Join(",", cred.Keys)}]");
 
         Azure.Core.TokenCredential credential;
         if (authMode == "Delegated" && !string.IsNullOrEmpty(refreshToken))
         {
             credential = new OneDriveRefreshTokenCredential(
-                cred.GetValueOrDefault("ClientId", ""),
-                cred.GetValueOrDefault("ClientSecret", ""),
+                clientId,
+                clientSecret,
                 refreshToken,
                 tenantId);
         }
@@ -351,5 +360,17 @@ public static class CloudUploadHelper
             return (false, null, $"Yandex upload hatasi: HTTP {uploadResponse.StatusCode}");
 
         return (true, diskPath, null);
+    }
+
+    private static void UploadDebugLog(string msg)
+    {
+        try
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "CorpLynk", "upload-debug.log");
+            File.AppendAllText(path, $"[{DateTime.Now:HH:mm:ss.fff}] {msg}{Environment.NewLine}");
+        }
+        catch { }
     }
 }
