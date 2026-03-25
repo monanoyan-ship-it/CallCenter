@@ -1,0 +1,267 @@
+@{
+    ViewData["Title"] = "Kampanyalar";
+}
+
+<div id="campaigns-vm">
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#campaigns-tab">Kampanyalar</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#reminders-tab">Oto-Hatirlatmalar</a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Kampanyalar Tab -->
+        <div class="tab-pane fade show active" id="campaigns-tab">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">SMS Kampanyalari</h6>
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewCampaign">
+                    <i class="bi bi-plus-lg me-1"></i>Yeni Kampanya
+                </button>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Kampanya Adi</th>
+                                    <th>Durum</th>
+                                    <th>Alici</th>
+                                    <th>Gonderilen</th>
+                                    <th>Zamanlama</th>
+                                    <th>Olusturma</th>
+                                    <th style="width:120px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: campaigns">
+                                <tr>
+                                    <td class="fw-semibold small" data-bind="text: name"></td>
+                                    <td class="small">
+                                        <span class="badge" data-bind="text: statusText, css: statusBadge"></span>
+                                    </td>
+                                    <td class="small" data-bind="text: totalRecipients"></td>
+                                    <td class="small" data-bind="text: sentCount"></td>
+                                    <td class="small" data-bind="text: scheduledAt ? new Date(scheduledAt).toLocaleDateString('tr-TR') : '-'"></td>
+                                    <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- ko if: statusId < 3 -->
+                                            <button class="btn btn-outline-primary" title="Duzenle" data-bind="click: $parent.openEditCampaign">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                            <!-- ko if: statusId <= 2 -->
+                                            <button class="btn btn-outline-success" title="Gonder" data-bind="click: $parent.sendCampaign">
+                                                <i class="bi bi-send"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                            <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.removeCampaign">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: campaigns().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-megaphone" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Henuz kampanya eklenmemis</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Oto-Hatirlatmalar Tab -->
+        <div class="tab-pane fade" id="reminders-tab">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Otomatik Hatirlatmalar</h6>
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewReminder">
+                    <i class="bi bi-plus-lg me-1"></i>Yeni Hatirlatma
+                </button>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tip</th>
+                                    <th>Mesaj Sablonu</th>
+                                    <th>Gun Oncesi</th>
+                                    <th>Pasif Gun Esigi</th>
+                                    <th>Durum</th>
+                                    <th style="width:120px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: reminders">
+                                <tr>
+                                    <td class="fw-semibold small" data-bind="text: reminderTypeName"></td>
+                                    <td class="small text-truncate" style="max-width:300px;" data-bind="text: messageTemplate"></td>
+                                    <td class="small" data-bind="text: daysBefore > 0 ? daysBefore : '-'"></td>
+                                    <td class="small" data-bind="text: inactiveDaysThreshold > 0 ? inactiveDaysThreshold : '-'"></td>
+                                    <td class="small">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" data-bind="checked: isActive, click: $parent.toggleReminder" />
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEditReminder">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.removeReminder">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: reminders().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-bell" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Henuz hatirlatma tanimlanmamis</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kampanya Modal -->
+    <div class="modal fade" id="campaignModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditingCampaign() ? 'Kampanya Duzenle' : 'Yeni Kampanya'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Kampanya Adi *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: campaignForm.name" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Mesaj Sablonu *</label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: campaignForm.messageTemplate"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Zamanlama (bos birakilirsa taslak)</label>
+                            <input type="datetime-local" class="form-control form-control-sm" data-bind="value: campaignForm.scheduledAt" />
+                        </div>
+                        <div class="col-6 d-flex align-items-end">
+                            <button class="btn btn-outline-info btn-sm" data-bind="click: previewSegment">
+                                <i class="bi bi-eye me-1"></i>Hedef Kitle: <span data-bind="text: segmentPreviewCount"></span> musteri
+                            </button>
+                        </div>
+
+                        <div class="col-12">
+                            <h6 class="mt-2 mb-2">Segment Filtreleri</h6>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Cinsiyet</label>
+                            <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.genderId">
+                                <option value="">Tumu</option>
+                                <option value="1">Kadin</option>
+                                <option value="2">Erkek</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Min Yas</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: campaignForm.filter.minAge" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Max Yas</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: campaignForm.filter.maxAge" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Sehir</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: campaignForm.filter.city" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Son Ziyaret (gun)</label>
+                            <input type="number" class="form-control form-control-sm" placeholder="orn: 30" data-bind="value: campaignForm.filter.lastVisitDays" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Min Harcama (TL)</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: campaignForm.filter.minSpent" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveCampaign, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hatirlatma Modal -->
+    <div class="modal fade" id="reminderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditingReminder() ? 'Hatirlatma Duzenle' : 'Yeni Hatirlatma'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Hatirlatma Tipi *</label>
+                            <select class="form-select form-select-sm" data-bind="value: reminderForm.reminderTypeId">
+                                <option value="1">Dogum Gunu</option>
+                                <option value="2">Yildonumu</option>
+                                <option value="3">Randevu Hatirlatma</option>
+                                <option value="4">Pasif Musteri</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Mesaj Sablonu *</label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: reminderForm.messageTemplate"></textarea>
+                            <small class="text-muted">Degiskenler: {ad}, {tarih}, {gun}</small>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Gun Oncesi (randevu icin)</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.daysBefore" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Pasif Gun Esigi</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.inactiveDaysThreshold" />
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="reminderActive" data-bind="checked: reminderForm.isActive" />
+                                <label class="form-check-label small" for="reminderActive">Aktif</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveReminder, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Campaigns.js"></script>
+}

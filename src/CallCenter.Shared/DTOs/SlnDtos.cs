@@ -280,3 +280,184 @@ public class SlnDashboardDto
     public int ActiveStaff { get; set; }
     public List<SlnAppointmentDto> UpcomingAppointments { get; set; } = [];
 }
+
+// ═══ SlnCampaign (S7) ═══
+public class SlnCampaignDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string MessageTemplate { get; set; } = string.Empty;
+    public string? SegmentFilter { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+    public DateTime? SentAt { get; set; }
+    public int TotalRecipients { get; set; }
+    public int SentCount { get; set; }
+    public int StatusId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnCampaignCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string MessageTemplate { get; set; } = string.Empty;
+    public string? SegmentFilter { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+}
+
+public class SlnCampaignUpdateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string MessageTemplate { get; set; } = string.Empty;
+    public string? SegmentFilter { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+}
+
+public class SlnSegmentPreviewDto
+{
+    public int MatchingClients { get; set; }
+}
+
+// ═══ SlnAutoReminder (S7) ═══
+public class SlnAutoReminderDto
+{
+    public int Id { get; set; }
+    public int ReminderTypeId { get; set; }
+    public string ReminderTypeName { get; set; } = string.Empty;
+    public string MessageTemplate { get; set; } = string.Empty;
+    public int DaysBefore { get; set; }
+    public int InactiveDaysThreshold { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnAutoReminderCreateDto
+{
+    public int ReminderTypeId { get; set; }
+    public string MessageTemplate { get; set; } = string.Empty;
+    public int DaysBefore { get; set; }
+    public int InactiveDaysThreshold { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnAutoReminderUpdateDto : SlnAutoReminderCreateDto
+{
+}
+
+// ═══ SlnReports (S8) ═══
+public class SlnSalesReportDto
+{
+    public decimal TotalRevenue { get; set; }
+    public int TotalInvoices { get; set; }
+    public decimal ServiceRevenue { get; set; }
+    public decimal ProductRevenue { get; set; }
+    public decimal AverageTicket { get; set; }
+    public List<SlnDailySalesDto> DailySales { get; set; } = [];
+    public List<SlnPaymentMethodSalesDto> PaymentMethodBreakdown { get; set; } = [];
+}
+
+public class SlnDailySalesDto
+{
+    public DateTime Date { get; set; }
+    public decimal Revenue { get; set; }
+    public int InvoiceCount { get; set; }
+}
+
+public class SlnPaymentMethodSalesDto
+{
+    public int PaymentMethodId { get; set; }
+    public string PaymentMethodName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public int Count { get; set; }
+}
+
+public class SlnStaffReportDto
+{
+    public List<SlnStaffPerformanceDto> Staff { get; set; } = [];
+}
+
+public class SlnStaffPerformanceDto
+{
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public int ServiceCount { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal Commission { get; set; }
+}
+
+public class SlnStockReportDto
+{
+    public int TotalProducts { get; set; }
+    public int LowStockCount { get; set; }
+    public decimal TotalStockValue { get; set; }
+    public List<SlnStockItemDto> Items { get; set; } = [];
+}
+
+public class SlnStockItemDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal StockQuantity { get; set; }
+    public decimal MinStockLevel { get; set; }
+    public decimal PurchasePrice { get; set; }
+    public decimal StockValue { get; set; }
+    public bool IsLowStock { get; set; }
+}
+
+public class SlnFinanceReportDto
+{
+    public decimal TotalIncome { get; set; }
+    public decimal TotalExpense { get; set; }
+    public decimal NetProfit { get; set; }
+    public List<SlnExpenseCategoryBreakdownDto> ExpenseBreakdown { get; set; } = [];
+}
+
+public class SlnExpenseCategoryBreakdownDto
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public int Count { get; set; }
+}
+
+public class SlnClientReportDto
+{
+    public int TotalClients { get; set; }
+    public int NewClientsInPeriod { get; set; }
+    public decimal AverageVisitFrequency { get; set; }
+    public List<SlnTopClientDto> TopClients { get; set; } = [];
+}
+
+public class SlnTopClientDto
+{
+    public int ClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public int VisitCount { get; set; }
+    public decimal TotalSpent { get; set; }
+    public DateTime? LastVisit { get; set; }
+}
+
+// ═══ SlnBranch (S9) ═══
+public class SlnBranchDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+    public int? ManagerPersonnelId { get; set; }
+    public string? ManagerName { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnBranchCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+    public int? ManagerPersonnelId { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnBranchUpdateDto : SlnBranchCreateDto
+{
+}

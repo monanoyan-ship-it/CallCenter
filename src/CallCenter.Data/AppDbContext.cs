@@ -114,6 +114,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnExpense> SlnExpenses => Set<SlnExpense>();
     public DbSet<SlnBankAccount> SlnBankAccounts => Set<SlnBankAccount>();
     public DbSet<SlnPosDevice> SlnPosDevices => Set<SlnPosDevice>();
+    public DbSet<SlnCampaign> SlnCampaigns => Set<SlnCampaign>();
+    public DbSet<SlnAutoReminder> SlnAutoReminders => Set<SlnAutoReminder>();
+    public DbSet<SlnBranch> SlnBranches => Set<SlnBranch>();
 
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();

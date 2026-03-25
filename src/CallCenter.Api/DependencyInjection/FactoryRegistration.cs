@@ -72,6 +72,15 @@ public static class FactoryRegistration
         services.AddScoped<ISlnProductFactory, SlnProductFactory>();
         services.AddScoped<ISlnFinanceFactory, SlnFinanceFactory>();
 
+        // Salon S7 — Pazarlama
+        services.AddScoped<ISlnMarketingFactory, SlnMarketingFactory>();
+
+        // Salon S8 — Raporlama
+        services.AddScoped<ISlnReportFactory, SlnReportFactory>();
+
+        // Salon S9 — Cok Subeli Yonetim
+        services.AddScoped<ISlnBranchFactory, SlnBranchFactory>();
+
         return services;
     }
 }

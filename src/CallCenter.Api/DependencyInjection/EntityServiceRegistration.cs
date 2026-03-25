@@ -103,6 +103,15 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnExpenseCategoryEntityService, SlnExpenseCategoryEntityService>();
         services.AddScoped<ISlnExpenseEntityService, SlnExpenseEntityService>();
 
+        services.AddScoped<ISlnPersonnelCommissionEntityService, SlnPersonnelCommissionEntityService>();
+
+        // Salon S7 — Pazarlama
+        services.AddScoped<ISlnCampaignEntityService, SlnCampaignEntityService>();
+        services.AddScoped<ISlnAutoReminderEntityService, SlnAutoReminderEntityService>();
+
+        // Salon S9 — Cok Subeli Yonetim
+        services.AddScoped<ISlnBranchEntityService, SlnBranchEntityService>();
+
         return services;
     }
 }

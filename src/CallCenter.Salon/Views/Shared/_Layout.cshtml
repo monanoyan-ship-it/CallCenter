@@ -51,6 +51,8 @@
                 var stockOpen = ctrl is "Products" or "Suppliers";
                 var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses";
                 var reportOpen = ctrl is "Reports";
+                var marketingOpen = ctrl is "Campaigns";
+                var managementOpen = ctrl is "Branches";
             }
 
             <button class="nav-group-toggle mt-2" onclick="toggleGroup(this)">
@@ -112,12 +114,32 @@
             </div>
 
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Pazarlama</span>
+                <i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(marketingOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
+                    <i class="bi bi-megaphone me-2"></i>Kampanyalar
+                </a>
+            </div>
+
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
                 <span>Raporlar</span>
                 <i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(reportOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports">
                     <i class="bi bi-bar-chart-line me-2"></i>Raporlar
+                </a>
+            </div>
+
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Yonetim</span>
+                <i class="bi bi-chevron-down chevron @(managementOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(managementOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches">
+                    <i class="bi bi-building me-2"></i>Subeler
                 </a>
             </div>
 
