@@ -80,13 +80,20 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
             return null;
         }
 
-        // Oncelik: musteri deposu (CloudFileId), yoksa platform deposu (PlatformFileId)
-        var fileId = call.CloudFileId ?? call.PlatformFileId;
-        if (string.IsNullOrEmpty(fileId))
+        // CloudFileId: musteri bulut deposundaki dosya ID'si (S3 key, Drive file ID, vb.)
+        // PlatformFileId: platform deposu veya lokal kopya yolu — cloud download icin kullanilMAZ
+        if (string.IsNullOrEmpty(call.CloudFileId))
         {
-            _logger.LogWarning("[Playback] FileId bos: CallUid={CallUid}, CloudFileId={CloudFileId}, PlatformFileId={PlatformFileId}", callUid, call.CloudFileId, call.PlatformFileId);
-            return null;
+            var reason = call.PlatformFileId != null
+                ? $"Ses kaydi bulut'a yuklenememis (sadece lokal kopya mevcut: {call.PlatformFileId})"
+                : "Ses kaydi bulunamadi (CloudFileId ve PlatformFileId bos)";
+            _logger.LogWarning("[Playback] CloudFileId bos: CallUid={CallUid}, PlatformFileId={PlatformFileId}", callUid, call.PlatformFileId);
+            await LogAccessAsync(call, currentUser, RecordingAccessActions.Ids.AccessDenied, ipAddress, userAgent, reason);
+            // Stream null + contentType mesaj iceriyor → controller 404 dondurecek
+            return (null, reason);
         }
+
+        var fileId = call.CloudFileId;
 
         // Determine customer ID for cloud storage
         var customerId = call.Queue != null
@@ -99,7 +106,7 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
         if (customerId == null)
         {
             _logger.LogWarning("[Playback] CustomerId bulunamadi: CallUid={CallUid}, QueueNull={QueueNull}", callUid, call.Queue == null);
-            return null;
+            return (null, "Musteri bilgisi bulunamadi");
         }
 
         _logger.LogInformation("[Playback] Download basliyor: CustomerId={CustomerId}, FileId={FileId}", customerId, fileId);
@@ -107,7 +114,7 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
         // Log stream started
         await LogAccessAsync(call, currentUser, RecordingAccessActions.Ids.StreamStarted, ipAddress, userAgent);
 
-        // Download from cloud (musteri deposu veya platform deposu)
+        // Download from cloud (musteri deposu)
         Stream? stream;
         try
         {
@@ -116,13 +123,13 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
         catch (Exception ex)
         {
             _logger.LogError(ex, "[Playback] Cloud download HATA: CustomerId={CustomerId}, FileId={FileId}", customerId, fileId);
-            return null;
+            return (null, "Bulut depolamadan indirme hatasi");
         }
 
         if (stream == null)
         {
             _logger.LogWarning("[Playback] Cloud download null dondu: CustomerId={CustomerId}, FileId={FileId}", customerId, fileId);
-            return null;
+            return (null, "Dosya bulut deposunda bulunamadi");
         }
 
         _logger.LogInformation("[Playback] Download basarili: StreamLength={Length}", stream.CanSeek ? stream.Length : -1);

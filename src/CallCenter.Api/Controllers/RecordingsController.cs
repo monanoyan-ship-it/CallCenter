@@ -255,7 +255,11 @@ public class RecordingsController : AuditableControllerBase
         }
 
         var (audioStream, contentType) = result.Value;
-        if (audioStream == null) return NotFound("Ses kaydi bulunamadi");
+        if (audioStream == null)
+        {
+            _logger.LogWarning("[StreamRecording] Stream null -> 404: CallUid={CallUid}, Reason={Reason}", callUid, contentType);
+            return NotFound(new { error = contentType });
+        }
 
         _logger.LogInformation("[StreamRecording] Stream basarili: CallUid={CallUid}, ContentType={CT}", callUid, contentType);
         return File(audioStream, contentType, enableRangeProcessing: true);
