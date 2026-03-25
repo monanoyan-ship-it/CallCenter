@@ -15,6 +15,7 @@ public class CustomerFactory : ICustomerFactory
     private readonly ICustomerPortalModuleEntityService _moduleEs;
     private readonly IUserEntityService _userEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
+    private readonly IAuthFactory _authFactory;
     private readonly IUnitOfWork _uow;
 
     public CustomerFactory(
@@ -23,6 +24,7 @@ public class CustomerFactory : ICustomerFactory
         ICustomerPortalModuleEntityService moduleEs,
         IUserEntityService userEs,
         IPasswordPolicyFactory passwordPolicy,
+        IAuthFactory authFactory,
         IUnitOfWork uow)
     {
         _customerEs = customerEs;
@@ -30,6 +32,7 @@ public class CustomerFactory : ICustomerFactory
         _moduleEs = moduleEs;
         _userEs = userEs;
         _passwordPolicy = passwordPolicy;
+        _authFactory = authFactory;
         _uow = uow;
     }
 
@@ -399,4 +402,98 @@ public class CustomerFactory : ICustomerFactory
         return (true, addedCount, null);
     }
 
+    // ═══ Salon Self-Registration ═══
+
+    public async Task<SlnRegisterResponse> SalonRegisterAsync(SlnRegisterRequest request)
+    {
+        // Validasyon
+        if (string.IsNullOrWhiteSpace(request.SalonName))
+            return new SlnRegisterResponse { Error = "Salon adi gereklidir." };
+        if (string.IsNullOrWhiteSpace(request.UserName))
+            return new SlnRegisterResponse { Error = "Kullanici adi gereklidir." };
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
+            return new SlnRegisterResponse { Error = "Sifre en az 6 karakter olmalidir." };
+
+        var userName = request.UserName.Trim().ToLowerInvariant();
+        if (await _userEs.ExistsByUsernameAsync(userName))
+            return new SlnRegisterResponse { Error = "Bu kullanici adi zaten kullaniliyor." };
+
+        // Customer (Salon)
+        var customer = new Customer
+        {
+            Name = request.SalonName.Trim(),
+            Phone = request.Phone,
+            Email = request.Email,
+            ProductTypeId = ProductTypes.Ids.Salon,
+            MaxUsers = 5,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _customerEs.Add(customer);
+        await _uow.SaveChangesAsync();
+
+        // Salon portal modullerini ekle
+        foreach (var module in SalonPortalModules.All)
+        {
+            _moduleEs.Add(new CustomerPortalModule
+            {
+                CustomerId = customer.Id,
+                ModuleId = module.Id,
+                IsActive = module.IsDefault,
+                ActivatedAt = DateTime.UtcNow
+            });
+        }
+        await _uow.SaveChangesAsync();
+
+        // User + Personnel (SalonOwner)
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        var user = new User
+        {
+            UserName = userName,
+            FullName = request.OwnerFullName.Trim(),
+            Email = request.Email,
+            PasswordHash = passwordHash,
+            RoleId = UserRoles.Ids.CustomerUser,
+            StatusId = AgentStatuses.Ids.Offline,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            PasswordChangedAt = DateTime.UtcNow
+        };
+        _userEs.Add(user);
+        await _uow.SaveChangesAsync();
+
+        await _passwordPolicy.RecordPasswordAsync(user.Id, passwordHash);
+
+        var personnel = new CustomerPersonnel
+        {
+            UserId = user.Id,
+            CustomerId = customer.Id,
+            Title = "Salon Sahibi",
+            CustomerRoleId = SalonRoles.Ids.SalonOwner,
+            IsCustomerAdmin = true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _personnelEs.Add(personnel);
+        await _uow.SaveChangesAsync();
+
+        // Otomatik login
+        var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest
+        {
+            UserName = userName,
+            Password = request.Password
+        });
+
+        if (!success)
+            return new SlnRegisterResponse { Success = true, Error = "Kayit basarili ama otomatik giris yapilamadi. Lutfen giris yapin." };
+
+        return new SlnRegisterResponse
+        {
+            Success = true,
+            Token = loginResponse!.Token,
+            RefreshToken = loginResponse.RefreshToken,
+            FullName = loginResponse.FullName,
+            Role = loginResponse.Role
+        };
+    }
 }

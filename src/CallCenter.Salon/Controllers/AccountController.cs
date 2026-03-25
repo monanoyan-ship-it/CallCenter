@@ -29,6 +29,56 @@ public class AccountController : SlnBaseController
         }
 
         var json = await response.Content.ReadAsStringAsync();
+        SetSessionFromLoginResponse(json);
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpGet]
+    public IActionResult Register()
+    {
+        if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Token")))
+            return RedirectToAction("Index", "Home");
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DoRegister([FromBody] JsonElement body)
+    {
+        using var client = CreateApiClient();
+        var response = await client.PostAsync("api/auth/salon-register",
+            new StringContent(body.GetRawText(), Encoding.UTF8, "application/json"));
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        if (!response.IsSuccessStatusCode || !root.TryGetProperty("success", out var s) || !s.GetBoolean())
+        {
+            var error = root.TryGetProperty("error", out var e) ? e.GetString() : "Kayit sirasinda hata olustu.";
+            return Json(new { success = false, error });
+        }
+
+        // Kayıt başarılı, session'a token yaz
+        if (root.TryGetProperty("token", out var token) && token.GetString() is string t && !string.IsNullOrEmpty(t))
+        {
+            HttpContext.Session.SetString("Token", t);
+            if (root.TryGetProperty("fullName", out var fn))
+                HttpContext.Session.SetString("UserName", fn.GetString() ?? "");
+            if (root.TryGetProperty("role", out var r))
+                HttpContext.Session.SetString("UserRole", r.GetString() ?? "");
+        }
+
+        return Json(new { success = true });
+    }
+
+    public IActionResult Logout()
+    {
+        HttpContext.Session.Clear();
+        return RedirectToAction("Login");
+    }
+
+    private void SetSessionFromLoginResponse(string json)
+    {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
@@ -61,13 +111,5 @@ public class AccountController : SlnBaseController
             }
         }
         catch { }
-
-        return RedirectToAction("Index", "Home");
-    }
-
-    public IActionResult Logout()
-    {
-        HttpContext.Session.Clear();
-        return RedirectToAction("Login");
     }
 }

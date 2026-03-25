@@ -10,10 +10,12 @@ namespace CallCenter.Api.Controllers;
 public class AuthController : AuditableControllerBase
 {
     private readonly IAuthFactory _authFactory;
+    private readonly ICustomerFactory _customerFactory;
 
-    public AuthController(IAuditFactory auditFactory, IAuthFactory authFactory) : base(auditFactory)
+    public AuthController(IAuditFactory auditFactory, IAuthFactory authFactory, ICustomerFactory customerFactory) : base(auditFactory)
     {
         _authFactory = authFactory;
+        _customerFactory = customerFactory;
     }
 
     [HttpPost("login")]
@@ -58,6 +60,21 @@ public class AuthController : AuditableControllerBase
 
         await AuditAuthAsync("Revoke", "Refresh token iptal edildi.");
         return Ok(new { message = "Token iptal edildi." });
+    }
+
+    [HttpPost("salon-register")]
+    public async Task<ActionResult<SlnRegisterResponse>> SalonRegister(SlnRegisterRequest request)
+    {
+        var result = await _customerFactory.SalonRegisterAsync(request);
+
+        if (!result.Success && result.Error != null)
+        {
+            await AuditAuthAsync("SalonRegisterFailed", $"Salon kayit basarisiz: {result.Error}", null, request.UserName);
+            return BadRequest(result);
+        }
+
+        await AuditAuthAsync("SalonRegister", $"Yeni salon kaydi: '{request.SalonName}' — {request.UserName}", null, request.UserName);
+        return Ok(result);
     }
 
     [Authorize]

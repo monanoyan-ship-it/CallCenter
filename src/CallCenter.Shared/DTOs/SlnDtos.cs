@@ -461,3 +461,24 @@ public class SlnBranchCreateDto
 public class SlnBranchUpdateDto : SlnBranchCreateDto
 {
 }
+
+// ═══ Salon Self-Registration ═══
+public class SlnRegisterRequest
+{
+    public string SalonName { get; set; } = string.Empty;
+    public string OwnerFullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class SlnRegisterResponse
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+    public string? Token { get; set; }
+    public string? RefreshToken { get; set; }
+    public string? FullName { get; set; }
+    public string? Role { get; set; }
+}
