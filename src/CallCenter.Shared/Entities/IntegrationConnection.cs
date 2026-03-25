@@ -37,7 +37,7 @@ public class IntegrationConnection
     public bool AutoLogCalls { get; set; } = true;
 
     /// <summary>Rehber senkronizasyonu yonu: None, ToExternal, FromExternal, Bidirectional</summary>
-    public int ContactSyncDirectionId { get; set; }
+    public int CrmContactSyncDirectionId { get; set; }
 
     // Durum takibi
     public DateTime? LastSyncAt { get; set; }

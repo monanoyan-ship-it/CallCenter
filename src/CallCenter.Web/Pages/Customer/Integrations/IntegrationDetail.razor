@@ -110,7 +110,7 @@ else
                             <div class="col-md-6">
                                 <label class="form-label small">Rehber Senkronizasyon</label>
                                 <select class="form-select form-select-sm" @bind="editSyncDirection">
-                                    @foreach (var sd in ContactSyncDirections.All)
+                                    @foreach (var sd in CrmContactSyncDirections.All)
                                     {
                                         <option value="@sd.Id">@sd.Description</option>
                                     }
@@ -612,7 +612,7 @@ else
                 editName = detail.Name;
                 editIsActive = detail.IsActive;
                 editAutoLogCalls = detail.AutoLogCalls;
-                editSyncDirection = detail.ContactSyncDirectionId;
+                editSyncDirection = detail.CrmContactSyncDirectionId;
             }
         }
         catch (Exception ex)
@@ -633,7 +633,7 @@ else
                 Name = editName,
                 IsActive = editIsActive,
                 AutoLogCalls = editAutoLogCalls,
-                ContactSyncDirectionId = editSyncDirection
+                CrmContactSyncDirectionId = editSyncDirection
             };
             var resp = await Http.PutAsJsonAsync($"api/integrations/connections/{Uid}", dto);
             if (resp.IsSuccessStatusCode)

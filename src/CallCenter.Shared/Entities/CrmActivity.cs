@@ -2,7 +2,7 @@ namespace CallCenter.Shared.Entities;
 
 /// <summary>
 /// CRM etkilesim kaydi. Arama, e-posta, toplanti, not vb.
-/// Contact, Ticket veya Deal ile iliskilendirilebilir.
+/// CrmContact, Ticket veya Deal ile iliskilendirilebilir.
 /// </summary>
 public class CrmActivity
 {
@@ -15,8 +15,8 @@ public class CrmActivity
     public string? Detail { get; set; }
 
     /// <summary>Ilgili kisi</summary>
-    public int? ContactId { get; set; }
-    public Contact? Contact { get; set; }
+    public int? CrmContactId { get; set; }
+    public CrmContact? CrmContact { get; set; }
 
     /// <summary>Ilgili talep (opsiyonel)</summary>
     public int? TicketId { get; set; }

@@ -9,7 +9,7 @@ public static class FactoryRegistration
     {
         // Faz 1 Factory'ler
         services.AddScoped<ISettingFactory, SettingFactory>();
-        services.AddScoped<IContactFactory, ContactFactory>();
+        services.AddScoped<ICrmContactFactory, CrmContactFactory>();
 
         // Faz 2 Factory'ler
         services.AddScoped<IAuthFactory, AuthFactory>();
@@ -59,8 +59,8 @@ public static class FactoryRegistration
         // Faz 14 — Hizmet Abonelik Yönetimi
         services.AddScoped<IServiceSubscriptionFactory, ServiceSubscriptionFactory>();
 
-        // Kalite Yonetimi (Quality Management)
-        services.AddScoped<IQualityFactory, QualityFactory>();
+        // Kalite Yonetimi (CrmQuality Management)
+        services.AddScoped<ICrmQualityFactory, CrmQualityFactory>();
 
         // Faz 8 — Entegrasyon (Integration & Webhook)
         services.AddScoped<IIntegrationFactory, IntegrationFactory>();

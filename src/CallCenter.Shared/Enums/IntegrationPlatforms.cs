@@ -26,14 +26,14 @@ public static class IntegrationPlatforms
 
 /// <summary>
 /// Rehber senkronizasyon yonleri.
-/// IntegrationConnection.ContactSyncDirectionId icin kullanilir.
+/// IntegrationConnection.CrmContactSyncDirectionId icin kullanilir.
 /// </summary>
-public static class ContactSyncDirections
+public static class CrmContactSyncDirections
 {
-    public static readonly TypeItem None = new(0, "None", "ContactSyncDirection.None", "Senkronizasyon yok", "bi-x-circle", "bg-secondary", 0);
-    public static readonly TypeItem ToExternal = new(1, "ToExternal", "ContactSyncDirection.ToExternal", "Dis sisteme gonder", "bi-box-arrow-right", "bg-info", 1);
-    public static readonly TypeItem FromExternal = new(2, "FromExternal", "ContactSyncDirection.FromExternal", "Dis sistemden al", "bi-box-arrow-in-left", "bg-info", 2);
-    public static readonly TypeItem Bidirectional = new(3, "Bidirectional", "ContactSyncDirection.Bidirectional", "Cift yonlu senkronizasyon", "bi-arrow-left-right", "bg-success", 3);
+    public static readonly TypeItem None = new(0, "None", "CrmContactSyncDirection.None", "Senkronizasyon yok", "bi-x-circle", "bg-secondary", 0);
+    public static readonly TypeItem ToExternal = new(1, "ToExternal", "CrmContactSyncDirection.ToExternal", "Dis sisteme gonder", "bi-box-arrow-right", "bg-info", 1);
+    public static readonly TypeItem FromExternal = new(2, "FromExternal", "CrmContactSyncDirection.FromExternal", "Dis sistemden al", "bi-box-arrow-in-left", "bg-info", 2);
+    public static readonly TypeItem Bidirectional = new(3, "Bidirectional", "CrmContactSyncDirection.Bidirectional", "Cift yonlu senkronizasyon", "bi-arrow-left-right", "bg-success", 3);
 
     public static IEnumerable<TypeItem> All => new[] { None, ToExternal, FromExternal, Bidirectional };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);

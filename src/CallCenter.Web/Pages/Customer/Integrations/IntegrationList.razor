@@ -204,7 +204,7 @@ else
                         <div class="col-md-6">
                             <label class="form-label small mb-0">Rehber Senkronizasyon</label>
                             <select class="form-select form-select-sm" @bind="createSyncDirection">
-                                @foreach (var sd in ContactSyncDirections.All)
+                                @foreach (var sd in CrmContactSyncDirections.All)
                                 {
                                     <option value="@sd.Id">@sd.Description</option>
                                 }
@@ -309,7 +309,7 @@ else
                 Name = createName,
                 PlatformTypeId = selectedPlatformId,
                 AutoLogCalls = createAutoLogCalls,
-                ContactSyncDirectionId = createSyncDirection
+                CrmContactSyncDirectionId = createSyncDirection
             };
 
             // Platform-specific credentials

@@ -1,7 +1,7 @@
 namespace CallCenter.Shared.Entities;
 
 /// <summary>
-/// CRM destek talebi. Musteriye ait, bir Contact ile iliskili.
+/// CRM destek talebi. Musteriye ait, bir CrmContact ile iliskili.
 /// </summary>
 public class CrmTicket
 {
@@ -22,8 +22,8 @@ public class CrmTicket
     public CrmTicketCategory? Category { get; set; }
 
     /// <summary>Ilgili kisi</summary>
-    public int? ContactId { get; set; }
-    public Contact? Contact { get; set; }
+    public int? CrmContactId { get; set; }
+    public CrmContact? CrmContact { get; set; }
 
     /// <summary>Atanan personel</summary>
     public int? AssignedToPersonnelId { get; set; }

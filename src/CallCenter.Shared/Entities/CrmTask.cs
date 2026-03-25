@@ -1,7 +1,7 @@
 namespace CallCenter.Shared.Entities;
 
 /// <summary>
-/// CRM gorevi. Personele atanir, bir Contact/Ticket/Deal ile iliskilendirilebilir.
+/// CRM gorevi. Personele atanir, bir CrmContact/Ticket/Deal ile iliskilendirilebilir.
 /// </summary>
 public class CrmTask
 {
@@ -17,8 +17,8 @@ public class CrmTask
     public DateTime? DueDate { get; set; }
 
     /// <summary>Ilgili kisi</summary>
-    public int? ContactId { get; set; }
-    public Contact? Contact { get; set; }
+    public int? CrmContactId { get; set; }
+    public CrmContact? CrmContact { get; set; }
 
     /// <summary>Ilgili talep (opsiyonel)</summary>
     public int? TicketId { get; set; }

@@ -10,7 +10,7 @@ namespace CallCenter.Api.Factories;
 
 public class CrmFactory : ICrmFactory
 {
-    private readonly IContactEntityService _contactEs;
+    private readonly ICrmContactEntityService _contactEs;
     private readonly ICrmTicketEntityService _ticketEs;
     private readonly ICrmTicketCategoryEntityService _ticketCategoryEs;
     private readonly ICrmTicketCommentEntityService _ticketCommentEs;
@@ -23,7 +23,7 @@ public class CrmFactory : ICrmFactory
     private readonly IUnitOfWork _uow;
 
     public CrmFactory(
-        IContactEntityService contactEs,
+        ICrmContactEntityService contactEs,
         ICrmTicketEntityService ticketEs,
         ICrmTicketCategoryEntityService ticketCategoryEs,
         ICrmTicketCommentEntityService ticketCommentEs,
@@ -82,7 +82,7 @@ public class CrmFactory : ICrmFactory
             .Where(a => a.CustomerId == customerId)
             .OrderByDescending(a => a.CreatedAt)
             .Take(10)
-            .Include(a => a.Contact)
+            .Include(a => a.CrmContact)
             .Include(a => a.Personnel).ThenInclude(p => p.User)
             .ToListAsync();
 
@@ -92,7 +92,7 @@ public class CrmFactory : ICrmFactory
                 && t.StatusId != CrmTaskStatuses.Ids.Cancelled)
             .OrderBy(t => t.DueDate)
             .Take(10)
-            .Include(t => t.Contact)
+            .Include(t => t.CrmContact)
             .Include(t => t.AssignedToPersonnel).ThenInclude(p => p.User)
             .ToListAsync();
 
@@ -141,18 +141,18 @@ public class CrmFactory : ICrmFactory
         if (match == null) return null;
 
         var openTickets = await _ticketEs.GetAllQueryable()
-            .CountAsync(t => t.ContactId == match.Id
+            .CountAsync(t => t.CrmContactId == match.Id
                 && t.StatusId != TicketStatuses.Ids.Closed
                 && t.StatusId != TicketStatuses.Ids.Resolved);
 
         var activeDeals = await _dealEs.GetAllQueryable()
-            .CountAsync(d => d.ContactId == match.Id
+            .CountAsync(d => d.CrmContactId == match.Id
                 && d.StageId != DealStages.Ids.Won
                 && d.StageId != DealStages.Ids.Lost);
 
         return new CrmCallerIdDto
         {
-            ContactId = match.Id,
+            CrmContactId = match.Id,
             FullName = match.FullName,
             Company = match.Company,
             Email = match.Email,
@@ -181,21 +181,21 @@ public class CrmFactory : ICrmFactory
         var contactIds = contacts.Select(c => c.Id).ToList();
 
         var ticketCounts = await _ticketEs.GetAllQueryable()
-            .Where(t => t.ContactId != null && contactIds.Contains(t.ContactId.Value))
-            .GroupBy(t => t.ContactId)
-            .Select(g => new { ContactId = g.Key, Count = g.Count() })
+            .Where(t => t.CrmContactId != null && contactIds.Contains(t.CrmContactId.Value))
+            .GroupBy(t => t.CrmContactId)
+            .Select(g => new { CrmContactId = g.Key, Count = g.Count() })
             .ToListAsync();
 
         var dealCounts = await _dealEs.GetAllQueryable()
-            .Where(d => d.ContactId != null && contactIds.Contains(d.ContactId.Value))
-            .GroupBy(d => d.ContactId)
-            .Select(g => new { ContactId = g.Key, Count = g.Count() })
+            .Where(d => d.CrmContactId != null && contactIds.Contains(d.CrmContactId.Value))
+            .GroupBy(d => d.CrmContactId)
+            .Select(g => new { CrmContactId = g.Key, Count = g.Count() })
             .ToListAsync();
 
         var activityCounts = await _activityEs.GetAllQueryable()
-            .Where(a => a.ContactId != null && contactIds.Contains(a.ContactId.Value))
-            .GroupBy(a => a.ContactId)
-            .Select(g => new { ContactId = g.Key, Count = g.Count() })
+            .Where(a => a.CrmContactId != null && contactIds.Contains(a.CrmContactId.Value))
+            .GroupBy(a => a.CrmContactId)
+            .Select(g => new { CrmContactId = g.Key, Count = g.Count() })
             .ToListAsync();
 
         return contacts.Select(c => new CrmContactDto
@@ -212,9 +212,9 @@ public class CrmFactory : ICrmFactory
             Notes = c.Notes,
             IsFavorite = c.IsFavorite,
             CreatedAt = c.CreatedAt,
-            TicketCount = ticketCounts.FirstOrDefault(x => x.ContactId == c.Id)?.Count ?? 0,
-            DealCount = dealCounts.FirstOrDefault(x => x.ContactId == c.Id)?.Count ?? 0,
-            ActivityCount = activityCounts.FirstOrDefault(x => x.ContactId == c.Id)?.Count ?? 0,
+            TicketCount = ticketCounts.FirstOrDefault(x => x.CrmContactId == c.Id)?.Count ?? 0,
+            DealCount = dealCounts.FirstOrDefault(x => x.CrmContactId == c.Id)?.Count ?? 0,
+            ActivityCount = activityCounts.FirstOrDefault(x => x.CrmContactId == c.Id)?.Count ?? 0,
         }).ToList();
     }
 
@@ -224,10 +224,10 @@ public class CrmFactory : ICrmFactory
             .FirstOrDefaultAsync(c => c.Id == contactId && c.CustomerId == customerId);
         if (contact == null) return null;
 
-        var ticketCount = await _ticketEs.GetAllQueryable().CountAsync(t => t.ContactId == contactId);
-        var dealCount = await _dealEs.GetAllQueryable().CountAsync(d => d.ContactId == contactId);
-        var activityCount = await _activityEs.GetAllQueryable().CountAsync(a => a.ContactId == contactId);
-        var taskCount = await _taskEs.GetAllQueryable().CountAsync(t => t.ContactId == contactId);
+        var ticketCount = await _ticketEs.GetAllQueryable().CountAsync(t => t.CrmContactId == contactId);
+        var dealCount = await _dealEs.GetAllQueryable().CountAsync(d => d.CrmContactId == contactId);
+        var activityCount = await _activityEs.GetAllQueryable().CountAsync(a => a.CrmContactId == contactId);
+        var taskCount = await _taskEs.GetAllQueryable().CountAsync(t => t.CrmContactId == contactId);
 
         return new CrmContactDto
         {
@@ -253,7 +253,7 @@ public class CrmFactory : ICrmFactory
     public async Task<(bool success, int id, string? error)> CreateContactAsync(
         CrmContactCreateDto dto, int customerId, int personnelId)
     {
-        var contact = new Contact
+        var contact = new CrmContact
         {
             FullName = dto.FullName,
             PhoneNumber = dto.PhoneNumber,
@@ -319,7 +319,7 @@ public class CrmFactory : ICrmFactory
 
         var tickets = await query
             .OrderByDescending(t => t.CreatedAt)
-            .Include(t => t.Contact)
+            .Include(t => t.CrmContact)
             .Include(t => t.AssignedToPersonnel).ThenInclude(p => p!.User)
             .Include(t => t.CreatedByPersonnel).ThenInclude(p => p.User)
             .ToListAsync();
@@ -331,7 +331,7 @@ public class CrmFactory : ICrmFactory
     {
         var ticket = await _ticketEs.GetAllQueryable()
             .Where(t => t.Id == ticketId && t.CustomerId == customerId)
-            .Include(t => t.Contact)
+            .Include(t => t.CrmContact)
             .Include(t => t.AssignedToPersonnel).ThenInclude(p => p!.User)
             .Include(t => t.CreatedByPersonnel).ThenInclude(p => p.User)
             .FirstOrDefaultAsync();
@@ -352,7 +352,7 @@ public class CrmFactory : ICrmFactory
             Description = dto.Description,
             PriorityId = dto.PriorityId,
             StatusId = TicketStatuses.Ids.Open,
-            ContactId = dto.ContactId,
+            CrmContactId = dto.CrmContactId,
             AssignedToPersonnelId = dto.AssignedToPersonnelId,
             CreatedByPersonnelId = personnelId,
             CustomerId = customerId
@@ -374,7 +374,7 @@ public class CrmFactory : ICrmFactory
         ticket.Description = dto.Description;
         ticket.PriorityId = dto.PriorityId;
         ticket.StatusId = dto.StatusId;
-        ticket.ContactId = dto.ContactId;
+        ticket.CrmContactId = dto.CrmContactId;
         ticket.AssignedToPersonnelId = dto.AssignedToPersonnelId;
         ticket.UpdatedAt = DateTime.UtcNow;
 
@@ -400,7 +400,7 @@ public class CrmFactory : ICrmFactory
 
         var deals = await query
             .OrderByDescending(d => d.CreatedAt)
-            .Include(d => d.Contact)
+            .Include(d => d.CrmContact)
             .Include(d => d.OwnerPersonnel).ThenInclude(p => p!.User)
             .Include(d => d.CreatedByPersonnel).ThenInclude(p => p.User)
             .ToListAsync();
@@ -412,7 +412,7 @@ public class CrmFactory : ICrmFactory
     {
         var deal = await _dealEs.GetAllQueryable()
             .Where(d => d.Id == dealId && d.CustomerId == customerId)
-            .Include(d => d.Contact)
+            .Include(d => d.CrmContact)
             .Include(d => d.OwnerPersonnel).ThenInclude(p => p!.User)
             .Include(d => d.CreatedByPersonnel).ThenInclude(p => p.User)
             .FirstOrDefaultAsync();
@@ -435,7 +435,7 @@ public class CrmFactory : ICrmFactory
             Probability = dto.Probability,
             ExpectedCloseDate = dto.ExpectedCloseDate,
             Notes = dto.Notes,
-            ContactId = dto.ContactId,
+            CrmContactId = dto.CrmContactId,
             OwnerPersonnelId = dto.OwnerPersonnelId ?? personnelId,
             CreatedByPersonnelId = personnelId,
             CustomerId = customerId
@@ -459,7 +459,7 @@ public class CrmFactory : ICrmFactory
         deal.Probability = dto.Probability;
         deal.ExpectedCloseDate = dto.ExpectedCloseDate;
         deal.Notes = dto.Notes;
-        deal.ContactId = dto.ContactId;
+        deal.CrmContactId = dto.CrmContactId;
         deal.OwnerPersonnelId = dto.OwnerPersonnelId;
         deal.UpdatedAt = DateTime.UtcNow;
 
@@ -493,7 +493,7 @@ public class CrmFactory : ICrmFactory
             .Where(a => a.CustomerId == customerId);
 
         if (contactId.HasValue)
-            query = query.Where(a => a.ContactId == contactId.Value);
+            query = query.Where(a => a.CrmContactId == contactId.Value);
         if (ticketId.HasValue)
             query = query.Where(a => a.TicketId == ticketId.Value);
         if (dealId.HasValue)
@@ -502,7 +502,7 @@ public class CrmFactory : ICrmFactory
         var activities = await query
             .OrderByDescending(a => a.CreatedAt)
             .Take(100)
-            .Include(a => a.Contact)
+            .Include(a => a.CrmContact)
             .Include(a => a.Personnel).ThenInclude(p => p.User)
             .ToListAsync();
 
@@ -517,7 +517,7 @@ public class CrmFactory : ICrmFactory
             TypeId = dto.TypeId,
             Summary = dto.Summary,
             Detail = dto.Detail,
-            ContactId = dto.ContactId,
+            CrmContactId = dto.CrmContactId,
             TicketId = dto.TicketId,
             DealId = dto.DealId,
             PersonnelId = personnelId,
@@ -545,7 +545,7 @@ public class CrmFactory : ICrmFactory
 
         var tasks = await query
             .OrderBy(t => t.DueDate)
-            .Include(t => t.Contact)
+            .Include(t => t.CrmContact)
             .Include(t => t.AssignedToPersonnel).ThenInclude(p => p.User)
             .Include(t => t.CreatedByPersonnel).ThenInclude(p => p.User)
             .ToListAsync();
@@ -562,7 +562,7 @@ public class CrmFactory : ICrmFactory
             Description = dto.Description,
             StatusId = CrmTaskStatuses.Ids.Todo,
             DueDate = dto.DueDate,
-            ContactId = dto.ContactId,
+            CrmContactId = dto.CrmContactId,
             TicketId = dto.TicketId,
             DealId = dto.DealId,
             AssignedToPersonnelId = dto.AssignedToPersonnelId,
@@ -586,7 +586,7 @@ public class CrmFactory : ICrmFactory
         task.Description = dto.Description;
         task.StatusId = dto.StatusId;
         task.DueDate = dto.DueDate;
-        task.ContactId = dto.ContactId;
+        task.CrmContactId = dto.CrmContactId;
         task.TicketId = dto.TicketId;
         task.DealId = dto.DealId;
         task.AssignedToPersonnelId = dto.AssignedToPersonnelId;
@@ -749,7 +749,7 @@ public class CrmFactory : ICrmFactory
         var response = new CrmSurveyResponse
         {
             SurveyId = dto.SurveyId,
-            ContactId = dto.ContactId,
+            CrmContactId = dto.CrmContactId,
             CallRecordId = dto.CallRecordId,
             RespondentPhone = dto.RespondentPhone,
             RespondentName = dto.RespondentName,
@@ -790,7 +790,7 @@ public class CrmFactory : ICrmFactory
         var responses = await _surveyResponseEs.GetAllQueryable()
             .Where(r => r.SurveyId == surveyId && r.CustomerId == customerId)
             .OrderByDescending(r => r.CreatedAt)
-            .Include(r => r.Contact)
+            .Include(r => r.CrmContact)
             .Include(r => r.CreatedByPersonnel).ThenInclude(p => p!.User)
             .Include(r => r.Answers)
             .ToListAsync();
@@ -799,9 +799,9 @@ public class CrmFactory : ICrmFactory
         {
             Id = r.Id,
             Uid = r.Uid,
-            ContactName = r.Contact?.FullName,
+            CrmContactName = r.CrmContact?.FullName,
             RespondentPhone = r.RespondentPhone,
-            RespondentName = r.RespondentName ?? r.Contact?.FullName,
+            RespondentName = r.RespondentName ?? r.CrmContact?.FullName,
             OverallScore = r.OverallScore,
             CompletedAt = r.CompletedAt,
             CreatedAt = r.CreatedAt,
@@ -942,8 +942,8 @@ public class CrmFactory : ICrmFactory
             PriorityId = t.PriorityId,
             PriorityName = priority?.Description,
             PriorityCss = priority?.CssClass,
-            ContactId = t.ContactId,
-            ContactName = t.Contact?.FullName,
+            CrmContactId = t.CrmContactId,
+            CrmContactName = t.CrmContact?.FullName,
             AssignedToPersonnelId = t.AssignedToPersonnelId,
             AssignedToName = t.AssignedToPersonnel?.User?.FullName,
             CreatedByName = t.CreatedByPersonnel?.User?.FullName,
@@ -968,8 +968,8 @@ public class CrmFactory : ICrmFactory
             ExpectedCloseDate = d.ExpectedCloseDate,
             ActualCloseDate = d.ActualCloseDate,
             Notes = d.Notes,
-            ContactId = d.ContactId,
-            ContactName = d.Contact?.FullName,
+            CrmContactId = d.CrmContactId,
+            CrmContactName = d.CrmContact?.FullName,
             OwnerPersonnelId = d.OwnerPersonnelId,
             OwnerName = d.OwnerPersonnel?.User?.FullName,
             CreatedByName = d.CreatedByPersonnel?.User?.FullName,
@@ -989,8 +989,8 @@ public class CrmFactory : ICrmFactory
             TypeCss = type?.CssClass,
             Summary = a.Summary,
             Detail = a.Detail,
-            ContactId = a.ContactId,
-            ContactName = a.Contact?.FullName,
+            CrmContactId = a.CrmContactId,
+            CrmContactName = a.CrmContact?.FullName,
             TicketId = a.TicketId,
             DealId = a.DealId,
             CallRecordId = a.CallRecordId,
@@ -1011,8 +1011,8 @@ public class CrmFactory : ICrmFactory
             StatusName = status?.Description,
             StatusCss = status?.CssClass,
             DueDate = t.DueDate,
-            ContactId = t.ContactId,
-            ContactName = t.Contact?.FullName,
+            CrmContactId = t.CrmContactId,
+            CrmContactName = t.CrmContact?.FullName,
             TicketId = t.TicketId,
             DealId = t.DealId,
             AssignedToPersonnelId = t.AssignedToPersonnelId,

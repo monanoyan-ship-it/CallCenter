@@ -45,11 +45,11 @@ public static class CampaignContactStatuses
     }
 }
 
-public static class ContactSources
+public static class CrmContactSources
 {
-    public static readonly TypeItem Manual = new(1, "Manual", "ContactSource.Manual", "Manuel eklendi", "bi-person-plus", "bg-primary", 1, isDefault: true);
-    public static readonly TypeItem LDAP = new(2, "LDAP", "ContactSource.LDAP", "LDAP/Active Directory", "bi-diagram-3-fill", "bg-info", 2);
-    public static readonly TypeItem CSV = new(3, "CSV", "ContactSource.CSV", "CSV dosyasindan icerildi", "bi-filetype-csv", "bg-success", 3);
+    public static readonly TypeItem Manual = new(1, "Manual", "CrmContactSource.Manual", "Manuel eklendi", "bi-person-plus", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem LDAP = new(2, "LDAP", "CrmContactSource.LDAP", "LDAP/Active Directory", "bi-diagram-3-fill", "bg-info", 2);
+    public static readonly TypeItem CSV = new(3, "CSV", "CrmContactSource.CSV", "CSV dosyasindan icerildi", "bi-filetype-csv", "bg-success", 3);
 
     public static IEnumerable<TypeItem> All => new[] { Manual, LDAP, CSV };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);

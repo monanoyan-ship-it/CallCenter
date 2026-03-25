@@ -56,7 +56,7 @@ public class CrmSurveyQuestionCreateDto
 public class CrmSurveyResponseCreateDto
 {
     public int SurveyId { get; set; }
-    public int? ContactId { get; set; }
+    public int? CrmContactId { get; set; }
     public int? CallRecordId { get; set; }
     public string? RespondentPhone { get; set; }
     public string? RespondentName { get; set; }
@@ -74,7 +74,7 @@ public class CrmSurveyResponseDto
 {
     public int Id { get; set; }
     public Guid Uid { get; set; }
-    public string? ContactName { get; set; }
+    public string? CrmContactName { get; set; }
     public string? RespondentPhone { get; set; }
     public string? RespondentName { get; set; }
     public decimal? OverallScore { get; set; }

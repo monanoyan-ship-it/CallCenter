@@ -8,7 +8,7 @@ namespace CallCenter.Api.Services.Connectors;
 
 /// <summary>
 /// HubSpot CRM connector.
-/// CRM v3 API ile Contact arama, Call engagement olusturma.
+/// CRM v3 API ile CrmContact arama, Call engagement olusturma.
 /// OAuth2 token refresh destegi.
 /// </summary>
 public class HubSpotConnectorAdapter : IConnectorAdapter
@@ -134,7 +134,7 @@ public class HubSpotConnectorAdapter : IConnectorAdapter
 
             if (response.IsSuccessStatusCode)
             {
-                // Contact ile iliskilendir (varsa)
+                // CrmContact ile iliskilendir (varsa)
                 if (!string.IsNullOrEmpty(payload.ExternalContactId))
                 {
                     var responseJson = await response.Content.ReadAsStringAsync();

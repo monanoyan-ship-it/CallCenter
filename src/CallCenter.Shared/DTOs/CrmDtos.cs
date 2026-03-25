@@ -1,6 +1,6 @@
 namespace CallCenter.Shared.DTOs;
 
-// ─── Contact (360 derece gorunum) ───
+// ─── CrmContact (360 derece gorunum) ───
 
 public class CrmContactDto
 {
@@ -55,8 +55,8 @@ public class CrmTicketDto
     public int PriorityId { get; set; }
     public string? PriorityName { get; set; }
     public string? PriorityCss { get; set; }
-    public int? ContactId { get; set; }
-    public string? ContactName { get; set; }
+    public int? CrmContactId { get; set; }
+    public string? CrmContactName { get; set; }
     public int? AssignedToPersonnelId { get; set; }
     public string? AssignedToName { get; set; }
     public string? CreatedByName { get; set; }
@@ -70,7 +70,7 @@ public class CrmTicketCreateDto
     public string Subject { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int PriorityId { get; set; } = 2;
-    public int? ContactId { get; set; }
+    public int? CrmContactId { get; set; }
     public int? AssignedToPersonnelId { get; set; }
 }
 
@@ -94,8 +94,8 @@ public class CrmDealDto
     public DateTime? ExpectedCloseDate { get; set; }
     public DateTime? ActualCloseDate { get; set; }
     public string? Notes { get; set; }
-    public int? ContactId { get; set; }
-    public string? ContactName { get; set; }
+    public int? CrmContactId { get; set; }
+    public string? CrmContactName { get; set; }
     public int? OwnerPersonnelId { get; set; }
     public string? OwnerName { get; set; }
     public string? CreatedByName { get; set; }
@@ -111,7 +111,7 @@ public class CrmDealCreateDto
     public int Probability { get; set; }
     public DateTime? ExpectedCloseDate { get; set; }
     public string? Notes { get; set; }
-    public int? ContactId { get; set; }
+    public int? CrmContactId { get; set; }
     public int? OwnerPersonnelId { get; set; }
 }
 
@@ -128,8 +128,8 @@ public class CrmActivityDto
     public string? TypeCss { get; set; }
     public string? Summary { get; set; }
     public string? Detail { get; set; }
-    public int? ContactId { get; set; }
-    public string? ContactName { get; set; }
+    public int? CrmContactId { get; set; }
+    public string? CrmContactName { get; set; }
     public int? TicketId { get; set; }
     public int? DealId { get; set; }
     public int? CallRecordId { get; set; }
@@ -142,7 +142,7 @@ public class CrmActivityCreateDto
     public int TypeId { get; set; } = 1;
     public string? Summary { get; set; }
     public string? Detail { get; set; }
-    public int? ContactId { get; set; }
+    public int? CrmContactId { get; set; }
     public int? TicketId { get; set; }
     public int? DealId { get; set; }
 }
@@ -158,8 +158,8 @@ public class CrmTaskDto
     public string? StatusName { get; set; }
     public string? StatusCss { get; set; }
     public DateTime? DueDate { get; set; }
-    public int? ContactId { get; set; }
-    public string? ContactName { get; set; }
+    public int? CrmContactId { get; set; }
+    public string? CrmContactName { get; set; }
     public int? TicketId { get; set; }
     public int? DealId { get; set; }
     public string? AssignedToName { get; set; }
@@ -174,7 +174,7 @@ public class CrmTaskCreateDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime? DueDate { get; set; }
-    public int? ContactId { get; set; }
+    public int? CrmContactId { get; set; }
     public int? TicketId { get; set; }
     public int? DealId { get; set; }
     public int AssignedToPersonnelId { get; set; }
@@ -189,7 +189,7 @@ public class CrmTaskUpdateDto : CrmTaskCreateDto
 
 public class CrmCallerIdDto
 {
-    public int ContactId { get; set; }
+    public int CrmContactId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? Company { get; set; }
     public string? Email { get; set; }

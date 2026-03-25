@@ -86,13 +86,13 @@ public class IntegrationEnumTests
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ContactSyncDirections
+    // CrmContactSyncDirections
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void ContactSyncDirections_All_ShouldHave4Items()
+    public void CrmContactSyncDirections_All_ShouldHave4Items()
     {
-        ContactSyncDirections.All.Count().Should().Be(4);
+        CrmContactSyncDirections.All.Count().Should().Be(4);
     }
 
     [Theory]
@@ -100,9 +100,9 @@ public class IntegrationEnumTests
     [InlineData(1, "ToExternal")]
     [InlineData(2, "FromExternal")]
     [InlineData(3, "Bidirectional")]
-    public void ContactSyncDirections_GetById_ShouldReturnCorrect(int id, string expectedSystemName)
+    public void CrmContactSyncDirections_GetById_ShouldReturnCorrect(int id, string expectedSystemName)
     {
-        var result = ContactSyncDirections.GetById(id);
+        var result = CrmContactSyncDirections.GetById(id);
 
         result.Should().NotBeNull();
         result!.SystemName.Should().Be(expectedSystemName);

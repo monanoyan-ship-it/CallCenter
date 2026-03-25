@@ -24,8 +24,8 @@ public static class WebhookEventTypes
     public static readonly TypeItem QueueThresholdExceeded = new(21, "queue.threshold_exceeded", "WebhookEvent.QueueThresholdExceeded", "Kuyruk esigi asildi", "bi-exclamation-triangle-fill", "bg-danger", 21);
 
     // ─── CRM Events (30-49) ───
-    public static readonly TypeItem ContactCreated = new(30, "contact.created", "WebhookEvent.ContactCreated", "Kisi olusturuldu", "bi-person-plus-fill", "bg-success", 30);
-    public static readonly TypeItem ContactUpdated = new(31, "contact.updated", "WebhookEvent.ContactUpdated", "Kisi guncellendi", "bi-person-fill-check", "bg-info", 31);
+    public static readonly TypeItem CrmContactCreated = new(30, "contact.created", "WebhookEvent.CrmContactCreated", "Kisi olusturuldu", "bi-person-plus-fill", "bg-success", 30);
+    public static readonly TypeItem CrmContactUpdated = new(31, "contact.updated", "WebhookEvent.CrmContactUpdated", "Kisi guncellendi", "bi-person-fill-check", "bg-info", 31);
     public static readonly TypeItem TicketCreated = new(40, "ticket.created", "WebhookEvent.TicketCreated", "Talep olusturuldu", "bi-ticket-detailed-fill", "bg-warning text-dark", 40);
     public static readonly TypeItem TicketUpdated = new(41, "ticket.updated", "WebhookEvent.TicketUpdated", "Talep guncellendi", "bi-ticket-fill", "bg-info", 41);
 
@@ -34,7 +34,7 @@ public static class WebhookEventTypes
         CallStarted, CallAnswered, CallEnded, CallMissed, CallTransferred, CallHeld,
         AgentStatusChanged, AgentLoggedIn, AgentLoggedOut,
         QueueUpdated, QueueThresholdExceeded,
-        ContactCreated, ContactUpdated, TicketCreated, TicketUpdated
+        CrmContactCreated, CrmContactUpdated, TicketCreated, TicketUpdated
     };
 
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -44,7 +44,7 @@ public static class WebhookEventTypes
     public static IEnumerable<TypeItem> CallEvents => new[] { CallStarted, CallAnswered, CallEnded, CallMissed, CallTransferred, CallHeld };
     public static IEnumerable<TypeItem> AgentEvents => new[] { AgentStatusChanged, AgentLoggedIn, AgentLoggedOut };
     public static IEnumerable<TypeItem> QueueEvents => new[] { QueueUpdated, QueueThresholdExceeded };
-    public static IEnumerable<TypeItem> CrmEvents => new[] { ContactCreated, ContactUpdated, TicketCreated, TicketUpdated };
+    public static IEnumerable<TypeItem> CrmEvents => new[] { CrmContactCreated, CrmContactUpdated, TicketCreated, TicketUpdated };
 
     public static class Ids
     {
@@ -63,8 +63,8 @@ public static class WebhookEventTypes
         public const int QueueUpdated = 20;
         public const int QueueThresholdExceeded = 21;
         // CRM
-        public const int ContactCreated = 30;
-        public const int ContactUpdated = 31;
+        public const int CrmContactCreated = 30;
+        public const int CrmContactUpdated = 31;
         public const int TicketCreated = 40;
         public const int TicketUpdated = 41;
     }

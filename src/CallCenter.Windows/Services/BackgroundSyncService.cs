@@ -301,13 +301,13 @@ public class BackgroundSyncService
             catch (Exception ex)
             {
                 failCount++;
-                _logger.LogWarning(ex, "Contact sync basarisiz: {Uid} ({Op})", contact.Uid, contact.Operation);
+                _logger.LogWarning(ex, "CrmContact sync basarisiz: {Uid} ({Op})", contact.Uid, contact.Operation);
             }
         }
 
         if (successCount > 0 || failCount > 0)
         {
-            _logger.LogInformation("Contact sync: {Success} basarili, {Fail} basarisiz", successCount, failCount);
+            _logger.LogInformation("CrmContact sync: {Success} basarili, {Fail} basarisiz", successCount, failCount);
         }
     }
 

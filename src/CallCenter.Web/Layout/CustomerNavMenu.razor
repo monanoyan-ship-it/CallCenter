@@ -165,8 +165,8 @@
             </div>
         }
 
-        @* ─── KALİTE YÖNETİMİ (QualityManagement modulu, Operator haric) ─── *@
-        @if (HasModule(PortalModules.Ids.QualityManagement) && !IsOperator)
+        @* ─── KALİTE YÖNETİMİ (CrmQualityManagement modulu, Operator haric) ─── *@
+        @if (HasModule(PortalModules.Ids.CrmQualityManagement) && !IsOperator)
         {
             <div class="nav-group">
                 <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
@@ -183,7 +183,7 @@
                         <i class="bi bi-card-checklist"></i>
                         <span>Degerlendirmeler</span>
                     </NavLink>
-                    @if (IsFirmaAdmin || HasPermission(CustomerPermissionTypes.Ids.QualityManage))
+                    @if (IsFirmaAdmin || HasPermission(CustomerPermissionTypes.Ids.CrmQualityManage))
                     {
                         <NavLink class="nav-link" href="customer/quality/checklists">
                             <i class="bi bi-list-check"></i>

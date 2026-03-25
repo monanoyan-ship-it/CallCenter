@@ -6,7 +6,7 @@ namespace CallCenter.Windows.LocalData.Providers;
 /// <summary>
 /// Dosya tabanli ILocalRepository implementasyonu.
 /// %LOCALAPPDATA%\CallCenter\Data\ altinda JSON dosyalarinda veri saklar.
-/// Mevcut ContactService/SecureStorage ile ayni pattern.
+/// Mevcut CrmContactService/SecureStorage ile ayni pattern.
 /// </summary>
 public class FileLocalRepository : ILocalRepository
 {

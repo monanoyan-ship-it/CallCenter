@@ -70,8 +70,8 @@ public class CrmSurveyResponse
     public CrmSurvey Survey { get; set; } = null!;
 
     /// <summary>Yanit veren kisi (CRM contact)</summary>
-    public int? ContactId { get; set; }
-    public Contact? Contact { get; set; }
+    public int? CrmContactId { get; set; }
+    public CrmContact? CrmContact { get; set; }
 
     /// <summary>Ilgili arama kaydi</summary>
     public int? CallRecordId { get; set; }

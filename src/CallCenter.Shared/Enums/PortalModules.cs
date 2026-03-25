@@ -19,14 +19,14 @@ public static class PortalModules
     // Yeni moduller (Faz 4 — sektorel arastirma sonucu)
     public static readonly TypeItem SipSettings = new(9, "SipSettings", "PortalModule.SipSettings", "SIP/VoIP yapilandirmasi", "bi-router-fill", "bg-teal", 9, isDefault: true);
     public static readonly TypeItem CallRecords = new(10, "CallRecords", "PortalModule.CallRecords", "Arama kaydi dinleme/yonetimi", "bi-record-circle", "bg-orange", 10, isDefault: true);
-    public static readonly TypeItem QualityManagement = new(11, "QualityManagement", "PortalModule.QualityManagement", "Kalite degerlendirme formlari", "bi-clipboard-check", "bg-pink", 11);
+    public static readonly TypeItem CrmQualityManagement = new(11, "CrmQualityManagement", "PortalModule.CrmQualityManagement", "Kalite degerlendirme formlari", "bi-clipboard-check", "bg-pink", 11);
     public static readonly TypeItem KnowledgeBase = new(12, "KnowledgeBase", "PortalModule.KnowledgeBase", "Bilgi bankasi, agent senaryolari", "bi-book", "bg-cyan", 12);
     public static readonly TypeItem Integrations = new(13, "Integrations", "PortalModule.Integrations", "API/webhook/CRM entegrasyonlari", "bi-plug-fill", "bg-purple", 13);
     public static readonly TypeItem Campaigns = new(14, "Campaigns", "PortalModule.Campaigns", "Giden arama kampanyalari", "bi-megaphone-fill", "bg-yellow text-dark", 14);
     public static readonly TypeItem KvkkCompliance = new(15, "KvkkCompliance", "PortalModule.KvkkCompliance", "KVKK uyumluluk yonetimi", "bi-shield-check", "bg-dark", 15);
     public static readonly TypeItem Messaging = new(16, "Messaging", "PortalModule.Messaging", "Mesajlasma", "bi-chat-dots-fill", "bg-info", 16);
 
-    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, QualityManagement, KnowledgeBase, Integrations, Campaigns, KvkkCompliance, Messaging };
+    public static IEnumerable<TypeItem> All => new[] { Dashboard, Calls, Reports, Agents, Queues, Settings, Personnel, Organizations, SipSettings, CallRecords, CrmQualityManagement, KnowledgeBase, Integrations, Campaigns, KvkkCompliance, Messaging };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static TypeItem? GetBySystemName(string systemName) => All.FirstOrDefault(x => x.SystemName == systemName);
 
@@ -45,7 +45,7 @@ public static class PortalModules
         public const int Organizations = 8;
         public const int SipSettings = 9;
         public const int CallRecords = 10;
-        public const int QualityManagement = 11;
+        public const int CrmQualityManagement = 11;
         public const int KnowledgeBase = 12;
         public const int Integrations = 13;
         public const int Campaigns = 14;

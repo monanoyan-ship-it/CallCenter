@@ -272,8 +272,8 @@ public class NativeSipService : ISipService
                     if (publicEp != null)
                     {
                         _stunPublicAddress = publicEp.Address;
-                        // WSS'de SIP ContactHost degistirmeyiz (sinyallesme WSS uzerinden)
-                        // Ama UDP/TCP/TLS'de ContactHost'u STUN adresiyle set ediyoruz
+                        // WSS'de SIP CrmContactHost degistirmeyiz (sinyallesme WSS uzerinden)
+                        // Ama UDP/TCP/TLS'de CrmContactHost'u STUN adresiyle set ediyoruz
                         if (transport is not "WSS" and not "WS")
                             _sipTransport.ContactHost = publicEp.Address.ToString();
                         Log($"[SIP] STUN public address: {publicEp} (transport={transport})");

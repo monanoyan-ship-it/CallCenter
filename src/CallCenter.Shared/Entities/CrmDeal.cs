@@ -28,8 +28,8 @@ public class CrmDeal
     public string? Notes { get; set; }
 
     /// <summary>Ilgili kisi</summary>
-    public int? ContactId { get; set; }
-    public Contact? Contact { get; set; }
+    public int? CrmContactId { get; set; }
+    public CrmContact? CrmContact { get; set; }
 
     /// <summary>Sorumlu personel</summary>
     public int? OwnerPersonnelId { get; set; }

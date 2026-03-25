@@ -12,18 +12,18 @@ namespace CallCenter.Windows.Services;
 /// WRITE: API'ye yazar, basarisiz olursa lokal buffer'a kaydeder.
 /// BackgroundSyncService buffer'daki kayitlari periyodik olarak tekrar dener.
 /// </summary>
-public class ContactService
+public class CrmContactService
 {
     private readonly HttpClient _http;
     private readonly ILocalRepository _localRepo;
 
-    public ContactService(HttpClient http, ILocalRepository localRepo)
+    public CrmContactService(HttpClient http, ILocalRepository localRepo)
     {
         _http = http;
         _localRepo = localRepo;
     }
 
-    public async Task<List<ContactDto>> GetAllAsync(string? search = null)
+    public async Task<List<CrmContactSimpleDto>> GetAllAsync(string? search = null)
     {
         try
         {
@@ -31,7 +31,7 @@ public class ContactService
                 ? "api/contact?pageSize=1000"
                 : $"api/contact?search={Uri.EscapeDataString(search)}&pageSize=1000";
 
-            var result = await _http.GetFromJsonAsync<List<ContactDto>>(url);
+            var result = await _http.GetFromJsonAsync<List<CrmContactSimpleDto>>(url);
             return result ?? new();
         }
         catch
@@ -40,17 +40,17 @@ public class ContactService
         }
     }
 
-    public async Task<List<ContactDto>> GetFavoritesAsync()
+    public async Task<List<CrmContactSimpleDto>> GetFavoritesAsync()
     {
         var all = await GetAllAsync();
         return all.Where(c => c.IsFavorite).ToList();
     }
 
-    public async Task<ContactDto?> GetByIdAsync(int id)
+    public async Task<CrmContactSimpleDto?> GetByIdAsync(int id)
     {
         try
         {
-            return await _http.GetFromJsonAsync<ContactDto>($"api/contact/{id}");
+            return await _http.GetFromJsonAsync<CrmContactSimpleDto>($"api/contact/{id}");
         }
         catch
         {

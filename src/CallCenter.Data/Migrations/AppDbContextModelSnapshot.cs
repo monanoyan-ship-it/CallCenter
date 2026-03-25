@@ -393,7 +393,7 @@ namespace CallCenter.Data.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("ContactId")
+                    b.Property<int>("CrmContactId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("LastAttemptAt")
@@ -409,11 +409,11 @@ namespace CallCenter.Data.Migrations
 
                     b.HasIndex("CallRecordId");
 
-                    b.HasIndex("ContactId");
+                    b.HasIndex("CrmContactId");
 
                     b.HasIndex("AssignedPersonnelId", "StatusId");
 
-                    b.HasIndex("CampaignId", "ContactId")
+                    b.HasIndex("CampaignId", "CrmContactId")
                         .IsUnique();
 
                     b.ToTable("CampaignContacts");
@@ -491,7 +491,64 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("ConsentRecords");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.Contact", b =>
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmActivity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CallRecordId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CrmContactId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DealId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<int>("PersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("TicketId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CallRecordId");
+
+                    b.HasIndex("CrmContactId");
+
+                    b.HasIndex("DealId");
+
+                    b.HasIndex("PersonnelId");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("CustomerId", "CreatedAt");
+
+                    b.ToTable("CrmActivities");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmContact", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -562,64 +619,7 @@ namespace CallCenter.Data.Migrations
 
                     b.HasIndex("OwnerUserId", "FullName");
 
-                    b.ToTable("Contacts");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.CrmActivity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CallRecordId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ContactId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("DealId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Detail")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<int>("PersonnelId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Summary")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int?>("TicketId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TypeId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CallRecordId");
-
-                    b.HasIndex("ContactId");
-
-                    b.HasIndex("DealId");
-
-                    b.HasIndex("PersonnelId");
-
-                    b.HasIndex("TicketId");
-
-                    b.HasIndex("CustomerId", "CreatedAt");
-
-                    b.ToTable("CrmActivities");
+                    b.ToTable("CrmContacts");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmContactTag", b =>
@@ -658,7 +658,7 @@ namespace CallCenter.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ContactId")
+                    b.Property<int>("CrmContactId")
                         .HasColumnType("integer");
 
                     b.Property<int>("TagId")
@@ -668,7 +668,7 @@ namespace CallCenter.Data.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.HasIndex("ContactId", "TagId")
+                    b.HasIndex("CrmContactId", "TagId")
                         .IsUnique();
 
                     b.ToTable("CrmContactTagLinks");
@@ -685,13 +685,13 @@ namespace CallCenter.Data.Migrations
                     b.Property<DateTime?>("ActualCloseDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ContactId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CreatedByPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CrmContactId")
                         .HasColumnType("integer");
 
                     b.Property<int>("CustomerId")
@@ -730,9 +730,9 @@ namespace CallCenter.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ContactId");
-
                     b.HasIndex("CreatedByPersonnelId");
+
+                    b.HasIndex("CrmContactId");
 
                     b.HasIndex("OwnerPersonnelId");
 
@@ -742,6 +742,377 @@ namespace CallCenter.Data.Migrations
                     b.HasIndex("CustomerId", "StageId");
 
                     b.ToTable("CrmDeals");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnswerText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("AppliedPenaltyTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("EarnedPoints")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("EvaluationId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("GivenPoints")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsNotApplicable")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPenaltyApplied")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecommendationNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("EvaluationId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("CrmQualityAnswers");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityAnswerSubCriteriaSelection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnswerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("SelectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SubCriteriaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubCriteriaId");
+
+                    b.HasIndex("AnswerId", "SubCriteriaId")
+                        .IsUnique();
+
+                    b.ToTable("CrmQualityAnswerSubCriteriaSelections");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityChecklist", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("HideGroupNames")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsScored")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MaxTotalPoints")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ScoringMethodId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CrmQualityChecklists");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityEvaluation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CallRecordId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ChecklistId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("EvaluatedPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EvaluationComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("EvaluatorPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FormOpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("MaxScore")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("RedCardCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("ScorePercentage")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("TotalScore")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("YellowCardCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CallRecordId");
+
+                    b.HasIndex("ChecklistId");
+
+                    b.HasIndex("EvaluatedPersonnelId");
+
+                    b.HasIndex("EvaluatorPersonnelId");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId", "StatusId");
+
+                    b.ToTable("CrmQualityEvaluations");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowComment")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ChecklistId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GroupName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("HelpText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PenaltyTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ScoringTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ShowScoreInput")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("WeightPoints")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistId", "Order");
+
+                    b.ToTable("CrmQualityQuestions");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityQuestionSubCriteria", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("WeightPoints")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId", "Order");
+
+                    b.ToTable("CrmQualityQuestionSubCriteria");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityScoreThreshold", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ChecklistId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SuccessThreshold")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WarningThreshold")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistId");
+
+                    b.HasIndex("CustomerId", "ChecklistId")
+                        .IsUnique();
+
+                    b.ToTable("CrmQualityScoreThresholds");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmSurvey", b =>
@@ -881,13 +1252,13 @@ namespace CallCenter.Data.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ContactId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("CreatedByPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CrmContactId")
                         .HasColumnType("integer");
 
                     b.Property<int>("CustomerId")
@@ -915,9 +1286,9 @@ namespace CallCenter.Data.Migrations
 
                     b.HasIndex("CallRecordId");
 
-                    b.HasIndex("ContactId");
-
                     b.HasIndex("CreatedByPersonnelId");
+
+                    b.HasIndex("CrmContactId");
 
                     b.HasIndex("CustomerId");
 
@@ -943,13 +1314,13 @@ namespace CallCenter.Data.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ContactId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CreatedByPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CrmContactId")
                         .HasColumnType("integer");
 
                     b.Property<int>("CustomerId")
@@ -978,9 +1349,9 @@ namespace CallCenter.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ContactId");
-
                     b.HasIndex("CreatedByPersonnelId");
+
+                    b.HasIndex("CrmContactId");
 
                     b.HasIndex("DealId");
 
@@ -1010,13 +1381,13 @@ namespace CallCenter.Data.Migrations
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ContactId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CreatedByPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CrmContactId")
                         .HasColumnType("integer");
 
                     b.Property<int>("CustomerId")
@@ -1049,9 +1420,9 @@ namespace CallCenter.Data.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("ContactId");
-
                     b.HasIndex("CreatedByPersonnelId");
+
+                    b.HasIndex("CrmContactId");
 
                     b.HasIndex("Uid")
                         .IsUnique();
@@ -2191,11 +2562,11 @@ namespace CallCenter.Data.Migrations
                     b.Property<bool>("AutoLogCalls")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("ContactSyncDirectionId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CrmContactSyncDirectionId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
@@ -2477,377 +2848,6 @@ namespace CallCenter.Data.Migrations
                     b.HasIndex("CustomerId", "TypeId", "IsActive");
 
                     b.ToTable("PrivacyNotices");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityAnswer", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AnswerText")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("AppliedPenaltyTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("EarnedPoints")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("EvaluationId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("GivenPoints")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("IsNotApplicable")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPenaltyApplied")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("QuestionId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("RecommendationNotes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuestionId");
-
-                    b.HasIndex("EvaluationId", "QuestionId")
-                        .IsUnique();
-
-                    b.ToTable("QualityAnswers");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityAnswerSubCriteriaSelection", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AnswerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("SelectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SubCriteriaId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SubCriteriaId");
-
-                    b.HasIndex("AnswerId", "SubCriteriaId")
-                        .IsUnique();
-
-                    b.ToTable("QualityAnswerSubCriteriaSelections");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityChecklist", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("HideGroupNames")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsScored")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal>("MaxTotalPoints")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("ScoringMethodId")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("Uid")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ValidFrom")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ValidUntil")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Uid")
-                        .IsUnique();
-
-                    b.HasIndex("CustomerId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("QualityChecklists");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityEvaluation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CallRecordId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ChecklistId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("EvaluatedPersonnelId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("EvaluationComment")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("EvaluatorPersonnelId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("FormOpenedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal?>("MaxScore")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("RedCardCount")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("ScorePercentage")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("TotalScore")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("Uid")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("YellowCardCount")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CallRecordId");
-
-                    b.HasIndex("ChecklistId");
-
-                    b.HasIndex("EvaluatedPersonnelId");
-
-                    b.HasIndex("EvaluatorPersonnelId");
-
-                    b.HasIndex("Uid")
-                        .IsUnique();
-
-                    b.HasIndex("CustomerId", "StatusId");
-
-                    b.ToTable("QualityEvaluations");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityQuestion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AllowComment")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ChecklistId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("GroupName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("HelpText")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsRequired")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("MaxPoints")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PenaltyTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ScoringTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("ShowScoreInput")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<decimal>("WeightPoints")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChecklistId", "Order");
-
-                    b.ToTable("QualityQuestions");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityQuestionSubCriteria", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("QuestionId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("WeightPoints")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuestionId", "Order");
-
-                    b.ToTable("QualityQuestionSubCriteria");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityScoreThreshold", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("ChecklistId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("SuccessThreshold")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("WarningThreshold")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChecklistId");
-
-                    b.HasIndex("CustomerId", "ChecklistId")
-                        .IsUnique();
-
-                    b.ToTable("QualityScoreThresholds");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Queue", b =>
@@ -4635,9 +4635,9 @@ namespace CallCenter.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
                         .WithMany()
-                        .HasForeignKey("ContactId")
+                        .HasForeignKey("CrmContactId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -4647,7 +4647,7 @@ namespace CallCenter.Data.Migrations
 
                     b.Navigation("Campaign");
 
-                    b.Navigation("Contact");
+                    b.Navigation("CrmContact");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.ConsentRecord", b =>
@@ -4661,23 +4661,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.Contact", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CallCenter.Shared.Entities.User", "OwnerUser")
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("OwnerUser");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmActivity", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.CallRecord", "CallRecord")
@@ -4685,9 +4668,9 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("CallRecordId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
                         .WithMany()
-                        .HasForeignKey("ContactId")
+                        .HasForeignKey("CrmContactId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
@@ -4714,7 +4697,7 @@ namespace CallCenter.Data.Migrations
 
                     b.Navigation("CallRecord");
 
-                    b.Navigation("Contact");
+                    b.Navigation("CrmContact");
 
                     b.Navigation("Customer");
 
@@ -4723,6 +4706,23 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("Personnel");
 
                     b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmContact", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CallCenter.Shared.Entities.User", "OwnerUser")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("OwnerUser");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmContactTag", b =>
@@ -4738,35 +4738,35 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmContactTagLink", b =>
                 {
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
                         .WithMany()
-                        .HasForeignKey("ContactId")
+                        .HasForeignKey("CrmContactId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CallCenter.Shared.Entities.CrmContactTag", "Tag")
-                        .WithMany("ContactLinks")
+                        .WithMany("CrmContactLinks")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Contact");
+                    b.Navigation("CrmContact");
 
                     b.Navigation("Tag");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmDeal", b =>
                 {
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
-                        .WithMany()
-                        .HasForeignKey("ContactId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "CreatedByPersonnel")
                         .WithMany()
                         .HasForeignKey("CreatedByPersonnelId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
+                        .WithMany()
+                        .HasForeignKey("CrmContactId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany()
@@ -4779,13 +4779,144 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("OwnerPersonnelId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("Contact");
-
                     b.Navigation("CreatedByPersonnel");
+
+                    b.Navigation("CrmContact");
 
                     b.Navigation("Customer");
 
                     b.Navigation("OwnerPersonnel");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityAnswer", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityEvaluation", "Evaluation")
+                        .WithMany("Answers")
+                        .HasForeignKey("EvaluationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityQuestion", "Question")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Evaluation");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityAnswerSubCriteriaSelection", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityAnswer", "Answer")
+                        .WithMany("SubCriteriaSelections")
+                        .HasForeignKey("AnswerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityQuestionSubCriteria", "SubCriteria")
+                        .WithMany("Selections")
+                        .HasForeignKey("SubCriteriaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Answer");
+
+                    b.Navigation("SubCriteria");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityChecklist", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityEvaluation", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CallRecord", "CallRecord")
+                        .WithMany()
+                        .HasForeignKey("CallRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityChecklist", "Checklist")
+                        .WithMany("Evaluations")
+                        .HasForeignKey("ChecklistId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "EvaluatedPersonnel")
+                        .WithMany()
+                        .HasForeignKey("EvaluatedPersonnelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "EvaluatorPersonnel")
+                        .WithMany()
+                        .HasForeignKey("EvaluatorPersonnelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CallRecord");
+
+                    b.Navigation("Checklist");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("EvaluatedPersonnel");
+
+                    b.Navigation("EvaluatorPersonnel");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityQuestion", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityChecklist", "Checklist")
+                        .WithMany("Questions")
+                        .HasForeignKey("ChecklistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Checklist");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityQuestionSubCriteria", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityQuestion", "Question")
+                        .WithMany("SubCriteria")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityScoreThreshold", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CrmQualityChecklist", "Checklist")
+                        .WithMany()
+                        .HasForeignKey("ChecklistId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Checklist");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmSurvey", b =>
@@ -4844,14 +4975,14 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("CallRecordId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
-                        .WithMany()
-                        .HasForeignKey("ContactId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "CreatedByPersonnel")
                         .WithMany()
                         .HasForeignKey("CreatedByPersonnelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
+                        .WithMany()
+                        .HasForeignKey("CrmContactId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
@@ -4868,9 +4999,9 @@ namespace CallCenter.Data.Migrations
 
                     b.Navigation("CallRecord");
 
-                    b.Navigation("Contact");
-
                     b.Navigation("CreatedByPersonnel");
+
+                    b.Navigation("CrmContact");
 
                     b.Navigation("Customer");
 
@@ -4885,16 +5016,16 @@ namespace CallCenter.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
-                        .WithMany()
-                        .HasForeignKey("ContactId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "CreatedByPersonnel")
                         .WithMany()
                         .HasForeignKey("CreatedByPersonnelId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
+                        .WithMany()
+                        .HasForeignKey("CrmContactId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany()
@@ -4914,9 +5045,9 @@ namespace CallCenter.Data.Migrations
 
                     b.Navigation("AssignedToPersonnel");
 
-                    b.Navigation("Contact");
-
                     b.Navigation("CreatedByPersonnel");
+
+                    b.Navigation("CrmContact");
 
                     b.Navigation("Customer");
 
@@ -4937,16 +5068,16 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CallCenter.Shared.Entities.Contact", "Contact")
-                        .WithMany()
-                        .HasForeignKey("ContactId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "CreatedByPersonnel")
                         .WithMany()
                         .HasForeignKey("CreatedByPersonnelId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CrmContact", "CrmContact")
+                        .WithMany()
+                        .HasForeignKey("CrmContactId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany()
@@ -4958,9 +5089,9 @@ namespace CallCenter.Data.Migrations
 
                     b.Navigation("Category");
 
-                    b.Navigation("Contact");
-
                     b.Navigation("CreatedByPersonnel");
+
+                    b.Navigation("CrmContact");
 
                     b.Navigation("Customer");
                 });
@@ -5341,137 +5472,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("GreetingMessage");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityAnswer", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.QualityEvaluation", "Evaluation")
-                        .WithMany("Answers")
-                        .HasForeignKey("EvaluationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.QualityQuestion", "Question")
-                        .WithMany("Answers")
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Evaluation");
-
-                    b.Navigation("Question");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityAnswerSubCriteriaSelection", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.QualityAnswer", "Answer")
-                        .WithMany("SubCriteriaSelections")
-                        .HasForeignKey("AnswerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.QualityQuestionSubCriteria", "SubCriteria")
-                        .WithMany("Selections")
-                        .HasForeignKey("SubCriteriaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Answer");
-
-                    b.Navigation("SubCriteria");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityChecklist", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityEvaluation", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.CallRecord", "CallRecord")
-                        .WithMany()
-                        .HasForeignKey("CallRecordId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.QualityChecklist", "Checklist")
-                        .WithMany("Evaluations")
-                        .HasForeignKey("ChecklistId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "EvaluatedPersonnel")
-                        .WithMany()
-                        .HasForeignKey("EvaluatedPersonnelId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "EvaluatorPersonnel")
-                        .WithMany()
-                        .HasForeignKey("EvaluatorPersonnelId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CallRecord");
-
-                    b.Navigation("Checklist");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("EvaluatedPersonnel");
-
-                    b.Navigation("EvaluatorPersonnel");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityQuestion", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.QualityChecklist", "Checklist")
-                        .WithMany("Questions")
-                        .HasForeignKey("ChecklistId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Checklist");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityQuestionSubCriteria", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.QualityQuestion", "Question")
-                        .WithMany("SubCriteria")
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Question");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityScoreThreshold", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.QualityChecklist", "Checklist")
-                        .WithMany()
-                        .HasForeignKey("ChecklistId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Checklist");
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.Queue", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
@@ -5651,12 +5651,41 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmContactTag", b =>
                 {
-                    b.Navigation("ContactLinks");
+                    b.Navigation("CrmContactLinks");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmDeal", b =>
                 {
                     b.Navigation("Activities");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityAnswer", b =>
+                {
+                    b.Navigation("SubCriteriaSelections");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityChecklist", b =>
+                {
+                    b.Navigation("Evaluations");
+
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityEvaluation", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityQuestion", b =>
+                {
+                    b.Navigation("Answers");
+
+                    b.Navigation("SubCriteria");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.CrmQualityQuestionSubCriteria", b =>
+                {
+                    b.Navigation("Selections");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.CrmSurvey", b =>
@@ -5742,35 +5771,6 @@ namespace CallCenter.Data.Migrations
             modelBuilder.Entity("CallCenter.Shared.Entities.Language", b =>
                 {
                     b.Navigation("Translations");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityAnswer", b =>
-                {
-                    b.Navigation("SubCriteriaSelections");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityChecklist", b =>
-                {
-                    b.Navigation("Evaluations");
-
-                    b.Navigation("Questions");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityEvaluation", b =>
-                {
-                    b.Navigation("Answers");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityQuestion", b =>
-                {
-                    b.Navigation("Answers");
-
-                    b.Navigation("SubCriteria");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.QualityQuestionSubCriteria", b =>
-                {
-                    b.Navigation("Selections");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Queue", b =>

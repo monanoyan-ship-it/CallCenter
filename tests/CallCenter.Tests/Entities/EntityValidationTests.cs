@@ -22,12 +22,12 @@ public class EntityValidationTests
     }
 
     [Fact]
-    public void Contact_DefaultValues_AreCorrect()
+    public void CrmContact_DefaultValues_AreCorrect()
     {
-        var contact = new Contact();
+        var contact = new CrmContact();
 
         contact.Uid.Should().NotBeEmpty();
-        contact.SourceId.Should().Be(ContactSources.Ids.Manual);
+        contact.SourceId.Should().Be(CrmContactSources.Ids.Manual);
         contact.IsFavorite.Should().BeFalse();
         contact.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         contact.FullName.Should().BeEmpty();

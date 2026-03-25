@@ -11,7 +11,7 @@
 @inject CallCenter.Windows.Services.SecureStorage Storage
 @inject NavigationManager NavigationManager
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
-@inject CallCenter.Windows.Services.ContactService ContactService
+@inject CallCenter.Windows.Services.CrmContactService CrmContactService
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
 @using CallCenter.Windows.Models
@@ -302,7 +302,7 @@
                 <TasksPanel OnCallRequested="HandleCallFromContact" OnActiveCallbackChanged="@(id => _activeCallbackCallId = id)" />
             </div>
             <div style="display: @(sideTab == "contacts" ? "block" : "none")">
-                <ContactsPanel OnCallRequested="HandleCallFromContact" />
+                <CrmContactsPanel OnCallRequested="HandleCallFromContact" />
             </div>
             <div style="display: @(sideTab == "history" ? "block" : "none")">
                 <HistoryPanel />
@@ -419,7 +419,7 @@
     private bool _isSwitchingGateway;
     private string sideTab = "contacts";
     private string contactSearch = "";
-    private List<ContactDto>? contactResults;
+    private List<CrmContactSimpleDto>? contactResults;
     private string callNotes = "";
     private bool showNotesPanel;
     private bool isNotesSaving;
@@ -1201,9 +1201,9 @@
     {
         showContactPicker = true;
         contactSearch = "";
-        contactResults = await ContactService.GetFavoritesAsync();
+        contactResults = await CrmContactService.GetFavoritesAsync();
         if (contactResults.Count == 0)
-            contactResults = await ContactService.GetAllAsync();
+            contactResults = await CrmContactService.GetAllAsync();
     }
 
     private void CloseContactPicker() => showContactPicker = false;
@@ -1211,11 +1211,11 @@
     private async Task SearchContacts()
     {
         contactResults = string.IsNullOrWhiteSpace(contactSearch)
-            ? await ContactService.GetFavoritesAsync()
-            : await ContactService.GetAllAsync(contactSearch);
+            ? await CrmContactService.GetFavoritesAsync()
+            : await CrmContactService.GetAllAsync(contactSearch);
     }
 
-    private void PickContact(ContactDto contact)
+    private void PickContact(CrmContactSimpleDto contact)
     {
         phoneNumber = contact.PhoneNumber ?? "";
         showContactPicker = false;

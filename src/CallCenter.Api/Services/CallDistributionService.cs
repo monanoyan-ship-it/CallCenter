@@ -107,7 +107,7 @@ public class CallDistributionService
             DirectionId = callRecord.DirectionId,
             StatusId = CallStatuses.Ids.Ringing,
             QueueName = queue.Name,
-            CrmContactId = callerInfo?.ContactId,
+            CrmContactId = callerInfo?.CrmContactId,
             CrmContactName = callerInfo?.FullName,
             CrmContactCompany = callerInfo?.Company
         };

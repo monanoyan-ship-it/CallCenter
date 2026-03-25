@@ -73,7 +73,7 @@ public class IntegrationFactory : IIntegrationFactory
             IsActive = conn.IsActive,
             IsConnected = conn.IsConnected,
             AutoLogCalls = conn.AutoLogCalls,
-            ContactSyncDirectionId = conn.ContactSyncDirectionId,
+            CrmContactSyncDirectionId = conn.CrmContactSyncDirectionId,
             LastSyncAt = conn.LastSyncAt,
             LastError = conn.LastError,
             LastTestedAt = conn.LastTestedAt,
@@ -107,7 +107,7 @@ public class IntegrationFactory : IIntegrationFactory
             PlatformTypeId = dto.PlatformTypeId,
             Name = dto.Name,
             AutoLogCalls = dto.AutoLogCalls,
-            ContactSyncDirectionId = dto.ContactSyncDirectionId,
+            CrmContactSyncDirectionId = dto.CrmContactSyncDirectionId,
             IsActive = true,
             IsConnected = false
         };
@@ -133,7 +133,7 @@ public class IntegrationFactory : IIntegrationFactory
         if (dto.Name != null) conn.Name = dto.Name;
         if (dto.IsActive.HasValue) conn.IsActive = dto.IsActive.Value;
         if (dto.AutoLogCalls.HasValue) conn.AutoLogCalls = dto.AutoLogCalls.Value;
-        if (dto.ContactSyncDirectionId.HasValue) conn.ContactSyncDirectionId = dto.ContactSyncDirectionId.Value;
+        if (dto.CrmContactSyncDirectionId.HasValue) conn.CrmContactSyncDirectionId = dto.CrmContactSyncDirectionId.Value;
 
         if (dto.Credentials != null && dto.Credentials.Count > 0)
         {
@@ -500,7 +500,7 @@ public class IntegrationFactory : IIntegrationFactory
             IsActive = conn.IsActive,
             IsConnected = conn.IsConnected,
             AutoLogCalls = conn.AutoLogCalls,
-            ContactSyncDirectionId = conn.ContactSyncDirectionId,
+            CrmContactSyncDirectionId = conn.CrmContactSyncDirectionId,
             LastSyncAt = conn.LastSyncAt,
             LastError = conn.LastError,
             WebhookCount = conn.WebhookSubscriptions.Count,

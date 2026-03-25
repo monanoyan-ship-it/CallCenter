@@ -172,7 +172,7 @@ public class SipRequestHandler
                 Extension = fromUser,
                 RemoteEndPoint = remoteEp.GetIPEndPoint().ToString(),
                 RegisteredAt = DateTime.UtcNow,
-                ContactUri = contactUri?.ToString()
+                CrmContactUri = contactUri?.ToString()
             };
         }
 
@@ -200,6 +200,6 @@ public class AgentRegistration
 {
     public string Extension { get; set; } = string.Empty;
     public string RemoteEndPoint { get; set; } = string.Empty;
-    public string? ContactUri { get; set; }
+    public string? CrmContactUri { get; set; }
     public DateTime RegisteredAt { get; set; }
 }

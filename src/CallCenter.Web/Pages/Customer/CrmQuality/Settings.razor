@@ -1,0 +1,294 @@
+@page "/customer/quality/settings"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject ToastService Toast
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Kalite Ayarlari - CorpLynk</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-sliders me-2 text-primary"></i>Kalite Ayarlari
+    </h4>
+</div>
+
+@* ─── ESIK DEGERLERI ─── *@
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-speedometer me-2"></i>Puan Esik Degerleri</h6>
+        <button class="btn btn-primary btn-sm" @onclick="OpenThresholdForm">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Esik
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Esik degerleri, degerlendirme puanlarini renk kodlariyla siniflandirir.
+            <strong>Basari esigi</strong> ustuned yesildir, <strong>uyari esigi</strong> ile basari arasi saridir, altinda kirmizi gosterilir.
+            Forma ozel esik tanimlanirsa genel esik yerine o kullanilir.
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
+        }
+        else if (thresholds == null || thresholds.Count == 0)
+        {
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-speedometer fs-1 d-block mb-2 opacity-25"></i>
+                <span>Esik degeri tanimlanmamis.</span>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kapsam</th>
+                            <th class="text-center">Basari Esigi</th>
+                            <th class="text-center">Uyari Esigi</th>
+                            <th class="text-center" style="width:100px;">Onizleme</th>
+                            <th style="width:80px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in thresholds)
+                        {
+                            <tr>
+                                <td class="fw-medium small">
+                                    @if (t.ChecklistId.HasValue)
+                                    {
+                                        <i class="bi bi-clipboard-check me-1 text-primary"></i>
+                                        @(t.ChecklistName ?? $"Form #{t.ChecklistId}")
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-globe me-1 text-muted"></i>
+                                        <span>Genel (Tum Formlar)</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">%@t.SuccessThreshold</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning text-dark">%@t.WarningThreshold</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <span class="badge bg-danger" style="width:20px;" title="%0 - %@t.WarningThreshold">&nbsp;</span>
+                                        <span class="badge bg-warning" style="width:20px;" title="%@t.WarningThreshold - %@t.SuccessThreshold">&nbsp;</span>
+                                        <span class="badge bg-success" style="width:20px;" title="%@t.SuccessThreshold - %100">&nbsp;</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" title="Duzenle" @onclick="() => EditThreshold(t)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="Sil" @onclick="() => DeleteThreshold(t.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@* ─── THRESHOLD FORM MODAL ─── *@
+@if (showThresholdForm)
+{
+    <div class="modal-backdrop-custom" @onclick="() => showThresholdForm = false"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditingThreshold ? "Esik Degerini Duzenle" : "Yeni Esik Degeri")</h5>
+                    <button type="button" class="btn-close" @onclick="() => showThresholdForm = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(thresholdError))
+                    {
+                        <div class="alert alert-danger py-2 small">@thresholdError</div>
+                    }
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Kapsam</label>
+                            <select class="form-select form-select-sm" @bind="thresholdChecklistId">
+                                <option value="">Genel (Tum Formlar)</option>
+                                @if (availableChecklists != null)
+                                {
+                                    @foreach (var cl in availableChecklists)
+                                    {
+                                        <option value="@cl.Id">@cl.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Basari Esigi (%)</label>
+                            <input type="number" class="form-control form-control-sm" min="0" max="100" step="1" @bind="thresholdSuccess" />
+                            <div class="form-text small">Bu deger ve ustu <span class="text-success fw-bold">yesil</span> gosterilir.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Uyari Esigi (%)</label>
+                            <input type="number" class="form-control form-control-sm" min="0" max="100" step="1" @bind="thresholdWarning" />
+                            <div class="form-text small">Basari altinda bu deger ve ustu <span class="text-warning fw-bold">sari</span> gosterilir.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="() => showThresholdForm = false">Iptal</button>
+                    <button class="btn btn-primary btn-sm" @onclick="SaveThreshold" disabled="@isSavingThreshold">
+                        @if (isSavingThreshold)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-backdrop-custom {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+    }
+</style>
+
+@code {
+    private List<CrmQualityScoreThresholdDto>? thresholds;
+    private List<CrmQualityChecklistDto>? availableChecklists;
+    private bool isLoading = true;
+
+    // Threshold form
+    private bool showThresholdForm;
+    private bool isEditingThreshold;
+    private bool isSavingThreshold;
+    private string? thresholdChecklistId;
+    private decimal thresholdSuccess = 80;
+    private decimal thresholdWarning = 60;
+    private string? thresholdError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadThresholds(), LoadChecklists());
+    }
+
+    private async Task LoadThresholds()
+    {
+        isLoading = true;
+        try
+        {
+            thresholds = await Http.GetFromJsonAsync<List<CrmQualityScoreThresholdDto>>("api/quality/thresholds");
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Esik degerleri yuklenemedi: {ex.Message}");
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task LoadChecklists()
+    {
+        try
+        {
+            availableChecklists = await Http.GetFromJsonAsync<List<CrmQualityChecklistDto>>("api/quality/checklists");
+        }
+        catch { }
+    }
+
+    private void OpenThresholdForm()
+    {
+        isEditingThreshold = false;
+        thresholdChecklistId = null;
+        thresholdSuccess = 80;
+        thresholdWarning = 60;
+        thresholdError = null;
+        showThresholdForm = true;
+    }
+
+    private void EditThreshold(CrmQualityScoreThresholdDto t)
+    {
+        isEditingThreshold = true;
+        thresholdChecklistId = t.ChecklistId?.ToString();
+        thresholdSuccess = t.SuccessThreshold;
+        thresholdWarning = t.WarningThreshold;
+        thresholdError = null;
+        showThresholdForm = true;
+    }
+
+    private async Task SaveThreshold()
+    {
+        if (thresholdWarning >= thresholdSuccess)
+        {
+            thresholdError = "Uyari esigi, basari esiginden kucuk olmalidir.";
+            return;
+        }
+
+        isSavingThreshold = true;
+        thresholdError = null;
+        try
+        {
+            int? checklistId = string.IsNullOrEmpty(thresholdChecklistId) ? null : int.Parse(thresholdChecklistId);
+            var req = new UpsertScoreThresholdRequest
+            {
+                SuccessThreshold = thresholdSuccess,
+                WarningThreshold = thresholdWarning,
+                ChecklistId = checklistId
+            };
+            var resp = await Http.PostAsJsonAsync("api/quality/thresholds", req);
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Esik degeri kaydedildi.");
+                showThresholdForm = false;
+                await LoadThresholds();
+            }
+            else
+            {
+                thresholdError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            thresholdError = ex.Message;
+        }
+        finally { isSavingThreshold = false; }
+    }
+
+    private async Task DeleteThreshold(int id)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"api/quality/thresholds/{id}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Toast.ShowSuccess("Esik degeri silindi.");
+                await LoadThresholds();
+            }
+            else
+            {
+                Toast.ShowError("Silinemedi: " + await resp.Content.ReadAsStringAsync());
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError(ex.Message);
+        }
+    }
+}

@@ -107,9 +107,9 @@ public partial class MainWindow : Window
         services.AddSingleton<Services.ISipService, Services.NativeSipService>();
         services.AddSingleton<Services.IncomingCallPipelineService>();
 
-        // Contacts (API-first + lokal buffer)
-        services.AddSingleton<Services.ContactService>(sp =>
-            new Services.ContactService(
+        // CrmContacts (API-first + lokal buffer)
+        services.AddSingleton<Services.CrmContactService>(sp =>
+            new Services.CrmContactService(
                 sp.GetRequiredService<HttpClient>(),
                 sp.GetRequiredService<ILocalRepository>()));
 

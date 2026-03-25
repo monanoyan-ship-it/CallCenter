@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Services;
 
-public class ContactService
+public class CrmContactService
 {
     private readonly AppDbContext _db;
-    private readonly ILogger<ContactService> _logger;
+    private readonly ILogger<CrmContactService> _logger;
 
-    public ContactService(AppDbContext db, ILogger<ContactService> logger)
+    public CrmContactService(AppDbContext db, ILogger<CrmContactService> logger)
     {
         _db = db;
         _logger = logger;
@@ -21,9 +21,9 @@ public class ContactService
     // CRUD
     // ═══════════════════════════════════════════════════
 
-    public async Task<List<ContactDto>> GetContactsAsync(int userId, int? customerId, string? search, int page = 1, int pageSize = 50)
+    public async Task<List<CrmContactSimpleDto>> GetContactsAsync(int userId, int? customerId, string? search, int page = 1, int pageSize = 50)
     {
-        var query = _db.Contacts
+        var query = _db.CrmContacts
             .Where(c => c.OwnerUserId == userId || c.OwnerUserId == null);
 
         if (customerId.HasValue)
@@ -48,17 +48,17 @@ public class ContactService
         return contacts.Select(MapToDto).ToList();
     }
 
-    public async Task<ContactDto?> GetContactAsync(int contactId, int userId)
+    public async Task<CrmContactSimpleDto?> GetContactAsync(int contactId, int userId)
     {
-        var contact = await _db.Contacts.FindAsync(contactId);
+        var contact = await _db.CrmContacts.FindAsync(contactId);
         if (contact == null) return null;
         if (contact.OwnerUserId != null && contact.OwnerUserId != userId) return null;
         return MapToDto(contact);
     }
 
-    public async Task<ContactDto> CreateContactAsync(CreateContactRequest req, int userId, int? customerId)
+    public async Task<CrmContactSimpleDto> CreateContactAsync(CreateContactRequest req, int userId, int? customerId)
     {
-        var contact = new Contact
+        var contact = new CrmContact
         {
             FullName = req.FullName,
             PhoneNumber = req.PhoneNumber,
@@ -68,19 +68,19 @@ public class ContactService
             Department = req.Department,
             Title = req.Title,
             Notes = req.Notes,
-            SourceId = ContactSources.Ids.Manual,
+            SourceId = CrmContactSources.Ids.Manual,
             OwnerUserId = userId,
             CustomerId = customerId
         };
 
-        _db.Contacts.Add(contact);
+        _db.CrmContacts.Add(contact);
         await _db.SaveChangesAsync();
         return MapToDto(contact);
     }
 
     public async Task<(bool Success, string? Error)> UpdateContactAsync(int contactId, UpdateContactRequest req, int userId)
     {
-        var contact = await _db.Contacts.FindAsync(contactId);
+        var contact = await _db.CrmContacts.FindAsync(contactId);
         if (contact == null) return (false, "Kayit bulunamadi");
         if (contact.OwnerUserId != null && contact.OwnerUserId != userId) return (false, "Yetki yok");
 
@@ -101,18 +101,18 @@ public class ContactService
 
     public async Task<(bool Success, string? Error)> DeleteContactAsync(int contactId, int userId)
     {
-        var contact = await _db.Contacts.FindAsync(contactId);
+        var contact = await _db.CrmContacts.FindAsync(contactId);
         if (contact == null) return (false, "Kayit bulunamadi");
         if (contact.OwnerUserId != null && contact.OwnerUserId != userId) return (false, "Yetki yok");
 
-        _db.Contacts.Remove(contact);
+        _db.CrmContacts.Remove(contact);
         await _db.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> ToggleFavoriteAsync(int contactId, int userId)
     {
-        var contact = await _db.Contacts.FindAsync(contactId);
+        var contact = await _db.CrmContacts.FindAsync(contactId);
         if (contact == null) return (false, "Kayit bulunamadi");
 
         contact.IsFavorite = !contact.IsFavorite;
@@ -144,9 +144,9 @@ public class ContactService
                 try
                 {
                     var columns = ParseCsvLine(lines[i]);
-                    var contact = new Contact
+                    var contact = new CrmContact
                     {
-                        SourceId = ContactSources.Ids.CSV,
+                        SourceId = CrmContactSources.Ids.CSV,
                         OwnerUserId = userId,
                         CustomerId = customerId
                     };
@@ -177,7 +177,7 @@ public class ContactService
                         continue;
                     }
 
-                    _db.Contacts.Add(contact);
+                    _db.CrmContacts.Add(contact);
                     result.ImportedCount++;
                 }
                 catch (Exception ex)
@@ -258,7 +258,7 @@ public class ContactService
         // var searchResponse = (SearchResponse)connection.SendRequest(searchRequest);
         // foreach (SearchResultEntry entry in searchResponse.Entries)
         // {
-        //     var contact = new Contact
+        //     var contact = new CrmContact
         //     {
         //         FullName = GetAttribute(entry, "cn"),
         //         PhoneNumber = GetAttribute(entry, "telephoneNumber") ?? GetAttribute(entry, "mobile"),
@@ -266,7 +266,7 @@ public class ContactService
         //         Company = GetAttribute(entry, "company"),
         //         Department = GetAttribute(entry, "department"),
         //         Title = GetAttribute(entry, "title"),
-        //         SourceId = ContactSources.Ids.LDAP,
+        //         SourceId = CrmContactSources.Ids.LDAP,
         //         LdapDn = entry.DistinguishedName,
         //         CustomerId = customerId
         //     };
@@ -281,7 +281,7 @@ public class ContactService
 
     // ═══════════════════════════════════════════════════
 
-    private static ContactDto MapToDto(Contact c) => new()
+    private static CrmContactSimpleDto MapToDto(CrmContact c) => new()
     {
         Id = c.Id,
         Uid = c.Uid,
@@ -293,7 +293,7 @@ public class ContactService
         Department = c.Department,
         Title = c.Title,
         SourceId = c.SourceId,
-        SourceName = ContactSources.GetById(c.SourceId)?.SystemName ?? "Manual",
+        SourceName = CrmContactSources.GetById(c.SourceId)?.SystemName ?? "Manual",
         IsFavorite = c.IsFavorite
     };
 }

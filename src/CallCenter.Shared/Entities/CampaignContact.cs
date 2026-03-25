@@ -12,8 +12,8 @@ public class CampaignContact
     public int CampaignId { get; set; }
     public CallCampaign? Campaign { get; set; }
 
-    public int ContactId { get; set; }
-    public Contact? Contact { get; set; }
+    public int CrmContactId { get; set; }
+    public CrmContact? CrmContact { get; set; }
 
     /// <summary>Atanan operator (CustomerPersonnel)</summary>
     public int? AssignedPersonnelId { get; set; }

@@ -44,10 +44,10 @@ public static class CustomerPermissionTypes
     public static readonly TypeItem RecordDownload = new(91, "RecordDownload", "CustomerPermission.RecordDownload", "Arama kayitlarini indirebilir", "bi-download", "bg-orange", 91);
     public static readonly TypeItem RecordDelete = new(92, "RecordDelete", "CustomerPermission.RecordDelete", "Arama kayitlarini silebilir", "bi-trash", "bg-orange", 92);
 
-    // QualityManagement (Kalite Yonetimi)
-    public static readonly TypeItem QualityView = new(100, "QualityView", "CustomerPermission.QualityView", "Kalite degerlendirmelerini goruntuleyebilir", "bi-clipboard-data", "bg-pink", 100);
-    public static readonly TypeItem QualityManage = new(101, "QualityManage", "CustomerPermission.QualityManage", "Kalite formlarini yonetebilir", "bi-clipboard-check", "bg-pink", 101);
-    public static readonly TypeItem QualityScore = new(102, "QualityScore", "CustomerPermission.QualityScore", "Kalite puanlamasi yapabilir", "bi-star-fill", "bg-pink", 102);
+    // CrmQualityManagement (Kalite Yonetimi)
+    public static readonly TypeItem CrmQualityView = new(100, "CrmQualityView", "CustomerPermission.CrmQualityView", "Kalite degerlendirmelerini goruntuleyebilir", "bi-clipboard-data", "bg-pink", 100);
+    public static readonly TypeItem CrmQualityManage = new(101, "CrmQualityManage", "CustomerPermission.CrmQualityManage", "Kalite formlarini yonetebilir", "bi-clipboard-check", "bg-pink", 101);
+    public static readonly TypeItem CrmQualityScore = new(102, "CrmQualityScore", "CustomerPermission.CrmQualityScore", "Kalite puanlamasi yapabilir", "bi-star-fill", "bg-pink", 102);
 
     // KnowledgeBase (Bilgi Bankasi)
     public static readonly TypeItem KBView = new(110, "KBView", "CustomerPermission.KBView", "Bilgi bankasini goruntuleyebilir", "bi-book", "bg-cyan", 110);
@@ -79,7 +79,7 @@ public static class CustomerPermissionTypes
         OrgView, OrgManage,
         SipView, SipManage,
         RecordListen, RecordDownload, RecordDelete,
-        QualityView, QualityManage, QualityScore,
+        CrmQualityView, CrmQualityManage, CrmQualityScore,
         KBView, KBManage,
         IntegrationView, IntegrationManage,
         CampaignView, CampaignManage, CampaignExecute,
@@ -104,7 +104,7 @@ public static class CustomerPermissionTypes
             PortalModules.Ids.Organizations => new[] { OrgView, OrgManage },
             PortalModules.Ids.SipSettings => new[] { SipView, SipManage },
             PortalModules.Ids.CallRecords => new[] { RecordListen, RecordDownload, RecordDelete },
-            PortalModules.Ids.QualityManagement => new[] { QualityView, QualityManage, QualityScore },
+            PortalModules.Ids.CrmQualityManagement => new[] { CrmQualityView, CrmQualityManage, CrmQualityScore },
             PortalModules.Ids.KnowledgeBase => new[] { KBView, KBManage },
             PortalModules.Ids.Integrations => new[] { IntegrationView, IntegrationManage },
             PortalModules.Ids.Campaigns => new[] { CampaignView, CampaignManage, CampaignExecute },
@@ -128,7 +128,7 @@ public static class CustomerPermissionTypes
             >= 70 and <= 79 => PortalModules.Ids.Organizations,
             >= 80 and <= 89 => PortalModules.Ids.SipSettings,
             >= 90 and <= 99 => PortalModules.Ids.CallRecords,
-            >= 100 and <= 109 => PortalModules.Ids.QualityManagement,
+            >= 100 and <= 109 => PortalModules.Ids.CrmQualityManagement,
             >= 110 and <= 119 => PortalModules.Ids.KnowledgeBase,
             >= 120 and <= 129 => PortalModules.Ids.Integrations,
             >= 130 and <= 139 => PortalModules.Ids.Campaigns,
@@ -171,10 +171,10 @@ public static class CustomerPermissionTypes
         public const int RecordListen = 90;
         public const int RecordDownload = 91;
         public const int RecordDelete = 92;
-        // QualityManagement
-        public const int QualityView = 100;
-        public const int QualityManage = 101;
-        public const int QualityScore = 102;
+        // CrmQualityManagement
+        public const int CrmQualityView = 100;
+        public const int CrmQualityManage = 101;
+        public const int CrmQualityScore = 102;
         // KnowledgeBase
         public const int KBView = 110;
         public const int KBManage = 111;

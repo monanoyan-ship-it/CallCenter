@@ -1,6 +1,6 @@
 namespace CallCenter.Crm.Controllers;
 
-public class ContactsController : CrmBaseController
+public class CrmContactsController : CrmBaseController
 {
     public IActionResult Index()
     {
@@ -11,7 +11,7 @@ public class ContactsController : CrmBaseController
     public IActionResult Detail(int id)
     {
         ViewData["Title"] = "Kisi Detay";
-        ViewData["ContactId"] = id;
+        ViewData["CrmContactId"] = id;
         return View();
     }
 }

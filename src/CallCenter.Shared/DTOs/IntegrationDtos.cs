@@ -19,7 +19,7 @@ public class IntegrationConnectionListDto
     public bool IsActive { get; set; }
     public bool IsConnected { get; set; }
     public bool AutoLogCalls { get; set; }
-    public int ContactSyncDirectionId { get; set; }
+    public int CrmContactSyncDirectionId { get; set; }
     public DateTime? LastSyncAt { get; set; }
     public string? LastError { get; set; }
     public int WebhookCount { get; set; }
@@ -49,7 +49,7 @@ public class CreateIntegrationConnectionRequest
     public Dictionary<string, string>? Credentials { get; set; }
 
     public bool AutoLogCalls { get; set; } = true;
-    public int ContactSyncDirectionId { get; set; }
+    public int CrmContactSyncDirectionId { get; set; }
 }
 
 /// <summary>Entegrasyon baglantisi guncelleme</summary>
@@ -59,7 +59,7 @@ public class UpdateIntegrationConnectionRequest
     public string? Name { get; set; }
     public bool? IsActive { get; set; }
     public bool? AutoLogCalls { get; set; }
-    public int? ContactSyncDirectionId { get; set; }
+    public int? CrmContactSyncDirectionId { get; set; }
     public Dictionary<string, string>? Credentials { get; set; }
 }
 

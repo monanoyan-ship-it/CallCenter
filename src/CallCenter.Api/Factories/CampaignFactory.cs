@@ -12,14 +12,14 @@ public class CampaignFactory : ICampaignFactory
 {
     private readonly ICampaignEntityService _campaignEs;
     private readonly ICampaignContactEntityService _ccEs;
-    private readonly IContactEntityService _contactEs;
+    private readonly ICrmContactEntityService _contactEs;
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly IUnitOfWork _uow;
 
     public CampaignFactory(
         ICampaignEntityService campaignEs,
         ICampaignContactEntityService ccEs,
-        IContactEntityService contactEs,
+        ICrmContactEntityService contactEs,
         ICustomerPersonnelEntityService personnelEs,
         IUnitOfWork uow)
     {
@@ -54,7 +54,7 @@ public class CampaignFactory : ICampaignFactory
             .Include(c => c.CreatedByPersonnel!)
                 .ThenInclude(p => p.User)
             .Include(c => c.CampaignContacts)
-                .ThenInclude(cc => cc.Contact)
+                .ThenInclude(cc => cc.CrmContact)
             .Include(c => c.CampaignContacts)
                 .ThenInclude(cc => cc.AssignedPersonnel!)
                     .ThenInclude(p => p.User)
@@ -82,13 +82,13 @@ public class CampaignFactory : ICampaignFactory
             ReachedCount = campaign.CampaignContacts.Count(cc => cc.StatusId == CampaignContactStatuses.Ids.Reached),
             NotReachedCount = campaign.CampaignContacts.Count(cc => cc.StatusId == CampaignContactStatuses.Ids.NotReached),
             CancelledCount = campaign.CampaignContacts.Count(cc => cc.StatusId == CampaignContactStatuses.Ids.Cancelled),
-            Contacts = campaign.CampaignContacts.Select(cc => new CampaignContactDto
+            CrmContacts = campaign.CampaignContacts.Select(cc => new CampaignContactDto
             {
                 Id = cc.Id,
-                ContactId = cc.ContactId,
-                ContactName = cc.Contact?.FullName ?? "",
-                PhoneNumber = cc.Contact?.PhoneNumber ?? "",
-                Company = cc.Contact?.Company,
+                CrmContactId = cc.CrmContactId,
+                CrmContactName = cc.CrmContact?.FullName ?? "",
+                PhoneNumber = cc.CrmContact?.PhoneNumber ?? "",
+                Company = cc.CrmContact?.Company,
                 AssignedPersonnelId = cc.AssignedPersonnelId,
                 AssignedPersonnelName = cc.AssignedPersonnel?.User?.FullName,
                 StatusId = cc.StatusId,
@@ -172,13 +172,13 @@ public class CampaignFactory : ICampaignFactory
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (customerId.HasValue && campaign.CustomerId != customerId.Value) return (false, "Yetki hatasi");
 
-        var existingContactIds = campaign.CampaignContacts.Select(cc => cc.ContactId).ToHashSet();
-        var newItems = req.ContactIds
+        var existingContactIds = campaign.CampaignContacts.Select(cc => cc.CrmContactId).ToHashSet();
+        var newItems = req.CrmContactIds
             .Where(cid => !existingContactIds.Contains(cid))
             .Select(cid => new CampaignContact
             {
                 CampaignId = campaign.Id,
-                ContactId = cid
+                CrmContactId = cid
             })
             .ToList();
 
@@ -247,7 +247,7 @@ public class CampaignFactory : ICampaignFactory
     {
         var items = await _ccEs.GetAllQueryable()
             .Include(cc => cc.Campaign)
-            .Include(cc => cc.Contact)
+            .Include(cc => cc.CrmContact)
             .Where(cc => cc.AssignedPersonnelId == personnelId
                 && cc.Campaign!.StatusId == CampaignStatuses.Ids.Active
                 && (cc.StatusId == CampaignContactStatuses.Ids.Pending || cc.StatusId == CampaignContactStatuses.Ids.NotReached))
@@ -260,10 +260,10 @@ public class CampaignFactory : ICampaignFactory
             CampaignContactId = cc.Id,
             CampaignId = cc.CampaignId,
             CampaignName = cc.Campaign?.Name ?? "",
-            ContactId = cc.ContactId,
-            ContactName = cc.Contact?.FullName ?? "",
-            PhoneNumber = cc.Contact?.PhoneNumber ?? "",
-            Company = cc.Contact?.Company,
+            CrmContactId = cc.CrmContactId,
+            CrmContactName = cc.CrmContact?.FullName ?? "",
+            PhoneNumber = cc.CrmContact?.PhoneNumber ?? "",
+            Company = cc.CrmContact?.Company,
             StatusId = cc.StatusId,
             StatusName = CampaignContactStatuses.GetById(cc.StatusId)?.Description ?? "",
             AttemptCount = cc.AttemptCount,

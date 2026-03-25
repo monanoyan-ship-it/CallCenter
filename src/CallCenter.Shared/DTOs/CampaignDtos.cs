@@ -22,14 +22,14 @@ public class CampaignDto
 
 public class CampaignDetailDto : CampaignDto
 {
-    public List<CampaignContactDto> Contacts { get; set; } = new();
+    public List<CampaignContactDto> CrmContacts { get; set; } = new();
 }
 
 public class CampaignContactDto
 {
     public int Id { get; set; }
-    public int ContactId { get; set; }
-    public string ContactName { get; set; } = string.Empty;
+    public int CrmContactId { get; set; }
+    public string CrmContactName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string? Company { get; set; }
     public int? AssignedPersonnelId { get; set; }
@@ -59,7 +59,7 @@ public class UpdateCampaignRequest
 
 public class AddCampaignContactsRequest
 {
-    public List<int> ContactIds { get; set; } = new();
+    public List<int> CrmContactIds { get; set; } = new();
 }
 
 public class AssignCampaignContactsRequest
@@ -80,8 +80,8 @@ public class MyCallListItemDto
     public int CampaignContactId { get; set; }
     public int CampaignId { get; set; }
     public string CampaignName { get; set; } = string.Empty;
-    public int ContactId { get; set; }
-    public string ContactName { get; set; } = string.Empty;
+    public int CrmContactId { get; set; }
+    public string CrmContactName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string? Company { get; set; }
     public int StatusId { get; set; }

@@ -142,7 +142,7 @@
                                     @foreach (var item in myCallList)
                                     {
                                         <tr class="@(activeCallListItemId == item.CampaignContactId ? "table-active" : "")">
-                                            <td class="fw-medium">@item.ContactName</td>
+                                            <td class="fw-medium">@item.CrmContactName</td>
                                             <td>@item.PhoneNumber</td>
                                             <td class="text-muted">@item.CampaignName</td>
                                             <td class="text-center">@item.AttemptCount</td>
@@ -238,7 +238,7 @@
     private int? currentCallId; // DB'deki arama kaydinin ID'si
     private bool showContactPicker;
     private string contactSearch = "";
-    private List<ContactDto>? contactResults;
+    private List<CrmContactDto>? contactResults;
     private List<MyCallListItemDto>? myCallList;
     private int? activeCallListItemId;
 
@@ -563,7 +563,7 @@
         contactSearch = "";
         try
         {
-            contactResults = await Http.GetFromJsonAsync<List<ContactDto>>("api/contact?search=&page=1&pageSize=500");
+            contactResults = await Http.GetFromJsonAsync<List<CrmContactDto>>("api/contact?search=&page=1&pageSize=500");
         }
         catch (Exception ex)
         {
@@ -579,7 +579,7 @@
         try
         {
             var query = string.IsNullOrWhiteSpace(contactSearch) ? "" : Uri.EscapeDataString(contactSearch);
-            contactResults = await Http.GetFromJsonAsync<List<ContactDto>>($"api/contact?search={query}&page=1&pageSize=500");
+            contactResults = await Http.GetFromJsonAsync<List<CrmContactDto>>($"api/contact?search={query}&page=1&pageSize=500");
         }
         catch
         {
@@ -587,7 +587,7 @@
         }
     }
 
-    private void PickContact(ContactDto contact)
+    private void PickContact(CrmContactDto contact)
     {
         phoneNumber = contact.PhoneNumber ?? "";
         showContactPicker = false;

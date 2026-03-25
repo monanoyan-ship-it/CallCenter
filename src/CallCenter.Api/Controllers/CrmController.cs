@@ -39,7 +39,7 @@ public class CrmController : ControllerBase
         return result != null ? Ok(result) : NotFound();
     }
 
-    // ─── Contacts ───
+    // ─── CrmContacts ───
 
     [HttpGet("contacts")]
     public async Task<ActionResult<List<CrmContactDto>>> GetContacts([FromQuery] string? search)
@@ -326,7 +326,7 @@ public class CrmController : ControllerBase
         return success ? Ok(new { id = commentId }) : BadRequest(new { error });
     }
 
-    // ─── Contact Tags ───
+    // ─── CrmContact Tags ───
 
     [HttpGet("contact-tags")]
     public async Task<ActionResult<List<CrmContactTagDto>>> GetContactTags()

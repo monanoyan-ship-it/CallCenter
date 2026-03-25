@@ -77,7 +77,7 @@ public class IntegrationFactoryTests : IDisposable
             Name = "Salesforce Test",
             PlatformTypeId = IntegrationPlatforms.Ids.Salesforce,
             AutoLogCalls = true,
-            ContactSyncDirectionId = ContactSyncDirections.Ids.Bidirectional
+            CrmContactSyncDirectionId = CrmContactSyncDirections.Ids.Bidirectional
         };
 
         var (id, error) = await _sut.CreateConnectionAsync(CustomerId, dto);

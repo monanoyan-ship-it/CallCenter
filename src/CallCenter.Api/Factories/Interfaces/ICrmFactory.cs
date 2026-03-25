@@ -7,7 +7,7 @@ public interface ICrmFactory
     // Dashboard
     Task<CrmDashboardDto> GetDashboardAsync(int customerId);
 
-    // Contacts
+    // CrmContacts
     Task<CrmCallerIdDto?> LookupByPhoneAsync(int customerId, string phoneNumber);
     Task<List<CrmContactDto>> GetContactsAsync(int customerId, string? search);
     Task<CrmContactDto?> GetContactDetailAsync(int contactId, int customerId);
@@ -51,7 +51,7 @@ public interface ICrmFactory
     Task<List<CrmTicketCommentDto>> GetTicketCommentsAsync(int ticketId, int customerId);
     Task<(bool success, int id, string? error)> CreateTicketCommentAsync(int ticketId, CrmTicketCommentCreateDto dto, int customerId, int personnelId);
 
-    // Contact Tags
+    // CrmContact Tags
     Task<List<CrmContactTagDto>> GetContactTagsAsync(int customerId);
     Task<(bool success, int id, string? error)> CreateContactTagAsync(string name, string? color, int customerId);
 }

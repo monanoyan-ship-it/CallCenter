@@ -1,6 +1,6 @@
 @page "/contacts"
 @attribute [Authorize]
-@inject CallCenter.Windows.Services.ContactService ContactService
+@inject CallCenter.Windows.Services.CrmContactService CrmContactService
 @inject CallCenter.Windows.Services.ISipService SipService
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
@@ -146,7 +146,7 @@
 }
 
 @code {
-    private List<ContactDto> filteredContacts = new();
+    private List<CrmContactSimpleDto> filteredContacts = new();
     private string searchQuery = "";
     private bool showFavoritesOnly;
     private bool isLoading;
@@ -176,9 +176,9 @@
         try
         {
             if (showFavoritesOnly)
-                filteredContacts = await ContactService.GetFavoritesAsync();
+                filteredContacts = await CrmContactService.GetFavoritesAsync();
             else
-                filteredContacts = await ContactService.GetAllAsync(searchQuery);
+                filteredContacts = await CrmContactService.GetAllAsync(searchQuery);
         }
         catch
         {
@@ -204,7 +204,7 @@
 
     private async Task ToggleFavorite(int id)
     {
-        var success = await ContactService.ToggleFavoriteAsync(id);
+        var success = await CrmContactService.ToggleFavoriteAsync(id);
         if (success)
             await RefreshListAsync();
         else
@@ -228,7 +228,7 @@
         showDialog = true;
     }
 
-    private void OpenEditDialog(ContactDto contact)
+    private void OpenEditDialog(CrmContactSimpleDto contact)
     {
         editContactId = contact.Id;
         editFullName = contact.FullName;
@@ -254,12 +254,12 @@
 
             if (isEditing)
             {
-                var success = await ContactService.UpdateAsync(editContactId, editFullName, phone, editCompany, editEmail, editIsFavorite);
+                var success = await CrmContactService.UpdateAsync(editContactId, editFullName, phone, editCompany, editEmail, editIsFavorite);
                 Toast.ShowSuccess(success ? "Kisi guncellendi" : "Kisi guncellendi (cevrimdisi kuyruga eklendi)");
             }
             else
             {
-                var success = await ContactService.CreateAsync(editFullName, phone, editCompany, editEmail);
+                var success = await CrmContactService.CreateAsync(editFullName, phone, editCompany, editEmail);
                 Toast.ShowSuccess(success ? "Kisi eklendi" : "Kisi eklendi (cevrimdisi kuyruga eklendi)");
             }
 
@@ -278,7 +278,7 @@
 
     private async Task DeleteContact(int id)
     {
-        var success = await ContactService.DeleteAsync(id);
+        var success = await CrmContactService.DeleteAsync(id);
         Toast.ShowInfo(success ? "Kisi silindi" : "Kisi silindi (cevrimdisi kuyruga eklendi)");
         await RefreshListAsync();
     }

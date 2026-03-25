@@ -378,7 +378,7 @@
 }
 
 @code {
-    private List<ContactDto> contacts = new();
+    private List<CrmContactSimpleDto> contacts = new();
     private string searchQuery = "";
     private bool showFavoritesOnly;
     private bool isLoading;
@@ -421,7 +421,7 @@
                 ? "api/contact?search=&page=1&pageSize=500"
                 : $"api/contact?search={Uri.EscapeDataString(searchQuery)}&page=1&pageSize=500";
 
-            contacts = await Http.GetFromJsonAsync<List<ContactDto>>(url) ?? new();
+            contacts = await Http.GetFromJsonAsync<List<CrmContactSimpleDto>>(url) ?? new();
 
             if (showFavoritesOnly)
                 contacts = contacts.Where(c => c.IsFavorite).ToList();
@@ -456,7 +456,7 @@
         isEditing = false; showDialog = true;
     }
 
-    private void OpenEditDialog(ContactDto c)
+    private void OpenEditDialog(CrmContactSimpleDto c)
     {
         editContactId = c.Id; editFullName = c.FullName; editPhoneNumber = c.PhoneNumber;
         editCompany = c.Company; editEmail = c.Email;
@@ -792,7 +792,7 @@
                 item.PhoneNumber = PhoneHelper.Sanitize(item.PhoneNumber);
             }
 
-            var req = new BulkImportRequest { Contacts = selectedItems };
+            var req = new BulkImportRequest { CrmContacts = selectedItems };
             var resp = await Http.PostAsJsonAsync("api/contact/import/batch", req);
             if (resp.IsSuccessStatusCode)
             {

@@ -6,7 +6,7 @@ namespace CallCenter.Windows.LocalData;
 /// <summary>
 /// Generic, thread-safe, dosya tabanli JSON depolama sinifi.
 /// %LOCALAPPDATA%\CallCenter\Data\ altinda JSON dosyalari tutar.
-/// Mevcut ContactService ve SecureStorage ile ayni pattern.
+/// Mevcut CrmContactService ve SecureStorage ile ayni pattern.
 /// </summary>
 public class LocalFileStore<T> where T : class
 {

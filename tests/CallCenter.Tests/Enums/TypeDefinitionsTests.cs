@@ -98,16 +98,16 @@ public class TypeDefinitionsTests
     }
 
     // ═══════════════════════════════════════
-    // ContactSources
+    // CrmContactSources
     // ═══════════════════════════════════════
 
     [Fact]
-    public void ContactSources_HasAllSources()
+    public void CrmContactSources_HasAllSources()
     {
-        ContactSources.All.Should().HaveCountGreaterThanOrEqualTo(3);
-        ContactSources.All.Should().Contain(s => s.Id == ContactSources.Ids.Manual);
-        ContactSources.All.Should().Contain(s => s.Id == ContactSources.Ids.LDAP);
-        ContactSources.All.Should().Contain(s => s.Id == ContactSources.Ids.CSV);
+        CrmContactSources.All.Should().HaveCountGreaterThanOrEqualTo(3);
+        CrmContactSources.All.Should().Contain(s => s.Id == CrmContactSources.Ids.Manual);
+        CrmContactSources.All.Should().Contain(s => s.Id == CrmContactSources.Ids.LDAP);
+        CrmContactSources.All.Should().Contain(s => s.Id == CrmContactSources.Ids.CSV);
     }
 
     // ═══════════════════════════════════════

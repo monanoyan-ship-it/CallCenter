@@ -9,7 +9,7 @@ public static class EntityServiceRegistration
     {
         // Faz 1
         services.AddScoped<ISettingEntityService, SettingEntityService>();
-        services.AddScoped<IContactEntityService, ContactEntityService>();
+        services.AddScoped<ICrmContactEntityService, CrmContactEntityService>();
 
         // Faz 2
         services.AddScoped<IUserEntityService, UserEntityService>();
@@ -69,14 +69,14 @@ public static class EntityServiceRegistration
         services.AddScoped<ICustomerServiceSubscriptionEntityService, CustomerServiceSubscriptionEntityService>();
         services.AddScoped<IServiceBillingItemEntityService, ServiceBillingItemEntityService>();
 
-        // Kalite Yonetimi (Quality Management)
-        services.AddScoped<IQualityChecklistEntityService, QualityChecklistEntityService>();
-        services.AddScoped<IQualityQuestionEntityService, QualityQuestionEntityService>();
-        services.AddScoped<IQualitySubCriteriaEntityService, QualitySubCriteriaEntityService>();
-        services.AddScoped<IQualityEvaluationEntityService, QualityEvaluationEntityService>();
-        services.AddScoped<IQualityAnswerEntityService, QualityAnswerEntityService>();
-        services.AddScoped<IQualityAnswerSubCriteriaSelectionEntityService, QualityAnswerSubCriteriaSelectionEntityService>();
-        services.AddScoped<IQualityScoreThresholdEntityService, QualityScoreThresholdEntityService>();
+        // Kalite Yonetimi (CrmQuality Management)
+        services.AddScoped<ICrmQualityChecklistEntityService, CrmQualityChecklistEntityService>();
+        services.AddScoped<ICrmQualityQuestionEntityService, CrmQualityQuestionEntityService>();
+        services.AddScoped<ICrmQualitySubCriteriaEntityService, CrmQualitySubCriteriaEntityService>();
+        services.AddScoped<ICrmQualityEvaluationEntityService, CrmQualityEvaluationEntityService>();
+        services.AddScoped<ICrmQualityAnswerEntityService, CrmQualityAnswerEntityService>();
+        services.AddScoped<ICrmQualityAnswerSubCriteriaSelectionEntityService, CrmQualityAnswerSubCriteriaSelectionEntityService>();
+        services.AddScoped<ICrmQualityScoreThresholdEntityService, CrmQualityScoreThresholdEntityService>();
 
         // Integration & Webhook
         services.AddScoped<IIntegrationConnectionEntityService, IntegrationConnectionEntityService>();

@@ -8,7 +8,7 @@ namespace CallCenter.Api.Services.Connectors;
 
 /// <summary>
 /// Salesforce CRM connector.
-/// REST API v62.0 ile Contact/Lead arama, Task olusturma, SOQL sorgulari.
+/// REST API v62.0 ile CrmContact/Lead arama, Task olusturma, SOQL sorgulari.
 /// OAuth2 token refresh destegi.
 /// </summary>
 public class SalesforceConnectorAdapter : IConnectorAdapter
@@ -57,8 +57,8 @@ public class SalesforceConnectorAdapter : IConnectorAdapter
             // Telefon numarasini temizle (+ isareti vb.)
             var cleanPhone = phoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
 
-            // Once Contact'ta ara, sonra Lead'de
-            var soql = $"SELECT Id, Name, Phone, Email, Account.Name FROM Contact WHERE Phone LIKE '%{cleanPhone}%' LIMIT 1";
+            // Once CrmContact'ta ara, sonra Lead'de
+            var soql = $"SELECT Id, Name, Phone, Email, Account.Name FROM CrmContact WHERE Phone LIKE '%{cleanPhone}%' LIMIT 1";
             var result = await QueryAsync(http, instanceUrl, soql);
 
             if (result != null) return result;
@@ -94,7 +94,7 @@ public class SalesforceConnectorAdapter : IConnectorAdapter
                 CallType = payload.Direction == "Inbound" ? "Inbound" : "Outbound",
                 CallDurationInSeconds = payload.DurationSeconds,
                 Description = BuildCallDescription(payload),
-                WhoId = payload.ExternalContactId, // Salesforce Contact/Lead ID (varsa)
+                WhoId = payload.ExternalContactId, // Salesforce CrmContact/Lead ID (varsa)
                 ActivityDate = payload.StartedAt.ToString("yyyy-MM-dd")
             };
 
@@ -125,7 +125,7 @@ public class SalesforceConnectorAdapter : IConnectorAdapter
         try
         {
             using var http = CreateClient(accessToken);
-            var soql = $"SELECT Id, Name, Phone, Email, Account.Name FROM Contact WHERE Phone != null ORDER BY LastModifiedDate DESC LIMIT {limit} OFFSET {offset}";
+            var soql = $"SELECT Id, Name, Phone, Email, Account.Name FROM CrmContact WHERE Phone != null ORDER BY LastModifiedDate DESC LIMIT {limit} OFFSET {offset}";
 
             var response = await http.GetAsync($"{instanceUrl}/services/data/{ApiVersion}/query?q={Uri.EscapeDataString(soql)}");
             if (!response.IsSuccessStatusCode) return new();

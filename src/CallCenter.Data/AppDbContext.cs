@@ -29,7 +29,7 @@ public class AppDbContext : DbContext
 
     public DbSet<CustomerStorageConfig> CustomerStorageConfigs => Set<CustomerStorageConfig>();
     public DbSet<InstantMessage> InstantMessages => Set<InstantMessage>();
-    public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<CrmContact> CrmContacts => Set<CrmContact>();
 
     // ─── Billing ───
     public DbSet<CustomerBillingPeriod> CustomerBillingPeriods => Set<CustomerBillingPeriod>();
@@ -80,14 +80,14 @@ public class AppDbContext : DbContext
     public DbSet<BusinessHours> BusinessHours => Set<BusinessHours>();
     public DbSet<Holiday> Holidays => Set<Holiday>();
 
-    // ─── Quality Management (SecretCustomer Adaptasyonu) ───
-    public DbSet<QualityChecklist> QualityChecklists => Set<QualityChecklist>();
-    public DbSet<QualityQuestion> QualityQuestions => Set<QualityQuestion>();
-    public DbSet<QualityQuestionSubCriteria> QualityQuestionSubCriteria => Set<QualityQuestionSubCriteria>();
-    public DbSet<QualityEvaluation> QualityEvaluations => Set<QualityEvaluation>();
-    public DbSet<QualityAnswer> QualityAnswers => Set<QualityAnswer>();
-    public DbSet<QualityAnswerSubCriteriaSelection> QualityAnswerSubCriteriaSelections => Set<QualityAnswerSubCriteriaSelection>();
-    public DbSet<QualityScoreThreshold> QualityScoreThresholds => Set<QualityScoreThreshold>();
+    // ─── CrmQuality Management (SecretCustomer Adaptasyonu) ───
+    public DbSet<CrmQualityChecklist> CrmQualityChecklists => Set<CrmQualityChecklist>();
+    public DbSet<CrmQualityQuestion> CrmQualityQuestions => Set<CrmQualityQuestion>();
+    public DbSet<CrmQualityQuestionSubCriteria> CrmQualityQuestionSubCriteria => Set<CrmQualityQuestionSubCriteria>();
+    public DbSet<CrmQualityEvaluation> CrmQualityEvaluations => Set<CrmQualityEvaluation>();
+    public DbSet<CrmQualityAnswer> CrmQualityAnswers => Set<CrmQualityAnswer>();
+    public DbSet<CrmQualityAnswerSubCriteriaSelection> CrmQualityAnswerSubCriteriaSelections => Set<CrmQualityAnswerSubCriteriaSelection>();
+    public DbSet<CrmQualityScoreThreshold> CrmQualityScoreThresholds => Set<CrmQualityScoreThreshold>();
 
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
@@ -438,8 +438,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.SetNull);
         });
 
-        // Contact (rehber)
-        modelBuilder.Entity<Contact>(e =>
+        // CrmContact (rehber)
+        modelBuilder.Entity<CrmContact>(e =>
         {
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.Uid).IsUnique();
@@ -478,15 +478,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<CampaignContact>(e =>
         {
             e.HasKey(cc => cc.Id);
-            e.HasIndex(cc => new { cc.CampaignId, cc.ContactId }).IsUnique();
+            e.HasIndex(cc => new { cc.CampaignId, cc.CrmContactId }).IsUnique();
             e.HasIndex(cc => new { cc.AssignedPersonnelId, cc.StatusId });
             e.HasOne(cc => cc.Campaign)
              .WithMany(c => c.CampaignContacts)
              .HasForeignKey(cc => cc.CampaignId)
              .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(cc => cc.Contact)
+            e.HasOne(cc => cc.CrmContact)
              .WithMany()
-             .HasForeignKey(cc => cc.ContactId)
+             .HasForeignKey(cc => cc.CrmContactId)
              .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(cc => cc.AssignedPersonnel)
              .WithMany()
@@ -801,9 +801,9 @@ public class AppDbContext : DbContext
             e.Property(t => t.Description).HasMaxLength(5000);
             e.HasIndex(t => new { t.CustomerId, t.StatusId });
             e.HasIndex(t => t.AssignedToPersonnelId);
-            e.HasOne(t => t.Contact)
+            e.HasOne(t => t.CrmContact)
              .WithMany()
-             .HasForeignKey(t => t.ContactId)
+             .HasForeignKey(t => t.CrmContactId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.AssignedToPersonnel)
              .WithMany()
@@ -828,9 +828,9 @@ public class AppDbContext : DbContext
             e.Property(d => d.Value).HasPrecision(18, 2);
             e.Property(d => d.Notes).HasMaxLength(5000);
             e.HasIndex(d => new { d.CustomerId, d.StageId });
-            e.HasOne(d => d.Contact)
+            e.HasOne(d => d.CrmContact)
              .WithMany()
-             .HasForeignKey(d => d.ContactId)
+             .HasForeignKey(d => d.CrmContactId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(d => d.OwnerPersonnel)
              .WithMany()
@@ -853,10 +853,10 @@ public class AppDbContext : DbContext
             e.Property(a => a.Summary).HasMaxLength(500);
             e.Property(a => a.Detail).HasMaxLength(5000);
             e.HasIndex(a => new { a.CustomerId, a.CreatedAt });
-            e.HasIndex(a => a.ContactId);
-            e.HasOne(a => a.Contact)
+            e.HasIndex(a => a.CrmContactId);
+            e.HasOne(a => a.CrmContact)
              .WithMany()
-             .HasForeignKey(a => a.ContactId)
+             .HasForeignKey(a => a.CrmContactId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(a => a.Ticket)
              .WithMany(t => t.Activities)
@@ -888,9 +888,9 @@ public class AppDbContext : DbContext
             e.Property(t => t.Description).HasMaxLength(5000);
             e.HasIndex(t => new { t.CustomerId, t.StatusId });
             e.HasIndex(t => new { t.AssignedToPersonnelId, t.DueDate });
-            e.HasOne(t => t.Contact)
+            e.HasOne(t => t.CrmContact)
              .WithMany()
-             .HasForeignKey(t => t.ContactId)
+             .HasForeignKey(t => t.CrmContactId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.Ticket)
              .WithMany()
@@ -956,9 +956,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<CrmContactTagLink>(e =>
         {
             e.HasKey(l => l.Id);
-            e.HasIndex(e2 => new { e2.ContactId, e2.TagId }).IsUnique();
-            e.HasOne(l => l.Contact).WithMany().HasForeignKey(l => l.ContactId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(l => l.Tag).WithMany(t => t.ContactLinks).HasForeignKey(l => l.TagId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(e2 => new { e2.CrmContactId, e2.TagId }).IsUnique();
+            e.HasOne(l => l.CrmContact).WithMany().HasForeignKey(l => l.CrmContactId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.Tag).WithMany(t => t.CrmContactLinks).HasForeignKey(l => l.TagId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // CrmSurvey
@@ -993,7 +993,7 @@ public class AppDbContext : DbContext
             e.Property(r => r.OverallScore).HasPrecision(5, 2);
             e.HasIndex(e2 => new { e2.SurveyId, e2.CreatedAt });
             e.HasOne(r => r.Survey).WithMany(s => s.Responses).HasForeignKey(r => r.SurveyId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(r => r.Contact).WithMany().HasForeignKey(r => r.ContactId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.CrmContact).WithMany().HasForeignKey(r => r.CrmContactId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(r => r.CallRecord).WithMany().HasForeignKey(r => r.CallRecordId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(r => r.CreatedByPersonnel).WithMany().HasForeignKey(r => r.CreatedByPersonnelId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(r => r.Customer).WithMany().HasForeignKey(r => r.CustomerId).OnDelete(DeleteBehavior.Cascade);
@@ -1048,8 +1048,8 @@ public class AppDbContext : DbContext
         // KALİTE YÖNETİMİ (Faz 18 - SecretCustomer Adaptasyonu)
         // ═══════════════════════════════════════════════════════════════
 
-        // QualityChecklist (kalite değerlendirme kontrol listesi şablonu)
-        modelBuilder.Entity<QualityChecklist>(e =>
+        // CrmQualityChecklist (kalite değerlendirme kontrol listesi şablonu)
+        modelBuilder.Entity<CrmQualityChecklist>(e =>
         {
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.Uid).IsUnique();
@@ -1064,8 +1064,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // QualityQuestion (kalite kriteri/sorusu)
-        modelBuilder.Entity<QualityQuestion>(e =>
+        // CrmQualityQuestion (kalite kriteri/sorusu)
+        modelBuilder.Entity<CrmQualityQuestion>(e =>
         {
             e.HasKey(q => q.Id);
             e.Property(q => q.Text).IsRequired().HasMaxLength(500);
@@ -1079,8 +1079,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // QualityQuestionSubCriteria (puan kırılma nedeni)
-        modelBuilder.Entity<QualityQuestionSubCriteria>(e =>
+        // CrmQualityQuestionSubCriteria (puan kırılma nedeni)
+        modelBuilder.Entity<CrmQualityQuestionSubCriteria>(e =>
         {
             e.HasKey(s => s.Id);
             e.Property(s => s.Description).IsRequired().HasMaxLength(500);
@@ -1092,8 +1092,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // QualityEvaluation (çağrı değerlendirmesi)
-        modelBuilder.Entity<QualityEvaluation>(e =>
+        // CrmQualityEvaluation (çağrı değerlendirmesi)
+        modelBuilder.Entity<CrmQualityEvaluation>(e =>
         {
             e.HasKey(ev => ev.Id);
             e.HasIndex(ev => ev.Uid).IsUnique();
@@ -1127,8 +1127,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // QualityAnswer (değerlendirme cevabı/puanı)
-        modelBuilder.Entity<QualityAnswer>(e =>
+        // CrmQualityAnswer (değerlendirme cevabı/puanı)
+        modelBuilder.Entity<CrmQualityAnswer>(e =>
         {
             e.HasKey(a => a.Id);
             e.Property(a => a.GivenPoints).HasPrecision(18, 2);
@@ -1147,8 +1147,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // QualityAnswerSubCriteriaSelection (seçilen puan kırılma nedeni)
-        modelBuilder.Entity<QualityAnswerSubCriteriaSelection>(e =>
+        // CrmQualityAnswerSubCriteriaSelection (seçilen puan kırılma nedeni)
+        modelBuilder.Entity<CrmQualityAnswerSubCriteriaSelection>(e =>
         {
             e.HasKey(s => s.Id);
             e.Property(s => s.Notes).HasMaxLength(500);
@@ -1163,8 +1163,8 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // QualityScoreThreshold (müşteri bazlı puan eşik değerleri)
-        modelBuilder.Entity<QualityScoreThreshold>(e =>
+        // CrmQualityScoreThreshold (müşteri bazlı puan eşik değerleri)
+        modelBuilder.Entity<CrmQualityScoreThreshold>(e =>
         {
             e.HasKey(t => t.Id);
             e.Property(t => t.SuccessThreshold).HasPrecision(18, 2);

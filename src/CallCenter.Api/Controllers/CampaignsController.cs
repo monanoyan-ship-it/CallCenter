@@ -35,7 +35,7 @@ public class CampaignsController : AuditableControllerBase
 
         // Sistem adminleri bireysel kisi bilgilerini goremez, sadece sayilar
         if (IsSystemAdmin)
-            campaign.Contacts = new();
+            campaign.CrmContacts = new();
 
         return Ok(campaign);
     }

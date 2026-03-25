@@ -28,7 +28,7 @@ public static class CustomerRoles
                 CustomerPermissionTypes.Ids.PersonnelView,
                 CustomerPermissionTypes.Ids.OrgView,
                 CustomerPermissionTypes.Ids.RecordListen,
-                CustomerPermissionTypes.Ids.QualityView, CustomerPermissionTypes.Ids.QualityScore,
+                CustomerPermissionTypes.Ids.CrmQualityView, CustomerPermissionTypes.Ids.CrmQualityScore,
                 CustomerPermissionTypes.Ids.KBView,
                 CustomerPermissionTypes.Ids.ReportView,
                 CustomerPermissionTypes.Ids.KvkkView
