@@ -79,16 +79,27 @@ public class CloudStorageFactory : ICloudStorageFactory
         var provider = _providerFactory.Create(config);
         try
         {
-            var stream = await provider.DownloadAsync(fileId, ct);
+            var providerStream = await provider.DownloadAsync(fileId, ct);
             _logger.LogInformation("[CloudStorage] Download basarili: FileId={FileId}", fileId);
-            return stream;
+
+            // Provider stream'ini MemoryStream'e kopyala ki provider guvenle dispose edilebilsin.
+            // Aksi halde S3/Yandex gibi provider'larda stream, HttpClient/S3Client'a bagli kalir.
+            var memoryStream = new MemoryStream();
+            await providerStream.CopyToAsync(memoryStream, ct);
+            await providerStream.DisposeAsync();
+            memoryStream.Position = 0;
+
+            return memoryStream;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CloudStorage] Download HATA: CustomerId={CustomerId}, FileId={FileId}, Provider={Provider}",
                 customerId, fileId, config.ProviderTypeId);
-            if (provider is IDisposable d) d.Dispose();
             return null;
+        }
+        finally
+        {
+            if (provider is IDisposable d) d.Dispose();
         }
     }
 
@@ -186,8 +197,9 @@ public class CloudStorageFactory : ICloudStorageFactory
         try
         {
             var json = _encryption.Decrypt(config.EncryptedCredentials);
-            var credentials = JsonSerializer.Deserialize<Dictionary<string, string>>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            // Credentials JSON'da bool (UseSSL) veya null degerler olabilir.
+            // Dictionary<string, string> yerine JsonDocument ile parse edip tum degerleri string'e ceviriyoruz.
+            var credentials = ParseCredentialsToStringDict(json);
 
             return new CloudConfigForClientDto
             {
@@ -434,10 +446,7 @@ public class CloudStorageFactory : ICloudStorageFactory
         try
         {
             var json = _encryption.Decrypt(config.EncryptedCredentials);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (dict == null) return new();
+            var dict = ParseCredentialsToStringDict(json);
 
             var masked = new Dictionary<string, string>();
             foreach (var (key, value) in dict)
@@ -551,6 +560,30 @@ public class CloudStorageFactory : ICloudStorageFactory
                dto.MsClientId != null || dto.MsClientSecret != null || dto.MsRefreshToken != null ||
                dto.MsTenantId != null || dto.MsDriveId != null || dto.MsFolderId != null ||
                dto.YandexOAuthToken != null;
+    }
+
+    /// <summary>
+    /// Credentials JSON'i Dictionary&lt;string, string&gt;'e cevirir.
+    /// bool (UseSSL), number ve null degerleri de string'e donusturur.
+    /// Eski kayitlarda UseSSL bool olarak saklanmis olabilir — geriye uyumlu.
+    /// </summary>
+    private static Dictionary<string, string> ParseCredentialsToStringDict(string json)
+    {
+        var result = new Dictionary<string, string>();
+        using var doc = JsonDocument.Parse(json);
+        foreach (var prop in doc.RootElement.EnumerateObject())
+        {
+            result[prop.Name] = prop.Value.ValueKind switch
+            {
+                JsonValueKind.String => prop.Value.GetString() ?? "",
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                JsonValueKind.Number => prop.Value.GetRawText(),
+                JsonValueKind.Null => "",
+                _ => prop.Value.GetRawText()
+            };
+        }
+        return result;
     }
 
     private static List<string> GetRequiredFields(int providerId) => providerId switch

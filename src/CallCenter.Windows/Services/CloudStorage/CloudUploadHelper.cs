@@ -147,9 +147,20 @@ public static class CloudUploadHelper
                 // Isim ile klasor ara, yoksa olustur
                 folderId = await ResolveOrCreateFolderAsync(driveService, folderId, ct);
             }
-            if (!string.IsNullOrEmpty(folderId))
-                fileMetadata.Parents = new List<string> { folderId };
         }
+
+        // BasePath varsa FolderId icerisinde alt klasor olustur
+        if (!string.IsNullOrEmpty(config.BasePath))
+        {
+            var subFolderName = config.BasePath.Trim('/');
+            if (!string.IsNullOrEmpty(subFolderName))
+            {
+                folderId = await ResolveOrCreateFolderAsync(driveService, subFolderName, ct, folderId);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(folderId))
+            fileMetadata.Parents = new List<string> { folderId };
 
         var request = driveService.Files.Create(fileMetadata, fileStream, "application/octet-stream");
         request.Fields = "id";
@@ -163,13 +174,17 @@ public static class CloudUploadHelper
 
     /// <summary>
     /// Google Drive'da isimle klasor arar, yoksa olusturur. Folder ID dondurur.
+    /// parentId verilirse o klasorun icinde arar/olusturur.
     /// </summary>
     private static async Task<string?> ResolveOrCreateFolderAsync(
-        DriveService driveService, string folderName, CancellationToken ct)
+        DriveService driveService, string folderName, CancellationToken ct, string? parentId = null)
     {
         // 1. Ara
         var listReq = driveService.Files.List();
-        listReq.Q = $"name = '{folderName.Replace("'", "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        var query = $"name = '{folderName.Replace("'", "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        if (!string.IsNullOrEmpty(parentId))
+            query += $" and '{parentId}' in parents";
+        listReq.Q = query;
         listReq.Fields = "files(id, name)";
         listReq.PageSize = 1;
         var result = await listReq.ExecuteAsync(ct);
@@ -183,6 +198,8 @@ public static class CloudUploadHelper
             Name = folderName,
             MimeType = "application/vnd.google-apps.folder"
         };
+        if (!string.IsNullOrEmpty(parentId))
+            folderMeta.Parents = new List<string> { parentId };
         var createReq = driveService.Files.Create(folderMeta);
         createReq.Fields = "id";
         var folder = await createReq.ExecuteAsync(ct);

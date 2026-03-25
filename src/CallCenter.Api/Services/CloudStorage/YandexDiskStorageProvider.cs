@@ -201,8 +201,12 @@ public class YandexDiskStorageProvider : ICloudStorageProvider, IDisposable
     private string BuildPath(string fileName, string? folder)
     {
         var parts = new List<string>();
-        if (!string.IsNullOrEmpty(_basePath)) parts.Add(_basePath.TrimStart('/'));
-        if (!string.IsNullOrEmpty(folder)) parts.Add(folder.Trim('/'));
+        // folder (config.BasePath) geliyorsa onu kullan, gelmiyorsa credentials'taki _basePath'i kullan.
+        // Ikisi de ayni kaynaktan gelir — cift uygulanmasini onle.
+        if (!string.IsNullOrEmpty(folder))
+            parts.Add(folder.Trim('/'));
+        else if (!string.IsNullOrEmpty(_basePath))
+            parts.Add(_basePath.TrimStart('/'));
         parts.Add(fileName);
         return "/" + string.Join("/", parts);
     }
