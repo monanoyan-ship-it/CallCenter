@@ -65,6 +65,13 @@ public static class FactoryRegistration
         // Faz 8 — Entegrasyon (Integration & Webhook)
         services.AddScoped<IIntegrationFactory, IntegrationFactory>();
 
+        // Salon Modulu
+        services.AddScoped<ISlnClientFactory, SlnClientFactory>();
+        services.AddScoped<ISlnServiceFactory, SlnServiceFactory>();
+        services.AddScoped<ISlnAppointmentFactory, SlnAppointmentFactory>();
+        services.AddScoped<ISlnProductFactory, SlnProductFactory>();
+        services.AddScoped<ISlnFinanceFactory, SlnFinanceFactory>();
+
         return services;
     }
 }

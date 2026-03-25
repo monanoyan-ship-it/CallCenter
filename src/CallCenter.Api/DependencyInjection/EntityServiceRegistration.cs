@@ -84,6 +84,25 @@ public static class EntityServiceRegistration
         services.AddScoped<IWebhookDeliveryEntityService, WebhookDeliveryEntityService>();
         services.AddScoped<IIntegrationApiKeyEntityService, IntegrationApiKeyEntityService>();
 
+        // Salon Modulu
+        services.AddScoped<ISlnClientEntityService, SlnClientEntityService>();
+        services.AddScoped<ISlnFormulaEntityService, SlnFormulaEntityService>();
+        services.AddScoped<ISlnClientPhotoEntityService, SlnClientPhotoEntityService>();
+        services.AddScoped<ISlnServiceCategoryEntityService, SlnServiceCategoryEntityService>();
+        services.AddScoped<ISlnServiceEntityService, SlnServiceEntityService>();
+        services.AddScoped<ISlnAppointmentEntityService, SlnAppointmentEntityService>();
+        services.AddScoped<ISlnProductEntityService, SlnProductEntityService>();
+        services.AddScoped<ISlnProductCategoryEntityService, SlnProductCategoryEntityService>();
+        services.AddScoped<ISlnProductBrandEntityService, SlnProductBrandEntityService>();
+        services.AddScoped<ISlnStockMovementEntityService, SlnStockMovementEntityService>();
+        services.AddScoped<ISlnSupplierEntityService, SlnSupplierEntityService>();
+        services.AddScoped<ISlnInvoiceEntityService, SlnInvoiceEntityService>();
+        services.AddScoped<ISlnInvoiceItemEntityService, SlnInvoiceItemEntityService>();
+        services.AddScoped<ISlnCashRegisterEntityService, SlnCashRegisterEntityService>();
+        services.AddScoped<ISlnCashTransactionEntityService, SlnCashTransactionEntityService>();
+        services.AddScoped<ISlnExpenseCategoryEntityService, SlnExpenseCategoryEntityService>();
+        services.AddScoped<ISlnExpenseEntityService, SlnExpenseEntityService>();
+
         return services;
     }
 }

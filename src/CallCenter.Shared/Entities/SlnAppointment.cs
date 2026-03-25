@@ -1,0 +1,28 @@
+namespace CallCenter.Shared.Entities;
+
+public class SlnAppointment
+{
+    public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public Customer? Customer { get; set; }
+
+    public int SlnClientId { get; set; }
+    public SlnClient? SlnClient { get; set; }
+
+    public int PersonnelId { get; set; }
+    public CustomerPersonnel? Personnel { get; set; }
+
+    public int ServiceId { get; set; }
+    public SlnService? Service { get; set; }
+
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+
+    /// <summary>1=Planned, 2=Confirmed, 3=Completed, 4=Cancelled, 5=NoShow</summary>
+    public int StatusId { get; set; } = 1;
+
+    public string? Notes { get; set; }
+    public int? CreatedByPersonnelId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+}

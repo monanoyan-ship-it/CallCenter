@@ -89,6 +89,32 @@ public class AppDbContext : DbContext
     public DbSet<CrmQualityAnswerSubCriteriaSelection> CrmQualityAnswerSubCriteriaSelections => Set<CrmQualityAnswerSubCriteriaSelection>();
     public DbSet<CrmQualityScoreThreshold> CrmQualityScoreThresholds => Set<CrmQualityScoreThreshold>();
 
+    // ─── Salon (Sln) ───
+    public DbSet<SlnClient> SlnClients => Set<SlnClient>();
+    public DbSet<SlnFormula> SlnFormulas => Set<SlnFormula>();
+    public DbSet<SlnClientPhoto> SlnClientPhotos => Set<SlnClientPhoto>();
+    public DbSet<SlnServiceCategory> SlnServiceCategories => Set<SlnServiceCategory>();
+    public DbSet<SlnService> SlnServices => Set<SlnService>();
+    public DbSet<SlnPersonnelSkill> SlnPersonnelSkills => Set<SlnPersonnelSkill>();
+    public DbSet<SlnPersonnelCommission> SlnPersonnelCommissions => Set<SlnPersonnelCommission>();
+    public DbSet<SlnPayroll> SlnPayrolls => Set<SlnPayroll>();
+    public DbSet<SlnAdvance> SlnAdvances => Set<SlnAdvance>();
+    public DbSet<SlnAppointment> SlnAppointments => Set<SlnAppointment>();
+    public DbSet<SlnProductCategory> SlnProductCategories => Set<SlnProductCategory>();
+    public DbSet<SlnProductBrand> SlnProductBrands => Set<SlnProductBrand>();
+    public DbSet<SlnProduct> SlnProducts => Set<SlnProduct>();
+    public DbSet<SlnSupplier> SlnSuppliers => Set<SlnSupplier>();
+    public DbSet<SlnStockMovement> SlnStockMovements => Set<SlnStockMovement>();
+    public DbSet<SlnInvoice> SlnInvoices => Set<SlnInvoice>();
+    public DbSet<SlnInvoiceItem> SlnInvoiceItems => Set<SlnInvoiceItem>();
+    public DbSet<SlnCashRegister> SlnCashRegisters => Set<SlnCashRegister>();
+    public DbSet<SlnCashTransaction> SlnCashTransactions => Set<SlnCashTransaction>();
+    public DbSet<SlnSupplierTransaction> SlnSupplierTransactions => Set<SlnSupplierTransaction>();
+    public DbSet<SlnExpenseCategory> SlnExpenseCategories => Set<SlnExpenseCategory>();
+    public DbSet<SlnExpense> SlnExpenses => Set<SlnExpense>();
+    public DbSet<SlnBankAccount> SlnBankAccounts => Set<SlnBankAccount>();
+    public DbSet<SlnPosDevice> SlnPosDevices => Set<SlnPosDevice>();
+
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();

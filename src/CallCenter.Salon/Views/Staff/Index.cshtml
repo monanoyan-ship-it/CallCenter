@@ -1,0 +1,166 @@
+@{
+    ViewData["Title"] = "Personel";
+}
+
+<div id="staff-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="input-group" style="max-width: 320px;">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Personel ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Personel
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ad Soyad</th>
+                            <th>Telefon</th>
+                            <th>Uzmanlik</th>
+                            <th>Ise Baslama</th>
+                            <th>Maas</th>
+                            <th>Prim %</th>
+                            <th>Bu Ay Prim</th>
+                            <th>Durum</th>
+                            <th style="width: 80px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredStaff">
+                        <tr>
+                            <td class="small fw-semibold" data-bind="text: fullName"></td>
+                            <td class="small" data-bind="text: phoneNumber"></td>
+                            <td class="small" data-bind="text: speciality || '-'"></td>
+                            <td class="small" data-bind="text: startDate ? new Date(startDate).toLocaleDateString('tr-TR') : '-'"></td>
+                            <td class="small" data-bind="text: salary ? salary.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                            <td class="small" data-bind="text: commissionRate ? '%' + commissionRate : '-'"></td>
+                            <td class="small fw-semibold text-success" data-bind="text: monthlyCommission ? monthlyCommission.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                            <td>
+                                <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: filteredStaff().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-person-badge" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Henuz personel eklenmemis</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Maas Ozeti -->
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-calculator me-2"></i>Aylik Maas Ozeti
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3 text-center">
+                    <div class="text-muted small">Toplam Maas</div>
+                    <div class="fw-bold text-primary" data-bind="text: totalSalary().toLocaleString('tr-TR') + ' TL'"></div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="text-muted small">Toplam Prim</div>
+                    <div class="fw-bold text-success" data-bind="text: totalCommission().toLocaleString('tr-TR') + ' TL'"></div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="text-muted small">Genel Toplam</div>
+                    <div class="fw-bold text-danger" data-bind="text: (totalSalary() + totalCommission()).toLocaleString('tr-TR') + ' TL'"></div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="text-muted small">Aktif Personel</div>
+                    <div class="fw-bold" data-bind="text: activeCount()"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="staffModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Personel Duzenle' : 'Yeni Personel'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Ad *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.firstName" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Soyad *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.lastName" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Telefon *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phoneNumber" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">E-posta</label>
+                            <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Uzmanlik</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Orn: Sac, Cilt, Tirnak..." data-bind="value: form.speciality" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Ise Baslama Tarihi</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: form.startDate" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Maas (TL)</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.salary" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Prim Orani %</label>
+                            <input type="number" class="form-control form-control-sm" step="0.1" data-bind="value: form.commissionRate" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">Durum</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.isActive">
+                                <option value="true">Aktif</option>
+                                <option value="false">Pasif</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Staff.js"></script>
+}

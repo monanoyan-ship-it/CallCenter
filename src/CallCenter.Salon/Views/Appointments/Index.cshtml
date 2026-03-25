@@ -1,0 +1,136 @@
+@{
+    ViewData["Title"] = "Randevular";
+}
+
+<div id="appointments-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary btn-sm" data-bind="click: prevDay">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <input type="date" class="form-control form-control-sm" style="width:160px;" data-bind="value: selectedDate" />
+            <button class="btn btn-outline-secondary btn-sm" data-bind="click: nextDay">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-outline-primary btn-sm" data-bind="click: goToday">Bugun</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: selectedStaffId, optionsCaption: 'Tum Personel'"></select>
+            <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Randevu
+            </button>
+        </div>
+    </div>
+
+    <!-- Gunluk Gorunum -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0" data-bind="text: formattedDate"></h6>
+            <small class="text-muted" data-bind="text: filteredAppointments().length + ' randevu'"></small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:80px;">Saat</th>
+                            <th>Musteri</th>
+                            <th>Hizmet</th>
+                            <th>Personel</th>
+                            <th>Sure</th>
+                            <th>Durum</th>
+                            <th style="width:100px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredAppointments">
+                        <tr data-bind="css: { 'table-success': status === 'Completed', 'table-warning': status === 'InProgress', 'table-danger': status === 'Cancelled' }">
+                            <td class="small fw-semibold" data-bind="text: startTime"></td>
+                            <td class="small">
+                                <a data-bind="text: clientName, attr: { href: '/Clients/Detail/' + clientId }" class="text-decoration-none"></a>
+                            </td>
+                            <td class="small" data-bind="text: serviceName"></td>
+                            <td class="small" data-bind="text: staffName"></td>
+                            <td class="small" data-bind="text: duration + ' dk'"></td>
+                            <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: status !== 'Completed' && status !== 'Cancelled'">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancel, visible: status !== 'Completed' && status !== 'Cancelled'">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: filteredAppointments().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Bu tarihte randevu bulunamadi</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="appointmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Randevu Duzenle' : 'Yeni Randevu'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Musteri *</label>
+                            <select class="form-select form-select-sm" data-bind="options: clientList, optionsText: 'fullName', optionsValue: 'id', value: form.clientId, optionsCaption: 'Musteri Seciniz'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Tarih *</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: form.appointmentDate" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Saat *</label>
+                            <input type="time" class="form-control form-control-sm" data-bind="value: form.startTime" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Hizmet *</label>
+                            <select class="form-select form-select-sm" data-bind="options: serviceList, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: 'Hizmet Seciniz'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Personel *</label>
+                            <select class="form-select form-select-sm" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: form.staffId, optionsCaption: 'Personel Seciniz'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sure (dk)</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: form.duration" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Appointments.js"></script>
+}
