@@ -140,7 +140,7 @@ public class BillingFactory : IBillingFactory
 
         var activeCustomers = await _customerEs.GetAllQueryable()
             .Where(c => c.IsActive)
-            .Select(c => new { c.Id, c.MonthlyUnitPrice, c.BillingAnchorDay })
+            .Select(c => new { c.Id, c.MonthlyUnitPrice, c.BillingAnchorDay, c.MaxUsers })
             .ToListAsync();
 
         var existingCustomerIds = await _billingEs.GetAllQueryable()
@@ -192,9 +192,19 @@ public class BillingFactory : IBillingFactory
             var endDay = Math.Min(startDay, daysInNextMonth);
             var periodEnd = new DateTime(nextYear, nextMonth, endDay, 0, 0, 0, DateTimeKind.Utc).AddDays(-1);
 
-            var userCount = await _personnelEs.GetAllQueryable()
-                .CountAsync(p => p.CustomerId == customer.Id && p.IsActive
-                    && p.CustomerRoleId == CustomerRoles.Ids.Operator);
+            // MaxUsers > 0: izin verilen sayi uzerinden tahakkuk
+            // MaxUsers == 0: sinirsiz → aktif Operator sayisi uzerinden tahakkuk
+            int userCount;
+            if (customer.MaxUsers > 0)
+            {
+                userCount = customer.MaxUsers;
+            }
+            else
+            {
+                userCount = await _personnelEs.GetAllQueryable()
+                    .CountAsync(p => p.CustomerId == customer.Id && p.IsActive
+                        && p.CustomerRoleId == CustomerRoles.Ids.Operator);
+            }
 
             // Bu musterinin aktif ucretli hizmetleri
             var customerSubs = activeSubscriptions.Where(s => s.CustomerId == customer.Id).ToList();
@@ -286,9 +296,19 @@ public class BillingFactory : IBillingFactory
         var endDay = Math.Min(startDate.Day, daysInNextMonth);
         var periodEnd = new DateTime(nextYear, nextMonth, endDay, 0, 0, 0, DateTimeKind.Utc).AddDays(-1);
 
-        var userCount = await _personnelEs.GetAllQueryable()
-            .CountAsync(p => p.CustomerId == dto.CustomerId && p.IsActive
-                && p.CustomerRoleId == CustomerRoles.Ids.Operator);
+        // MaxUsers > 0: izin verilen sayi uzerinden tahakkuk
+        // MaxUsers == 0: sinirsiz → aktif Operator sayisi uzerinden tahakkuk
+        int userCount;
+        if (customer.MaxUsers > 0)
+        {
+            userCount = customer.MaxUsers;
+        }
+        else
+        {
+            userCount = await _personnelEs.GetAllQueryable()
+                .CountAsync(p => p.CustomerId == dto.CustomerId && p.IsActive
+                    && p.CustomerRoleId == CustomerRoles.Ids.Operator);
+        }
 
         // Aktif ucretli hizmetler
         var customerSubs = await _subscriptionEs.GetAllQueryable()
