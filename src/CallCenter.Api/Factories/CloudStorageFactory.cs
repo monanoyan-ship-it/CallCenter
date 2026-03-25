@@ -17,6 +17,7 @@ public class CloudStorageFactory : ICloudStorageFactory
     private readonly ICallRecordEntityService _callEs;
     private readonly Services.CloudStorage.CloudStorageFactory _providerFactory;
     private readonly AesEncryptionService _encryption;
+    private readonly IConfiguration _config;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<CloudStorageFactory> _logger;
 
@@ -25,6 +26,7 @@ public class CloudStorageFactory : ICloudStorageFactory
         ICallRecordEntityService callEs,
         Services.CloudStorage.CloudStorageFactory providerFactory,
         AesEncryptionService encryption,
+        IConfiguration config,
         IUnitOfWork uow,
         ILogger<CloudStorageFactory> logger)
     {
@@ -32,6 +34,7 @@ public class CloudStorageFactory : ICloudStorageFactory
         _callEs = callEs;
         _providerFactory = providerFactory;
         _encryption = encryption;
+        _config = config;
         _uow = uow;
         _logger = logger;
     }
@@ -200,6 +203,20 @@ public class CloudStorageFactory : ICloudStorageFactory
             // Credentials JSON'da bool (UseSSL) veya null degerler olabilir.
             // Dictionary<string, string> yerine JsonDocument ile parse edip tum degerleri string'e ceviriyoruz.
             var credentials = ParseCredentialsToStringDict(json);
+
+            // OneDrive Delegated modda ClientId/Secret appsettings'ten gelir.
+            // API tarafinda CreateOneDriveProvider bunu yapiyor ama Windows app'e
+            // gonderilen config'de de bu bilgiler olmali, yoksa token refresh basarisiz olur.
+            if (config.ProviderTypeId == StorageProviders.Ids.OneDrive)
+            {
+                var authMode = credentials.GetValueOrDefault("AuthMode", "ClientCredential");
+                var clientId = credentials.GetValueOrDefault("ClientId", "");
+                if (authMode == "Delegated" && string.IsNullOrEmpty(clientId))
+                {
+                    credentials["ClientId"] = _config["OneDrive:ClientId"] ?? "";
+                    credentials["ClientSecret"] = _config["OneDrive:ClientSecret"] ?? "";
+                }
+            }
 
             return new CloudConfigForClientDto
             {
