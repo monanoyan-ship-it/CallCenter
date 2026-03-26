@@ -1,0 +1,193 @@
+@{
+    ViewData["Title"] = "Kasa";
+}
+
+<div id="cash-vm">
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <h5 class="mb-0">Kasa Yonetimi</h5>
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNewRegister">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Kasa
+        </button>
+    </div>
+
+    <!-- Kasa Kartlari -->
+    <div class="row g-3 mb-3">
+        <!-- ko foreach: cashRegisters -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <h6 class="mb-0" data-bind="text: name"></h6>
+                    <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="text-muted" style="font-size: .7rem;">Bakiye</div>
+                            <div class="fw-bold" data-bind="text: (balance || 0).toLocaleString('tr-TR') + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted" style="font-size: .7rem;">Tur</div>
+                            <div class="small" data-bind="text: typeName"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0 py-2">
+                    <div class="btn-group btn-group-sm w-100">
+                        <button class="btn btn-outline-primary" data-bind="click: $parent.viewTransactions">
+                            <i class="bi bi-list-ul me-1"></i>Hareketler
+                        </button>
+                        <button class="btn btn-outline-success" data-bind="click: $parent.openNewTransaction">
+                            <i class="bi bi-plus-lg me-1"></i>Islem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: cashRegisters().length === 0 -->
+        <div class="col-12">
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-safe" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Henuz kasa tanimlanmamis</p>
+            </div>
+        </div>
+        <!-- /ko -->
+    </div>
+
+    <!-- Hareketler Tablosu (secili kasa) -->
+    <!-- ko if: selectedRegister() -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+            <h6 class="mb-0">
+                <i class="bi bi-arrow-left-circle me-1" style="cursor:pointer;" data-bind="click: clearSelection"></i>
+                <span data-bind="text: selectedRegister().name"></span> - Hareketler
+            </h6>
+            <button class="btn btn-success btn-sm" data-bind="click: function() { openNewTransaction(selectedRegister()); }">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Islem
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Tur</th>
+                            <th>Aciklama</th>
+                            <th>Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: transactions">
+                        <tr>
+                            <td class="small" data-bind="text: new Date(transactionDate).toLocaleDateString('tr-TR')"></td>
+                            <td>
+                                <span class="badge" data-bind="text: typeName, css: type === 'Income' ? 'bg-success' : 'bg-danger'"></span>
+                            </td>
+                            <td class="small" data-bind="text: description"></td>
+                            <td class="small fw-semibold" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL', css: type === 'Income' ? 'text-success' : 'text-danger'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: transactions().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-arrow-left-right" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Bu kasada henuz hareket yok</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- Yeni Kasa Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Yeni Kasa</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Kasa Adi *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: registerForm.name" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Tur</label>
+                            <select class="form-select form-select-sm" data-bind="value: registerForm.type">
+                                <option value="Cash">Nakit</option>
+                                <option value="Bank">Banka</option>
+                                <option value="POS">POS</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Baslangic Bakiyesi</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: registerForm.initialBalance" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Aciklama</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: registerForm.description"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveRegister, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yeni Islem Modal -->
+    <div class="modal fade" id="transactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Yeni Kasa Islemi</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Islem Turu *</label>
+                            <select class="form-select form-select-sm" data-bind="value: transactionForm.type">
+                                <option value="Income">Gelir</option>
+                                <option value="Expense">Gider</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Tutar (TL) *</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: transactionForm.amount" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Aciklama *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: transactionForm.description" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: transactionForm.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveTransaction, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Cash.js"></script>
+}

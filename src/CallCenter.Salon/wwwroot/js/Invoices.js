@@ -55,7 +55,7 @@ function InvoicesViewModel() {
     var formModal;
 
     self.loadData = function () {
-        var url = '/proxy/sln-invoices';
+        var url = '/proxy/sln-finance/invoices';
         var params = [];
         if (self.filterStartDate()) params.push('startDate=' + self.filterStartDate());
         if (self.filterEndDate()) params.push('endDate=' + self.filterEndDate());
@@ -95,7 +95,7 @@ function InvoicesViewModel() {
             items.forEach(function (c) { c.fullName = (c.firstName || '') + ' ' + (c.lastName || ''); });
             self.clientList(items);
         });
-        $.ajax({ url: '/proxy/sln-staff', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (s) { s.fullName = (s.firstName || '') + ' ' + (s.lastName || ''); });
             self.staffList(items);
@@ -188,7 +188,7 @@ function InvoicesViewModel() {
         if (items.length === 0) { toastr.warning('En az bir kalem ekleyiniz'); return; }
 
         self.isSaving(true);
-        var url = '/proxy/sln-invoices';
+        var url = '/proxy/sln-finance/invoices';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();
@@ -213,7 +213,7 @@ function InvoicesViewModel() {
     self.cancelInvoice = function (invoice) {
         if (!confirm('Bu adisyonu iptal etmek istediginize emin misiniz?')) return;
         $.ajax({
-            url: '/proxy/sln-invoices/' + invoice.id,
+            url: '/proxy/sln-finance/invoices/' + invoice.id,
             method: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({ status: 'Cancelled' })

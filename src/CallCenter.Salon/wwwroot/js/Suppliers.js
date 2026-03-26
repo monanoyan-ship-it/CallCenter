@@ -45,7 +45,7 @@ function SuppliersViewModel() {
     var formModal;
 
     self.loadData = function () {
-        $.ajax({ url: '/proxy/sln-suppliers', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-products/suppliers', method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (s) {
                 s.balance = (s.credit || 0) - (s.debit || 0);
@@ -103,7 +103,7 @@ function SuppliersViewModel() {
         }
 
         self.isSaving(true);
-        var url = '/proxy/sln-suppliers';
+        var url = '/proxy/sln-products/suppliers';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();
@@ -127,7 +127,7 @@ function SuppliersViewModel() {
 
     self.remove = function (supplier) {
         if (!confirm("'" + supplier.name + "' tedarikcisini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-suppliers/' + supplier.id, method: 'DELETE' }).done(function () {
+        $.ajax({ url: '/proxy/sln-products/suppliers/' + supplier.id, method: 'DELETE' }).done(function () {
             self.loadData();
             toastr.success('Tedarikci silindi');
         }).fail(function () {

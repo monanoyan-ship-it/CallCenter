@@ -51,7 +51,7 @@ function ServicesViewModel() {
     var categoryModal, serviceModal;
 
     self.loadData = function () {
-        $.ajax({ url: '/proxy/sln-service-categories', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
             self.categories(data);
         });
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
@@ -81,7 +81,7 @@ function ServicesViewModel() {
         if (!data.name) { toastr.warning('Kategori adi zorunludur'); return; }
 
         self.isSaving(true);
-        var url = '/proxy/sln-service-categories';
+        var url = '/proxy/sln-services/categories';
         var method = 'POST';
         if (self.isEditingCategory()) {
             url += '/' + self.editingCategoryId();
@@ -101,7 +101,7 @@ function ServicesViewModel() {
 
     self.removeCategory = function (cat) {
         if (!confirm("'" + cat.name + "' kategorisini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-service-categories/' + cat.id, method: 'DELETE' }).done(function () {
+        $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
             self.loadData();
             toastr.success('Kategori silindi');
         }).fail(function () {

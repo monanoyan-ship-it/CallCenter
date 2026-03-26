@@ -48,7 +48,7 @@ function StaffViewModel() {
     var formModal;
 
     self.loadData = function () {
-        $.ajax({ url: '/proxy/sln-staff', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (s) {
                 s.fullName = (s.firstName || '') + ' ' + (s.lastName || '');
@@ -115,7 +115,7 @@ function StaffViewModel() {
         }
 
         self.isSaving(true);
-        var url = '/proxy/sln-staff';
+        var url = '/proxy/portal/personnel';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();
@@ -139,7 +139,7 @@ function StaffViewModel() {
 
     self.remove = function (staff) {
         if (!confirm("'" + staff.fullName + "' personelini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-staff/' + staff.id, method: 'DELETE' }).done(function () {
+        $.ajax({ url: '/proxy/portal/personnel/' + staff.id, method: 'DELETE' }).done(function () {
             self.loadData();
             toastr.success('Personel silindi');
         }).fail(function () {

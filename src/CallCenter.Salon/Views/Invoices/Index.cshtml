@@ -207,7 +207,7 @@
                             </div>
                             <div class="col-2">
                                 <label class="form-label small">Toplam</label>
-                                <input type="text" class="form-control form-control-sm" readonly data-bind="value: (quantity() * unitPrice()).toLocaleString('tr-TR') + ' TL'" />
+                                <input type="text" class="form-control form-control-sm" readonly data-bind="value: ((parseFloat(quantity()) || 0) * (parseFloat(unitPrice()) || 0)).toLocaleString('tr-TR') + ' TL'" />
                             </div>
                             <div class="col-1">
                                 <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.removeItem" title="Kaldir">

@@ -60,7 +60,7 @@ function ClientDetailViewModel() {
     };
 
     self.loadInvoices = function () {
-        $.ajax({ url: '/proxy/sln-invoices?clientId=' + id, method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-finance/invoices?clientId=' + id, method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (inv) {
                 inv.statusText = { Open: 'Acik', Closed: 'Kapali', Cancelled: 'Iptal' }[inv.status] || inv.status;

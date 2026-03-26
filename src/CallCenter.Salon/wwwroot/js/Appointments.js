@@ -66,7 +66,7 @@ function AppointmentsViewModel() {
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
             self.serviceList(data.items || data);
         });
-        $.ajax({ url: '/proxy/sln-staff', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (s) { s.fullName = (s.firstName || '') + ' ' + (s.lastName || ''); });
             self.staffList(items);

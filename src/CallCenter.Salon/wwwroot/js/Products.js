@@ -47,10 +47,10 @@ function ProductsViewModel() {
     };
 
     self.loadLookups = function () {
-        $.ajax({ url: '/proxy/sln-product-categories', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-products/categories', method: 'GET' }).done(function (data) {
             self.categories(data);
         });
-        $.ajax({ url: '/proxy/sln-product-brands', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-products/brands', method: 'GET' }).done(function (data) {
             self.brands(data);
         });
     };

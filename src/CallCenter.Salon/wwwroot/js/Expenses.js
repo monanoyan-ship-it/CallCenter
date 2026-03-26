@@ -62,7 +62,7 @@ function ExpensesViewModel() {
     var formModal;
 
     self.loadData = function () {
-        var url = '/proxy/sln-expenses';
+        var url = '/proxy/sln-finance/expenses';
         var params = [];
         if (self.filterStartDate()) params.push('startDate=' + self.filterStartDate());
         if (self.filterEndDate()) params.push('endDate=' + self.filterEndDate());
@@ -80,10 +80,10 @@ function ExpensesViewModel() {
     };
 
     self.loadLookups = function () {
-        $.ajax({ url: '/proxy/sln-expense-categories', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-finance/expense-categories', method: 'GET' }).done(function (data) {
             self.expenseCategories(data);
         });
-        $.ajax({ url: '/proxy/sln-suppliers', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-products/suppliers', method: 'GET' }).done(function (data) {
             self.supplierList(data.items || data);
         });
     };
@@ -140,7 +140,7 @@ function ExpensesViewModel() {
         }
 
         self.isSaving(true);
-        var url = '/proxy/sln-expenses';
+        var url = '/proxy/sln-finance/expenses';
         var method = 'POST';
         if (self.isEditing()) {
             url += '/' + self.editingId();
@@ -164,7 +164,7 @@ function ExpensesViewModel() {
 
     self.remove = function (expense) {
         if (!confirm('Bu masrafi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-expenses/' + expense.id, method: 'DELETE' }).done(function () {
+        $.ajax({ url: '/proxy/sln-finance/expenses/' + expense.id, method: 'DELETE' }).done(function () {
             self.loadData();
             toastr.success('Masraf silindi');
         }).fail(function () {
