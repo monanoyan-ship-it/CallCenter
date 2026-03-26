@@ -215,7 +215,9 @@
       "Bash(do sleep:*)",
       "Bash(done)",
       "Bash(git mv:*)",
-      "Bash(echo \"QualityDashboard -> CrmQualityDashboard\")"
+      "Bash(echo \"QualityDashboard -> CrmQualityDashboard\")",
+      "WebFetch(domain:startrinity.com)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Not ID:'''', d.get\\(''''id'''', ''''?''''\\)\\)\")"
     ]
   }
 }

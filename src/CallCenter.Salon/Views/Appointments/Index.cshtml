@@ -91,7 +91,31 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small">Musteri *</label>
-                            <select class="form-select form-select-sm" data-bind="options: clientList, optionsText: 'fullName', optionsValue: 'id', value: form.clientId, optionsCaption: 'Musteri Seciniz'"></select>
+                            <div class="position-relative" data-bind="with: clientAutocomplete">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Musteri adi yazin..."
+                                       autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown },
+                                                  attr: { id: 'clientSearchInput' }" />
+                                <!-- ko if: selectedName() -->
+                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
+                                      data-bind="click: clear" title="Temizle">
+                                    <i class="bi bi-x-circle text-muted"></i>
+                                </span>
+                                <!-- /ko -->
+                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                                     data-bind="css: { show: showDropdown }">
+                                    <!-- ko foreach: filteredClients -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: fullName, click: $parent.select, css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                    <!-- ko if: filteredClients().length === 0 && query().length > 0 -->
+                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Tarih *</label>
