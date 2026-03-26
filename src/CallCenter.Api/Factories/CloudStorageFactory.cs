@@ -295,6 +295,8 @@ public class CloudStorageFactory : ICloudStorageFactory
                 .ToListAsync();
             foreach (var ed in existingDefaults)
                 ed.IsDefault = false;
+            if (existingDefaults.Count > 0)
+                await _uow.SaveChangesAsync();
         }
 
         var config = new CustomerStorageConfig
@@ -336,6 +338,7 @@ public class CloudStorageFactory : ICloudStorageFactory
                 .ToListAsync();
             foreach (var ed in existingDefaults)
                 ed.IsDefault = false;
+            await _uow.SaveChangesAsync();
             config.IsDefault = true;
         }
         else if (dto.IsDefault.HasValue)
