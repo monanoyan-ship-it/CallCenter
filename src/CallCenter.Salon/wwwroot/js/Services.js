@@ -25,6 +25,9 @@ function ServicesViewModel() {
         description: ko.observable('')
     };
 
+    // ═══ Autocomplete ═══
+    self.categoryAutocomplete = createAutocomplete(self.categories, 'name', self.serviceForm.categoryId);
+
     self.filteredCategories = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         var cats = self.categories().map(function (cat) {
@@ -116,6 +119,7 @@ function ServicesViewModel() {
         self.serviceForm.price(0);
         self.serviceForm.isActive('true');
         self.serviceForm.description('');
+        self.categoryAutocomplete.clear();
         serviceModal.show();
     };
 
@@ -128,6 +132,8 @@ function ServicesViewModel() {
         self.serviceForm.price(svc.price);
         self.serviceForm.isActive(svc.isActive ? 'true' : 'false');
         self.serviceForm.description(svc.description || '');
+        // Autocomplete'e mevcut degeri set et
+        self.categoryAutocomplete.setFromValue(svc.categoryId);
         serviceModal.show();
     };
 

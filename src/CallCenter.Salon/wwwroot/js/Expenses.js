@@ -21,6 +21,10 @@ function ExpensesViewModel() {
         notes: ko.observable('')
     };
 
+    // ═══ Autocomplete'ler ═══
+    self.categoryAutocomplete = createAutocomplete(self.expenseCategories, 'name', self.form.categoryId);
+    self.supplierAutocomplete = createAutocomplete(self.supplierList, 'name', self.form.supplierId);
+
     self.filteredExpenses = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         var catId = self.selectedCategoryId();
@@ -94,6 +98,8 @@ function ExpensesViewModel() {
         self.form.notes('');
         self.isEditing(false);
         self.editingId(null);
+        self.categoryAutocomplete.clear();
+        self.supplierAutocomplete.clear();
     };
 
     self.openNew = function () {
@@ -111,6 +117,9 @@ function ExpensesViewModel() {
         self.form.paymentMethod(expense.paymentMethod || 'Cash');
         self.form.supplierId(expense.supplierId);
         self.form.notes(expense.notes || '');
+        // Autocomplete'lere mevcut degerleri set et
+        self.categoryAutocomplete.setFromValue(expense.categoryId);
+        self.supplierAutocomplete.setFromValue(expense.supplierId);
         formModal.show();
     };
 

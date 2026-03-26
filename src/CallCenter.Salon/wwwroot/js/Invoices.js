@@ -22,6 +22,10 @@ function InvoicesViewModel() {
         items: ko.observableArray([])
     };
 
+    // ═══ Autocomplete'ler ═══
+    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.clientId);
+    self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.staffId);
+
     self.summary = ko.observable({});
 
     self.filteredInvoices = ko.computed(function () {
@@ -126,6 +130,8 @@ function InvoicesViewModel() {
         self.form.paymentMethod('Cash');
         self.form.notes('');
         self.form.items([]);
+        self.clientAutocomplete.clear();
+        self.staffAutocomplete.clear();
         self.addItem();
         formModal.show();
     };
@@ -138,6 +144,9 @@ function InvoicesViewModel() {
         self.form.discount(invoice.discount || 0);
         self.form.paymentMethod(invoice.paymentMethod || 'Cash');
         self.form.notes(invoice.notes || '');
+        // Autocomplete'lere mevcut degerleri set et
+        self.clientAutocomplete.setFromValue(invoice.clientId);
+        self.staffAutocomplete.setFromValue(invoice.staffId);
 
         var items = [];
         (invoice.items || []).forEach(function (it) {

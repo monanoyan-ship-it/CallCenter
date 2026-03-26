@@ -22,6 +22,10 @@ function ProductsViewModel() {
         salePrice: ko.observable(0)
     };
 
+    // ═══ Autocomplete'ler ═══
+    self.categoryAutocomplete = createAutocomplete(self.categories, 'name', self.form.categoryId);
+    self.brandAutocomplete = createAutocomplete(self.brands, 'name', self.form.brandId);
+
     self.filteredProducts = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         var catId = self.selectedCategoryId();
@@ -64,6 +68,8 @@ function ProductsViewModel() {
         self.form.salePrice(0);
         self.isEditing(false);
         self.editingId(null);
+        self.categoryAutocomplete.clear();
+        self.brandAutocomplete.clear();
     };
 
     self.openNew = function () {
@@ -84,6 +90,9 @@ function ProductsViewModel() {
         self.form.vatRate(product.vatRate || 20);
         self.form.purchasePrice(product.purchasePrice || 0);
         self.form.salePrice(product.salePrice || 0);
+        // Autocomplete'lere mevcut degerleri set et
+        self.categoryAutocomplete.setFromValue(product.categoryId);
+        self.brandAutocomplete.setFromValue(product.brandId);
         formModal.show();
     };
 

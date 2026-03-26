@@ -20,97 +20,10 @@ function AppointmentsViewModel() {
         notes: ko.observable('')
     };
 
-    // ═══ Client Autocomplete ═══
-    self.clientAutocomplete = (function () {
-        var ac = {};
-        ac.query = ko.observable('');
-        ac.selectedName = ko.observable('');
-        ac.showDropdown = ko.observable(false);
-        ac.highlightIndex = ko.observable(-1);
-        var blurTimeout = null;
-        var MAX_SHOW = 20;
-
-        ac.sortedClients = ko.computed(function () {
-            var items = (self.clientList() || []).slice();
-            items.sort(function (a, b) { return (a.fullName || '').localeCompare(b.fullName || '', 'tr'); });
-            return items;
-        });
-
-        ac.filteredClients = ko.computed(function () {
-            var q = (ac.query() || '').toLowerCase().trim();
-            var sorted = ac.sortedClients();
-            if (!q || q === ac.selectedName().toLowerCase()) {
-                return sorted.slice(0, MAX_SHOW);
-            }
-            var filtered = sorted.filter(function (c) {
-                return (c.fullName || '').toLowerCase().indexOf(q) >= 0;
-            });
-            return filtered.slice(0, MAX_SHOW);
-        });
-
-        ac.onFocus = function () {
-            if (blurTimeout) { clearTimeout(blurTimeout); blurTimeout = null; }
-            ac.showDropdown(true);
-            ac.highlightIndex(-1);
-            return true;
-        };
-
-        ac.onBlur = function () {
-            blurTimeout = setTimeout(function () { ac.showDropdown(false); }, 200);
-            return true;
-        };
-
-        ac.select = function (client) {
-            self.form.clientId(client.id);
-            ac.query(client.fullName);
-            ac.selectedName(client.fullName);
-            ac.showDropdown(false);
-        };
-
-        ac.clear = function () {
-            self.form.clientId(null);
-            ac.query('');
-            ac.selectedName('');
-            ac.highlightIndex(-1);
-        };
-
-        ac.onKeydown = function (data, event) {
-            var key = event.keyCode;
-            var items = ac.filteredClients();
-            if (key === 40) { // Down
-                ac.highlightIndex(Math.min(ac.highlightIndex() + 1, items.length - 1));
-                ac.showDropdown(true);
-                return false;
-            } else if (key === 38) { // Up
-                ac.highlightIndex(Math.max(ac.highlightIndex() - 1, -1));
-                return false;
-            } else if (key === 13) { // Enter
-                var idx = ac.highlightIndex();
-                if (idx >= 0 && idx < items.length) {
-                    ac.select(items[idx]);
-                }
-                return false;
-            } else if (key === 27) { // Escape
-                ac.showDropdown(false);
-                return false;
-            }
-            // Reset selection on typing
-            if (ac.selectedName() && ac.query() !== ac.selectedName()) {
-                ac.selectedName('');
-                self.form.clientId(null);
-            }
-            return true;
-        };
-
-        // query degisince selectedName reset
-        ac.query.subscribe(function (val) {
-            if (val !== ac.selectedName()) {
-                ac.highlightIndex(-1);
-            }
-        });
-
-        return ac;
-    })();
+    // ═══ Autocomplete'ler ═══
+    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.clientId);
+    self.serviceAutocomplete = createAutocomplete(self.serviceList, 'name', self.form.serviceId);
+    self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.staffId);
 
     self.formattedDate = ko.computed(function () {
         var d = self.selectedDate();
@@ -189,6 +102,8 @@ function AppointmentsViewModel() {
         self.isEditing(false);
         self.editingId(null);
         self.clientAutocomplete.clear();
+        self.serviceAutocomplete.clear();
+        self.staffAutocomplete.clear();
     };
 
     self.openNew = function () {
@@ -206,9 +121,10 @@ function AppointmentsViewModel() {
         self.form.staffId(appt.staffId);
         self.form.duration(appt.duration || 30);
         self.form.notes(appt.notes || '');
-        // Autocomplete'e mevcut müşteri adını set et
-        self.clientAutocomplete.query(appt.clientName || '');
-        self.clientAutocomplete.selectedName(appt.clientName || '');
+        // Autocomplete'lere mevcut degerleri set et
+        self.clientAutocomplete.setFromValue(appt.clientId);
+        self.serviceAutocomplete.setFromValue(appt.serviceId);
+        self.staffAutocomplete.setFromValue(appt.staffId);
         formModal.show();
     };
 

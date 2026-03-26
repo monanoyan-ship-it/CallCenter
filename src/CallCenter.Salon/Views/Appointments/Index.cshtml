@@ -96,8 +96,7 @@
                                        placeholder="Musteri adi yazin..."
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown },
-                                                  attr: { id: 'clientSearchInput' }" />
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
                                       data-bind="click: clear" title="Temizle">
@@ -106,12 +105,13 @@
                                 <!-- /ko -->
                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
                                      data-bind="css: { show: showDropdown }">
-                                    <!-- ko foreach: filteredClients -->
+                                    <!-- ko foreach: filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: fullName, click: $parent.select, css: { active: $parent.highlightIndex() === $index() },
+                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                                  css: { active: $parent.highlightIndex() === $index() },
                                                   event: { mousedown: function(){ $parent.select($data); } }"></a>
                                     <!-- /ko -->
-                                    <!-- ko if: filteredClients().length === 0 && query().length > 0 -->
+                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
                                     <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
                                     <!-- /ko -->
                                 </div>
@@ -127,11 +127,59 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Hizmet *</label>
-                            <select class="form-select form-select-sm" data-bind="options: serviceList, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: 'Hizmet Seciniz'"></select>
+                            <div class="position-relative" data-bind="with: serviceAutocomplete">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Hizmet yazin..."
+                                       autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                <!-- ko if: selectedName() -->
+                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
+                                      data-bind="click: clear" title="Temizle">
+                                    <i class="bi bi-x-circle text-muted"></i>
+                                </span>
+                                <!-- /ko -->
+                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                                     data-bind="css: { show: showDropdown }">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Personel *</label>
-                            <select class="form-select form-select-sm" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: form.staffId, optionsCaption: 'Personel Seciniz'"></select>
+                            <div class="position-relative" data-bind="with: staffAutocomplete">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Personel yazin..."
+                                       autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                <!-- ko if: selectedName() -->
+                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
+                                      data-bind="click: clear" title="Temizle">
+                                    <i class="bi bi-x-circle text-muted"></i>
+                                </span>
+                                <!-- /ko -->
+                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                                     data-bind="css: { show: showDropdown }">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Sure (dk)</label>

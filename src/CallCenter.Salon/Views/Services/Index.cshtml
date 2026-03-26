@@ -172,7 +172,31 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Kategori</label>
-                            <select class="form-select form-select-sm" data-bind="options: categories, optionsText: 'name', optionsValue: 'id', value: serviceForm.categoryId, optionsCaption: 'Kategorisiz'"></select>
+                            <div class="position-relative" data-bind="with: categoryAutocomplete">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Kategori yazin..."
+                                       autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                <!-- ko if: selectedName() -->
+                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
+                                      data-bind="click: clear" title="Temizle">
+                                    <i class="bi bi-x-circle text-muted"></i>
+                                </span>
+                                <!-- /ko -->
+                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                                     data-bind="css: { show: showDropdown }">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Sure (dk) *</label>
