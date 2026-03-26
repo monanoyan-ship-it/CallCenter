@@ -4,8 +4,12 @@
 
 ### 1. ClaudeManager ZORUNLU
 Her oturumun İLK işi ClaudeManager rehberini okumaktır. Rehber okunmadan KOD YAZILMAZ.
+**project_id: 15** — Tüm endpoint'lerde bu ID kullanılır. `?cwd=` KULLANMA.
 ```
-curl -s "http://127.0.0.1:41847/api/guide?cwd=c:/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter"
+curl -s http://127.0.0.1:41847/api/projects/15/patterns
+curl -s http://127.0.0.1:41847/api/projects/15/notes
+curl -s http://127.0.0.1:41847/api/projects/15/journal
+curl -s http://127.0.0.1:41847/api/projects/15/roadmap/summary
 ```
 Rehberdeki tüm kurallar, hatalar ve tercihler bu oturumda GEÇERLİDİR.
 

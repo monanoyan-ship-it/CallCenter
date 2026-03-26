@@ -1,24 +1,12 @@
 window.audioPlayer = {
     _instances: {},
 
-    play: function (audioElementId, url, authToken) {
+    create: function (containerId, url, authToken) {
         var self = this;
-        var existing = self._instances[audioElementId];
-        if (existing && existing.objectUrl) {
-            existing.audio.play();
-            return Promise.resolve(true);
-        }
+        self.destroy(containerId);
 
-        // Remove stale audio element if exists
-        var old = document.getElementById(audioElementId);
-        if (old) old.remove();
-
-        var audio = document.createElement('audio');
-        audio.id = audioElementId;
-        audio.style.display = 'none';
-        document.body.appendChild(audio);
-
-        if (!url) return Promise.resolve(false);
+        var container = document.getElementById(containerId);
+        if (!container || !url) return Promise.resolve(false);
 
         return fetch(url, {
             headers: { 'Authorization': 'Bearer ' + authToken }
@@ -29,9 +17,25 @@ window.audioPlayer = {
         })
         .then(function (blob) {
             var objectUrl = URL.createObjectURL(blob);
-            audio.src = objectUrl;
-            self._instances[audioElementId] = { audio: audio, objectUrl: objectUrl };
-            return audio.play().then(function () { return true; });
+            var ws = WaveSurfer.create({
+                container: container,
+                waveColor: '#6c757d',
+                progressColor: '#0d6efd',
+                cursorColor: '#0d6efd',
+                cursorWidth: 2,
+                height: 64,
+                barWidth: 2,
+                barGap: 1,
+                barRadius: 2,
+                normalize: true,
+                dragToSeek: true,
+                url: objectUrl
+            });
+            self._instances[containerId] = { ws: ws, objectUrl: objectUrl };
+            return new Promise(function (resolve) {
+                ws.on('ready', function () { resolve(true); });
+                ws.on('error', function () { resolve(false); });
+            });
         })
         .catch(function (err) {
             console.error('[audioPlayer] Error:', err);
@@ -39,67 +43,67 @@ window.audioPlayer = {
         });
     },
 
-    pause: function (audioElementId) {
-        var instance = this._instances[audioElementId];
-        if (instance) instance.audio.pause();
+    play: function (containerId) {
+        var instance = this._instances[containerId];
+        if (instance) instance.ws.play();
     },
 
-    stop: function (audioElementId) {
-        var instance = this._instances[audioElementId];
+    pause: function (containerId) {
+        var instance = this._instances[containerId];
+        if (instance) instance.ws.pause();
+    },
+
+    playPause: function (containerId) {
+        var instance = this._instances[containerId];
+        if (instance) instance.ws.playPause();
+    },
+
+    stop: function (containerId) {
+        var instance = this._instances[containerId];
         if (instance) {
-            instance.audio.pause();
-            instance.audio.removeAttribute('src');
-            instance.audio.load();
-            if (instance.objectUrl) {
-                URL.revokeObjectURL(instance.objectUrl);
-            }
-            instance.audio.remove();
-            delete this._instances[audioElementId];
+            instance.ws.stop();
         }
-        // Cleanup any orphaned element
-        var el = document.getElementById(audioElementId);
-        if (el) el.remove();
     },
 
-    seek: function (audioElementId, position) {
-        var instance = this._instances[audioElementId];
-        if (instance) instance.audio.currentTime = position;
+    seek: function (containerId, seconds) {
+        var instance = this._instances[containerId];
+        if (instance) instance.ws.setTime(seconds);
     },
 
-    getDuration: function (audioElementId) {
-        var instance = this._instances[audioElementId];
-        if (instance && !isNaN(instance.audio.duration)) return instance.audio.duration;
-        return 0;
+    setVolume: function (containerId, volume) {
+        var instance = this._instances[containerId];
+        if (instance) instance.ws.setVolume(Math.max(0, Math.min(1, volume)));
     },
 
-    getCurrentTime: function (audioElementId) {
-        var instance = this._instances[audioElementId];
-        if (instance) return instance.audio.currentTime;
-        return 0;
-    },
-
-    getState: function (audioElementId, sliderId) {
-        var instance = this._instances[audioElementId];
+    getState: function (containerId) {
+        var instance = this._instances[containerId];
         if (!instance) return { playing: false, currentTime: 0, duration: 0, ended: false };
-        var ct = instance.audio.currentTime || 0;
-        var dur = isNaN(instance.audio.duration) ? 0 : instance.audio.duration;
-        if (sliderId) {
-            var slider = document.getElementById(sliderId);
-            if (slider) {
-                slider.max = dur;
-                slider.value = ct;
-            }
-        }
+        var ws = instance.ws;
         return {
-            playing: !instance.audio.paused && !instance.audio.ended,
-            currentTime: ct,
-            duration: dur,
-            ended: instance.audio.ended
+            playing: ws.isPlaying(),
+            currentTime: ws.getCurrentTime(),
+            duration: ws.getDuration(),
+            ended: ws.getCurrentTime() >= ws.getDuration() && !ws.isPlaying()
         };
     },
 
-    setVolume: function (audioElementId, volume) {
-        var instance = this._instances[audioElementId];
-        if (instance) instance.audio.volume = Math.max(0, Math.min(1, volume));
+    onFinish: function (containerId, dotnetRef) {
+        var instance = this._instances[containerId];
+        if (instance) {
+            instance.ws.on('finish', function () {
+                dotnetRef.invokeMethodAsync('OnWaveSurferFinished');
+            });
+        }
+    },
+
+    destroy: function (containerId) {
+        var instance = this._instances[containerId];
+        if (instance) {
+            instance.ws.destroy();
+            if (instance.objectUrl) {
+                URL.revokeObjectURL(instance.objectUrl);
+            }
+            delete this._instances[containerId];
+        }
     }
 };

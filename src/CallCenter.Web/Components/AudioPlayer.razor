@@ -2,7 +2,7 @@
 @inject HttpClient Http
 @implements IAsyncDisposable
 
-<div class="audio-player d-flex align-items-center gap-2 p-2 bg-light rounded">
+<div class="audio-player p-2 bg-light rounded">
     @if (isLoading)
     {
         <div class="d-flex align-items-center gap-2 w-100 justify-content-center py-2">
@@ -20,24 +20,23 @@
     }
     else
     {
-        <button class="btn btn-sm @(isPlaying ? "btn-warning" : "btn-success")" @onclick="TogglePlayPause" title="@(isPlaying ? "Duraklat" : "Oynat")">
-            <i class="bi @(isPlaying ? "bi-pause-fill" : "bi-play-fill")"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-secondary" @onclick="Stop" title="Durdur" disabled="@(!hasStarted)">
-            <i class="bi bi-stop-fill"></i>
-        </button>
+        <div id="@containerId" class="mb-2" style="min-height:64px;"></div>
 
-        <div class="flex-grow-1 mx-2">
-            <input type="range" id="@sliderId" class="form-range" min="0" max="1" step="0.1"
-                   @onchange="OnSeek" style="height:20px;" />
-        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm @(isPlaying ? "btn-warning" : "btn-success")" @onclick="TogglePlayPause" title="@(isPlaying ? "Duraklat" : "Oynat")">
+                <i class="bi @(isPlaying ? "bi-pause-fill" : "bi-play-fill")"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="Stop" title="Durdur" disabled="@(!hasStarted)">
+                <i class="bi bi-stop-fill"></i>
+            </button>
 
-        <span class="text-muted small text-nowrap">@FormatTime(currentTime) / @FormatTime(duration)</span>
+            <span class="text-muted small text-nowrap">@FormatTime(currentTime) / @FormatTime(duration)</span>
 
-        <div class="d-flex align-items-center gap-1" style="min-width:80px;">
-            <i class="bi bi-volume-up small"></i>
-            <input type="range" class="form-range" min="0" max="1" step="0.05"
-                   value="@volume" @onchange="OnVolumeChange" style="width:60px;height:16px;" />
+            <div class="d-flex align-items-center gap-1 ms-auto" style="min-width:80px;">
+                <i class="bi bi-volume-up small"></i>
+                <input type="range" class="form-range" min="0" max="1" step="0.05"
+                       value="@volume" @onchange="OnVolumeChange" style="width:60px;height:16px;" />
+            </div>
         </div>
     }
 </div>
@@ -47,8 +46,7 @@
     [Parameter] public EventCallback OnPlaybackEnded { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private string audioElementId = "";
-    private string sliderId = "";
+    private string containerId = "";
     private bool isLoading = true;
     private bool loadError;
     private bool isPlaying;
@@ -58,123 +56,95 @@
     private double duration;
     private double volume = 0.8;
     private Timer? pollTimer;
+    private DotNetObjectReference<AudioPlayer>? dotnetRef;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        audioElementId = $"audioPlayer_{CallUid:N}";
-        sliderId = $"slider_{CallUid:N}";
-        isLoading = true;
+        containerId = $"waveform_{CallUid:N}";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
 
         try
         {
             var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
-            if (string.IsNullOrEmpty(token)) { loadError = true; return; }
+            if (string.IsNullOrEmpty(token)) { loadError = true; isLoading = false; StateHasChanged(); return; }
 
             var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
             var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
 
-            var success = await JS.InvokeAsync<bool>("audioPlayer.play", audioElementId, streamUrl, token);
-            if (!success) { loadError = true; return; }
+            var success = await JS.InvokeAsync<bool>("audioPlayer.create", containerId, streamUrl, token);
+            if (!success) { loadError = true; isLoading = false; StateHasChanged(); return; }
 
-            isPlaying = true;
-            hasStarted = true;
+            await JS.InvokeVoidAsync("audioPlayer.setVolume", containerId, volume);
+
+            dotnetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("audioPlayer.onFinish", containerId, dotnetRef);
+
             isLoading = false;
+            hasStarted = true;
+            StateHasChanged();
 
             pollTimer = new Timer(async _ =>
             {
                 if (disposed) return;
                 try
                 {
-                    var state = await JS.InvokeAsync<AudioState>("audioPlayer.getState", audioElementId, sliderId);
+                    var state = await JS.InvokeAsync<AudioState>("audioPlayer.getState", containerId);
                     currentTime = state.CurrentTime;
                     duration = state.Duration;
                     isPlaying = state.Playing;
-
-                    if (state.Ended && hasStarted)
-                    {
-                        hasStarted = false;
-                        await NotifyStreamEnded();
-                    }
-
                     if (!disposed) await InvokeAsync(StateHasChanged);
                 }
                 catch { /* component disposed */ }
-            }, null, 500, 250);
+            }, null, 300, 250);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[AudioPlayer] Error: {ex.Message}");
             loadError = true;
-        }
-        finally
-        {
             isLoading = false;
+            StateHasChanged();
         }
     }
 
     private async Task TogglePlayPause()
     {
-        if (isPlaying)
-        {
-            await JS.InvokeVoidAsync("audioPlayer.pause", audioElementId);
-            isPlaying = false;
-        }
-        else if (hasStarted)
-        {
-            await JS.InvokeVoidAsync("audioPlayer.play", audioElementId, "", "");
-            isPlaying = true;
-        }
-        else
-        {
-            isLoading = true;
-            var token = await JS.InvokeAsync<string?>("localStorage.getItem", "auth_token");
-            if (string.IsNullOrEmpty(token)) { isLoading = false; return; }
-            var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
-            var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
-            var success = await JS.InvokeAsync<bool>("audioPlayer.play", audioElementId, streamUrl, token);
-            isLoading = false;
-            if (!success) { loadError = true; return; }
-            isPlaying = true;
-            hasStarted = true;
-        }
+        await JS.InvokeVoidAsync("audioPlayer.playPause", containerId);
+        isPlaying = !isPlaying;
+        hasStarted = true;
     }
 
     private async Task Stop()
     {
-        pollTimer?.Dispose();
-        pollTimer = null;
-        await JS.InvokeVoidAsync("audioPlayer.stop", audioElementId);
+        await JS.InvokeVoidAsync("audioPlayer.stop", containerId);
         isPlaying = false;
-        hasStarted = false;
         currentTime = 0;
-    }
-
-    private async Task OnSeek(ChangeEventArgs e)
-    {
-        if (double.TryParse(e.Value?.ToString(), out var pos))
-        {
-            await JS.InvokeVoidAsync("audioPlayer.seek", audioElementId, pos);
-            currentTime = pos;
-        }
     }
 
     private async Task OnVolumeChange(ChangeEventArgs e)
     {
         if (double.TryParse(e.Value?.ToString(), out var vol))
         {
-            await JS.InvokeVoidAsync("audioPlayer.setVolume", audioElementId, vol);
+            await JS.InvokeVoidAsync("audioPlayer.setVolume", containerId, vol);
             volume = vol;
         }
     }
 
-    private async Task NotifyStreamEnded()
+    [JSInvokable]
+    public async Task OnWaveSurferFinished()
     {
+        isPlaying = false;
+        hasStarted = false;
         try
         {
             await Http.PostAsync($"api/recordings/{CallUid}/stream-ended", null);
         }
         catch { /* best effort */ }
         await OnPlaybackEnded.InvokeAsync();
+        if (!disposed) await InvokeAsync(StateHasChanged);
     }
 
     private static string FormatTime(double seconds)
@@ -191,9 +161,10 @@
         pollTimer = null;
         try
         {
-            await JS.InvokeVoidAsync("audioPlayer.stop", audioElementId);
+            await JS.InvokeVoidAsync("audioPlayer.destroy", containerId);
         }
         catch { /* page unloading */ }
+        dotnetRef?.Dispose();
     }
 
     private class AudioState
