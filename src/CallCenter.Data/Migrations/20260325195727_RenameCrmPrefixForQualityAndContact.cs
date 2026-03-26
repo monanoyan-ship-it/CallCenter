@@ -37,37 +37,34 @@ namespace CallCenter.Data.Migrations
             // IntegrationConnections
             migrationBuilder.RenameColumn(name: "ContactSyncDirectionId", table: "IntegrationConnections", newName: "CrmContactSyncDirectionId");
 
-            // ═══ Index rename'leri ═══
+            // ═══ Index rename'leri (IF EXISTS - bazi tablolarda index olmayabilir) ═══
 
-            migrationBuilder.RenameIndex(name: "IX_CampaignContacts_ContactId", table: "CampaignContacts", newName: "IX_CampaignContacts_CrmContactId");
-            migrationBuilder.RenameIndex(name: "IX_CrmActivities_ContactId", table: "CrmActivities", newName: "IX_CrmActivities_CrmContactId");
-            migrationBuilder.RenameIndex(name: "IX_CrmContactTagLinks_ContactId", table: "CrmContactTagLinks", newName: "IX_CrmContactTagLinks_CrmContactId");
-            migrationBuilder.RenameIndex(name: "IX_CrmDeals_ContactId", table: "CrmDeals", newName: "IX_CrmDeals_CrmContactId");
-            migrationBuilder.RenameIndex(name: "IX_CrmSurveyResponses_ContactId", table: "CrmSurveyResponses", newName: "IX_CrmSurveyResponses_CrmContactId");
-            migrationBuilder.RenameIndex(name: "IX_CrmTasks_ContactId", table: "CrmTasks", newName: "IX_CrmTasks_CrmContactId");
-            migrationBuilder.RenameIndex(name: "IX_CrmTickets_ContactId", table: "CrmTickets", newName: "IX_CrmTickets_CrmContactId");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CampaignContacts_ContactId\" RENAME TO \"IX_CampaignContacts_CrmContactId\";");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CrmActivities_ContactId\" RENAME TO \"IX_CrmActivities_CrmContactId\";");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CrmContactTagLinks_ContactId\" RENAME TO \"IX_CrmContactTagLinks_CrmContactId\";");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CrmDeals_ContactId\" RENAME TO \"IX_CrmDeals_CrmContactId\";");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CrmSurveyResponses_ContactId\" RENAME TO \"IX_CrmSurveyResponses_CrmContactId\";");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CrmTasks_ContactId\" RENAME TO \"IX_CrmTasks_CrmContactId\";");
+            migrationBuilder.Sql("ALTER INDEX IF EXISTS \"IX_CrmTickets_ContactId\" RENAME TO \"IX_CrmTickets_CrmContactId\";");
 
-            // ═══ FK constraint rename'leri ═══
+            // ═══ FK constraint rename'leri (IF EXISTS ile guvenli) ═══
 
-            migrationBuilder.DropForeignKey(name: "FK_CampaignContacts_Contacts_ContactId", table: "CampaignContacts");
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""CampaignContacts"" DROP CONSTRAINT IF EXISTS ""FK_CampaignContacts_Contacts_ContactId"";
+                ALTER TABLE ""CrmActivities"" DROP CONSTRAINT IF EXISTS ""FK_CrmActivities_Contacts_ContactId"";
+                ALTER TABLE ""CrmContactTagLinks"" DROP CONSTRAINT IF EXISTS ""FK_CrmContactTagLinks_Contacts_ContactId"";
+                ALTER TABLE ""CrmDeals"" DROP CONSTRAINT IF EXISTS ""FK_CrmDeals_Contacts_ContactId"";
+                ALTER TABLE ""CrmSurveyResponses"" DROP CONSTRAINT IF EXISTS ""FK_CrmSurveyResponses_Contacts_ContactId"";
+                ALTER TABLE ""CrmTasks"" DROP CONSTRAINT IF EXISTS ""FK_CrmTasks_Contacts_ContactId"";
+                ALTER TABLE ""CrmTickets"" DROP CONSTRAINT IF EXISTS ""FK_CrmTickets_Contacts_ContactId"";
+            ");
+
             migrationBuilder.AddForeignKey(name: "FK_CampaignContacts_CrmContacts_CrmContactId", table: "CampaignContacts", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id", onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.DropForeignKey(name: "FK_CrmActivities_Contacts_ContactId", table: "CrmActivities");
             migrationBuilder.AddForeignKey(name: "FK_CrmActivities_CrmContacts_CrmContactId", table: "CrmActivities", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id");
-
-            migrationBuilder.DropForeignKey(name: "FK_CrmContactTagLinks_Contacts_ContactId", table: "CrmContactTagLinks");
             migrationBuilder.AddForeignKey(name: "FK_CrmContactTagLinks_CrmContacts_CrmContactId", table: "CrmContactTagLinks", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id", onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.DropForeignKey(name: "FK_CrmDeals_Contacts_ContactId", table: "CrmDeals");
             migrationBuilder.AddForeignKey(name: "FK_CrmDeals_CrmContacts_CrmContactId", table: "CrmDeals", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id");
-
-            migrationBuilder.DropForeignKey(name: "FK_CrmSurveyResponses_Contacts_ContactId", table: "CrmSurveyResponses");
             migrationBuilder.AddForeignKey(name: "FK_CrmSurveyResponses_CrmContacts_CrmContactId", table: "CrmSurveyResponses", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id");
-
-            migrationBuilder.DropForeignKey(name: "FK_CrmTasks_Contacts_ContactId", table: "CrmTasks");
             migrationBuilder.AddForeignKey(name: "FK_CrmTasks_CrmContacts_CrmContactId", table: "CrmTasks", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id");
-
-            migrationBuilder.DropForeignKey(name: "FK_CrmTickets_Contacts_ContactId", table: "CrmTickets");
             migrationBuilder.AddForeignKey(name: "FK_CrmTickets_CrmContacts_CrmContactId", table: "CrmTickets", column: "CrmContactId", principalTable: "CrmContacts", principalColumn: "Id");
         }
 
