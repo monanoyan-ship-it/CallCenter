@@ -18,9 +18,9 @@
     <Copyright>Copyright (c) CorpLynk 2025-2026</Copyright>
 
     <!-- Versiyon -->
-    <Version>0.3.1.0</Version>
-    <FileVersion>0.3.1.0</FileVersion>
-    <InformationalVersion>0.3.0-beta</InformationalVersion>
+    <Version>0.4.0.0</Version>
+    <FileVersion>0.4.0.0</FileVersion>
+    <InformationalVersion>0.4.0</InformationalVersion>
 
     <!-- Ikon -->
     <ApplicationIcon>Assets\corplynk.ico</ApplicationIcon>
