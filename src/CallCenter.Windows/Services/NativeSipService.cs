@@ -95,7 +95,7 @@ public class NativeSipService : ISipService
     private bool _isRecording;
     private string? _recordingWavPath; // Sifrelemeden onceki WAV yolu
     private int _recordingPayloadType; // Aktif codec: 0=PCMU, 8=PCMA, 9=G722
-    private WindowsAudioEndPoint? _winAudioEndPoint; // Mikrofon event'i icin referans
+    private Audio.LowLatencyAudioEndPoint? _winAudioEndPoint; // Mikrofon event'i icin referans
     private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _recInQueue = new(); // Gelen ses (karsi taraf)
     private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _recOutQueue = new(); // Giden ses (mikrofon)
     private readonly object _recWriteLock = new();
@@ -1811,7 +1811,7 @@ public class NativeSipService : ISipService
     private VoIPMediaSession CreateMediaSession()
     {
         Log($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}], srtp={_srtpEnabled}");
-        var winAudio = new WindowsAudioEndPoint(new AudioEncoder(), _outputDeviceIndex, _inputDeviceIndex);
+        var winAudio = new Audio.LowLatencyAudioEndPoint(new AudioEncoder(), _outputDeviceIndex, _inputDeviceIndex);
         _winAudioEndPoint = winAudio; // Recording icin mikrofon event'ine erisim
 
         // Codec filtresi: Sadece etkinlestirilmis codec'ler
