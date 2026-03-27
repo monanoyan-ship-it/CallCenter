@@ -47,8 +47,16 @@ public static class InfrastructureRegistration
         }
         else
         {
-            // GCP ortaminda Application Default Credentials kullanilir
-            services.AddSingleton(TextToSpeechClient.Create());
+            try
+            {
+                // GCP ortaminda Application Default Credentials kullanilir
+                services.AddSingleton(TextToSpeechClient.Create());
+            }
+            catch
+            {
+                // Lokal gelistirme: ADC yoksa TTS devre disi
+                services.AddSingleton<TextToSpeechClient>(_ => null!);
+            }
         }
         services.AddSingleton<ITtsService, GoogleTtsService>();
 

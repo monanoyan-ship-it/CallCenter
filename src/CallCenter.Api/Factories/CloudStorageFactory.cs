@@ -517,8 +517,13 @@ public class CloudStorageFactory : ICloudStorageFactory
             },
             StorageProviders.Ids.GoogleDrive => new
             {
-                ClientId = dto.GoogleClientId ?? "",
-                ClientSecret = dto.GoogleClientSecret ?? "",
+                // Kolay modda ClientId/Secret bos gelir — API'nin kendi credentials'ini kullan
+                ClientId = !string.IsNullOrEmpty(dto.GoogleClientId)
+                    ? dto.GoogleClientId
+                    : _config["GoogleDrive:ClientId"] ?? "",
+                ClientSecret = !string.IsNullOrEmpty(dto.GoogleClientSecret)
+                    ? dto.GoogleClientSecret
+                    : _config["GoogleDrive:ClientSecret"] ?? "",
                 RefreshToken = dto.GoogleRefreshToken ?? "",
                 FolderId = dto.GoogleFolderId
             },

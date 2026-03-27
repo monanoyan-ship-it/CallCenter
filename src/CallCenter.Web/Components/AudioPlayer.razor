@@ -3,6 +3,9 @@
 @implements IAsyncDisposable
 
 <div class="audio-player p-2 bg-light rounded">
+    @* Container div her zaman DOM'da olmali - JS audioPlayer.create bunu arar *@
+    <div id="@containerId" class="mb-2" style="min-height:64px;display:@(isLoading || loadError ? "none" : "block")"></div>
+
     @if (isLoading)
     {
         <div class="d-flex align-items-center gap-2 w-100 justify-content-center py-2">
@@ -20,8 +23,6 @@
     }
     else
     {
-        <div id="@containerId" class="mb-2" style="min-height:64px;"></div>
-
         <div class="d-flex align-items-center gap-2">
             <button class="btn btn-sm @(isPlaying ? "btn-warning" : "btn-success")" @onclick="TogglePlayPause" title="@(isPlaying ? "Duraklat" : "Oynat")">
                 <i class="bi @(isPlaying ? "bi-pause-fill" : "bi-play-fill")"></i>

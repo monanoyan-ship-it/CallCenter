@@ -27,6 +27,9 @@ public class GoogleTtsService : ITtsService
 
     public async Task<int> SynthesizeToFileAsync(string text, string language, string? voice, string outputPath)
     {
+        if (_client == null)
+            throw new InvalidOperationException("TTS servisi yapilandirilmamis. Google Cloud credentials gerekli.");
+
         var selectedVoice = voice;
         if (string.IsNullOrEmpty(selectedVoice))
             DefaultVoices.TryGetValue(language, out selectedVoice);
@@ -77,6 +80,9 @@ public class GoogleTtsService : ITtsService
 
     public async Task<List<TtsVoiceInfo>> GetVoicesAsync(string language)
     {
+        if (_client == null)
+            return GetFallbackVoices(language);
+
         try
         {
             var response = await _client.ListVoicesAsync(new ListVoicesRequest { LanguageCode = language });

@@ -50,10 +50,18 @@ public class CloudStorageFactory
         return new S3StorageProvider(creds, isMinIO);
     }
 
-    private static GoogleDriveStorageProvider CreateGoogleDriveProvider(string json)
+    private GoogleDriveStorageProvider CreateGoogleDriveProvider(string json)
     {
         var creds = JsonSerializer.Deserialize<GoogleDriveCredentials>(json, JsonOpts)
             ?? throw new InvalidOperationException("Google Drive credential bilgileri okunamadi");
+
+        // Kolay modda ClientId/Secret bos olabilir — API'nin kendi credentials'ini kullan
+        if (string.IsNullOrEmpty(creds.ClientId))
+        {
+            creds.ClientId = _config["GoogleDrive:ClientId"] ?? "";
+            creds.ClientSecret = _config["GoogleDrive:ClientSecret"] ?? "";
+        }
+
         return new GoogleDriveStorageProvider(creds);
     }
 
