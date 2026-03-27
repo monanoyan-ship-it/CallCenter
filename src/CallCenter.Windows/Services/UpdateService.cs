@@ -96,7 +96,9 @@ public class UpdateService
                 return filePath;
             }
 
-            using var response = await _httpClient.GetAsync(AvailableUpdate.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            // Download icin ayri HttpClient kullan (API auth header'i GCS'yi bozar)
+            using var downloadClient = new HttpClient();
+            using var response = await downloadClient.GetAsync(AvailableUpdate.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? -1;
