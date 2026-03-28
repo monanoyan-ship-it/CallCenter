@@ -281,6 +281,30 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnNoShowPolicy ═══
+public class SlnNoShowPolicyDto
+{
+    public int Id { get; set; }
+    public bool RequireDeposit { get; set; }
+    public decimal DepositAmount { get; set; }
+    public int FreeCancellationHours { get; set; }
+    public decimal LateCancellationFee { get; set; }
+    public decimal NoShowFee { get; set; }
+    public int BlacklistThreshold { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class SlnNoShowPolicyUpdateDto
+{
+    public bool RequireDeposit { get; set; }
+    public decimal DepositAmount { get; set; }
+    public int FreeCancellationHours { get; set; } = 24;
+    public decimal LateCancellationFee { get; set; }
+    public decimal NoShowFee { get; set; }
+    public int BlacklistThreshold { get; set; } = 3;
+    public bool IsActive { get; set; } = true;
+}
+
 // ═══ SlnMembership ═══
 public class SlnMembershipPlanDto
 {

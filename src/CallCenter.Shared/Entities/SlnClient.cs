@@ -24,6 +24,8 @@ public class SlnClient
     public string? SkinType { get; set; }
     public string? Notes { get; set; }
     public bool IsFavorite { get; set; }
+    public int NoShowCount { get; set; }
+    public bool IsBlacklisted { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

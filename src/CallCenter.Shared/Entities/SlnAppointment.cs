@@ -22,6 +22,14 @@ public class SlnAppointment
     public int StatusId { get; set; } = 1;
 
     public string? Notes { get; set; }
+
+    /// <summary>Alinan depozito tutari</summary>
+    public decimal DepositAmount { get; set; }
+    /// <summary>Depozito iade edildi mi?</summary>
+    public bool DepositRefunded { get; set; }
+    /// <summary>Iptal/NoShow nedeniyle kesilen ucret</summary>
+    public decimal PenaltyAmount { get; set; }
+
     public int? CreatedByPersonnelId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
