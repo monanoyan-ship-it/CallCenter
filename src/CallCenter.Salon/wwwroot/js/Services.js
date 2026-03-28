@@ -20,7 +20,8 @@ function ServicesViewModel() {
         name: ko.observable(''),
         categoryId: ko.observable(null),
         durationMinutes: ko.observable(30),
-        price: ko.observable(0)
+        price: ko.observable(0),
+        isActive: ko.observable('true')
     };
 
     // ═══ Autocomplete ═══
@@ -115,6 +116,7 @@ function ServicesViewModel() {
         self.serviceForm.categoryId(null);
         self.serviceForm.durationMinutes(30);
         self.serviceForm.price(0);
+        self.serviceForm.isActive('true');
         self.categoryAutocomplete.clear();
         serviceModal.show();
     };
@@ -126,6 +128,7 @@ function ServicesViewModel() {
         self.serviceForm.categoryId(svc.categoryId);
         self.serviceForm.durationMinutes(svc.durationMinutes || 30);
         self.serviceForm.price(svc.price);
+        self.serviceForm.isActive(svc.isActive ? 'true' : 'false');
         // Autocomplete'e mevcut degeri set et
         self.categoryAutocomplete.setFromValue(svc.categoryId);
         serviceModal.show();
@@ -136,7 +139,8 @@ function ServicesViewModel() {
             name: self.serviceForm.name(),
             categoryId: self.serviceForm.categoryId() || null,
             durationMinutes: parseInt(self.serviceForm.durationMinutes()) || 30,
-            price: parseFloat(self.serviceForm.price()) || 0
+            price: parseFloat(self.serviceForm.price()) || 0,
+            isActive: self.serviceForm.isActive() === 'true'
         };
         if (!data.name) { toastr.warning('Hizmet adi zorunludur'); return; }
 

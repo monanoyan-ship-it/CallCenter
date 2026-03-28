@@ -12,9 +12,9 @@
             </div>
             <select class="form-select form-select-sm" style="width:140px;" data-bind="value: filterStatus">
                 <option value="">Tum Durumlar</option>
-                <option value="Open">Acik</option>
-                <option value="Closed">Kapali</option>
-                <option value="Cancelled">Iptal</option>
+                <option value="1">Acik</option>
+                <option value="2">Odendi</option>
+                <option value="3">Iptal</option>
             </select>
             <input type="date" class="form-control form-control-sm" style="width:150px;" data-bind="value: filterStartDate" />
             <span class="small text-muted">-</span>
@@ -83,20 +83,18 @@
                         <tr>
                             <td class="small fw-semibold" data-bind="text: invoiceNo"></td>
                             <td class="small" data-bind="text: new Date(invoiceDate).toLocaleDateString('tr-TR')"></td>
-                            <td class="small">
-                                <a data-bind="text: clientName, attr: { href: '/Clients/Detail/' + clientId }" class="text-decoration-none"></a>
-                            </td>
-                            <td class="small" data-bind="text: staffName"></td>
-                            <td class="small text-muted" data-bind="text: itemsSummary"></td>
-                            <td class="small fw-semibold" data-bind="text: totalAmount.toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small" data-bind="text: clientName"></td>
+                            <td class="small" data-bind="text: personnelName || '-'"></td>
+                            <td class="small text-muted" data-bind="text: itemsSummary || '-'"></td>
+                            <td class="small fw-semibold" data-bind="text: (totalAmount || 0).toLocaleString('tr-TR') + ' TL'"></td>
                             <td class="small" data-bind="text: paymentMethodText"></td>
                             <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Detay" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary" title="Detay" data-bind="click: $parent.openDetail">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancelInvoice, visible: status === 'Open'">
+                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancelInvoice, visible: statusId === 1">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                 </div>
@@ -153,32 +151,10 @@
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Personel</label>
-                            <div class="position-relative" data-bind="with: staffAutocomplete">
-                                <input type="text" class="form-control form-control-sm"
-                                       placeholder="Personel yazin..."
-                                       autocomplete="off"
-                                       data-bind="value: query, valueUpdate: 'afterkeydown',
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                <!-- ko if: selectedName() -->
-                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
-                                    <i class="bi bi-x-circle text-muted"></i>
-                                </span>
-                                <!-- /ko -->
-                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
-                                     data-bind="css: { show: showDropdown }">
-                                    <!-- ko foreach: filteredItems -->
-                                    <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
-                                    <!-- /ko -->
-                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
-                                    <!-- /ko -->
-                                </div>
-                            </div>
+                            <label class="form-label small">POS Cihazi</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.posDeviceId">
+                                <option value="">Secilmedi</option>
+                            </select>
                         </div>
                     </div>
 

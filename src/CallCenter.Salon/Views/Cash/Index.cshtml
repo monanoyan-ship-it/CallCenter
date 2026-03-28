@@ -82,12 +82,12 @@
                     </thead>
                     <tbody data-bind="foreach: transactions">
                         <tr>
-                            <td class="small" data-bind="text: new Date(transactionDate).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: createdAt ? new Date(createdAt).toLocaleDateString('tr-TR') : '-'"></td>
                             <td>
-                                <span class="badge" data-bind="text: typeName, css: type === 'Income' ? 'bg-success' : 'bg-danger'"></span>
+                                <span class="badge" data-bind="text: typeName, css: transactionTypeId === 1 ? 'bg-success' : 'bg-danger'"></span>
                             </td>
                             <td class="small" data-bind="text: description"></td>
-                            <td class="small fw-semibold" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL', css: type === 'Income' ? 'text-success' : 'text-danger'"></td>
+                            <td class="small fw-semibold" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL', css: transactionTypeId === 1 ? 'text-success' : 'text-danger'"></td>
                         </tr>
                     </tbody>
                 </table>

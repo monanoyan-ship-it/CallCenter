@@ -59,6 +59,11 @@ function AppointmentsViewModel() {
                     var et = new Date(a.endTime);
                     a.endTimeFormatted = et.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
                 }
+                if (a.startTime && a.endTime) {
+                    a.durationMinutes = Math.round((new Date(a.endTime) - new Date(a.startTime)) / 60000);
+                } else {
+                    a.durationMinutes = null;
+                }
             });
             items.sort(function (a, b) { return (a.startTime || '').localeCompare(b.startTime || ''); });
             self.appointments(items);

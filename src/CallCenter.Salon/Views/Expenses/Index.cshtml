@@ -10,7 +10,7 @@
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" placeholder="Masraf ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
-            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: expenseCategories, optionsText: 'name', optionsValue: 'id', value: selectedCategoryId, optionsCaption: 'Tum Kategoriler'"></select>
+            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: expenseCategories, optionsText: 'name', optionsValue: 'name', value: selectedCategoryName, optionsCaption: 'Tum Kategoriler'"></select>
             <input type="date" class="form-control form-control-sm" style="width:150px;" data-bind="value: filterStartDate" />
             <span class="small text-muted">-</span>
             <input type="date" class="form-control form-control-sm" style="width:150px;" data-bind="value: filterEndDate" />
@@ -58,7 +58,6 @@
                             <th>Tarih</th>
                             <th>Kategori</th>
                             <th>Aciklama</th>
-                            <th>Tedarikci</th>
                             <th>Tutar</th>
                             <th>Odeme</th>
                             <th style="width: 80px;"></th>
@@ -69,8 +68,7 @@
                             <td class="small" data-bind="text: new Date(expenseDate).toLocaleDateString('tr-TR')"></td>
                             <td class="small" data-bind="text: categoryName"></td>
                             <td class="small fw-semibold" data-bind="text: description"></td>
-                            <td class="small" data-bind="text: supplierName || '-'"></td>
-                            <td class="small fw-semibold text-danger" data-bind="text: amount.toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small fw-semibold text-danger" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL'"></td>
                             <td class="small" data-bind="text: paymentMethodText"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">

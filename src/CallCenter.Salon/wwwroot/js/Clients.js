@@ -99,17 +99,28 @@ function ClientsViewModel() {
     self.openEdit = function (client) {
         self.isEditing(true);
         self.editingId(client.id);
+        // SlnClientDto fields
         self.form.fullName(client.fullName || '');
         self.form.phone(client.phone || '');
-        self.form.phone2(client.phone2 || '');
         self.form.email(client.email || '');
         self.form.genderId(client.genderId != null ? String(client.genderId) : '');
         self.form.birthDate(client.birthDate ? client.birthDate.substring(0, 10) : '');
-        self.form.city(client.city || '');
-        self.form.address(client.address || '');
         self.hairColorAc.setFromValue(client.hairColor || '');
-        self.skinTypeAc.setFromValue(client.skinType || '');
-        self.form.notes(client.notes || '');
+        // Detail-only fields: fetch from detail endpoint
+        self.form.phone2('');
+        self.form.city('');
+        self.form.address('');
+        self.skinTypeAc.clear();
+        self.form.notes('');
+
+        $.ajax({ url: '/proxy/sln-clients/' + client.id, method: 'GET' }).done(function (data) {
+            self.form.phone2(data.phone2 || '');
+            self.form.city(data.city || '');
+            self.form.address(data.address || '');
+            self.skinTypeAc.setFromValue(data.skinType || '');
+            self.form.notes(data.notes || '');
+        });
+
         formModal.show();
     };
 

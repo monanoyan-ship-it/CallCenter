@@ -11,10 +11,13 @@ function InvoicesViewModel() {
     self.filterEndDate = ko.observable('');
     self.isSaving = ko.observable(false);
 
+    self.isEditing = ko.observable(false);
+
     self.form = {
         slnClientId: ko.observable(null),
         discountAmount: ko.observable(0),
         paymentMethodId: ko.observable(1),
+        posDeviceId: ko.observable(null),
         notes: ko.observable(''),
         items: ko.observableArray([])
     };
@@ -68,6 +71,7 @@ function InvoicesViewModel() {
                 inv.statusText = statusNames[inv.statusId] || 'Bilinmiyor';
                 inv.statusCss = statusCss[inv.statusId] || 'bg-secondary';
                 inv.paymentMethodText = paymentNames[inv.paymentMethodId] || '-';
+                inv.itemsSummary = (inv.items || []).map(function (it) { return it.itemName; }).join(', ') || '-';
             });
             self.invoices(items);
             self.calculateSummary(items);
@@ -106,15 +110,17 @@ function InvoicesViewModel() {
     };
 
     self.addItem = function () {
-        self.form.items.push({
+        var item = {
             type: ko.observable('Service'),
-            serviceId: ko.observable(null),
-            productId: ko.observable(null),
+            itemId: ko.observable(null),
             personnelId: ko.observable(null),
             quantity: ko.observable(1),
             unitPrice: ko.observable(0),
             discountAmount: ko.observable(0)
-        });
+        };
+        // type degistiginde itemId sifirla
+        item.type.subscribe(function () { item.itemId(null); });
+        self.form.items.push(item);
     };
 
     self.removeItem = function (item) {
@@ -122,9 +128,11 @@ function InvoicesViewModel() {
     };
 
     self.openNew = function () {
+        self.isEditing(false);
         self.form.slnClientId(null);
         self.form.discountAmount(0);
         self.form.paymentMethodId(1);
+        self.form.posDeviceId(null);
         self.form.notes('');
         self.form.items([]);
         self.clientAutocomplete.clear();
@@ -132,26 +140,50 @@ function InvoicesViewModel() {
         formModal.show();
     };
 
+    self.openDetail = function (invoice) {
+        self.isEditing(true);
+        self.form.slnClientId(null);
+        self.form.discountAmount(invoice.discountAmount || 0);
+        self.form.paymentMethodId(invoice.paymentMethodId || 1);
+        self.form.posDeviceId(null);
+        self.form.notes(invoice.notes || '');
+        self.form.items([]);
+        (invoice.items || []).forEach(function (it) {
+            var isService = !!it.serviceId;
+            var item = {
+                type: ko.observable(isService ? 'Service' : 'Product'),
+                itemId: ko.observable(isService ? it.serviceId : it.productId),
+                personnelId: ko.observable(it.personnelId || null),
+                quantity: ko.observable(it.quantity || 1),
+                unitPrice: ko.observable(it.unitPrice || 0),
+                discountAmount: ko.observable(it.discountAmount || 0)
+            };
+            item.type.subscribe(function () { item.itemId(null); });
+            self.form.items.push(item);
+        });
+        formModal.show();
+    };
+
     self.save = function () {
         var items = [];
         self.form.items().forEach(function (it) {
-            var svcId = it.type() === 'Service' ? it.serviceId() : null;
-            var prdId = it.type() === 'Product' ? it.productId() : null;
-            if (svcId || prdId) {
-                items.push({
-                    serviceId: svcId ? parseInt(svcId) : null,
-                    productId: prdId ? parseInt(prdId) : null,
-                    personnelId: it.personnelId() ? parseInt(it.personnelId()) : null,
-                    quantity: parseInt(it.quantity()) || 1,
-                    unitPrice: parseFloat(it.unitPrice()) || 0,
-                    discountAmount: parseFloat(it.discountAmount()) || 0
-                });
-            }
+            var id = it.itemId();
+            if (!id) return;
+            var isService = it.type() === 'Service';
+            items.push({
+                serviceId: isService ? parseInt(id) : null,
+                productId: !isService ? parseInt(id) : null,
+                personnelId: it.personnelId() ? parseInt(it.personnelId()) : null,
+                quantity: parseInt(it.quantity()) || 1,
+                unitPrice: parseFloat(it.unitPrice()) || 0,
+                discountAmount: parseFloat(it.discountAmount()) || 0
+            });
         });
 
         var data = {
             slnClientId: self.form.slnClientId() ? parseInt(self.form.slnClientId()) : null,
             paymentMethodId: parseInt(self.form.paymentMethodId()) || 1,
+            posDeviceId: self.form.posDeviceId() ? parseInt(self.form.posDeviceId()) : null,
             discountAmount: parseFloat(self.form.discountAmount()) || 0,
             notes: self.form.notes(),
             items: items

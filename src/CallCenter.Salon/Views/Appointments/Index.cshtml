@@ -44,24 +44,24 @@
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredAppointments">
-                        <tr data-bind="css: { 'table-success': status === 'Completed', 'table-warning': status === 'InProgress', 'table-danger': status === 'Cancelled' }">
-                            <td class="small fw-semibold" data-bind="text: startTime"></td>
+                        <tr data-bind="css: { 'table-success': statusId === 3, 'table-warning': statusId === 2, 'table-danger': statusId === 4 }">
+                            <td class="small fw-semibold" data-bind="text: startTimeFormatted || '-'"></td>
                             <td class="small">
-                                <a data-bind="text: clientName, attr: { href: '/Clients/Detail/' + clientId }" class="text-decoration-none"></a>
+                                <a data-bind="text: clientName, attr: { href: '/Clients/Detail/' + slnClientId }" class="text-decoration-none"></a>
                             </td>
                             <td class="small" data-bind="text: serviceName"></td>
-                            <td class="small" data-bind="text: staffName"></td>
-                            <td class="small" data-bind="text: duration + ' dk'"></td>
+                            <td class="small" data-bind="text: personnelName"></td>
+                            <td class="small" data-bind="text: durationMinutes ? durationMinutes + ' dk' : '-'"></td>
                             <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: status !== 'Completed' && status !== 'Cancelled'">
+                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: statusId !== 3 && statusId !== 4">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancel, visible: status !== 'Completed' && status !== 'Cancelled'">
+                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancel, visible: statusId !== 3 && statusId !== 4">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                 </div>

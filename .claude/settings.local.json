@@ -224,7 +224,18 @@
       "Bash(PGPASSWORD='1123Azs+-' \"/c/Program Files/PostgreSQL/17/bin/psql.exe\" -h localhost -U postgres -d CallCenterDB -c 'SELECT \"Id\", \"EncryptedCredentials\" FROM \"CustomerStorageConfigs\" WHERE \"Id\" = 1;' 2>&1)",
       "Bash(1:*)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''title'''',''''N/A''''\\)\\); print\\(''''---''''\\); print\\(d.get\\(''''body'''',''''N/A''''\\)[:2000]\\)\")",
-      "Bash(cp src/CallCenter.Salon/Dockerfile Dockerfile)"
+      "Bash(cp src/CallCenter.Salon/Dockerfile Dockerfile)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEzIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6InRlc3RzYWxvbjk5IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZ2l2ZW5uYW1lIjoiVGVzdCBVc2VyIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQ3VzdG9tZXJVc2VyIiwiQ3VzdG9tZXJJZCI6IjciLCJDdXN0b21lclBlcnNvbm5lbElkIjoiMTIiLCJDdXN0b21lclJvbGVJZCI6IjEwMSIsIklzQ3VzdG9tZXJBZG1pbiI6InRydWUiLCJDdXN0b21lck1vZHVsZXMiOiIyMDEsMjAyLDIwMywyMDQsMjA2IiwiZXhwIjoxNzc0NzQ1NTUxLCJpc3MiOiJDYWxsQ2VudGVyLkFwaSIsImF1ZCI6IkNhbGxDZW50ZXIuQ2xpZW50cyJ9.ihWuaJ215jVmdk7YFJLHsjSDDCk09kfPIuVFjP4G5Ks\")",
+      "WebFetch(domain:thesalonbusiness.com)",
+      "WebFetch(domain:salonrandevu.com)",
+      "WebFetch(domain:theretailexec.com)",
+      "WebFetch(domain:www.zenoti.com)",
+      "WebFetch(domain:glossgenius.com)",
+      "WebFetch(domain:www.vagaro.com)",
+      "WebFetch(domain:www.fresha.com)",
+      "WebFetch(domain:www.phorest.com)",
+      "WebFetch(domain:www.salonappy.com)",
+      "WebFetch(domain:tr.salonappy.com)"
     ]
   }
 }

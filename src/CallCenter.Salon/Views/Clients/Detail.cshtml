@@ -214,10 +214,10 @@
                             </thead>
                             <tbody data-bind="foreach: appointments">
                                 <tr>
-                                    <td class="small" data-bind="text: new Date(appointmentDate).toLocaleDateString('tr-TR')"></td>
-                                    <td class="small" data-bind="text: startTime"></td>
+                                    <td class="small" data-bind="text: startTime ? new Date(startTime).toLocaleDateString('tr-TR') : '-'"></td>
+                                    <td class="small" data-bind="text: startTime ? new Date(startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '-'"></td>
                                     <td class="small fw-semibold" data-bind="text: serviceName"></td>
-                                    <td class="small" data-bind="text: staffName"></td>
+                                    <td class="small" data-bind="text: personnelName"></td>
                                     <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                                 </tr>
                             </tbody>
@@ -244,7 +244,7 @@
                                     <td class="small" data-bind="text: new Date(invoiceDate).toLocaleDateString('tr-TR')"></td>
                                     <td class="small fw-semibold" data-bind="text: invoiceNo"></td>
                                     <td class="small" data-bind="text: servicesSummary"></td>
-                                    <td class="small" data-bind="text: totalAmount.toLocaleString('tr-TR') + ' TL'"></td>
+                                    <td class="small" data-bind="text: (totalAmount || 0).toLocaleString('tr-TR') + ' TL'"></td>
                                     <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                                 </tr>
                             </tbody>

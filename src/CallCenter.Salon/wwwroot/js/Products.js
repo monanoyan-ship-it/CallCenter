@@ -4,7 +4,7 @@ function ProductsViewModel() {
     self.categories = ko.observableArray([]);
     self.brands = ko.observableArray([]);
     self.searchQuery = ko.observable('');
-    self.selectedCategoryId = ko.observable(null);
+    self.selectedCategoryName = ko.observable(null);
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
@@ -27,10 +27,10 @@ function ProductsViewModel() {
 
     self.filteredProducts = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
-        var catId = self.selectedCategoryId();
+        var catName = self.selectedCategoryName();
         return self.products().filter(function (p) {
             var matchQ = !q || (p.name || '').toLowerCase().indexOf(q) >= 0 || (p.barcode || '').indexOf(q) >= 0;
-            var matchCat = !catId || p.categoryId == catId;
+            var matchCat = !catName || p.categoryName === catName;
             return matchQ && matchCat;
         });
     });
@@ -79,17 +79,21 @@ function ProductsViewModel() {
         self.isEditing(true);
         self.editingId(product.id);
         self.form.name(product.name || '');
-        self.form.categoryId(product.categoryId);
-        self.form.brandId(product.brandId);
         self.form.barcode(product.barcode || '');
         self.form.unit(product.unit || 'Adet');
         self.form.stockQuantity(product.stockQuantity || 0);
         self.form.minStockLevel(product.minStockLevel || 0);
         self.form.purchasePrice(product.purchasePrice || 0);
         self.form.salePrice(product.salePrice || 0);
-        // Autocomplete'lere mevcut degerleri set et
-        self.categoryAutocomplete.setFromValue(product.categoryId);
-        self.brandAutocomplete.setFromValue(product.brandId);
+        // DTO da categoryId/brandId yok, isimden bulalim
+        var matchedCat = self.categories().find(function (c) { return c.name === product.categoryName; });
+        var matchedBrand = self.brands().find(function (b) { return b.name === product.brandName; });
+        var catId = matchedCat ? matchedCat.id : null;
+        var brandId = matchedBrand ? matchedBrand.id : null;
+        self.form.categoryId(catId);
+        self.form.brandId(brandId);
+        self.categoryAutocomplete.setFromValue(catId);
+        self.brandAutocomplete.setFromValue(brandId);
         formModal.show();
     };
 

@@ -10,7 +10,7 @@
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" placeholder="Urun ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
-            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: categories, optionsText: 'name', optionsValue: 'id', value: selectedCategoryId, optionsCaption: 'Tum Kategoriler'"></select>
+            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: categories, optionsText: 'name', optionsValue: 'name', value: selectedCategoryName, optionsCaption: 'Tum Kategoriler'"></select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
             <i class="bi bi-plus-lg me-1"></i>Yeni Urun
@@ -46,8 +46,8 @@
                                 <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Dusuk stok"></i>
                                 <!-- /ko -->
                             </td>
-                            <td class="small" data-bind="text: purchasePrice.toLocaleString('tr-TR') + ' TL'"></td>
-                            <td class="small" data-bind="text: salePrice.toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small" data-bind="text: (purchasePrice || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small" data-bind="text: (salePrice || 0).toLocaleString('tr-TR') + ' TL'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">

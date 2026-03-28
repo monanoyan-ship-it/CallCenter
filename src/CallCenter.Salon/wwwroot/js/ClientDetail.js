@@ -4,6 +4,11 @@ function ClientDetailViewModel() {
 
     self.client = ko.observable({});
     self.formulas = ko.observableArray([]);
+    self.photos = ko.observableArray([]);
+    self.appointments = ko.observableArray([]);
+    self.invoices = ko.observableArray([]);
+    self.totalSpent = ko.observable(0);
+    self.lastVisit = ko.observable(null);
     self.isSaving = ko.observable(false);
 
     self.formulaForm = {
@@ -13,7 +18,12 @@ function ClientDetailViewModel() {
         applicationNotes: ko.observable('')
     };
 
-    var formulaModal;
+    var formulaModal, photoModal;
+
+    var appointmentStatusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
+    var appointmentStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
+    var invoiceStatusNames = { 1: 'Acik', 2: 'Odendi', 3: 'Iptal' };
+    var invoiceStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
 
     self.loadClient = function () {
         $.ajax({ url: '/proxy/sln-clients/' + id, method: 'GET' }).done(function (data) {
@@ -26,8 +36,34 @@ function ClientDetailViewModel() {
             }
             self.client(data);
             self.formulas(data.formulas || []);
+            self.photos(data.photos || []);
+            self.totalSpent(data.totalSpent || 0);
+            self.lastVisit(data.lastVisit ? new Date(data.lastVisit).toLocaleDateString('tr-TR') : null);
         }).fail(function () {
             toastr.error('Musteri bilgisi yuklenemedi');
+        });
+    };
+
+    self.loadAppointments = function () {
+        $.ajax({ url: '/proxy/sln-appointments?slnClientId=' + id, method: 'GET' }).done(function (data) {
+            var items = data.items || data;
+            items.forEach(function (a) {
+                a.statusText = appointmentStatusNames[a.statusId] || 'Bilinmiyor';
+                a.statusCss = appointmentStatusCss[a.statusId] || 'bg-secondary';
+            });
+            self.appointments(items);
+        });
+    };
+
+    self.loadInvoices = function () {
+        $.ajax({ url: '/proxy/sln-finance/invoices?slnClientId=' + id, method: 'GET' }).done(function (data) {
+            var items = data.items || data;
+            items.forEach(function (inv) {
+                inv.statusText = invoiceStatusNames[inv.statusId] || 'Bilinmiyor';
+                inv.statusCss = invoiceStatusCss[inv.statusId] || 'bg-secondary';
+                inv.servicesSummary = (inv.items || []).map(function (it) { return it.itemName; }).join(', ') || '-';
+            });
+            self.invoices(items);
         });
     };
 
@@ -78,9 +114,57 @@ function ClientDetailViewModel() {
         });
     };
 
+    // Photo CRUD
+    self.openPhotoUpload = function () {
+        document.getElementById('photoFile').value = '';
+        photoModal.show();
+    };
+
+    self.uploadPhoto = function () {
+        var fileInput = document.getElementById('photoFile');
+        if (!fileInput.files || !fileInput.files[0]) {
+            toastr.warning('Lutfen bir fotograf seciniz');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-clients/' + id + '/photos',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function () {
+            photoModal.hide();
+            self.loadClient();
+            toastr.success('Fotograf yuklendi');
+            self.isSaving(false);
+        }).fail(function () {
+            toastr.error('Fotograf yuklenemedi');
+            self.isSaving(false);
+        });
+    };
+
+    self.removePhoto = function (photo) {
+        if (!confirm('Bu fotografi silmek istediginize emin misiniz?')) return;
+        $.ajax({
+            url: '/proxy/sln-clients/' + id + '/photos/' + photo.id,
+            method: 'DELETE'
+        }).done(function () {
+            self.loadClient();
+            toastr.success('Fotograf silindi');
+        });
+    };
+
     $(document).ready(function () {
         formulaModal = new bootstrap.Modal(document.getElementById('formulaModal'));
+        photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
         self.loadClient();
+        self.loadAppointments();
+        self.loadInvoices();
     });
 }
 

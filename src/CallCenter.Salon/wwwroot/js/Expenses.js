@@ -3,7 +3,7 @@ function ExpensesViewModel() {
     self.expenses = ko.observableArray([]);
     self.expenseCategories = ko.observableArray([]);
     self.searchQuery = ko.observable('');
-    self.selectedCategoryId = ko.observable(null);
+    self.selectedCategoryName = ko.observable(null);
     self.filterStartDate = ko.observable('');
     self.filterEndDate = ko.observable('');
     self.isEditing = ko.observable(false);
@@ -23,14 +23,14 @@ function ExpensesViewModel() {
 
     self.filteredExpenses = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
-        var catId = self.selectedCategoryId();
+        var catName = self.selectedCategoryName();
         var start = self.filterStartDate();
         var end = self.filterEndDate();
 
         return self.expenses().filter(function (e) {
             var matchQ = !q || (e.description || '').toLowerCase().indexOf(q) >= 0
                 || (e.categoryName || '').toLowerCase().indexOf(q) >= 0;
-            var matchCat = !catId || e.categoryId == catId;
+            var matchCat = !catName || e.categoryName === catName;
             var matchStart = !start || e.expenseDate >= start;
             var matchEnd = !end || e.expenseDate <= end + 'T23:59:59';
             return matchQ && matchCat && matchStart && matchEnd;
@@ -102,11 +102,14 @@ function ExpensesViewModel() {
         self.isEditing(true);
         self.editingId(expense.id);
         self.form.expenseDate(expense.expenseDate ? expense.expenseDate.substring(0, 10) : '');
-        self.form.categoryId(expense.categoryId);
         self.form.description(expense.description || '');
         self.form.amount(expense.amount || 0);
         self.form.paymentMethodId(expense.paymentMethodId || 1);
-        self.categoryAutocomplete.setFromValue(expense.categoryId);
+        // categoryId yok DTO da, categoryName den bulalim
+        var matchedCat = self.expenseCategories().find(function (c) { return c.name === expense.categoryName; });
+        var catId = matchedCat ? matchedCat.id : null;
+        self.form.categoryId(catId);
+        self.categoryAutocomplete.setFromValue(catId);
         formModal.show();
     };
 

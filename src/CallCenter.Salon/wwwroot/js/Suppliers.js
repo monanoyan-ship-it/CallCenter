@@ -68,9 +68,19 @@ function SuppliersViewModel() {
         self.form.contactPerson(supplier.contactPerson || '');
         self.form.phone(supplier.phone || '');
         self.form.email(supplier.email || '');
-        self.form.taxNumber(supplier.taxNumber || '');
-        self.form.address(supplier.address || '');
-        self.form.notes(supplier.notes || '');
+        // taxNumber, address, notes are not in the list DTO
+        // Try to fetch detail if endpoint exists, otherwise use defaults
+        self.form.taxNumber('');
+        self.form.address('');
+        self.form.notes('');
+
+        // Try to load detail data
+        $.ajax({ url: '/proxy/sln-products/suppliers/' + supplier.id, method: 'GET' }).done(function (data) {
+            self.form.taxNumber(data.taxNumber || '');
+            self.form.address(data.address || '');
+            self.form.notes(data.notes || '');
+        });
+
         formModal.show();
     };
 

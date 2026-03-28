@@ -38,11 +38,7 @@
                             <td class="small" data-bind="text: phone"></td>
                             <td class="small" data-bind="text: email"></td>
                             <td class="small" data-bind="text: genderText"></td>
-                            <td class="small">
-                                <!-- ko if: appointmentCount > 0 -->
-                                <span class="badge bg-info" data-bind="text: appointmentCount"></span>
-                                <!-- /ko -->
-                            </td>
+                            <td class="small" data-bind="text: visitCount || '-'"></td>
                             <td class="small" data-bind="text: totalSpent ? totalSpent.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
