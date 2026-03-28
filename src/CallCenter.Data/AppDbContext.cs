@@ -122,6 +122,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnCashClosing> SlnCashClosings => Set<SlnCashClosing>();
     public DbSet<SlnGiftCard> SlnGiftCards => Set<SlnGiftCard>();
     public DbSet<SlnGiftCardTransaction> SlnGiftCardTransactions => Set<SlnGiftCardTransaction>();
+    public DbSet<SlnLoyaltyConfig> SlnLoyaltyConfigs => Set<SlnLoyaltyConfig>();
+    public DbSet<SlnClientLoyalty> SlnClientLoyalties => Set<SlnClientLoyalty>();
+    public DbSet<SlnLoyaltyTransaction> SlnLoyaltyTransactions => Set<SlnLoyaltyTransaction>();
     public DbSet<SlnPackageDefinition> SlnPackageDefinitions => Set<SlnPackageDefinition>();
     public DbSet<SlnClientPackage> SlnClientPackages => Set<SlnClientPackage>();
     public DbSet<SlnPackageUsage> SlnPackageUsages => Set<SlnPackageUsage>();

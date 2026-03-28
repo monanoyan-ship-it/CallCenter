@@ -52,7 +52,7 @@
                 var stockOpen = ctrl is "Products" or "Suppliers";
                 var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses" or "GiftCards" or "Packages";
                 var reportOpen = ctrl is "Reports";
-                var marketingOpen = ctrl is "Campaigns";
+                var marketingOpen = ctrl is "Campaigns" or "Loyalty";
                 var managementOpen = ctrl is "Branches";
             }
 
@@ -134,6 +134,9 @@
             <div class="nav-group-items @(marketingOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
                     <i class="bi bi-megaphone me-2"></i>Kampanyalar
+                </a>
+                <a class="nav-link @(ctrl == "Loyalty" ? "active" : "")" href="/Loyalty">
+                    <i class="bi bi-star me-2"></i>Sadakat Programi
                 </a>
             </div>
 

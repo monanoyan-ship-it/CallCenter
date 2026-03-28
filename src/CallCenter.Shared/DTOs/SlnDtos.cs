@@ -281,6 +281,51 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnLoyalty ═══
+public class SlnLoyaltyConfigDto
+{
+    public int Id { get; set; }
+    public decimal PointsPerTL { get; set; }
+    public decimal PointValue { get; set; }
+    public int MinRedeemPoints { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class SlnLoyaltyConfigUpdateDto
+{
+    public decimal PointsPerTL { get; set; } = 1;
+    public decimal PointValue { get; set; } = 0.1m;
+    public int MinRedeemPoints { get; set; } = 100;
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnClientLoyaltyDto
+{
+    public int Id { get; set; }
+    public int SlnClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public int TotalEarned { get; set; }
+    public int TotalSpent { get; set; }
+    public int CurrentBalance { get; set; }
+    public decimal BalanceValue { get; set; }
+}
+
+public class SlnLoyaltyTransactionDto
+{
+    public int Id { get; set; }
+    public int TransactionTypeId { get; set; }
+    public int Points { get; set; }
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnLoyaltyRedeemDto
+{
+    public int SlnClientId { get; set; }
+    public int Points { get; set; }
+    public int? InvoiceId { get; set; }
+}
+
 // ═══ SlnPackage ═══
 public class SlnPackageDefinitionDto
 {

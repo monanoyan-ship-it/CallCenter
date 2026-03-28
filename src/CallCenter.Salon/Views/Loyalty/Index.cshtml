@@ -1,0 +1,81 @@
+@{
+    ViewData["Title"] = "Sadakat Programi";
+}
+
+<div id="loyalty-vm">
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-config">
+                <i class="bi bi-gear me-1"></i>Ayarlar
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-clients">
+                <i class="bi bi-star me-1"></i>Musteri Puanlari
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Ayarlar -->
+        <div class="tab-pane fade show active" id="tab-config">
+            <div class="card border-0 shadow-sm" style="max-width:500px;">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Her 1 TL = Puan</label>
+                            <input type="number" class="form-control form-control-sm" step="0.1" data-bind="value: config.pointsPerTL" />
+                            <small class="text-muted">100 TL harcama = <span data-bind="text: (100 * (parseFloat(config.pointsPerTL()) || 1))"></span> puan</small>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">1 Puan = TL</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: config.pointValue" />
+                            <small class="text-muted">100 puan = <span data-bind="text: (100 * (parseFloat(config.pointValue()) || 0.1)).toFixed(2)"></span> TL</small>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Min. Kullanim Puani</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: config.minRedeemPoints" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Durum</label>
+                            <select class="form-select form-select-sm" data-bind="value: config.isActive">
+                                <option value="true">Aktif</option>
+                                <option value="false">Pasif</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm mt-3" data-bind="click: saveConfig, disable: isSaving">
+                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Musteri Puanlari -->
+        <div class="tab-pane fade" id="tab-clients">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead class="table-light">
+                        <tr><th>Musteri</th><th>Toplam Kazanilan</th><th>Kulllanilan</th><th>Mevcut Bakiye</th><th>TL Degeri</th></tr>
+                    </thead>
+                    <tbody data-bind="foreach: clientLoyalties">
+                        <tr>
+                            <td class="small fw-semibold" data-bind="text: clientName"></td>
+                            <td class="small text-success" data-bind="text: totalEarned + ' puan'"></td>
+                            <td class="small text-danger" data-bind="text: totalSpent + ' puan'"></td>
+                            <td><span class="badge bg-primary" data-bind="text: currentBalance + ' puan'"></span></td>
+                            <td class="small fw-bold" data-bind="text: balanceValue.toLocaleString('tr-TR') + ' TL'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: clientLoyalties().length === 0 -->
+            <div class="text-center text-muted py-4 small">Henuz puan kazanilmamis. Musteriler alisveris yaptikca otomatik puan kazanir.</div>
+            <!-- /ko -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Loyalty.js" asp-append-version="true"></script>
+}
