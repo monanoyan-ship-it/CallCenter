@@ -119,6 +119,7 @@ public class AppDbContext : DbContext
     public DbSet<SlnBranch> SlnBranches => Set<SlnBranch>();
     public DbSet<SlnRecipe> SlnRecipes => Set<SlnRecipe>();
     public DbSet<SlnRecipeItem> SlnRecipeItems => Set<SlnRecipeItem>();
+    public DbSet<SlnCashClosing> SlnCashClosings => Set<SlnCashClosing>();
 
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();

@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnProductEntityService _products;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnFinanceFactory> _logger;
+    private readonly AppDbContext _db;
 
     public SlnFinanceFactory(
         ISlnInvoiceEntityService invoices,
@@ -28,7 +30,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnExpenseEntityService expenses,
         ISlnProductEntityService products,
         IUnitOfWork uow,
-        ILogger<SlnFinanceFactory> logger)
+        ILogger<SlnFinanceFactory> logger,
+        AppDbContext db)
     {
         _invoices = invoices;
         _invoiceItems = invoiceItems;
@@ -39,6 +42,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _products = products;
         _uow = uow;
         _logger = logger;
+        _db = db;
     }
 
     // ═══ Adisyon (Invoice) ═══
@@ -403,4 +407,106 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             LineTotal = it.LineTotal
         }).ToList()
     };
+
+    // ═══ Gun Sonu Kasa Kapama ═══
+
+    public async Task<List<SlnCashClosingDto>> GetCashClosingsAsync(int customerId, int? registerId)
+    {
+        var query = _db.SlnCashClosings
+            .Include(c => c.Register)
+            .Include(c => c.ClosedByPersonnel).ThenInclude(p => p!.User)
+            .Where(c => c.Register != null && c.Register.CustomerId == customerId);
+
+        if (registerId.HasValue)
+            query = query.Where(c => c.RegisterId == registerId.Value);
+
+        return await query.OrderByDescending(c => c.ClosingDate).Select(c => new SlnCashClosingDto
+        {
+            Id = c.Id,
+            RegisterId = c.RegisterId,
+            RegisterName = c.Register != null ? c.Register.Name : "",
+            ClosingDate = c.ClosingDate,
+            SystemTotal = c.SystemTotal,
+            CountedTotal = c.CountedTotal,
+            Difference = c.Difference,
+            Notes = c.Notes,
+            ClosedByName = c.ClosedByPersonnel != null && c.ClosedByPersonnel.User != null ? c.ClosedByPersonnel.User.FullName : null,
+            CreatedAt = c.CreatedAt
+        }).ToListAsync();
+    }
+
+    public async Task<(SlnCashClosingDto? Closing, string? Error)> CreateCashClosingAsync(SlnCashClosingCreateDto dto, int userId, int customerId)
+    {
+        var register = await _cashRegisters.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == dto.RegisterId && r.CustomerId == customerId);
+
+        if (register == null) return (null, "Kasa bulunamadi");
+
+        // Gunun sistem toplami
+        var today = DateTime.UtcNow.Date;
+        var transactions = await _cashTransactions.GetAllQueryable()
+            .Where(t => t.RegisterId == dto.RegisterId && t.CreatedAt >= today)
+            .ToListAsync();
+
+        decimal systemTotal = 0;
+        foreach (var t in transactions)
+        {
+            if (t.TransactionTypeId == 1) // Gelir
+                systemTotal += t.Amount;
+            else if (t.TransactionTypeId == 2) // Gider
+                systemTotal -= t.Amount;
+        }
+
+        var closing = new SlnCashClosing
+        {
+            RegisterId = dto.RegisterId,
+            ClosingDate = DateTime.UtcNow,
+            SystemTotal = systemTotal,
+            CountedTotal = dto.CountedTotal,
+            Difference = dto.CountedTotal - systemTotal,
+            Notes = dto.Notes,
+            ClosedByPersonnelId = userId
+        };
+
+        _db.SlnCashClosings.Add(closing);
+        await _uow.SaveChangesAsync();
+
+        return (new SlnCashClosingDto
+        {
+            Id = closing.Id,
+            RegisterId = closing.RegisterId,
+            RegisterName = register.Name,
+            ClosingDate = closing.ClosingDate,
+            SystemTotal = closing.SystemTotal,
+            CountedTotal = closing.CountedTotal,
+            Difference = closing.Difference,
+            Notes = closing.Notes,
+            CreatedAt = closing.CreatedAt
+        }, null);
+    }
+
+    public async Task<object> GetDailySummaryAsync(int registerId, int customerId)
+    {
+        var register = await _cashRegisters.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+
+        if (register == null) return new { error = "Kasa bulunamadi" };
+
+        var today = DateTime.UtcNow.Date;
+        var transactions = await _cashTransactions.GetAllQueryable()
+            .Where(t => t.RegisterId == registerId && t.CreatedAt >= today)
+            .ToListAsync();
+
+        var income = transactions.Where(t => t.TransactionTypeId == 1).Sum(t => t.Amount);
+        var expense = transactions.Where(t => t.TransactionTypeId == 2).Sum(t => t.Amount);
+
+        return new
+        {
+            registerName = register.Name,
+            income,
+            expense,
+            net = income - expense,
+            transactionCount = transactions.Count
+        };
+    }
 }

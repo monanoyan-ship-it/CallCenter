@@ -279,6 +279,28 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnCashClosing ═══
+public class SlnCashClosingDto
+{
+    public int Id { get; set; }
+    public int RegisterId { get; set; }
+    public string RegisterName { get; set; } = string.Empty;
+    public DateTime ClosingDate { get; set; }
+    public decimal SystemTotal { get; set; }
+    public decimal CountedTotal { get; set; }
+    public decimal Difference { get; set; }
+    public string? Notes { get; set; }
+    public string? ClosedByName { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnCashClosingCreateDto
+{
+    public int RegisterId { get; set; }
+    public decimal CountedTotal { get; set; }
+    public string? Notes { get; set; }
+}
+
 // ═══ Dashboard ═══
 public class SlnDashboardDto
 {

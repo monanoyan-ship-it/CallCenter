@@ -42,6 +42,9 @@
                         <button class="btn btn-outline-success" data-bind="click: $parent.openNewTransaction">
                             <i class="bi bi-plus-lg me-1"></i>Islem
                         </button>
+                        <button class="btn btn-outline-warning" data-bind="click: $parent.openClosing">
+                            <i class="bi bi-lock me-1"></i>Gun Sonu
+                        </button>
                     </div>
                 </div>
             </div>
@@ -123,6 +126,80 @@
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveRegister, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gun Sonu Kapama Gecmisi -->
+    <div class="card border-0 shadow-sm mt-3" data-bind="visible: closings().length > 0">
+        <div class="card-header bg-white fw-semibold py-2">
+            <i class="bi bi-lock me-2"></i>Gun Sonu Kapama Gecmisi
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Tarih</th><th>Kasa</th><th>Sistem</th><th>Sayilan</th><th>Fark</th><th>Not</th></tr>
+                    </thead>
+                    <tbody data-bind="foreach: closings">
+                        <tr>
+                            <td class="small" data-bind="text: new Date(closingDate).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: registerName"></td>
+                            <td class="small" data-bind="text: systemTotal.toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small" data-bind="text: countedTotal.toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small fw-semibold" data-bind="text: difference.toLocaleString('tr-TR') + ' TL', css: difference >= 0 ? 'text-success' : 'text-danger'"></td>
+                            <td class="small text-muted" data-bind="text: notes || '-'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gun Sonu Kapama Modal -->
+    <div class="modal fade" id="closingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning bg-opacity-10">
+                    <h6 class="modal-title"><i class="bi bi-lock me-2"></i>Gun Sonu Kasa Kapama</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: dailySummary() -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-4 text-center">
+                            <div class="text-muted small">Gelir</div>
+                            <div class="fw-bold text-success" data-bind="text: dailySummary().income.toLocaleString('tr-TR') + ' TL'"></div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="text-muted small">Gider</div>
+                            <div class="fw-bold text-danger" data-bind="text: dailySummary().expense.toLocaleString('tr-TR') + ' TL'"></div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="text-muted small">Sistem Net</div>
+                            <div class="fw-bold text-primary" data-bind="text: dailySummary().net.toLocaleString('tr-TR') + ' TL'"></div>
+                        </div>
+                    </div>
+                    <hr />
+                    <!-- /ko -->
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Sayilan Tutar (TL) *</label>
+                            <input type="number" class="form-control" step="0.01" data-bind="value: closingForm.countedTotal" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: closingForm.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-warning btn-sm" data-bind="click: saveClosing, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-lock me-1" data-bind="visible: !isSaving()"></i>Kapamayi Tamamla
                     </button>
                 </div>
             </div>

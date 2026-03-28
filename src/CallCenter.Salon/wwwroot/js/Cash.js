@@ -123,10 +123,65 @@ function CashViewModel() {
         });
     };
 
+    // ═══ Gun Sonu Kasa Kapama ═══
+    self.closingForm = {
+        countedTotal: ko.observable(0),
+        notes: ko.observable('')
+    };
+    self.dailySummary = ko.observable(null);
+    self.closings = ko.observableArray([]);
+
+    var closingModal;
+    var closingRegisterId = null;
+
+    self.openClosing = function (register) {
+        closingRegisterId = register.id;
+        self.closingForm.countedTotal(0);
+        self.closingForm.notes('');
+        self.dailySummary(null);
+
+        $.ajax({ url: '/proxy/sln-finance/cash-registers/' + register.id + '/daily-summary', method: 'GET' }).done(function (data) {
+            self.dailySummary(data);
+        });
+        closingModal.show();
+    };
+
+    self.saveClosing = function () {
+        var data = {
+            registerId: closingRegisterId,
+            countedTotal: parseFloat(self.closingForm.countedTotal()) || 0,
+            notes: self.closingForm.notes()
+        };
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-finance/cash-closings',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data)
+        }).done(function () {
+            closingModal.hide();
+            self.loadRegisters();
+            toastr.success('Gun sonu kapama yapildi');
+            self.isSaving(false);
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Kapama yapilamadi');
+            self.isSaving(false);
+        });
+    };
+
+    self.loadClosings = function () {
+        $.ajax({ url: '/proxy/sln-finance/cash-closings', method: 'GET' }).done(function (data) {
+            self.closings(data.items || data);
+        });
+    };
+
     $(document).ready(function () {
         registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
         transactionModal = new bootstrap.Modal(document.getElementById('transactionModal'));
+        closingModal = new bootstrap.Modal(document.getElementById('closingModal'));
         self.loadRegisters();
+        self.loadClosings();
     });
 }
 

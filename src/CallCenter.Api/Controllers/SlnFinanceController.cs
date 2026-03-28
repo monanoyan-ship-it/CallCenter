@@ -159,6 +159,35 @@ public class SlnFinanceController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    // ═══ Gun Sonu Kasa Kapama ═══
+
+    [HttpGet("cash-closings")]
+    public async Task<ActionResult<List<SlnCashClosingDto>>> GetCashClosings([FromQuery] int? registerId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _financeFactory.GetCashClosingsAsync(customerId, registerId));
+    }
+
+    [HttpPost("cash-closings")]
+    public async Task<ActionResult<SlnCashClosingDto>> CreateCashClosing([FromBody] SlnCashClosingCreateDto dto)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (closing, error) = await _financeFactory.CreateCashClosingAsync(dto, userId, customerId);
+        return closing != null ? Ok(closing) : BadRequest(error);
+    }
+
+    [HttpGet("cash-registers/{registerId}/daily-summary")]
+    public async Task<ActionResult> GetDailySummary(int registerId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var summary = await _financeFactory.GetDailySummaryAsync(registerId, customerId);
+        return Ok(summary);
+    }
+
     private int GetUserId()
         => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 

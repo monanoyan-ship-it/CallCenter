@@ -16,6 +16,11 @@ public interface ISlnFinanceFactory
     Task<List<SlnCashTransactionDto>> GetCashTransactionsAsync(int registerId, int customerId, DateTime? from, DateTime? to);
     Task<(SlnCashTransactionDto? Transaction, string? Error)> AddCashTransactionAsync(int registerId, int transactionTypeId, decimal amount, string description, int paymentMethodId, int userId, int customerId);
 
+    // Gun Sonu Kasa Kapama
+    Task<List<SlnCashClosingDto>> GetCashClosingsAsync(int customerId, int? registerId);
+    Task<(SlnCashClosingDto? Closing, string? Error)> CreateCashClosingAsync(SlnCashClosingCreateDto dto, int userId, int customerId);
+    Task<object> GetDailySummaryAsync(int registerId, int customerId);
+
     // Masraf
     Task<List<object>> GetExpenseCategoriesAsync(int customerId);
     Task<object> CreateExpenseCategoryAsync(string name, int customerId);
