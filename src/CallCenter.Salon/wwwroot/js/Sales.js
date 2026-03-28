@@ -12,6 +12,7 @@ function SalesViewModel() {
     self.selectedPersonnelId = ko.observable(null);
     self.paymentMethodId = ko.observable('1');
     self.discountAmount = ko.observable(0);
+    self.tipAmount = ko.observable(0);
     self.isSaving = ko.observable(false);
 
     // ═══ Autocomplete ═══
@@ -146,6 +147,7 @@ function SalesViewModel() {
             slnClientId: self.clientId() ? parseInt(self.clientId()) : null,
             paymentMethodId: parseInt(self.paymentMethodId()) || 1,
             discountAmount: parseFloat(self.discountAmount()) || 0,
+            tipAmount: parseFloat(self.tipAmount()) || 0,
             notes: null,
             items: items
         };
@@ -162,6 +164,7 @@ function SalesViewModel() {
             self.clientId(null);
             self.clientAutocomplete.clear();
             self.discountAmount(0);
+            self.tipAmount(0);
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || 'Odeme alinamadi');

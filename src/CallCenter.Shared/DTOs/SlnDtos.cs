@@ -213,6 +213,7 @@ public class SlnInvoiceDto
     public int PaymentMethodId { get; set; }
     public string? PersonnelName { get; set; }
     public int StatusId { get; set; }
+    public decimal TipAmount { get; set; }
     public List<SlnInvoiceItemDto> Items { get; set; } = [];
 }
 
@@ -233,6 +234,7 @@ public class SlnInvoiceCreateDto
     public int PaymentMethodId { get; set; } = 1;
     public int? PosDeviceId { get; set; }
     public decimal DiscountAmount { get; set; }
+    public decimal TipAmount { get; set; }
     public string? Notes { get; set; }
     public List<SlnInvoiceItemCreateDto> Items { get; set; } = [];
 }

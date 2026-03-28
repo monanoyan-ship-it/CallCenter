@@ -109,6 +109,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             PosDeviceId = dto.PosDeviceId,
             PersonnelId = userId,
             DiscountAmount = dto.DiscountAmount,
+            TipAmount = dto.TipAmount,
             Notes = dto.Notes
         };
 
@@ -396,6 +397,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         PaymentMethodId = i.PaymentMethodId,
         PersonnelName = i.Personnel?.User?.FullName,
         StatusId = i.StatusId,
+        TipAmount = i.TipAmount,
         Items = i.Items.Select(it => new SlnInvoiceItemDto
         {
             Id = it.Id,

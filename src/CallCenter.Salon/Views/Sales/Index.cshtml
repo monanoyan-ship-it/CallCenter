@@ -154,13 +154,20 @@
                     <span class="text-muted small">Ara Toplam</span>
                     <span class="fw-bold" data-bind="text: subtotal().toLocaleString('tr-TR') + ' TL'"></span>
                 </div>
-                <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
                     <span class="text-muted small">Indirim</span>
-                    <div class="input-group input-group-sm" style="max-width:120px;">
+                    <div class="input-group input-group-sm" style="max-width:110px;">
                         <input type="number" class="form-control text-end" data-bind="value: discountAmount" min="0" step="1" />
                         <span class="input-group-text">TL</span>
                     </div>
-                    <span class="ms-auto fw-bold fs-5 text-success" data-bind="text: grandTotal().toLocaleString('tr-TR') + ' TL'"></span>
+                    <span class="text-muted small ms-2">Bahsis</span>
+                    <div class="input-group input-group-sm" style="max-width:110px;">
+                        <input type="number" class="form-control text-end" data-bind="value: tipAmount" min="0" step="1" />
+                        <span class="input-group-text">TL</span>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mb-3">
+                    <span class="fw-bold fs-5 text-success" data-bind="text: grandTotal().toLocaleString('tr-TR') + ' TL'"></span>
                 </div>
                 <button class="btn btn-success w-100 py-2" data-bind="click: checkout, disable: isSaving">
                     <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>

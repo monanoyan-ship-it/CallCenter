@@ -18,6 +18,7 @@ function InvoicesViewModel() {
         discountAmount: ko.observable(0),
         paymentMethodId: ko.observable(1),
         posDeviceId: ko.observable(null),
+        tipAmount: ko.observable(0),
         notes: ko.observable(''),
         items: ko.observableArray([])
     };
@@ -185,6 +186,7 @@ function InvoicesViewModel() {
             paymentMethodId: parseInt(self.form.paymentMethodId()) || 1,
             posDeviceId: self.form.posDeviceId() ? parseInt(self.form.posDeviceId()) : null,
             discountAmount: parseFloat(self.form.discountAmount()) || 0,
+            tipAmount: parseFloat(self.form.tipAmount()) || 0,
             notes: self.form.notes(),
             items: items
         };

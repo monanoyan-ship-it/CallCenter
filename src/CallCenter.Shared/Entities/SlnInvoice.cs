@@ -26,6 +26,7 @@ public class SlnInvoice
 
     /// <summary>1=Open, 2=Paid, 3=Cancelled</summary>
     public int StatusId { get; set; } = 1;
+    public decimal TipAmount { get; set; }
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
