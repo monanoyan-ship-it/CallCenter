@@ -8,9 +8,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-// Npgsql: DateTime Kind kisitlamasini kaldir (Unspecified/Local kabul eder, UTC zorlamaz)
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 var builder = WebApplication.CreateBuilder(args);
 
 // PostgreSQL + EF Core
