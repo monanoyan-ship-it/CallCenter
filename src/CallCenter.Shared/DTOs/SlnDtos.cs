@@ -281,6 +281,54 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnMembership ═══
+public class SlnMembershipPlanDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? IconClass { get; set; }
+    public string? Color { get; set; }
+    public decimal MonthlyPrice { get; set; }
+    public int DiscountPercent { get; set; }
+    public int FreeSessionsPerMonth { get; set; }
+    public bool PriorityBooking { get; set; }
+    public bool IsActive { get; set; }
+    public int ActiveMembers { get; set; }
+}
+
+public class SlnMembershipPlanCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? IconClass { get; set; }
+    public string? Color { get; set; }
+    public decimal MonthlyPrice { get; set; }
+    public int DiscountPercent { get; set; }
+    public int FreeSessionsPerMonth { get; set; }
+    public bool PriorityBooking { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnClientMembershipDto
+{
+    public int Id { get; set; }
+    public string PlanName { get; set; } = string.Empty;
+    public string? PlanColor { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public int DiscountPercent { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public DateTime NextPaymentDate { get; set; }
+    public int StatusId { get; set; }
+}
+
+public class SlnClientMembershipCreateDto
+{
+    public int PlanId { get; set; }
+    public int SlnClientId { get; set; }
+}
+
 // ═══ SlnLoyalty ═══
 public class SlnLoyaltyConfigDto
 {

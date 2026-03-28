@@ -1,0 +1,137 @@
+@{
+    ViewData["Title"] = "Uyelik Planlari";
+}
+
+<div id="memberships-vm">
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-plans"><i class="bi bi-card-list me-1"></i>Planlar</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-members"><i class="bi bi-people me-1"></i>Uyeler</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Planlar -->
+        <div class="tab-pane fade show active" id="tab-plans">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewPlan"><i class="bi bi-plus-lg me-1"></i>Yeni Plan</button>
+            </div>
+            <div class="row g-3" data-bind="foreach: plans">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100" data-bind="style: { borderTop: '3px solid ' + (color || '#7b1fa2') }">
+                        <div class="card-body text-center">
+                            <i class="fs-2" data-bind="attr: { 'class': iconClass || 'bi bi-award' }, style: { color: color || '#7b1fa2' }"></i>
+                            <h5 class="mt-2 mb-1" data-bind="text: name"></h5>
+                            <p class="small text-muted" data-bind="text: description || ''"></p>
+                            <div class="fs-4 fw-bold" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL'"></div>
+                            <small class="text-muted">/ ay</small>
+                            <hr />
+                            <div class="small text-start">
+                                <div><i class="bi bi-check-circle text-success me-1"></i>%<span data-bind="text: discountPercent"></span> indirim</div>
+                                <!-- ko if: freeSessionsPerMonth > 0 -->
+                                <div><i class="bi bi-check-circle text-success me-1"></i><span data-bind="text: freeSessionsPerMonth"></span> ucretsiz seans/ay</div>
+                                <!-- /ko -->
+                                <!-- ko if: priorityBooking -->
+                                <div><i class="bi bi-check-circle text-success me-1"></i>Oncelikli randevu</div>
+                                <!-- /ko -->
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-info" data-bind="text: activeMembers + ' uye'"></span>
+                            </div>
+                            <div class="mt-2 btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" data-bind="click: $parent.openEditPlan"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-outline-danger" data-bind="click: $parent.removePlan"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ko if: plans().length === 0 -->
+            <div class="text-center text-muted py-5"><i class="bi bi-award" style="font-size:3rem;opacity:.3;"></i><p class="mt-2 small">Henuz uyelik plani tanimlanmamis</p></div>
+            <!-- /ko -->
+        </div>
+
+        <!-- Uyeler -->
+        <div class="tab-pane fade" id="tab-members">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-success btn-sm" data-bind="click: openNewMember"><i class="bi bi-person-plus me-1"></i>Uye Ekle</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead class="table-light"><tr><th>Musteri</th><th>Plan</th><th>Baslangic</th><th>Sonraki Odeme</th><th>Durum</th><th></th></tr></thead>
+                    <tbody data-bind="foreach: memberships">
+                        <tr>
+                            <td class="small fw-semibold" data-bind="text: clientName"></td>
+                            <td><span class="badge" data-bind="text: planName, style: { background: planColor || '#7b1fa2' }"></span></td>
+                            <td class="small" data-bind="text: new Date(startDate).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: new Date(nextPaymentDate).toLocaleDateString('tr-TR')"></td>
+                            <td>
+                                <span class="badge" data-bind="text: statusId === 1 ? 'Aktif' : statusId === 2 ? 'Dondurulmus' : 'Iptal',
+                                    css: statusId === 1 ? 'bg-success' : statusId === 2 ? 'bg-warning text-dark' : 'bg-danger'"></span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <!-- ko if: statusId === 1 -->
+                                    <button class="btn btn-outline-warning btn-sm" data-bind="click: $parent.freezeMember" title="Dondur"><i class="bi bi-pause"></i></button>
+                                    <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.cancelMember" title="Iptal"><i class="bi bi-x"></i></button>
+                                    <!-- /ko -->
+                                    <!-- ko if: statusId === 2 -->
+                                    <button class="btn btn-outline-success btn-sm" data-bind="click: $parent.reactivateMember" title="Aktif Et"><i class="bi bi-play"></i></button>
+                                    <!-- /ko -->
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Modal -->
+    <div class="modal fade" id="planModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title" data-bind="text: isEditingPlan() ? 'Plan Duzenle' : 'Yeni Plan'"></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-8"><label class="form-label small">Plan Adi *</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
+                        <div class="col-4"><label class="form-label small">Renk</label><input type="color" class="form-control form-control-sm form-control-color" data-bind="value: planForm.color" /></div>
+                        <div class="col-12"><label class="form-label small">Aciklama</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.description" /></div>
+                        <div class="col-4"><label class="form-label small">Aylik Ucret *</label><input type="number" class="form-control form-control-sm" step="1" data-bind="value: planForm.monthlyPrice" /></div>
+                        <div class="col-4"><label class="form-label small">Indirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: planForm.discountPercent" /></div>
+                        <div class="col-4"><label class="form-label small">Ucretsiz Seans/Ay</label><input type="number" class="form-control form-control-sm" min="0" data-bind="value: planForm.freeSessionsPerMonth" /></div>
+                        <div class="col-6"><div class="form-check mt-3"><input type="checkbox" class="form-check-input" data-bind="checked: planForm.priorityBooking" /><label class="form-check-label small">Oncelikli Randevu</label></div></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button><button type="button" class="btn btn-primary btn-sm" data-bind="click: savePlan, disable: isSaving">Kaydet</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uye Ekle Modal -->
+    <div class="modal fade" id="memberModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title">Uye Ekle</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label small">Plan *</label>
+                        <select class="form-select form-select-sm" data-bind="value: memberForm.planId, options: plans, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Plan seciniz'"></select></div>
+                    <div class="mb-3"><label class="form-label small">Musteri *</label>
+                        <div class="position-relative" data-bind="with: clientAutocomplete">
+                            <input type="text" class="form-control form-control-sm" placeholder="Musteri adi..." autocomplete="off"
+                                   data-bind="value: query, valueUpdate: 'afterkeydown', event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                            <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
+                                <!-- ko foreach: filteredItems -->
+                                <a class="dropdown-item small py-1 px-2" href="#" data-bind="text: $parent.getDisplayText($data), click: $parent.select, css: { active: $parent.highlightIndex() === $index() }, event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                <!-- /ko -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button><button type="button" class="btn btn-success btn-sm" data-bind="click: saveMember, disable: isSaving">Uye Yap</button></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Memberships.js" asp-append-version="true"></script>
+}

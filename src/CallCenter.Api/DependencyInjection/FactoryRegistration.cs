@@ -78,7 +78,8 @@ public static class FactoryRegistration
         // Salon S8 — Raporlama
         services.AddScoped<ISlnReportFactory, SlnReportFactory>();
 
-        // Salon — Sadakat + Hediye Karti + Paketler
+        // Salon — Uyelik + Sadakat + Hediye Karti + Paketler
+        services.AddScoped<ISlnMembershipFactory, SlnMembershipFactory>();
         services.AddScoped<ISlnLoyaltyFactory, SlnLoyaltyFactory>();
         services.AddScoped<ISlnGiftCardFactory, SlnGiftCardFactory>();
         services.AddScoped<ISlnPackageFactory, SlnPackageFactory>();
