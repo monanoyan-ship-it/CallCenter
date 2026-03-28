@@ -112,7 +112,7 @@ function ExpensesViewModel() {
 
     self.save = function () {
         var data = {
-            expenseDate: self.form.expenseDate(),
+            expenseDate: self.form.expenseDate() ? self.form.expenseDate() + 'T00:00:00Z' : null,
             categoryId: self.form.categoryId() || null,
             description: self.form.description(),
             amount: parseFloat(self.form.amount()) || 0,

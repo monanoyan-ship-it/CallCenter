@@ -120,7 +120,7 @@ function ClientsViewModel() {
             phone2: self.form.phone2(),
             email: self.form.email(),
             genderId: self.form.genderId() ? parseInt(self.form.genderId()) : null,
-            birthDate: self.form.birthDate() || null,
+            birthDate: self.form.birthDate() ? self.form.birthDate() + 'T00:00:00Z' : null,
             city: self.form.city(),
             address: self.form.address(),
             hairColor: self.form.hairColor(),
