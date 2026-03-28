@@ -25,8 +25,6 @@
                             <th>Yetkili</th>
                             <th>Telefon</th>
                             <th>E-posta</th>
-                            <th>Borc</th>
-                            <th>Alacak</th>
                             <th>Bakiye</th>
                             <th style="width: 80px;"></th>
                         </tr>
@@ -35,11 +33,9 @@
                         <tr>
                             <td class="small fw-semibold" data-bind="text: name"></td>
                             <td class="small" data-bind="text: contactPerson || '-'"></td>
-                            <td class="small" data-bind="text: phoneNumber"></td>
+                            <td class="small" data-bind="text: phone"></td>
                             <td class="small" data-bind="text: email || '-'"></td>
-                            <td class="small text-danger" data-bind="text: (debit || 0).toLocaleString('tr-TR') + ' TL'"></td>
-                            <td class="small text-success" data-bind="text: (credit || 0).toLocaleString('tr-TR') + ' TL'"></td>
-                            <td class="small fw-semibold" data-bind="text: balance.toLocaleString('tr-TR') + ' TL', css: { 'text-danger': balance < 0, 'text-success': balance >= 0 }"></td>
+                            <td class="small fw-semibold" data-bind="text: (balance || 0).toLocaleString('tr-TR') + ' TL', css: { 'text-danger': (balance || 0) < 0, 'text-success': (balance || 0) >= 0 }"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
@@ -70,17 +66,9 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-4 text-center">
-                    <div class="text-muted small">Toplam Borc</div>
-                    <div class="fw-bold text-danger" data-bind="text: totalDebit().toLocaleString('tr-TR') + ' TL'"></div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="text-muted small">Toplam Alacak</div>
-                    <div class="fw-bold text-success" data-bind="text: totalCredit().toLocaleString('tr-TR') + ' TL'"></div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="text-muted small">Net Bakiye</div>
-                    <div class="fw-bold" data-bind="text: netBalance().toLocaleString('tr-TR') + ' TL', css: { 'text-danger': netBalance() < 0, 'text-success': netBalance() >= 0 }"></div>
+                <div class="col-md-12 text-center">
+                    <div class="text-muted small">Toplam Bakiye</div>
+                    <div class="fw-bold" data-bind="text: totalBalance().toLocaleString('tr-TR') + ' TL', css: { 'text-danger': totalBalance() < 0, 'text-success': totalBalance() >= 0 }"></div>
                 </div>
             </div>
         </div>
@@ -106,7 +94,7 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Telefon *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phoneNumber" />
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phone" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small">E-posta</label>

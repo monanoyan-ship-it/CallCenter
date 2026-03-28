@@ -13,7 +13,7 @@
                         <i class="bi bi-person-fill text-purple fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="mb-1" data-bind="text: client().firstName + ' ' + client().lastName">...</h5>
+                        <h5 class="mb-1" data-bind="text: client().fullName">...</h5>
                         <div class="text-muted small">
                             <span data-bind="text: client().genderText || ''"></span>
                             <!-- ko if: client().birthDate -->
@@ -21,7 +21,7 @@
                             <!-- /ko -->
                         </div>
                         <div class="mt-1">
-                            <span class="me-3"><i class="bi bi-telephone me-1"></i><span data-bind="text: client().phoneNumber"></span></span>
+                            <span class="me-3"><i class="bi bi-telephone me-1"></i><span data-bind="text: client().phone"></span></span>
                             <!-- ko if: client().email -->
                             <span><i class="bi bi-envelope me-1"></i><span data-bind="text: client().email"></span></span>
                             <!-- /ko -->
@@ -110,9 +110,8 @@
                     <div class="row">
                         <div class="col-md-6">
                             <table class="table table-sm table-borderless">
-                                <tr><td class="text-muted small" style="width:120px;">Ad</td><td class="small" data-bind="text: client().firstName"></td></tr>
-                                <tr><td class="text-muted small">Soyad</td><td class="small" data-bind="text: client().lastName"></td></tr>
-                                <tr><td class="text-muted small">Telefon</td><td class="small" data-bind="text: client().phoneNumber"></td></tr>
+                                <tr><td class="text-muted small" style="width:120px;">Ad Soyad</td><td class="small" data-bind="text: client().fullName"></td></tr>
+                                <tr><td class="text-muted small">Telefon</td><td class="small" data-bind="text: client().phone"></td></tr>
                                 <tr><td class="text-muted small">E-posta</td><td class="small" data-bind="text: client().email || '-'"></td></tr>
                             </table>
                         </div>
@@ -149,14 +148,22 @@
                         <div class="border rounded p-3 mb-2">
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <span class="fw-semibold small" data-bind="text: title"></span>
-                                    <span class="text-muted small ms-2" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></span>
+                                    <span class="fw-semibold small" data-bind="text: formulaText"></span>
+                                    <span class="text-muted small ms-2" data-bind="text: new Date(appliedAt).toLocaleDateString('tr-TR')"></span>
                                 </div>
                                 <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.removeFormula" title="Sil">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
-                            <p class="small mb-0 mt-1 text-muted" data-bind="text: content"></p>
+                            <!-- ko if: colorCode -->
+                            <span class="badge bg-secondary me-1" data-bind="text: 'Renk: ' + colorCode"></span>
+                            <!-- /ko -->
+                            <!-- ko if: oxidantRatio -->
+                            <span class="badge bg-secondary me-1" data-bind="text: 'Oksidan: ' + oxidantRatio"></span>
+                            <!-- /ko -->
+                            <!-- ko if: applicationNotes -->
+                            <p class="small mb-0 mt-1 text-muted" data-bind="text: applicationNotes"></p>
+                            <!-- /ko -->
                         </div>
                     </div>
                     <!-- ko if: formulas().length === 0 -->
@@ -261,12 +268,22 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small">Baslik *</label>
-                        <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.title" />
+                        <label class="form-label small">Formul Metni *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.formulaText" />
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small">Renk Kodu</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.colorCode" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Oksidan Orani</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.oxidantRatio" />
+                        </div>
                     </div>
                     <div>
-                        <label class="form-label small">Icerik *</label>
-                        <textarea class="form-control form-control-sm" rows="4" data-bind="value: formulaForm.content"></textarea>
+                        <label class="form-label small">Uygulama Notlari</label>
+                        <textarea class="form-control form-control-sm" rows="3" data-bind="value: formulaForm.applicationNotes"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

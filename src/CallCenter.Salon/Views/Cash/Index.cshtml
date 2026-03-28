@@ -116,22 +116,6 @@
                             <label class="form-label small">Kasa Adi *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: registerForm.name" />
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small">Tur</label>
-                            <select class="form-select form-select-sm" data-bind="value: registerForm.type">
-                                <option value="Cash">Nakit</option>
-                                <option value="Bank">Banka</option>
-                                <option value="POS">POS</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">Baslangic Bakiyesi</label>
-                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: registerForm.initialBalance" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small">Aciklama</label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: registerForm.description"></textarea>
-                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -157,22 +141,25 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label small">Islem Turu *</label>
-                            <select class="form-select form-select-sm" data-bind="value: transactionForm.type">
-                                <option value="Income">Gelir</option>
-                                <option value="Expense">Gider</option>
+                            <select class="form-select form-select-sm" data-bind="value: transactionForm.transactionTypeId">
+                                <option value="1">Gelir</option>
+                                <option value="2">Gider</option>
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Tutar (TL) *</label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: transactionForm.amount" />
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
+                            <label class="form-label small">Odeme Yontemi</label>
+                            <select class="form-select form-select-sm" data-bind="value: transactionForm.paymentMethodId">
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Karti</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small">Aciklama *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: transactionForm.description" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small">Not</label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: transactionForm.notes"></textarea>
                         </div>
                     </div>
                 </div>

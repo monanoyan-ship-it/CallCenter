@@ -35,14 +35,14 @@
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredProducts">
-                        <tr data-bind="css: { 'table-danger': stock <= minStock && minStock > 0 }">
+                        <tr data-bind="css: { 'table-danger': stockQuantity <= minStockLevel && minStockLevel > 0 }">
                             <td class="small fw-semibold" data-bind="text: name"></td>
                             <td class="small" data-bind="text: categoryName"></td>
                             <td class="small" data-bind="text: brandName || '-'"></td>
                             <td class="small text-muted" data-bind="text: barcode || '-'"></td>
                             <td class="small">
-                                <span data-bind="text: stock, css: { 'text-danger fw-bold': stock <= minStock && minStock > 0 }"></span>
-                                <!-- ko if: stock <= minStock && minStock > 0 -->
+                                <span data-bind="text: stockQuantity, css: { 'text-danger fw-bold': stockQuantity <= minStockLevel && minStockLevel > 0 }"></span>
+                                <!-- ko if: stockQuantity <= minStockLevel && minStockLevel > 0 -->
                                 <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Dusuk stok"></i>
                                 <!-- /ko -->
                             </td>
@@ -149,17 +149,13 @@
                             <label class="form-label small">Birim</label>
                             <input type="text" class="form-control form-control-sm" placeholder="Adet, Litre, Kutu..." data-bind="value: form.unit" />
                         </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small">Stok</label>
-                            <input type="number" class="form-control form-control-sm" data-bind="value: form.stock" />
+                            <input type="number" class="form-control form-control-sm" data-bind="value: form.stockQuantity" />
                         </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small">Min Stok</label>
-                            <input type="number" class="form-control form-control-sm" data-bind="value: form.minStock" />
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label small">KDV %</label>
-                            <input type="number" class="form-control form-control-sm" data-bind="value: form.vatRate" />
+                            <input type="number" class="form-control form-control-sm" data-bind="value: form.minStockLevel" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Alis Fiyati (TL) *</label>

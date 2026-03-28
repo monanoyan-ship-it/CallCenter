@@ -147,43 +147,11 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Odeme Yontemi</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.paymentMethod">
-                                <option value="Cash">Nakit</option>
-                                <option value="CreditCard">Kredi Karti</option>
-                                <option value="BankTransfer">Havale/EFT</option>
+                            <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Karti</option>
+                                <option value="3">Havale/EFT</option>
                             </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small">Tedarikci</label>
-                            <div class="position-relative" data-bind="with: supplierAutocomplete">
-                                <input type="text" class="form-control form-control-sm"
-                                       placeholder="Tedarikci yazin..."
-                                       autocomplete="off"
-                                       data-bind="value: query, valueUpdate: 'afterkeydown',
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                <!-- ko if: selectedName() -->
-                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
-                                    <i class="bi bi-x-circle text-muted"></i>
-                                </span>
-                                <!-- /ko -->
-                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
-                                     data-bind="css: { show: showDropdown }">
-                                    <!-- ko foreach: filteredItems -->
-                                    <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
-                                    <!-- /ko -->
-                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
-                                    <!-- /ko -->
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small">Not</label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
                         </div>
                     </div>
                 </div>

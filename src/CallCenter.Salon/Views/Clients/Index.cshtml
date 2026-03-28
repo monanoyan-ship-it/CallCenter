@@ -35,7 +35,7 @@
                             <td class="fw-semibold small">
                                 <a data-bind="text: fullName, attr: { href: '/Clients/Detail/' + id }" class="text-decoration-none"></a>
                             </td>
-                            <td class="small" data-bind="text: phoneNumber"></td>
+                            <td class="small" data-bind="text: phone"></td>
                             <td class="small" data-bind="text: email"></td>
                             <td class="small" data-bind="text: genderText"></td>
                             <td class="small">
@@ -97,17 +97,17 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label small">Ad *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.firstName" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">Soyad *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.lastName" />
+                        <div class="col-12">
+                            <label class="form-label small">Ad Soyad *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Telefon *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phoneNumber" />
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phone" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Telefon 2</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phone2" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small">E-posta</label>
@@ -115,19 +115,31 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Cinsiyet</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.gender">
+                            <select class="form-select form-select-sm" data-bind="value: form.genderId">
                                 <option value="">Seciniz</option>
-                                <option value="Female">Kadin</option>
-                                <option value="Male">Erkek</option>
+                                <option value="1">Erkek</option>
+                                <option value="2">Kadin</option>
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Dogum Tarihi</label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.birthDate" />
                         </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sehir</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.city" />
+                        </div>
                         <div class="col-12">
                             <label class="form-label small">Adres</label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sac Rengi</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.hairColor" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Cilt Tipi</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.skinType" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small">Not</label>

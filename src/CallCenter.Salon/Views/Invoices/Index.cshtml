@@ -224,15 +224,14 @@
                     <div class="row g-3">
                         <div class="col-4">
                             <label class="form-label small">Indirim (TL)</label>
-                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.discount" />
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.discountAmount" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Odeme Yontemi</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.paymentMethod">
-                                <option value="Cash">Nakit</option>
-                                <option value="CreditCard">Kredi Karti</option>
-                                <option value="BankTransfer">Havale/EFT</option>
-                                <option value="Mixed">Karma</option>
+                            <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Karti</option>
+                                <option value="3">Karma</option>
                             </select>
                         </div>
                         <div class="col-4">

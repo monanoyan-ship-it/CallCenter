@@ -22,12 +22,9 @@
                     <thead class="table-light">
                         <tr>
                             <th>Ad Soyad</th>
-                            <th>Telefon</th>
-                            <th>Uzmanlik</th>
-                            <th>Ise Baslama</th>
-                            <th>Maas</th>
-                            <th>Prim %</th>
-                            <th>Bu Ay Prim</th>
+                            <th>E-posta</th>
+                            <th>Unvan</th>
+                            <th>Rol</th>
                             <th>Durum</th>
                             <th style="width: 80px;"></th>
                         </tr>
@@ -35,12 +32,9 @@
                     <tbody data-bind="foreach: filteredStaff">
                         <tr>
                             <td class="small fw-semibold" data-bind="text: fullName"></td>
-                            <td class="small" data-bind="text: phoneNumber"></td>
-                            <td class="small" data-bind="text: speciality || '-'"></td>
-                            <td class="small" data-bind="text: startDate ? new Date(startDate).toLocaleDateString('tr-TR') : '-'"></td>
-                            <td class="small" data-bind="text: salary ? salary.toLocaleString('tr-TR') + ' TL' : '-'"></td>
-                            <td class="small" data-bind="text: commissionRate ? '%' + commissionRate : '-'"></td>
-                            <td class="small fw-semibold text-success" data-bind="text: monthlyCommission ? monthlyCommission.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                            <td class="small" data-bind="text: email || '-'"></td>
+                            <td class="small" data-bind="text: title || '-'"></td>
+                            <td class="small" data-bind="text: customerRoleName || '-'"></td>
                             <td>
                                 <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
                             </td>
@@ -67,28 +61,20 @@
         </div>
     </div>
 
-    <!-- Maas Ozeti -->
+    <!-- Personel Ozeti -->
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white fw-semibold">
-            <i class="bi bi-calculator me-2"></i>Aylik Maas Ozeti
+            <i class="bi bi-people me-2"></i>Personel Ozeti
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-3 text-center">
-                    <div class="text-muted small">Toplam Maas</div>
-                    <div class="fw-bold text-primary" data-bind="text: totalSalary().toLocaleString('tr-TR') + ' TL'"></div>
-                </div>
-                <div class="col-md-3 text-center">
-                    <div class="text-muted small">Toplam Prim</div>
-                    <div class="fw-bold text-success" data-bind="text: totalCommission().toLocaleString('tr-TR') + ' TL'"></div>
-                </div>
-                <div class="col-md-3 text-center">
-                    <div class="text-muted small">Genel Toplam</div>
-                    <div class="fw-bold text-danger" data-bind="text: (totalSalary() + totalCommission()).toLocaleString('tr-TR') + ' TL'"></div>
-                </div>
-                <div class="col-md-3 text-center">
+                <div class="col-md-6 text-center">
                     <div class="text-muted small">Aktif Personel</div>
-                    <div class="fw-bold" data-bind="text: activeCount()"></div>
+                    <div class="fw-bold text-primary" data-bind="text: activeCount()"></div>
+                </div>
+                <div class="col-md-6 text-center">
+                    <div class="text-muted small">Toplam Personel</div>
+                    <div class="fw-bold" data-bind="text: staffList().length"></div>
                 </div>
             </div>
         </div>
@@ -104,48 +90,45 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label small">Ad *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.firstName" />
+                        <div class="col-12">
+                            <label class="form-label small">Ad Soyad *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Soyad *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.lastName" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">Telefon *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phoneNumber" />
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">E-posta</label>
+                            <label class="form-label small">E-posta *</label>
                             <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Uzmanlik</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="Orn: Sac, Cilt, Tirnak..." data-bind="value: form.speciality" />
+                            <label class="form-label small">Unvan</label>
+                            <input type="text" class="form-control form-control-sm" placeholder="Orn: Kuafor, Guzellik Uzmani..." data-bind="value: form.title" />
+                        </div>
+                        <!-- ko if: !isEditing() -->
+                        <div class="col-6">
+                            <label class="form-label small">Kullanici Adi *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.userName" />
+                        </div>
+                        <!-- /ko -->
+                        <div class="col-6">
+                            <label class="form-label small" data-bind="text: isEditing() ? 'Sifre (bos birakilabilir)' : 'Sifre *'"></label>
+                            <input type="password" class="form-control form-control-sm" data-bind="value: form.password" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Ise Baslama Tarihi</label>
-                            <input type="date" class="form-control form-control-sm" data-bind="value: form.startDate" />
+                            <label class="form-label small">Rol</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.customerRoleId">
+                                <option value="101">Salon Sahibi</option>
+                                <option value="102">Mudur</option>
+                                <option value="103">Kuafor</option>
+                                <option value="104">Guzellik Uzmani</option>
+                                <option value="105">Kasiyer</option>
+                                <option value="106">Resepsiyonist</option>
+                            </select>
                         </div>
-                        <div class="col-4">
-                            <label class="form-label small">Maas (TL)</label>
-                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.salary" />
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label small">Prim Orani %</label>
-                            <input type="number" class="form-control form-control-sm" step="0.1" data-bind="value: form.commissionRate" />
-                        </div>
-                        <div class="col-4">
+                        <div class="col-6">
                             <label class="form-label small">Durum</label>
                             <select class="form-select form-select-sm" data-bind="value: form.isActive">
                                 <option value="true">Aktif</option>
                                 <option value="false">Pasif</option>
                             </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small">Not</label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
                         </div>
                     </div>
                 </div>
