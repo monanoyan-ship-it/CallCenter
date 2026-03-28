@@ -444,6 +444,46 @@ public class SlnTopClientDto
     public DateTime? LastVisit { get; set; }
 }
 
+// ═══ SlnRecipe ═══
+public class SlnRecipeDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? IconClass { get; set; }
+    public decimal TotalPrice { get; set; }
+    public int TotalDurationMinutes { get; set; }
+    public bool IsActive { get; set; }
+    public List<SlnRecipeItemDto> Items { get; set; } = [];
+}
+
+public class SlnRecipeItemDto
+{
+    public int Id { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public decimal ServicePrice { get; set; }
+    public int ServiceDurationMinutes { get; set; }
+    public int Quantity { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class SlnRecipeCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? IconClass { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<SlnRecipeItemCreateDto> Items { get; set; } = [];
+}
+
+public class SlnRecipeItemCreateDto
+{
+    public int ServiceId { get; set; }
+    public int Quantity { get; set; } = 1;
+    public int SortOrder { get; set; }
+}
+
 // ═══ SlnBranch (S9) ═══
 public class SlnBranchDto
 {

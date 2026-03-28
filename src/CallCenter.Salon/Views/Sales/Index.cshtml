@@ -7,8 +7,17 @@
 
         <!-- SOL: Kategori + Hizmetler -->
         <div class="col-md-8 p-3" style="background: #f8f9fa;">
-            <!-- Kategori Tablari -->
-            <div class="d-flex flex-wrap gap-2 mb-3" data-bind="foreach: categories">
+            <!-- Recete + Kategori Tablari -->
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <!-- ko if: recipes().length > 0 -->
+                <button class="btn btn-sm px-3 py-2 d-flex align-items-center gap-2"
+                        data-bind="click: toggleRecipes,
+                                   css: showRecipes() ? 'btn-warning' : 'btn-outline-warning'">
+                    <i class="bi bi-journal-bookmark-fill"></i>
+                    <span class="small fw-semibold">Receteler</span>
+                </button>
+                <!-- /ko -->
+            <!-- ko foreach: categories -->
                 <button class="btn btn-sm px-3 py-2 d-flex align-items-center gap-2"
                         data-bind="click: $parent.selectCategory,
                                    css: $parent.selectedCategoryId() === id ? 'btn-dark' : 'btn-outline-secondary',
@@ -16,6 +25,27 @@
                     <i data-bind="attr: { 'class': iconClass || 'bi bi-tag' }, style: { color: $parent.selectedCategoryId() === id ? '#fff' : (color || '#6c757d') }"></i>
                     <span data-bind="text: name" class="small fw-semibold"></span>
                 </button>
+            <!-- /ko -->
+            </div>
+
+            <!-- Recete Grid -->
+            <div class="row g-2 mb-3" data-bind="visible: showRecipes(), foreach: recipes">
+                <div class="col-6 col-lg-4 col-xl-3">
+                    <div class="card border-0 shadow-sm h-100" style="cursor:pointer; border-left: 3px solid #ff9800 !important;"
+                         data-bind="click: $parent.addRecipeToCart">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="me-2" data-bind="attr: { 'class': iconClass || 'bi bi-journal-bookmark' }" style="color:#ff9800;"></i>
+                                <span class="fw-semibold small" data-bind="text: name"></span>
+                            </div>
+                            <div class="text-muted" style="font-size:.65rem;" data-bind="text: (description || '')"></div>
+                            <div class="mt-1">
+                                <span class="fw-bold text-warning" data-bind="text: totalPrice.toLocaleString('tr-TR') + ' TL'"></span>
+                                <small class="text-muted ms-1" data-bind="text: totalDurationMinutes + ' dk'"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Hizmet Grid -->

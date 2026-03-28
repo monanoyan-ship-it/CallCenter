@@ -117,6 +117,8 @@ public class AppDbContext : DbContext
     public DbSet<SlnCampaign> SlnCampaigns => Set<SlnCampaign>();
     public DbSet<SlnAutoReminder> SlnAutoReminders => Set<SlnAutoReminder>();
     public DbSet<SlnBranch> SlnBranches => Set<SlnBranch>();
+    public DbSet<SlnRecipe> SlnRecipes => Set<SlnRecipe>();
+    public DbSet<SlnRecipeItem> SlnRecipeItems => Set<SlnRecipeItem>();
 
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();

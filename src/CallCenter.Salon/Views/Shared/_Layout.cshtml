@@ -48,7 +48,7 @@
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
                 var isSales = ctrl is "Sales";
                 var mainOpen = ctrl is "Home" or "Clients" or "Appointments";
-                var opsOpen = ctrl is "Services" or "Staff";
+                var opsOpen = ctrl is "Services" or "Staff" or "Recipes";
                 var stockOpen = ctrl is "Products" or "Suppliers";
                 var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses";
                 var reportOpen = ctrl is "Reports";
@@ -86,6 +86,9 @@
                 </a>
                 <a class="nav-link @(ctrl == "Staff" ? "active" : "")" href="/Staff">
                     <i class="bi bi-person-badge me-2"></i>Personel
+                </a>
+                <a class="nav-link @(ctrl == "Recipes" ? "active" : "")" href="/Recipes">
+                    <i class="bi bi-journal-bookmark me-2"></i>Receteler
                 </a>
             </div>
 

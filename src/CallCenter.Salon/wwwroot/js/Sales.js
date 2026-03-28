@@ -4,7 +4,9 @@ function SalesViewModel() {
     self.allServices = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
     self.staffList = ko.observableArray([]);
+    self.recipes = ko.observableArray([]);
     self.selectedCategoryId = ko.observable(null);
+    self.showRecipes = ko.observable(false);
     self.cartItems = ko.observableArray([]);
     self.clientId = ko.observable(null);
     self.selectedPersonnelId = ko.observable(null);
@@ -54,6 +56,35 @@ function SalesViewModel() {
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
         });
+        $.ajax({ url: '/proxy/sln-recipes', method: 'GET' }).done(function (data) {
+            self.recipes((data.items || data).filter(function (r) { return r.isActive; }));
+        });
+    };
+
+    // ═══ Recipe Toggle ═══
+    self.toggleRecipes = function () {
+        self.showRecipes(!self.showRecipes());
+        if (self.showRecipes()) self.selectedCategoryId(null);
+    };
+
+    // ═══ Add Recipe to Cart ═══
+    self.addRecipeToCart = function (recipe) {
+        (recipe.items || []).forEach(function (item) {
+            for (var i = 0; i < item.quantity; i++) {
+                var existing = self.cartItems().find(function (c) { return c.serviceId === item.serviceId; });
+                if (existing) {
+                    existing.quantity(existing.quantity() + 1);
+                } else {
+                    self.cartItems.push({
+                        serviceId: item.serviceId,
+                        name: item.serviceName,
+                        unitPrice: item.servicePrice,
+                        quantity: ko.observable(1)
+                    });
+                }
+            }
+        });
+        toastr.info(recipe.name + ' sepete eklendi');
     };
 
     // ═══ Category Selection ═══

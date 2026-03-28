@@ -78,6 +78,9 @@ public static class FactoryRegistration
         // Salon S8 — Raporlama
         services.AddScoped<ISlnReportFactory, SlnReportFactory>();
 
+        // Salon — Receteler
+        services.AddScoped<ISlnRecipeFactory, SlnRecipeFactory>();
+
         // Salon S9 — Cok Subeli Yonetim
         services.AddScoped<ISlnBranchFactory, SlnBranchFactory>();
 
