@@ -15,9 +15,8 @@ function ProductsViewModel() {
         brandId: ko.observable(null),
         barcode: ko.observable(''),
         unit: ko.observable('Adet'),
-        stock: ko.observable(0),
-        minStock: ko.observable(0),
-        vatRate: ko.observable(20),
+        stockQuantity: ko.observable(0),
+        minStockLevel: ko.observable(0),
         purchasePrice: ko.observable(0),
         salePrice: ko.observable(0)
     };
@@ -61,9 +60,8 @@ function ProductsViewModel() {
         self.form.brandId(null);
         self.form.barcode('');
         self.form.unit('Adet');
-        self.form.stock(0);
-        self.form.minStock(0);
-        self.form.vatRate(20);
+        self.form.stockQuantity(0);
+        self.form.minStockLevel(0);
         self.form.purchasePrice(0);
         self.form.salePrice(0);
         self.isEditing(false);
@@ -85,9 +83,8 @@ function ProductsViewModel() {
         self.form.brandId(product.brandId);
         self.form.barcode(product.barcode || '');
         self.form.unit(product.unit || 'Adet');
-        self.form.stock(product.stock || 0);
-        self.form.minStock(product.minStock || 0);
-        self.form.vatRate(product.vatRate || 20);
+        self.form.stockQuantity(product.stockQuantity || 0);
+        self.form.minStockLevel(product.minStockLevel || 0);
         self.form.purchasePrice(product.purchasePrice || 0);
         self.form.salePrice(product.salePrice || 0);
         // Autocomplete'lere mevcut degerleri set et
@@ -103,9 +100,8 @@ function ProductsViewModel() {
             brandId: self.form.brandId() || null,
             barcode: self.form.barcode(),
             unit: self.form.unit(),
-            stock: parseInt(self.form.stock()) || 0,
-            minStock: parseInt(self.form.minStock()) || 0,
-            vatRate: parseInt(self.form.vatRate()) || 0,
+            stockQuantity: parseInt(self.form.stockQuantity()) || 0,
+            minStockLevel: parseInt(self.form.minStockLevel()) || 0,
             purchasePrice: parseFloat(self.form.purchasePrice()) || 0,
             salePrice: parseFloat(self.form.salePrice()) || 0
         };

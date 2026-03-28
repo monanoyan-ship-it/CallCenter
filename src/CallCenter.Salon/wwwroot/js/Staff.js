@@ -7,16 +7,13 @@ function StaffViewModel() {
     self.isSaving = ko.observable(false);
 
     self.form = {
-        firstName: ko.observable(''),
-        lastName: ko.observable(''),
-        phoneNumber: ko.observable(''),
+        userName: ko.observable(''),
+        fullName: ko.observable(''),
         email: ko.observable(''),
-        speciality: ko.observable(''),
-        startDate: ko.observable(''),
-        salary: ko.observable(0),
-        commissionRate: ko.observable(0),
-        isActive: ko.observable('true'),
-        notes: ko.observable('')
+        password: ko.observable(''),
+        title: ko.observable(''),
+        customerRoleId: ko.observable(103),
+        isActive: ko.observable('true')
     };
 
     self.filteredStaff = ko.computed(function () {
@@ -24,21 +21,9 @@ function StaffViewModel() {
         if (!q) return self.staffList();
         return self.staffList().filter(function (s) {
             return (s.fullName || '').toLowerCase().indexOf(q) >= 0
-                || (s.phoneNumber || '').indexOf(q) >= 0
-                || (s.speciality || '').toLowerCase().indexOf(q) >= 0;
+                || (s.email || '').toLowerCase().indexOf(q) >= 0
+                || (s.title || '').toLowerCase().indexOf(q) >= 0;
         });
-    });
-
-    self.totalSalary = ko.computed(function () {
-        var total = 0;
-        self.staffList().forEach(function (s) { if (s.isActive) total += s.salary || 0; });
-        return total;
-    });
-
-    self.totalCommission = ko.computed(function () {
-        var total = 0;
-        self.staffList().forEach(function (s) { if (s.isActive) total += s.monthlyCommission || 0; });
-        return total;
     });
 
     self.activeCount = ko.computed(function () {
@@ -49,27 +34,20 @@ function StaffViewModel() {
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
-            var items = data.items || data;
-            items.forEach(function (s) {
-                s.fullName = (s.firstName || '') + ' ' + (s.lastName || '');
-            });
-            self.staffList(items);
+            self.staffList(data.items || data);
         }).fail(function () {
             toastr.error('Personel listesi yuklenemedi');
         });
     };
 
     self.resetForm = function () {
-        self.form.firstName('');
-        self.form.lastName('');
-        self.form.phoneNumber('');
+        self.form.userName('');
+        self.form.fullName('');
         self.form.email('');
-        self.form.speciality('');
-        self.form.startDate('');
-        self.form.salary(0);
-        self.form.commissionRate(0);
+        self.form.password('');
+        self.form.title('');
+        self.form.customerRoleId(103);
         self.form.isActive('true');
-        self.form.notes('');
         self.isEditing(false);
         self.editingId(null);
     };
@@ -82,36 +60,40 @@ function StaffViewModel() {
     self.openEdit = function (staff) {
         self.isEditing(true);
         self.editingId(staff.id);
-        self.form.firstName(staff.firstName || '');
-        self.form.lastName(staff.lastName || '');
-        self.form.phoneNumber(staff.phoneNumber || '');
+        self.form.userName(staff.userName || '');
+        self.form.fullName(staff.fullName || '');
         self.form.email(staff.email || '');
-        self.form.speciality(staff.speciality || '');
-        self.form.startDate(staff.startDate ? staff.startDate.substring(0, 10) : '');
-        self.form.salary(staff.salary || 0);
-        self.form.commissionRate(staff.commissionRate || 0);
+        self.form.password('');
+        self.form.title(staff.title || '');
+        self.form.customerRoleId(staff.customerRoleId || 103);
         self.form.isActive(staff.isActive ? 'true' : 'false');
-        self.form.notes(staff.notes || '');
         formModal.show();
     };
 
     self.save = function () {
         var data = {
-            firstName: self.form.firstName(),
-            lastName: self.form.lastName(),
-            phoneNumber: self.form.phoneNumber(),
+            fullName: self.form.fullName(),
             email: self.form.email(),
-            speciality: self.form.speciality(),
-            startDate: self.form.startDate() || null,
-            salary: parseFloat(self.form.salary()) || 0,
-            commissionRate: parseFloat(self.form.commissionRate()) || 0,
-            isActive: self.form.isActive() === 'true',
-            notes: self.form.notes()
+            title: self.form.title(),
+            customerRoleId: parseInt(self.form.customerRoleId()) || 103,
+            isActive: self.form.isActive() === 'true'
         };
 
-        if (!data.firstName || !data.lastName || !data.phoneNumber) {
-            toastr.warning('Ad, soyad ve telefon zorunludur');
+        if (!data.fullName || !data.email) {
+            toastr.warning('Ad soyad ve e-posta zorunludur');
             return;
+        }
+
+        if (!self.isEditing()) {
+            data.userName = self.form.userName();
+            data.password = self.form.password();
+            if (!data.userName || !data.password) {
+                toastr.warning('Kullanici adi ve sifre zorunludur');
+                return;
+            }
+        } else {
+            var pwd = self.form.password();
+            if (pwd) data.password = pwd;
         }
 
         self.isSaving(true);

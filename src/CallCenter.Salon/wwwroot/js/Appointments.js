@@ -11,19 +11,20 @@ function AppointmentsViewModel() {
     self.isSaving = ko.observable(false);
 
     self.form = {
-        clientId: ko.observable(null),
-        appointmentDate: ko.observable(''),
+        slnClientId: ko.observable(null),
         startTime: ko.observable(''),
         serviceId: ko.observable(null),
-        staffId: ko.observable(null),
-        duration: ko.observable(30),
+        personnelId: ko.observable(null),
         notes: ko.observable('')
     };
 
     // ═══ Autocomplete'ler ═══
-    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.clientId);
+    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.slnClientId);
     self.serviceAutocomplete = createAutocomplete(self.serviceList, 'name', self.form.serviceId);
-    self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.staffId);
+    self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.personnelId);
+
+    var statusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
+    var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
 
     self.formattedDate = ko.computed(function () {
         var d = self.selectedDate();
@@ -37,18 +38,27 @@ function AppointmentsViewModel() {
         var staffId = self.selectedStaffId();
         var all = self.appointments();
         if (!staffId) return all;
-        return all.filter(function (a) { return a.staffId == staffId; });
+        return all.filter(function (a) { return a.personnelId == staffId; });
     });
 
     var formModal;
 
     self.loadAppointments = function () {
-        var url = '/proxy/sln-appointments?date=' + self.selectedDate();
+        var d = self.selectedDate();
+        var url = '/proxy/sln-appointments?from=' + d + 'T00:00:00Z&to=' + d + 'T23:59:59Z';
         $.ajax({ url: url, method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (a) {
-                a.statusText = { Pending: 'Bekliyor', Confirmed: 'Onaylandi', InProgress: 'Devam Ediyor', Completed: 'Tamamlandi', Cancelled: 'Iptal', NoShow: 'Gelmedi' }[a.status] || a.status;
-                a.statusCss = { Pending: 'bg-warning text-dark', Confirmed: 'bg-info', InProgress: 'bg-primary', Completed: 'bg-success', Cancelled: 'bg-danger', NoShow: 'bg-secondary' }[a.status] || 'bg-secondary';
+                a.statusText = statusNames[a.statusId] || 'Bilinmiyor';
+                a.statusCss = statusCss[a.statusId] || 'bg-secondary';
+                if (a.startTime) {
+                    var st = new Date(a.startTime);
+                    a.startTimeFormatted = st.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                }
+                if (a.endTime) {
+                    var et = new Date(a.endTime);
+                    a.endTimeFormatted = et.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                }
             });
             items.sort(function (a, b) { return (a.startTime || '').localeCompare(b.startTime || ''); });
             self.appointments(items);
@@ -59,17 +69,13 @@ function AppointmentsViewModel() {
 
     self.loadLookups = function () {
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
-            var items = data.items || data;
-            items.forEach(function (c) { c.fullName = c.fullName || ((c.firstName || '') + ' ' + (c.lastName || '')).trim(); });
-            self.clientList(items);
+            self.clientList(data.items || data);
         });
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
             self.serviceList(data.items || data);
         });
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
-            var items = data.items || data;
-            items.forEach(function (s) { s.fullName = (s.firstName || '') + ' ' + (s.lastName || ''); });
-            self.staffList(items);
+            self.staffList(data.items || data);
         });
     };
 
@@ -92,12 +98,10 @@ function AppointmentsViewModel() {
     };
 
     self.resetForm = function () {
-        self.form.clientId(null);
-        self.form.appointmentDate(self.selectedDate());
+        self.form.slnClientId(null);
         self.form.startTime('');
         self.form.serviceId(null);
-        self.form.staffId(null);
-        self.form.duration(30);
+        self.form.personnelId(null);
         self.form.notes('');
         self.isEditing(false);
         self.editingId(null);
@@ -114,33 +118,35 @@ function AppointmentsViewModel() {
     self.openEdit = function (appt) {
         self.isEditing(true);
         self.editingId(appt.id);
-        self.form.clientId(appt.clientId);
-        self.form.appointmentDate(appt.appointmentDate ? appt.appointmentDate.substring(0, 10) : '');
-        self.form.startTime(appt.startTime || '');
+        self.form.slnClientId(appt.slnClientId);
+        self.form.startTime(appt.startTime ? appt.startTime.substring(0, 16) : '');
         self.form.serviceId(appt.serviceId);
-        self.form.staffId(appt.staffId);
-        self.form.duration(appt.duration || 30);
+        self.form.personnelId(appt.personnelId);
         self.form.notes(appt.notes || '');
-        // Autocomplete'lere mevcut degerleri set et
-        self.clientAutocomplete.setFromValue(appt.clientId);
+        self.clientAutocomplete.setFromValue(appt.slnClientId);
         self.serviceAutocomplete.setFromValue(appt.serviceId);
-        self.staffAutocomplete.setFromValue(appt.staffId);
+        self.staffAutocomplete.setFromValue(appt.personnelId);
         formModal.show();
     };
 
     self.save = function () {
+        var startTimeVal = self.form.startTime();
+        if (!startTimeVal) {
+            startTimeVal = self.selectedDate() + 'T09:00:00';
+        } else if (startTimeVal.length <= 5) {
+            startTimeVal = self.selectedDate() + 'T' + startTimeVal + ':00';
+        }
+
         var data = {
-            clientId: self.form.clientId(),
-            appointmentDate: self.form.appointmentDate(),
-            startTime: self.form.startTime(),
+            slnClientId: self.form.slnClientId(),
+            personnelId: self.form.personnelId(),
             serviceId: self.form.serviceId(),
-            staffId: self.form.staffId(),
-            duration: parseInt(self.form.duration()) || 30,
+            startTime: startTimeVal,
             notes: self.form.notes()
         };
 
-        if (!data.clientId || !data.appointmentDate || !data.startTime || !data.serviceId || !data.staffId) {
-            toastr.warning('Musteri, tarih, saat, hizmet ve personel zorunludur');
+        if (!data.slnClientId || !data.startTime || !data.serviceId || !data.personnelId) {
+            toastr.warning('Musteri, saat, hizmet ve personel zorunludur');
             return;
         }
 
@@ -169,10 +175,10 @@ function AppointmentsViewModel() {
 
     self.complete = function (appt) {
         $.ajax({
-            url: '/proxy/sln-appointments/' + appt.id,
+            url: '/proxy/sln-appointments/' + appt.id + '/status',
             method: 'PUT',
             contentType: 'application/json',
-            data: JSON.stringify({ status: 'Completed' })
+            data: JSON.stringify({ statusId: 3 })
         }).done(function () {
             self.loadAppointments();
             toastr.success('Randevu tamamlandi');
@@ -182,10 +188,10 @@ function AppointmentsViewModel() {
     self.cancel = function (appt) {
         if (!confirm('Bu randevuyu iptal etmek istediginize emin misiniz?')) return;
         $.ajax({
-            url: '/proxy/sln-appointments/' + appt.id,
+            url: '/proxy/sln-appointments/' + appt.id + '/status',
             method: 'PUT',
             contentType: 'application/json',
-            data: JSON.stringify({ status: 'Cancelled' })
+            data: JSON.stringify({ statusId: 4 })
         }).done(function () {
             self.loadAppointments();
             toastr.success('Randevu iptal edildi');

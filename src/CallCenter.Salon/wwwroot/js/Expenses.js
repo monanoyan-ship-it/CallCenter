@@ -2,7 +2,6 @@ function ExpensesViewModel() {
     var self = this;
     self.expenses = ko.observableArray([]);
     self.expenseCategories = ko.observableArray([]);
-    self.supplierList = ko.observableArray([]);
     self.searchQuery = ko.observable('');
     self.selectedCategoryId = ko.observable(null);
     self.filterStartDate = ko.observable('');
@@ -16,14 +15,11 @@ function ExpensesViewModel() {
         categoryId: ko.observable(null),
         description: ko.observable(''),
         amount: ko.observable(0),
-        paymentMethod: ko.observable('Cash'),
-        supplierId: ko.observable(null),
-        notes: ko.observable('')
+        paymentMethodId: ko.observable(1)
     };
 
     // ═══ Autocomplete'ler ═══
     self.categoryAutocomplete = createAutocomplete(self.expenseCategories, 'name', self.form.categoryId);
-    self.supplierAutocomplete = createAutocomplete(self.supplierList, 'name', self.form.supplierId);
 
     self.filteredExpenses = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
@@ -70,8 +66,9 @@ function ExpensesViewModel() {
 
         $.ajax({ url: url, method: 'GET' }).done(function (data) {
             var items = data.items || data;
+            var pmNames = { 1: 'Nakit', 2: 'Kredi Karti', 3: 'Havale/EFT' };
             items.forEach(function (e) {
-                e.paymentMethodText = { Cash: 'Nakit', CreditCard: 'Kredi Karti', BankTransfer: 'Havale/EFT' }[e.paymentMethod] || e.paymentMethod || '-';
+                e.paymentMethodText = pmNames[e.paymentMethodId] || '-';
             });
             self.expenses(items);
         }).fail(function () {
@@ -83,9 +80,6 @@ function ExpensesViewModel() {
         $.ajax({ url: '/proxy/sln-finance/expense-categories', method: 'GET' }).done(function (data) {
             self.expenseCategories(data);
         });
-        $.ajax({ url: '/proxy/sln-products/suppliers', method: 'GET' }).done(function (data) {
-            self.supplierList(data.items || data);
-        });
     };
 
     self.resetForm = function () {
@@ -93,13 +87,10 @@ function ExpensesViewModel() {
         self.form.categoryId(null);
         self.form.description('');
         self.form.amount(0);
-        self.form.paymentMethod('Cash');
-        self.form.supplierId(null);
-        self.form.notes('');
+        self.form.paymentMethodId(1);
         self.isEditing(false);
         self.editingId(null);
         self.categoryAutocomplete.clear();
-        self.supplierAutocomplete.clear();
     };
 
     self.openNew = function () {
@@ -114,12 +105,8 @@ function ExpensesViewModel() {
         self.form.categoryId(expense.categoryId);
         self.form.description(expense.description || '');
         self.form.amount(expense.amount || 0);
-        self.form.paymentMethod(expense.paymentMethod || 'Cash');
-        self.form.supplierId(expense.supplierId);
-        self.form.notes(expense.notes || '');
-        // Autocomplete'lere mevcut degerleri set et
+        self.form.paymentMethodId(expense.paymentMethodId || 1);
         self.categoryAutocomplete.setFromValue(expense.categoryId);
-        self.supplierAutocomplete.setFromValue(expense.supplierId);
         formModal.show();
     };
 
@@ -129,9 +116,7 @@ function ExpensesViewModel() {
             categoryId: self.form.categoryId() || null,
             description: self.form.description(),
             amount: parseFloat(self.form.amount()) || 0,
-            paymentMethod: self.form.paymentMethod(),
-            supplierId: self.form.supplierId() || null,
-            notes: self.form.notes()
+            paymentMethodId: parseInt(self.form.paymentMethodId()) || 1
         };
 
         if (!data.description || !data.amount) {

@@ -10,13 +10,16 @@ function ClientsViewModel() {
     self.pageSize = 20;
 
     self.form = {
-        firstName: ko.observable(''),
-        lastName: ko.observable(''),
-        phoneNumber: ko.observable(''),
+        fullName: ko.observable(''),
+        phone: ko.observable(''),
+        phone2: ko.observable(''),
         email: ko.observable(''),
-        gender: ko.observable(''),
+        genderId: ko.observable(''),
         birthDate: ko.observable(''),
+        city: ko.observable(''),
         address: ko.observable(''),
+        hairColor: ko.observable(''),
+        skinType: ko.observable(''),
         notes: ko.observable('')
     };
 
@@ -39,7 +42,7 @@ function ClientsViewModel() {
         if (!q) return self.clients();
         return self.clients().filter(function (c) {
             return (c.fullName || '').toLowerCase().indexOf(q) >= 0
-                || (c.phoneNumber || '').indexOf(q) >= 0
+                || (c.phone || '').indexOf(q) >= 0
                 || (c.email || '').toLowerCase().indexOf(q) >= 0;
         });
     });
@@ -54,8 +57,7 @@ function ClientsViewModel() {
         $.ajax({ url: url, method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (c) {
-                c.fullName = (c.firstName || '') + ' ' + (c.lastName || '');
-                c.genderText = c.gender === 'Female' ? 'Kadin' : c.gender === 'Male' ? 'Erkek' : '-';
+                c.genderText = c.genderId === 1 ? 'Erkek' : c.genderId === 2 ? 'Kadin' : '-';
             });
             self.clients(items);
             if (data.totalCount !== undefined) self.totalCount(data.totalCount);
@@ -69,13 +71,16 @@ function ClientsViewModel() {
     self.nextPage = function () { if (self.currentPage() < self.totalPages()) self.goToPage(self.currentPage() + 1); };
 
     self.resetForm = function () {
-        self.form.firstName('');
-        self.form.lastName('');
-        self.form.phoneNumber('');
+        self.form.fullName('');
+        self.form.phone('');
+        self.form.phone2('');
         self.form.email('');
-        self.form.gender('');
+        self.form.genderId('');
         self.form.birthDate('');
+        self.form.city('');
         self.form.address('');
+        self.form.hairColor('');
+        self.form.skinType('');
         self.form.notes('');
         self.isEditing(false);
         self.editingId(null);
@@ -89,32 +94,42 @@ function ClientsViewModel() {
     self.openEdit = function (client) {
         self.isEditing(true);
         self.editingId(client.id);
-        self.form.firstName(client.firstName || '');
-        self.form.lastName(client.lastName || '');
-        self.form.phoneNumber(client.phoneNumber || '');
+        self.form.fullName(client.fullName || '');
+        self.form.phone(client.phone || '');
+        self.form.phone2(client.phone2 || '');
         self.form.email(client.email || '');
-        self.form.gender(client.gender || '');
+        self.form.genderId(client.genderId != null ? String(client.genderId) : '');
         self.form.birthDate(client.birthDate ? client.birthDate.substring(0, 10) : '');
+        self.form.city(client.city || '');
         self.form.address(client.address || '');
+        self.form.hairColor(client.hairColor || '');
+        self.form.skinType(client.skinType || '');
         self.form.notes(client.notes || '');
         formModal.show();
     };
 
     self.save = function () {
         var data = {
-            firstName: self.form.firstName(),
-            lastName: self.form.lastName(),
-            phoneNumber: self.form.phoneNumber(),
+            fullName: self.form.fullName(),
+            phone: self.form.phone(),
+            phone2: self.form.phone2(),
             email: self.form.email(),
-            gender: self.form.gender(),
+            genderId: self.form.genderId() ? parseInt(self.form.genderId()) : null,
             birthDate: self.form.birthDate() || null,
+            city: self.form.city(),
             address: self.form.address(),
+            hairColor: self.form.hairColor(),
+            skinType: self.form.skinType(),
             notes: self.form.notes()
         };
 
-        if (!data.firstName || !data.lastName || !data.phoneNumber) {
-            toastr.warning('Ad, soyad ve telefon zorunludur');
+        if (!data.fullName || !data.phone) {
+            toastr.warning('Ad soyad ve telefon zorunludur');
             return;
+        }
+
+        if (self.isEditing()) {
+            data.isFavorite = false;
         }
 
         self.isSaving(true);

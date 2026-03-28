@@ -19,10 +19,8 @@ function ServicesViewModel() {
     self.serviceForm = {
         name: ko.observable(''),
         categoryId: ko.observable(null),
-        duration: ko.observable(30),
-        price: ko.observable(0),
-        isActive: ko.observable('true'),
-        description: ko.observable('')
+        durationMinutes: ko.observable(30),
+        price: ko.observable(0)
     };
 
     // ═══ Autocomplete ═══
@@ -115,10 +113,8 @@ function ServicesViewModel() {
         self.editingServiceId(null);
         self.serviceForm.name('');
         self.serviceForm.categoryId(null);
-        self.serviceForm.duration(30);
+        self.serviceForm.durationMinutes(30);
         self.serviceForm.price(0);
-        self.serviceForm.isActive('true');
-        self.serviceForm.description('');
         self.categoryAutocomplete.clear();
         serviceModal.show();
     };
@@ -128,10 +124,8 @@ function ServicesViewModel() {
         self.editingServiceId(svc.id);
         self.serviceForm.name(svc.name);
         self.serviceForm.categoryId(svc.categoryId);
-        self.serviceForm.duration(svc.duration);
+        self.serviceForm.durationMinutes(svc.durationMinutes || 30);
         self.serviceForm.price(svc.price);
-        self.serviceForm.isActive(svc.isActive ? 'true' : 'false');
-        self.serviceForm.description(svc.description || '');
         // Autocomplete'e mevcut degeri set et
         self.categoryAutocomplete.setFromValue(svc.categoryId);
         serviceModal.show();
@@ -141,10 +135,8 @@ function ServicesViewModel() {
         var data = {
             name: self.serviceForm.name(),
             categoryId: self.serviceForm.categoryId() || null,
-            duration: parseInt(self.serviceForm.duration()) || 30,
-            price: parseFloat(self.serviceForm.price()) || 0,
-            isActive: self.serviceForm.isActive() === 'true',
-            description: self.serviceForm.description()
+            durationMinutes: parseInt(self.serviceForm.durationMinutes()) || 30,
+            price: parseFloat(self.serviceForm.price()) || 0
         };
         if (!data.name) { toastr.warning('Hizmet adi zorunludur'); return; }
 

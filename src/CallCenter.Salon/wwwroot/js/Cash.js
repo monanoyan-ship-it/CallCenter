@@ -6,29 +6,25 @@ function CashViewModel() {
     self.isSaving = ko.observable(false);
 
     self.registerForm = {
-        name: ko.observable(''),
-        type: ko.observable('Cash'),
-        initialBalance: ko.observable(0),
-        description: ko.observable('')
+        name: ko.observable('')
     };
 
     self.transactionForm = {
-        type: ko.observable('Income'),
+        transactionTypeId: ko.observable(1),
         amount: ko.observable(0),
         description: ko.observable(''),
-        notes: ko.observable('')
+        paymentMethodId: ko.observable(1)
     };
+
+    var transactionTypeNames = { 1: 'Gelir', 2: 'Gider', 3: 'Transfer' };
+    var paymentMethodNames = { 1: 'Nakit', 2: 'Kredi Karti' };
 
     var registerModal, transactionModal;
     var transactionRegisterId = null;
 
     self.loadRegisters = function () {
         $.ajax({ url: '/proxy/sln-finance/cash-registers', method: 'GET' }).done(function (data) {
-            var items = data.items || data;
-            items.forEach(function (r) {
-                r.typeName = { Cash: 'Nakit', Bank: 'Banka', POS: 'POS' }[r.type] || r.type || '-';
-            });
-            self.cashRegisters(items);
+            self.cashRegisters(data.items || data);
         }).fail(function () {
             toastr.error('Kasa listesi yuklenemedi');
         });
@@ -38,7 +34,8 @@ function CashViewModel() {
         $.ajax({ url: '/proxy/sln-finance/cash-registers/' + registerId + '/transactions', method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (t) {
-                t.typeName = t.type === 'Income' ? 'Gelir' : 'Gider';
+                t.typeName = transactionTypeNames[t.transactionTypeId] || 'Bilinmiyor';
+                t.paymentMethodName = paymentMethodNames[t.paymentMethodId] || '-';
             });
             self.transactions(items);
         }).fail(function () {
@@ -59,20 +56,11 @@ function CashViewModel() {
     // Kasa CRUD
     self.openNewRegister = function () {
         self.registerForm.name('');
-        self.registerForm.type('Cash');
-        self.registerForm.initialBalance(0);
-        self.registerForm.description('');
         registerModal.show();
     };
 
     self.saveRegister = function () {
-        var data = {
-            name: self.registerForm.name(),
-            type: self.registerForm.type(),
-            initialBalance: parseFloat(self.registerForm.initialBalance()) || 0,
-            description: self.registerForm.description()
-        };
-
+        var data = { name: self.registerForm.name() };
         if (!data.name) { toastr.warning('Kasa adi zorunludur'); return; }
 
         self.isSaving(true);
@@ -95,19 +83,19 @@ function CashViewModel() {
     // Islem CRUD
     self.openNewTransaction = function (register) {
         transactionRegisterId = register.id;
-        self.transactionForm.type('Income');
+        self.transactionForm.transactionTypeId(1);
         self.transactionForm.amount(0);
         self.transactionForm.description('');
-        self.transactionForm.notes('');
+        self.transactionForm.paymentMethodId(1);
         transactionModal.show();
     };
 
     self.saveTransaction = function () {
         var data = {
-            type: self.transactionForm.type(),
+            transactionTypeId: parseInt(self.transactionForm.transactionTypeId()) || 1,
             amount: parseFloat(self.transactionForm.amount()) || 0,
             description: self.transactionForm.description(),
-            notes: self.transactionForm.notes()
+            paymentMethodId: parseInt(self.transactionForm.paymentMethodId()) || 1
         };
 
         if (!data.description || !data.amount) {

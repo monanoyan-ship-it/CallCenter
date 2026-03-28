@@ -9,24 +9,24 @@ function InvoicesViewModel() {
     self.filterStatus = ko.observable('');
     self.filterStartDate = ko.observable('');
     self.filterEndDate = ko.observable('');
-    self.isEditing = ko.observable(false);
-    self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
     self.form = {
-        clientId: ko.observable(null),
-        staffId: ko.observable(null),
-        discount: ko.observable(0),
-        paymentMethod: ko.observable('Cash'),
+        slnClientId: ko.observable(null),
+        discountAmount: ko.observable(0),
+        paymentMethodId: ko.observable(1),
         notes: ko.observable(''),
         items: ko.observableArray([])
     };
 
     // ═══ Autocomplete'ler ═══
-    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.clientId);
-    self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.staffId);
+    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.slnClientId);
 
     self.summary = ko.observable({});
+
+    var statusNames = { 1: 'Acik', 2: 'Odendi', 3: 'Iptal' };
+    var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
+    var paymentNames = { 1: 'Nakit', 2: 'Kredi Karti', 3: 'Karma' };
 
     self.filteredInvoices = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
@@ -37,7 +37,7 @@ function InvoicesViewModel() {
         return self.invoices().filter(function (inv) {
             var matchQ = !q || (inv.invoiceNo || '').toLowerCase().indexOf(q) >= 0
                 || (inv.clientName || '').toLowerCase().indexOf(q) >= 0;
-            var matchStatus = !status || inv.status === status;
+            var matchStatus = !status || inv.statusId == status;
             var matchStart = !start || inv.invoiceDate >= start;
             var matchEnd = !end || inv.invoiceDate <= end + 'T23:59:59';
             return matchQ && matchStatus && matchStart && matchEnd;
@@ -49,7 +49,7 @@ function InvoicesViewModel() {
         self.form.items().forEach(function (item) {
             total += (item.quantity() * item.unitPrice()) || 0;
         });
-        return total - (parseFloat(self.form.discount()) || 0);
+        return total - (parseFloat(self.form.discountAmount()) || 0);
     });
 
     var formModal;
@@ -57,16 +57,17 @@ function InvoicesViewModel() {
     self.loadData = function () {
         var url = '/proxy/sln-finance/invoices';
         var params = [];
-        if (self.filterStartDate()) params.push('startDate=' + self.filterStartDate());
-        if (self.filterEndDate()) params.push('endDate=' + self.filterEndDate());
+        if (self.filterStartDate()) params.push('from=' + self.filterStartDate());
+        if (self.filterEndDate()) params.push('to=' + self.filterEndDate());
+        if (self.filterStatus()) params.push('statusId=' + self.filterStatus());
         if (params.length) url += '?' + params.join('&');
 
         $.ajax({ url: url, method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (inv) {
-                inv.statusText = { Open: 'Acik', Closed: 'Kapali', Cancelled: 'Iptal' }[inv.status] || inv.status;
-                inv.statusCss = { Open: 'bg-warning text-dark', Closed: 'bg-success', Cancelled: 'bg-danger' }[inv.status] || 'bg-secondary';
-                inv.paymentMethodText = { Cash: 'Nakit', CreditCard: 'Kredi Karti', BankTransfer: 'Havale/EFT', Mixed: 'Karma' }[inv.paymentMethod] || inv.paymentMethod || '-';
+                inv.statusText = statusNames[inv.statusId] || 'Bilinmiyor';
+                inv.statusCss = statusCss[inv.statusId] || 'bg-secondary';
+                inv.paymentMethodText = paymentNames[inv.paymentMethodId] || '-';
             });
             self.invoices(items);
             self.calculateSummary(items);
@@ -78,8 +79,8 @@ function InvoicesViewModel() {
     self.calculateSummary = function (items) {
         var total = 0, openCount = 0;
         items.forEach(function (inv) {
-            total += inv.totalAmount || 0;
-            if (inv.status === 'Open') openCount++;
+            total += inv.netAmount || 0;
+            if (inv.statusId === 1) openCount++;
         });
         self.summary({
             totalCount: items.length,
@@ -91,14 +92,10 @@ function InvoicesViewModel() {
 
     self.loadLookups = function () {
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
-            var items = data.items || data;
-            items.forEach(function (c) { c.fullName = (c.firstName || '') + ' ' + (c.lastName || ''); });
-            self.clientList(items);
+            self.clientList(data.items || data);
         });
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
-            var items = data.items || data;
-            items.forEach(function (s) { s.fullName = (s.firstName || '') + ' ' + (s.lastName || ''); });
-            self.staffList(items);
+            self.staffList(data.items || data);
         });
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
             self.serviceList(data.items || data);
@@ -111,9 +108,12 @@ function InvoicesViewModel() {
     self.addItem = function () {
         self.form.items.push({
             type: ko.observable('Service'),
-            itemId: ko.observable(null),
+            serviceId: ko.observable(null),
+            productId: ko.observable(null),
+            personnelId: ko.observable(null),
             quantity: ko.observable(1),
-            unitPrice: ko.observable(0)
+            unitPrice: ko.observable(0),
+            discountAmount: ko.observable(0)
         });
     };
 
@@ -122,87 +122,53 @@ function InvoicesViewModel() {
     };
 
     self.openNew = function () {
-        self.isEditing(false);
-        self.editingId(null);
-        self.form.clientId(null);
-        self.form.staffId(null);
-        self.form.discount(0);
-        self.form.paymentMethod('Cash');
+        self.form.slnClientId(null);
+        self.form.discountAmount(0);
+        self.form.paymentMethodId(1);
         self.form.notes('');
         self.form.items([]);
         self.clientAutocomplete.clear();
-        self.staffAutocomplete.clear();
         self.addItem();
-        formModal.show();
-    };
-
-    self.openEdit = function (invoice) {
-        self.isEditing(true);
-        self.editingId(invoice.id);
-        self.form.clientId(invoice.clientId);
-        self.form.staffId(invoice.staffId);
-        self.form.discount(invoice.discount || 0);
-        self.form.paymentMethod(invoice.paymentMethod || 'Cash');
-        self.form.notes(invoice.notes || '');
-        // Autocomplete'lere mevcut degerleri set et
-        self.clientAutocomplete.setFromValue(invoice.clientId);
-        self.staffAutocomplete.setFromValue(invoice.staffId);
-
-        var items = [];
-        (invoice.items || []).forEach(function (it) {
-            items.push({
-                type: ko.observable(it.type || 'Service'),
-                itemId: ko.observable(it.itemId),
-                quantity: ko.observable(it.quantity || 1),
-                unitPrice: ko.observable(it.unitPrice || 0)
-            });
-        });
-        self.form.items(items.length > 0 ? items : []);
-        if (items.length === 0) self.addItem();
         formModal.show();
     };
 
     self.save = function () {
         var items = [];
         self.form.items().forEach(function (it) {
-            if (it.itemId()) {
+            var svcId = it.type() === 'Service' ? it.serviceId() : null;
+            var prdId = it.type() === 'Product' ? it.productId() : null;
+            if (svcId || prdId) {
                 items.push({
-                    type: it.type(),
-                    itemId: it.itemId(),
+                    serviceId: svcId ? parseInt(svcId) : null,
+                    productId: prdId ? parseInt(prdId) : null,
+                    personnelId: it.personnelId() ? parseInt(it.personnelId()) : null,
                     quantity: parseInt(it.quantity()) || 1,
-                    unitPrice: parseFloat(it.unitPrice()) || 0
+                    unitPrice: parseFloat(it.unitPrice()) || 0,
+                    discountAmount: parseFloat(it.discountAmount()) || 0
                 });
             }
         });
 
         var data = {
-            clientId: self.form.clientId(),
-            staffId: self.form.staffId(),
-            discount: parseFloat(self.form.discount()) || 0,
-            paymentMethod: self.form.paymentMethod(),
+            slnClientId: self.form.slnClientId() ? parseInt(self.form.slnClientId()) : null,
+            paymentMethodId: parseInt(self.form.paymentMethodId()) || 1,
+            discountAmount: parseFloat(self.form.discountAmount()) || 0,
             notes: self.form.notes(),
             items: items
         };
 
-        if (!data.clientId) { toastr.warning('Musteri zorunludur'); return; }
         if (items.length === 0) { toastr.warning('En az bir kalem ekleyiniz'); return; }
 
         self.isSaving(true);
-        var url = '/proxy/sln-finance/invoices';
-        var method = 'POST';
-        if (self.isEditing()) {
-            url += '/' + self.editingId();
-            method = 'PUT';
-        }
-
         $.ajax({
-            url: url, method: method,
+            url: '/proxy/sln-finance/invoices',
+            method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(data)
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Adisyon guncellendi' : 'Adisyon olusturuldu');
+            toastr.success('Adisyon olusturuldu');
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
@@ -213,10 +179,8 @@ function InvoicesViewModel() {
     self.cancelInvoice = function (invoice) {
         if (!confirm('Bu adisyonu iptal etmek istediginize emin misiniz?')) return;
         $.ajax({
-            url: '/proxy/sln-finance/invoices/' + invoice.id,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ status: 'Cancelled' })
+            url: '/proxy/sln-finance/invoices/' + invoice.id + '/cancel',
+            method: 'PUT'
         }).done(function () {
             self.loadData();
             toastr.success('Adisyon iptal edildi');

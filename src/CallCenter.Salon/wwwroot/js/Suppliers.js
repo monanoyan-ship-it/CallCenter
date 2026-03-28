@@ -9,7 +9,7 @@ function SuppliersViewModel() {
     self.form = {
         name: ko.observable(''),
         contactPerson: ko.observable(''),
-        phoneNumber: ko.observable(''),
+        phone: ko.observable(''),
         email: ko.observable(''),
         taxNumber: ko.observable(''),
         address: ko.observable(''),
@@ -22,24 +22,14 @@ function SuppliersViewModel() {
         return self.suppliers().filter(function (s) {
             return (s.name || '').toLowerCase().indexOf(q) >= 0
                 || (s.contactPerson || '').toLowerCase().indexOf(q) >= 0
-                || (s.phoneNumber || '').indexOf(q) >= 0;
+                || (s.phone || '').indexOf(q) >= 0;
         });
     });
 
-    self.totalDebit = ko.computed(function () {
+    self.totalBalance = ko.computed(function () {
         var total = 0;
-        self.suppliers().forEach(function (s) { total += s.debit || 0; });
+        self.suppliers().forEach(function (s) { total += s.balance || 0; });
         return total;
-    });
-
-    self.totalCredit = ko.computed(function () {
-        var total = 0;
-        self.suppliers().forEach(function (s) { total += s.credit || 0; });
-        return total;
-    });
-
-    self.netBalance = ko.computed(function () {
-        return self.totalCredit() - self.totalDebit();
     });
 
     var formModal;
@@ -47,9 +37,7 @@ function SuppliersViewModel() {
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-products/suppliers', method: 'GET' }).done(function (data) {
             var items = data.items || data;
-            items.forEach(function (s) {
-                s.balance = (s.credit || 0) - (s.debit || 0);
-            });
+            // balance API'den hazir gelir
             self.suppliers(items);
         }).fail(function () {
             toastr.error('Tedarikciler yuklenemedi');
@@ -59,7 +47,7 @@ function SuppliersViewModel() {
     self.resetForm = function () {
         self.form.name('');
         self.form.contactPerson('');
-        self.form.phoneNumber('');
+        self.form.phone('');
         self.form.email('');
         self.form.taxNumber('');
         self.form.address('');
@@ -78,7 +66,7 @@ function SuppliersViewModel() {
         self.editingId(supplier.id);
         self.form.name(supplier.name || '');
         self.form.contactPerson(supplier.contactPerson || '');
-        self.form.phoneNumber(supplier.phoneNumber || '');
+        self.form.phone(supplier.phone || '');
         self.form.email(supplier.email || '');
         self.form.taxNumber(supplier.taxNumber || '');
         self.form.address(supplier.address || '');
@@ -90,14 +78,14 @@ function SuppliersViewModel() {
         var data = {
             name: self.form.name(),
             contactPerson: self.form.contactPerson(),
-            phoneNumber: self.form.phoneNumber(),
+            phone: self.form.phone(),
             email: self.form.email(),
             taxNumber: self.form.taxNumber(),
             address: self.form.address(),
             notes: self.form.notes()
         };
 
-        if (!data.name || !data.phoneNumber) {
+        if (!data.name || !data.phone) {
             toastr.warning('Firma adi ve telefon zorunludur');
             return;
         }
