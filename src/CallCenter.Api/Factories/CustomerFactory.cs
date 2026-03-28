@@ -1,6 +1,8 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Helpers;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -17,6 +19,7 @@ public class CustomerFactory : ICustomerFactory
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IAuthFactory _authFactory;
     private readonly IUnitOfWork _uow;
+    private readonly AppDbContext _db;
 
     public CustomerFactory(
         ICustomerEntityService customerEs,
@@ -25,7 +28,8 @@ public class CustomerFactory : ICustomerFactory
         IUserEntityService userEs,
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        AppDbContext db)
     {
         _customerEs = customerEs;
         _personnelEs = personnelEs;
@@ -34,6 +38,7 @@ public class CustomerFactory : ICustomerFactory
         _passwordPolicy = passwordPolicy;
         _authFactory = authFactory;
         _uow = uow;
+        _db = db;
     }
 
     // CUSTOMERS
@@ -476,6 +481,9 @@ public class CustomerFactory : ICustomerFactory
         };
         _personnelEs.Add(personnel);
         await _uow.SaveChangesAsync();
+
+        // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
+        await SalonDefaultDataHelper.SeedDefaultDataAsync(_db, customer.Id);
 
         // Otomatik login
         var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest

@@ -96,6 +96,8 @@ public class SlnServiceCategoryDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? IconClass { get; set; }
+    public string? Color { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
     public List<SlnServiceDto> Services { get; set; } = [];

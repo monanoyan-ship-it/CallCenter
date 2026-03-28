@@ -1,5 +1,6 @@
 using System.Text;
 using CallCenter.Api.DependencyInjection;
+using CallCenter.Api.Helpers;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Middleware;
 using CallCenter.Data;
@@ -128,6 +129,33 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
             throw;
         }
         // Development: hata loglanir, gelistirici gorup duzeltir
+    }
+}
+
+// Salon default data: Mevcut salon musterilerine eksik default verileri ekle
+if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
+{
+    using var seedScope = app.Services.CreateScope();
+    var seedDb = seedScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SalonSeed");
+    try
+    {
+        var salonCustomerIds = await seedDb.Customers
+            .Where(c => c.ProductTypeId == ProductTypes.Ids.Salon && c.IsActive)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        foreach (var cid in salonCustomerIds)
+        {
+            await SalonDefaultDataHelper.SeedDefaultDataAsync(seedDb, cid);
+        }
+
+        if (salonCustomerIds.Count > 0)
+            seedLogger.LogInformation("Salon default data kontrolu tamamlandi: {Count} salon", salonCustomerIds.Count);
+    }
+    catch (Exception ex)
+    {
+        seedLogger.LogWarning(ex, "Salon default data seed hatasi (kritik degil)");
     }
 }
 

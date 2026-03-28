@@ -38,6 +38,8 @@ public class SlnServiceFactory : ISlnServiceFactory
         {
             Id = c.Id,
             Name = c.Name,
+            IconClass = c.IconClass,
+            Color = c.Color,
             SortOrder = c.SortOrder,
             IsActive = c.IsActive,
             Services = c.Services.OrderBy(s => s.SortOrder).Select(s => new SlnServiceDto
