@@ -241,6 +241,20 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
+    public async Task<SlnClientSuggestionsDto> GetSuggestionsAsync(int customerId)
+    {
+        var clients = await _clients.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId)
+            .Select(c => new { c.HairColor, c.SkinType })
+            .ToListAsync();
+
+        return new SlnClientSuggestionsDto
+        {
+            HairColors = clients.Where(c => !string.IsNullOrWhiteSpace(c.HairColor)).Select(c => c.HairColor!).Distinct().OrderBy(x => x).ToList(),
+            SkinTypes = clients.Where(c => !string.IsNullOrWhiteSpace(c.SkinType)).Select(c => c.SkinType!).Distinct().OrderBy(x => x).ToList()
+        };
+    }
+
     public async Task<SlnFormulaDto> AddFormulaAsync(SlnFormulaCreateDto dto, int userId, int customerId)
     {
         // Musterinin bu firmaya ait oldugunu dogrula

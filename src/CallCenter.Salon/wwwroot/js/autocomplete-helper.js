@@ -121,3 +121,92 @@ function createAutocomplete(sourceArray, textField, valueObservable, maxShow) {
 
     return ac;
 }
+
+/**
+ * Serbest metin autocomplete - onceden girilen degerleri onerir, yeni deger de yazilabilir.
+ * @param {ko.observableArray} suggestionsArray - Oneri listesi (string dizisi)
+ * @param {ko.observable} valueObservable - Deger yazilacak form field (string)
+ * @param {number} [maxShow=15]
+ */
+function createTextAutocomplete(suggestionsArray, valueObservable, maxShow) {
+    maxShow = maxShow || 15;
+    var ac = {};
+    ac.query = ko.observable('');
+    ac.showDropdown = ko.observable(false);
+    ac.highlightIndex = ko.observable(-1);
+    var blurTimeout = null;
+
+    ac.filteredItems = ko.computed(function () {
+        var q = (ac.query() || '').toLowerCase().trim();
+        var items = (suggestionsArray() || []).slice();
+        if (!q) return items.slice(0, maxShow);
+        return items.filter(function (s) {
+            return (s || '').toLowerCase().indexOf(q) >= 0;
+        }).slice(0, maxShow);
+    });
+
+    ac.onFocus = function () {
+        if (blurTimeout) { clearTimeout(blurTimeout); blurTimeout = null; }
+        ac.showDropdown(true);
+        ac.highlightIndex(-1);
+        return true;
+    };
+
+    ac.onBlur = function () {
+        blurTimeout = setTimeout(function () {
+            ac.showDropdown(false);
+            valueObservable(ac.query());
+        }, 200);
+        return true;
+    };
+
+    ac.select = function (text) {
+        valueObservable(text);
+        ac.query(text);
+        ac.showDropdown(false);
+    };
+
+    ac.clear = function () {
+        valueObservable('');
+        ac.query('');
+        ac.highlightIndex(-1);
+    };
+
+    ac.onKeydown = function (data, event) {
+        var key = event.keyCode;
+        var items = ac.filteredItems();
+        if (key === 40) {
+            ac.highlightIndex(Math.min(ac.highlightIndex() + 1, items.length - 1));
+            ac.showDropdown(true);
+            return false;
+        } else if (key === 38) {
+            ac.highlightIndex(Math.max(ac.highlightIndex() - 1, -1));
+            return false;
+        } else if (key === 13) {
+            var idx = ac.highlightIndex();
+            if (idx >= 0 && idx < items.length) {
+                ac.select(items[idx]);
+            } else {
+                valueObservable(ac.query());
+                ac.showDropdown(false);
+            }
+            return false;
+        } else if (key === 27) {
+            ac.showDropdown(false);
+            return false;
+        }
+        return true;
+    };
+
+    ac.query.subscribe(function (val) {
+        valueObservable(val);
+        ac.highlightIndex(-1);
+    });
+
+    ac.setFromValue = function (val) {
+        ac.query(val || '');
+        valueObservable(val || '');
+    };
+
+    return ac;
+}

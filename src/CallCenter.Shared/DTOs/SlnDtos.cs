@@ -55,6 +55,12 @@ public class SlnClientUpdateDto : SlnClientCreateDto
     public bool IsFavorite { get; set; }
 }
 
+public class SlnClientSuggestionsDto
+{
+    public List<string> HairColors { get; set; } = [];
+    public List<string> SkinTypes { get; set; } = [];
+}
+
 // ═══ SlnFormula ═══
 public class SlnFormulaDto
 {

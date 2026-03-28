@@ -23,6 +23,11 @@ function ClientsViewModel() {
         notes: ko.observable('')
     };
 
+    self.hairColorSuggestions = ko.observableArray([]);
+    self.skinTypeSuggestions = ko.observableArray([]);
+    self.hairColorAc = createTextAutocomplete(self.hairColorSuggestions, self.form.hairColor);
+    self.skinTypeAc = createTextAutocomplete(self.skinTypeSuggestions, self.form.skinType);
+
     self.totalPages = ko.computed(function () {
         return Math.ceil(self.totalCount() / self.pageSize) || 1;
     });
@@ -79,8 +84,8 @@ function ClientsViewModel() {
         self.form.birthDate('');
         self.form.city('');
         self.form.address('');
-        self.form.hairColor('');
-        self.form.skinType('');
+        self.hairColorAc.clear();
+        self.skinTypeAc.clear();
         self.form.notes('');
         self.isEditing(false);
         self.editingId(null);
@@ -102,8 +107,8 @@ function ClientsViewModel() {
         self.form.birthDate(client.birthDate ? client.birthDate.substring(0, 10) : '');
         self.form.city(client.city || '');
         self.form.address(client.address || '');
-        self.form.hairColor(client.hairColor || '');
-        self.form.skinType(client.skinType || '');
+        self.hairColorAc.setFromValue(client.hairColor || '');
+        self.skinTypeAc.setFromValue(client.skinType || '');
         self.form.notes(client.notes || '');
         formModal.show();
     };
@@ -178,9 +183,17 @@ function ClientsViewModel() {
         }, 300);
     });
 
+    self.loadSuggestions = function () {
+        $.ajax({ url: '/proxy/sln-clients/suggestions', method: 'GET' }).done(function (data) {
+            self.hairColorSuggestions(data.hairColors || []);
+            self.skinTypeSuggestions(data.skinTypes || []);
+        });
+    };
+
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('clientModal'));
         self.loadData();
+        self.loadSuggestions();
     });
 }
 

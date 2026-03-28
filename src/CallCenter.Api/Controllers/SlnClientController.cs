@@ -65,6 +65,16 @@ public class SlnClientController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    [HttpGet("suggestions")]
+    public async Task<ActionResult> GetSuggestions()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var suggestions = await _clientFactory.GetSuggestionsAsync(customerId);
+        return Ok(suggestions);
+    }
+
     [HttpPost("formulas")]
     public async Task<ActionResult<SlnFormulaDto>> AddFormula([FromBody] SlnFormulaCreateDto dto)
     {

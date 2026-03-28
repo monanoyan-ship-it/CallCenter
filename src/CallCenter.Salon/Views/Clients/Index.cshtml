@@ -135,11 +135,39 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Sac Rengi</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.hairColor" />
+                            <div class="position-relative" data-bind="with: hairColorAc">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Orn: Siyah, Kahverengi..."
+                                       autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: $data, click: function(){ $parent.select($data); },
+                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Cilt Tipi</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.skinType" />
+                            <div class="position-relative" data-bind="with: skinTypeAc">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Orn: Kuru, Yagli, Karma..."
+                                       autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: $data, click: function(){ $parent.select($data); },
+                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label small">Not</label>
