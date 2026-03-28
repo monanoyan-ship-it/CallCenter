@@ -281,6 +281,50 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnGiftCard ═══
+public class SlnGiftCardDto
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public decimal OriginalAmount { get; set; }
+    public decimal RemainingBalance { get; set; }
+    public string? RecipientName { get; set; }
+    public string? RecipientPhone { get; set; }
+    public string? SenderName { get; set; }
+    public string? Message { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public bool IsActive { get; set; }
+    public string? SoldByName { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<SlnGiftCardTransactionDto> Transactions { get; set; } = [];
+}
+
+public class SlnGiftCardTransactionDto
+{
+    public int Id { get; set; }
+    public int TransactionTypeId { get; set; }
+    public decimal Amount { get; set; }
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnGiftCardCreateDto
+{
+    public decimal Amount { get; set; }
+    public string? RecipientName { get; set; }
+    public string? RecipientPhone { get; set; }
+    public string? SenderName { get; set; }
+    public string? Message { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+}
+
+public class SlnGiftCardRedeemDto
+{
+    public string Code { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public int? InvoiceId { get; set; }
+}
+
 // ═══ SlnCashClosing ═══
 public class SlnCashClosingDto
 {

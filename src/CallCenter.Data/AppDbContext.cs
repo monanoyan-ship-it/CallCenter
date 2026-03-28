@@ -120,6 +120,8 @@ public class AppDbContext : DbContext
     public DbSet<SlnRecipe> SlnRecipes => Set<SlnRecipe>();
     public DbSet<SlnRecipeItem> SlnRecipeItems => Set<SlnRecipeItem>();
     public DbSet<SlnCashClosing> SlnCashClosings => Set<SlnCashClosing>();
+    public DbSet<SlnGiftCard> SlnGiftCards => Set<SlnGiftCard>();
+    public DbSet<SlnGiftCardTransaction> SlnGiftCardTransactions => Set<SlnGiftCardTransaction>();
 
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();

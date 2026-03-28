@@ -109,6 +109,10 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnCampaignEntityService, SlnCampaignEntityService>();
         services.AddScoped<ISlnAutoReminderEntityService, SlnAutoReminderEntityService>();
 
+        // Salon — Hediye Karti
+        services.AddScoped<ISlnGiftCardEntityService, SlnGiftCardEntityService>();
+        services.AddScoped<ISlnGiftCardTransactionEntityService, SlnGiftCardTransactionEntityService>();
+
         // Salon — Receteler
         services.AddScoped<ISlnRecipeEntityService, SlnRecipeEntityService>();
         services.AddScoped<ISlnRecipeItemEntityService, SlnRecipeItemEntityService>();

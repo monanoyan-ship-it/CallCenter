@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "Hediye Kartlari";
+}
+
+<div id="giftcards-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="input-group" style="max-width: 320px;">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Kod veya alici ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Hediye Karti
+        </button>
+    </div>
+
+    <!-- Kart Listesi -->
+    <div class="row g-3" data-bind="foreach: filteredCards">
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100" data-bind="css: { 'border-start border-3': true, 'border-success': isActive && remainingBalance > 0, 'border-secondary': !isActive || remainingBalance <= 0 }">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <code class="fw-bold" data-bind="text: code" style="font-size:.85rem;"></code>
+                        <span class="badge" data-bind="text: isActive && remainingBalance > 0 ? 'Aktif' : 'Kullanildi', css: isActive && remainingBalance > 0 ? 'bg-success' : 'bg-secondary'"></span>
+                    </div>
+                    <!-- ko if: recipientName -->
+                    <div class="small"><i class="bi bi-person me-1"></i><span data-bind="text: recipientName"></span></div>
+                    <!-- /ko -->
+                    <!-- ko if: senderName -->
+                    <div class="small text-muted"><i class="bi bi-gift me-1"></i><span data-bind="text: 'Gonderen: ' + senderName"></span></div>
+                    <!-- /ko -->
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted small">Bakiye</span>
+                            <span class="fw-bold text-success" data-bind="text: remainingBalance.toLocaleString('tr-TR') + ' / ' + originalAmount.toLocaleString('tr-TR') + ' TL'"></span>
+                        </div>
+                        <div class="progress mt-1" style="height:4px;">
+                            <div class="progress-bar bg-success" data-bind="style: { width: (originalAmount > 0 ? (remainingBalance / originalAmount * 100) : 0) + '%' }"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></small>
+                        <button class="btn btn-outline-danger btn-sm px-1" data-bind="click: $parent.deactivate, visible: isActive" title="Iptal Et">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ko if: filteredCards().length === 0 -->
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-gift" style="font-size: 3rem; opacity:.3;"></i>
+        <p class="mt-2 small">Henuz hediye karti olusturulmamis</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- Yeni Kart Modal -->
+    <div class="modal fade" id="giftCardModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-gift me-2"></i>Yeni Hediye Karti</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Tutar (TL) *</label>
+                            <input type="number" class="form-control" step="1" min="1" data-bind="value: form.amount" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Son Kullanma Tarihi</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: form.expiresAt" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Alici Adi</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientName" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Alici Telefon</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientPhone" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Gonderen Adi</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.senderName" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Mesaj</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.message" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-gift me-1" data-bind="visible: !isSaving()"></i>Olustur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/GiftCards.js" asp-append-version="true"></script>
+}
