@@ -46,6 +46,7 @@
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+                var isSales = ctrl is "Sales";
                 var mainOpen = ctrl is "Home" or "Clients" or "Appointments";
                 var opsOpen = ctrl is "Services" or "Staff";
                 var stockOpen = ctrl is "Products" or "Suppliers";
@@ -55,7 +56,11 @@
                 var managementOpen = ctrl is "Branches";
             }
 
-            <button class="nav-group-toggle mt-2" onclick="toggleGroup(this)">
+            <a class="nav-link mt-2 @(isSales ? "active" : "")" href="/Sales" style="font-size:.95rem;">
+                <i class="bi bi-cart-check-fill me-2"></i><strong>Hizli Satis</strong>
+            </a>
+
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
                 <span>Salon</span>
                 <i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
             </button>
