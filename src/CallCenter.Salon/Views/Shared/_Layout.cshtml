@@ -50,7 +50,7 @@
                 var mainOpen = ctrl is "Home" or "Clients" or "Appointments";
                 var opsOpen = ctrl is "Services" or "Staff" or "Recipes";
                 var stockOpen = ctrl is "Products" or "Suppliers";
-                var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses" or "GiftCards";
+                var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses" or "GiftCards" or "Packages";
                 var reportOpen = ctrl is "Reports";
                 var marketingOpen = ctrl is "Campaigns";
                 var managementOpen = ctrl is "Branches";
@@ -121,6 +121,9 @@
                 </a>
                 <a class="nav-link @(ctrl == "GiftCards" ? "active" : "")" href="/GiftCards">
                     <i class="bi bi-gift me-2"></i>Hediye Kartlari
+                </a>
+                <a class="nav-link @(ctrl == "Packages" ? "active" : "")" href="/Packages">
+                    <i class="bi bi-box-seam me-2"></i>Seans Paketleri
                 </a>
             </div>
 

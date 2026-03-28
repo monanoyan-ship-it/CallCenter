@@ -1,0 +1,157 @@
+function PackagesViewModel() {
+    var self = this;
+    self.definitions = ko.observableArray([]);
+    self.clientPackages = ko.observableArray([]);
+    self.serviceList = ko.observableArray([]);
+    self.clientList = ko.observableArray([]);
+    self.isEditingDef = ko.observable(false);
+    self.editingDefId = ko.observable(null);
+    self.sellingDef = ko.observable(null);
+    self.sellClientId = ko.observable(null);
+    self.isSaving = ko.observable(false);
+
+    self.defForm = {
+        name: ko.observable(''),
+        description: ko.observable(''),
+        serviceId: ko.observable(null),
+        totalSessions: ko.observable(10),
+        price: ko.observable(0),
+        validDays: ko.observable(365)
+    };
+
+    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.sellClientId);
+
+    var defModal, sellModal;
+
+    self.loadData = function () {
+        $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
+            self.definitions(data.items || data);
+        });
+        $.ajax({ url: '/proxy/sln-packages/client-packages', method: 'GET' }).done(function (data) {
+            self.clientPackages(data.items || data);
+        });
+    };
+
+    self.loadLookups = function () {
+        $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
+            self.serviceList(data.items || data);
+        });
+        $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
+            self.clientList(data.items || data);
+        });
+    };
+
+    // Paket Tanimi CRUD
+    self.openNewDef = function () {
+        self.isEditingDef(false);
+        self.editingDefId(null);
+        self.defForm.name('');
+        self.defForm.description('');
+        self.defForm.serviceId(null);
+        self.defForm.totalSessions(10);
+        self.defForm.price(0);
+        self.defForm.validDays(365);
+        defModal.show();
+    };
+
+    self.openEditDef = function (def) {
+        self.isEditingDef(true);
+        self.editingDefId(def.id);
+        self.defForm.name(def.name);
+        self.defForm.description(def.description || '');
+        self.defForm.serviceId(def.serviceId);
+        self.defForm.totalSessions(def.totalSessions);
+        self.defForm.price(def.price);
+        self.defForm.validDays(def.validDays);
+        defModal.show();
+    };
+
+    self.saveDef = function () {
+        var data = {
+            name: self.defForm.name(),
+            description: self.defForm.description(),
+            serviceId: parseInt(self.defForm.serviceId()) || 0,
+            totalSessions: parseInt(self.defForm.totalSessions()) || 1,
+            price: parseFloat(self.defForm.price()) || 0,
+            validDays: parseInt(self.defForm.validDays()) || 365,
+            isActive: true
+        };
+        if (!data.name || !data.serviceId) { toastr.warning('Paket adi ve hizmet zorunludur'); return; }
+
+        self.isSaving(true);
+        var url = '/proxy/sln-packages/definitions';
+        var method = 'POST';
+        if (self.isEditingDef()) { url += '/' + self.editingDefId(); method = 'PUT'; }
+
+        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
+            defModal.hide();
+            self.loadData();
+            toastr.success('Paket tanimi kaydedildi');
+            self.isSaving(false);
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Hata');
+            self.isSaving(false);
+        });
+    };
+
+    self.removeDef = function (def) {
+        if (!confirm("'" + def.name + "' paketini silmek istediginize emin misiniz?")) return;
+        $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
+            self.loadData();
+            toastr.success('Paket tanimi silindi');
+        });
+    };
+
+    // Paket Satisi
+    self.openSell = function (def) {
+        self.sellingDef(def);
+        self.sellClientId(null);
+        self.clientAutocomplete.clear();
+        sellModal.show();
+    };
+
+    self.confirmSell = function () {
+        var data = {
+            packageDefinitionId: self.sellingDef().id,
+            slnClientId: self.sellClientId() ? parseInt(self.sellClientId()) : null
+        };
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-packages/sell', method: 'POST',
+            contentType: 'application/json', data: JSON.stringify(data)
+        }).done(function () {
+            sellModal.hide();
+            self.loadData();
+            toastr.success('Paket satildi');
+            self.isSaving(false);
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Hata');
+            self.isSaving(false);
+        });
+    };
+
+    // Seans Kullan
+    self.useSession = function (pkg) {
+        if (!confirm('1 seans kullanilacak. Emin misiniz?')) return;
+        $.ajax({
+            url: '/proxy/sln-packages/use', method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ clientPackageId: pkg.id, notes: null })
+        }).done(function () {
+            self.loadData();
+            toastr.success('1 seans kullanildi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Hata');
+        });
+    };
+
+    $(document).ready(function () {
+        defModal = new bootstrap.Modal(document.getElementById('defModal'));
+        sellModal = new bootstrap.Modal(document.getElementById('sellModal'));
+        self.loadLookups();
+        self.loadData();
+    });
+}
+
+ko.applyBindings(new PackagesViewModel(), document.getElementById('packages-vm'));

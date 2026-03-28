@@ -281,6 +281,59 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnPackage ═══
+public class SlnPackageDefinitionDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int TotalSessions { get; set; }
+    public decimal Price { get; set; }
+    public decimal PricePerSession { get; set; }
+    public int ValidDays { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class SlnPackageDefinitionCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int ServiceId { get; set; }
+    public int TotalSessions { get; set; }
+    public decimal Price { get; set; }
+    public int ValidDays { get; set; } = 365;
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnClientPackageDto
+{
+    public int Id { get; set; }
+    public string PackageName { get; set; } = string.Empty;
+    public string ServiceName { get; set; } = string.Empty;
+    public string? ClientName { get; set; }
+    public int TotalSessions { get; set; }
+    public int UsedSessions { get; set; }
+    public int RemainingSessions { get; set; }
+    public decimal PaidAmount { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnClientPackageSellDto
+{
+    public int PackageDefinitionId { get; set; }
+    public int? SlnClientId { get; set; }
+}
+
+public class SlnPackageUseDto
+{
+    public int ClientPackageId { get; set; }
+    public string? Notes { get; set; }
+}
+
 // ═══ SlnGiftCard ═══
 public class SlnGiftCardDto
 {

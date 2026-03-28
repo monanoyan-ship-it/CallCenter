@@ -122,6 +122,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnCashClosing> SlnCashClosings => Set<SlnCashClosing>();
     public DbSet<SlnGiftCard> SlnGiftCards => Set<SlnGiftCard>();
     public DbSet<SlnGiftCardTransaction> SlnGiftCardTransactions => Set<SlnGiftCardTransaction>();
+    public DbSet<SlnPackageDefinition> SlnPackageDefinitions => Set<SlnPackageDefinition>();
+    public DbSet<SlnClientPackage> SlnClientPackages => Set<SlnClientPackage>();
+    public DbSet<SlnPackageUsage> SlnPackageUsages => Set<SlnPackageUsage>();
 
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
