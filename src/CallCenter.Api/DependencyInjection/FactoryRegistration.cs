@@ -94,6 +94,30 @@ public static class FactoryRegistration
         // Salon S9 — Cok Subeli Yonetim
         services.AddScoped<ISlnBranchFactory, SlnBranchFactory>();
 
+        // Salon — No-Show Policy (B5)
+        services.AddScoped<ISlnNoShowPolicyFactory, SlnNoShowPolicyFactory>();
+
+        // Salon — Waitlist (C3)
+        services.AddScoped<ISlnWaitlistFactory, SlnWaitlistFactory>();
+
+        // Salon — E-posta Kampanyalari (C5)
+        services.AddScoped<ISlnEmailCampaignFactory, SlnEmailCampaignFactory>();
+
+        // Salon — Yorum/Review (C6)
+        services.AddScoped<ISlnReviewFactory, SlnReviewFactory>();
+
+        // Salon — Onay Formlari (D1)
+        services.AddScoped<ISlnConsentFormFactory, SlnConsentFormFactory>();
+
+        // Salon — Once/Sonra Fotograflari (D2)
+        services.AddScoped<ISlnBeforeAfterFactory, SlnBeforeAfterFactory>();
+
+        // Salon — Winback (D3)
+        services.AddScoped<ISlnWinbackFactory, SlnWinbackFactory>();
+
+        // Salon — Personel Fiyat + Hasilat Paylasimi (D4+D5)
+        services.AddScoped<ISlnPersonnelPriceFactory, SlnPersonnelPriceFactory>();
+
         return services;
     }
 }

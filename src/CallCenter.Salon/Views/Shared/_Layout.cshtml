@@ -47,13 +47,13 @@
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
                 var isSales = ctrl is "Sales";
-                var mainOpen = ctrl is "Home" or "Clients" or "Appointments";
-                var opsOpen = ctrl is "Services" or "Staff" or "Recipes";
+                var mainOpen = ctrl is "Home" or "Clients" or "Appointments" or "Waitlist";
+                var opsOpen = ctrl is "Services" or "Staff" or "Recipes" or "PersonnelPrices";
                 var stockOpen = ctrl is "Products" or "Suppliers";
                 var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses" or "GiftCards" or "Packages";
                 var reportOpen = ctrl is "Reports";
-                var marketingOpen = ctrl is "Campaigns" or "Loyalty" or "Memberships";
-                var managementOpen = ctrl is "Branches" or "Profile";
+                var marketingOpen = ctrl is "Campaigns" or "Loyalty" or "Memberships" or "EmailCampaigns" or "Reviews" or "Winback";
+                var managementOpen = ctrl is "Branches" or "Profile" or "NoShowPolicy" or "ConsentForms" or "BeforeAfter";
             }
 
             <a class="nav-link mt-2 @(isSales ? "active" : "")" href="/Sales" style="font-size:.95rem;">
@@ -74,6 +74,9 @@
                 <a class="nav-link @(ctrl == "Appointments" ? "active" : "")" href="/Appointments">
                     <i class="bi bi-calendar-check me-2"></i>Randevular
                 </a>
+                <a class="nav-link @(ctrl == "Waitlist" ? "active" : "")" href="/Waitlist">
+                    <i class="bi bi-clock-history me-2"></i>Bekleme Listesi
+                </a>
             </div>
 
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
@@ -89,6 +92,9 @@
                 </a>
                 <a class="nav-link @(ctrl == "Recipes" ? "active" : "")" href="/Recipes">
                     <i class="bi bi-journal-bookmark me-2"></i>Receteler
+                </a>
+                <a class="nav-link @(ctrl == "PersonnelPrices" ? "active" : "")" href="/PersonnelPrices">
+                    <i class="bi bi-currency-exchange me-2"></i>Personel Fiyatlari
                 </a>
             </div>
 
@@ -141,6 +147,15 @@
                 <a class="nav-link @(ctrl == "Loyalty" ? "active" : "")" href="/Loyalty">
                     <i class="bi bi-star me-2"></i>Sadakat Programi
                 </a>
+                <a class="nav-link @(ctrl == "EmailCampaigns" ? "active" : "")" href="/EmailCampaigns">
+                    <i class="bi bi-envelope me-2"></i>E-posta Kampanyalari
+                </a>
+                <a class="nav-link @(ctrl == "Reviews" ? "active" : "")" href="/Reviews">
+                    <i class="bi bi-chat-square-text me-2"></i>Yorumlar
+                </a>
+                <a class="nav-link @(ctrl == "Winback" ? "active" : "")" href="/Winback">
+                    <i class="bi bi-arrow-repeat me-2"></i>Geri Kazanim
+                </a>
             </div>
 
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
@@ -163,6 +178,15 @@
                 </a>
                 <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches">
                     <i class="bi bi-building me-2"></i>Subeler
+                </a>
+                <a class="nav-link @(ctrl == "NoShowPolicy" ? "active" : "")" href="/NoShowPolicy">
+                    <i class="bi bi-shield-exclamation me-2"></i>No-Show Politikasi
+                </a>
+                <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms">
+                    <i class="bi bi-file-earmark-text me-2"></i>Onay Formlari
+                </a>
+                <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter">
+                    <i class="bi bi-images me-2"></i>Once/Sonra
                 </a>
             </div>
 

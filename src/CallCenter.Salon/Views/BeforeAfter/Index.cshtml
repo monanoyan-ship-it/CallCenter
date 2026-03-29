@@ -1,0 +1,128 @@
+@{
+    ViewData["Title"] = "Once/Sonra Fotograflari";
+}
+
+<div id="beforeafter-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="input-group" style="max-width: 320px;">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Musteri ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+        </div>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Fotograf
+        </button>
+    </div>
+
+    <!-- Galeri -->
+    <div class="row g-3" data-bind="foreach: filteredPhotos">
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="fw-semibold small" data-bind="text: clientName"></div>
+                            <div class="text-muted" style="font-size:.75rem;" data-bind="text: serviceName || '-'"></div>
+                        </div>
+                        <span class="badge" data-bind="text: isPublic ? 'Herkese Acik' : 'Gizli', css: isPublic ? 'bg-info' : 'bg-secondary'"></span>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6 text-center">
+                            <small class="text-muted d-block mb-1">Once</small>
+                            <!-- ko if: beforePhotoUrl -->
+                            <img data-bind="attr: { src: beforePhotoUrl }" class="img-fluid rounded" style="max-height:120px;" />
+                            <!-- /ko -->
+                            <!-- ko ifnot: beforePhotoUrl -->
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height:80px;">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                            <!-- /ko -->
+                        </div>
+                        <div class="col-6 text-center">
+                            <small class="text-muted d-block mb-1">Sonra</small>
+                            <!-- ko if: afterPhotoUrl -->
+                            <img data-bind="attr: { src: afterPhotoUrl }" class="img-fluid rounded" style="max-height:120px;" />
+                            <!-- /ko -->
+                            <!-- ko ifnot: afterPhotoUrl -->
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height:80px;">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                            <!-- /ko -->
+                        </div>
+                    </div>
+                    <!-- ko if: notes -->
+                    <p class="small text-muted mb-1" data-bind="text: notes"></p>
+                    <!-- /ko -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted" data-bind="text: personnelName || ''"></small>
+                        <div>
+                            <small class="text-muted me-2" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></small>
+                            <button class="btn btn-outline-danger btn-sm px-1" data-bind="click: $parent.remove" title="Sil">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ko if: filteredPhotos().length === 0 -->
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-images" style="font-size: 3rem; opacity:.3;"></i>
+        <p class="mt-2 small">Henuz fotograf eklenmemis</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- Yeni Fotograf Modal -->
+    <div class="modal fade" id="beforeAfterModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-images me-2"></i>Yeni Once/Sonra Fotograf</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Musteri *</label>
+                            <select class="form-select form-select-sm" data-bind="options: clients, optionsText: 'fullName', optionsValue: 'id', value: form.slnClientId, optionsCaption: 'Secin...'"></select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Hizmet</label>
+                            <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: 'Secin...'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Once Foto URL</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.beforePhotoUrl" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sonra Foto URL</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.afterPhotoUrl" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="isPublic" data-bind="checked: form.isPublic" />
+                                <label class="form-check-label small" for="isPublic">Profilde Goster</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/BeforeAfter.js" asp-append-version="true"></script>
+}

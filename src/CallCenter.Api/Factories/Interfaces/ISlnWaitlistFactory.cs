@@ -1,0 +1,13 @@
+using CallCenter.Shared.DTOs;
+
+namespace CallCenter.Api.Factories.Interfaces;
+
+public interface ISlnWaitlistFactory
+{
+    Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId);
+    Task<SlnWaitlistEntryDto?> GetEntryAsync(int id, int customerId);
+    Task<SlnWaitlistEntryDto> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId);
+    Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId);
+    Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId);
+    Task<(bool Success, string? Error)> DeleteEntryAsync(int id, int customerId);
+}

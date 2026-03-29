@@ -1,0 +1,56 @@
+@{
+    ViewData["Title"] = "No-Show Politikasi";
+}
+
+<div id="noshow-vm">
+    <div class="card border-0 shadow-sm" style="max-width:600px;">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="form-label small">Durum</label>
+                    <select class="form-select form-select-sm" data-bind="value: config.isActive">
+                        <option value="true">Aktif</option>
+                        <option value="false">Pasif</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <div class="form-check form-switch mt-4">
+                        <input class="form-check-input" type="checkbox" id="requireDeposit" data-bind="checked: config.requireDeposit" />
+                        <label class="form-check-label small" for="requireDeposit">Depozito Zorunlu</label>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Depozito Tutari (TL)</label>
+                    <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.depositAmount" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Ucretsiz Iptal Suresi (saat)</label>
+                    <input type="number" class="form-control form-control-sm" min="0" data-bind="value: config.freeCancellationHours" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Gec Iptal Ucreti (TL)</label>
+                    <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.lateCancellationFee" />
+                    <small class="text-muted">0 = depozito kadar</small>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">No-Show Ucreti (TL)</label>
+                    <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.noShowFee" />
+                    <small class="text-muted">0 = depozito kadar</small>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Kara Liste Esigi</label>
+                    <input type="number" class="form-control form-control-sm" min="1" data-bind="value: config.blacklistThreshold" />
+                    <small class="text-muted">X kez no-show sonrasi blokla</small>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm mt-3" data-bind="click: saveConfig, disable: isSaving">
+                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/NoShowPolicy.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,71 @@
+using System.Security.Claims;
+using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CallCenter.Api.Controllers;
+
+[ApiController]
+[Route("api/sln-reviews")]
+[Authorize]
+public class SlnReviewController : ControllerBase
+{
+    private readonly ISlnReviewFactory _factory;
+
+    public SlnReviewController(ISlnReviewFactory factory) => _factory = factory;
+
+    [HttpGet]
+    public async Task<ActionResult<List<SlnReviewDto>>> GetReviews()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _factory.GetReviewsAsync(customerId));
+    }
+
+    [HttpGet("stats")]
+    public async Task<ActionResult<SlnReviewStatsDto>> GetStats()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _factory.GetStatsAsync(customerId));
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<SlnReviewDto>> GetReview(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var review = await _factory.GetReviewAsync(id, customerId);
+        return review != null ? Ok(review) : NotFound();
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<SlnReviewDto>> CreateReview([FromBody] SlnReviewCreateDto dto)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _factory.CreateReviewAsync(dto, customerId));
+    }
+
+    [HttpPut("{id}/status/{statusId}")]
+    public async Task<ActionResult> UpdateStatus(int id, int statusId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteReview(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (success, error) = await _factory.DeleteReviewAsync(id, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    private int GetCustomerId()
+        => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+}

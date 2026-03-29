@@ -820,3 +820,256 @@ public class SlnRegisterResponse
     public string? FullName { get; set; }
     public string? Role { get; set; }
 }
+
+// ═══ SlnWaitlistEntry (C3) ═══
+public class SlnWaitlistEntryDto
+{
+    public int Id { get; set; }
+    public int SlnClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public string? ClientPhone { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int? PreferredPersonnelId { get; set; }
+    public string? PreferredPersonnelName { get; set; }
+    public DateTime PreferredDate { get; set; }
+    public string? PreferredTimeSlot { get; set; }
+    public string? Notes { get; set; }
+    public int StatusId { get; set; }
+    public DateTime? NotifiedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnWaitlistEntryCreateDto
+{
+    public int SlnClientId { get; set; }
+    public int ServiceId { get; set; }
+    public int? PreferredPersonnelId { get; set; }
+    public DateTime PreferredDate { get; set; }
+    public string? PreferredTimeSlot { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnWaitlistEntryUpdateDto : SlnWaitlistEntryCreateDto
+{
+}
+
+// ═══ SlnEmailCampaign (C5) ═══
+public class SlnEmailCampaignDto
+{
+    public int Id { get; set; }
+    public string Subject { get; set; } = string.Empty;
+    public string HtmlBody { get; set; } = string.Empty;
+    public string? SegmentFilter { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+    public DateTime? SentAt { get; set; }
+    public int TotalRecipients { get; set; }
+    public int SentCount { get; set; }
+    public int OpenCount { get; set; }
+    public int ClickCount { get; set; }
+    public int StatusId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnEmailCampaignCreateDto
+{
+    public string Subject { get; set; } = string.Empty;
+    public string HtmlBody { get; set; } = string.Empty;
+    public string? SegmentFilter { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+}
+
+public class SlnEmailCampaignUpdateDto : SlnEmailCampaignCreateDto
+{
+}
+
+// ═══ SlnReview (C6) ═══
+public class SlnReviewDto
+{
+    public int Id { get; set; }
+    public int? SlnClientId { get; set; }
+    public string? ClientName { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public int SourceId { get; set; }
+    public string? ExternalUrl { get; set; }
+    public int StatusId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnReviewCreateDto
+{
+    public int? SlnClientId { get; set; }
+    public string? ClientName { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public int SourceId { get; set; } = 1;
+    public string? ExternalUrl { get; set; }
+}
+
+public class SlnReviewUpdateDto
+{
+    public int StatusId { get; set; }
+}
+
+public class SlnReviewStatsDto
+{
+    public int TotalReviews { get; set; }
+    public int PendingCount { get; set; }
+    public int ApprovedCount { get; set; }
+    public int RejectedCount { get; set; }
+    public double AverageRating { get; set; }
+}
+
+// ═══ SlnConsentForm (D1) ═══
+public class SlnConsentFormDto
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string HtmlContent { get; set; } = string.Empty;
+    public bool RequireSignature { get; set; }
+    public bool IsActive { get; set; }
+    public int SignedCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnConsentFormCreateDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string HtmlContent { get; set; } = string.Empty;
+    public bool RequireSignature { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnConsentFormUpdateDto : SlnConsentFormCreateDto
+{
+}
+
+public class SlnClientConsentDto
+{
+    public int Id { get; set; }
+    public int FormId { get; set; }
+    public string FormTitle { get; set; } = string.Empty;
+    public int SlnClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public string? IpAddress { get; set; }
+    public DateTime SignedAt { get; set; }
+}
+
+public class SlnClientConsentCreateDto
+{
+    public int FormId { get; set; }
+    public int SlnClientId { get; set; }
+    public string? SignatureData { get; set; }
+    public string? IpAddress { get; set; }
+}
+
+// ═══ SlnBeforeAfterPhoto (D2) ═══
+public class SlnBeforeAfterPhotoDto
+{
+    public int Id { get; set; }
+    public int SlnClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public int? ServiceId { get; set; }
+    public string? ServiceName { get; set; }
+    public string? BeforePhotoUrl { get; set; }
+    public string? AfterPhotoUrl { get; set; }
+    public string? Notes { get; set; }
+    public int? PersonnelId { get; set; }
+    public string? PersonnelName { get; set; }
+    public bool IsPublic { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnBeforeAfterPhotoCreateDto
+{
+    public int SlnClientId { get; set; }
+    public int? ServiceId { get; set; }
+    public string? BeforePhotoUrl { get; set; }
+    public string? AfterPhotoUrl { get; set; }
+    public string? Notes { get; set; }
+    public int? PersonnelId { get; set; }
+    public bool IsPublic { get; set; }
+}
+
+public class SlnBeforeAfterPhotoUpdateDto : SlnBeforeAfterPhotoCreateDto
+{
+}
+
+// ═══ SlnWinbackRule (D3) ═══
+public class SlnWinbackRuleDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int InactiveDays { get; set; }
+    public int ChannelId { get; set; }
+    public string MessageTemplate { get; set; } = string.Empty;
+    public int? DiscountPercent { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnWinbackRuleCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public int InactiveDays { get; set; } = 30;
+    public int ChannelId { get; set; } = 1;
+    public string MessageTemplate { get; set; } = string.Empty;
+    public int? DiscountPercent { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnWinbackRuleUpdateDto : SlnWinbackRuleCreateDto
+{
+}
+
+// ═══ SlnPersonnelServicePrice (D4) ═══
+public class SlnPersonnelServicePriceDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+}
+
+public class SlnPersonnelServicePriceCreateDto
+{
+    public int PersonnelId { get; set; }
+    public int ServiceId { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class SlnPersonnelServicePriceUpdateDto
+{
+    public decimal Price { get; set; }
+}
+
+// ═══ SlnRevenueShare (D5) ═══
+public class SlnRevenueShareDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public int ModelTypeId { get; set; }
+    public decimal PersonnelSharePercent { get; set; }
+    public decimal MonthlyRent { get; set; }
+    public decimal MinimumGuarantee { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnRevenueShareCreateDto
+{
+    public int PersonnelId { get; set; }
+    public int ModelTypeId { get; set; } = 1;
+    public decimal PersonnelSharePercent { get; set; } = 60;
+    public decimal MonthlyRent { get; set; }
+    public decimal MinimumGuarantee { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnRevenueShareUpdateDto : SlnRevenueShareCreateDto
+{
+}

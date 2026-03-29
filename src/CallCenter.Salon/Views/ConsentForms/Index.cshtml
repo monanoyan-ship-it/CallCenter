@@ -1,0 +1,159 @@
+@{
+    ViewData["Title"] = "Onay Formlari";
+}
+
+<div id="consentforms-vm">
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-forms">
+                <i class="bi bi-file-earmark-text me-1"></i>Form Tanimlari
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-signed">
+                <i class="bi bi-pen me-1"></i>Imzalanan Formlar
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Form Tanimlari -->
+        <div class="tab-pane fade show active" id="tab-forms">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Form Tanimlari</h6>
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewForm">
+                    <i class="bi bi-plus-lg me-1"></i>Yeni Form
+                </button>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Baslik</th>
+                                    <th>Imza Gerekli</th>
+                                    <th>Imzalayan</th>
+                                    <th>Durum</th>
+                                    <th>Olusturma</th>
+                                    <th style="width:120px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: forms">
+                                <tr>
+                                    <td class="fw-semibold small" data-bind="text: title"></td>
+                                    <td class="small">
+                                        <i data-bind="css: requireSignature ? 'bi bi-check-circle-fill text-success' : 'bi bi-dash-circle text-muted'"></i>
+                                    </td>
+                                    <td class="small" data-bind="text: signedCount"></td>
+                                    <td class="small">
+                                        <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                                    </td>
+                                    <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="Duzenle" data-bind="click: $parent.openEditForm">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.removeForm">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: forms().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-file-earmark-text" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Henuz form tanimlanmamis</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Imzalanan Formlar -->
+        <div class="tab-pane fade" id="tab-signed">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Form</th>
+                                    <th>Musteri</th>
+                                    <th>IP Adresi</th>
+                                    <th>Imza Tarihi</th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: signedConsents">
+                                <tr>
+                                    <td class="fw-semibold small" data-bind="text: formTitle"></td>
+                                    <td class="small" data-bind="text: clientName"></td>
+                                    <td class="small" data-bind="text: ipAddress || '-'"></td>
+                                    <td class="small" data-bind="text: new Date(signedAt).toLocaleString('tr-TR')"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: signedConsents().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-pen" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Henuz imzalanmis form yok</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Modal -->
+    <div class="modal fade" id="consentFormModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Form Duzenle' : 'Yeni Onay Formu'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Baslik *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">HTML Icerik *</label>
+                            <textarea class="form-control form-control-sm" rows="8" data-bind="value: form.htmlContent"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="reqSign" data-bind="checked: form.requireSignature" />
+                                <label class="form-check-label small" for="reqSign">Imza Gerekli</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="formActive" data-bind="checked: form.isActive" />
+                                <label class="form-check-label small" for="formActive">Aktif</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveForm, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/ConsentForms.js" asp-append-version="true"></script>
+}
