@@ -114,14 +114,8 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Rol</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.customerRoleId">
-                                <option value="101">Salon Sahibi</option>
-                                <option value="102">Mudur</option>
-                                <option value="103">Kuafor</option>
-                                <option value="104">Guzellik Uzmani</option>
-                                <option value="105">Kasiyer</option>
-                                <option value="106">Resepsiyonist</option>
-                            </select>
+                            <select class="form-select form-select-sm" data-bind="value: form.customerRoleId,
+                                options: roleList, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Rol seciniz'"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Durum</label>

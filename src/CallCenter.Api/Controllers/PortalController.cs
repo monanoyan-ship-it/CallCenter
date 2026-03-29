@@ -109,6 +109,16 @@ public class PortalController : AuditableControllerBase
         return Ok(result);
     }
 
+    // LOOKUPS
+
+    /// <summary>Salon rolleri (SalonRoles TypeItem listesi)</summary>
+    [HttpGet("salon-roles")]
+    public IActionResult GetSalonRoles()
+    {
+        var roles = SalonRoles.All.Select(r => new { r.Id, name = r.SystemName, displayName = r.Description, r.Icon }).ToList();
+        return Ok(roles);
+    }
+
     // PERSONNEL
 
     /// <summary>Kullanici adi musaitlik kontrolu</summary>

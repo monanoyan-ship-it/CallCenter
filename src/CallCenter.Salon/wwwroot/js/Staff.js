@@ -1,6 +1,7 @@
 function StaffViewModel() {
     var self = this;
     self.staffList = ko.observableArray([]);
+    self.roleList = ko.observableArray([]);
     self.searchQuery = ko.observable('');
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
@@ -37,6 +38,12 @@ function StaffViewModel() {
             self.staffList(data.items || data);
         }).fail(function () {
             toastr.error('Personel listesi yuklenemedi');
+        });
+    };
+
+    self.loadRoles = function () {
+        $.ajax({ url: '/proxy/portal/salon-roles', method: 'GET' }).done(function (data) {
+            self.roleList(data);
         });
     };
 
@@ -131,6 +138,7 @@ function StaffViewModel() {
 
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('staffModal'));
+        self.loadRoles();
         self.loadData();
     });
 }
