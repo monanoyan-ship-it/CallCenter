@@ -1,3 +1,4 @@
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -12,6 +13,19 @@ public abstract class SlnBaseController : Controller
         {
             context.Result = RedirectToAction("Login", "Account");
             return;
+        }
+
+        // Rol bazli sayfa erisim kontrolu
+        if (!string.IsNullOrEmpty(token))
+        {
+            var controllerName = context.RouteData.Values["controller"]?.ToString() ?? "";
+            var roleId = int.TryParse(HttpContext.Session.GetString("CustomerRoleId"), out var rid) ? rid : 101;
+
+            if (!string.IsNullOrEmpty(controllerName) && !SalonRolePermissions.CanAccess(roleId, controllerName))
+            {
+                context.Result = RedirectToAction("Index", "Home");
+                return;
+            }
         }
 
         base.OnActionExecuting(context);

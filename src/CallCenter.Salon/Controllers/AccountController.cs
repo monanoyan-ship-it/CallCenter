@@ -106,6 +106,8 @@ public class AccountController : SlnBaseController
                     HttpContext.Session.SetString("CustomerName", cn.GetString() ?? "");
                 if (claimRoot.TryGetProperty("CustomerRole", out var cr))
                     HttpContext.Session.SetString("CustomerRole", cr.GetString() ?? "");
+                if (claimRoot.TryGetProperty("CustomerRoleId", out var cri))
+                    HttpContext.Session.SetString("CustomerRoleId", cri.GetString() ?? "0");
                 if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
                     HttpContext.Session.SetString("IsCustomerAdmin", ica.GetString() ?? "false");
             }

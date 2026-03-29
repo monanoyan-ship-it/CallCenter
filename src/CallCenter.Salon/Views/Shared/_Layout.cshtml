@@ -46,7 +46,9 @@
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-                var isSales = ctrl is "Sales";
+                var roleId = int.TryParse(Context.Session.GetString("CustomerRoleId"), out var rid) ? rid : 101;
+                var can = CallCenter.Shared.Enums.SalonRolePermissions.GetAccessiblePages(roleId);
+                // Grup acik/kapali durumu
                 var mainOpen = ctrl is "Home" or "Clients" or "Appointments" or "Waitlist";
                 var opsOpen = ctrl is "Services" or "Staff" or "Recipes" or "PersonnelPrices";
                 var stockOpen = ctrl is "Products" or "Suppliers";
@@ -56,139 +58,100 @@
                 var managementOpen = ctrl is "Branches" or "Profile" or "NoShowPolicy" or "ConsentForms" or "BeforeAfter";
             }
 
-            <a class="nav-link mt-2 @(isSales ? "active" : "")" href="/Sales" style="font-size:.95rem;">
+            @if (can.Contains("Sales")) {
+            <a class="nav-link mt-2 @(ctrl == "Sales" ? "active" : "")" href="/Sales" style="font-size:.95rem;">
                 <i class="bi bi-cart-check-fill me-2"></i><strong>Hizli Satis</strong>
             </a>
+            }
 
+            @{ var salonLinks = new[] { "Home", "Clients", "Appointments", "Waitlist" }.Where(p => can.Contains(p)).ToArray(); }
+            @if (salonLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Salon</span>
-                <i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
+                <span>Salon</span><i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(mainOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/">
-                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                </a>
-                <a class="nav-link @(ctrl == "Clients" ? "active" : "")" href="/Clients">
-                    <i class="bi bi-people-fill me-2"></i>Musteriler
-                </a>
-                <a class="nav-link @(ctrl == "Appointments" ? "active" : "")" href="/Appointments">
-                    <i class="bi bi-calendar-check me-2"></i>Randevular
-                </a>
-                <a class="nav-link @(ctrl == "Waitlist" ? "active" : "")" href="/Waitlist">
-                    <i class="bi bi-clock-history me-2"></i>Bekleme Listesi
-                </a>
+                @if (can.Contains("Home")) { <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a> }
+                @if (can.Contains("Clients")) { <a class="nav-link @(ctrl == "Clients" ? "active" : "")" href="/Clients"><i class="bi bi-people-fill me-2"></i>Musteriler</a> }
+                @if (can.Contains("Appointments")) { <a class="nav-link @(ctrl == "Appointments" ? "active" : "")" href="/Appointments"><i class="bi bi-calendar-check me-2"></i>Randevular</a> }
+                @if (can.Contains("Waitlist")) { <a class="nav-link @(ctrl == "Waitlist" ? "active" : "")" href="/Waitlist"><i class="bi bi-clock-history me-2"></i>Bekleme Listesi</a> }
             </div>
+            }
 
+            @{ var opsLinks = new[] { "Services", "Staff", "Recipes", "PersonnelPrices" }.Where(p => can.Contains(p)).ToArray(); }
+            @if (opsLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Operasyon</span>
-                <i class="bi bi-chevron-down chevron @(opsOpen ? "open" : "")"></i>
+                <span>Operasyon</span><i class="bi bi-chevron-down chevron @(opsOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(opsOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Services" ? "active" : "")" href="/Services">
-                    <i class="bi bi-list-check me-2"></i>Hizmetler
-                </a>
-                <a class="nav-link @(ctrl == "Staff" ? "active" : "")" href="/Staff">
-                    <i class="bi bi-person-badge me-2"></i>Personel
-                </a>
-                <a class="nav-link @(ctrl == "Recipes" ? "active" : "")" href="/Recipes">
-                    <i class="bi bi-journal-bookmark me-2"></i>Receteler
-                </a>
-                <a class="nav-link @(ctrl == "PersonnelPrices" ? "active" : "")" href="/PersonnelPrices">
-                    <i class="bi bi-currency-exchange me-2"></i>Personel Fiyatlari
-                </a>
+                @if (can.Contains("Services")) { <a class="nav-link @(ctrl == "Services" ? "active" : "")" href="/Services"><i class="bi bi-list-check me-2"></i>Hizmetler</a> }
+                @if (can.Contains("Staff")) { <a class="nav-link @(ctrl == "Staff" ? "active" : "")" href="/Staff"><i class="bi bi-person-badge me-2"></i>Personel</a> }
+                @if (can.Contains("Recipes")) { <a class="nav-link @(ctrl == "Recipes" ? "active" : "")" href="/Recipes"><i class="bi bi-journal-bookmark me-2"></i>Receteler</a> }
+                @if (can.Contains("PersonnelPrices")) { <a class="nav-link @(ctrl == "PersonnelPrices" ? "active" : "")" href="/PersonnelPrices"><i class="bi bi-currency-exchange me-2"></i>Personel Fiyatlari</a> }
             </div>
+            }
 
+            @{ var stockLinks = new[] { "Products", "Suppliers" }.Where(p => can.Contains(p)).ToArray(); }
+            @if (stockLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Stok</span>
-                <i class="bi bi-chevron-down chevron @(stockOpen ? "open" : "")"></i>
+                <span>Stok</span><i class="bi bi-chevron-down chevron @(stockOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(stockOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Products" ? "active" : "")" href="/Products">
-                    <i class="bi bi-box-seam me-2"></i>Urunler
-                </a>
-                <a class="nav-link @(ctrl == "Suppliers" ? "active" : "")" href="/Suppliers">
-                    <i class="bi bi-truck me-2"></i>Tedarikciler
-                </a>
+                @if (can.Contains("Products")) { <a class="nav-link @(ctrl == "Products" ? "active" : "")" href="/Products"><i class="bi bi-box-seam me-2"></i>Urunler</a> }
+                @if (can.Contains("Suppliers")) { <a class="nav-link @(ctrl == "Suppliers" ? "active" : "")" href="/Suppliers"><i class="bi bi-truck me-2"></i>Tedarikciler</a> }
             </div>
+            }
 
+            @{ var finLinks = new[] { "Invoices", "Cash", "Expenses", "GiftCards", "Packages" }.Where(p => can.Contains(p)).ToArray(); }
+            @if (finLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Finans</span>
-                <i class="bi bi-chevron-down chevron @(financeOpen ? "open" : "")"></i>
+                <span>Finans</span><i class="bi bi-chevron-down chevron @(financeOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(financeOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Invoices" ? "active" : "")" href="/Invoices">
-                    <i class="bi bi-receipt me-2"></i>Adisyonlar
-                </a>
-                <a class="nav-link @(ctrl == "Cash" ? "active" : "")" href="/Cash">
-                    <i class="bi bi-cash-stack me-2"></i>Kasa
-                </a>
-                <a class="nav-link @(ctrl == "Expenses" ? "active" : "")" href="/Expenses">
-                    <i class="bi bi-credit-card me-2"></i>Masraflar
-                </a>
-                <a class="nav-link @(ctrl == "GiftCards" ? "active" : "")" href="/GiftCards">
-                    <i class="bi bi-gift me-2"></i>Hediye Kartlari
-                </a>
-                <a class="nav-link @(ctrl == "Packages" ? "active" : "")" href="/Packages">
-                    <i class="bi bi-box-seam me-2"></i>Seans Paketleri
-                </a>
+                @if (can.Contains("Invoices")) { <a class="nav-link @(ctrl == "Invoices" ? "active" : "")" href="/Invoices"><i class="bi bi-receipt me-2"></i>Adisyonlar</a> }
+                @if (can.Contains("Cash")) { <a class="nav-link @(ctrl == "Cash" ? "active" : "")" href="/Cash"><i class="bi bi-cash-stack me-2"></i>Kasa</a> }
+                @if (can.Contains("Expenses")) { <a class="nav-link @(ctrl == "Expenses" ? "active" : "")" href="/Expenses"><i class="bi bi-credit-card me-2"></i>Masraflar</a> }
+                @if (can.Contains("GiftCards")) { <a class="nav-link @(ctrl == "GiftCards" ? "active" : "")" href="/GiftCards"><i class="bi bi-gift me-2"></i>Hediye Kartlari</a> }
+                @if (can.Contains("Packages")) { <a class="nav-link @(ctrl == "Packages" ? "active" : "")" href="/Packages"><i class="bi bi-box-seam me-2"></i>Seans Paketleri</a> }
             </div>
+            }
 
+            @{ var mktLinks = new[] { "Campaigns", "Memberships", "Loyalty", "EmailCampaigns", "Reviews", "Winback" }.Where(p => can.Contains(p)).ToArray(); }
+            @if (mktLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Pazarlama</span>
-                <i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
+                <span>Pazarlama</span><i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(marketingOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
-                    <i class="bi bi-megaphone me-2"></i>Kampanyalar
-                </a>
-                <a class="nav-link @(ctrl == "Memberships" ? "active" : "")" href="/Memberships">
-                    <i class="bi bi-award me-2"></i>Uyelik Planlari
-                </a>
-                <a class="nav-link @(ctrl == "Loyalty" ? "active" : "")" href="/Loyalty">
-                    <i class="bi bi-star me-2"></i>Sadakat Programi
-                </a>
-                <a class="nav-link @(ctrl == "EmailCampaigns" ? "active" : "")" href="/EmailCampaigns">
-                    <i class="bi bi-envelope me-2"></i>E-posta Kampanyalari
-                </a>
-                <a class="nav-link @(ctrl == "Reviews" ? "active" : "")" href="/Reviews">
-                    <i class="bi bi-chat-square-text me-2"></i>Yorumlar
-                </a>
-                <a class="nav-link @(ctrl == "Winback" ? "active" : "")" href="/Winback">
-                    <i class="bi bi-arrow-repeat me-2"></i>Geri Kazanim
-                </a>
+                @if (can.Contains("Campaigns")) { <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns"><i class="bi bi-megaphone me-2"></i>Kampanyalar</a> }
+                @if (can.Contains("Memberships")) { <a class="nav-link @(ctrl == "Memberships" ? "active" : "")" href="/Memberships"><i class="bi bi-award me-2"></i>Uyelik Planlari</a> }
+                @if (can.Contains("Loyalty")) { <a class="nav-link @(ctrl == "Loyalty" ? "active" : "")" href="/Loyalty"><i class="bi bi-star me-2"></i>Sadakat Programi</a> }
+                @if (can.Contains("EmailCampaigns")) { <a class="nav-link @(ctrl == "EmailCampaigns" ? "active" : "")" href="/EmailCampaigns"><i class="bi bi-envelope me-2"></i>E-posta Kampanyalari</a> }
+                @if (can.Contains("Reviews")) { <a class="nav-link @(ctrl == "Reviews" ? "active" : "")" href="/Reviews"><i class="bi bi-chat-square-text me-2"></i>Yorumlar</a> }
+                @if (can.Contains("Winback")) { <a class="nav-link @(ctrl == "Winback" ? "active" : "")" href="/Winback"><i class="bi bi-arrow-repeat me-2"></i>Geri Kazanim</a> }
             </div>
+            }
 
+            @if (can.Contains("Reports")) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Raporlar</span>
-                <i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
+                <span>Raporlar</span><i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(reportOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports">
-                    <i class="bi bi-bar-chart-line me-2"></i>Raporlar
-                </a>
+                <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports"><i class="bi bi-bar-chart-line me-2"></i>Raporlar</a>
             </div>
+            }
 
+            @{ var mngLinks = new[] { "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter" }.Where(p => can.Contains(p)).ToArray(); }
+            @if (mngLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Yonetim</span>
-                <i class="bi bi-chevron-down chevron @(managementOpen ? "open" : "")"></i>
+                <span>Yonetim</span><i class="bi bi-chevron-down chevron @(managementOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(managementOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Profile" ? "active" : "")" href="/Profile">
-                    <i class="bi bi-shop me-2"></i>Salon Profili
-                </a>
-                <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches">
-                    <i class="bi bi-building me-2"></i>Subeler
-                </a>
-                <a class="nav-link @(ctrl == "NoShowPolicy" ? "active" : "")" href="/NoShowPolicy">
-                    <i class="bi bi-shield-exclamation me-2"></i>No-Show Politikasi
-                </a>
-                <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms">
-                    <i class="bi bi-file-earmark-text me-2"></i>Onay Formlari
-                </a>
-                <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter">
-                    <i class="bi bi-images me-2"></i>Once/Sonra
-                </a>
+                @if (can.Contains("Profile")) { <a class="nav-link @(ctrl == "Profile" ? "active" : "")" href="/Profile"><i class="bi bi-shop me-2"></i>Salon Profili</a> }
+                @if (can.Contains("Branches")) { <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches"><i class="bi bi-building me-2"></i>Subeler</a> }
+                @if (can.Contains("NoShowPolicy")) { <a class="nav-link @(ctrl == "NoShowPolicy" ? "active" : "")" href="/NoShowPolicy"><i class="bi bi-shield-exclamation me-2"></i>No-Show Politikasi</a> }
+                @if (can.Contains("ConsentForms")) { <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms"><i class="bi bi-file-earmark-text me-2"></i>Onay Formlari</a> }
+                @if (can.Contains("BeforeAfter")) { <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter"><i class="bi bi-images me-2"></i>Once/Sonra</a> }
             </div>
+            }
 
             <div style="position:absolute;bottom:0;width:100%;border-top:1px solid rgba(255,255,255,.1);padding:.8rem 1rem;">
                 <div class="d-flex align-items-center justify-content-between">
