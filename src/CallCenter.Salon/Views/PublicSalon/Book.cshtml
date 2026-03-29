@@ -1,0 +1,266 @@
+@{
+    Layout = null;
+    var slug = (string)ViewData["Slug"]!;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Online Randevu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <style>
+        body { background: #f5f5f5; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .step-indicator { display: flex; gap: 1rem; margin-bottom: 2rem; }
+        .step { flex: 1; text-align: center; padding: .5rem; border-radius: 8px; background: #e9ecef; font-size: .85rem; }
+        .step.active { background: #7b1fa2; color: #fff; font-weight: 600; }
+        .step.done { background: #4caf50; color: #fff; }
+        .service-option { cursor: pointer; border: 2px solid transparent; transition: .15s; }
+        .service-option:hover { border-color: #ce93d8; }
+        .service-option.selected { border-color: #7b1fa2; background: #f3e5f5; }
+        .slot-btn { min-width: 80px; }
+        .slot-btn.selected { background: #7b1fa2 !important; color: #fff !important; border-color: #7b1fa2 !important; }
+        .btn-purple { background: #7b1fa2; border: none; color: #fff; }
+        .btn-purple:hover { background: #6a1b9a; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container py-4" style="max-width: 640px;" id="book-vm">
+        <a href="/salon/@slug" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i>Salon Profiline Don</a>
+        <h4 class="mt-2 mb-3"><i class="bi bi-calendar-check me-2" style="color:#7b1fa2;"></i>Online Randevu</h4>
+        <div class="text-muted small mb-3" data-bind="text: salonName"></div>
+
+        <!-- Adimlar -->
+        <div class="step-indicator">
+            <div class="step" data-bind="css: { active: currentStep() === 1, done: currentStep() > 1 }">1. Hizmet</div>
+            <div class="step" data-bind="css: { active: currentStep() === 2, done: currentStep() > 2 }">2. Tarih & Saat</div>
+            <div class="step" data-bind="css: { active: currentStep() === 3, done: currentStep() > 3 }">3. Bilgiler</div>
+            <div class="step" data-bind="css: { active: currentStep() === 4 }">4. Onay</div>
+        </div>
+
+        <!-- Adim 1: Hizmet Sec -->
+        <div data-bind="visible: currentStep() === 1">
+            <!-- ko foreach: categories -->
+            <h6 class="mt-3 mb-2" data-bind="text: name" style="color:#7b1fa2;"></h6>
+            <!-- ko foreach: services -->
+            <div class="card border-0 shadow-sm mb-2 service-option" data-bind="click: $root.selectService, css: { selected: $root.selectedServiceId() === id }">
+                <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-semibold small" data-bind="text: name"></span>
+                        <small class="text-muted ms-2" data-bind="text: durationMinutes + ' dk'"></small>
+                    </div>
+                    <span class="fw-bold text-primary" data-bind="text: price.toLocaleString('tr-TR') + ' TL'"></span>
+                </div>
+            </div>
+            <!-- /ko -->
+            <!-- /ko -->
+        </div>
+
+        <!-- Adim 2: Tarih & Saat -->
+        <div data-bind="visible: currentStep() === 2">
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Tarih Seciniz</label>
+                <input type="date" class="form-control" data-bind="value: selectedDate" />
+            </div>
+            <div data-bind="visible: slots().length > 0">
+                <label class="form-label small fw-semibold">Musait Saatler</label>
+                <div class="d-flex flex-wrap gap-2">
+                    <!-- ko foreach: slots -->
+                    <button class="btn btn-outline-secondary btn-sm slot-btn"
+                            data-bind="text: label, click: $root.selectSlot, css: { selected: $root.selectedSlot() === startTime }"></button>
+                    <!-- /ko -->
+                </div>
+            </div>
+            <div data-bind="visible: slotsLoaded() && slots().length === 0" class="text-center text-muted py-4">
+                <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3;"></i>
+                <p class="mt-2 small">Bu tarihte musait saat bulunamadi</p>
+            </div>
+        </div>
+
+        <!-- Adim 3: Bilgiler -->
+        <div data-bind="visible: currentStep() === 3">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label small">Ad Soyad *</label>
+                    <input type="text" class="form-control" data-bind="value: form.fullName" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">Telefon *</label>
+                    <input type="tel" class="form-control" data-bind="value: form.phone" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label small">E-posta</label>
+                    <input type="email" class="form-control" data-bind="value: form.email" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label small">Not (opsiyonel)</label>
+                    <textarea class="form-control" rows="2" data-bind="value: form.notes"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adim 4: Onay -->
+        <div data-bind="visible: currentStep() === 4">
+            <!-- ko if: !bookingDone() -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3">Randevu Ozeti</h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr><td class="text-muted">Hizmet</td><td class="fw-semibold" data-bind="text: selectedServiceName()"></td></tr>
+                        <tr><td class="text-muted">Tarih</td><td data-bind="text: selectedDate()"></td></tr>
+                        <tr><td class="text-muted">Saat</td><td data-bind="text: selectedSlotLabel()"></td></tr>
+                        <tr><td class="text-muted">Ad Soyad</td><td data-bind="text: form.fullName()"></td></tr>
+                        <tr><td class="text-muted">Telefon</td><td data-bind="text: form.phone()"></td></tr>
+                    </table>
+                </div>
+            </div>
+            <!-- /ko -->
+            <!-- ko if: bookingDone() -->
+            <div class="text-center py-4">
+                <i class="bi bi-check-circle-fill text-success" style="font-size:4rem;"></i>
+                <h4 class="mt-3">Randevunuz Alindi!</h4>
+                <p class="text-muted">Salon tarafindan onaylanacaktir. Telefonunuzu kontrol edin.</p>
+                <a href="/salon/@slug" class="btn btn-outline-primary btn-sm mt-2">Salon Profiline Don</a>
+            </div>
+            <!-- /ko -->
+        </div>
+
+        <!-- Navigation -->
+        <div class="d-flex justify-content-between mt-4" data-bind="visible: !bookingDone()">
+            <button class="btn btn-outline-secondary" data-bind="visible: currentStep() > 1, click: prevStep">
+                <i class="bi bi-arrow-left me-1"></i>Geri
+            </button>
+            <span data-bind="visible: currentStep() <= 1"></span>
+            <button class="btn btn-purple" data-bind="visible: currentStep() < 4, click: nextStep, disable: !canProceed()">
+                Devam<i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button class="btn btn-purple" data-bind="visible: currentStep() === 4 && !bookingDone(), click: confirmBooking, disable: isSaving">
+                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                Randevu Olustur
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.min.js"></script>
+    <script>
+        var bookSlug = '@slug';
+
+        function BookViewModel() {
+            var self = this;
+            self.salonName = ko.observable('');
+            self.categories = ko.observableArray([]);
+            self.selectedServiceId = ko.observable(null);
+            self.selectedDate = ko.observable(new Date().toISOString().substring(0, 10));
+            self.slots = ko.observableArray([]);
+            self.slotsLoaded = ko.observable(false);
+            self.selectedSlot = ko.observable(null);
+            self.currentStep = ko.observable(1);
+            self.isSaving = ko.observable(false);
+            self.bookingDone = ko.observable(false);
+
+            self.form = {
+                fullName: ko.observable(''),
+                phone: ko.observable(''),
+                email: ko.observable(''),
+                notes: ko.observable('')
+            };
+
+            self.selectedServiceName = ko.computed(function () {
+                var id = self.selectedServiceId();
+                if (!id) return '';
+                var found = '';
+                self.categories().forEach(function (c) {
+                    c.services.forEach(function (s) { if (s.id === id) found = s.name; });
+                });
+                return found;
+            });
+
+            self.selectedSlotLabel = ko.computed(function () {
+                var st = self.selectedSlot();
+                if (!st) return '';
+                var s = self.slots().find(function (x) { return x.startTime === st; });
+                return s ? s.label : '';
+            });
+
+            self.canProceed = ko.computed(function () {
+                var step = self.currentStep();
+                if (step === 1) return !!self.selectedServiceId();
+                if (step === 2) return !!self.selectedSlot();
+                if (step === 3) return !!self.form.fullName() && !!self.form.phone();
+                return true;
+            });
+
+            // Load salon
+            fetch('/proxy/salon/' + bookSlug)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    self.salonName(data.salonName);
+                    self.categories(data.serviceCategories || []);
+                    document.title = 'Randevu - ' + data.salonName;
+                });
+
+            self.selectService = function (svc) { self.selectedServiceId(svc.id); };
+
+            self.selectedDate.subscribe(function () { self.loadSlots(); });
+
+            self.loadSlots = function () {
+                var sid = self.selectedServiceId();
+                var date = self.selectedDate();
+                if (!sid || !date) return;
+                self.slotsLoaded(false);
+                self.selectedSlot(null);
+
+                fetch('/proxy/salon/' + bookSlug + '/available-slots?serviceId=' + sid + '&date=' + date)
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var items = data.map(function (s) {
+                            var d = new Date(s.startTime);
+                            return { startTime: s.startTime, label: d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) };
+                        });
+                        self.slots(items);
+                        self.slotsLoaded(true);
+                    });
+            };
+
+            self.selectSlot = function (slot) { self.selectedSlot(slot.startTime); };
+
+            self.nextStep = function () {
+                if (!self.canProceed()) return;
+                var step = self.currentStep();
+                if (step === 1) { self.loadSlots(); }
+                self.currentStep(step + 1);
+            };
+
+            self.prevStep = function () { self.currentStep(self.currentStep() - 1); };
+
+            self.confirmBooking = function () {
+                self.isSaving(true);
+                fetch('/proxy/salon/' + bookSlug + '/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: self.form.fullName(),
+                        phone: self.form.phone(),
+                        email: self.form.email(),
+                        serviceId: self.selectedServiceId(),
+                        startTime: self.selectedSlot(),
+                        notes: self.form.notes()
+                    })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function () {
+                    self.bookingDone(true);
+                    self.isSaving(false);
+                })
+                .catch(function () {
+                    alert('Bir hata olustu. Lutfen tekrar deneyin.');
+                    self.isSaving(false);
+                });
+            };
+        }
+
+        ko.applyBindings(new BookViewModel(), document.getElementById('book-vm'));
+    </script>
+</body>
+</html>
