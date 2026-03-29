@@ -142,6 +142,9 @@ function AppointmentsViewModel() {
             startTimeVal = self.selectedDate() + 'T' + startTimeVal + ':00';
         }
 
+        // UTC suffix ekle
+        if (startTimeVal && !startTimeVal.endsWith('Z')) startTimeVal += 'Z';
+
         var data = {
             slnClientId: self.form.slnClientId(),
             personnelId: self.form.personnelId(),

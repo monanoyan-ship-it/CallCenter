@@ -129,7 +129,7 @@ function CampaignsViewModel() {
             name: self.campaignForm.name(),
             messageTemplate: self.campaignForm.messageTemplate(),
             segmentFilter: self.buildSegmentFilter(),
-            scheduledAt: self.campaignForm.scheduledAt() || null
+            scheduledAt: self.campaignForm.scheduledAt() ? self.campaignForm.scheduledAt() + ':00Z' : null
         };
 
         if (!data.name || !data.messageTemplate) {

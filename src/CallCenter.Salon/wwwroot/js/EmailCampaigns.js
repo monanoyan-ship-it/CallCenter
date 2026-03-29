@@ -55,7 +55,7 @@ function EmailCampaignsViewModel() {
             subject: self.form.subject(),
             htmlBody: self.form.htmlBody(),
             segmentFilter: self.form.segmentFilter() || null,
-            scheduledAt: self.form.scheduledAt() || null
+            scheduledAt: self.form.scheduledAt() ? self.form.scheduledAt() + ':00Z' : null
         };
 
         if (!data.subject || !data.htmlBody) {

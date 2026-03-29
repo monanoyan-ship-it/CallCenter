@@ -70,7 +70,7 @@ function WaitlistViewModel() {
             slnClientId: parseInt(self.form.slnClientId()) || 0,
             serviceId: parseInt(self.form.serviceId()) || 0,
             preferredPersonnelId: self.form.preferredPersonnelId() ? parseInt(self.form.preferredPersonnelId()) : null,
-            preferredDate: self.form.preferredDate(),
+            preferredDate: self.form.preferredDate() ? self.form.preferredDate() + 'T00:00:00Z' : null,
             preferredTimeSlot: self.form.preferredTimeSlot() || null,
             notes: self.form.notes() || null
         };
