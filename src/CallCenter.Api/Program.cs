@@ -11,6 +11,9 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// HttpClientFactory (WhatsApp API vb. dis servis cagrilari icin)
+builder.Services.AddHttpClient();
+
 // PostgreSQL + EF Core
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
