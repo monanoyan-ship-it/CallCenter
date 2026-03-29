@@ -281,6 +281,46 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnSalonProfile ═══
+public class SlnSalonProfileDto
+{
+    public int Id { get; set; }
+    public string Slug { get; set; } = string.Empty;
+    public string SalonName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? Website { get; set; }
+    public string? InstagramHandle { get; set; }
+    public string? FacebookUrl { get; set; }
+    public string? GoogleMapsUrl { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? WorkingHoursJson { get; set; }
+    public bool IsPublished { get; set; }
+    public List<SlnServiceCategoryDto> ServiceCategories { get; set; } = [];
+}
+
+public class SlnSalonProfileUpdateDto
+{
+    public string Slug { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? Website { get; set; }
+    public string? InstagramHandle { get; set; }
+    public string? FacebookUrl { get; set; }
+    public string? GoogleMapsUrl { get; set; }
+    public string? WorkingHoursJson { get; set; }
+    public bool IsPublished { get; set; } = true;
+}
+
 // ═══ SlnNoShowPolicy ═══
 public class SlnNoShowPolicyDto
 {
