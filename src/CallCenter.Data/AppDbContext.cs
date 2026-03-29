@@ -123,6 +123,7 @@ public class AppDbContext : DbContext
     public DbSet<SlnGiftCard> SlnGiftCards => Set<SlnGiftCard>();
     public DbSet<SlnGiftCardTransaction> SlnGiftCardTransactions => Set<SlnGiftCardTransaction>();
     public DbSet<SlnSalonProfile> SlnSalonProfiles => Set<SlnSalonProfile>();
+    public DbSet<SlnWaitlistEntry> SlnWaitlistEntries => Set<SlnWaitlistEntry>();
     public DbSet<SlnNoShowPolicy> SlnNoShowPolicies => Set<SlnNoShowPolicy>();
     public DbSet<SlnMembershipPlan> SlnMembershipPlans => Set<SlnMembershipPlan>();
     public DbSet<SlnClientMembership> SlnClientMemberships => Set<SlnClientMembership>();
