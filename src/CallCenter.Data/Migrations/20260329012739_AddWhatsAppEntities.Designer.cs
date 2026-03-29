@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260329012739_AddWhatsAppEntities")]
+    partial class AddWhatsAppEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3838,59 +3841,6 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("SlnClientPhotos");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.SlnEmailCampaign", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClickCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("HtmlBody")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("OpenCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("ScheduledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SegmentFilter")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SentCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TotalRecipients")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("SlnEmailCampaigns");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnExpense", b =>
                 {
                     b.Property<int>("Id")
@@ -4739,87 +4689,6 @@ namespace CallCenter.Data.Migrations
                     b.HasIndex("ServiceId");
 
                     b.ToTable("SlnRecipeItems");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SlnReview", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClientName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ExternalUrl")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SlnClientId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SourceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("SlnClientId");
-
-                    b.ToTable("SlnReviews");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SlnReviewRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("InvoiceId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SlnClientId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.HasIndex("SlnClientId");
-
-                    b.ToTable("SlnReviewRequests");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnSalonProfile", b =>
@@ -7825,17 +7694,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("SlnClient");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.SlnEmailCampaign", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnExpense", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.SlnExpenseCategory", "Category")
@@ -8208,48 +8066,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("Recipe");
 
                     b.Navigation("Service");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SlnReview", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.SlnClient", "SlnClient")
-                        .WithMany()
-                        .HasForeignKey("SlnClientId");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("SlnClient");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.SlnReviewRequest", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CallCenter.Shared.Entities.SlnInvoice", "Invoice")
-                        .WithMany()
-                        .HasForeignKey("InvoiceId");
-
-                    b.HasOne("CallCenter.Shared.Entities.SlnClient", "SlnClient")
-                        .WithMany()
-                        .HasForeignKey("SlnClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Invoice");
-
-                    b.Navigation("SlnClient");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnSalonProfile", b =>

@@ -124,6 +124,11 @@ public class AppDbContext : DbContext
     public DbSet<SlnGiftCardTransaction> SlnGiftCardTransactions => Set<SlnGiftCardTransaction>();
     public DbSet<SlnSalonProfile> SlnSalonProfiles => Set<SlnSalonProfile>();
     public DbSet<SlnWaitlistEntry> SlnWaitlistEntries => Set<SlnWaitlistEntry>();
+    public DbSet<SlnWhatsAppConfig> SlnWhatsAppConfigs => Set<SlnWhatsAppConfig>();
+    public DbSet<SlnWhatsAppMessage> SlnWhatsAppMessages => Set<SlnWhatsAppMessage>();
+    public DbSet<SlnEmailCampaign> SlnEmailCampaigns => Set<SlnEmailCampaign>();
+    public DbSet<SlnReview> SlnReviews => Set<SlnReview>();
+    public DbSet<SlnReviewRequest> SlnReviewRequests => Set<SlnReviewRequest>();
     public DbSet<SlnNoShowPolicy> SlnNoShowPolicies => Set<SlnNoShowPolicy>();
     public DbSet<SlnMembershipPlan> SlnMembershipPlans => Set<SlnMembershipPlan>();
     public DbSet<SlnClientMembership> SlnClientMemberships => Set<SlnClientMembership>();

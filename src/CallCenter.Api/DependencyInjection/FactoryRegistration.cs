@@ -1,5 +1,6 @@
 using CallCenter.Api.Factories;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services;
 
 namespace CallCenter.Api.DependencyInjection;
 
@@ -77,6 +78,9 @@ public static class FactoryRegistration
 
         // Salon S8 — Raporlama
         services.AddScoped<ISlnReportFactory, SlnReportFactory>();
+
+        // Salon — WhatsApp
+        services.AddScoped<IWhatsAppService, WhatsAppService>();
 
         // Salon — Uyelik + Sadakat + Hediye Karti + Paketler
         services.AddScoped<ISlnMembershipFactory, SlnMembershipFactory>();
