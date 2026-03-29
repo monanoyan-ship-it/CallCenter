@@ -1,6 +1,7 @@
 using System.Text;
 using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Helpers;
+using CallCenter.Shared.Entities;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Middleware;
 using CallCenter.Data;
@@ -151,10 +152,31 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
         foreach (var cid in salonCustomerIds)
         {
             await SalonDefaultDataHelper.SeedDefaultDataAsync(seedDb, cid);
+
+            // Eksik portal modullerini ekle
+            var existingModuleIds = await seedDb.Set<CustomerPortalModule>()
+                .Where(m => m.CustomerId == cid)
+                .Select(m => m.ModuleId)
+                .ToListAsync();
+
+            foreach (var module in SalonPortalModules.All)
+            {
+                if (!existingModuleIds.Contains(module.Id))
+                {
+                    seedDb.Set<CustomerPortalModule>().Add(new CustomerPortalModule
+                    {
+                        CustomerId = cid,
+                        ModuleId = module.Id,
+                        IsActive = module.IsDefault,
+                        ActivatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await seedDb.SaveChangesAsync();
         }
 
         if (salonCustomerIds.Count > 0)
-            seedLogger.LogInformation("Salon default data kontrolu tamamlandi: {Count} salon", salonCustomerIds.Count);
+            seedLogger.LogInformation("Salon default data + modul kontrolu tamamlandi: {Count} salon", salonCustomerIds.Count);
     }
     catch (Exception ex)
     {
