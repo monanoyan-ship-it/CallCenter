@@ -129,6 +129,12 @@ public class AppDbContext : DbContext
     public DbSet<SlnEmailCampaign> SlnEmailCampaigns => Set<SlnEmailCampaign>();
     public DbSet<SlnReview> SlnReviews => Set<SlnReview>();
     public DbSet<SlnReviewRequest> SlnReviewRequests => Set<SlnReviewRequest>();
+    public DbSet<SlnConsentForm> SlnConsentForms => Set<SlnConsentForm>();
+    public DbSet<SlnClientConsent> SlnClientConsents => Set<SlnClientConsent>();
+    public DbSet<SlnBeforeAfterPhoto> SlnBeforeAfterPhotos => Set<SlnBeforeAfterPhoto>();
+    public DbSet<SlnWinbackRule> SlnWinbackRules => Set<SlnWinbackRule>();
+    public DbSet<SlnPersonnelServicePrice> SlnPersonnelServicePrices => Set<SlnPersonnelServicePrice>();
+    public DbSet<SlnRevenueShare> SlnRevenueShares => Set<SlnRevenueShare>();
     public DbSet<SlnNoShowPolicy> SlnNoShowPolicies => Set<SlnNoShowPolicy>();
     public DbSet<SlnMembershipPlan> SlnMembershipPlans => Set<SlnMembershipPlan>();
     public DbSet<SlnClientMembership> SlnClientMemberships => Set<SlnClientMembership>();
