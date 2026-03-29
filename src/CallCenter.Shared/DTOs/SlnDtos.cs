@@ -281,6 +281,18 @@ public class SlnCashTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
+// ═══ SlnOnlineBooking ═══
+public class SlnOnlineBookingDto
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public int ServiceId { get; set; }
+    public int? PersonnelId { get; set; }
+    public DateTime StartTime { get; set; }
+    public string? Notes { get; set; }
+}
+
 // ═══ SlnSalonProfile ═══
 public class SlnSalonProfileDto
 {

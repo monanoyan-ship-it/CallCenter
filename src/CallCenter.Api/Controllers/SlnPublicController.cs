@@ -95,4 +95,131 @@ public class SlnPublicController : ControllerBase
 
         return Ok(profiles);
     }
+
+    /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
+    [HttpGet("{slug}/available-slots")]
+    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var service = await _db.SlnServices
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == profile.CustomerId && s.IsActive);
+        if (service == null) return BadRequest("Hizmet bulunamadi");
+
+        // Calisma saatleri
+        var dayKey = date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "mon", DayOfWeek.Tuesday => "tue", DayOfWeek.Wednesday => "wed",
+            DayOfWeek.Thursday => "thu", DayOfWeek.Friday => "fri", DayOfWeek.Saturday => "sat",
+            _ => "sun"
+        };
+
+        var openHour = 9; var closeHour = 19;
+        if (!string.IsNullOrEmpty(profile.WorkingHoursJson))
+        {
+            try
+            {
+                var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(profile.WorkingHoursJson);
+                if (hours != null && hours.TryGetValue(dayKey, out var val))
+                {
+                    var parts = val.Split('-');
+                    if (parts.Length == 2)
+                    {
+                        openHour = int.Parse(parts[0].Split(':')[0]);
+                        closeHour = int.Parse(parts[1].Split(':')[0]);
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // Mevcut randevulari al
+        var dayStart = date.Date;
+        var dayEnd = date.Date.AddDays(1);
+        var existingAppointments = await _db.SlnAppointments
+            .Where(a => a.CustomerId == profile.CustomerId && a.StartTime >= dayStart && a.StartTime < dayEnd && a.StatusId != 4)
+            .Select(a => new { a.StartTime, a.EndTime })
+            .ToListAsync();
+
+        // Musait slotlari hesapla (30 dk aralikla)
+        var slots = new List<object>();
+        var slotDuration = service.DurationMinutes;
+        for (var hour = openHour; hour < closeHour; hour++)
+        {
+            for (var min = 0; min < 60; min += 30)
+            {
+                var slotStart = date.Date.AddHours(hour).AddMinutes(min);
+                var slotEnd = slotStart.AddMinutes(slotDuration);
+
+                if (slotEnd > date.Date.AddHours(closeHour)) break;
+                if (slotStart < DateTime.UtcNow) continue;
+
+                var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
+                if (!hasConflict)
+                {
+                    slots.Add(new { startTime = slotStart, endTime = slotEnd });
+                }
+            }
+        }
+
+        return Ok(slots);
+    }
+
+    /// <summary>Online randevu olustur (auth gerekmez)</summary>
+    [HttpPost("{slug}/book")]
+    public async Task<ActionResult> BookAppointment(string slug, [FromBody] SlnOnlineBookingDto dto)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var service = await _db.SlnServices
+            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == profile.CustomerId && s.IsActive);
+        if (service == null) return BadRequest("Hizmet bulunamadi");
+
+        // Musteri bul veya olustur
+        var client = await _db.SlnClients
+            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == profile.CustomerId);
+
+        if (client == null)
+        {
+            client = new SlnClient
+            {
+                CustomerId = profile.CustomerId,
+                FullName = dto.FullName,
+                Phone = dto.Phone,
+                Email = dto.Email
+            };
+            _db.SlnClients.Add(client);
+            await _db.SaveChangesAsync();
+        }
+
+        // Randevu olustur (StatusId=1: Planlanmis, onay bekliyor)
+        var appointment = new SlnAppointment
+        {
+            CustomerId = profile.CustomerId,
+            SlnClientId = client.Id,
+            PersonnelId = dto.PersonnelId ?? 0,
+            ServiceId = dto.ServiceId,
+            StartTime = dto.StartTime,
+            EndTime = dto.StartTime.AddMinutes(service.DurationMinutes),
+            StatusId = 1,
+            Notes = dto.Notes
+        };
+
+        // PersonnelId 0 ise ilk musait personeli ata
+        if (appointment.PersonnelId == 0)
+        {
+            var firstPersonnel = await _db.Set<CustomerPersonnel>()
+                .FirstOrDefaultAsync(p => p.CustomerId == profile.CustomerId && p.IsActive);
+            appointment.PersonnelId = firstPersonnel?.Id ?? 0;
+        }
+
+        _db.SlnAppointments.Add(appointment);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, appointmentId = appointment.Id, message = "Randevunuz alindi. Salon tarafindan onaylanacaktir." });
+    }
 }
