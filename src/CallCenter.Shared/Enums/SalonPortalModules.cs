@@ -20,7 +20,30 @@ public static class SalonPortalModules
     public static readonly TypeItem SlnCampaigns = new(212, "SlnCampaigns", "SalonModule.Campaigns", "Pazarlama ve SMS", "bi-megaphone-fill", "bg-pink", 12);
     public static readonly TypeItem SlnBranches = new(213, "SlnBranches", "SalonModule.Branches", "Sube yonetimi", "bi-building", "bg-cyan", 13);
 
-    public static IEnumerable<TypeItem> All => new[] { SlnDashboard, SlnClients, SlnAppointments, SlnServices, SlnProducts, SlnInvoices, SlnCash, SlnExpenses, SlnStaff, SlnSuppliers, SlnReports, SlnCampaigns, SlnBranches };
+    // ─── Yeni moduller (Faz A-D) ───
+    public static readonly TypeItem SlnSales = new(214, "SlnSales", "SalonModule.Sales", "Hizli satis POS", "bi-cart-check-fill", "bg-success", 14, isDefault: true);
+    public static readonly TypeItem SlnRecipes = new(215, "SlnRecipes", "SalonModule.Recipes", "Recete/paket tanimlari", "bi-journal-bookmark", "bg-purple", 15, isDefault: true);
+    public static readonly TypeItem SlnGiftCards = new(216, "SlnGiftCards", "SalonModule.GiftCards", "Hediye kartlari", "bi-gift", "bg-warning text-dark", 16);
+    public static readonly TypeItem SlnPackages = new(217, "SlnPackages", "SalonModule.Packages", "Seans paketleri", "bi-box-seam", "bg-info", 17);
+    public static readonly TypeItem SlnMemberships = new(218, "SlnMemberships", "SalonModule.Memberships", "Uyelik planlari", "bi-award", "bg-primary", 18);
+    public static readonly TypeItem SlnLoyalty = new(219, "SlnLoyalty", "SalonModule.Loyalty", "Sadakat programi", "bi-star", "bg-warning", 19);
+    public static readonly TypeItem SlnProfile = new(220, "SlnProfile", "SalonModule.Profile", "Salon profili", "bi-shop", "bg-dark", 20, isDefault: true);
+    public static readonly TypeItem SlnWaitlist = new(221, "SlnWaitlist", "SalonModule.Waitlist", "Bekleme listesi", "bi-clock-history", "bg-secondary", 21);
+    public static readonly TypeItem SlnEmailCampaigns = new(222, "SlnEmailCampaigns", "SalonModule.EmailCampaigns", "E-posta kampanyalari", "bi-envelope", "bg-info", 22);
+    public static readonly TypeItem SlnReviews = new(223, "SlnReviews", "SalonModule.Reviews", "Yorum yonetimi", "bi-chat-square-text", "bg-success", 23);
+    public static readonly TypeItem SlnNoShowPolicy = new(224, "SlnNoShowPolicy", "SalonModule.NoShowPolicy", "No-show politikasi", "bi-shield-exclamation", "bg-danger", 24);
+    public static readonly TypeItem SlnConsentForms = new(225, "SlnConsentForms", "SalonModule.ConsentForms", "Onay formlari", "bi-file-earmark-text", "bg-secondary", 25);
+    public static readonly TypeItem SlnBeforeAfter = new(226, "SlnBeforeAfter", "SalonModule.BeforeAfter", "Once/sonra fotograflari", "bi-images", "bg-pink", 26);
+    public static readonly TypeItem SlnWinback = new(227, "SlnWinback", "SalonModule.Winback", "Kayip musteri geri kazanim", "bi-arrow-repeat", "bg-orange", 27);
+    public static readonly TypeItem SlnPersonnelPrices = new(228, "SlnPersonnelPrices", "SalonModule.PersonnelPrices", "Personel fiyatlari ve hasilat", "bi-currency-exchange", "bg-teal", 28);
+
+    public static IEnumerable<TypeItem> All => new[]
+    {
+        SlnDashboard, SlnClients, SlnAppointments, SlnServices, SlnProducts, SlnInvoices, SlnCash, SlnExpenses,
+        SlnStaff, SlnSuppliers, SlnReports, SlnCampaigns, SlnBranches,
+        SlnSales, SlnRecipes, SlnGiftCards, SlnPackages, SlnMemberships, SlnLoyalty, SlnProfile,
+        SlnWaitlist, SlnEmailCampaigns, SlnReviews, SlnNoShowPolicy, SlnConsentForms, SlnBeforeAfter, SlnWinback, SlnPersonnelPrices
+    };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static IEnumerable<TypeItem> Defaults => All.Where(x => x.IsDefault);
 
@@ -39,5 +62,20 @@ public static class SalonPortalModules
         public const int SlnReports = 211;
         public const int SlnCampaigns = 212;
         public const int SlnBranches = 213;
+        public const int SlnSales = 214;
+        public const int SlnRecipes = 215;
+        public const int SlnGiftCards = 216;
+        public const int SlnPackages = 217;
+        public const int SlnMemberships = 218;
+        public const int SlnLoyalty = 219;
+        public const int SlnProfile = 220;
+        public const int SlnWaitlist = 221;
+        public const int SlnEmailCampaigns = 222;
+        public const int SlnReviews = 223;
+        public const int SlnNoShowPolicy = 224;
+        public const int SlnConsentForms = 225;
+        public const int SlnBeforeAfter = 226;
+        public const int SlnWinback = 227;
+        public const int SlnPersonnelPrices = 228;
     }
 }
