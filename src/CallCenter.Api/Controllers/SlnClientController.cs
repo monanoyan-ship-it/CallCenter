@@ -16,13 +16,13 @@ public class SlnClientController : ControllerBase
     public SlnClientController(ISlnClientFactory clientFactory) => _clientFactory = clientFactory;
 
     [HttpGet]
-    public async Task<ActionResult<List<SlnClientDto>>> GetClients([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetClients([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var clients = await _clientFactory.GetClientsAsync(customerId, search, page, pageSize);
-        return Ok(clients);
+        var result = await _clientFactory.GetClientsAsync(customerId, search, page, pageSize);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]

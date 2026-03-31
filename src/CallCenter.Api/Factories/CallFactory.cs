@@ -59,7 +59,9 @@ public class CallFactory : ICallFactory
             query = query.Where(c => c.AgentId == userId);
         }
 
-        return await query
+        var totalCount = await query.CountAsync();
+
+        var items = await query
             .OrderByDescending(c => c.StartedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -82,6 +84,8 @@ public class CallFactory : ICallFactory
                 c.CallbackNote
             })
             .ToListAsync();
+
+        return new { items, totalCount, page, pageSize };
     }
 
     public async Task<List<CallNotification>> GetActiveAsync(int userId)

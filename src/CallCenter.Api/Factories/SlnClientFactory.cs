@@ -35,7 +35,7 @@ public class SlnClientFactory : ISlnClientFactory
         _logger = logger;
     }
 
-    public async Task<List<SlnClientDto>> GetClientsAsync(int customerId, string? search, int page = 1, int pageSize = 50)
+    public async Task<object> GetClientsAsync(int customerId, string? search, int page = 1, int pageSize = 50)
     {
         var query = _clients.GetAllQueryable()
             .Where(c => c.CustomerId == customerId);
@@ -48,6 +48,8 @@ public class SlnClientFactory : ISlnClientFactory
                 (c.Phone != null && c.Phone.Contains(s)) ||
                 (c.Email != null && c.Email.ToLower().Contains(s)));
         }
+
+        var totalCount = await query.CountAsync();
 
         var clients = await query
             .OrderBy(c => c.FullName)
@@ -72,7 +74,7 @@ public class SlnClientFactory : ISlnClientFactory
 
         var statsDict = invoiceStats.ToDictionary(s => s.ClientId ?? 0);
 
-        return clients.Select(c =>
+        var items = clients.Select(c =>
         {
             statsDict.TryGetValue(c.Id, out var stats);
             return new SlnClientDto
@@ -92,6 +94,8 @@ public class SlnClientFactory : ISlnClientFactory
                 LastVisit = stats?.LastVisit
             };
         }).ToList();
+
+        return new { items, totalCount, page, pageSize };
     }
 
     public async Task<SlnClientDetailDto?> GetClientDetailAsync(int clientId, int customerId)

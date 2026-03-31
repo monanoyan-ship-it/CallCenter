@@ -22,9 +22,9 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
     private const int AUDIO_INPUTDEVICE_INDEX = -1;
     private const int AUDIO_OUTPUTDEVICE_INDEX = -1;
 
-    // Düşük gecikme ayarları
-    private const int PLAYBACK_DESIRED_LATENCY_MS = 50;
-    private const int PLAYBACK_NUMBER_OF_BUFFERS = 2;
+    // Düşük gecikme ayarları (50ms+2buf ses kırılmasına neden oldu, 300ms varsayılan çok geç)
+    private const int PLAYBACK_DESIRED_LATENCY_MS = 100;
+    private const int PLAYBACK_NUMBER_OF_BUFFERS = 3;
 
     public static readonly AudioSamplingRatesEnum DefaultAudioSourceSamplingRate = AudioSamplingRatesEnum.Rate8KHz;
     public static readonly AudioSamplingRatesEnum DefaultAudioPlaybackRate = AudioSamplingRatesEnum.Rate8KHz;

@@ -8,7 +8,7 @@
 ;   - Publish ciktisi: publish/win-x64/ klasorunde
 
 #define MyAppName "CorpLynk"
-#define MyAppVersion "0.4.1"
+#define MyAppVersion "0.4.2"
 #define MyAppPublisher "CorpLynk"
 #define MyAppURL "https://corplynk.com"
 #define MyAppExeName "CorpLynk.exe"
