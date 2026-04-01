@@ -91,36 +91,38 @@
                 </div>
                 <div class="modal-body">
                     <div class="text-center py-3" data-bind="visible: detailLoading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-                    <div data-bind="visible: !detailLoading() && detail()">
+                    <!-- ko with: detail -->
+                    <div>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <small class="text-muted d-block">Kullanici</small>
-                                <span data-bind="text: detail().userName || '-'"></span>
+                                <span data-bind="text: userName || '-'"></span>
                             </div>
                             <div class="col-md-3">
                                 <small class="text-muted d-block">IP Adresi</small>
-                                <span data-bind="text: detail().ipAddress || '-'"></span>
+                                <span data-bind="text: ipAddress || '-'"></span>
                             </div>
                             <div class="col-md-3">
                                 <small class="text-muted d-block">Tarih</small>
-                                <span data-bind="text: detail().createdAt ? new Date(detail().createdAt).toLocaleString('tr-TR') : '-'"></span>
+                                <span data-bind="text: createdAt ? new Date(createdAt).toLocaleString('tr-TR') : '-'"></span>
                             </div>
                         </div>
                         <div class="mb-3">
                             <small class="text-muted d-block">User Agent</small>
-                            <span class="small" data-bind="text: detail().userAgent || '-'"></span>
+                            <span class="small" data-bind="text: userAgent || '-'"></span>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <small class="text-muted d-block mb-1">Eski Degerler</small>
-                                <pre class="bg-light p-2 rounded small" style="max-height:300px;overflow:auto" data-bind="text: detail().oldValues ? JSON.stringify(JSON.parse(detail().oldValues), null, 2) : '-'"></pre>
+                                <pre class="bg-light p-2 rounded small" style="max-height:300px;overflow:auto" data-bind="text: oldValues ? JSON.stringify(JSON.parse(oldValues), null, 2) : '-'"></pre>
                             </div>
                             <div class="col-md-6">
                                 <small class="text-muted d-block mb-1">Yeni Degerler</small>
-                                <pre class="bg-light p-2 rounded small" style="max-height:300px;overflow:auto" data-bind="text: detail().newValues ? JSON.stringify(JSON.parse(detail().newValues), null, 2) : '-'"></pre>
+                                <pre class="bg-light p-2 rounded small" style="max-height:300px;overflow:auto" data-bind="text: newValues ? JSON.stringify(JSON.parse(newValues), null, 2) : '-'"></pre>
                             </div>
                         </div>
                     </div>
+                    <!-- /ko -->
                 </div>
                 <div class="modal-footer py-2">
                     <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>

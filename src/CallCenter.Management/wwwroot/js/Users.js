@@ -11,7 +11,7 @@ function UsersViewModel() {
     self.deleteTarget = ko.observable(null);
 
     self.form = {
-        id: ko.observable(null), username: ko.observable(''), fullName: ko.observable(''),
+        id: ko.observable(null), userName: ko.observable(''), fullName: ko.observable(''),
         email: ko.observable(''), password: ko.observable(''), roleId: ko.observable('1'),
         extension: ko.observable(''), isActive: ko.observable(true)
     };
@@ -47,7 +47,7 @@ function UsersViewModel() {
     };
 
     self.openEdit = function (u) {
-        self.form.id(u.id); self.form.username(u.username); self.form.fullName(u.fullName);
+        self.form.id(u.id); self.form.username(u.userName); self.form.fullName(u.fullName);
         self.form.email(u.email || ''); self.form.password('');
         self.form.roleId(String(u.roleId || 1)); self.form.extension(u.extension || '');
         self.form.isActive(u.isActive !== false);
@@ -59,7 +59,7 @@ function UsersViewModel() {
         if (!self.form.fullName()) { toastr.warning('Ad soyad zorunlu.'); return; }
         self.isSaving(true);
         var payload = {
-            username: self.form.username(), fullName: self.form.fullName(),
+            username: self.form.userName(), fullName: self.form.fullName(),
             email: self.form.email(), roleId: parseInt(self.form.roleId()),
             extension: self.form.extension(), isActive: self.form.isActive()
         };

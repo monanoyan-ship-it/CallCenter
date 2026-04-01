@@ -39,11 +39,11 @@
                         </thead>
                         <tbody data-bind="foreach: items">
                             <tr data-bind="css: { 'table-warning': isLocked }">
-                                <td data-bind="text: username || '-'"></td>
+                                <td data-bind="text: userName || '-'"></td>
                                 <td class="fw-medium" data-bind="text: fullName || '-'"></td>
                                 <td class="small text-muted" data-bind="text: email || '-'"></td>
                                 <td class="small" data-bind="text: title || '-'"></td>
-                                <td><span class="badge bg-info" data-bind="text: customerRoleName || roleName || '-'"></span></td>
+                                <td><span class="badge bg-info" data-bind="text: customerRoleName || '-'"></span></td>
                                 <td class="small" data-bind="text: organizationUnitName || '-'"></td>
                                 <td>
                                     <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
@@ -96,7 +96,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Kullanici Adi *</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.username, disable: !!form.id()" />
+                            <input class="form-control form-control-sm" data-bind="value: form.userName, disable: !!form.id()" />
                         </div>
                     </div>
                     <div class="row g-2">
@@ -116,7 +116,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Rol</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.roleId, options: roles, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
+                            <select class="form-select form-select-sm" data-bind="value: form.customerRoleId, options: roles, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
                         </div>
                     </div>
                     <div class="row g-2">
@@ -126,7 +126,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Ust Yonetici</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.managerId, options: items, optionsText: 'fullName', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
+                            <select class="form-select form-select-sm" data-bind="value: form.reportsToPersonnelId, options: items, optionsText: 'fullName', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
                         </div>
                     </div>
                     <div class="form-check mb-3">
@@ -180,10 +180,10 @@ function PersonnelViewModel() {
     self.deleteId = null;
 
     self.form = {
-        id: ko.observable(null), fullName: ko.observable(''), username: ko.observable(''),
+        id: ko.observable(null), fullName: ko.observable(''), userName: ko.observable(''),
         email: ko.observable(''), password: ko.observable(''), title: ko.observable(''),
-        roleId: ko.observable(''), organizationUnitId: ko.observable(''),
-        managerId: ko.observable(''), isActive: ko.observable(true)
+        customerRoleId: ko.observable(''), organizationUnitId: ko.observable(''),
+        reportsToPersonnelId: ko.observable(''), isActive: ko.observable(true)
     };
 
     self.pageNumbers = ko.computed(function() {
@@ -224,41 +224,44 @@ function PersonnelViewModel() {
     };
 
     self.loadRoles = function() {
-        $.get('/proxy/portal/roles', function(data) {
-            self.roles(Array.isArray(data) ? data : (data.items || data.data || []));
-        });
+        // CustomerRoles enum'dan statik liste (API endpoint yok)
+        self.roles([
+            { id: 1, name: 'Firma Yoneticisi' },
+            { id: 2, name: 'Ekip Lideri' },
+            { id: 3, name: 'Operator' }
+        ]);
     };
 
     self.resetForm = function() {
-        self.form.id(null); self.form.fullName(''); self.form.username('');
+        self.form.id(null); self.form.fullName(''); self.form.userName('');
         self.form.email(''); self.form.password(''); self.form.title('');
-        self.form.roleId(''); self.form.organizationUnitId('');
-        self.form.managerId(''); self.form.isActive(true);
+        self.form.customerRoleId(''); self.form.organizationUnitId('');
+        self.form.reportsToPersonnelId(''); self.form.isActive(true);
     };
 
     self.openCreate = function() { self.resetForm(); self.formTitle('Yeni Personel'); new bootstrap.Modal('#personnelModal').show(); };
 
     self.openEdit = function(item) {
         self.form.id(item.id); self.form.fullName(item.fullName || '');
-        self.form.username(item.username || ''); self.form.email(item.email || '');
+        self.form.userName(item.userName || ''); self.form.email(item.email || '');
         self.form.password(''); self.form.title(item.title || '');
-        self.form.roleId(item.customerRoleId || item.roleId || '');
+        self.form.customerRoleId(item.customerRoleId || '');
         self.form.organizationUnitId(item.organizationUnitId || '');
-        self.form.managerId(item.managerId || '');
+        self.form.reportsToPersonnelId(item.reportsToPersonnelId || '');
         self.form.isActive(item.isActive !== false);
         self.formTitle('Personel Duzenle');
         new bootstrap.Modal('#personnelModal').show();
     };
 
     self.save = function() {
-        if (!self.form.fullName() || !self.form.username()) { toastr.warning('Ad soyad ve kullanici adi zorunludur.'); return; }
+        if (!self.form.fullName() || !self.form.userName()) { toastr.warning('Ad soyad ve kullanici adi zorunludur.'); return; }
         self.isSaving(true);
         var payload = {
             customerId: parseInt(self.customerId()), fullName: self.form.fullName(),
-            username: self.form.username(), email: self.form.email(),
-            title: self.form.title(), roleId: self.form.roleId() ? parseInt(self.form.roleId()) : null,
+            userName: self.form.userName(), email: self.form.email(),
+            title: self.form.title(), customerRoleId: self.form.customerRoleId() ? parseInt(self.form.customerRoleId()) : null,
             organizationUnitId: self.form.organizationUnitId() ? parseInt(self.form.organizationUnitId()) : null,
-            managerId: self.form.managerId() ? parseInt(self.form.managerId()) : null,
+            reportsToPersonnelId: self.form.reportsToPersonnelId() ? parseInt(self.form.reportsToPersonnelId()) : null,
             isActive: self.form.isActive()
         };
         if (self.form.password()) payload.password = self.form.password();

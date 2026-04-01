@@ -18,10 +18,10 @@
                 <div class="col-md-2">
                     <select class="form-select form-select-sm" data-bind="value: statusFilter">
                         <option value="">Tum Durumlar</option>
-                        <option value="Tahakkuk">Tahakkuk</option>
-                        <option value="Faturalanmis">Faturalanmis</option>
-                        <option value="Odenmis">Odenmis</option>
-                        <option value="Gecikme">Gecikme</option>
+                        <option value="1">Tahakkuk</option>
+                        <option value="2">Faturalanmis</option>
+                        <option value="3">Odenmis</option>
+                        <option value="4">Gecikme</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -70,18 +70,18 @@
                         <tbody data-bind="foreach: items">
                             <tr>
                                 <td>
-                                    <input type="checkbox" class="form-check-input" data-bind="checkedValue: id, checked: $parent.selectedIds" />
+                                    <input type="checkbox" class="form-check-input" data-bind="checkedValue: periodId, checked: $parent.selectedIds" />
                                 </td>
                                 <td class="fw-medium" data-bind="text: customerName || '-'"></td>
                                 <td data-bind="text: (month || '-') + '/' + (year || '-')"></td>
-                                <td class="text-end" data-bind="text: (operatorAmount || 0).toFixed(2) + ' TL'"></td>
+                                <td class="text-end" data-bind="text: (amount || 0).toFixed(2) + ' TL'"></td>
                                 <td class="text-end" data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>
-                                <td class="text-end fw-semibold" data-bind="text: (totalAmount || 0).toFixed(2) + ' TL'"></td>
+                                <td class="text-end fw-semibold" data-bind="text: ((amount || 0) + (serviceAmount || 0)).toFixed(2) + ' TL'"></td>
                                 <td>
-                                    <span class="badge" data-bind="text: statusName || status || 'Tahakkuk',
-                                        css: (status || statusName) === 'Odenmis' ? 'bg-success' :
-                                             (status || statusName) === 'Faturalanmis' ? 'bg-info' :
-                                             (status || statusName) === 'Gecikme' ? 'bg-danger' : 'bg-warning'"></span>
+                                    <span class="badge" data-bind="text: statusName || 'Tahakkuk',
+                                        css: statusName === 'Odenmis' ? 'bg-success' :
+                                             statusName === 'Faturalanmis' ? 'bg-info' :
+                                             statusName === 'Gecikme' ? 'bg-danger' : 'bg-warning'"></span>
                                 </td>
                             </tr>
                         </tbody>
@@ -126,7 +126,7 @@ function BillingReportViewModel() {
 
     self.selectAll.subscribe(function(val) {
         if (val) {
-            self.selectedIds(self.items().map(function(i) { return i.id; }));
+            self.selectedIds(self.items().map(function(i) { return i.periodId; }));
         } else {
             self.selectedIds([]);
         }
@@ -138,7 +138,7 @@ function BillingReportViewModel() {
         var params = { page: self.currentPage(), pageSize: self.pageSize };
         if (self.yearFilter()) params.year = self.yearFilter();
         if (self.monthFilter()) params.month = self.monthFilter();
-        if (self.statusFilter()) params.status = self.statusFilter();
+        if (self.statusFilter()) params.statusId = self.statusFilter();
         $.get('/proxy/billing/report', params, function(data) {
             var items = Array.isArray(data) ? data : (data.items || data.data || []);
             self.items(items);
@@ -146,14 +146,14 @@ function BillingReportViewModel() {
         }).always(function() { self.isLoading(false); });
     };
 
-    self.bulkUpdate = function(status) {
+    self.bulkUpdate = function(statusId, isPaid) {
         var ids = self.selectedIds();
         if (ids.length === 0) return;
-        var promises = ids.map(function(id) {
+        var promises = ids.map(function(periodId) {
             return $.ajax({
-                url: '/proxy/customers/billing/' + id, method: 'PUT',
+                url: '/proxy/customers/billing/' + periodId, method: 'PUT',
                 contentType: 'application/json',
-                data: JSON.stringify({ status: status })
+                data: JSON.stringify({ statusId: statusId, isPaid: isPaid })
             });
         });
         $.when.apply($, promises).done(function() {
@@ -162,8 +162,8 @@ function BillingReportViewModel() {
         }).fail(function() { toastr.error('Guncelleme hatasi.'); });
     };
 
-    self.bulkInvoice = function() { self.bulkUpdate('Faturalanmis'); };
-    self.bulkPaid = function() { self.bulkUpdate('Odenmis'); };
+    self.bulkInvoice = function() { self.bulkUpdate(2, false); };
+    self.bulkPaid = function() { self.bulkUpdate(3, true); };
 
     self.loadData();
 }

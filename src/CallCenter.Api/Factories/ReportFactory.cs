@@ -343,7 +343,7 @@ public class ReportFactory : IReportFactory
 
         var dailyStats = await query
             .GroupBy(c => c.StartedAt.Date)
-            .Select(g => new DailyCallStatsDto
+            .Select(g => new
             {
                 Date = g.Key,
                 TotalCalls = g.Count(),
@@ -353,7 +353,13 @@ public class ReportFactory : IReportFactory
             .OrderBy(d => d.Date)
             .ToListAsync();
 
-        return dailyStats;
+        return dailyStats.Select(d => new DailyCallStatsDto
+        {
+            Date = DateTime.SpecifyKind(d.Date, DateTimeKind.Utc),
+            TotalCalls = d.TotalCalls,
+            AnsweredCalls = d.AnsweredCalls,
+            MissedCalls = d.MissedCalls
+        }).ToList();
     }
 
     // ═══════════════════════════════════════════════════════════════

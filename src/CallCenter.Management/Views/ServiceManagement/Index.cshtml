@@ -7,7 +7,7 @@
                     <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle"></i></div>
                     <div>
                         <div class="text-muted small">Aktif Abonelik</div>
-                        <h4 class="mb-0" data-bind="text: summary().activeSubscriptions || 0"></h4>
+                        <h4 class="mb-0" data-bind="text: summary().totalActiveSubscriptions || 0"></h4>
                     </div>
                 </div>
             </div>
@@ -18,7 +18,7 @@
                     <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-cash-stack"></i></div>
                     <div>
                         <div class="text-muted small">Aylik Gelir</div>
-                        <h4 class="mb-0" data-bind="text: (summary().monthlyRevenue || 0).toFixed(2) + ' TL'"></h4>
+                        <h4 class="mb-0" data-bind="text: (summary().totalMonthlyRevenue || 0).toFixed(2) + ' TL'"></h4>
                     </div>
                 </div>
             </div>
@@ -29,7 +29,7 @@
                     <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="bi bi-box"></i></div>
                     <div>
                         <div class="text-muted small">Hizmet Turu</div>
-                        <h4 class="mb-0" data-bind="text: summary().serviceTypeCount || 0"></h4>
+                        <h4 class="mb-0" data-bind="text: summary().serviceBreakdown ? summary().serviceBreakdown.length : 0"></h4>
                     </div>
                 </div>
             </div>
@@ -75,9 +75,9 @@
                             <tr>
                                 <td class="fw-medium" data-bind="text: code || '-'"></td>
                                 <td data-bind="text: name || '-'"></td>
-                                <td><span class="badge bg-secondary" data-bind="text: category || '-'"></span></td>
+                                <td><span class="badge bg-secondary" data-bind="text: categoryName || '-'"></span></td>
                                 <td><span class="badge" data-bind="text: isDefault ? 'Evet' : 'Hayir', css: isDefault ? 'bg-success' : 'bg-secondary'"></span></td>
-                                <td><span class="badge" data-bind="text: isPaid ? 'Evet' : 'Hayir', css: isPaid ? 'bg-warning' : 'bg-secondary'"></span></td>
+                                <td><span class="badge" data-bind="text: isDefault ? 'Hayir' : 'Evet', css: isDefault ? 'bg-secondary' : 'bg-warning'"></span></td>
                             </tr>
                         </tbody>
                     </table>

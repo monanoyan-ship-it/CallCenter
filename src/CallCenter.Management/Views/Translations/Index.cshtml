@@ -63,8 +63,8 @@
                             <tr>
                                 <td class="fw-medium small" data-bind="text: key"></td>
                                 <td><span class="badge bg-secondary" data-bind="text: module || '-'"></span></td>
-                                <td class="small" data-bind="text: tr || '-'"></td>
-                                <td class="small" data-bind="text: en || '-'"></td>
+                                <td class="small" data-bind="text: $data.values && $data.values['tr'] || '-'"></td>
+                                <td class="small" data-bind="text: $data.values && $data.values['en'] || '-'"></td>
                                 <td>
                                     <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
                                     <button class="btn btn-outline-danger btn-sm" title="Sil" data-bind="click: $parent.confirmDelete"><i class="bi bi-trash"></i></button>
@@ -215,8 +215,8 @@ function TranslationsViewModel() {
         self.form.key(item.key || '');
         self.form.module(item.module || '');
         self.form.description(item.description || '');
-        self.form.tr(item.tr || '');
-        self.form.en(item.en || '');
+        self.form.tr(item.values && item.values['tr'] || '');
+        self.form.en(item.values && item.values['en'] || '');
         self.formTitle('Ceviri Duzenle');
         new bootstrap.Modal('#translationModal').show();
     };

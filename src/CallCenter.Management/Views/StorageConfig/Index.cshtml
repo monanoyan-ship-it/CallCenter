@@ -19,17 +19,17 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Saglayici</th>
-                                <th>Adi</th>
-                                <th>Endpoint / Bucket</th>
+                                <th>Temel Yol</th>
+                                <th>Firma</th>
                                 <th>Durum</th>
                                 <th style="width:160px;"></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: items">
                             <tr>
-                                <td><span class="badge bg-info" data-bind="text: provider || '-'"></span></td>
-                                <td class="fw-medium" data-bind="text: name || '-'"></td>
-                                <td class="small text-muted" data-bind="text: (endpoint || '') + ' / ' + (bucket || '')"></td>
+                                <td><span class="badge bg-info" data-bind="text: providerName || '-'"></span></td>
+                                <td class="fw-medium" data-bind="text: $data.basePath || '-'"></td>
+                                <td class="small text-muted" data-bind="text: $data.customerName || '-'"></td>
                                 <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
                                 <td>
                                     <button class="btn btn-outline-info btn-sm me-1" title="Test" data-bind="click: $parent.testConnection"><i class="bi bi-plug"></i></button>
@@ -56,15 +56,17 @@
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Saglayici *</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.provider">
-                                <option value="S3">S3</option>
-                                <option value="MinIO">MinIO</option>
-                                <option value="GoogleDrive">Google Drive</option>
+                            <select class="form-select form-select-sm" data-bind="value: form.providerTypeId">
+                                <option value="4">Amazon S3</option>
+                                <option value="5">MinIO</option>
+                                <option value="1">Google Drive</option>
+                                <option value="2">OneDrive</option>
+                                <option value="3">Yandex Disk</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small">Adi *</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.name" />
+                            <label class="form-label small">Temel Yol</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.basePath" />
                         </div>
                     </div>
                     <div class="mb-3">
@@ -84,7 +86,7 @@
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Bucket</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.bucket" />
+                            <input class="form-control form-control-sm" data-bind="value: form.bucketName" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Region</label>
@@ -135,47 +137,46 @@ function StorageConfigViewModel() {
     self.deleteId = null;
 
     self.form = {
-        id: ko.observable(null), provider: ko.observable('S3'), name: ko.observable(''),
+        id: ko.observable(null), providerTypeId: ko.observable('4'), basePath: ko.observable(''),
         endpoint: ko.observable(''), accessKey: ko.observable(''), secretKey: ko.observable(''),
-        bucket: ko.observable(''), region: ko.observable(''), isActive: ko.observable(true)
+        bucketName: ko.observable(''), region: ko.observable(''), isActive: ko.observable(true)
     };
 
     self.loadData = function() {
         self.isLoading(true);
-        $.get('/proxy/storage/configs', function(data) {
+        $.get('/proxy/CloudStorage/configs', function(data) {
             var items = Array.isArray(data) ? data : (data.items || data.data || []);
             self.items(items);
         }).always(function() { self.isLoading(false); });
     };
 
     self.resetForm = function() {
-        self.form.id(null); self.form.provider('S3'); self.form.name('');
+        self.form.id(null); self.form.providerTypeId('4'); self.form.basePath('');
         self.form.endpoint(''); self.form.accessKey(''); self.form.secretKey('');
-        self.form.bucket(''); self.form.region(''); self.form.isActive(true);
+        self.form.bucketName(''); self.form.region(''); self.form.isActive(true);
     };
 
     self.openCreate = function() { self.resetForm(); self.formTitle('Yeni Yapilandirma'); new bootstrap.Modal('#storageModal').show(); };
 
     self.openEdit = function(item) {
-        self.form.id(item.id); self.form.provider(item.provider || 'S3');
-        self.form.name(item.name || ''); self.form.endpoint(item.endpoint || '');
-        self.form.accessKey(item.accessKey || ''); self.form.secretKey('');
-        self.form.bucket(item.bucket || ''); self.form.region(item.region || '');
+        self.form.id(item.id); self.form.providerTypeId(item.providerTypeId || '4');
+        self.form.basePath(item.basePath || ''); self.form.endpoint('');
+        self.form.accessKey(''); self.form.secretKey('');
+        self.form.bucketName(''); self.form.region('');
         self.form.isActive(item.isActive !== false);
         self.formTitle('Yapilandirma Duzenle');
         new bootstrap.Modal('#storageModal').show();
     };
 
     self.save = function() {
-        if (!self.form.name()) { toastr.warning('Ad zorunludur.'); return; }
         self.isSaving(true);
         var payload = {
-            provider: self.form.provider(), name: self.form.name(), endpoint: self.form.endpoint(),
-            accessKey: self.form.accessKey(), secretKey: self.form.secretKey(),
-            bucket: self.form.bucket(), region: self.form.region(), isActive: self.form.isActive()
+            providerTypeId: parseInt(self.form.providerTypeId()), basePath: self.form.basePath(),
+            endpoint: self.form.endpoint(), accessKey: self.form.accessKey(), secretKey: self.form.secretKey(),
+            bucketName: self.form.bucketName(), region: self.form.region(), isActive: self.form.isActive()
         };
         var method = self.form.id() ? 'PUT' : 'POST';
-        var url = self.form.id() ? '/proxy/storage/configs/' + self.form.id() : '/proxy/storage/configs';
+        var url = self.form.id() ? '/proxy/CloudStorage/configs/' + self.form.id() : '/proxy/CloudStorage/configs';
         $.ajax({
             url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
             success: function() {
@@ -189,7 +190,7 @@ function StorageConfigViewModel() {
     self.testConnection = function(item) {
         toastr.info('Test baslatildi...');
         $.ajax({
-            url: '/proxy/storage/configs/' + item.id + '/test', method: 'POST',
+            url: '/proxy/CloudStorage/configs/' + item.id + '/test', method: 'POST',
             success: function(data) {
                 if (data && data.success) toastr.success('Baglanti basarili!');
                 else toastr.warning('Test sonucu: ' + (data.message || 'Bilinmeyen'));
@@ -202,7 +203,7 @@ function StorageConfigViewModel() {
 
     self.executeDelete = function() {
         $.ajax({
-            url: '/proxy/storage/configs/' + self.deleteId, method: 'DELETE',
+            url: '/proxy/CloudStorage/configs/' + self.deleteId, method: 'DELETE',
             success: function() { toastr.success('Silindi.'); bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide(); self.loadData(); },
             error: function() { toastr.error('Silme hatasi.'); }
         });
