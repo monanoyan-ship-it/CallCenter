@@ -3,6 +3,38 @@ using System.ComponentModel.DataAnnotations;
 namespace CallCenter.Shared.DTOs;
 
 // ═══════════════════════════════════════════════════════════════
+// MANAGEMENT DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+
+public class ManagementDashboardDto
+{
+    public int TotalCustomers { get; set; }
+    public int ActiveCustomers { get; set; }
+    public int TotalUsers { get; set; }
+    public int ActiveUsers { get; set; }
+    public int TotalSalonCustomers { get; set; }
+    public int TotalCallCenterCustomers { get; set; }
+    public int OnlineAgentCount { get; set; }
+    public int ActiveCallCount { get; set; }
+    public int TodayTotalCalls { get; set; }
+    public int TodayAnsweredCalls { get; set; }
+    public int TodayMissedCalls { get; set; }
+    public List<CustomerModuleUsageDto> CustomerModules { get; set; } = new();
+}
+
+public class CustomerModuleUsageDto
+{
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public int ProductTypeId { get; set; }
+    public string ProductTypeName { get; set; } = string.Empty;
+    public int PersonnelCount { get; set; }
+    public int ModuleCount { get; set; }
+    public List<string> ActiveModules { get; set; } = new();
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ORTAK
 // ═══════════════════════════════════════════════════════════════
 

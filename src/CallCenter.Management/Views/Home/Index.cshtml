@@ -3,17 +3,15 @@
 }
 
 <div id="dashboard-vm">
-    <!-- Ozet Kartlari -->
-    <div class="row g-3 mb-4">
+    <!-- Ozet Kartlari - Satir 1 -->
+    <div class="row g-3 mb-3">
         <div class="col-md-3">
             <div class="card stat-card">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                        <i class="bi bi-building"></i>
-                    </div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-building"></i></div>
                     <div>
-                        <div class="text-muted small">Toplam Musteri</div>
-                        <h4 class="mb-0" data-bind="text: customerCount">-</h4>
+                        <div class="text-muted small">Musteriler</div>
+                        <h4 class="mb-0"><span data-bind="text: data().activeCustomers">-</span><small class="text-muted fs-6" data-bind="text: ' / ' + data().totalCustomers"></small></h4>
                     </div>
                 </div>
             </div>
@@ -21,12 +19,10 @@
         <div class="col-md-3">
             <div class="card stat-card">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-success bg-opacity-10 text-success">
-                        <i class="bi bi-people"></i>
-                    </div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-people"></i></div>
                     <div>
-                        <div class="text-muted small">Toplam Kullanici</div>
-                        <h4 class="mb-0" data-bind="text: userCount">-</h4>
+                        <div class="text-muted small">Kullanicilar</div>
+                        <h4 class="mb-0"><span data-bind="text: data().activeUsers">-</span><small class="text-muted fs-6" data-bind="text: ' / ' + data().totalUsers"></small></h4>
                     </div>
                 </div>
             </div>
@@ -34,12 +30,10 @@
         <div class="col-md-3">
             <div class="card stat-card">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-info bg-opacity-10 text-info">
-                        <i class="bi bi-telephone"></i>
-                    </div>
+                    <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="bi bi-telephone"></i></div>
                     <div>
-                        <div class="text-muted small">Aktif Cagri</div>
-                        <h4 class="mb-0" data-bind="text: activeCallCount">-</h4>
+                        <div class="text-muted small">Call Center</div>
+                        <h4 class="mb-0" data-bind="text: data().totalCallCenterCustomers">-</h4>
                     </div>
                 </div>
             </div>
@@ -47,51 +41,100 @@
         <div class="col-md-3">
             <div class="card stat-card">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                        <i class="bi bi-scissors"></i>
-                    </div>
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-scissors"></i></div>
                     <div>
-                        <div class="text-muted small">Aktif Salon</div>
-                        <h4 class="mb-0" data-bind="text: activeSalonCount">-</h4>
+                        <div class="text-muted small">Salon</div>
+                        <h4 class="mb-0" data-bind="text: data().totalSalonCustomers">-</h4>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Musteri Listesi -->
+    <!-- Ozet Kartlari - Satir 2 (Canli) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-success border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Online Agent</div>
+                    <h5 class="mb-0 text-success" data-bind="text: data().onlineAgentCount">0</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-danger border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Aktif Cagri</div>
+                    <h5 class="mb-0 text-danger" data-bind="text: data().activeCallCount">0</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-primary border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Bugun Toplam</div>
+                    <h5 class="mb-0" data-bind="text: data().todayTotalCalls">0</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-warning border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Cevaplanan / Kacan</div>
+                    <h5 class="mb-0">
+                        <span class="text-success" data-bind="text: data().todayAnsweredCalls">0</span>
+                        <small class="text-muted">/</small>
+                        <span class="text-danger" data-bind="text: data().todayMissedCalls">0</span>
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Musteri Modul Kullanim Tablosu -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="bi bi-building me-2"></i>Musteriler</h6>
+            <h6 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Musteri - Modul Kullanimi</h6>
+            <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadData">
+                <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+            </button>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
+            <div class="text-center py-4" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="table-responsive" data-bind="visible: !isLoading()">
+                <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Musteri</th>
                             <th>Urun Tipi</th>
-                            <th>Kullanici</th>
+                            <th class="text-center">Personel</th>
+                            <th class="text-center">Modul</th>
+                            <th>Aktif Moduller</th>
                             <th>Durum</th>
                         </tr>
                     </thead>
-                    <tbody data-bind="foreach: customers">
-                        <tr>
+                    <tbody data-bind="foreach: data().customerModules || []">
+                        <tr data-bind="css: { 'table-secondary': !isActive }">
                             <td>
-                                <strong data-bind="text: name"></strong>
-                                <div class="text-muted small" data-bind="text: contactEmail"></div>
+                                <a class="fw-medium text-decoration-none" data-bind="text: customerName, attr: { href: '/Customers/Detail/' + customerId }"></a>
                             </td>
-                            <td><span class="badge bg-secondary" data-bind="text: productTypeName"></span></td>
-                            <td data-bind="text: maxUsers"></td>
+                            <td>
+                                <span class="badge" data-bind="text: productTypeName,
+                                    css: productTypeId === 1 ? 'bg-primary' : productTypeId === 2 ? 'bg-warning text-dark' : 'bg-info'"></span>
+                            </td>
+                            <td class="text-center" data-bind="text: personnelCount"></td>
+                            <td class="text-center"><span class="badge bg-secondary" data-bind="text: moduleCount"></span></td>
+                            <td>
+                                <!-- ko foreach: activeModules -->
+                                <span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.7rem;" data-bind="text: $data"></span>
+                                <!-- /ko -->
+                            </td>
                             <td>
                                 <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-            <div class="text-center py-3" data-bind="visible: customers().length === 0">
-                <span class="text-muted">Yukleniyor...</span>
             </div>
         </div>
     </div>
@@ -101,31 +144,30 @@
 <script>
 function DashboardViewModel() {
     var self = this;
-    self.customerCount = ko.observable('-');
-    self.userCount = ko.observable('-');
-    self.activeCallCount = ko.observable(0);
-    self.activeSalonCount = ko.observable(0);
-    self.customers = ko.observableArray([]);
+    self.data = ko.observable({
+        totalCustomers: 0, activeCustomers: 0, totalUsers: 0, activeUsers: 0,
+        totalSalonCustomers: 0, totalCallCenterCustomers: 0,
+        onlineAgentCount: 0, activeCallCount: 0,
+        todayTotalCalls: 0, todayAnsweredCalls: 0, todayMissedCalls: 0,
+        customerModules: []
+    });
+    self.isLoading = ko.observable(true);
 
-    self.loadData = function() {
-        $.get('/proxy/customers', function(data) {
-            var items = Array.isArray(data) ? data : (data.items || data.data || []);
-            self.customers(items);
-            self.customerCount(items.length);
-
-            var salonCount = items.filter(function(c) { return c.productTypeId === 2 && c.isActive; }).length;
-            self.activeSalonCount(salonCount);
-        });
-
-        $.get('/proxy/users', function(data) {
-            var items = Array.isArray(data) ? data : (data.items || data.data || []);
-            self.userCount(items.length);
+    self.loadData = function () {
+        self.isLoading(true);
+        $.get('/proxy/management/dashboard', function (d) {
+            self.data(d);
+        }).fail(function () {
+            toastr.error('Dashboard verileri yuklenemedi.');
+        }).always(function () {
+            self.isLoading(false);
         });
     };
 
     self.loadData();
+    // 60sn otomatik yenileme
+    setInterval(self.loadData, 60000);
 }
-
 ko.applyBindings(new DashboardViewModel(), document.getElementById('dashboard-vm'));
 </script>
 }
