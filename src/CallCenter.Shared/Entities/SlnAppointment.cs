@@ -12,8 +12,11 @@ public class SlnAppointment
     public int PersonnelId { get; set; }
     public CustomerPersonnel? Personnel { get; set; }
 
-    public int ServiceId { get; set; }
+    /// <summary>Eski tek hizmet FK (geriye uyumluluk). Yeni kayitlarda null, Services koleksiyonu kullanilir.</summary>
+    public int? ServiceId { get; set; }
     public SlnService? Service { get; set; }
+
+    public ICollection<SlnAppointmentService> Services { get; set; } = new List<SlnAppointmentService>();
 
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }

@@ -26,6 +26,12 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         _logger = logger;
     }
 
+    private IQueryable<SlnAppointment> IncludeAll(IQueryable<SlnAppointment> q) => q
+        .Include(a => a.SlnClient)
+        .Include(a => a.Personnel).ThenInclude(p => p!.User)
+        .Include(a => a.Service)
+        .Include(a => a.Services).ThenInclude(s => s.SlnService);
+
     public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null)
     {
         var query = _appointments.GetAllQueryable()
@@ -43,10 +49,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (statusId.HasValue)
             query = query.Where(a => a.StatusId == statusId.Value);
 
-        var appointments = await query
-            .Include(a => a.SlnClient)
-            .Include(a => a.Personnel).ThenInclude(p => p!.User)
-            .Include(a => a.Service)
+        var appointments = await IncludeAll(query)
             .OrderBy(a => a.StartTime)
             .ToListAsync();
 
@@ -55,10 +58,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<SlnAppointmentDto?> GetAppointmentAsync(int appointmentId, int customerId)
     {
-        var appointment = await _appointments.GetAllQueryable()
-            .Include(a => a.SlnClient)
-            .Include(a => a.Personnel).ThenInclude(p => p!.User)
-            .Include(a => a.Service)
+        var appointment = await IncludeAll(_appointments.GetAllQueryable())
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         return appointment != null ? MapToDto(appointment) : null;
@@ -66,14 +66,19 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<(SlnAppointmentDto? Appointment, string? Error)> CreateAppointmentAsync(SlnAppointmentCreateDto dto, int userId, int customerId)
     {
-        // Hizmet suresini al
-        var service = await _services.GetByIdAsync(dto.ServiceId);
-        if (service == null)
-            return (null, "Hizmet bulunamadi");
+        if (dto.ServiceIds.Count == 0)
+            return (null, "En az bir hizmet secilmeli");
 
-        var endTime = dto.StartTime.AddMinutes(service.DurationMinutes);
+        var services = await _services.GetAllQueryable()
+            .Where(s => dto.ServiceIds.Contains(s.Id))
+            .ToListAsync();
 
-        // Cakisma kontrolu
+        if (services.Count != dto.ServiceIds.Count)
+            return (null, "Bir veya daha fazla hizmet bulunamadi");
+
+        var totalMinutes = services.Sum(s => s.DurationMinutes);
+        var endTime = dto.StartTime.AddMinutes(totalMinutes);
+
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId);
         if (hasConflict)
             return (null, "Secilen saatte personelin baska bir randevusu var");
@@ -83,23 +88,24 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             CustomerId = customerId,
             SlnClientId = dto.SlnClientId,
             PersonnelId = dto.PersonnelId,
-            ServiceId = dto.ServiceId,
             StartTime = dto.StartTime,
             EndTime = endTime,
             Notes = dto.Notes,
-            CreatedByPersonnelId = userId
+            CreatedByPersonnelId = userId,
+            Services = dto.ServiceIds.Select((id, i) => new SlnAppointmentService
+            {
+                SlnServiceId = id,
+                SortOrder = i
+            }).ToList()
         };
 
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();
 
-        _logger.LogInformation("Yeni randevu olusturuldu: {AppointmentId} - {StartTime}", appointment.Id, appointment.StartTime);
+        _logger.LogInformation("Yeni randevu olusturuldu: {AppointmentId} - {StartTime} ({ServiceCount} hizmet)",
+            appointment.Id, appointment.StartTime, dto.ServiceIds.Count);
 
-        // Include'li tekrar cek
-        var created = await _appointments.GetAllQueryable()
-            .Include(a => a.SlnClient)
-            .Include(a => a.Personnel).ThenInclude(p => p!.User)
-            .Include(a => a.Service)
+        var created = await IncludeAll(_appointments.GetAllQueryable())
             .FirstAsync(a => a.Id == appointment.Id);
 
         return (MapToDto(created), null);
@@ -108,26 +114,40 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     public async Task<(bool Success, string? Error)> UpdateAppointmentAsync(int appointmentId, SlnAppointmentCreateDto dto, int customerId)
     {
         var appointment = await _appointments.GetAllQueryable()
+            .Include(a => a.Services)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return (false, "Randevu bulunamadi");
         if (appointment.StatusId == 4) return (false, "Iptal edilmis randevu guncellenemez");
 
-        var service = await _services.GetByIdAsync(dto.ServiceId);
-        if (service == null) return (false, "Hizmet bulunamadi");
+        if (dto.ServiceIds.Count == 0)
+            return (false, "En az bir hizmet secilmeli");
 
-        var endTime = dto.StartTime.AddMinutes(service.DurationMinutes);
+        var services = await _services.GetAllQueryable()
+            .Where(s => dto.ServiceIds.Contains(s.Id))
+            .ToListAsync();
+
+        if (services.Count != dto.ServiceIds.Count)
+            return (false, "Bir veya daha fazla hizmet bulunamadi");
+
+        var totalMinutes = services.Sum(s => s.DurationMinutes);
+        var endTime = dto.StartTime.AddMinutes(totalMinutes);
 
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId, appointmentId);
         if (hasConflict) return (false, "Secilen saatte personelin baska bir randevusu var");
 
         appointment.SlnClientId = dto.SlnClientId;
         appointment.PersonnelId = dto.PersonnelId;
-        appointment.ServiceId = dto.ServiceId;
+        appointment.ServiceId = null;
         appointment.StartTime = dto.StartTime;
         appointment.EndTime = endTime;
         appointment.Notes = dto.Notes;
         appointment.UpdatedAt = DateTime.UtcNow;
+
+        // Eski hizmetleri temizle, yenilerini ekle
+        appointment.Services.Clear();
+        foreach (var (id, i) in dto.ServiceIds.Select((id, i) => (id, i)))
+            appointment.Services.Add(new SlnAppointmentService { SlnServiceId = id, SortOrder = i });
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -175,19 +195,34 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return await query.AnyAsync();
     }
 
-    private static SlnAppointmentDto MapToDto(SlnAppointment a) => new()
+    private static SlnAppointmentDto MapToDto(SlnAppointment a)
     {
-        Id = a.Id,
-        SlnClientId = a.SlnClientId,
-        ClientName = a.SlnClient?.FullName ?? "",
-        ClientPhone = a.SlnClient?.Phone,
-        PersonnelId = a.PersonnelId,
-        PersonnelName = a.Personnel?.User?.FullName ?? "",
-        ServiceId = a.ServiceId,
-        ServiceName = a.Service?.Name ?? "",
-        StartTime = a.StartTime,
-        EndTime = a.EndTime,
-        StatusId = a.StatusId,
-        Notes = a.Notes
-    };
+        // Yeni kayitlar Services koleksiyonunu kullanir, eski kayitlar ServiceId FK'yi
+        var serviceIds = a.Services.Count > 0
+            ? a.Services.OrderBy(s => s.SortOrder).Select(s => s.SlnServiceId).ToList()
+            : a.ServiceId.HasValue ? new List<int> { a.ServiceId.Value } : new List<int>();
+
+        var serviceNames = a.Services.Count > 0
+            ? a.Services.OrderBy(s => s.SortOrder).Select(s => s.SlnService?.Name ?? "").ToList()
+            : a.Service != null ? new List<string> { a.Service.Name } : new List<string>();
+
+        var duration = (int)(a.EndTime - a.StartTime).TotalMinutes;
+
+        return new SlnAppointmentDto
+        {
+            Id = a.Id,
+            SlnClientId = a.SlnClientId,
+            ClientName = a.SlnClient?.FullName ?? "",
+            ClientPhone = a.SlnClient?.Phone,
+            PersonnelId = a.PersonnelId,
+            PersonnelName = a.Personnel?.User?.FullName ?? "",
+            ServiceIds = serviceIds,
+            ServiceNames = serviceNames,
+            DurationMinutes = duration,
+            StartTime = a.StartTime,
+            EndTime = a.EndTime,
+            StatusId = a.StatusId,
+            Notes = a.Notes
+        };
+    }
 }

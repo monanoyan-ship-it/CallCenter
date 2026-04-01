@@ -123,6 +123,124 @@ function createAutocomplete(sourceArray, textField, valueObservable, maxShow) {
 }
 
 /**
+ * Multi-select autocomplete - birden fazla item secilebilir, tag/chip olarak gosterilir.
+ * @param {ko.observableArray} sourceArray - Veri kaynagi
+ * @param {string} textField - Gosterilecek alan adi
+ * @param {ko.observableArray} valuesObservable - Secilen ID'ler dizisi
+ * @param {number} [maxShow=20]
+ */
+function createMultiAutocomplete(sourceArray, textField, valuesObservable, maxShow) {
+    maxShow = maxShow || 20;
+    var ac = {};
+    ac.query = ko.observable('');
+    ac.showDropdown = ko.observable(false);
+    ac.highlightIndex = ko.observable(-1);
+    var blurTimeout = null;
+
+    ac.selectedItems = ko.computed(function () {
+        var ids = valuesObservable() || [];
+        var items = sourceArray() || [];
+        var result = [];
+        for (var i = 0; i < ids.length; i++) {
+            for (var j = 0; j < items.length; j++) {
+                if (items[j].id == ids[i]) { result.push(items[j]); break; }
+            }
+        }
+        return result;
+    });
+
+    ac.sortedItems = ko.computed(function () {
+        var items = (sourceArray() || []).slice();
+        items.sort(function (a, b) {
+            return ((a[textField] || '').localeCompare(b[textField] || '', 'tr'));
+        });
+        return items;
+    });
+
+    ac.filteredItems = ko.computed(function () {
+        var q = (ac.query() || '').toLowerCase().trim();
+        var sorted = ac.sortedItems();
+        var selected = valuesObservable() || [];
+        // Secilmis olanlari filtrele
+        var available = sorted.filter(function (item) {
+            return selected.indexOf(item.id) < 0;
+        });
+        if (!q) return available.slice(0, maxShow);
+        return available.filter(function (item) {
+            return (item[textField] || '').toLowerCase().indexOf(q) >= 0;
+        }).slice(0, maxShow);
+    });
+
+    ac.getDisplayText = function (item) { return item[textField] || ''; };
+
+    ac.onFocus = function () {
+        if (blurTimeout) { clearTimeout(blurTimeout); blurTimeout = null; }
+        ac.showDropdown(true);
+        ac.highlightIndex(-1);
+        return true;
+    };
+
+    ac.onBlur = function () {
+        blurTimeout = setTimeout(function () { ac.showDropdown(false); }, 200);
+        return true;
+    };
+
+    ac.select = function (item) {
+        var ids = (valuesObservable() || []).slice();
+        if (ids.indexOf(item.id) < 0) ids.push(item.id);
+        valuesObservable(ids);
+        ac.query('');
+        ac.highlightIndex(-1);
+    };
+
+    ac.remove = function (item) {
+        var ids = (valuesObservable() || []).filter(function (id) { return id !== item.id; });
+        valuesObservable(ids);
+    };
+
+    ac.clear = function () {
+        valuesObservable([]);
+        ac.query('');
+        ac.highlightIndex(-1);
+    };
+
+    ac.onKeydown = function (data, event) {
+        var key = event.keyCode;
+        var items = ac.filteredItems();
+        if (key === 40) {
+            ac.highlightIndex(Math.min(ac.highlightIndex() + 1, items.length - 1));
+            ac.showDropdown(true);
+            return false;
+        } else if (key === 38) {
+            ac.highlightIndex(Math.max(ac.highlightIndex() - 1, -1));
+            return false;
+        } else if (key === 13) {
+            var idx = ac.highlightIndex();
+            if (idx >= 0 && idx < items.length) ac.select(items[idx]);
+            return false;
+        } else if (key === 27) {
+            ac.showDropdown(false);
+            return false;
+        } else if (key === 8 && !ac.query()) {
+            // Backspace bos inputta son tagi sil
+            var ids = valuesObservable() || [];
+            if (ids.length > 0) valuesObservable(ids.slice(0, -1));
+            return false;
+        }
+        return true;
+    };
+
+    ac.query.subscribe(function () { ac.highlightIndex(-1); });
+
+    ac.setFromValues = function (ids) {
+        valuesObservable(ids || []);
+        ac.query('');
+    };
+
+    return ac;
+}
+
+/**
  * Serbest metin autocomplete - onceden girilen degerleri onerir, yeni deger de yazilabilir.
  * @param {ko.observableArray} suggestionsArray - Oneri listesi (string dizisi)
  * @param {ko.observable} valueObservable - Deger yazilacak form field (string)

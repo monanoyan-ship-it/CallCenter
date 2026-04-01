@@ -185,6 +185,7 @@
     <script>
         // AJAX hata yonetimi (401 -> login)
         $.ajaxSetup({
+            dataType: 'json',
             error: function(xhr) {
                 if (xhr.status === 401) window.location.href = '/Account/Login';
             }

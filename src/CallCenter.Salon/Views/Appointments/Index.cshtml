@@ -3,30 +3,141 @@
 }
 
 <div id="appointments-vm">
-    <!-- Toolbar -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" data-bind="click: prevDay">
-                <i class="bi bi-chevron-left"></i>
-            </button>
-            <input type="date" class="form-control form-control-sm" style="width:160px;" data-bind="value: selectedDate" />
-            <button class="btn btn-outline-secondary btn-sm" data-bind="click: nextDay">
-                <i class="bi bi-chevron-right"></i>
-            </button>
-            <button class="btn btn-outline-primary btn-sm" data-bind="click: goToday">Bugun</button>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: selectedStaffId, optionsCaption: 'Tum Personel'"></select>
-            <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-                <i class="bi bi-plus-lg me-1"></i>Yeni Randevu
-            </button>
+    <!-- ═══ Filtre Karti ═══ -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-start">
+                <!-- Sol: Tarih Araligi -->
+                <div class="col-lg-8">
+                    <label class="form-label small fw-semibold mb-1">
+                        <i class="bi bi-calendar-range me-1"></i>Tarih Araligi
+                    </label>
+
+                    <!-- Preset Butonlari -->
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <!-- ko foreach: presetGroups -->
+                        <div class="btn-group btn-group-sm">
+                            <!-- ko foreach: items -->
+                            <button class="btn" data-bind="text: label, click: $root.addPreset, css: $parent.css"></button>
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
+                    </div>
+
+                    <!-- Manuel Aralik Ekleme -->
+                    <div class="d-flex align-items-center gap-1 mb-2">
+                        <input type="date" class="form-control form-control-sm" style="width:140px;" data-bind="value: manualFrom" />
+                        <span class="text-muted small">-</span>
+                        <input type="date" class="form-control form-control-sm" style="width:140px;" data-bind="value: manualTo" />
+                        <button class="btn btn-outline-primary btn-sm" data-bind="click: addManualRange" title="Ekle">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                        <!-- ko if: dateRanges().length > 1 -->
+                        <button class="btn btn-outline-danger btn-sm" data-bind="click: clearAllRanges" title="Tumu temizle">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <!-- /ko -->
+                    </div>
+
+                    <!-- Aktif Aralik Chip'leri -->
+                    <div class="d-flex flex-wrap gap-1">
+                        <!-- ko foreach: dateRanges -->
+                        <span class="badge bg-primary d-inline-flex align-items-center gap-1" style="font-size:.8rem;">
+                            <i class="bi bi-calendar-range"></i>
+                            <span data-bind="text: label"></span>
+                            <i class="bi bi-x" style="cursor:pointer;" data-bind="click: $root.removeRange"></i>
+                        </span>
+                        <!-- /ko -->
+                        <!-- ko if: dateRanges().length === 0 -->
+                        <span class="text-muted small fst-italic">Tarih araligi secin</span>
+                        <!-- /ko -->
+                    </div>
+                </div>
+
+                <!-- Sag: Personel Filtresi + Yeni Randevu -->
+                <div class="col-lg-4">
+                    <label class="form-label small fw-semibold mb-1">
+                        <i class="bi bi-people me-1"></i>Personel
+                    </label>
+                    <div class="position-relative" data-bind="with: staffFilterAutocomplete">
+                        <div class="form-control form-control-sm d-flex flex-wrap align-items-center gap-1"
+                             style="min-height:31px; height:auto; cursor:text;"
+                             data-bind="click: function(d,e){ e.currentTarget.querySelector('input').focus(); }">
+                            <!-- ko foreach: selectedItems -->
+                            <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size:.75rem;">
+                                <span data-bind="text: $parent.getDisplayText($data)"></span>
+                                <i class="bi bi-x" style="cursor:pointer;" data-bind="click: $parent.remove"></i>
+                            </span>
+                            <!-- /ko -->
+                            <input type="text" class="border-0 flex-grow-1 bg-transparent"
+                                   style="min-width:80px; outline:none; font-size:.875rem;"
+                                   autocomplete="off"
+                                   data-bind="value: query, valueUpdate: 'afterkeydown',
+                                              event: { focus: onFocus, blur: onBlur, keydown: onKeydown },
+                                              attr: { placeholder: selectedItems().length ? '' : 'Tum personel...' }" />
+                        </div>
+                        <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                             data-bind="css: { show: showDropdown }">
+                            <!-- ko foreach: filteredItems -->
+                            <a class="dropdown-item small py-1 px-2" href="#"
+                               data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                          css: { active: $parent.highlightIndex() === $index() },
+                                          event: { mousedown: function(){ $parent.select($data); } }"></a>
+                            <!-- /ko -->
+                        </div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+                            <i class="bi bi-plus-lg me-1"></i>Yeni Randevu
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Gunluk Gorunum -->
+    <!-- ═══ Personel Raporu ═══ -->
+    <!-- ko if: personnelReport().length > 0 -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 small"><i class="bi bi-bar-chart me-1"></i>Personel Ozeti</h6>
+            <small class="text-muted" data-bind="text: filteredAppointments().length + ' randevu'"></small>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="small">Personel</th>
+                        <th class="small text-center">Toplam</th>
+                        <th class="small text-center">Tamamlanan</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: personnelReport">
+                    <tr>
+                        <td class="small" data-bind="text: personnelName"></td>
+                        <td class="small text-center"><span class="badge bg-primary" data-bind="text: total"></span></td>
+                        <td class="small text-center"><span class="badge bg-success" data-bind="text: completed"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ═══ Randevu Tablosu ═══ -->
+    <!-- ko if: isLoadingAppointments() -->
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Yukleniyor...</span>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko ifnot: isLoadingAppointments() -->
+    <!-- ko if: filteredAppointments().length > 0 -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0" data-bind="text: formattedDate"></h6>
+            <h6 class="mb-0 small" data-bind="text: rangesDescription"></h6>
             <small class="text-muted" data-bind="text: filteredAppointments().length + ' randevu'"></small>
         </div>
         <div class="card-body p-0">
@@ -34,9 +145,10 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:80px;">Saat</th>
+                            <th style="width:90px;">Tarih</th>
+                            <th style="width:60px;">Saat</th>
                             <th>Musteri</th>
-                            <th>Hizmet</th>
+                            <th>Hizmetler</th>
                             <th>Personel</th>
                             <th>Sure</th>
                             <th>Durum</th>
@@ -45,11 +157,12 @@
                     </thead>
                     <tbody data-bind="foreach: filteredAppointments">
                         <tr data-bind="css: { 'table-success': statusId === 3, 'table-warning': statusId === 2, 'table-danger': statusId === 4 }">
+                            <td class="small" data-bind="text: dateFormatted || '-'"></td>
                             <td class="small fw-semibold" data-bind="text: startTimeFormatted || '-'"></td>
                             <td class="small">
                                 <a data-bind="text: clientName, attr: { href: '/Clients/Detail/' + slnClientId }" class="text-decoration-none"></a>
                             </td>
-                            <td class="small" data-bind="text: serviceName"></td>
+                            <td class="small" data-bind="text: serviceNamesText"></td>
                             <td class="small" data-bind="text: personnelName"></td>
                             <td class="small" data-bind="text: durationMinutes ? durationMinutes + ' dk' : '-'"></td>
                             <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
@@ -70,16 +183,26 @@
                     </tbody>
                 </table>
             </div>
-            <!-- ko if: filteredAppointments().length === 0 -->
-            <div class="text-center text-muted py-4">
-                <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Bu tarihte randevu bulunamadi</p>
-            </div>
-            <!-- /ko -->
         </div>
     </div>
+    <!-- /ko -->
 
-    <!-- Modal -->
+    <!-- ko if: filteredAppointments().length === 0 && dateRanges().length > 0 -->
+    <div class="text-center text-muted py-4">
+        <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+        <p class="mt-2 small">Secilen tarih araliginda randevu bulunamadi</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: dateRanges().length === 0 -->
+    <div class="text-center text-muted py-4">
+        <i class="bi bi-calendar-plus" style="font-size: 2rem;"></i>
+        <p class="mt-2 small">Randevulari gormek icin tarih araligi secin</p>
+    </div>
+    <!-- /ko -->
+    <!-- /ko -->
+
+    <!-- ═══ Randevu Modal ═══ -->
     <div class="modal fade" id="appointmentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -122,19 +245,24 @@
                             <input type="datetime-local" class="form-control form-control-sm" data-bind="value: form.startTime" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Hizmet *</label>
+                            <label class="form-label small">Hizmetler *</label>
                             <div class="position-relative" data-bind="with: serviceAutocomplete">
-                                <input type="text" class="form-control form-control-sm"
-                                       placeholder="Hizmet yazin..."
-                                       autocomplete="off"
-                                       data-bind="value: query, valueUpdate: 'afterkeydown',
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                <!-- ko if: selectedName() -->
-                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
-                                    <i class="bi bi-x-circle text-muted"></i>
-                                </span>
-                                <!-- /ko -->
+                                <div class="form-control form-control-sm d-flex flex-wrap align-items-center gap-1"
+                                     style="min-height:31px; height:auto; cursor:text;"
+                                     data-bind="click: function(d,e){ e.currentTarget.querySelector('input').focus(); }">
+                                    <!-- ko foreach: selectedItems -->
+                                    <span class="badge bg-primary d-inline-flex align-items-center gap-1" style="font-size:.75rem;">
+                                        <span data-bind="text: $parent.getDisplayText($data)"></span>
+                                        <i class="bi bi-x" style="cursor:pointer;" data-bind="click: $parent.remove"></i>
+                                    </span>
+                                    <!-- /ko -->
+                                    <input type="text" class="border-0 flex-grow-1 bg-transparent"
+                                           style="min-width:80px; outline:none; font-size:.875rem;"
+                                           autocomplete="off"
+                                           data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                      event: { focus: onFocus, blur: onBlur, keydown: onKeydown },
+                                                      attr: { placeholder: selectedItems().length ? '' : 'Hizmet yazin...' }" />
+                                </div>
                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
                                      data-bind="css: { show: showDropdown }">
                                     <!-- ko foreach: filteredItems -->

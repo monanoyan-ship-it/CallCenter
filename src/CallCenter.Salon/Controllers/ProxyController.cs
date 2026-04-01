@@ -12,13 +12,7 @@ public class ProxyController : SlnBaseController
     {
         using var client = CreateApiClient();
         var response = await client.GetAsync($"api/{path}{Request.QueryString}");
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
-        {
-            Content = content,
-            ContentType = "application/json",
-            StatusCode = (int)response.StatusCode
-        };
+        return await ToJsonResult(response);
     }
 
     [HttpPost("proxy/{**path}")]
@@ -29,13 +23,7 @@ public class ProxyController : SlnBaseController
         var body = await reader.ReadToEndAsync();
         var response = await client.PostAsync($"api/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
-        {
-            Content = content,
-            ContentType = "application/json",
-            StatusCode = (int)response.StatusCode
-        };
+        return await ToJsonResult(response);
     }
 
     [HttpPut("proxy/{**path}")]
@@ -46,13 +34,7 @@ public class ProxyController : SlnBaseController
         var body = await reader.ReadToEndAsync();
         var response = await client.PutAsync($"api/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
-        {
-            Content = content,
-            ContentType = "application/json",
-            StatusCode = (int)response.StatusCode
-        };
+        return await ToJsonResult(response);
     }
 
     [HttpDelete("proxy/{**path}")]
@@ -60,11 +42,20 @@ public class ProxyController : SlnBaseController
     {
         using var client = CreateApiClient();
         var response = await client.DeleteAsync($"api/{path}");
+        return await ToJsonResult(response);
+    }
+
+    /// <summary>
+    /// API response'unu JSON ContentResult'a cevirir.
+    /// Bos body'de "null" doner (jQuery dataType:'json' ile uyumlu).
+    /// </summary>
+    private static async Task<ContentResult> ToJsonResult(HttpResponseMessage response)
+    {
         var content = await response.Content.ReadAsStringAsync();
         return new ContentResult
         {
-            Content = content,
-            ContentType = "application/json",
+            Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
+            ContentType = "application/json; charset=utf-8",
             StatusCode = (int)response.StatusCode
         };
     }

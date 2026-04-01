@@ -131,8 +131,9 @@ public class SlnAppointmentDto
     public string? ClientPhone { get; set; }
     public int PersonnelId { get; set; }
     public string PersonnelName { get; set; } = string.Empty;
-    public int ServiceId { get; set; }
-    public string ServiceName { get; set; } = string.Empty;
+    public List<int> ServiceIds { get; set; } = new();
+    public List<string> ServiceNames { get; set; } = new();
+    public int DurationMinutes { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public int StatusId { get; set; }
@@ -143,7 +144,7 @@ public class SlnAppointmentCreateDto
 {
     public int SlnClientId { get; set; }
     public int PersonnelId { get; set; }
-    public int ServiceId { get; set; }
+    public List<int> ServiceIds { get; set; } = new();
     public DateTime StartTime { get; set; }
     public string? Notes { get; set; }
 }

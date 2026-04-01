@@ -58,14 +58,10 @@ public class AccountController : SlnBaseController
             return Json(new { success = false, error });
         }
 
-        // Kayıt başarılı, session'a token yaz
+        // Kayıt başarılı, session'a token yaz (Login ile aynı claim'ler)
         if (root.TryGetProperty("token", out var token) && token.GetString() is string t && !string.IsNullOrEmpty(t))
         {
-            HttpContext.Session.SetString("Token", t);
-            if (root.TryGetProperty("fullName", out var fn))
-                HttpContext.Session.SetString("UserName", fn.GetString() ?? "");
-            if (root.TryGetProperty("role", out var r))
-                HttpContext.Session.SetString("UserRole", r.GetString() ?? "");
+            SetSessionFromLoginResponse(json);
         }
 
         return Json(new { success = true });

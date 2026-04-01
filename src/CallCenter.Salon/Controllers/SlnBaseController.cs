@@ -8,15 +8,18 @@ public abstract class SlnBaseController : Controller
 {
     public override void OnActionExecuting(ActionExecutingContext context)
     {
+        var controllerType = context.Controller.GetType();
         var token = HttpContext.Session.GetString("Token");
-        if (string.IsNullOrEmpty(token) && context.Controller.GetType() != typeof(AccountController))
+        if (string.IsNullOrEmpty(token) && controllerType != typeof(AccountController))
         {
             context.Result = RedirectToAction("Login", "Account");
             return;
         }
 
-        // Rol bazli sayfa erisim kontrolu
-        if (!string.IsNullOrEmpty(token))
+        // Rol bazli sayfa erisim kontrolu (Proxy ve PublicProxy muaf)
+        if (!string.IsNullOrEmpty(token)
+            && controllerType != typeof(ProxyController)
+            && controllerType != typeof(PublicProxyController))
         {
             var controllerName = context.RouteData.Values["controller"]?.ToString() ?? "";
             var roleId = int.TryParse(HttpContext.Session.GetString("CustomerRoleId"), out var rid) ? rid : 101;

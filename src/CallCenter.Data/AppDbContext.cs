@@ -100,6 +100,7 @@ public class AppDbContext : DbContext
     public DbSet<SlnPayroll> SlnPayrolls => Set<SlnPayroll>();
     public DbSet<SlnAdvance> SlnAdvances => Set<SlnAdvance>();
     public DbSet<SlnAppointment> SlnAppointments => Set<SlnAppointment>();
+    public DbSet<SlnAppointmentService> SlnAppointmentServices => Set<SlnAppointmentService>();
     public DbSet<SlnProductCategory> SlnProductCategories => Set<SlnProductCategory>();
     public DbSet<SlnProductBrand> SlnProductBrands => Set<SlnProductBrand>();
     public DbSet<SlnProduct> SlnProducts => Set<SlnProduct>();
