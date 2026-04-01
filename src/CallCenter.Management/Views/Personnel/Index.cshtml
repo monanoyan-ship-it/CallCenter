@@ -257,9 +257,11 @@ function PersonnelViewModel() {
         if (!self.form.fullName() || !self.form.userName()) { toastr.warning('Ad soyad ve kullanici adi zorunludur.'); return; }
         self.isSaving(true);
         var payload = {
-            customerId: parseInt(self.customerId()), fullName: self.form.fullName(),
-            userName: self.form.userName(), email: self.form.email(),
-            title: self.form.title(), customerRoleId: self.form.customerRoleId() ? parseInt(self.form.customerRoleId()) : null,
+            fullName: self.form.fullName(),
+            userName: self.form.userName(),
+            email: self.form.email() || '',
+            title: self.form.title() || '',
+            customerRoleId: self.form.customerRoleId() ? parseInt(self.form.customerRoleId()) : 3,
             organizationUnitId: self.form.organizationUnitId() ? parseInt(self.form.organizationUnitId()) : null,
             reportsToPersonnelId: self.form.reportsToPersonnelId() ? parseInt(self.form.reportsToPersonnelId()) : null,
             isActive: self.form.isActive()
@@ -274,7 +276,11 @@ function PersonnelViewModel() {
                 toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('personnelModal')).hide();
                 self.loadData();
             },
-            error: function() { toastr.error('Kaydetme hatasi.'); }
+            error: function(xhr) {
+                var msg = 'Kaydetme hatasi.';
+                try { var r = JSON.parse(xhr.responseText); msg = r.message || r.title || JSON.stringify(r.errors || r); } catch(e) {}
+                toastr.error(msg);
+            }
         }).always(function() { self.isSaving(false); });
     };
 
