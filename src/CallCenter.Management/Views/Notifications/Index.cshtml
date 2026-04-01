@@ -1,0 +1,91 @@
+@{
+    ViewData["Title"] = "Toplu Bildirimler";
+}
+
+<div id="notifications-vm">
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-megaphone me-2"></i>Yeni Bildirim Gonder</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Baslik *</label>
+                        <input class="form-control form-control-sm" data-bind="value: form.title" placeholder="Bildirim basligi" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Mesaj *</label>
+                        <textarea class="form-control form-control-sm" rows="4" data-bind="value: form.message" placeholder="Bildirim mesaji..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Hedef</label>
+                        <select class="form-select form-select-sm" data-bind="value: form.target">
+                            <option value="all">Tum Musteriler</option>
+                            <option value="cc">Sadece Call Center</option>
+                            <option value="salon">Sadece Salon</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Oncelik</label>
+                        <select class="form-select form-select-sm" data-bind="value: form.priority">
+                            <option value="info">Bilgi</option>
+                            <option value="warning">Uyari</option>
+                            <option value="critical">Kritik</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100" data-bind="click: sendNotification">
+                        <i class="bi bi-send me-1"></i>Gonder
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Gecmis Bildirimler</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div data-bind="foreach: history">
+                        <div class="border-bottom p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <strong class="small" data-bind="text: title"></strong>
+                                <span class="badge" data-bind="text: priority, css: priority === 'critical' ? 'bg-danger' : priority === 'warning' ? 'bg-warning text-dark' : 'bg-info'"></span>
+                            </div>
+                            <p class="small text-muted mb-1" data-bind="text: message"></p>
+                            <small class="text-muted" data-bind="text: sentAt + ' - ' + target"></small>
+                        </div>
+                    </div>
+                    <div class="text-center py-4 text-muted" data-bind="visible: history().length === 0">
+                        <i class="bi bi-bell-slash fs-1 d-block mb-2 opacity-25"></i>
+                        Henuz bildirim gonderilmemis. Bildirim sistemi ileri surumde aktif edilecek.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function NotificationsViewModel() {
+    var self = this;
+    self.history = ko.observableArray([]);
+    self.form = {
+        title: ko.observable(''),
+        message: ko.observable(''),
+        target: ko.observable('all'),
+        priority: ko.observable('info')
+    };
+
+    self.sendNotification = function () {
+        if (!self.form.title() || !self.form.message()) {
+            toastr.warning('Baslik ve mesaj zorunlu.');
+            return;
+        }
+        toastr.info('Bildirim sistemi henuz aktif degil. Ileri surumde eklenecek.');
+    };
+}
+ko.applyBindings(new NotificationsViewModel(), document.getElementById('notifications-vm'));
+</script>
+}

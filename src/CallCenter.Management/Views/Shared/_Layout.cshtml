@@ -51,6 +51,7 @@
         var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig";
         var finOpen = ctrl is "ServiceManagement" or "BillingReport";
         var kvkkOpen = ctrl is "Kvkk";
+        var advOpen = ctrl is "Licensing" or "Notifications";
 
         <nav class="sidebar d-print-none">
             <div class="brand">
@@ -127,6 +128,15 @@
                 <a class="nav-link @(act == "Transfers" ? "active" : "")" href="/Kvkk/Transfers"><i class="bi bi-globe me-2"></i>Aktarimlar</a>
                 <a class="nav-link @(act == "Inventory" ? "active" : "")" href="/Kvkk/Inventory"><i class="bi bi-archive me-2"></i>Envanter</a>
                 <a class="nav-link @(act == "KvkkSettings" ? "active" : "")" href="/Kvkk/KvkkSettings"><i class="bi bi-sliders me-2"></i>KVKK Ayarlari</a>
+            </div>
+
+            <!-- Gelismis -->
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Gelismis</span><i class="bi bi-chevron-down chevron @(advOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(advOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Licensing" ? "active" : "")" href="/Licensing"><i class="bi bi-key me-2"></i>Lisanslama</a>
+                <a class="nav-link @(ctrl == "Notifications" ? "active" : "")" href="/Notifications"><i class="bi bi-megaphone me-2"></i>Bildirimler</a>
             </div>
 
             <!-- Alt bar -->
