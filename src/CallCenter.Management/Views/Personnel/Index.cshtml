@@ -255,6 +255,7 @@ function PersonnelViewModel() {
 
     self.save = function() {
         if (!self.form.fullName() || !self.form.userName()) { toastr.warning('Ad soyad ve kullanici adi zorunludur.'); return; }
+        if (!self.form.email()) { toastr.warning('E-posta zorunludur.'); return; }
         self.isSaving(true);
         var payload = {
             fullName: self.form.fullName(),
