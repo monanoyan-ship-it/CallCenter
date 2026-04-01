@@ -112,9 +112,8 @@ function CcModuleViewModel() {
         $.get('/proxy/supervisor/queues/live', function (d) {
             self.queues(Array.isArray(d) ? d : []);
         });
-        $.get('/proxy/gateway-health/all', function (d) {
-            self.gateways(Array.isArray(d) ? d : []);
-        });
+        // Gateway health sadece SignalR uzerinden calisiyor, REST endpoint yok
+        // self.gateways bilgisi su an icin bos kalacak
     };
 
     self.loadData();
