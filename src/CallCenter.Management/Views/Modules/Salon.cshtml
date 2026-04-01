@@ -1,0 +1,110 @@
+@{
+    ViewData["Title"] = "Salon Modul Paneli";
+}
+
+<div id="salon-module-vm">
+    <!-- Ozet Kartlari -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-warning border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Salon Musterileri</div>
+                    <h4 class="mb-0" data-bind="text: salonCount">0</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-primary border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Toplam Randevu (Bugun)</div>
+                    <h4 class="mb-0" data-bind="text: todayAppointments">0</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-success border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Toplam Musteri</div>
+                    <h4 class="mb-0" data-bind="text: totalClients">0</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-info border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Toplam Personel</div>
+                    <h4 class="mb-0" data-bind="text: totalStaff">0</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salon Musterileri Listesi -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-scissors me-2"></i>Salon Musterileri</h6>
+            <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadData">
+                <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="text-center py-4" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="table-responsive" data-bind="visible: !isLoading()">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Salon</th>
+                            <th class="text-center">Personel</th>
+                            <th class="text-center">Modul</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: salons">
+                        <tr>
+                            <td>
+                                <a class="fw-medium text-decoration-none" data-bind="text: customerName, attr: { href: '/Customers/Detail/' + customerId }"></a>
+                            </td>
+                            <td class="text-center" data-bind="text: personnelCount"></td>
+                            <td class="text-center"><span class="badge bg-secondary" data-bind="text: moduleCount"></span></td>
+                            <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: !isLoading() && salons().length === 0">Salon musterisi yok.</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function SalonModuleViewModel() {
+    var self = this;
+    self.salons = ko.observableArray([]);
+    self.salonCount = ko.observable(0);
+    self.todayAppointments = ko.observable(0);
+    self.totalClients = ko.observable(0);
+    self.totalStaff = ko.observable(0);
+    self.isLoading = ko.observable(true);
+
+    self.loadData = function () {
+        self.isLoading(true);
+        $.get('/proxy/management/dashboard', function (d) {
+            // Salon musterileri filtrele (productTypeId 2 veya 3)
+            var salonCustomers = (d.customerModules || []).filter(function (c) {
+                return c.productTypeId === 2 || c.productTypeId === 3;
+            });
+            self.salons(salonCustomers);
+            self.salonCount(salonCustomers.length);
+
+            var totalPersonnel = 0;
+            salonCustomers.forEach(function (c) { totalPersonnel += c.personnelCount || 0; });
+            self.totalStaff(totalPersonnel);
+        }).always(function () { self.isLoading(false); });
+    };
+
+    self.loadData();
+}
+ko.applyBindings(new SalonModuleViewModel(), document.getElementById('salon-module-vm'));
+</script>
+}

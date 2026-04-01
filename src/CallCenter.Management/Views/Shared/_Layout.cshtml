@@ -46,6 +46,7 @@
         var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
         var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
         var custOpen = ctrl is "Customers" or "Users" or "Organizations" or "Personnel";
+        var modOpen = ctrl is "Modules";
         var sipOpen = ctrl is "SipAccounts" or "Queues" or "Ivr" or "CallForwarding" or "GatewayHealth";
         var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig";
         var finOpen = ctrl is "ServiceManagement" or "BillingReport";
@@ -70,6 +71,15 @@
                 <a class="nav-link @(ctrl == "Users" ? "active" : "")" href="/Users"><i class="bi bi-people me-2"></i>Kullanicilar</a>
                 <a class="nav-link @(ctrl == "Organizations" ? "active" : "")" href="/Organizations"><i class="bi bi-diagram-3 me-2"></i>Organizasyonlar</a>
                 <a class="nav-link @(ctrl == "Personnel" ? "active" : "")" href="/Personnel"><i class="bi bi-person-badge me-2"></i>Personel</a>
+            </div>
+
+            <!-- Modul Panelleri -->
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Modul Panelleri</span><i class="bi bi-chevron-down chevron @(modOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(modOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Modules" && act == "CallCenter" ? "active" : "")" href="/Modules/CallCenter"><i class="bi bi-telephone me-2"></i>Call Center</a>
+                <a class="nav-link @(ctrl == "Modules" && act == "Salon" ? "active" : "")" href="/Modules/Salon"><i class="bi bi-scissors me-2"></i>Salon</a>
             </div>
 
             <!-- SIP & Telefoni -->

@@ -1,0 +1,125 @@
+@{
+    ViewData["Title"] = "CC Modul Paneli";
+}
+
+<div id="cc-module-vm">
+    <!-- Ozet Kartlari -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-primary border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">CC Musterileri</div>
+                    <h4 class="mb-0" data-bind="text: stats().totalCallCenterCustomers || 0"></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-success border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Online Agent</div>
+                    <h4 class="mb-0 text-success" data-bind="text: stats().onlineAgentCount || 0"></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-danger border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Aktif Cagri</div>
+                    <h4 class="mb-0 text-danger" data-bind="text: stats().activeCallCount || 0"></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-info border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Bugun Cagri</div>
+                    <h4 class="mb-0">
+                        <span class="text-success" data-bind="text: stats().todayAnsweredCalls || 0"></span>
+                        <small class="text-muted">/</small>
+                        <span class="text-danger" data-bind="text: stats().todayMissedCalls || 0"></span>
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kuyruk Durumlari -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-collection me-2"></i>Kuyruk Durumlari</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Kuyruk</th><th>Firma</th><th class="text-center">Bekleyen</th><th class="text-center">Agent</th><th>Durum</th></tr>
+                    </thead>
+                    <tbody data-bind="foreach: queues">
+                        <tr>
+                            <td class="fw-medium" data-bind="text: name"></td>
+                            <td class="text-muted small" data-bind="text: customerName || '-'"></td>
+                            <td class="text-center"><span class="badge bg-warning text-dark" data-bind="text: waitingCount || 0"></span></td>
+                            <td class="text-center"><span class="badge bg-primary" data-bind="text: agentCount || 0"></span></td>
+                            <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: queues().length === 0">Kuyruk verisi yok.</div>
+        </div>
+    </div>
+
+    <!-- SIP Sagligi -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>SIP Gateway Durumu</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Agent</th><th>Gateway</th><th>Durum</th><th>Son Guncelleme</th><th>Hata</th></tr>
+                    </thead>
+                    <tbody data-bind="foreach: gateways">
+                        <tr>
+                            <td data-bind="text: agentName || '-'"></td>
+                            <td data-bind="text: gatewayName || '-'"></td>
+                            <td>
+                                <span class="badge" data-bind="text: statusText,
+                                    css: status === 'Registered' ? 'bg-success' : status === 'Error' ? 'bg-danger' : 'bg-secondary'"></span>
+                            </td>
+                            <td class="text-muted small" data-bind="text: lastUpdate || '-'"></td>
+                            <td class="text-danger small" data-bind="text: errorMessage || ''"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: gateways().length === 0">Gateway verisi yok.</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function CcModuleViewModel() {
+    var self = this;
+    self.stats = ko.observable({});
+    self.queues = ko.observableArray([]);
+    self.gateways = ko.observableArray([]);
+
+    self.loadData = function () {
+        $.get('/proxy/management/dashboard', function (d) { self.stats(d); });
+        $.get('/proxy/supervisor/queues/live', function (d) {
+            self.queues(Array.isArray(d) ? d : []);
+        });
+        $.get('/proxy/gateway-health/all', function (d) {
+            self.gateways(Array.isArray(d) ? d : []);
+        });
+    };
+
+    self.loadData();
+    setInterval(self.loadData, 30000);
+}
+ko.applyBindings(new CcModuleViewModel(), document.getElementById('cc-module-vm'));
+</script>
+}
