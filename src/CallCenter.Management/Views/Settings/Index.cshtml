@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = "Sistem Ayarlari";
+}
+
+<div id="settings-vm">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <h6><i class="bi bi-gear me-2"></i>Sistem Ayarlari</h6>
+            <hr />
+            <div data-bind="visible: isLoading" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary"></div> Yukleniyor...
+            </div>
+            <div data-bind="visible: !isLoading() && settings().length > 0">
+                <div data-bind="foreach: settings" class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3">
+                            <label class="form-label small fw-semibold" data-bind="text: key"></label>
+                            <input class="form-control form-control-sm" data-bind="value: value" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary btn-sm" data-bind="click: saveSettings">
+                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+            <div data-bind="visible: !isLoading() && settings().length === 0" class="text-muted text-center py-4">
+                Henuz ayar tanimlanmamis.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function SettingsViewModel() {
+    var self = this;
+    self.settings = ko.observableArray([]);
+    self.isLoading = ko.observable(true);
+
+    self.loadSettings = function() {
+        self.isLoading(true);
+        $.get('/proxy/settings', function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.settings(items.map(function(s) {
+                return { key: s.key, value: ko.observable(s.value), id: s.id };
+            }));
+        }).always(function() {
+            self.isLoading(false);
+        });
+    };
+
+    self.saveSettings = function() {
+        var payload = self.settings().map(function(s) {
+            return { id: s.id, key: s.key, value: s.value() };
+        });
+        $.ajax({
+            url: '/proxy/settings',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function() { toastr.success('Ayarlar kaydedildi.'); },
+            error: function() { toastr.error('Kaydetme hatasi.'); }
+        });
+    };
+
+    self.loadSettings();
+}
+
+ko.applyBindings(new SettingsViewModel(), document.getElementById('settings-vm'));
+</script>
+}

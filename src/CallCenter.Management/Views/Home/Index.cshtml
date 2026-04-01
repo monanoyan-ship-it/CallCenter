@@ -1,0 +1,131 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div id="dashboard-vm">
+    <!-- Ozet Kartlari -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Toplam Musteri</div>
+                        <h4 class="mb-0" data-bind="text: customerCount">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Toplam Kullanici</div>
+                        <h4 class="mb-0" data-bind="text: userCount">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-telephone"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Aktif Cagri</div>
+                        <h4 class="mb-0" data-bind="text: activeCallCount">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-scissors"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Aktif Salon</div>
+                        <h4 class="mb-0" data-bind="text: activeSalonCount">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Musteri Listesi -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-building me-2"></i>Musteriler</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Musteri</th>
+                            <th>Urun Tipi</th>
+                            <th>Kullanici</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: customers">
+                        <tr>
+                            <td>
+                                <strong data-bind="text: name"></strong>
+                                <div class="text-muted small" data-bind="text: contactEmail"></div>
+                            </td>
+                            <td><span class="badge bg-secondary" data-bind="text: productTypeName"></span></td>
+                            <td data-bind="text: maxUsers"></td>
+                            <td>
+                                <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-3" data-bind="visible: customers().length === 0">
+                <span class="text-muted">Yukleniyor...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function DashboardViewModel() {
+    var self = this;
+    self.customerCount = ko.observable('-');
+    self.userCount = ko.observable('-');
+    self.activeCallCount = ko.observable(0);
+    self.activeSalonCount = ko.observable(0);
+    self.customers = ko.observableArray([]);
+
+    self.loadData = function() {
+        $.get('/proxy/customers', function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.customers(items);
+            self.customerCount(items.length);
+
+            var salonCount = items.filter(function(c) { return c.productTypeId === 2 && c.isActive; }).length;
+            self.activeSalonCount(salonCount);
+        });
+
+        $.get('/proxy/users', function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.userCount(items.length);
+        });
+    };
+
+    self.loadData();
+}
+
+ko.applyBindings(new DashboardViewModel(), document.getElementById('dashboard-vm'));
+</script>
+}

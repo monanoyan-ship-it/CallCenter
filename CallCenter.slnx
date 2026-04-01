@@ -9,6 +9,7 @@
     <Project Path="src/CallCenter.Windows/CallCenter.Windows.csproj" />
     <Project Path="src/CallCenter.Landing/CallCenter.Landing.csproj" />
     <Project Path="src/CallCenter.Crm/CallCenter.Crm.csproj" />
+    <Project Path="src/CallCenter.Management/CallCenter.Management.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CallCenter.Tests/CallCenter.Tests.csproj" />

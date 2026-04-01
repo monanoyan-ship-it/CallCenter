@@ -1,0 +1,81 @@
+@{
+    ViewData["Title"] = "Musteriler";
+}
+
+<div id="customers-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div></div>
+        <button class="btn btn-primary btn-sm" data-bind="click: function() { /* TODO: Yeni musteri modal */ }">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Musteri
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Musteri Adi</th>
+                            <th>E-posta</th>
+                            <th>Telefon</th>
+                            <th>Urun Tipi</th>
+                            <th>Max Kullanici</th>
+                            <th>Durum</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: customers">
+                        <tr>
+                            <td data-bind="text: id"></td>
+                            <td><strong data-bind="text: name"></strong></td>
+                            <td data-bind="text: contactEmail || '-'"></td>
+                            <td data-bind="text: contactPhone || '-'"></td>
+                            <td><span class="badge bg-secondary" data-bind="text: productTypeName"></span></td>
+                            <td data-bind="text: maxUsers"></td>
+                            <td>
+                                <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
+                            </td>
+                            <td>
+                                <button class="btn btn-outline-primary btn-sm" title="Detay">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center py-4" data-bind="visible: isLoading">
+                <div class="spinner-border spinner-border-sm text-primary"></div> Yukleniyor...
+            </div>
+            <div class="text-center py-4 text-muted" data-bind="visible: !isLoading() && customers().length === 0">
+                Henuz musteri yok.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function CustomersViewModel() {
+    var self = this;
+    self.customers = ko.observableArray([]);
+    self.isLoading = ko.observable(true);
+
+    self.loadData = function() {
+        self.isLoading(true);
+        $.get('/proxy/customers', function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.customers(items);
+        }).always(function() {
+            self.isLoading(false);
+        });
+    };
+
+    self.loadData();
+}
+
+ko.applyBindings(new CustomersViewModel(), document.getElementById('customers-vm'));
+</script>
+}
