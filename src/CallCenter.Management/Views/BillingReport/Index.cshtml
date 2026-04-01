@@ -1,0 +1,173 @@
+<div id="billingreport-vm">
+    <!-- Filtreler -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-2">
+                    <input type="number" class="form-control form-control-sm" placeholder="Yil" data-bind="value: yearFilter" min="2020" max="2100" />
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: monthFilter">
+                        <option value="">Tum Aylar</option>
+                        <option value="1">Ocak</option><option value="2">Subat</option><option value="3">Mart</option>
+                        <option value="4">Nisan</option><option value="5">Mayis</option><option value="6">Haziran</option>
+                        <option value="7">Temmuz</option><option value="8">Agustos</option><option value="9">Eylul</option>
+                        <option value="10">Ekim</option><option value="11">Kasim</option><option value="12">Aralik</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: statusFilter">
+                        <option value="">Tum Durumlar</option>
+                        <option value="Tahakkuk">Tahakkuk</option>
+                        <option value="Faturalanmis">Faturalanmis</option>
+                        <option value="Odenmis">Odenmis</option>
+                        <option value="Gecikme">Gecikme</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary btn-sm w-100" data-bind="click: loadData">
+                        <i class="bi bi-funnel me-1"></i>Filtrele
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toplu Islemler -->
+    <div class="d-flex gap-2 mb-3" data-bind="visible: selectedIds().length > 0">
+        <span class="badge bg-primary align-self-center" data-bind="text: selectedIds().length + ' secili'"></span>
+        <button class="btn btn-outline-warning btn-sm" data-bind="click: bulkInvoice">
+            <i class="bi bi-receipt me-1"></i>Faturala
+        </button>
+        <button class="btn btn-outline-success btn-sm" data-bind="click: bulkPaid">
+            <i class="bi bi-check-circle me-1"></i>Odendi
+        </button>
+    </div>
+
+    <!-- Tablo -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-file-earmark-text fs-1 d-block mb-2 opacity-25"></i>Rapor verisi bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:40px;">
+                                    <input type="checkbox" class="form-check-input" data-bind="checked: selectAll" />
+                                </th>
+                                <th>Firma</th>
+                                <th>Donem</th>
+                                <th class="text-end">Operator</th>
+                                <th class="text-end">Hizmet</th>
+                                <th class="text-end">Toplam</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input" data-bind="checkedValue: id, checked: $parent.selectedIds" />
+                                </td>
+                                <td class="fw-medium" data-bind="text: customerName || '-'"></td>
+                                <td data-bind="text: (month || '-') + '/' + (year || '-')"></td>
+                                <td class="text-end" data-bind="text: (operatorAmount || 0).toFixed(2) + ' TL'"></td>
+                                <td class="text-end" data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>
+                                <td class="text-end fw-semibold" data-bind="text: (totalAmount || 0).toFixed(2) + ' TL'"></td>
+                                <td>
+                                    <span class="badge" data-bind="text: statusName || status || 'Tahakkuk',
+                                        css: (status || statusName) === 'Odenmis' ? 'bg-success' :
+                                             (status || statusName) === 'Faturalanmis' ? 'bg-info' :
+                                             (status || statusName) === 'Gecikme' ? 'bg-danger' : 'bg-warning'"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayit</small>
+                    <nav><ul class="pagination pagination-sm mb-0" data-bind="foreach: pageNumbers()">
+                        <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
+                            <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.goToPage($data); }"></a>
+                        </li>
+                    </ul></nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function BillingReportViewModel() {
+    var self = this;
+    self.items = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.yearFilter = ko.observable(new Date().getFullYear());
+    self.monthFilter = ko.observable('');
+    self.statusFilter = ko.observable('');
+    self.currentPage = ko.observable(1);
+    self.totalCount = ko.observable(0);
+    self.pageSize = 25;
+    self.selectedIds = ko.observableArray([]);
+    self.selectAll = ko.observable(false);
+
+    self.pageNumbers = ko.computed(function() {
+        var total = Math.ceil(self.totalCount() / self.pageSize);
+        var pages = [];
+        for (var i = 1; i <= total; i++) pages.push(i);
+        return pages;
+    });
+
+    self.goToPage = function(page) { self.currentPage(page); self.loadData(); };
+
+    self.selectAll.subscribe(function(val) {
+        if (val) {
+            self.selectedIds(self.items().map(function(i) { return i.id; }));
+        } else {
+            self.selectedIds([]);
+        }
+    });
+
+    self.loadData = function() {
+        self.isLoading(true);
+        self.selectedIds([]);
+        var params = { page: self.currentPage(), pageSize: self.pageSize };
+        if (self.yearFilter()) params.year = self.yearFilter();
+        if (self.monthFilter()) params.month = self.monthFilter();
+        if (self.statusFilter()) params.status = self.statusFilter();
+        $.get('/proxy/billing/report', params, function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.items(items);
+            self.totalCount(data.totalCount || data.total || items.length);
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.bulkUpdate = function(status) {
+        var ids = self.selectedIds();
+        if (ids.length === 0) return;
+        var promises = ids.map(function(id) {
+            return $.ajax({
+                url: '/proxy/customers/billing/' + id, method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ status: status })
+            });
+        });
+        $.when.apply($, promises).done(function() {
+            toastr.success(ids.length + ' kayit guncellendi.');
+            self.loadData();
+        }).fail(function() { toastr.error('Guncelleme hatasi.'); });
+    };
+
+    self.bulkInvoice = function() { self.bulkUpdate('Faturalanmis'); };
+    self.bulkPaid = function() { self.bulkUpdate('Odenmis'); };
+
+    self.loadData();
+}
+
+ko.applyBindings(new BillingReportViewModel(), document.getElementById('billingreport-vm'));
+</script>
+}

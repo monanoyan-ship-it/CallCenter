@@ -1,0 +1,164 @@
+<div id="breaches-vm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <a href="/Kvkk" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>KVKK Dashboard</a>
+        <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Ihlal Bildirimi
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-shield-exclamation fs-1 d-block mb-2 opacity-25"></i>Ihlal bildirimi bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Tur</th>
+                                <th>Etkilenen Kayit</th>
+                                <th>Aciklama</th>
+                                <th>Durum</th>
+                                <th style="width:100px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr>
+                                <td class="small" data-bind="text: breachDate ? new Date(breachDate).toLocaleDateString('tr-TR') : '-'"></td>
+                                <td><span class="badge bg-danger" data-bind="text: breachType || '-'"></span></td>
+                                <td data-bind="text: affectedRecordCount || 0"></td>
+                                <td class="small text-muted" data-bind="text: description || '-'"></td>
+                                <td>
+                                    <span class="badge" data-bind="text: status || '-',
+                                        css: status === 'Kapandi' ? 'bg-success' :
+                                             status === 'Inceleniyor' ? 'bg-warning' : 'bg-danger'"></span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Modal -->
+    <div class="modal fade" id="breachModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" data-bind="text: formTitle"></h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Tarih *</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: form.breachDate" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Tur *</label>
+                            <input class="form-control form-control-sm" placeholder="Ornegin: Yetkisiz erisim" data-bind="value: form.breachType" />
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Etkilenen Kayit Sayisi</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: form.affectedRecordCount" />
+                        </div>
+                        <div class="col-md-6 mb-3" data-bind="visible: form.uid()">
+                            <label class="form-label small">Durum</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.status">
+                                <option value="Acik">Acik</option>
+                                <option value="Inceleniyor">Inceleniyor</option>
+                                <option value="Kapandi">Kapandi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Aciklama</label>
+                        <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function BreachesViewModel() {
+    var self = this;
+    self.items = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.isSaving = ko.observable(false);
+    self.formTitle = ko.observable('Yeni Ihlal Bildirimi');
+
+    self.form = {
+        uid: ko.observable(null), breachDate: ko.observable(''), breachType: ko.observable(''),
+        affectedRecordCount: ko.observable(0), description: ko.observable(''), status: ko.observable('Acik')
+    };
+
+    self.loadData = function() {
+        self.isLoading(true);
+        $.get('/proxy/kvkk/breaches', function(data) {
+            self.items(Array.isArray(data) ? data : (data.items || data.data || []));
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.openCreate = function() {
+        self.form.uid(null); self.form.breachDate(''); self.form.breachType('');
+        self.form.affectedRecordCount(0); self.form.description(''); self.form.status('Acik');
+        self.formTitle('Yeni Ihlal Bildirimi');
+        new bootstrap.Modal('#breachModal').show();
+    };
+
+    self.openEdit = function(item) {
+        self.form.uid(item.uid || item.id);
+        self.form.breachDate(item.breachDate ? item.breachDate.substring(0, 10) : '');
+        self.form.breachType(item.breachType || '');
+        self.form.affectedRecordCount(item.affectedRecordCount || 0);
+        self.form.description(item.description || '');
+        self.form.status(item.status || 'Acik');
+        self.formTitle('Ihlal Duzenle');
+        new bootstrap.Modal('#breachModal').show();
+    };
+
+    self.save = function() {
+        if (!self.form.breachDate() || !self.form.breachType()) { toastr.warning('Tarih ve tur zorunludur.'); return; }
+        self.isSaving(true);
+        var payload = {
+            breachDate: self.form.breachDate(), breachType: self.form.breachType(),
+            affectedRecordCount: parseInt(self.form.affectedRecordCount()),
+            description: self.form.description(), status: self.form.status()
+        };
+        var method = self.form.uid() ? 'PUT' : 'POST';
+        var url = self.form.uid() ? '/proxy/kvkk/breaches/' + self.form.uid() : '/proxy/kvkk/breaches';
+        $.ajax({
+            url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
+            success: function() {
+                toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('breachModal')).hide();
+                self.loadData();
+            },
+            error: function() { toastr.error('Kaydetme hatasi.'); }
+        }).always(function() { self.isSaving(false); });
+    };
+
+    self.loadData();
+}
+
+ko.applyBindings(new BreachesViewModel(), document.getElementById('breaches-vm'));
+</script>
+}

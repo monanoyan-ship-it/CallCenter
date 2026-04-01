@@ -1,0 +1,302 @@
+<div id="personnel-vm">
+    <!-- Firma Secici -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm" data-bind="value: customerId, options: customers, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Firma Secin (zorunlu)...'"></select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary btn-sm w-100" data-bind="click: openCreate, enable: customerId()">
+                        <i class="bi bi-plus-lg me-1"></i>Yeni Personel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="card border-0 shadow-sm" data-bind="visible: customerId()">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>Personel bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kullanici Adi</th>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Unvan</th>
+                                <th>Rol</th>
+                                <th>Org Birim</th>
+                                <th>Durum</th>
+                                <th style="width:150px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr data-bind="css: { 'table-warning': isLocked }">
+                                <td data-bind="text: username || '-'"></td>
+                                <td class="fw-medium" data-bind="text: fullName || '-'"></td>
+                                <td class="small text-muted" data-bind="text: email || '-'"></td>
+                                <td class="small" data-bind="text: title || '-'"></td>
+                                <td><span class="badge bg-info" data-bind="text: customerRoleName || roleName || '-'"></span></td>
+                                <td class="small" data-bind="text: organizationUnitName || '-'"></td>
+                                <td>
+                                    <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
+                                    <!-- ko if: isLocked -->
+                                    <span class="badge bg-warning ms-1"><i class="bi bi-lock-fill"></i></span>
+                                    <!-- /ko -->
+                                </td>
+                                <td>
+                                    <!-- ko if: isLocked -->
+                                    <button class="btn btn-outline-warning btn-sm me-1" title="Kilidi Ac" data-bind="click: $parent.unlockUser"><i class="bi bi-unlock"></i></button>
+                                    <!-- /ko -->
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-danger btn-sm" title="Sil" data-bind="click: $parent.confirmDelete"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayit</small>
+                    <nav><ul class="pagination pagination-sm mb-0" data-bind="foreach: pageNumbers()">
+                        <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
+                            <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.goToPage($data); }"></a>
+                        </li>
+                    </ul></nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" data-bind="visible: !customerId()">
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-building fs-1 d-block mb-2 opacity-25"></i>Lutfen bir firma secin
+        </div>
+    </div>
+
+    <!-- Form Modal -->
+    <div class="modal fade" id="personnelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" data-bind="text: formTitle"></h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Ad Soyad *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.fullName" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Kullanici Adi *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.username, disable: !!form.id()" />
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">E-posta</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.email" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small" data-bind="text: form.id() ? 'Sifre (bos birakilabilir)' : 'Sifre *'"></label>
+                            <input type="password" class="form-control form-control-sm" data-bind="value: form.password" />
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Unvan</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.title" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Rol</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.roleId, options: roles, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Org Birim</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.organizationUnitId, options: orgUnits, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Ust Yonetici</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.managerId, options: items, optionsText: 'fullName', optionsValue: 'id', optionsCaption: 'Sec...'"></select>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" data-bind="checked: form.isActive" />
+                        <label class="form-check-label small">Aktif</label>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Silme Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1 d-block mb-2"></i>
+                    <p>Bu personeli silmek istediginize emin misiniz?</p>
+                </div>
+                <div class="modal-footer py-2 justify-content-center">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-danger btn-sm" data-bind="click: executeDelete">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function PersonnelViewModel() {
+    var self = this;
+    self.customers = ko.observableArray([]);
+    self.customerId = ko.observable('');
+    self.items = ko.observableArray([]);
+    self.roles = ko.observableArray([]);
+    self.orgUnits = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.isSaving = ko.observable(false);
+    self.currentPage = ko.observable(1);
+    self.totalCount = ko.observable(0);
+    self.pageSize = 20;
+    self.formTitle = ko.observable('Yeni Personel');
+    self.deleteId = null;
+
+    self.form = {
+        id: ko.observable(null), fullName: ko.observable(''), username: ko.observable(''),
+        email: ko.observable(''), password: ko.observable(''), title: ko.observable(''),
+        roleId: ko.observable(''), organizationUnitId: ko.observable(''),
+        managerId: ko.observable(''), isActive: ko.observable(true)
+    };
+
+    self.pageNumbers = ko.computed(function() {
+        var total = Math.ceil(self.totalCount() / self.pageSize);
+        var pages = [];
+        for (var i = 1; i <= total; i++) pages.push(i);
+        return pages;
+    });
+
+    self.goToPage = function(page) { self.currentPage(page); self.loadData(); };
+
+    self.loadCustomers = function() {
+        $.get('/proxy/supervisor/customers', function(data) {
+            self.customers(Array.isArray(data) ? data : (data.items || data.data || []));
+        });
+    };
+
+    self.customerId.subscribe(function(val) {
+        self.currentPage(1);
+        if (val) { self.loadData(); self.loadOrgUnits(); }
+    });
+
+    self.loadData = function() {
+        if (!self.customerId()) return;
+        self.isLoading(true);
+        $.get('/proxy/portal/personnel', { customerId: self.customerId(), page: self.currentPage(), pageSize: self.pageSize }, function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.items(items);
+            self.totalCount(data.totalCount || data.total || items.length);
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.loadOrgUnits = function() {
+        $.get('/proxy/organizations', { customerId: self.customerId() }, function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.orgUnits(items);
+        });
+    };
+
+    self.loadRoles = function() {
+        $.get('/proxy/portal/roles', function(data) {
+            self.roles(Array.isArray(data) ? data : (data.items || data.data || []));
+        });
+    };
+
+    self.resetForm = function() {
+        self.form.id(null); self.form.fullName(''); self.form.username('');
+        self.form.email(''); self.form.password(''); self.form.title('');
+        self.form.roleId(''); self.form.organizationUnitId('');
+        self.form.managerId(''); self.form.isActive(true);
+    };
+
+    self.openCreate = function() { self.resetForm(); self.formTitle('Yeni Personel'); new bootstrap.Modal('#personnelModal').show(); };
+
+    self.openEdit = function(item) {
+        self.form.id(item.id); self.form.fullName(item.fullName || '');
+        self.form.username(item.username || ''); self.form.email(item.email || '');
+        self.form.password(''); self.form.title(item.title || '');
+        self.form.roleId(item.customerRoleId || item.roleId || '');
+        self.form.organizationUnitId(item.organizationUnitId || '');
+        self.form.managerId(item.managerId || '');
+        self.form.isActive(item.isActive !== false);
+        self.formTitle('Personel Duzenle');
+        new bootstrap.Modal('#personnelModal').show();
+    };
+
+    self.save = function() {
+        if (!self.form.fullName() || !self.form.username()) { toastr.warning('Ad soyad ve kullanici adi zorunludur.'); return; }
+        self.isSaving(true);
+        var payload = {
+            customerId: parseInt(self.customerId()), fullName: self.form.fullName(),
+            username: self.form.username(), email: self.form.email(),
+            title: self.form.title(), roleId: self.form.roleId() ? parseInt(self.form.roleId()) : null,
+            organizationUnitId: self.form.organizationUnitId() ? parseInt(self.form.organizationUnitId()) : null,
+            managerId: self.form.managerId() ? parseInt(self.form.managerId()) : null,
+            isActive: self.form.isActive()
+        };
+        if (self.form.password()) payload.password = self.form.password();
+        var method = self.form.id() ? 'PUT' : 'POST';
+        var url = self.form.id() ? '/proxy/portal/personnel/' + self.form.id() + '?customerId=' + self.customerId()
+                                 : '/proxy/portal/personnel?customerId=' + self.customerId();
+        $.ajax({
+            url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
+            success: function() {
+                toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('personnelModal')).hide();
+                self.loadData();
+            },
+            error: function() { toastr.error('Kaydetme hatasi.'); }
+        }).always(function() { self.isSaving(false); });
+    };
+
+    self.confirmDelete = function(item) { self.deleteId = item.id; new bootstrap.Modal('#deleteModal').show(); };
+
+    self.executeDelete = function() {
+        $.ajax({
+            url: '/proxy/portal/personnel/' + self.deleteId + '?customerId=' + self.customerId(), method: 'DELETE',
+            success: function() { toastr.success('Silindi.'); bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide(); self.loadData(); },
+            error: function() { toastr.error('Silme hatasi.'); }
+        });
+    };
+
+    self.unlockUser = function(item) {
+        $.ajax({
+            url: '/proxy/portal/personnel/' + item.id + '/unlock?customerId=' + self.customerId(), method: 'PUT',
+            success: function() { toastr.success('Kilit acildi.'); self.loadData(); },
+            error: function() { toastr.error('Kilit acma hatasi.'); }
+        });
+    };
+
+    self.loadCustomers();
+    self.loadRoles();
+}
+
+ko.applyBindings(new PersonnelViewModel(), document.getElementById('personnel-vm'));
+</script>
+}

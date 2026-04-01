@@ -1,0 +1,146 @@
+<div id="transfers-vm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <a href="/Kvkk" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>KVKK Dashboard</a>
+        <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Aktarim
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-globe fs-1 d-block mb-2 opacity-25"></i>Aktarim bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hedef Ulke</th>
+                                <th>Kurulus</th>
+                                <th>Amac</th>
+                                <th>Yasal Dayanak</th>
+                                <th>Durum</th>
+                                <th style="width:100px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr>
+                                <td class="fw-medium" data-bind="text: targetCountry || '-'"></td>
+                                <td data-bind="text: organization || '-'"></td>
+                                <td class="small text-muted" data-bind="text: purpose || '-'"></td>
+                                <td class="small" data-bind="text: legalBasis || '-'"></td>
+                                <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
+                                <td>
+                                    <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Modal -->
+    <div class="modal fade" id="transferModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" data-bind="text: formTitle"></h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Hedef Ulke *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.targetCountry" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Kurulus *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.organization" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Amac *</label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.purpose"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Yasal Dayanak</label>
+                        <input class="form-control form-control-sm" data-bind="value: form.legalBasis" />
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function TransfersViewModel() {
+    var self = this;
+    self.items = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.isSaving = ko.observable(false);
+    self.formTitle = ko.observable('Yeni Aktarim');
+
+    self.form = {
+        uid: ko.observable(null), targetCountry: ko.observable(''),
+        organization: ko.observable(''), purpose: ko.observable(''), legalBasis: ko.observable('')
+    };
+
+    self.loadData = function() {
+        self.isLoading(true);
+        $.get('/proxy/kvkk/transfers', function(data) {
+            self.items(Array.isArray(data) ? data : (data.items || data.data || []));
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.openCreate = function() {
+        self.form.uid(null); self.form.targetCountry(''); self.form.organization('');
+        self.form.purpose(''); self.form.legalBasis('');
+        self.formTitle('Yeni Aktarim');
+        new bootstrap.Modal('#transferModal').show();
+    };
+
+    self.openEdit = function(item) {
+        self.form.uid(item.uid || item.id); self.form.targetCountry(item.targetCountry || '');
+        self.form.organization(item.organization || '');
+        self.form.purpose(item.purpose || ''); self.form.legalBasis(item.legalBasis || '');
+        self.formTitle('Aktarim Duzenle');
+        new bootstrap.Modal('#transferModal').show();
+    };
+
+    self.save = function() {
+        if (!self.form.targetCountry() || !self.form.organization()) { toastr.warning('Ulke ve kurulus zorunludur.'); return; }
+        self.isSaving(true);
+        var payload = {
+            targetCountry: self.form.targetCountry(), organization: self.form.organization(),
+            purpose: self.form.purpose(), legalBasis: self.form.legalBasis()
+        };
+        var method = self.form.uid() ? 'PUT' : 'POST';
+        var url = self.form.uid() ? '/proxy/kvkk/transfers/' + self.form.uid() : '/proxy/kvkk/transfers';
+        $.ajax({
+            url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
+            success: function() {
+                toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
+                self.loadData();
+            },
+            error: function() { toastr.error('Kaydetme hatasi.'); }
+        }).always(function() { self.isSaving(false); });
+    };
+
+    self.loadData();
+}
+
+ko.applyBindings(new TransfersViewModel(), document.getElementById('transfers-vm'));
+</script>
+}

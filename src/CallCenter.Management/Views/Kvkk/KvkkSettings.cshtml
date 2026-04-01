@@ -1,0 +1,242 @@
+<div id="kvkksettings-vm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <a href="/Kvkk" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>KVKK Dashboard</a>
+    </div>
+
+    <!-- Saklama Politikalari -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-archive me-2"></i>Saklama Politikalari</h6>
+            <button class="btn btn-primary btn-sm" data-bind="click: openCreateRetention">
+                <i class="bi bi-plus-lg me-1"></i>Yeni
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="text-center py-4" data-bind="visible: retentionLoading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <div data-bind="visible: !retentionLoading()">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Veri Kategorisi</th>
+                            <th>Saklama Suresi</th>
+                            <th>Aciklama</th>
+                            <th style="width:60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: retentionPolicies">
+                        <tr>
+                            <td class="fw-medium" data-bind="text: dataCategory || '-'"></td>
+                            <td data-bind="text: retentionPeriod || '-'"></td>
+                            <td class="small text-muted" data-bind="text: description || '-'"></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" data-bind="click: $parent.openEditRetention"><i class="bi bi-pencil"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-center text-muted py-3" data-bind="visible: retentionPolicies().length === 0">Saklama politikasi bulunamadi.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yikim Politikalari -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-trash3 me-2"></i>Veri Yikim Politikalari</h6>
+            <button class="btn btn-primary btn-sm" data-bind="click: openCreateDestruction">
+                <i class="bi bi-plus-lg me-1"></i>Yeni
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="text-center py-4" data-bind="visible: destructionLoading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <div data-bind="visible: !destructionLoading()">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Veri Kategorisi</th>
+                            <th>Yikim Yontemi</th>
+                            <th>Periyot</th>
+                            <th>Aciklama</th>
+                            <th style="width:60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: destructionPolicies">
+                        <tr>
+                            <td class="fw-medium" data-bind="text: dataCategory || '-'"></td>
+                            <td data-bind="text: destructionMethod || '-'"></td>
+                            <td class="small" data-bind="text: period || '-'"></td>
+                            <td class="small text-muted" data-bind="text: description || '-'"></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm" data-bind="click: $parent.openEditDestruction"><i class="bi bi-pencil"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-center text-muted py-3" data-bind="visible: destructionPolicies().length === 0">Yikim politikasi bulunamadi.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saklama Modal -->
+    <div class="modal fade" id="retentionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" data-bind="text: retentionFormTitle"></h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Veri Kategorisi *</label>
+                            <input class="form-control form-control-sm" data-bind="value: retentionForm.dataCategory" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Saklama Suresi *</label>
+                            <input class="form-control form-control-sm" placeholder="Ornegin: 5 yil" data-bind="value: retentionForm.retentionPeriod" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Aciklama</label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: retentionForm.description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: saveRetention"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Yikim Modal -->
+    <div class="modal fade" id="destructionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" data-bind="text: destructionFormTitle"></h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Veri Kategorisi *</label>
+                            <input class="form-control form-control-sm" data-bind="value: destructionForm.dataCategory" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Yikim Yontemi *</label>
+                            <input class="form-control form-control-sm" placeholder="Ornegin: Kalici silme" data-bind="value: destructionForm.destructionMethod" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Periyot</label>
+                        <input class="form-control form-control-sm" placeholder="Ornegin: Her 6 ayda" data-bind="value: destructionForm.period" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Aciklama</label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: destructionForm.description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: saveDestruction"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function KvkkSettingsViewModel() {
+    var self = this;
+
+    // Retention
+    self.retentionPolicies = ko.observableArray([]);
+    self.retentionLoading = ko.observable(false);
+    self.retentionFormTitle = ko.observable('Yeni Saklama Politikasi');
+    self.retentionForm = { id: ko.observable(null), dataCategory: ko.observable(''), retentionPeriod: ko.observable(''), description: ko.observable('') };
+
+    // Destruction
+    self.destructionPolicies = ko.observableArray([]);
+    self.destructionLoading = ko.observable(false);
+    self.destructionFormTitle = ko.observable('Yeni Yikim Politikasi');
+    self.destructionForm = { id: ko.observable(null), dataCategory: ko.observable(''), destructionMethod: ko.observable(''), period: ko.observable(''), description: ko.observable('') };
+
+    // Retention CRUD
+    self.loadRetention = function() {
+        self.retentionLoading(true);
+        $.get('/proxy/kvkk/retention', function(data) {
+            self.retentionPolicies(Array.isArray(data) ? data : (data.items || data.data || []));
+        }).always(function() { self.retentionLoading(false); });
+    };
+
+    self.openCreateRetention = function() {
+        self.retentionForm.id(null); self.retentionForm.dataCategory('');
+        self.retentionForm.retentionPeriod(''); self.retentionForm.description('');
+        self.retentionFormTitle('Yeni Saklama Politikasi');
+        new bootstrap.Modal('#retentionModal').show();
+    };
+
+    self.openEditRetention = function(item) {
+        self.retentionForm.id(item.id); self.retentionForm.dataCategory(item.dataCategory || '');
+        self.retentionForm.retentionPeriod(item.retentionPeriod || '');
+        self.retentionForm.description(item.description || '');
+        self.retentionFormTitle('Saklama Politikasi Duzenle');
+        new bootstrap.Modal('#retentionModal').show();
+    };
+
+    self.saveRetention = function() {
+        if (!self.retentionForm.dataCategory()) { toastr.warning('Kategori zorunludur.'); return; }
+        var payload = { dataCategory: self.retentionForm.dataCategory(), retentionPeriod: self.retentionForm.retentionPeriod(), description: self.retentionForm.description() };
+        var method = self.retentionForm.id() ? 'PUT' : 'POST';
+        var url = self.retentionForm.id() ? '/proxy/kvkk/retention/' + self.retentionForm.id() : '/proxy/kvkk/retention';
+        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
+            success: function() { toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('retentionModal')).hide(); self.loadRetention(); },
+            error: function() { toastr.error('Hata.'); }
+        });
+    };
+
+    // Destruction CRUD
+    self.loadDestruction = function() {
+        self.destructionLoading(true);
+        $.get('/proxy/kvkk/destruction', function(data) {
+            self.destructionPolicies(Array.isArray(data) ? data : (data.items || data.data || []));
+        }).always(function() { self.destructionLoading(false); });
+    };
+
+    self.openCreateDestruction = function() {
+        self.destructionForm.id(null); self.destructionForm.dataCategory('');
+        self.destructionForm.destructionMethod(''); self.destructionForm.period('');
+        self.destructionForm.description('');
+        self.destructionFormTitle('Yeni Yikim Politikasi');
+        new bootstrap.Modal('#destructionModal').show();
+    };
+
+    self.openEditDestruction = function(item) {
+        self.destructionForm.id(item.id); self.destructionForm.dataCategory(item.dataCategory || '');
+        self.destructionForm.destructionMethod(item.destructionMethod || '');
+        self.destructionForm.period(item.period || '');
+        self.destructionForm.description(item.description || '');
+        self.destructionFormTitle('Yikim Politikasi Duzenle');
+        new bootstrap.Modal('#destructionModal').show();
+    };
+
+    self.saveDestruction = function() {
+        if (!self.destructionForm.dataCategory()) { toastr.warning('Kategori zorunludur.'); return; }
+        var payload = { dataCategory: self.destructionForm.dataCategory(), destructionMethod: self.destructionForm.destructionMethod(), period: self.destructionForm.period(), description: self.destructionForm.description() };
+        var method = self.destructionForm.id() ? 'PUT' : 'POST';
+        var url = self.destructionForm.id() ? '/proxy/kvkk/destruction/' + self.destructionForm.id() : '/proxy/kvkk/destruction';
+        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
+            success: function() { toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('destructionModal')).hide(); self.loadDestruction(); },
+            error: function() { toastr.error('Hata.'); }
+        });
+    };
+
+    self.loadRetention();
+    self.loadDestruction();
+}
+
+ko.applyBindings(new KvkkSettingsViewModel(), document.getElementById('kvkksettings-vm'));
+</script>
+}

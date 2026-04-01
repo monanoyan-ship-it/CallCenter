@@ -1,0 +1,201 @@
+<div id="auditlogs-vm">
+    <!-- Filtreler -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Ara..."
+                               data-bind="value: searchText, valueUpdate: 'afterkeydown', event: { keyup: onSearchKeyUp }" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: categoryFilter, options: categories, optionsCaption: 'Tum Kategoriler'"></select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: actionFilter, options: actions, optionsCaption: 'Tum Aksiyonlar'"></select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control form-control-sm" placeholder="Baslangic" data-bind="value: dateFrom" />
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control form-control-sm" placeholder="Bitis" data-bind="value: dateTo" />
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-outline-secondary btn-sm w-100" data-bind="click: function() { currentPage(1); loadData(); }">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-journal-text fs-1 d-block mb-2 opacity-25"></i>Kayit bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Kategori</th>
+                                <th>Aksiyon</th>
+                                <th>Kullanici</th>
+                                <th>Aciklama</th>
+                                <th>Entity</th>
+                                <th>IP</th>
+                                <th style="width:60px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr>
+                                <td class="small" data-bind="text: createdAt ? new Date(createdAt).toLocaleString('tr-TR') : '-'"></td>
+                                <td><span class="badge bg-secondary" data-bind="text: category || '-'"></span></td>
+                                <td><span class="badge bg-info" data-bind="text: action || '-'"></span></td>
+                                <td class="small" data-bind="text: userName || '-'"></td>
+                                <td class="small text-muted" data-bind="text: description || '-'"></td>
+                                <td class="small" data-bind="text: entityType || '-'"></td>
+                                <td class="small text-muted" data-bind="text: ipAddress || '-'"></td>
+                                <td>
+                                    <button class="btn btn-outline-info btn-sm" title="Detay" data-bind="click: $parent.showDetail"><i class="bi bi-eye"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayit</small>
+                    <nav><ul class="pagination pagination-sm mb-0" data-bind="foreach: pageNumbers()">
+                        <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
+                            <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.goToPage($data); }"></a>
+                        </li>
+                    </ul></nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detay Modal -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title"><i class="bi bi-journal-text me-2"></i>Denetim Kaydi Detayi</h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-3" data-bind="visible: detailLoading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                    <div data-bind="visible: !detailLoading() && detail()">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Kullanici</small>
+                                <span data-bind="text: detail().userName || '-'"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">IP Adresi</small>
+                                <span data-bind="text: detail().ipAddress || '-'"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block">Tarih</small>
+                                <span data-bind="text: detail().createdAt ? new Date(detail().createdAt).toLocaleString('tr-TR') : '-'"></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted d-block">User Agent</small>
+                            <span class="small" data-bind="text: detail().userAgent || '-'"></span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block mb-1">Eski Degerler</small>
+                                <pre class="bg-light p-2 rounded small" style="max-height:300px;overflow:auto" data-bind="text: detail().oldValues ? JSON.stringify(JSON.parse(detail().oldValues), null, 2) : '-'"></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block mb-1">Yeni Degerler</small>
+                                <pre class="bg-light p-2 rounded small" style="max-height:300px;overflow:auto" data-bind="text: detail().newValues ? JSON.stringify(JSON.parse(detail().newValues), null, 2) : '-'"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function AuditLogsViewModel() {
+    var self = this;
+    self.items = ko.observableArray([]);
+    self.categories = ko.observableArray([]);
+    self.actions = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.searchText = ko.observable('');
+    self.categoryFilter = ko.observable('');
+    self.actionFilter = ko.observable('');
+    self.dateFrom = ko.observable('');
+    self.dateTo = ko.observable('');
+    self.currentPage = ko.observable(1);
+    self.totalCount = ko.observable(0);
+    self.pageSize = 25;
+    self.detail = ko.observable(null);
+    self.detailLoading = ko.observable(false);
+
+    self.pageNumbers = ko.computed(function() {
+        var total = Math.ceil(self.totalCount() / self.pageSize);
+        var pages = [];
+        for (var i = 1; i <= total; i++) pages.push(i);
+        return pages;
+    });
+
+    self.goToPage = function(page) { self.currentPage(page); self.loadData(); };
+    self.onSearchKeyUp = function(d, e) { if (e.keyCode === 13) { self.currentPage(1); self.loadData(); } return true; };
+
+    self.loadFilters = function() {
+        $.get('/proxy/auditlogs/categories', function(data) {
+            self.categories(Array.isArray(data) ? data : []);
+        });
+        $.get('/proxy/auditlogs/actions', function(data) {
+            self.actions(Array.isArray(data) ? data : []);
+        });
+    };
+
+    self.loadData = function() {
+        self.isLoading(true);
+        var params = { page: self.currentPage(), pageSize: self.pageSize };
+        if (self.searchText()) params.search = self.searchText();
+        if (self.categoryFilter()) params.category = self.categoryFilter();
+        if (self.actionFilter()) params.action = self.actionFilter();
+        if (self.dateFrom()) params.from = self.dateFrom();
+        if (self.dateTo()) params.to = self.dateTo();
+        $.get('/proxy/auditlogs', params, function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.items(items);
+            self.totalCount(data.totalCount || data.total || items.length);
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.showDetail = function(item) {
+        self.detailLoading(true);
+        self.detail(null);
+        new bootstrap.Modal('#detailModal').show();
+        $.get('/proxy/auditlogs/' + item.id, function(data) {
+            self.detail(data);
+        }).always(function() { self.detailLoading(false); });
+    };
+
+    self.loadFilters();
+    self.loadData();
+}
+
+ko.applyBindings(new AuditLogsViewModel(), document.getElementById('auditlogs-vm'));
+</script>
+}

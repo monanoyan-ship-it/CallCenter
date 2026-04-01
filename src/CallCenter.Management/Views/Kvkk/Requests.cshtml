@@ -1,0 +1,206 @@
+<div id="requests-vm">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <a href="/Kvkk" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>KVKK Dashboard</a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger btn-sm" data-bind="click: loadOverdue">
+                <i class="bi bi-alarm me-1"></i>Suresi Gecenler
+            </button>
+            <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
+                <i class="bi bi-plus-lg me-1"></i>Yeni Basvuru
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-envelope fs-1 d-block mb-2 opacity-25"></i>Basvuru bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Basvuru No</th>
+                                <th>Kisi</th>
+                                <th>Tip</th>
+                                <th>Durum</th>
+                                <th>Tarih</th>
+                                <th>Sure</th>
+                                <th style="width:100px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr data-bind="css: { 'table-danger': isOverdue }">
+                                <td class="fw-medium" data-bind="text: requestNumber || '-'"></td>
+                                <td data-bind="text: personName || '-'"></td>
+                                <td>
+                                    <span class="badge" data-bind="text: requestType || '-',
+                                        css: requestType === 'Silme' ? 'bg-danger' :
+                                             requestType === 'Erisim' ? 'bg-primary' :
+                                             requestType === 'Sinirlandirma' ? 'bg-warning' : 'bg-info'"></span>
+                                </td>
+                                <td>
+                                    <span class="badge" data-bind="text: status || '-',
+                                        css: status === 'Tamamlandi' ? 'bg-success' :
+                                             status === 'Beklemede' ? 'bg-warning' :
+                                             status === 'Reddedildi' ? 'bg-danger' : 'bg-secondary'"></span>
+                                </td>
+                                <td class="small text-muted" data-bind="text: createdAt ? new Date(createdAt).toLocaleDateString('tr-TR') : '-'"></td>
+                                <td class="small" data-bind="text: (remainingDays != null ? remainingDays + ' gun' : '-')"></td>
+                                <td>
+                                    <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayit</small>
+                    <nav><ul class="pagination pagination-sm mb-0" data-bind="foreach: pageNumbers()">
+                        <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
+                            <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.goToPage($data); }"></a>
+                        </li>
+                    </ul></nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Modal -->
+    <div class="modal fade" id="requestModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" data-bind="text: formTitle"></h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Kisi *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.personName" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Tip *</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.requestType">
+                                <option value="Erisim">Erisim</option>
+                                <option value="Silme">Silme</option>
+                                <option value="Sinirlandirma">Sinirlandirma</option>
+                                <option value="Tasima">Tasima</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3" data-bind="visible: form.uid()">
+                        <label class="form-label small">Durum</label>
+                        <select class="form-select form-select-sm" data-bind="value: form.status">
+                            <option value="Beklemede">Beklemede</option>
+                            <option value="Isleniyor">Isleniyor</option>
+                            <option value="Tamamlandi">Tamamlandi</option>
+                            <option value="Reddedildi">Reddedildi</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Aciklama</label>
+                        <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function RequestsViewModel() {
+    var self = this;
+    self.items = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.isSaving = ko.observable(false);
+    self.currentPage = ko.observable(1);
+    self.totalCount = ko.observable(0);
+    self.pageSize = 20;
+    self.formTitle = ko.observable('Yeni Basvuru');
+
+    self.form = {
+        uid: ko.observable(null), personName: ko.observable(''),
+        requestType: ko.observable('Erisim'), status: ko.observable('Beklemede'),
+        description: ko.observable('')
+    };
+
+    self.pageNumbers = ko.computed(function() {
+        var total = Math.ceil(self.totalCount() / self.pageSize);
+        var pages = [];
+        for (var i = 1; i <= total; i++) pages.push(i);
+        return pages;
+    });
+
+    self.goToPage = function(page) { self.currentPage(page); self.loadData(); };
+
+    self.loadData = function() {
+        self.isLoading(true);
+        $.get('/proxy/kvkk/requests', { page: self.currentPage(), pageSize: self.pageSize }, function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.items(items);
+            self.totalCount(data.totalCount || data.total || items.length);
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.loadOverdue = function() {
+        self.isLoading(true);
+        $.get('/proxy/kvkk/requests/overdue', function(data) {
+            var items = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.items(items);
+            self.totalCount(items.length);
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.openCreate = function() {
+        self.form.uid(null); self.form.personName(''); self.form.requestType('Erisim');
+        self.form.status('Beklemede'); self.form.description('');
+        self.formTitle('Yeni Basvuru');
+        new bootstrap.Modal('#requestModal').show();
+    };
+
+    self.openEdit = function(item) {
+        self.form.uid(item.uid || item.id); self.form.personName(item.personName || '');
+        self.form.requestType(item.requestType || 'Erisim');
+        self.form.status(item.status || 'Beklemede');
+        self.form.description(item.description || '');
+        self.formTitle('Basvuru Duzenle');
+        new bootstrap.Modal('#requestModal').show();
+    };
+
+    self.save = function() {
+        if (!self.form.personName()) { toastr.warning('Kisi bilgisi zorunludur.'); return; }
+        self.isSaving(true);
+        var payload = {
+            personName: self.form.personName(), requestType: self.form.requestType(),
+            status: self.form.status(), description: self.form.description()
+        };
+        var method = self.form.uid() ? 'PUT' : 'POST';
+        var url = self.form.uid() ? '/proxy/kvkk/requests/' + self.form.uid() : '/proxy/kvkk/requests';
+        $.ajax({
+            url: url, method: method, contentType: 'application/json', data: JSON.stringify(payload),
+            success: function() {
+                toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('requestModal')).hide();
+                self.loadData();
+            },
+            error: function() { toastr.error('Kaydetme hatasi.'); }
+        }).always(function() { self.isSaving(false); });
+    };
+
+    self.loadData();
+}
+
+ko.applyBindings(new RequestsViewModel(), document.getElementById('requests-vm'));
+</script>
+}

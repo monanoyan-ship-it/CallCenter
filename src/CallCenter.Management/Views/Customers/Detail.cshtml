@@ -1,0 +1,307 @@
+@{
+    ViewData["Title"] = "Musteri Detay";
+    var customerId = ViewData["CustomerId"];
+}
+
+<div id="detail-vm">
+    <div class="d-flex align-items-center mb-3">
+        <a href="/Customers" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-arrow-left"></i></a>
+        <h5 class="mb-0" data-bind="text: customer().name || 'Yukleniyor...'"></h5>
+        <span class="badge bg-success-subtle text-success ms-2" data-bind="visible: customer().isActive">Aktif</span>
+        <span class="badge bg-danger-subtle text-danger ms-2" data-bind="visible: customer().isActive === false">Pasif</span>
+    </div>
+
+    <!-- Sekmeler -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabGeneral">Genel</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabPersonnel">Personel</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabOrg">Organizasyon</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabQueues">Kuyruklar</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabBilling">Odemeler</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabModules">Moduller</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Genel -->
+        <div class="tab-pane fade show active" id="tabGeneral">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="mb-3"><i class="bi bi-building me-2"></i>Firma Bilgileri</h6>
+                            <div class="row g-2">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Firma Adi</label>
+                                    <input class="form-control form-control-sm" data-bind="value: edit.name" />
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Vergi No</label>
+                                    <input class="form-control form-control-sm" data-bind="value: edit.taxNumber" />
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Telefon</label>
+                                    <input class="form-control form-control-sm" data-bind="value: edit.phone" />
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">E-posta</label>
+                                    <input class="form-control form-control-sm" data-bind="value: edit.email" />
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <label class="form-label small">Adres</label>
+                                    <textarea class="form-control form-control-sm" rows="2" data-bind="value: edit.address"></textarea>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label small">Max Kullanici</label>
+                                    <input type="number" class="form-control form-control-sm" data-bind="value: edit.maxUsers" />
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label small">Aylik Birim Fiyat</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" data-bind="value: edit.monthlyUnitPrice" />
+                                </div>
+                            </div>
+                            <button class="btn btn-primary btn-sm mt-2" data-bind="click: saveGeneral">
+                                <i class="bi bi-check-lg me-1"></i>Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="mb-3"><i class="bi bi-key me-2"></i>Admin Sifre Sifirla</h6>
+                            <button class="btn btn-outline-warning btn-sm w-100" data-bind="click: resetAdminPassword">
+                                <i class="bi bi-arrow-repeat me-1"></i>Sifre Sifirla
+                            </button>
+                            <div class="alert alert-info py-2 mt-2 small" data-bind="visible: newPassword">
+                                Yeni sifre: <strong data-bind="text: newPassword"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personel -->
+        <div class="tab-pane fade" id="tabPersonnel">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Ad Soyad</th><th>Kullanici Adi</th><th>E-posta</th><th>Rol</th><th>Durum</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: personnel">
+                                <tr>
+                                    <td data-bind="text: fullName"></td>
+                                    <td data-bind="text: username"></td>
+                                    <td data-bind="text: email || '-'"></td>
+                                    <td><span class="badge bg-info" data-bind="text: customerRoleName || '-'"></span></td>
+                                    <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: personnel().length === 0">Personel bulunamadi.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organizasyon -->
+        <div class="tab-pane fade" id="tabOrg">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Birim Adi</th><th>Kod</th><th>Tip</th><th>Ust Birim</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: organizations">
+                                <tr>
+                                    <td data-bind="text: name"></td>
+                                    <td data-bind="text: code || '-'"></td>
+                                    <td data-bind="text: unitTypeName || '-'"></td>
+                                    <td data-bind="text: parentName || '-'"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: organizations().length === 0">Organizasyon birimi yok.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kuyruklar -->
+        <div class="tab-pane fade" id="tabQueues">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Kuyruk Adi</th><th>Aciklama</th><th>Max Bekleme</th><th>Agent</th><th>Durum</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: queues">
+                                <tr>
+                                    <td data-bind="text: name"></td>
+                                    <td class="text-muted small" data-bind="text: description || '-'"></td>
+                                    <td data-bind="text: (maxWaitSeconds || 0) + 'sn'"></td>
+                                    <td><span class="badge bg-primary" data-bind="text: agentCount || 0"></span></td>
+                                    <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: queues().length === 0">Kuyruk yok.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Odemeler -->
+        <div class="tab-pane fade" id="tabBilling">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Donem</th><th>Operator Tutar</th><th>Hizmet Tutar</th><th>Toplam</th><th>Durum</th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: billing">
+                                <tr>
+                                    <td data-bind="text: periodLabel || (month + '/' + year)"></td>
+                                    <td data-bind="text: (operatorAmount || 0).toFixed(2) + ' TL'"></td>
+                                    <td data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>
+                                    <td class="fw-semibold" data-bind="text: (totalAmount || 0).toFixed(2) + ' TL'"></td>
+                                    <td><span class="badge bg-secondary" data-bind="text: statusName || 'Tahakkuk'"></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: billing().length === 0">Faturalama donemi yok.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Moduller -->
+        <div class="tab-pane fade" id="tabModules">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Modul</th><th>Durum</th><th></th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: modules">
+                                <tr>
+                                    <td data-bind="text: moduleName || name"></td>
+                                    <td>
+                                        <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-warning btn-sm" data-bind="click: $parent.toggleModule, text: isActive ? 'Deaktif Et' : 'Aktif Et'"></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: modules().length === 0">Modul atanmamis.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var CUSTOMER_ID = @customerId;
+
+function DetailViewModel() {
+    var self = this;
+    self.customer = ko.observable({});
+    self.newPassword = ko.observable('');
+
+    self.edit = {
+        name: ko.observable(''), taxNumber: ko.observable(''),
+        phone: ko.observable(''), email: ko.observable(''),
+        address: ko.observable(''), maxUsers: ko.observable(5),
+        monthlyUnitPrice: ko.observable(0)
+    };
+
+    self.personnel = ko.observableArray([]);
+    self.organizations = ko.observableArray([]);
+    self.queues = ko.observableArray([]);
+    self.billing = ko.observableArray([]);
+    self.modules = ko.observableArray([]);
+
+    self.loadCustomer = function () {
+        $.get('/proxy/customers/' + CUSTOMER_ID, function (c) {
+            self.customer(c);
+            self.edit.name(c.name || '');
+            self.edit.taxNumber(c.taxNumber || '');
+            self.edit.phone(c.contactPhone || c.phone || '');
+            self.edit.email(c.contactEmail || c.email || '');
+            self.edit.address(c.address || '');
+            self.edit.maxUsers(c.maxUsers || 5);
+            self.edit.monthlyUnitPrice(c.monthlyUnitPrice || 0);
+        });
+    };
+
+    self.loadTabs = function () {
+        $.get('/proxy/portal/personnel?customerId=' + CUSTOMER_ID, function (d) {
+            self.personnel(Array.isArray(d) ? d : (d.items || d.data || []));
+        });
+        $.get('/proxy/organizations?customerId=' + CUSTOMER_ID, function (d) {
+            self.organizations(Array.isArray(d) ? d : (d.items || d.data || []));
+        });
+        $.get('/proxy/queues?customerId=' + CUSTOMER_ID, function (d) {
+            self.queues(Array.isArray(d) ? d : (d.items || d.data || []));
+        });
+        $.get('/proxy/customers/' + CUSTOMER_ID + '/billing', function (d) {
+            self.billing(Array.isArray(d) ? d : (d.items || d.data || []));
+        });
+        $.get('/proxy/customers/' + CUSTOMER_ID + '/modules', function (d) {
+            self.modules(Array.isArray(d) ? d : (d.items || d.data || []));
+        });
+    };
+
+    self.saveGeneral = function () {
+        $.ajax({
+            url: '/proxy/customers/' + CUSTOMER_ID, method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                name: self.edit.name(), taxNumber: self.edit.taxNumber(),
+                contactPhone: self.edit.phone(), contactEmail: self.edit.email(),
+                address: self.edit.address(), maxUsers: parseInt(self.edit.maxUsers()),
+                monthlyUnitPrice: parseFloat(self.edit.monthlyUnitPrice())
+            }),
+            success: function () { toastr.success('Kaydedildi.'); self.loadCustomer(); },
+            error: function () { toastr.error('Kaydetme hatasi.'); }
+        });
+    };
+
+    self.resetAdminPassword = function () {
+        $.ajax({
+            url: '/proxy/customers/' + CUSTOMER_ID + '/reset-admin-password', method: 'POST',
+            success: function (data) {
+                self.newPassword(data.newPassword || data.password || '???');
+                toastr.success('Sifre sifirlandi.');
+            },
+            error: function () { toastr.error('Sifre sifirlama hatasi.'); }
+        });
+    };
+
+    self.toggleModule = function (mod) {
+        var action = mod.isActive ? 'deactivate' : 'activate';
+        var url = '/proxy/customers/' + CUSTOMER_ID + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
+        $.ajax({
+            url: url, method: 'POST',
+            success: function () { toastr.success('Modul guncellendi.'); self.loadTabs(); },
+            error: function () { toastr.error('Islem hatasi.'); }
+        });
+    };
+
+    self.loadCustomer();
+    self.loadTabs();
+}
+
+ko.applyBindings(new DetailViewModel(), document.getElementById('detail-vm'));
+</script>
+}

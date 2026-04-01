@@ -9,4 +9,11 @@ public class CustomersController : MgmtBaseController
         ViewData["Title"] = "Musteriler";
         return View();
     }
+
+    public IActionResult Detail(int id)
+    {
+        ViewData["Title"] = "Musteri Detay";
+        ViewData["CustomerId"] = id;
+        return View();
+    }
 }

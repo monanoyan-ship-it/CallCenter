@@ -44,9 +44,12 @@
     @if (Context.Session.GetString("Token") != null)
     {
         var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-        var mainOpen = ctrl is "Home";
-        var custOpen = ctrl is "Customers" or "Users";
-        var sysOpen = ctrl is "Settings";
+        var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+        var custOpen = ctrl is "Customers" or "Users" or "Organizations" or "Personnel";
+        var sipOpen = ctrl is "SipAccounts" or "Queues" or "Ivr" or "CallForwarding" or "GatewayHealth";
+        var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig";
+        var finOpen = ctrl is "ServiceManagement" or "BillingReport";
+        var kvkkOpen = ctrl is "Kvkk";
 
         <nav class="sidebar d-print-none">
             <div class="brand">
@@ -63,12 +66,22 @@
                 <span>Musteri Yonetimi</span><i class="bi bi-chevron-down chevron @(custOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(custOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Customers" ? "active" : "")" href="/Customers">
-                    <i class="bi bi-building me-2"></i>Musteriler
-                </a>
-                <a class="nav-link @(ctrl == "Users" ? "active" : "")" href="/Users">
-                    <i class="bi bi-people me-2"></i>Kullanicilar
-                </a>
+                <a class="nav-link @(ctrl == "Customers" ? "active" : "")" href="/Customers"><i class="bi bi-building me-2"></i>Musteriler</a>
+                <a class="nav-link @(ctrl == "Users" ? "active" : "")" href="/Users"><i class="bi bi-people me-2"></i>Kullanicilar</a>
+                <a class="nav-link @(ctrl == "Organizations" ? "active" : "")" href="/Organizations"><i class="bi bi-diagram-3 me-2"></i>Organizasyonlar</a>
+                <a class="nav-link @(ctrl == "Personnel" ? "active" : "")" href="/Personnel"><i class="bi bi-person-badge me-2"></i>Personel</a>
+            </div>
+
+            <!-- SIP & Telefoni -->
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>SIP & Telefoni</span><i class="bi bi-chevron-down chevron @(sipOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(sipOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "SipAccounts" ? "active" : "")" href="/SipAccounts"><i class="bi bi-telephone me-2"></i>SIP Hesaplari</a>
+                <a class="nav-link @(ctrl == "Queues" ? "active" : "")" href="/Queues"><i class="bi bi-collection me-2"></i>Kuyruklar</a>
+                <a class="nav-link @(ctrl == "Ivr" ? "active" : "")" href="/Ivr"><i class="bi bi-menu-button-wide me-2"></i>IVR Yonetimi</a>
+                <a class="nav-link @(ctrl == "CallForwarding" ? "active" : "")" href="/CallForwarding"><i class="bi bi-arrow-left-right me-2"></i>Yonlendirme</a>
+                <a class="nav-link @(ctrl == "GatewayHealth" ? "active" : "")" href="/GatewayHealth"><i class="bi bi-heart-pulse me-2"></i>Gateway Durumu</a>
             </div>
 
             <!-- Sistem -->
@@ -76,9 +89,34 @@
                 <span>Sistem</span><i class="bi bi-chevron-down chevron @(sysOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(sysOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Settings" ? "active" : "")" href="/Settings">
-                    <i class="bi bi-gear me-2"></i>Ayarlar
-                </a>
+                <a class="nav-link @(ctrl == "Settings" ? "active" : "")" href="/Settings"><i class="bi bi-gear me-2"></i>Ayarlar</a>
+                <a class="nav-link @(ctrl == "Translations" ? "active" : "")" href="/Translations"><i class="bi bi-translate me-2"></i>Dil Yonetimi</a>
+                <a class="nav-link @(ctrl == "AuditLogs" ? "active" : "")" href="/AuditLogs"><i class="bi bi-journal-text me-2"></i>Denetim Kayitlari</a>
+                <a class="nav-link @(ctrl == "StorageConfig" ? "active" : "")" href="/StorageConfig"><i class="bi bi-cloud me-2"></i>Depolama</a>
+            </div>
+
+            <!-- Finans -->
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>Finans</span><i class="bi bi-chevron-down chevron @(finOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(finOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "ServiceManagement" ? "active" : "")" href="/ServiceManagement"><i class="bi bi-box-seam me-2"></i>Hizmet Yonetimi</a>
+                <a class="nav-link @(ctrl == "BillingReport" ? "active" : "")" href="/BillingReport"><i class="bi bi-receipt me-2"></i>Faturalama</a>
+            </div>
+
+            <!-- KVKK -->
+            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+                <span>KVKK</span><i class="bi bi-chevron-down chevron @(kvkkOpen ? "open" : "")"></i>
+            </button>
+            <div class="nav-group-items @(kvkkOpen ? "show" : "")">
+                <a class="nav-link @(ctrl == "Kvkk" && act == "Index" ? "active" : "")" href="/Kvkk"><i class="bi bi-shield me-2"></i>Dashboard</a>
+                <a class="nav-link @(act == "PrivacyNotices" ? "active" : "")" href="/Kvkk/PrivacyNotices"><i class="bi bi-file-text me-2"></i>Aydinlatma</a>
+                <a class="nav-link @(act == "Consents" ? "active" : "")" href="/Kvkk/Consents"><i class="bi bi-check-circle me-2"></i>Rizalar</a>
+                <a class="nav-link @(act == "Requests" ? "active" : "")" href="/Kvkk/Requests"><i class="bi bi-envelope me-2"></i>Basvurular</a>
+                <a class="nav-link @(act == "Breaches" ? "active" : "")" href="/Kvkk/Breaches"><i class="bi bi-exclamation-triangle me-2"></i>Ihlaller</a>
+                <a class="nav-link @(act == "Transfers" ? "active" : "")" href="/Kvkk/Transfers"><i class="bi bi-globe me-2"></i>Aktarimlar</a>
+                <a class="nav-link @(act == "Inventory" ? "active" : "")" href="/Kvkk/Inventory"><i class="bi bi-archive me-2"></i>Envanter</a>
+                <a class="nav-link @(act == "KvkkSettings" ? "active" : "")" href="/Kvkk/KvkkSettings"><i class="bi bi-sliders me-2"></i>KVKK Ayarlari</a>
             </div>
 
             <!-- Alt bar -->
