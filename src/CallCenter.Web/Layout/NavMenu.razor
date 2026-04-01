@@ -64,124 +64,17 @@
             </div>
         </div>
 
-        @* ─── MÜŞTERİLER ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(4)">
-                <i class="bi bi-building"></i>
-                <span>Musteriler</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(4) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(4) ? "show" : "")">
-                <NavLink class="nav-link" href="admin/customers">
-                    <i class="bi bi-list-ul"></i>
-                    <span>Musteri Listesi</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/organizations">
-                    <i class="bi bi-diagram-3-fill"></i>
-                    <span>Organizasyonlar</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/personnel">
-                    <i class="bi bi-person-badge"></i>
-                    <span>Personel</span>
-                </NavLink>
+        @* ─── YÖNETİM (Management paneline yonlendir) ─── *@
+        @if (IsAdmin)
+        {
+            <div class="nav-item mt-2">
+                <a class="nav-link" href="http://localhost:5280" target="_blank" style="color: rgba(100,181,246,.9);">
+                    <i class="bi bi-gear-wide-connected"></i>
+                    <span>Management Panel</span>
+                    <i class="bi bi-box-arrow-up-right ms-1" style="font-size:.7rem;"></i>
+                </a>
             </div>
-        </div>
-
-        @* ─── YÖNETİM ─── *@
-        <div class="nav-group">
-            <button class="nav-group-toggle" @onclick="() => ToggleGroup(3)">
-                <i class="bi bi-gear-fill"></i>
-                <span>Yonetim</span>
-                <i class="bi bi-chevron-down chevron @(IsGroupOpen(3) ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(IsGroupOpen(3) ? "show" : "")">
-                @if (IsAdmin)
-                {
-                    <NavLink class="nav-link" href="admin/users">
-                        <i class="bi bi-person-fill-gear"></i>
-                        <span>Kullanicilar</span>
-                    </NavLink>
-                }
-                <NavLink class="nav-link" href="admin/queues">
-                    <i class="bi bi-diagram-3-fill"></i>
-                    <span>Kuyruk Yapilandirmasi</span>
-                </NavLink>
-                <NavLink class="nav-link" href="admin/ivr">
-                    <i class="bi bi-telephone-inbound-fill"></i>
-                    <span>IVR / Karsilama</span>
-                </NavLink>
-                @if (IsAdmin)
-                {
-                    <NavLink class="nav-link" href="admin/sip">
-                        <i class="bi bi-router-fill"></i>
-                        <span>SIP Ayarlari</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/translations">
-                        <i class="bi bi-translate"></i>
-                        <span>Dil Yonetimi</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/settings">
-                        <i class="bi bi-sliders"></i>
-                        <span>Sistem Ayarlari</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/callforwarding">
-                        <i class="bi bi-telephone-forward"></i>
-                        <span>Arama Yonlendirme</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/auditlogs">
-                        <i class="bi bi-journal-text"></i>
-                        <span>Denetim Kayitlari</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/gateway-health">
-                        <i class="bi bi-router-fill"></i>
-                        <span>Gateway Durumu</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/services">
-                        <i class="bi bi-box-seam"></i>
-                        <span>Hizmet Yonetimi</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/billing-report">
-                        <i class="bi bi-receipt"></i>
-                        <span>Faturalama Raporu</span>
-                    </NavLink>
-
-                    @* ─── KVKK ─── *@
-                    <div class="nav-group-divider my-1 border-top mx-3 opacity-25"></div>
-                    <NavLink class="nav-link" href="admin/kvkk">
-                        <i class="bi bi-shield-check"></i>
-                        <span>KVKK Dashboard</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/privacy-notices">
-                        <i class="bi bi-file-earmark-text"></i>
-                        <span>Aydinlatma Metinleri</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/consents">
-                        <i class="bi bi-file-earmark-check"></i>
-                        <span>Riza Yonetimi</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/requests">
-                        <i class="bi bi-envelope-paper"></i>
-                        <span>Basvuru Yonetimi</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/breaches">
-                        <i class="bi bi-shield-fill-x"></i>
-                        <span>Ihlal Bildirimleri</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/transfers">
-                        <i class="bi bi-globe"></i>
-                        <span>Yurt Disi Aktarim</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/inventory">
-                        <i class="bi bi-database"></i>
-                        <span>Veri Envanteri</span>
-                    </NavLink>
-                    <NavLink class="nav-link" href="admin/kvkk/settings">
-                        <i class="bi bi-gear-wide-connected"></i>
-                        <span>KVKK Ayarlari</span>
-                    </NavLink>
-                }
-            </div>
-        </div>
+        }
     </nav>
 </div>
 
@@ -221,8 +114,6 @@
     private static readonly Dictionary<int, string[]> GroupRoutes = new()
     {
         { 2, new[] { "reports/" } },
-        { 3, new[] { "admin/users", "admin/queues", "admin/ivr", "admin/sip", "admin/translations", "admin/settings", "admin/callforwarding", "admin/auditlogs", "admin/gateway-health", "admin/services", "admin/billing-report", "admin/kvkk" } },
-        { 4, new[] { "admin/customers", "admin/organizations", "admin/personnel" } },
         { 6, new[] { "supervisor/" } }
     };
 
