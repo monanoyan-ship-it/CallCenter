@@ -39,7 +39,7 @@ function UsersViewModel() {
     self.roleFilter.subscribe(function () { self.currentPage(1); self.loadData(); });
 
     self.openCreate = function () {
-        self.form.id(null); self.form.username(''); self.form.fullName('');
+        self.form.id(null); self.form.userName(''); self.form.fullName('');
         self.form.email(''); self.form.password(''); self.form.roleId('1');
         self.form.extension(''); self.form.isActive(true);
         self.formTitle('Yeni Kullanici');
@@ -47,7 +47,7 @@ function UsersViewModel() {
     };
 
     self.openEdit = function (u) {
-        self.form.id(u.id); self.form.username(u.userName); self.form.fullName(u.fullName);
+        self.form.id(u.id); self.form.userName(u.userName); self.form.fullName(u.fullName);
         self.form.email(u.email || ''); self.form.password('');
         self.form.roleId(String(u.roleId || 1)); self.form.extension(u.extension || '');
         self.form.isActive(u.isActive !== false);
@@ -59,7 +59,7 @@ function UsersViewModel() {
         if (!self.form.fullName()) { toastr.warning('Ad soyad zorunlu.'); return; }
         self.isSaving(true);
         var payload = {
-            username: self.form.userName(), fullName: self.form.fullName(),
+            userName: self.form.userName(), fullName: self.form.fullName(),
             email: self.form.email(), roleId: parseInt(self.form.roleId()),
             extension: self.form.extension(), isActive: self.form.isActive()
         };
