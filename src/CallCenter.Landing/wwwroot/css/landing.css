@@ -21,6 +21,9 @@
     --accent-b2b: #10b981;
     --accent-b2b-light: #34d399;
     --accent-b2b-glow: rgba(16, 185, 129, 0.15);
+    --accent-salon: #ec4899;
+    --accent-salon-light: #f472b6;
+    --accent-salon-glow: rgba(236, 72, 153, 0.15);
     --success: #10b981;
     --amber: #f59e0b;
     --radius: 12px;
@@ -278,6 +281,9 @@ body {
 }
 .product-icon.b2b {
     background: var(--accent-b2b-glow); color: var(--accent-b2b-light);
+}
+.product-icon.salon {
+    background: var(--accent-salon-glow); color: var(--accent-salon-light);
 }
 .product-status {
     font-size: 0.6875rem; font-weight: 600; text-transform: uppercase;

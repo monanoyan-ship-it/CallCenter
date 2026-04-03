@@ -1,5 +1,11 @@
 @page
 @model IndexModel
+@{
+    var currentCulture = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var otherLang = currentCulture == "tr" ? "en" : "tr";
+    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
+    var langPrefix = $"/{currentCulture}";
+}
 
 <!-- Background -->
 <div class="landing-bg">
@@ -9,15 +15,16 @@
 <div class="landing-wrapper">
     <!-- Nav -->
     <nav class="landing-nav">
-        <a href="/" class="landing-brand">
+        <a href="@langPrefix" class="landing-brand">
             <i class="bi bi-hexagon-fill"></i> CorpLynk
         </a>
         <div class="landing-nav-links">
-            <a href="#products">Products</a>
-            <a href="/download">Download</a>
-            <a href="#about">About</a>
-            <a href="#contact">Contact</a>
-            <a href="https://cc.corplynk.com" class="nav-btn">Sign In</a>
+            <a href="#products"><t key="landing.nav.products">Products</t></a>
+            <a href="@langPrefix/download"><t key="landing.nav.download">Download</t></a>
+            <a href="#about"><t key="landing.nav.about">About</t></a>
+            <a href="#contact"><t key="landing.nav.contact">Contact</t></a>
+            <a href="https://cc.corplynk.com" class="nav-btn"><t key="landing.nav.signin">Sign In</t></a>
+            <a href="javascript:void(0)" onclick="switchLanguage('@otherLang')" class="nav-btn" style="margin-left:4px;">@otherLangLabel</a>
         </div>
     </nav>
 
@@ -25,26 +32,25 @@
     <main class="landing-main">
         <div class="landing-badge">
             <span class="dot"></span>
-            Enterprise Software Solutions
+            <t key="landing.hero.badge">Enterprise Software Solutions</t>
         </div>
 
         <h1 class="landing-title">
-            Business Tools,<br />
-            <span class="gradient-text">Connected.</span>
+            <t key="landing.hero.title1">Business Tools,</t><br />
+            <span class="gradient-text"><t key="landing.hero.title2">Connected.</t></span>
         </h1>
 
         <p class="landing-subtitle">
-            We build software that connects businesses. From cloud call centers to global B2B trade,
-            CorpLynk provides the infrastructure your company needs to grow.
+            <t key="landing.hero.subtitle">We build software that connects businesses. From cloud call centers to global B2B trade, CorpLynk provides the infrastructure your company needs to grow.</t>
         </p>
 
         <div class="hero-cta">
             <a href="#products" class="cta-btn cta-primary">
-                <span>Explore Products</span>
+                <span><t key="landing.cta.explore">Explore Products</t></span>
                 <i class="bi bi-arrow-down"></i>
             </a>
             <a href="#contact" class="cta-btn cta-outline">
-                <span>Get in Touch</span>
+                <span><t key="landing.cta.contact">Get in Touch</t></span>
             </a>
         </div>
     </main>
@@ -53,20 +59,20 @@
     <section class="stats-section">
         <div class="stats-grid">
             <div class="stat-item">
-                <div class="stat-number">2</div>
-                <div class="stat-label">Products</div>
+                <div class="stat-number">3</div>
+                <div class="stat-label"><t key="landing.stats.products">Products</t></div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">SIP</div>
-                <div class="stat-label">VoIP Ready</div>
+                <div class="stat-label"><t key="landing.stats.voip">VoIP Ready</t></div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">B2B</div>
-                <div class="stat-label">Global Trade</div>
+                <div class="stat-label"><t key="landing.stats.trade">Global Trade</t></div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">24/7</div>
-                <div class="stat-label">Cloud Native</div>
+                <div class="stat-label"><t key="landing.stats.cloud">Cloud Native</t></div>
             </div>
         </div>
     </section>
@@ -74,9 +80,9 @@
     <!-- Products -->
     <section class="products-section" id="products">
         <div class="section-header">
-            <div class="section-badge">Our Products</div>
-            <h2 class="section-title">Two Platforms, One Vision</h2>
-            <p class="section-desc">Enterprise-grade solutions designed to connect businesses and streamline operations.</p>
+            <div class="section-badge"><t key="landing.products.badge">Our Products</t></div>
+            <h2 class="section-title"><t key="landing.products.title">Three Platforms, One Vision</t></h2>
+            <p class="section-desc"><t key="landing.products.subtitle">Enterprise-grade solutions designed to connect businesses and streamline operations.</t></p>
         </div>
 
         <div class="products-grid">
@@ -88,10 +94,9 @@
                     </div>
                     <span class="product-status live">Live</span>
                 </div>
-                <h3 class="product-name">Cloud Call Center</h3>
+                <h3 class="product-name"><t key="landing.cc.name">Cloud Call Center</t></h3>
                 <p class="product-desc">
-                    Multi-tenant cloud call center with SIP integration, real-time dashboards,
-                    intelligent call routing, and encrypted call recordings.
+                    <t key="landing.cc.desc">Multi-tenant cloud call center with SIP integration, real-time dashboards, intelligent call routing, and encrypted call recordings.</t>
                 </p>
                 <div class="product-features">
                     <span class="product-tag"><i class="bi bi-telephone-forward"></i> SIP/WebRTC</span>
@@ -102,12 +107,44 @@
                     <span class="product-tag"><i class="bi bi-people"></i> Multi-Tenant</span>
                 </div>
                 <div class="product-actions">
-                    <a href="/call-center" class="product-btn primary">
-                        <span>Learn More</span>
+                    <a href="@langPrefix/call-center" class="product-btn primary">
+                        <span><t key="landing.btn.learnmore">Learn More</t></span>
                         <i class="bi bi-arrow-right"></i>
                     </a>
                     <a href="https://cc.corplynk.com" class="product-btn outline" target="_blank">
-                        <span>Open App</span>
+                        <span><t key="landing.btn.openapp">Open App</t></span>
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Salon -->
+            <div class="product-card product-salon">
+                <div class="product-icon-wrap">
+                    <div class="product-icon salon">
+                        <i class="bi bi-scissors"></i>
+                    </div>
+                    <span class="product-status live">Live</span>
+                </div>
+                <h3 class="product-name"><t key="landing.salon.name">Salon Management</t></h3>
+                <p class="product-desc">
+                    <t key="landing.salon.desc">Complete salon management platform with appointments, POS, loyalty programs, online booking, staff management, and detailed reports.</t>
+                </p>
+                <div class="product-features">
+                    <span class="product-tag"><i class="bi bi-calendar-check"></i> <t key="landing.salon.tag.appointments">Appointments</t></span>
+                    <span class="product-tag"><i class="bi bi-credit-card"></i> POS</span>
+                    <span class="product-tag"><i class="bi bi-star"></i> <t key="landing.salon.tag.loyalty">Loyalty</t></span>
+                    <span class="product-tag"><i class="bi bi-globe"></i> <t key="landing.salon.tag.booking">Online Booking</t></span>
+                    <span class="product-tag"><i class="bi bi-person-badge"></i> <t key="landing.salon.tag.staff">Staff</t></span>
+                    <span class="product-tag"><i class="bi bi-bar-chart"></i> <t key="landing.salon.tag.reports">Reports</t></span>
+                </div>
+                <div class="product-actions">
+                    <a href="@langPrefix/salon-app" class="product-btn primary">
+                        <span><t key="landing.btn.learnmore">Learn More</t></span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                    <a href="https://salon.corplynk.com" class="product-btn outline" target="_blank">
+                        <span><t key="landing.btn.openapp">Open App</t></span>
                         <i class="bi bi-box-arrow-up-right"></i>
                     </a>
                 </div>
@@ -119,12 +156,11 @@
                     <div class="product-icon b2b">
                         <i class="bi bi-globe2"></i>
                     </div>
-                    <span class="product-status dev">In Development</span>
+                    <span class="product-status dev"><t key="landing.status.dev">In Development</t></span>
                 </div>
-                <h3 class="product-name">B2B Trade Platform</h3>
+                <h3 class="product-name"><t key="landing.b2b.name">B2B Trade Platform</t></h3>
                 <p class="product-desc">
-                    Next-generation B2B marketplace connecting suppliers, buyers, carriers,
-                    and service providers across industries worldwide.
+                    <t key="landing.b2b.desc">Next-generation B2B marketplace connecting suppliers, buyers, carriers, and service providers across industries worldwide.</t>
                 </p>
                 <div class="product-features">
                     <span class="product-tag"><i class="bi bi-shop"></i> Marketplace</span>
@@ -135,8 +171,8 @@
                     <span class="product-tag"><i class="bi bi-translate"></i> Multi-Language</span>
                 </div>
                 <div class="product-actions">
-                    <a href="/b2b-trade" class="product-btn primary">
-                        <span>Learn More</span>
+                    <a href="@langPrefix/b2b-trade" class="product-btn primary">
+                        <span><t key="landing.btn.learnmore">Learn More</t></span>
                         <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
@@ -147,9 +183,9 @@
     <!-- Tech Stack -->
     <section class="tech-section" id="about">
         <div class="section-header">
-            <div class="section-badge">Technology</div>
-            <h2 class="section-title">Built with Modern Stack</h2>
-            <p class="section-desc">Enterprise-grade architecture with security and performance at its core.</p>
+            <div class="section-badge"><t key="landing.tech.badge">Technology</t></div>
+            <h2 class="section-title"><t key="landing.tech.title">Built with Modern Stack</t></h2>
+            <p class="section-desc"><t key="landing.tech.subtitle">Enterprise-grade architecture with security and performance at its core.</t></p>
         </div>
         <div class="tech-grid">
             <div class="tech-item">
@@ -182,9 +218,9 @@
     <!-- Contact / Waitlist -->
     <section class="contact-section" id="contact">
         <div class="section-header">
-            <div class="section-badge">Stay Updated</div>
-            <h2 class="section-title">Get Early Access</h2>
-            <p class="section-desc">Join our mailing list to get notified about updates, new features, and early access to our products.</p>
+            <div class="section-badge"><t key="landing.contact.badge">Stay Updated</t></div>
+            <h2 class="section-title"><t key="landing.contact.title">Get Early Access</t></h2>
+            <p class="section-desc"><t key="landing.contact.subtitle">Join our mailing list to get notified about updates, new features, and early access to our products.</t></p>
         </div>
 
         <div class="waitlist-card" id="waitlistForm">
@@ -193,11 +229,11 @@
                     type="email"
                     id="waitlistEmail"
                     class="waitlist-input"
-                    placeholder="Enter your email"
+                    placeholder="@T.T("landing.contact.placeholder", "Enter your email")"
                     required
                 />
                 <button type="submit" id="waitlistBtn" class="waitlist-btn">
-                    <span id="waitlistBtnText">Subscribe</span>
+                    <span id="waitlistBtnText"><t key="landing.contact.subscribe">Subscribe</t></span>
                     <span id="waitlistSpinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
                     <i class="bi bi-arrow-right"></i>
                 </button>
@@ -205,8 +241,8 @@
             <div id="waitlistError" class="waitlist-error"></div>
             <div id="waitlistSuccess" class="waitlist-success">
                 <div class="check-icon"><i class="bi bi-check-lg"></i></div>
-                <h4>You're on the list!</h4>
-                <p>We'll keep you updated on all things CorpLynk.</p>
+                <h4><t key="landing.contact.success.title">You're on the list!</t></h4>
+                <p><t key="landing.contact.success.desc">We'll keep you updated on all things CorpLynk.</t></p>
             </div>
         </div>
 
@@ -217,7 +253,7 @@
                 <div class="avatar">S</div>
                 <div class="avatar">+</div>
             </div>
-            <span>Join <span class="count" id="waitlistCount">0</span> others</span>
+            <span><t key="landing.contact.join">Join</t> <span class="count" id="waitlistCount">0</span> <t key="landing.contact.others">others</t></span>
         </div>
     </section>
 
@@ -225,24 +261,25 @@
     <footer class="landing-footer">
         <div class="footer-top">
             <div class="footer-brand">
-                <a href="/" class="landing-brand">
+                <a href="@langPrefix" class="landing-brand">
                     <i class="bi bi-hexagon-fill"></i> CorpLynk
                 </a>
-                <p>Enterprise software solutions that connect businesses.</p>
+                <p><t key="landing.footer.desc">Enterprise software solutions that connect businesses.</t></p>
             </div>
             <div class="footer-col">
-                <h4>Products</h4>
-                <a href="/call-center">Cloud Call Center</a>
-                <a href="/b2b-trade">B2B Trade Platform</a>
-                <a href="/download">Download</a>
+                <h4><t key="landing.nav.products">Products</t></h4>
+                <a href="@langPrefix/call-center"><t key="landing.cc.name">Cloud Call Center</t></a>
+                <a href="@langPrefix/salon-app"><t key="landing.salon.name">Salon Management</t></a>
+                <a href="@langPrefix/b2b-trade"><t key="landing.b2b.name">B2B Trade Platform</t></a>
+                <a href="@langPrefix/download"><t key="landing.nav.download">Download</t></a>
             </div>
             <div class="footer-col">
-                <h4>Company</h4>
-                <a href="#about">About</a>
-                <a href="#contact">Contact</a>
+                <h4><t key="landing.footer.company">Company</t></h4>
+                <a href="#about"><t key="landing.nav.about">About</t></a>
+                <a href="#contact"><t key="landing.nav.contact">Contact</t></a>
             </div>
             <div class="footer-col">
-                <h4>Connect</h4>
+                <h4><t key="landing.footer.connect">Connect</t></h4>
                 <a href="https://x.com/corplynkcmon" target="_blank" rel="noopener"><i class="bi bi-twitter-x"></i> Twitter</a>
                 <a href="mailto:info@corplynk.com"><i class="bi bi-envelope"></i> Email</a>
             </div>

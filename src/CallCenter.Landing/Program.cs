@@ -1,11 +1,27 @@
+using CallCenter.Landing.Conventions;
 using CallCenter.Landing.Data;
+using CallCenter.Shared.Localization;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
+    ?? throw new InvalidOperationException("ApiBaseUrl yapilandirilmamis. appsettings.json kontrol edin.");
+
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.Add(new CulturePageRouteModelConvention());
+});
+
 builder.Services.AddDbContext<LandingDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddAppLocalization(apiBaseUrl);
+
+builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteOptions>(options =>
+{
+    options.ConstraintMap.Add("culture", typeof(CultureRouteConstraint));
+});
 
 var app = builder.Build();
 
@@ -16,6 +32,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseAppLocalization();
 app.UseRouting();
 
 // Waitlist API endpoints

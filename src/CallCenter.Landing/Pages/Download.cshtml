@@ -1,5 +1,11 @@
 @page "/download"
 @model DownloadModel
+@{
+    var currentCulture = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var otherLang = currentCulture == "tr" ? "en" : "tr";
+    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
+    var langPrefix = $"/{currentCulture}";
+}
 
 @section Styles {
     <meta property="og:title" content="CorpLynk — Download" />
@@ -14,14 +20,15 @@
 <div class="landing-wrapper">
     <!-- Nav -->
     <nav class="landing-nav">
-        <a href="/" class="landing-brand">
+        <a href="@langPrefix" class="landing-brand">
             <i class="bi bi-hexagon-fill"></i> CorpLynk
         </a>
         <div class="landing-nav-links">
-            <a href="/">Home</a>
-            <a href="/call-center">Call Center</a>
-            <a href="/download" style="color: var(--accent-light);">Download</a>
-            <a href="https://cc.corplynk.com" class="nav-btn">Open App</a>
+            <a href="@langPrefix"><t key="landing.nav.home">Home</t></a>
+            <a href="@langPrefix/call-center">Call Center</a>
+            <a href="@langPrefix/download" style="color: var(--accent-light);"><t key="landing.nav.download">Download</t></a>
+            <a href="https://cc.corplynk.com" class="nav-btn"><t key="landing.btn.openapp">Open App</t></a>
+            <a href="javascript:void(0)" onclick="switchLanguage('@otherLang')" class="nav-btn" style="margin-left:4px;">@otherLangLabel</a>
         </div>
     </nav>
 
@@ -145,19 +152,20 @@
     <footer class="landing-footer">
         <div class="footer-top">
             <div class="footer-brand">
-                <a href="/" class="landing-brand">
+                <a href="@langPrefix" class="landing-brand">
                     <i class="bi bi-hexagon-fill"></i> CorpLynk
                 </a>
-                <p>Enterprise software solutions that connect businesses.</p>
+                <p><t key="landing.footer.desc">Enterprise software solutions that connect businesses.</t></p>
             </div>
             <div class="footer-col">
-                <h4>Products</h4>
-                <a href="/call-center">Cloud Call Center</a>
-                <a href="/b2b-trade">B2B Trade Platform</a>
-                <a href="/download">Download</a>
+                <h4><t key="landing.nav.products">Products</t></h4>
+                <a href="@langPrefix/call-center"><t key="landing.cc.name">Cloud Call Center</t></a>
+                <a href="@langPrefix/salon-app"><t key="landing.salon.name">Salon Management</t></a>
+                <a href="@langPrefix/b2b-trade"><t key="landing.b2b.name">B2B Trade Platform</t></a>
+                <a href="@langPrefix/download"><t key="landing.nav.download">Download</t></a>
             </div>
             <div class="footer-col">
-                <h4>Connect</h4>
+                <h4><t key="landing.footer.connect">Connect</t></h4>
                 <a href="https://x.com/corplynkcmon" target="_blank" rel="noopener"><i class="bi bi-twitter-x"></i> Twitter</a>
                 <a href="mailto:info@corplynk.com"><i class="bi bi-envelope"></i> Email</a>
             </div>

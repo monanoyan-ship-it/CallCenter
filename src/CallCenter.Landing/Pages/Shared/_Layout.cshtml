@@ -1,21 +1,51 @@
+@{
+    var currentCulture = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var otherLang = currentCulture == "tr" ? "en" : "tr";
+    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
+    var currentPath = Context.Request.Path.Value ?? "/";
+
+    // URL'den mevcut culture prefix'ini temizle
+    var cleanPath = currentPath;
+    foreach (var code in LocalizationConstants.SupportedCodes)
+    {
+        if (cleanPath.StartsWith($"/{code}/", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanPath = cleanPath[(code.Length + 1)..];
+            break;
+        }
+        if (cleanPath.Equals($"/{code}", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanPath = "/";
+            break;
+        }
+    }
+
+    var switchUrl = $"/{otherLang}{(cleanPath == "/" ? "" : cleanPath)}";
+    var canonicalPath = $"/{currentCulture}{(cleanPath == "/" ? "" : cleanPath)}";
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@currentCulture">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CorpLynk — Enterprise Software Solutions</title>
-    <meta name="description" content="CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more." />
+    <title>@(ViewData["Title"] ?? "CorpLynk — Enterprise Software Solutions")</title>
+    <meta name="description" content="@T.T("landing.meta.description", "CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more.")" />
+    <!-- Canonical & Hreflang -->
+    <link rel="canonical" href="https://corplynk.com@(canonicalPath)" />
+    <link rel="alternate" hreflang="tr" href="https://corplynk.com/tr@(cleanPath == "/" ? "" : cleanPath)" />
+    <link rel="alternate" hreflang="en" href="https://corplynk.com/en@(cleanPath == "/" ? "" : cleanPath)" />
+    <link rel="alternate" hreflang="x-default" href="https://corplynk.com@(cleanPath)" />
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://corplynk.com/" />
-    <meta property="og:title" content="CorpLynk — Enterprise Software Solutions" />
-    <meta property="og:description" content="CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more." />
+    <meta property="og:url" content="https://corplynk.com@(canonicalPath)" />
+    <meta property="og:title" content="@(ViewData["Title"] ?? "CorpLynk — Enterprise Software Solutions")" />
+    <meta property="og:description" content="@T.T("landing.meta.description", "CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more.")" />
     <meta property="og:site_name" content="CorpLynk" />
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@@corplynkcmon" />
-    <meta name="twitter:title" content="CorpLynk — Enterprise Software Solutions" />
-    <meta name="twitter:description" content="CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more." />
+    <meta name="twitter:title" content="@(ViewData["Title"] ?? "CorpLynk — Enterprise Software Solutions")" />
+    <meta name="twitter:description" content="@T.T("landing.meta.description", "CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more.")" />
     <link rel="icon" type="image/png" href="~/favicon.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
@@ -25,6 +55,13 @@
 <body>
     @RenderBody()
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        // Dil secici: cookie set et ve yonlendir
+        function switchLanguage(lang) {
+            document.cookie = '.AspNetCore.Culture=c=' + lang + '|uic=' + lang + ';path=/;max-age=31536000';
+            window.location.href = '/' + lang + '@(cleanPath == "/" ? "" : cleanPath.Replace("'", "\\'"))';
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
