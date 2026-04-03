@@ -1,0 +1,1122 @@
+@page "/customer/portal/storage"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject PermissionService PermService
+@inject IJSRuntime JS
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<PageTitle>Depolama Ayarlari - CorpLynk</PageTitle>
+
+@if (accessDenied)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-shield-lock fs-1 text-danger"></i>
+        <p class="text-muted mt-2">Bu sayfaya erisim yetkiniz yok.</p>
+    </div>
+}
+else
+{
+
+@* ─── BASLIK ─── *@
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i>Depolama Ayarlari
+    </h4>
+    <div>
+        <button class="btn btn-sm btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Ekle
+        </button>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (!configs.Any())
+{
+    <div class="text-center py-5">
+        <i class="bi bi-cloud-slash fs-1 text-muted"></i>
+        <p class="text-muted mt-2">Henuz depolama yapilandirmasi yok.</p>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-lg me-1"></i>Ilk Yapilandirmayi Olustur
+        </button>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var config in configs)
+        {
+            var providerItem = StorageProviders.GetById(config.ProviderTypeId);
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm @(!config.IsActive ? "opacity-50" : "")">
+                    <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge @(providerItem?.CssClass ?? "bg-secondary")">
+                                <i class="bi @(providerItem?.Icon ?? "bi-cloud")"></i>
+                            </span>
+                            <strong>@config.ProviderName</strong>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            @if (config.IsDefault)
+                            {
+                                <span class="badge bg-success">Varsayilan</span>
+                            }
+                            @if (!config.IsActive)
+                            {
+                                <span class="badge bg-secondary">Pasif</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="small text-muted mb-2">
+                            <i class="bi bi-building me-1"></i>@config.CustomerName
+                        </div>
+                        @if (!string.IsNullOrEmpty(config.BasePath))
+                        {
+                            <div class="small text-muted mb-2">
+                                <i class="bi bi-folder me-1"></i>@config.BasePath
+                            </div>
+                        }
+                        @* Baglanti durumu *@
+                        @if (config.LastTestedAt.HasValue)
+                        {
+                            <div class="small @(config.LastTestSuccess == true ? "text-success" : "text-danger")">
+                                <i class="bi @(config.LastTestSuccess == true ? "bi-check-circle-fill" : "bi-x-circle-fill") me-1"></i>
+                                @(config.LastTestSuccess == true ? "Baglanti basarili" : "Baglanti basarisiz")
+                                <span class="text-muted ms-1">(@config.LastTestedAt.Value.ToLocalTime().ToString("dd.MM HH:mm"))</span>
+                            </div>
+                            @if (config.LastTestSuccess != true && !string.IsNullOrEmpty(config.LastTestError))
+                            {
+                                <div class="small text-danger mt-1" style="max-height: 40px; overflow: hidden;">
+                                    @config.LastTestError
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group btn-group-sm w-100">
+                            <button class="btn btn-outline-info" @onclick="() => TestConnectionAsync(config.Id)"
+                                    disabled="@(testingId == config.Id)">
+                                @if (testingId == config.Id)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-plug me-1"></i>
+                                }
+                                Test
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="() => ShowEditModal(config.Id)">
+                                <i class="bi bi-pencil me-1"></i>Duzenle
+                            </button>
+                            <button class="btn btn-outline-danger" @onclick="() => DeleteConfigAsync(config.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@* ─── CREATE/EDIT MODAL ─── *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-cloud-arrow-up me-2"></i>
+                        @(editingId.HasValue ? "Depolama Duzenle" : "Yeni Depolama Ekle")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @* Provider secimi *@
+                    <div class="mb-3">
+                        <label class="form-label">Depolama Saglayicisi</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            @foreach (var p in StorageProviders.All)
+                            {
+                                var pid = p.Id;
+                                <button class="btn @(formDto.ProviderTypeId == pid ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => SelectProvider(pid)">
+                                    <i class="bi @p.Icon me-1"></i>@p.Description
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    @* Duzenleme uyarisi + mevcut bilgiler *@
+                    @if (editingId.HasValue && editingDetail?.MaskedCredentials?.Count > 0)
+                    {
+                        <div class="alert alert-warning small mb-3">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                            <strong>Mevcut baglanti bilgileri kayitli.</strong> Yalnizca degistirmek istediginiz alanlari doldurun.
+                            Bos birakilan alanlar mevcut degerleri koruyacaktir.
+                        </div>
+                        <div class="mb-3">
+                            <div class="border rounded p-2 bg-light">
+                                <small class="text-muted d-block mb-1"><i class="bi bi-shield-lock me-1"></i>Kayitli Bilgiler</small>
+                                @foreach (var kvp in editingDetail.MaskedCredentials)
+                                {
+                                    @if (!string.IsNullOrEmpty(kvp.Value))
+                                    {
+                                        <div class="small d-flex justify-content-between py-1 border-bottom">
+                                            <span class="text-muted">@GetCredentialLabel(kvp.Key)</span>
+                                            <code class="text-dark">@kvp.Value</code>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* BasePath *@
+                    <div class="mb-3">
+                        <label class="form-label">Klasor Yolu (opsiyonel)</label>
+                        <input class="form-control" @bind="formDto.BasePath" @bind:event="oninput" placeholder="/recordings/" />
+                        @if (IsNetworkPath(formDto.BasePath))
+                        {
+                            <div class="alert alert-warning py-2 mt-2 small mb-0">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                <strong>Ag yolu tespit edildi.</strong> Bu klasorun hedef bilgisayarda erisime acik oldugundan emin olun.
+                                Klasor mevcut degilse veya erisim izni yoksa ses kayitlari yapilamayacaktir.
+                            </div>
+                        }
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" @bind="formDto.IsDefault" id="isDefault" />
+                        <label class="form-check-label" for="isDefault">Varsayilan olarak ayarla</label>
+                    </div>
+
+                    @* Provider-specific alanlar *@
+                    @if (formDto.ProviderTypeId == StorageProviders.Ids.AmazonS3 || formDto.ProviderTypeId == StorageProviders.Ids.MinIO)
+                    {
+                        <hr />
+                        <h6 class="text-muted">@(formDto.ProviderTypeId == StorageProviders.Ids.MinIO ? "MinIO" : "Amazon S3") Ayarlari</h6>
+                        @if (formDto.ProviderTypeId == StorageProviders.Ids.MinIO)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Endpoint <span class="text-danger">*</span></label>
+                                <input class="form-control" @bind="formDto.Endpoint" placeholder="https://minio.example.com:9000" />
+                            </div>
+                        }
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Access Key <span class="text-danger">*</span></label>
+                                <input class="form-control" @bind="formDto.AccessKey"
+                                       placeholder="@(editingId.HasValue ? "Degistirmiyorsaniz bos birakin" : "")" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Secret Key <span class="text-danger">*</span></label>
+                                <input class="form-control" type="password" @bind="formDto.SecretKey"
+                                       placeholder="@(editingId.HasValue ? "Degistirmiyorsaniz bos birakin" : "")" />
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Bucket Adi <span class="text-danger">*</span></label>
+                                <input class="form-control" @bind="formDto.BucketName" placeholder="call-recordings" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Region</label>
+                                <input class="form-control" @bind="formDto.Region" placeholder="eu-central-1" />
+                            </div>
+                        </div>
+                    }
+                    else if (formDto.ProviderTypeId == StorageProviders.Ids.GoogleDrive)
+                    {
+                        <hr />
+                        <h6 class="text-muted">Google Drive Ayarlari</h6>
+                        <ul class="nav nav-pills nav-fill mb-3">
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(googleDriveTab == "easy" ? "active" : "")" @onclick='() => googleDriveTab = "easy"'>
+                                    <i class="bi bi-lightning-fill me-1"></i>Kolay
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(googleDriveTab == "advanced" ? "active" : "")" @onclick='() => googleDriveTab = "advanced"'>
+                                    <i class="bi bi-gear-fill me-1"></i>Gelismis
+                                </button>
+                            </li>
+                        </ul>
+
+                        @if (googleDriveTab == "easy")
+                        {
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Google hesabinizla giris yapin, izin verin — hepsi bu kadar.
+                            </div>
+                            @if (googleDriveConnected)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                    @(editingId.HasValue ? "Google hesabi bagli." : "Google hesabi basariyla baglandi!")
+                                    @if (!string.IsNullOrEmpty(googleDriveEmail))
+                                    {
+                                        <span class="ms-1">(@googleDriveEmail)</span>
+                                    }
+                                </div>
+                                @if (googleDriveFolders.Count > 0)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Klasor Secin (opsiyonel)</label>
+                                        <select class="form-select" @bind="formDto.GoogleFolderId">
+                                            <option value="">-- Kok dizin --</option>
+                                            @foreach (var f in googleDriveFolders)
+                                            {
+                                                <option value="@f.Id">@f.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(formDto.GoogleFolderId))
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Klasor ID</label>
+                                        <input class="form-control bg-light" value="@formDto.GoogleFolderId" readonly />
+                                    </div>
+                                }
+                                @if (editingId.HasValue)
+                                {
+                                    <button type="button" class="btn btn-outline-warning btn-sm" @onclick="ReconnectGoogleDrive">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Yeniden Baglan
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-danger" @onclick="StartGoogleDriveOAuth" disabled="@googleDriveAuthLoading">
+                                    @if (googleDriveAuthLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-google me-1"></i>Google ile Baglan
+                                </button>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-secondary small">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Kendi Google Cloud projenizden alinan bilgileri girin.
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.GoogleClientId" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Client Secret <span class="text-danger">*</span></label>
+                                    <input class="form-control" type="password" @bind="formDto.GoogleClientSecret"
+                                           placeholder="@(editingId.HasValue ? "Degistirmiyorsaniz bos birakin" : "")" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Refresh Token <span class="text-danger">*</span></label>
+                                <input class="form-control" type="password" @bind="formDto.GoogleRefreshToken"
+                                       placeholder="@(editingId.HasValue ? "Degistirmiyorsaniz bos birakin" : "")" />
+                                <div class="form-text">Google OAuth Playground'dan alinir</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Klasor ID (opsiyonel)</label>
+                                <input class="form-control" @bind="formDto.GoogleFolderId" />
+                            </div>
+                        }
+                    }
+                    else if (formDto.ProviderTypeId == StorageProviders.Ids.OneDrive)
+                    {
+                        <hr />
+                        <h6 class="text-muted">Microsoft OneDrive Ayarlari</h6>
+                        <ul class="nav nav-pills nav-fill mb-3">
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(oneDriveTab == "easy" ? "active" : "")" @onclick='() => SetOneDriveTab("easy")'>
+                                    <i class="bi bi-lightning-fill me-1"></i>Kolay
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(oneDriveTab == "medium" ? "active" : "")" @onclick='() => SetOneDriveTab("medium")'>
+                                    <i class="bi bi-sliders me-1"></i>Orta
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(oneDriveTab == "advanced" ? "active" : "")" @onclick='() => SetOneDriveTab("advanced")'>
+                                    <i class="bi bi-gear-fill me-1"></i>Gelismis
+                                </button>
+                            </li>
+                        </ul>
+
+                        @if (oneDriveTab == "easy")
+                        {
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Microsoft hesabinizla giris yapin, izin verin — hepsi bu kadar.
+                            </div>
+                            @if (oneDriveConnected)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                    @(editingId.HasValue ? "Microsoft hesabi bagli." : "Microsoft hesabi basariyla baglandi!")
+                                </div>
+                                @if (oneDriveDrives.Count > 0)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Drive Secin</label>
+                                        <select class="form-select" @bind="formDto.MsDriveId">
+                                            @foreach (var d in oneDriveDrives)
+                                            {
+                                                <option value="@d.DriveId">@d.Name (@d.DriveType) @(d.OwnerName != null ? $"- {d.OwnerName}" : "")</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(formDto.MsDriveId))
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Drive ID</label>
+                                        <input class="form-control bg-light" value="@formDto.MsDriveId" readonly />
+                                    </div>
+                                }
+                                @if (editingId.HasValue)
+                                {
+                                    <button type="button" class="btn btn-outline-warning btn-sm" @onclick="ReconnectOneDrive">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Yeniden Baglan
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-primary" @onclick="StartOneDriveOAuth" disabled="@oneDriveAuthLoading">
+                                    @if (oneDriveAuthLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-microsoft me-1"></i>Microsoft ile Baglan
+                                </button>
+                            }
+                        }
+                        else if (oneDriveTab == "medium")
+                        {
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Azure Tenant ID'nizi girin, ardindan Microsoft ile baglanti kurun.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tenant ID</label>
+                                <input class="form-control" @bind="formDto.MsTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                                <div class="form-text">Azure Portal > Azure Active Directory > Overview > Tenant ID</div>
+                            </div>
+                            @if (oneDriveConnected)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                    @(editingId.HasValue ? "Baglanti mevcut." : "Baglanti kuruldu!")
+                                </div>
+                                @if (oneDriveDrives.Count > 0)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Drive Secin</label>
+                                        <select class="form-select" @bind="formDto.MsDriveId">
+                                            @foreach (var d in oneDriveDrives)
+                                            {
+                                                <option value="@d.DriveId">@d.Name (@d.DriveType)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(formDto.MsDriveId))
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Drive ID</label>
+                                        <input class="form-control bg-light" value="@formDto.MsDriveId" readonly />
+                                    </div>
+                                }
+                                @if (editingId.HasValue)
+                                {
+                                    <button type="button" class="btn btn-outline-warning btn-sm mt-2" @onclick="ReconnectOneDrive">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Yeniden Baglan
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-primary mt-2" @onclick="StartOneDriveOAuth" disabled="@oneDriveAuthLoading">
+                                    @if (oneDriveAuthLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-microsoft me-1"></i>Baglan
+                                </button>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-secondary small">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Kendi Azure AD uygulamaniz uzerinden baglanti kurun. Tam kontrol sizde.
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Client ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.MsClientId" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Client Secret <span class="text-danger">*</span></label>
+                                    <input class="form-control" type="password" @bind="formDto.MsClientSecret"
+                                           placeholder="@(editingId.HasValue ? "Degistirmiyorsaniz bos birakin" : "")" />
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Tenant ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.MsTenantId" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Drive ID <span class="text-danger">*</span></label>
+                                    <input class="form-control" @bind="formDto.MsDriveId" />
+                                </div>
+                            </div>
+                        }
+                    }
+                    else if (formDto.ProviderTypeId == StorageProviders.Ids.YandexDisk)
+                    {
+                        <hr />
+                        <h6 class="text-muted">Yandex Disk Ayarlari</h6>
+                        <ul class="nav nav-pills nav-fill mb-3">
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(yandexTab == "easy" ? "active" : "")" @onclick='() => yandexTab = "easy"'>
+                                    <i class="bi bi-lightning-fill me-1"></i>Kolay
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link @(yandexTab == "advanced" ? "active" : "")" @onclick='() => yandexTab = "advanced"'>
+                                    <i class="bi bi-gear-fill me-1"></i>Gelismis
+                                </button>
+                            </li>
+                        </ul>
+
+                        @if (yandexTab == "easy")
+                        {
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Yandex hesabinizla giris yapin, izin verin — hepsi bu kadar.
+                            </div>
+                            @if (yandexConnected)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                    @(editingId.HasValue ? "Yandex hesabi bagli." : "Yandex hesabi basariyla baglandi!")
+                                    @if (!string.IsNullOrEmpty(yandexLogin))
+                                    {
+                                        <span class="ms-1">(@yandexLogin)</span>
+                                    }
+                                </div>
+                                @if (editingId.HasValue)
+                                {
+                                    <button type="button" class="btn btn-outline-warning btn-sm" @onclick="ReconnectYandex">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Yeniden Baglan
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-warning" @onclick="StartYandexOAuth" disabled="@yandexAuthLoading">
+                                    @if (yandexAuthLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="bi bi-cloud me-1"></i>Yandex ile Baglan
+                                </button>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-secondary small">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Yandex OAuth sayfasindan alinan token'i girin.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">OAuth Token <span class="text-danger">*</span></label>
+                                <input class="form-control" type="password" @bind="formDto.YandexOAuthToken"
+                                       placeholder="@(editingId.HasValue ? "Degistirmiyorsaniz bos birakin" : "")" />
+                                <div class="form-text">Yandex OAuth sayfasindan alinir</div>
+                            </div>
+                        }
+                    }
+
+                    @if (!string.IsNullOrEmpty(formError))
+                    {
+                        <div class="alert alert-danger mt-3">@formError</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Iptal</button>
+                    <button class="btn btn-primary" @onclick="SaveConfigAsync" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ─── BILDIRIM ─── *@
+@if (!string.IsNullOrEmpty(toast))
+{
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show @(toastError ? "bg-danger" : "bg-success") text-white">
+            <div class="toast-body d-flex align-items-center justify-content-between">
+                <span>@toast</span>
+                <button class="btn-close btn-close-white ms-2" @onclick="() => toast = null"></button>
+            </div>
+        </div>
+    </div>
+}
+
+} @* accessDenied else kapanisi *@
+
+@code {
+    private bool accessDenied;
+    private List<StorageConfigListDto> configs = new();
+    private bool isLoading = true;
+    private int? testingId;
+
+    // Modal
+    private bool showModal;
+    private int? editingId;
+    private StorageConfigCreateDto formDto = new();
+    private StorageConfigDetailDto? editingDetail;
+    private string? formError;
+    private bool isSaving;
+
+    // OneDrive OAuth
+    private string oneDriveTab = "easy";
+    private bool oneDriveConnected;
+    private bool oneDriveAuthLoading;
+    private List<OneDriveDriveDto> oneDriveDrives = new();
+
+    // Google Drive OAuth
+    private string googleDriveTab = "easy";
+    private bool googleDriveConnected;
+    private bool googleDriveAuthLoading;
+    private string? googleDriveEmail;
+    private List<GoogleDriveFolderDto> googleDriveFolders = new();
+
+    // Yandex OAuth
+    private string yandexTab = "easy";
+    private bool yandexConnected;
+    private bool yandexAuthLoading;
+    private string? yandexLogin;
+
+    // Toast
+    private string? toast;
+    private bool toastError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        if (PermService.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+        {
+            accessDenied = true;
+            return;
+        }
+        await LoadConfigsAsync();
+    }
+
+    private async Task LoadConfigsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var list = await Http.GetFromJsonAsync<List<StorageConfigListDto>>("api/cloudstorage/configs");
+            configs = list ?? new();
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Yuklenemedi: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        editingId = null;
+        editingDetail = null;
+        ResetAllOAuthStates();
+        formDto = new StorageConfigCreateDto { IsDefault = true };
+        formError = null;
+        showModal = true;
+    }
+
+    private async Task ShowEditModal(int configId)
+    {
+        try
+        {
+            var detail = await Http.GetFromJsonAsync<StorageConfigDetailDto>($"api/cloudstorage/configs/{configId}");
+            if (detail == null) return;
+
+            editingId = configId;
+            editingDetail = detail;
+            ResetAllOAuthStates();
+
+            formDto = new StorageConfigCreateDto
+            {
+                CustomerId = detail.CustomerId,
+                ProviderTypeId = detail.ProviderTypeId,
+                BasePath = detail.BasePath,
+                IsDefault = detail.IsDefault
+            };
+
+            // Provider'a gore mevcut bilgileri doldur (maskelenmemis alanlar)
+            if (detail.MaskedCredentials.Count > 0)
+            {
+                var creds = detail.MaskedCredentials;
+
+                switch (detail.ProviderTypeId)
+                {
+                    case StorageProviders.Ids.OneDrive:
+                        if (creds.TryGetValue("AuthMode", out var authMode))
+                        {
+                            formDto.MsAuthMode = authMode;
+                            oneDriveTab = authMode == "ClientCredential" ? "advanced" : "easy";
+                        }
+                        if (creds.TryGetValue("TenantId", out var tenantId) && !string.IsNullOrEmpty(tenantId))
+                            formDto.MsTenantId = tenantId;
+                        if (creds.TryGetValue("DriveId", out var driveId) && !string.IsNullOrEmpty(driveId))
+                            formDto.MsDriveId = driveId;
+                        if (creds.TryGetValue("ClientId", out var msClientId) && !string.IsNullOrEmpty(msClientId))
+                            formDto.MsClientId = msClientId;
+                        if (creds.TryGetValue("FolderId", out var msFolderId) && !string.IsNullOrEmpty(msFolderId))
+                            formDto.MsFolderId = msFolderId;
+                        // RefreshToken varsa bagli kabul et
+                        if (creds.TryGetValue("RefreshToken", out var rt) && !string.IsNullOrEmpty(rt))
+                            oneDriveConnected = true;
+                        break;
+
+                    case StorageProviders.Ids.GoogleDrive:
+                        if (creds.TryGetValue("ClientId", out var gClientId2) && !string.IsNullOrEmpty(gClientId2))
+                            formDto.GoogleClientId = gClientId2;
+                        if (creds.TryGetValue("FolderId", out var gFolderId2) && !string.IsNullOrEmpty(gFolderId2))
+                            formDto.GoogleFolderId = gFolderId2;
+                        if (creds.TryGetValue("RefreshToken", out var gRt) && !string.IsNullOrEmpty(gRt))
+                            googleDriveConnected = true;
+                        googleDriveTab = googleDriveConnected ? "easy" : "advanced";
+                        break;
+
+                    case StorageProviders.Ids.YandexDisk:
+                        if (creds.TryGetValue("OAuthToken", out var yToken) && !string.IsNullOrEmpty(yToken))
+                            yandexConnected = true;
+                        yandexTab = yandexConnected ? "easy" : "advanced";
+                        break;
+
+                    case StorageProviders.Ids.AmazonS3:
+                    case StorageProviders.Ids.MinIO:
+                        if (creds.TryGetValue("BucketName", out var bucket)) formDto.BucketName = bucket;
+                        if (creds.TryGetValue("Region", out var region)) formDto.Region = region;
+                        if (creds.TryGetValue("Endpoint", out var endpoint)) formDto.Endpoint = endpoint;
+                        break;
+                }
+            }
+
+            formError = null;
+            showModal = true;
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Detay alinamadi: {ex.Message}", true);
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingDetail = null;
+        ResetAllOAuthStates();
+    }
+
+    private void SelectProvider(int providerId)
+    {
+        formDto.ProviderTypeId = providerId;
+    }
+
+    private void SetOneDriveTab(string tab)
+    {
+        oneDriveTab = tab;
+        formDto.MsAuthMode = tab == "advanced" ? "ClientCredential" : "Delegated";
+    }
+
+    private async Task StartOneDriveOAuth()
+    {
+        oneDriveAuthLoading = true;
+        try
+        {
+            var tenantId = formDto.MsTenantId;
+            var url = $"api/CloudStorage/onedrive/auth-url" + (!string.IsNullOrEmpty(tenantId) ? $"?tenantId={tenantId}" : "");
+            var result = await Http.GetFromJsonAsync<OneDriveAuthUrlDto>(url);
+            if (result != null)
+            {
+                // Popup pencere ac
+                await JS.InvokeVoidAsync("openOneDriveAuth", result.AuthUrl, DotNetObjectReference.Create(this));
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"OAuth baslatma hatasi: {ex.Message}";
+        }
+        finally
+        {
+            oneDriveAuthLoading = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnOneDriveAuthCallback(string code)
+    {
+        try
+        {
+            var dto = new OneDriveExchangeCodeDto { Code = code, TenantId = formDto.MsTenantId };
+            var result = await Http.PostAsJsonAsync("api/CloudStorage/onedrive/exchange-code", dto);
+            var authResult = await result.Content.ReadFromJsonAsync<OneDriveAuthResultDto>();
+
+            if (authResult?.Success == true)
+            {
+                formDto.MsAuthMode = "Delegated";
+                formDto.MsRefreshToken = authResult.RefreshToken;
+                if (!string.IsNullOrEmpty(authResult.TenantId))
+                    formDto.MsTenantId = authResult.TenantId;
+                oneDriveDrives = authResult.Drives;
+                if (oneDriveDrives.Count > 0)
+                    formDto.MsDriveId = oneDriveDrives[0].DriveId;
+                oneDriveConnected = true;
+            }
+            else
+            {
+                formError = authResult?.Error ?? "Baglanti kurulamadi";
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"Token exchange hatasi: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private async Task SaveConfigAsync()
+    {
+        if (formDto.ProviderTypeId == 0)
+        {
+            formError = "Depolama saglayicisi secin";
+            return;
+        }
+
+        isSaving = true;
+        formError = null;
+        try
+        {
+            if (editingId.HasValue)
+            {
+                var updateDto = new StorageConfigUpdateDto
+                {
+                    ProviderTypeId = formDto.ProviderTypeId,
+                    BasePath = formDto.BasePath,
+                    IsDefault = formDto.IsDefault,
+                    AccessKey = formDto.AccessKey,
+                    SecretKey = formDto.SecretKey,
+                    BucketName = formDto.BucketName,
+                    Region = formDto.Region,
+                    Endpoint = formDto.Endpoint,
+                    GoogleClientId = formDto.GoogleClientId,
+                    GoogleClientSecret = formDto.GoogleClientSecret,
+                    GoogleRefreshToken = formDto.GoogleRefreshToken,
+                    GoogleFolderId = formDto.GoogleFolderId,
+                    MsClientId = formDto.MsClientId,
+                    MsClientSecret = formDto.MsClientSecret,
+                    MsRefreshToken = formDto.MsRefreshToken,
+                    MsTenantId = formDto.MsTenantId,
+                    MsDriveId = formDto.MsDriveId,
+                    MsFolderId = formDto.MsFolderId,
+                    YandexOAuthToken = formDto.YandexOAuthToken
+                };
+                var response = await Http.PutAsJsonAsync($"api/cloudstorage/configs/{editingId}", updateDto);
+                if (!response.IsSuccessStatusCode)
+                {
+                    formError = await response.Content.ReadAsStringAsync();
+                    return;
+                }
+                ShowToast("Config guncellendi", false);
+            }
+            else
+            {
+                var response = await Http.PostAsJsonAsync("api/cloudstorage/configs", formDto);
+                if (!response.IsSuccessStatusCode)
+                {
+                    formError = await response.Content.ReadAsStringAsync();
+                    return;
+                }
+                ShowToast("Config olusturuldu", false);
+            }
+
+            showModal = false;
+            await LoadConfigsAsync();
+        }
+        catch (Exception ex)
+        {
+            formError = $"Hata: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task TestConnectionAsync(int configId)
+    {
+        testingId = configId;
+        try
+        {
+            var result = await Http.PostAsync($"api/cloudstorage/configs/{configId}/test", null);
+            var test = await result.Content.ReadFromJsonAsync<StorageTestResultDto>();
+
+            if (test?.Success == true)
+                ShowToast("Baglanti basarili!", false);
+            else
+                ShowToast($"Baglanti basarisiz: {test?.Error}", true);
+
+            await LoadConfigsAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Test hatasi: {ex.Message}", true);
+        }
+        finally
+        {
+            testingId = null;
+        }
+    }
+
+    private async Task DeleteConfigAsync(int configId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/cloudstorage/configs/{configId}");
+            if (response.IsSuccessStatusCode)
+            {
+                ShowToast("Config silindi", false);
+                await LoadConfigsAsync();
+            }
+            else
+            {
+                ShowToast("Silinemedi", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowToast($"Hata: {ex.Message}", true);
+        }
+    }
+
+    private static bool IsNetworkPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var trimmed = path.Trim();
+        return trimmed.StartsWith(@"\\") || trimmed.StartsWith("//");
+    }
+
+    private void ResetAllOAuthStates()
+    {
+        oneDriveConnected = false;
+        oneDriveDrives = new();
+        oneDriveTab = "easy";
+        googleDriveConnected = false;
+        googleDriveFolders = new();
+        googleDriveEmail = null;
+        googleDriveTab = "easy";
+        googleDriveAuthLoading = false;
+        yandexConnected = false;
+        yandexLogin = null;
+        yandexTab = "easy";
+        yandexAuthLoading = false;
+    }
+
+    private void ReconnectOneDrive()
+    {
+        oneDriveConnected = false;
+        oneDriveDrives = new();
+    }
+
+    private void ReconnectGoogleDrive()
+    {
+        googleDriveConnected = false;
+        googleDriveFolders = new();
+        googleDriveEmail = null;
+    }
+
+    private void ReconnectYandex()
+    {
+        yandexConnected = false;
+        yandexLogin = null;
+    }
+
+    // ─── Google Drive OAuth ───
+
+    private async Task StartGoogleDriveOAuth()
+    {
+        googleDriveAuthLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<GoogleDriveAuthUrlDto>("api/CloudStorage/googledrive/auth-url");
+            if (result != null)
+            {
+                await JS.InvokeVoidAsync("openOAuthPopup",
+                    result.AuthUrl,
+                    "googledrive-auth-success",
+                    "googledrive-auth-error",
+                    DotNetObjectReference.Create(this),
+                    "OnGoogleDriveAuthCallback");
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"Google OAuth baslatma hatasi: {ex.Message}";
+        }
+        finally
+        {
+            googleDriveAuthLoading = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnGoogleDriveAuthCallback(string code)
+    {
+        try
+        {
+            var dto = new GoogleDriveExchangeCodeDto { Code = code };
+            var result = await Http.PostAsJsonAsync("api/CloudStorage/googledrive/exchange-code", dto);
+            var authResult = await result.Content.ReadFromJsonAsync<GoogleDriveAuthResultDto>();
+
+            if (authResult?.Success == true)
+            {
+                formDto.GoogleRefreshToken = authResult.RefreshToken;
+                googleDriveEmail = authResult.Email;
+                googleDriveFolders = authResult.Folders;
+                if (googleDriveFolders.Count > 0)
+                    formDto.GoogleFolderId = googleDriveFolders[0].Id;
+                googleDriveConnected = true;
+            }
+            else
+            {
+                formError = authResult?.Error ?? "Google baglantisi kurulamadi";
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"Google token exchange hatasi: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    // ─── Yandex OAuth ───
+
+    private async Task StartYandexOAuth()
+    {
+        yandexAuthLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<YandexAuthUrlDto>("api/CloudStorage/yandex/auth-url");
+            if (result != null)
+            {
+                await JS.InvokeVoidAsync("openOAuthPopup",
+                    result.AuthUrl,
+                    "yandex-auth-success",
+                    "yandex-auth-error",
+                    DotNetObjectReference.Create(this),
+                    "OnYandexAuthCallback");
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"Yandex OAuth baslatma hatasi: {ex.Message}";
+        }
+        finally
+        {
+            yandexAuthLoading = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnYandexAuthCallback(string code)
+    {
+        try
+        {
+            var dto = new YandexExchangeCodeDto { Code = code };
+            var result = await Http.PostAsJsonAsync("api/CloudStorage/yandex/exchange-code", dto);
+            var authResult = await result.Content.ReadFromJsonAsync<YandexAuthResultDto>();
+
+            if (authResult?.Success == true)
+            {
+                formDto.YandexOAuthToken = authResult.OAuthToken;
+                yandexLogin = authResult.Login;
+                yandexConnected = true;
+            }
+            else
+            {
+                formError = authResult?.Error ?? "Yandex baglantisi kurulamadi";
+            }
+        }
+        catch (Exception ex)
+        {
+            formError = $"Yandex token exchange hatasi: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private static string GetCredentialLabel(string key) => key switch
+    {
+        "AccessKey" => "Erisim Anahtari",
+        "SecretKey" => "Gizli Anahtar",
+        "BucketName" => "Bucket Adi",
+        "Region" => "Bolge",
+        "Endpoint" => "Endpoint",
+        "ClientId" => "Client ID",
+        "ClientSecret" => "Client Secret",
+        "RefreshToken" => "Refresh Token",
+        "FolderId" => "Klasor ID",
+        "AuthMode" => "Kimlik Dogrulama",
+        "TenantId" => "Tenant ID",
+        "DriveId" => "Drive ID",
+        "OAuthToken" => "OAuth Token",
+        "Prefix" => "Key Prefix",
+        "UseSSL" => "SSL",
+        "BasePath" => "Klasor Yolu",
+        _ => key
+    };
+
+    private void ShowToast(string message, bool error)
+    {
+        toast = message;
+        toastError = error;
+        StateHasChanged();
+        _ = Task.Delay(4000).ContinueWith(_ =>
+        {
+            toast = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}

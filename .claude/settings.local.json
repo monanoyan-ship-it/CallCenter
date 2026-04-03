@@ -241,7 +241,8 @@
       "Bash(\"C:/Program Files/PostgreSQL/17/bin/psql.exe\" -h localhost -U admin -d callcenter -c \"SELECT id, username, full_name, is_active, must_change_password, lockout_end FROM users WHERE username ILIKE '%corplynk%' OR username ILIKE '%admin%' LIMIT 10;\" 2>/dev/null)",
       "Bash(ZONE_ID=\"0d41772796a9803e854b5ccc87b41c9e\")",
       "Bash(mv Dockerfile.api.bak Dockerfile)",
-      "Bash(cp src/CallCenter.Management/Dockerfile Dockerfile)"
+      "Bash(cp src/CallCenter.Management/Dockerfile Dockerfile)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }

@@ -208,10 +208,10 @@ public class CustomerUpdateDto
 
     public List<CustomerProductInputDto> Products { get; set; } = new();
 
-    public bool SaveRecordingToPlatform { get; set; } = true;
-    public bool SaveRecordingToOwnStorage { get; set; }
-    public bool AutoRecordCalls { get; set; }
-    public bool IsCallbackManagementEnabled { get; set; }
+    public bool? SaveRecordingToPlatform { get; set; }
+    public bool? SaveRecordingToOwnStorage { get; set; }
+    public bool? AutoRecordCalls { get; set; }
+    public bool? IsCallbackManagementEnabled { get; set; }
 }
 
 public class CustomerDetailDto

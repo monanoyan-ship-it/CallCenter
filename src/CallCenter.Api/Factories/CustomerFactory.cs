@@ -283,9 +283,14 @@ public class CustomerFactory : ICustomerFactory
         customer.Email = dto.Email;
         customer.IsActive = dto.IsActive;
         customer.MaxUsers = dto.MaxUsers;
-        customer.SaveRecordingToPlatform = dto.SaveRecordingToPlatform;
-        customer.SaveRecordingToOwnStorage = dto.SaveRecordingToOwnStorage;
-        customer.AutoRecordCalls = dto.AutoRecordCalls;
+        if (dto.SaveRecordingToPlatform.HasValue)
+            customer.SaveRecordingToPlatform = dto.SaveRecordingToPlatform.Value;
+        if (dto.SaveRecordingToOwnStorage.HasValue)
+            customer.SaveRecordingToOwnStorage = dto.SaveRecordingToOwnStorage.Value;
+        if (dto.AutoRecordCalls.HasValue)
+            customer.AutoRecordCalls = dto.AutoRecordCalls.Value;
+        if (dto.IsCallbackManagementEnabled.HasValue)
+            customer.IsCallbackManagementEnabled = dto.IsCallbackManagementEnabled.Value;
 
         // Products sync
         var existingProducts = await _db.CustomerProducts
