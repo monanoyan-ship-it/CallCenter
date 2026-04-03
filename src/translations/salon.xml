@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Translations ExportDate="2026-04-04 00:00:00">
+  <Languages>
+    <Language Code="tr" Name="Türkçe" IsDefault="true" />
+    <Language Code="en" Name="English" IsDefault="false" />
+  </Languages>
+  <Keys>
+    <!-- ==================== GENEL ==================== -->
+    <Key Id="salon.app.name" Module="salon" Description="Uygulama adi">
+      <Value Lang="tr">Salon Yönetimi</Value>
+      <Value Lang="en">Salon Management</Value>
+    </Key>
+
+    <!-- ==================== NAV / SIDEBAR ==================== -->
+    <Key Id="salon.nav.dashboard" Module="salon" Description="Ana Sayfa">
+      <Value Lang="tr">Ana Sayfa</Value>
+      <Value Lang="en">Dashboard</Value>
+    </Key>
+    <Key Id="salon.nav.appointments" Module="salon" Description="Randevular">
+      <Value Lang="tr">Randevular</Value>
+      <Value Lang="en">Appointments</Value>
+    </Key>
+    <Key Id="salon.nav.sales" Module="salon" Description="Satislar">
+      <Value Lang="tr">Satışlar</Value>
+      <Value Lang="en">Sales</Value>
+    </Key>
+    <Key Id="salon.nav.clients" Module="salon" Description="Musteriler">
+      <Value Lang="tr">Müşteriler</Value>
+      <Value Lang="en">Clients</Value>
+    </Key>
+    <Key Id="salon.nav.staff" Module="salon" Description="Personel">
+      <Value Lang="tr">Personel</Value>
+      <Value Lang="en">Staff</Value>
+    </Key>
+    <Key Id="salon.nav.services" Module="salon" Description="Hizmetler">
+      <Value Lang="tr">Hizmetler</Value>
+      <Value Lang="en">Services</Value>
+    </Key>
+    <Key Id="salon.nav.products" Module="salon" Description="Urunler">
+      <Value Lang="tr">Ürünler</Value>
+      <Value Lang="en">Products</Value>
+    </Key>
+    <Key Id="salon.nav.reports" Module="salon" Description="Raporlar">
+      <Value Lang="tr">Raporlar</Value>
+      <Value Lang="en">Reports</Value>
+    </Key>
+    <Key Id="salon.nav.cash" Module="salon" Description="Kasa">
+      <Value Lang="tr">Kasa</Value>
+      <Value Lang="en">Cash Register</Value>
+    </Key>
+    <Key Id="salon.nav.giftcards" Module="salon" Description="Hediye Kartlari">
+      <Value Lang="tr">Hediye Kartları</Value>
+      <Value Lang="en">Gift Cards</Value>
+    </Key>
+    <Key Id="salon.nav.loyalty" Module="salon" Description="Sadakat">
+      <Value Lang="tr">Sadakat Programı</Value>
+      <Value Lang="en">Loyalty Program</Value>
+    </Key>
+    <Key Id="salon.nav.memberships" Module="salon" Description="Uyeikler">
+      <Value Lang="tr">Üyelikler</Value>
+      <Value Lang="en">Memberships</Value>
+    </Key>
+    <Key Id="salon.nav.packages" Module="salon" Description="Paketler">
+      <Value Lang="tr">Paketler</Value>
+      <Value Lang="en">Packages</Value>
+    </Key>
+    <Key Id="salon.nav.recipes" Module="salon" Description="Receteler">
+      <Value Lang="tr">Reçeteler</Value>
+      <Value Lang="en">Recipes</Value>
+    </Key>
+    <Key Id="salon.nav.campaigns" Module="salon" Description="Kampanyalar">
+      <Value Lang="tr">Kampanyalar</Value>
+      <Value Lang="en">Campaigns</Value>
+    </Key>
+    <Key Id="salon.nav.reviews" Module="salon" Description="Yorumlar">
+      <Value Lang="tr">Yorumlar</Value>
+      <Value Lang="en">Reviews</Value>
+    </Key>
+    <Key Id="salon.nav.waitlist" Module="salon" Description="Bekleme Listesi">
+      <Value Lang="tr">Bekleme Listesi</Value>
+      <Value Lang="en">Waitlist</Value>
+    </Key>
+    <Key Id="salon.nav.expenses" Module="salon" Description="Giderler">
+      <Value Lang="tr">Giderler</Value>
+      <Value Lang="en">Expenses</Value>
+    </Key>
+    <Key Id="salon.nav.invoices" Module="salon" Description="Faturalar">
+      <Value Lang="tr">Faturalar</Value>
+      <Value Lang="en">Invoices</Value>
+    </Key>
+    <Key Id="salon.nav.suppliers" Module="salon" Description="Tedarikciler">
+      <Value Lang="tr">Tedarikçiler</Value>
+      <Value Lang="en">Suppliers</Value>
+    </Key>
+    <Key Id="salon.nav.branches" Module="salon" Description="Subeler">
+      <Value Lang="tr">Şubeler</Value>
+      <Value Lang="en">Branches</Value>
+    </Key>
+    <Key Id="salon.nav.profile" Module="salon" Description="Profil">
+      <Value Lang="tr">Salon Profili</Value>
+      <Value Lang="en">Salon Profile</Value>
+    </Key>
+    <Key Id="salon.nav.settings" Module="salon" Description="Ayarlar">
+      <Value Lang="tr">Ayarlar</Value>
+      <Value Lang="en">Settings</Value>
+    </Key>
+
+    <!-- ==================== RANDEVU ==================== -->
+    <Key Id="salon.appointment.new" Module="salon" Description="Yeni Randevu">
+      <Value Lang="tr">Yeni Randevu</Value>
+      <Value Lang="en">New Appointment</Value>
+    </Key>
+    <Key Id="salon.appointment.date" Module="salon" Description="Tarih">
+      <Value Lang="tr">Tarih</Value>
+      <Value Lang="en">Date</Value>
+    </Key>
+    <Key Id="salon.appointment.time" Module="salon" Description="Saat">
+      <Value Lang="tr">Saat</Value>
+      <Value Lang="en">Time</Value>
+    </Key>
+    <Key Id="salon.appointment.client" Module="salon" Description="Musteri">
+      <Value Lang="tr">Müşteri</Value>
+      <Value Lang="en">Client</Value>
+    </Key>
+    <Key Id="salon.appointment.service" Module="salon" Description="Hizmet">
+      <Value Lang="tr">Hizmet</Value>
+      <Value Lang="en">Service</Value>
+    </Key>
+    <Key Id="salon.appointment.staff" Module="salon" Description="Personel">
+      <Value Lang="tr">Personel</Value>
+      <Value Lang="en">Staff Member</Value>
+    </Key>
+    <Key Id="salon.appointment.status.pending" Module="salon" Description="Beklemede">
+      <Value Lang="tr">Beklemede</Value>
+      <Value Lang="en">Pending</Value>
+    </Key>
+    <Key Id="salon.appointment.status.confirmed" Module="salon" Description="Onaylandi">
+      <Value Lang="tr">Onaylandı</Value>
+      <Value Lang="en">Confirmed</Value>
+    </Key>
+    <Key Id="salon.appointment.status.completed" Module="salon" Description="Tamamlandi">
+      <Value Lang="tr">Tamamlandı</Value>
+      <Value Lang="en">Completed</Value>
+    </Key>
+    <Key Id="salon.appointment.status.cancelled" Module="salon" Description="Iptal">
+      <Value Lang="tr">İptal Edildi</Value>
+      <Value Lang="en">Cancelled</Value>
+    </Key>
+    <Key Id="salon.appointment.status.noshow" Module="salon" Description="Gelmedi">
+      <Value Lang="tr">Gelmedi</Value>
+      <Value Lang="en">No Show</Value>
+    </Key>
+
+    <!-- ==================== SATIS / POS ==================== -->
+    <Key Id="salon.sales.quicksale" Module="salon" Description="Hizli Satis">
+      <Value Lang="tr">Hızlı Satış</Value>
+      <Value Lang="en">Quick Sale</Value>
+    </Key>
+    <Key Id="salon.sales.total" Module="salon" Description="Toplam">
+      <Value Lang="tr">Toplam</Value>
+      <Value Lang="en">Total</Value>
+    </Key>
+    <Key Id="salon.sales.discount" Module="salon" Description="Indirim">
+      <Value Lang="tr">İndirim</Value>
+      <Value Lang="en">Discount</Value>
+    </Key>
+    <Key Id="salon.sales.payment.cash" Module="salon" Description="Nakit">
+      <Value Lang="tr">Nakit</Value>
+      <Value Lang="en">Cash</Value>
+    </Key>
+    <Key Id="salon.sales.payment.card" Module="salon" Description="Kart">
+      <Value Lang="tr">Kredi Kartı</Value>
+      <Value Lang="en">Credit Card</Value>
+    </Key>
+    <Key Id="salon.sales.payment.transfer" Module="salon" Description="Havale">
+      <Value Lang="tr">Havale/EFT</Value>
+      <Value Lang="en">Bank Transfer</Value>
+    </Key>
+    <Key Id="salon.sales.tip" Module="salon" Description="Bahsis">
+      <Value Lang="tr">Bahşiş</Value>
+      <Value Lang="en">Tip</Value>
+    </Key>
+
+    <!-- ==================== MUSTERI ==================== -->
+    <Key Id="salon.client.name" Module="salon" Description="Ad Soyad">
+      <Value Lang="tr">Ad Soyad</Value>
+      <Value Lang="en">Full Name</Value>
+    </Key>
+    <Key Id="salon.client.phone" Module="salon" Description="Telefon">
+      <Value Lang="tr">Telefon</Value>
+      <Value Lang="en">Phone</Value>
+    </Key>
+    <Key Id="salon.client.email" Module="salon" Description="E-posta">
+      <Value Lang="tr">E-posta</Value>
+      <Value Lang="en">Email</Value>
+    </Key>
+    <Key Id="salon.client.notes" Module="salon" Description="Notlar">
+      <Value Lang="tr">Notlar</Value>
+      <Value Lang="en">Notes</Value>
+    </Key>
+    <Key Id="salon.client.visits" Module="salon" Description="Ziyaret Sayisi">
+      <Value Lang="tr">Ziyaret Sayısı</Value>
+      <Value Lang="en">Total Visits</Value>
+    </Key>
+    <Key Id="salon.client.totalspent" Module="salon" Description="Toplam Harcama">
+      <Value Lang="tr">Toplam Harcama</Value>
+      <Value Lang="en">Total Spent</Value>
+    </Key>
+
+    <!-- ==================== RAPOR ==================== -->
+    <Key Id="salon.report.daily" Module="salon" Description="Gunluk Rapor">
+      <Value Lang="tr">Günlük Rapor</Value>
+      <Value Lang="en">Daily Report</Value>
+    </Key>
+    <Key Id="salon.report.revenue" Module="salon" Description="Gelir">
+      <Value Lang="tr">Gelir</Value>
+      <Value Lang="en">Revenue</Value>
+    </Key>
+    <Key Id="salon.report.expense" Module="salon" Description="Gider">
+      <Value Lang="tr">Gider</Value>
+      <Value Lang="en">Expense</Value>
+    </Key>
+    <Key Id="salon.report.profit" Module="salon" Description="Kar">
+      <Value Lang="tr">Kâr</Value>
+      <Value Lang="en">Profit</Value>
+    </Key>
+    <Key Id="salon.report.endofday" Module="salon" Description="Gun Sonu">
+      <Value Lang="tr">Gün Sonu Kasa</Value>
+      <Value Lang="en">End of Day Cash</Value>
+    </Key>
+  </Keys>
+</Translations>

@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Translations ExportDate="2026-04-04 00:00:00">
+  <Languages>
+    <Language Code="tr" Name="Türkçe" IsDefault="true" />
+    <Language Code="en" Name="English" IsDefault="false" />
+  </Languages>
+  <Keys>
+    <!-- ==================== META ==================== -->
+    <Key Id="landing.meta.description" Module="landing" Description="Meta description">
+      <Value Lang="tr">CorpLynk isletmeleri birbirine baglayan yazilimlar gelistirir. Bulut cagri merkezi, salon yonetimi, B2B ticaret platformu ve daha fazlasi.</Value>
+      <Value Lang="en">CorpLynk builds software that connects businesses. Cloud call center, salon management, B2B trade platform, and more.</Value>
+    </Key>
+
+    <!-- ==================== NAV ==================== -->
+    <Key Id="landing.nav.products" Module="landing" Description="Nav - Urunler">
+      <Value Lang="tr">Ürünler</Value>
+      <Value Lang="en">Products</Value>
+    </Key>
+    <Key Id="landing.nav.download" Module="landing" Description="Nav - Indir">
+      <Value Lang="tr">İndir</Value>
+      <Value Lang="en">Download</Value>
+    </Key>
+    <Key Id="landing.nav.about" Module="landing" Description="Nav - Hakkimizda">
+      <Value Lang="tr">Hakkımızda</Value>
+      <Value Lang="en">About</Value>
+    </Key>
+    <Key Id="landing.nav.contact" Module="landing" Description="Nav - Iletisim">
+      <Value Lang="tr">İletişim</Value>
+      <Value Lang="en">Contact</Value>
+    </Key>
+    <Key Id="landing.nav.signin" Module="landing" Description="Nav - Giris Yap">
+      <Value Lang="tr">Giriş Yap</Value>
+      <Value Lang="en">Sign In</Value>
+    </Key>
+    <Key Id="landing.nav.home" Module="landing" Description="Nav - Ana Sayfa">
+      <Value Lang="tr">Ana Sayfa</Value>
+      <Value Lang="en">Home</Value>
+    </Key>
+    <Key Id="landing.nav.features" Module="landing" Description="Nav - Ozellikler">
+      <Value Lang="tr">Özellikler</Value>
+      <Value Lang="en">Features</Value>
+    </Key>
+
+    <!-- ==================== HERO ==================== -->
+    <Key Id="landing.hero.badge" Module="landing" Description="Hero badge">
+      <Value Lang="tr">Kurumsal Yazılım Çözümleri</Value>
+      <Value Lang="en">Enterprise Software Solutions</Value>
+    </Key>
+    <Key Id="landing.hero.title1" Module="landing" Description="Hero baslik 1">
+      <Value Lang="tr">İş Araçları,</Value>
+      <Value Lang="en">Business Tools,</Value>
+    </Key>
+    <Key Id="landing.hero.title2" Module="landing" Description="Hero baslik 2 (gradient)">
+      <Value Lang="tr">Bağlantıda.</Value>
+      <Value Lang="en">Connected.</Value>
+    </Key>
+    <Key Id="landing.hero.subtitle" Module="landing" Description="Hero alt baslik">
+      <Value Lang="tr">İşletmeleri birbirine bağlayan yazılımlar geliştiriyoruz. Bulut çağrı merkezinden küresel B2B ticarete, CorpLynk şirketinizin büyümesi için gereken altyapıyı sağlar.</Value>
+      <Value Lang="en">We build software that connects businesses. From cloud call centers to global B2B trade, CorpLynk provides the infrastructure your company needs to grow.</Value>
+    </Key>
+
+    <!-- ==================== CTA ==================== -->
+    <Key Id="landing.cta.explore" Module="landing" Description="CTA - Urunleri Kesfet">
+      <Value Lang="tr">Ürünleri Keşfet</Value>
+      <Value Lang="en">Explore Products</Value>
+    </Key>
+    <Key Id="landing.cta.contact" Module="landing" Description="CTA - Iletisime Gec">
+      <Value Lang="tr">İletişime Geç</Value>
+      <Value Lang="en">Get in Touch</Value>
+    </Key>
+
+    <!-- ==================== STATS ==================== -->
+    <Key Id="landing.stats.products" Module="landing" Description="Stat - Urun">
+      <Value Lang="tr">Ürün</Value>
+      <Value Lang="en">Products</Value>
+    </Key>
+    <Key Id="landing.stats.voip" Module="landing" Description="Stat - VoIP">
+      <Value Lang="tr">VoIP Hazır</Value>
+      <Value Lang="en">VoIP Ready</Value>
+    </Key>
+    <Key Id="landing.stats.trade" Module="landing" Description="Stat - Ticaret">
+      <Value Lang="tr">Küresel Ticaret</Value>
+      <Value Lang="en">Global Trade</Value>
+    </Key>
+    <Key Id="landing.stats.cloud" Module="landing" Description="Stat - Bulut">
+      <Value Lang="tr">Bulut Tabanlı</Value>
+      <Value Lang="en">Cloud Native</Value>
+    </Key>
+
+    <!-- ==================== PRODUCTS SECTION ==================== -->
+    <Key Id="landing.products.badge" Module="landing" Description="Urunler badge">
+      <Value Lang="tr">Ürünlerimiz</Value>
+      <Value Lang="en">Our Products</Value>
+    </Key>
+    <Key Id="landing.products.title" Module="landing" Description="Urunler baslik">
+      <Value Lang="tr">Üç Platform, Tek Vizyon</Value>
+      <Value Lang="en">Three Platforms, One Vision</Value>
+    </Key>
+    <Key Id="landing.products.subtitle" Module="landing" Description="Urunler alt baslik">
+      <Value Lang="tr">İşletmeleri birbirine bağlamak ve operasyonları kolaylaştırmak için tasarlanmış kurumsal çözümler.</Value>
+      <Value Lang="en">Enterprise-grade solutions designed to connect businesses and streamline operations.</Value>
+    </Key>
+
+    <!-- ==================== CALL CENTER PRODUCT ==================== -->
+    <Key Id="landing.cc.name" Module="landing" Description="Call Center urun adi">
+      <Value Lang="tr">Bulut Çağrı Merkezi</Value>
+      <Value Lang="en">Cloud Call Center</Value>
+    </Key>
+    <Key Id="landing.cc.desc" Module="landing" Description="Call Center urun aciklama">
+      <Value Lang="tr">SIP entegrasyonlu, gerçek zamanlı panelli, akıllı çağrı yönlendirmeli ve şifreli çağrı kayıtlı çok kiracılı bulut çağrı merkezi.</Value>
+      <Value Lang="en">Multi-tenant cloud call center with SIP integration, real-time dashboards, intelligent call routing, and encrypted call recordings.</Value>
+    </Key>
+
+    <!-- ==================== SALON PRODUCT ==================== -->
+    <Key Id="landing.salon.name" Module="landing" Description="Salon urun adi">
+      <Value Lang="tr">Salon Yönetimi</Value>
+      <Value Lang="en">Salon Management</Value>
+    </Key>
+    <Key Id="landing.salon.desc" Module="landing" Description="Salon urun aciklama">
+      <Value Lang="tr">Randevu, POS, sadakat programı, online rezervasyon, personel yönetimi ve detaylı raporlarla eksiksiz salon yönetim platformu.</Value>
+      <Value Lang="en">Complete salon management platform with appointments, POS, loyalty programs, online booking, staff management, and detailed reports.</Value>
+    </Key>
+    <Key Id="landing.salon.tag.appointments" Module="landing" Description="Salon tag - Randevu">
+      <Value Lang="tr">Randevu</Value>
+      <Value Lang="en">Appointments</Value>
+    </Key>
+    <Key Id="landing.salon.tag.loyalty" Module="landing" Description="Salon tag - Sadakat">
+      <Value Lang="tr">Sadakat</Value>
+      <Value Lang="en">Loyalty</Value>
+    </Key>
+    <Key Id="landing.salon.tag.booking" Module="landing" Description="Salon tag - Online Rez.">
+      <Value Lang="tr">Online Rezervasyon</Value>
+      <Value Lang="en">Online Booking</Value>
+    </Key>
+    <Key Id="landing.salon.tag.staff" Module="landing" Description="Salon tag - Personel">
+      <Value Lang="tr">Personel</Value>
+      <Value Lang="en">Staff</Value>
+    </Key>
+    <Key Id="landing.salon.tag.reports" Module="landing" Description="Salon tag - Raporlar">
+      <Value Lang="tr">Raporlar</Value>
+      <Value Lang="en">Reports</Value>
+    </Key>
+
+    <!-- ==================== B2B PRODUCT ==================== -->
+    <Key Id="landing.b2b.name" Module="landing" Description="B2B urun adi">
+      <Value Lang="tr">B2B Ticaret Platformu</Value>
+      <Value Lang="en">B2B Trade Platform</Value>
+    </Key>
+    <Key Id="landing.b2b.desc" Module="landing" Description="B2B urun aciklama">
+      <Value Lang="tr">Tedarikçileri, alıcıları, taşıyıcıları ve hizmet sağlayıcıları dünya çapında birbirine bağlayan yeni nesil B2B pazar yeri.</Value>
+      <Value Lang="en">Next-generation B2B marketplace connecting suppliers, buyers, carriers, and service providers across industries worldwide.</Value>
+    </Key>
+
+    <!-- ==================== BUTTONS ==================== -->
+    <Key Id="landing.btn.learnmore" Module="landing" Description="Daha Fazla Bilgi butonu">
+      <Value Lang="tr">Daha Fazla</Value>
+      <Value Lang="en">Learn More</Value>
+    </Key>
+    <Key Id="landing.btn.openapp" Module="landing" Description="Uygulamayi Ac butonu">
+      <Value Lang="tr">Uygulamayı Aç</Value>
+      <Value Lang="en">Open App</Value>
+    </Key>
+    <Key Id="landing.status.dev" Module="landing" Description="Gelistirme asamasinda">
+      <Value Lang="tr">Geliştirmede</Value>
+      <Value Lang="en">In Development</Value>
+    </Key>
+
+    <!-- ==================== TECH SECTION ==================== -->
+    <Key Id="landing.tech.badge" Module="landing" Description="Teknoloji badge">
+      <Value Lang="tr">Teknoloji</Value>
+      <Value Lang="en">Technology</Value>
+    </Key>
+    <Key Id="landing.tech.title" Module="landing" Description="Teknoloji baslik">
+      <Value Lang="tr">Modern Teknoloji ile İnşa Edildi</Value>
+      <Value Lang="en">Built with Modern Stack</Value>
+    </Key>
+    <Key Id="landing.tech.subtitle" Module="landing" Description="Teknoloji alt baslik">
+      <Value Lang="tr">Güvenlik ve performansı merkezine alan kurumsal mimari.</Value>
+      <Value Lang="en">Enterprise-grade architecture with security and performance at its core.</Value>
+    </Key>
+
+    <!-- ==================== CONTACT / WAITLIST ==================== -->
+    <Key Id="landing.contact.badge" Module="landing" Description="Iletisim badge">
+      <Value Lang="tr">Güncel Kalın</Value>
+      <Value Lang="en">Stay Updated</Value>
+    </Key>
+    <Key Id="landing.contact.title" Module="landing" Description="Iletisim baslik">
+      <Value Lang="tr">Erken Erişim Alın</Value>
+      <Value Lang="en">Get Early Access</Value>
+    </Key>
+    <Key Id="landing.contact.subtitle" Module="landing" Description="Iletisim alt baslik">
+      <Value Lang="tr">Güncellemeler, yeni özellikler ve ürünlerimize erken erişim için e-posta listemize katılın.</Value>
+      <Value Lang="en">Join our mailing list to get notified about updates, new features, and early access to our products.</Value>
+    </Key>
+    <Key Id="landing.contact.placeholder" Module="landing" Description="E-posta placeholder">
+      <Value Lang="tr">E-posta adresiniz</Value>
+      <Value Lang="en">Enter your email</Value>
+    </Key>
+    <Key Id="landing.contact.subscribe" Module="landing" Description="Abone ol butonu">
+      <Value Lang="tr">Abone Ol</Value>
+      <Value Lang="en">Subscribe</Value>
+    </Key>
+    <Key Id="landing.contact.success.title" Module="landing" Description="Basarili kayit baslik">
+      <Value Lang="tr">Listedesiniz!</Value>
+      <Value Lang="en">You're on the list!</Value>
+    </Key>
+    <Key Id="landing.contact.success.desc" Module="landing" Description="Basarili kayit aciklama">
+      <Value Lang="tr">CorpLynk hakkındaki tüm gelişmelerden sizi haberdar edeceğiz.</Value>
+      <Value Lang="en">We'll keep you updated on all things CorpLynk.</Value>
+    </Key>
+    <Key Id="landing.contact.join" Module="landing" Description="Katil metni">
+      <Value Lang="tr">Katılın</Value>
+      <Value Lang="en">Join</Value>
+    </Key>
+    <Key Id="landing.contact.others" Module="landing" Description="Diger kisiler">
+      <Value Lang="tr">kişiyle birlikte</Value>
+      <Value Lang="en">others</Value>
+    </Key>
+
+    <!-- ==================== FOOTER ==================== -->
+    <Key Id="landing.footer.desc" Module="landing" Description="Footer aciklama">
+      <Value Lang="tr">İşletmeleri birbirine bağlayan kurumsal yazılım çözümleri.</Value>
+      <Value Lang="en">Enterprise software solutions that connect businesses.</Value>
+    </Key>
+    <Key Id="landing.footer.company" Module="landing" Description="Footer - Sirket">
+      <Value Lang="tr">Şirket</Value>
+      <Value Lang="en">Company</Value>
+    </Key>
+    <Key Id="landing.footer.connect" Module="landing" Description="Footer - Baglanti">
+      <Value Lang="tr">Bağlantı</Value>
+      <Value Lang="en">Connect</Value>
+    </Key>
+  </Keys>
+</Translations>

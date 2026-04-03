@@ -2,8 +2,6 @@
 @model CallCenterModel
 @{
     var currentCulture = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-    var otherLang = currentCulture == "tr" ? "en" : "tr";
-    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
     var langPrefix = $"/{currentCulture}";
 }
 
@@ -29,7 +27,7 @@
             <a href="#features"><t key="landing.nav.features">Features</t></a>
             <a href="@langPrefix/download"><t key="landing.nav.download">Download</t></a>
             <a href="https://cc.corplynk.com" class="nav-btn"><t key="landing.btn.openapp">Open App</t></a>
-            <a href="javascript:void(0)" onclick="switchLanguage('@otherLang')" class="nav-btn" style="margin-left:4px;">@otherLangLabel</a>
+            <partial name="Shared/_LanguageSwitcher" />
         </div>
     </nav>
 

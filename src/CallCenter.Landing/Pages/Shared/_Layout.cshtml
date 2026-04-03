@@ -1,7 +1,6 @@
 @{
     var currentCulture = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-    var otherLang = currentCulture == "tr" ? "en" : "tr";
-    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
+    var currentLangInfo = LocalizationConstants.Languages.GetValueOrDefault(currentCulture);
     var currentPath = Context.Request.Path.Value ?? "/";
 
     // URL'den mevcut culture prefix'ini temizle
@@ -20,8 +19,8 @@
         }
     }
 
-    var switchUrl = $"/{otherLang}{(cleanPath == "/" ? "" : cleanPath)}";
-    var canonicalPath = $"/{currentCulture}{(cleanPath == "/" ? "" : cleanPath)}";
+    var pathSuffix = cleanPath == "/" ? "" : cleanPath;
+    var canonicalPath = $"/{currentCulture}{pathSuffix}";
 }
 <!DOCTYPE html>
 <html lang="@currentCulture">
@@ -32,8 +31,10 @@
     <meta name="description" content="@T.T("landing.meta.description", "CorpLynk builds software that connects businesses. Cloud call center, B2B trade platform, and more.")" />
     <!-- Canonical & Hreflang -->
     <link rel="canonical" href="https://corplynk.com@(canonicalPath)" />
-    <link rel="alternate" hreflang="tr" href="https://corplynk.com/tr@(cleanPath == "/" ? "" : cleanPath)" />
-    <link rel="alternate" hreflang="en" href="https://corplynk.com/en@(cleanPath == "/" ? "" : cleanPath)" />
+    @foreach (var lang in LocalizationConstants.Languages.Values)
+    {
+        <link rel="alternate" hreflang="@lang.Code" href="https://corplynk.com/@(lang.Code)@(pathSuffix)" />
+    }
     <link rel="alternate" hreflang="x-default" href="https://corplynk.com@(cleanPath)" />
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -55,11 +56,11 @@
 <body>
     @RenderBody()
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Dil secici: cookie set et ve yonlendir
         function switchLanguage(lang) {
             document.cookie = '.AspNetCore.Culture=c=' + lang + '|uic=' + lang + ';path=/;max-age=31536000';
-            window.location.href = '/' + lang + '@(cleanPath == "/" ? "" : cleanPath.Replace("'", "\\'"))';
+            window.location.href = '/' + lang + '@(pathSuffix.Replace("'", "\\'"))';
         }
     </script>
     @await RenderSectionAsync("Scripts", required: false)

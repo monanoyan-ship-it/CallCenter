@@ -1,8 +1,6 @@
 @{
     Layout = null;
     var currentCulture = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-    var otherLang = currentCulture == "tr" ? "en" : "tr";
-    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
     var langPrefix = $"/{currentCulture}";
 }
 <!DOCTYPE html>
@@ -98,7 +96,10 @@
                 <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
                 <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
                 <a href="https://salon.corplynk.com" class="nav-btn">@(currentCulture == "tr" ? "Uygulamayi Ac" : "Open App")</a>
-                <a href="javascript:void(0)" onclick="window.location.href='/@otherLang/salon-app'" class="nav-btn">@otherLangLabel</a>
+                @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values.Where(l => l.Code != currentCulture))
+                {
+                    <a href="/@(lang.Code)/salon-app" class="nav-btn" style="margin-left:4px;">@lang.Label</a>
+                }
             </div>
         </nav>
 

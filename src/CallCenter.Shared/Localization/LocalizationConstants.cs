@@ -8,4 +8,15 @@ public static class LocalizationConstants
     {
         "tr", "en", "de", "ar", "ru"
     };
+
+    public static readonly Dictionary<string, LanguageInfo> Languages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["tr"] = new("tr", "Türkçe", "TR"),
+        ["en"] = new("en", "English", "EN"),
+        ["de"] = new("de", "Deutsch", "DE"),
+        ["ar"] = new("ar", "العربية", "AR"),
+        ["ru"] = new("ru", "Русский", "RU")
+    };
+
+    public record LanguageInfo(string Code, string Name, string Label);
 }
