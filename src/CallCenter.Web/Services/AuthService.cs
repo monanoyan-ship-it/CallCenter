@@ -53,6 +53,10 @@ public class AuthService
             if (loginResponse.MustChangePassword)
                 await _js.InvokeVoidAsync("localStorage.setItem", "must_change_pw", "true");
 
+            // Kullanicinin dil tercihini uygula
+            if (!string.IsNullOrEmpty(loginResponse.PreferredLanguage))
+                await _js.InvokeVoidAsync("localStorage.setItem", "preferredLanguage", loginResponse.PreferredLanguage);
+
             return new LoginResult(true, null, loginResponse.MustChangePassword, loginResponse.Role);
         }
         catch (Exception ex)
