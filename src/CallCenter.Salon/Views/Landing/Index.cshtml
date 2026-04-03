@@ -95,7 +95,7 @@
             <div class="nav-links">
                 <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
                 <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
-                <a href="https://sln.corplynk.com" class="nav-btn">@(currentCulture == "tr" ? "Uygulamayi Ac" : "Open App")</a>
+                <a href="/Account/Login" class="nav-btn">@(currentCulture == "tr" ? "Giris Yap" : "Sign In")</a>
                 @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values.Where(l => l.Code != currentCulture).Take(4))
                 {
                     <a href="/@(lang.Code)" class="nav-btn" style="margin-left:4px;">@lang.Label</a>
@@ -119,11 +119,11 @@
                     : "Appointments, POS, customer loyalty, online booking, staff management, and detailed reports. Everything your salon needs in one platform.")
             </p>
             <div class="hero-cta">
-                <a href="https://sln.corplynk.com" class="btn-primary-cta" target="_blank">
+                <a href="/Account/Login" class="btn-primary-cta">
                     <span>@(currentCulture == "tr" ? "Uygulamayi Ac" : "Open App")</span>
                     <i class="bi bi-box-arrow-up-right"></i>
                 </a>
-                <a href="https://sln.corplynk.com/Account/Register" class="btn-outline-cta">
+                <a href="/Account/Register" class="btn-outline-cta">
                     <span>@(currentCulture == "tr" ? "Ucretsiz Baslayın" : "Start Free")</span>
                     <i class="bi bi-arrow-right"></i>
                 </a>
