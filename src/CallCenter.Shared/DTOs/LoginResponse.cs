@@ -8,6 +8,7 @@ public class LoginResponse
     public string Role { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public bool MustChangePassword { get; set; }
+    public string? PreferredLanguage { get; set; }
 }
 
 public class ChangePasswordRequest
@@ -26,4 +27,9 @@ public class RefreshTokenResponse
     public string Token { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
+}
+
+public class UpdateLanguageRequest
+{
+    public string LanguageCode { get; set; } = string.Empty;
 }

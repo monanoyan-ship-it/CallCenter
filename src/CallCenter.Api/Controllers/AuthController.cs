@@ -78,6 +78,21 @@ public class AuthController : AuditableControllerBase
     }
 
     [Authorize]
+    [HttpPut("language")]
+    public async Task<ActionResult> UpdateLanguage([FromBody] UpdateLanguageRequest request)
+    {
+        if (CurrentUserId == null)
+            return Unauthorized();
+
+        var (success, error) = await _authFactory.UpdateLanguageAsync(CurrentUserId.Value, request.LanguageCode);
+
+        if (!success)
+            return BadRequest(new { message = error });
+
+        return NoContent();
+    }
+
+    [Authorize]
     [HttpPost("change-password")]
     public async Task<ActionResult> ChangePassword(ChangePasswordRequest request)
     {

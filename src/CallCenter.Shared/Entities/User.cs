@@ -23,6 +23,9 @@ public class User
     public DateTime? LockedUntil { get; set; }
     public bool MustChangePassword { get; set; }
 
+    // Dil tercihi (null = sistem varsayilani "tr")
+    public string? PreferredLanguage { get; set; }
+
     public ICollection<CallRecord> CallRecords { get; set; } = new List<CallRecord>();
     public ICollection<PasswordHistory> PasswordHistories { get; set; } = new List<PasswordHistory>();
     public ICollection<CallForwardingRule> CallForwardingRules { get; set; } = new List<CallForwardingRule>();

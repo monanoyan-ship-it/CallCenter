@@ -171,6 +171,7 @@ public class AppDbContext : DbContext
             e.Property(u => u.Email).HasMaxLength(150).IsRequired();
             e.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
             e.Property(u => u.Extension).HasMaxLength(10);
+            e.Property(u => u.PreferredLanguage).HasMaxLength(5);
             e.HasOne(u => u.CustomerPersonnel)
              .WithOne(cp => cp.User)
              .HasForeignKey<CustomerPersonnel>(cp => cp.UserId);

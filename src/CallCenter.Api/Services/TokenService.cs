@@ -37,6 +37,9 @@ public class TokenService
             new(ClaimTypes.Role, roleName)
         };
 
+        if (!string.IsNullOrEmpty(user.PreferredLanguage))
+            claims.Add(new Claim("PreferredLanguage", user.PreferredLanguage));
+
         // Müşteri kullanıcısıysa ek claim'ler ekle
         if (customerPersonnel != null)
         {

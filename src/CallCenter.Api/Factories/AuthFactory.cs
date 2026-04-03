@@ -24,6 +24,7 @@ public class AuthFactory : IAuthFactory
 
     private const int MaxFailedAttempts = 5;
     private const int LockoutMinutes = 15;
+    private static readonly HashSet<string> SupportedLanguages = new(StringComparer.OrdinalIgnoreCase) { "tr", "en", "de", "ar", "ru" };
 
     public AuthFactory(
         IUserEntityService users,
@@ -123,7 +124,8 @@ public class AuthFactory : IAuthFactory
             FullName = user.FullName,
             Role = roleName,
             ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes),
-            MustChangePassword = user.MustChangePassword
+            MustChangePassword = user.MustChangePassword,
+            PreferredLanguage = user.PreferredLanguage
         }, null);
     }
 
@@ -218,6 +220,20 @@ public class AuthFactory : IAuthFactory
             token.RevokedAt = DateTime.UtcNow;
             await _uow.SaveChangesAsync();
         }
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateLanguageAsync(int userId, string languageCode)
+    {
+        if (!SupportedLanguages.Contains(languageCode))
+            return (false, "Desteklenmeyen dil kodu.");
+
+        var user = await _users.GetByIdAsync(userId);
+        if (user == null)
+            return (false, "Kullanici bulunamadi.");
+
+        user.PreferredLanguage = languageCode.ToLowerInvariant();
+        await _uow.SaveChangesAsync();
+        return (true, null);
     }
 
     private async Task RevokeDescendantTokensAsync(Shared.Entities.RefreshToken token)
