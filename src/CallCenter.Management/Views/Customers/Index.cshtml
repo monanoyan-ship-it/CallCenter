@@ -123,6 +123,20 @@
                             <input class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Urunler</label>
+                        <!-- ko foreach: productTypes -->
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <input type="checkbox" class="form-check-input" data-bind="checked: $parent.isProductActive($data.id)" />
+                            <span class="small fw-medium" style="min-width:100px" data-bind="text: description"></span>
+                            <div class="input-group input-group-sm" style="width:140px">
+                                <input type="number" step="0.01" class="form-control form-control-sm"
+                                       data-bind="value: $parent.getProductPrice($data.id), enable: $parent.isProductActive($data.id)" placeholder="0.00" />
+                                <span class="input-group-text">TL</span>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                    </div>
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Vergi No</label>
@@ -137,11 +151,6 @@
                         <label class="form-label small">Adres</label>
                         <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small">Aylik Birim Fiyat</label>
-                        <input type="number" step="0.01" class="form-control form-control-sm" data-bind="value: form.monthlyUnitPrice" />
-                    </div>
-
                     <!-- Yeni musteri icin admin hesabi -->
                     <div data-bind="visible: !form.id()">
                         <hr />

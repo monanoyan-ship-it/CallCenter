@@ -27,11 +27,26 @@ public class CustomerModuleUsageDto
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
-    public int ProductTypeId { get; set; }
-    public string ProductTypeName { get; set; } = string.Empty;
+    public List<int> ProductTypeIds { get; set; } = new();
+    public List<string> ProductTypeNames { get; set; } = new();
     public int PersonnelCount { get; set; }
     public int ModuleCount { get; set; }
     public List<string> ActiveModules { get; set; } = new();
+}
+
+public class CustomerProductDto
+{
+    public int Id { get; set; }
+    public int ProductTypeId { get; set; }
+    public string ProductTypeName { get; set; } = string.Empty;
+    public decimal MonthlyPrice { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class CustomerProductInputDto
+{
+    public int ProductTypeId { get; set; }
+    public decimal MonthlyPrice { get; set; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -130,7 +145,7 @@ public class CustomerListDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public int MaxUsers { get; set; }
-    public decimal MonthlyUnitPrice { get; set; }
+    public List<CustomerProductDto> Products { get; set; } = new();
     public int PersonnelCount { get; set; }
     public int QueueCount { get; set; }
     public int SipAccountCount { get; set; }
@@ -157,7 +172,7 @@ public class CustomerCreateDto
 
     public int MaxUsers { get; set; }
 
-    public decimal MonthlyUnitPrice { get; set; }
+    public List<CustomerProductInputDto> Products { get; set; } = new();
 
     [Required(ErrorMessage = "Admin kullanici adi zorunludur.")]
     [StringLength(50, MinimumLength = 3)]
@@ -191,7 +206,7 @@ public class CustomerUpdateDto
 
     public int MaxUsers { get; set; }
 
-    public decimal MonthlyUnitPrice { get; set; }
+    public List<CustomerProductInputDto> Products { get; set; } = new();
 
     public bool SaveRecordingToPlatform { get; set; } = true;
     public bool SaveRecordingToOwnStorage { get; set; }
@@ -209,7 +224,7 @@ public class CustomerDetailDto
     public string? Email { get; set; }
     public bool IsActive { get; set; }
     public int MaxUsers { get; set; }
-    public decimal MonthlyUnitPrice { get; set; }
+    public List<CustomerProductDto> Products { get; set; } = new();
     public bool SaveRecordingToPlatform { get; set; }
     public bool SaveRecordingToOwnStorage { get; set; }
     public bool AutoRecordCalls { get; set; }

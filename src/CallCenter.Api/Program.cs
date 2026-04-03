@@ -144,9 +144,10 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
     var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SalonSeed");
     try
     {
-        var salonCustomerIds = await seedDb.Customers
-            .Where(c => c.ProductTypeId == ProductTypes.Ids.Salon && c.IsActive)
-            .Select(c => c.Id)
+        var salonCustomerIds = await seedDb.CustomerProducts
+            .Where(cp => cp.ProductTypeId == ProductTypes.Ids.Salon && cp.IsActive)
+            .Select(cp => cp.CustomerId)
+            .Distinct()
             .ToListAsync();
 
         foreach (var cid in salonCustomerIds)

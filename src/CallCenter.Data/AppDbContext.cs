@@ -31,6 +31,9 @@ public class AppDbContext : DbContext
     public DbSet<InstantMessage> InstantMessages => Set<InstantMessage>();
     public DbSet<CrmContact> CrmContacts => Set<CrmContact>();
 
+    // ─── Customer Products ───
+    public DbSet<CustomerProduct> CustomerProducts => Set<CustomerProduct>();
+
     // ─── Billing ───
     public DbSet<CustomerBillingPeriod> CustomerBillingPeriods => Set<CustomerBillingPeriod>();
 
@@ -185,9 +188,20 @@ public class AppDbContext : DbContext
             e.Property(c => c.Phone).HasMaxLength(20);
             e.Property(c => c.Email).HasMaxLength(150);
             e.Property(c => c.MaxUsers).HasDefaultValue(1);
-            e.Property(c => c.MonthlyUnitPrice).HasPrecision(18, 2).HasDefaultValue(0m);
             e.Property(c => c.SaveRecordingToPlatform).HasDefaultValue(true);
             e.Property(c => c.SaveRecordingToOwnStorage).HasDefaultValue(false);
+        });
+
+        // CustomerProduct
+        modelBuilder.Entity<CustomerProduct>(e =>
+        {
+            e.HasKey(cp => cp.Id);
+            e.HasIndex(cp => new { cp.CustomerId, cp.ProductTypeId }).IsUnique();
+            e.Property(cp => cp.MonthlyPrice).HasPrecision(18, 2).HasDefaultValue(0m);
+            e.HasOne(cp => cp.Customer)
+             .WithMany(c => c.Products)
+             .HasForeignKey(cp => cp.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // CustomerPortalModule (musteriye acik moduller)

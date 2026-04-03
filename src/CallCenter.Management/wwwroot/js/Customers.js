@@ -19,11 +19,22 @@ function CustomersViewModel() {
         taxNumber: ko.observable(''),
         address: ko.observable(''),
         maxUsers: ko.observable(5),
-        monthlyUnitPrice: ko.observable(0),
+        products: ko.observableArray([]),
         adminUsername: ko.observable(''),
         adminPassword: ko.observable('')
     };
     self.formTitle = ko.observable('Yeni Musteri');
+    self.productTypes = ko.observableArray([]);
+
+    // Urun checkbox/fiyat yonetimi
+    self.isProductActive = function (productTypeId) {
+        var prod = self.form.products().find(function(p) { return p.productTypeId === productTypeId; });
+        return prod ? prod.active : ko.observable(false);
+    };
+    self.getProductPrice = function (productTypeId) {
+        var prod = self.form.products().find(function(p) { return p.productTypeId === productTypeId; });
+        return prod ? prod.monthlyPrice : ko.observable(0);
+    };
 
     // Silme
     self.deleteTarget = ko.observable(null);
@@ -43,6 +54,19 @@ function CustomersViewModel() {
         for (var i = 1; i <= self.totalPages(); i++) pages.push(i);
         return pages;
     });
+
+    self.initFormProducts = function (apiProducts) {
+        var types = self.productTypes();
+        apiProducts = apiProducts || [];
+        self.form.products(types.map(function(t) {
+            var existing = apiProducts.find(function(p) { return p.productTypeId === t.id; });
+            return {
+                productTypeId: t.id,
+                active: ko.observable(!!existing),
+                monthlyPrice: ko.observable(existing ? existing.monthlyPrice : 0)
+            };
+        }));
+    };
 
     self.loadData = function () {
         self.isLoading(true);
@@ -81,7 +105,7 @@ function CustomersViewModel() {
         self.form.taxNumber('');
         self.form.address('');
         self.form.maxUsers(5);
-        self.form.monthlyUnitPrice(0);
+        self.initFormProducts([]);
         self.form.adminUsername('');
         self.form.adminPassword('');
     };
@@ -100,7 +124,7 @@ function CustomersViewModel() {
         self.form.taxNumber(customer.taxNumber || '');
         self.form.address(customer.address || '');
         self.form.maxUsers(customer.maxUsers || 5);
-        self.form.monthlyUnitPrice(customer.monthlyUnitPrice || 0);
+        self.initFormProducts(customer.products || []);
         self.formTitle('Musteri Duzenle');
         new bootstrap.Modal('#customerModal').show();
     };
@@ -109,6 +133,7 @@ function CustomersViewModel() {
         if (!self.form.name()) { toastr.warning('Firma adi zorunlu.'); return; }
         self.isSaving(true);
 
+        var activeProducts = self.form.products().filter(function(p) { return p.active(); });
         var payload = {
             name: self.form.name(),
             contactPhone: self.form.phone(),
@@ -116,7 +141,9 @@ function CustomersViewModel() {
             taxNumber: self.form.taxNumber(),
             address: self.form.address(),
             maxUsers: parseInt(self.form.maxUsers()) || 5,
-            monthlyUnitPrice: parseFloat(self.form.monthlyUnitPrice()) || 0
+            products: activeProducts.map(function(p) {
+                return { productTypeId: p.productTypeId, monthlyPrice: parseFloat(p.monthlyPrice()) || 0 };
+            })
         };
 
         if (!self.form.id()) {
@@ -179,6 +206,12 @@ function CustomersViewModel() {
             complete: function () { self.isGeneratingBilling(false); }
         });
     };
+
+    // Lookup: Urun Tipleri
+    $.get('/proxy/management/product-types', function (d) {
+        self.productTypes(Array.isArray(d) ? d : []);
+        self.initFormProducts([]);
+    });
 
     self.loadData();
 }

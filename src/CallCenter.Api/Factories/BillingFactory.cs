@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -16,6 +17,7 @@ public class BillingFactory : IBillingFactory
     private readonly ICustomerServiceSubscriptionEntityService _subscriptionEs;
     private readonly IServiceBillingItemEntityService _billingItemEs;
     private readonly IUnitOfWork _uow;
+    private readonly AppDbContext _db;
 
     public BillingFactory(
         IBillingPeriodEntityService billingEs,
@@ -23,7 +25,8 @@ public class BillingFactory : IBillingFactory
         ICustomerPersonnelEntityService personnelEs,
         ICustomerServiceSubscriptionEntityService subscriptionEs,
         IServiceBillingItemEntityService billingItemEs,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        AppDbContext db)
     {
         _billingEs = billingEs;
         _customerEs = customerEs;
@@ -31,6 +34,7 @@ public class BillingFactory : IBillingFactory
         _subscriptionEs = subscriptionEs;
         _billingItemEs = billingItemEs;
         _uow = uow;
+        _db = db;
     }
 
     public async Task<List<BillingPeriodDto>> GetByCustomerAsync(int customerId)
@@ -140,8 +144,15 @@ public class BillingFactory : IBillingFactory
 
         var activeCustomers = await _customerEs.GetAllQueryable()
             .Where(c => c.IsActive)
-            .Select(c => new { c.Id, c.MonthlyUnitPrice, c.BillingAnchorDay, c.MaxUsers })
+            .Select(c => new { c.Id, c.BillingAnchorDay, c.MaxUsers })
             .ToListAsync();
+
+        // Urun bazli fiyatlari topla
+        var productPrices = await _db.CustomerProducts
+            .Where(cp => cp.IsActive)
+            .GroupBy(cp => cp.CustomerId)
+            .Select(g => new { CustomerId = g.Key, TotalMonthlyPrice = g.Sum(cp => cp.MonthlyPrice) })
+            .ToDictionaryAsync(x => x.CustomerId, x => x.TotalMonthlyPrice);
 
         var existingCustomerIds = await _billingEs.GetAllQueryable()
             .Where(b => b.Year == year && b.Month == month)
@@ -218,8 +229,8 @@ public class BillingFactory : IBillingFactory
                 PeriodStartDate = periodStart,
                 PeriodEndDate = periodEnd,
                 UserCount = userCount,
-                UnitPrice = customer.MonthlyUnitPrice,
-                Amount = userCount * customer.MonthlyUnitPrice,
+                UnitPrice = productPrices.GetValueOrDefault(customer.Id, 0m),
+                Amount = userCount * productPrices.GetValueOrDefault(customer.Id, 0m),
                 ServiceAmount = serviceAmount,
                 StatusId = BillingPeriodStatuses.Ids.Draft,
                 IsPaid = false,
@@ -310,6 +321,11 @@ public class BillingFactory : IBillingFactory
                     && p.CustomerRoleId == CustomerRoles.Ids.Operator);
         }
 
+        // Urun bazli fiyatlari topla
+        var totalMonthlyPrice = await _db.CustomerProducts
+            .Where(cp => cp.CustomerId == dto.CustomerId && cp.IsActive)
+            .SumAsync(cp => cp.MonthlyPrice);
+
         // Aktif ucretli hizmetler
         var customerSubs = await _subscriptionEs.GetAllQueryable()
             .Where(s => s.CustomerId == dto.CustomerId && s.StatusId == SubscriptionStatuses.Ids.Active && s.MonthlyPrice > 0)
@@ -324,8 +340,8 @@ public class BillingFactory : IBillingFactory
             PeriodStartDate = new DateTime(year, month, startDate.Day, 0, 0, 0, DateTimeKind.Utc),
             PeriodEndDate = periodEnd,
             UserCount = userCount,
-            UnitPrice = customer.MonthlyUnitPrice,
-            Amount = userCount * customer.MonthlyUnitPrice,
+            UnitPrice = totalMonthlyPrice,
+            Amount = userCount * totalMonthlyPrice,
             ServiceAmount = serviceAmount,
             StatusId = BillingPeriodStatuses.Ids.Draft,
             IsPaid = false,

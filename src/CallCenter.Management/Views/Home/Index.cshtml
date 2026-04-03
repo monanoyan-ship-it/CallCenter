@@ -119,8 +119,13 @@
                                 <a class="fw-medium text-decoration-none" data-bind="text: customerName, attr: { href: '/Customers/Detail/' + customerId }"></a>
                             </td>
                             <td>
-                                <span class="badge" data-bind="text: productTypeName,
-                                    css: productTypeId === 1 ? 'bg-primary' : productTypeId === 2 ? 'bg-warning text-dark' : 'bg-info'"></span>
+                                <!-- ko foreach: productTypeNames || [] -->
+                                <span class="badge me-1" data-bind="text: $data,
+                                    css: $data === 'Call Center' ? 'bg-primary' : 'bg-warning text-dark'"></span>
+                                <!-- /ko -->
+                                <!-- ko if: !productTypeNames || productTypeNames.length === 0 -->
+                                <span class="badge bg-secondary">-</span>
+                                <!-- /ko -->
                             </td>
                             <td class="text-center" data-bind="text: personnelCount"></td>
                             <td class="text-center"><span class="badge bg-secondary" data-bind="text: moduleCount"></span></td>

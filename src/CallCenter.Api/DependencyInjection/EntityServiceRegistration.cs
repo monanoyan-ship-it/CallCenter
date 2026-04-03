@@ -65,6 +65,9 @@ public static class EntityServiceRegistration
         services.AddScoped<ICrmTicketCommentEntityService, CrmTicketCommentEntityService>();
         services.AddScoped<ICrmContactTagEntityService, CrmContactTagEntityService>();
 
+        // Customer Products
+        services.AddScoped<ICustomerProductEntityService, CustomerProductEntityService>();
+
         // Faz 14 — Hizmet Abonelik Yönetimi
         services.AddScoped<ICustomerServiceSubscriptionEntityService, CustomerServiceSubscriptionEntityService>();
         services.AddScoped<IServiceBillingItemEntityService, ServiceBillingItemEntityService>();

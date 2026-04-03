@@ -22,11 +22,19 @@ public class ManagementController : ControllerBase
         _supervisorFactory = sp.GetService<ISupervisorFactory>();
     }
 
+    [HttpGet("product-types")]
+    public IActionResult GetProductTypes()
+    {
+        var types = ProductTypes.All.Select(t => new { t.Id, t.SystemName, t.Description, t.Icon, t.CssClass }).ToList();
+        return Ok(types);
+    }
+
     [HttpGet("dashboard")]
     public async Task<ActionResult<ManagementDashboardDto>> GetDashboard()
     {
         var customers = await _db.Customers.ToListAsync();
         var users = await _db.Users.ToListAsync();
+        var customerProducts = await _db.CustomerProducts.Where(cp => cp.IsActive).ToListAsync();
 
         var dto = new ManagementDashboardDto
         {
@@ -34,8 +42,12 @@ public class ManagementController : ControllerBase
             ActiveCustomers = customers.Count(c => c.IsActive),
             TotalUsers = users.Count,
             ActiveUsers = users.Count(u => u.IsActive),
-            TotalSalonCustomers = customers.Count(c => c.ProductTypeId == 2 || c.ProductTypeId == 3),
-            TotalCallCenterCustomers = customers.Count(c => c.ProductTypeId == 1 || c.ProductTypeId == 3),
+            TotalSalonCustomers = customerProducts
+                .Where(cp => cp.ProductTypeId == ProductTypes.Ids.Salon)
+                .Select(cp => cp.CustomerId).Distinct().Count(),
+            TotalCallCenterCustomers = customerProducts
+                .Where(cp => cp.ProductTypeId == ProductTypes.Ids.CallCenter)
+                .Select(cp => cp.CustomerId).Distinct().Count(),
         };
 
         // Cagri istatistikleri (supervisor factory varsa)
@@ -58,23 +70,26 @@ public class ManagementController : ControllerBase
             .Where(m => m.IsActive)
             .ToListAsync();
 
-        var productTypeNames = new Dictionary<int, string>
-        {
-            { 1, "Call Center" }, { 2, "Salon" }, { 3, "Her Ikisi" }
-        };
+        var productsByCustomer = customerProducts
+            .GroupBy(cp => cp.CustomerId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
-        dto.CustomerModules = customers.Select(c => new CustomerModuleUsageDto
+        dto.CustomerModules = customers.Select(c =>
         {
-            CustomerId = c.Id,
-            CustomerName = c.Name,
-            IsActive = c.IsActive,
-            ProductTypeId = c.ProductTypeId,
-            ProductTypeName = productTypeNames.GetValueOrDefault(c.ProductTypeId, "Bilinmiyor"),
-            PersonnelCount = 0, // asagida dolacak
-            ModuleCount = modules.Count(m => m.CustomerId == c.Id),
-            ActiveModules = modules.Where(m => m.CustomerId == c.Id)
-                .Select(m => PortalModules.GetById(m.ModuleId)?.SystemName ?? $"Modul-{m.ModuleId}")
-                .ToList()
+            var prods = productsByCustomer.GetValueOrDefault(c.Id, new());
+            return new CustomerModuleUsageDto
+            {
+                CustomerId = c.Id,
+                CustomerName = c.Name,
+                IsActive = c.IsActive,
+                ProductTypeIds = prods.Select(p => p.ProductTypeId).ToList(),
+                ProductTypeNames = prods.Select(p => ProductTypes.GetById(p.ProductTypeId)?.Description ?? "?").ToList(),
+                PersonnelCount = 0,
+                ModuleCount = modules.Count(m => m.CustomerId == c.Id),
+                ActiveModules = modules.Where(m => m.CustomerId == c.Id)
+                    .Select(m => PortalModules.GetById(m.ModuleId)?.SystemName ?? $"Modul-{m.ModuleId}")
+                    .ToList()
+            };
         }).OrderByDescending(c => c.IsActive).ThenBy(c => c.CustomerName).ToList();
 
         // Personel sayilarini toplu getir

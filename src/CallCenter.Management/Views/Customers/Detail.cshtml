@@ -54,9 +54,19 @@
                                     <label class="form-label small">Max Kullanici</label>
                                     <input type="number" class="form-control form-control-sm" data-bind="value: edit.maxUsers" />
                                 </div>
-                                <div class="col-md-4 mb-2">
-                                    <label class="form-label small">Aylik Birim Fiyat</label>
-                                    <input type="number" step="0.01" class="form-control form-control-sm" data-bind="value: edit.monthlyUnitPrice" />
+                                <div class="col-12 mb-2">
+                                    <label class="form-label small">Urunler ve Fiyatlandirma</label>
+                                    <!-- ko foreach: productTypes -->
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <input type="checkbox" class="form-check-input" data-bind="checked: $parent.isProductActive($data.id)" />
+                                        <span class="small fw-medium" style="min-width:120px" data-bind="text: description"></span>
+                                        <div class="input-group input-group-sm" style="width:160px">
+                                            <input type="number" step="0.01" class="form-control form-control-sm"
+                                                   data-bind="value: $parent.getProductPrice($data.id), enable: $parent.isProductActive($data.id)" placeholder="0.00" />
+                                            <span class="input-group-text">TL</span>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
                                 </div>
                             </div>
                             <button class="btn btn-primary btn-sm mt-2" data-bind="click: saveGeneral">
@@ -221,15 +231,40 @@ function DetailViewModel() {
     self.edit = {
         name: ko.observable(''), taxNumber: ko.observable(''),
         phone: ko.observable(''), email: ko.observable(''),
-        address: ko.observable(''), maxUsers: ko.observable(5),
-        monthlyUnitPrice: ko.observable(0)
+        address: ko.observable(''),
+        maxUsers: ko.observable(5),
+        products: ko.observableArray([])
     };
 
+    self.productTypes = ko.observableArray([]);
     self.personnel = ko.observableArray([]);
     self.organizations = ko.observableArray([]);
     self.queues = ko.observableArray([]);
     self.billing = ko.observableArray([]);
     self.modules = ko.observableArray([]);
+
+    // Urun checkbox/fiyat yonetimi
+    self.isProductActive = function (productTypeId) {
+        var prod = self.edit.products().find(function(p) { return p.productTypeId === productTypeId; });
+        return prod ? prod.active : ko.observable(false);
+    };
+    self.getProductPrice = function (productTypeId) {
+        var prod = self.edit.products().find(function(p) { return p.productTypeId === productTypeId; });
+        return prod ? prod.monthlyPrice : ko.observable(0);
+    };
+
+    self.loadProductTypes = function () {
+        $.get('/proxy/management/product-types', function (d) {
+            var types = Array.isArray(d) ? d : [];
+            self.productTypes(types);
+            // Urunleri olustur (henuz customer yuklenmediyse bos basla)
+            if (self.edit.products().length === 0) {
+                self.edit.products(types.map(function(t) {
+                    return { productTypeId: t.id, active: ko.observable(false), monthlyPrice: ko.observable(0) };
+                }));
+            }
+        });
+    };
 
     self.loadCustomer = function () {
         $.get('/proxy/customers/' + CUSTOMER_ID, function (c) {
@@ -240,7 +275,18 @@ function DetailViewModel() {
             self.edit.email(c.contactEmail || c.email || '');
             self.edit.address(c.address || '');
             self.edit.maxUsers(c.maxUsers || 5);
-            self.edit.monthlyUnitPrice(c.monthlyUnitPrice || 0);
+
+            // Products bilgisini isle
+            var apiProducts = c.products || [];
+            var types = self.productTypes();
+            self.edit.products(types.map(function(t) {
+                var existing = apiProducts.find(function(p) { return p.productTypeId === t.id; });
+                return {
+                    productTypeId: t.id,
+                    active: ko.observable(!!existing),
+                    monthlyPrice: ko.observable(existing ? existing.monthlyPrice : 0)
+                };
+            }));
         });
     };
 
@@ -263,14 +309,18 @@ function DetailViewModel() {
     };
 
     self.saveGeneral = function () {
+        var activeProducts = self.edit.products().filter(function(p) { return p.active(); });
         $.ajax({
             url: '/proxy/customers/' + CUSTOMER_ID, method: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({
                 name: self.edit.name(), taxNumber: self.edit.taxNumber(),
                 contactPhone: self.edit.phone(), contactEmail: self.edit.email(),
-                address: self.edit.address(), maxUsers: parseInt(self.edit.maxUsers()),
-                monthlyUnitPrice: parseFloat(self.edit.monthlyUnitPrice())
+                address: self.edit.address(),
+                maxUsers: parseInt(self.edit.maxUsers()),
+                products: activeProducts.map(function(p) {
+                    return { productTypeId: p.productTypeId, monthlyPrice: parseFloat(p.monthlyPrice()) || 0 };
+                })
             }),
             success: function () { toastr.success('Kaydedildi.'); self.loadCustomer(); },
             error: function () { toastr.error('Kaydetme hatasi.'); }
@@ -298,6 +348,7 @@ function DetailViewModel() {
         });
     };
 
+    self.loadProductTypes();
     self.loadCustomer();
     self.loadTabs();
 }

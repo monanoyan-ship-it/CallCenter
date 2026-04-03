@@ -70,12 +70,24 @@ public class CustomerFactory : ICustomerFactory
                 IsActive = c.IsActive,
                 CreatedAt = c.CreatedAt,
                 MaxUsers = c.MaxUsers,
-                MonthlyUnitPrice = c.MonthlyUnitPrice,
+                Products = c.Products.Where(p => p.IsActive).Select(p => new CustomerProductDto
+                {
+                    Id = p.Id,
+                    ProductTypeId = p.ProductTypeId,
+                    ProductTypeName = "",
+                    MonthlyPrice = p.MonthlyPrice,
+                    IsActive = p.IsActive
+                }).ToList(),
                 PersonnelCount = c.Personnel.Count,
                 QueueCount = c.Queues.Count,
                 SipAccountCount = c.SipAccounts.Count
             })
             .ToListAsync();
+
+        // EF projection icinde static method cagrilamaz, post-process ile doldur
+        foreach (var item in items)
+            foreach (var p in item.Products)
+                p.ProductTypeName = ProductTypes.GetById(p.ProductTypeId)?.Description ?? "?";
 
         return new PagedResult<CustomerListDto>
         {
@@ -108,6 +120,11 @@ public class CustomerFactory : ICustomerFactory
             };
         }
 
+        // Products'i ayri yukle (GetByIdWithPersonnelAsync Products'i Include etmeyebilir)
+        var products = await _db.CustomerProducts
+            .Where(cp => cp.CustomerId == c.Id && cp.IsActive)
+            .ToListAsync();
+
         return new CustomerDetailDto
         {
             Id = c.Id,
@@ -118,7 +135,14 @@ public class CustomerFactory : ICustomerFactory
             Email = c.Email,
             IsActive = c.IsActive,
             MaxUsers = c.MaxUsers,
-            MonthlyUnitPrice = c.MonthlyUnitPrice,
+            Products = products.Select(p => new CustomerProductDto
+            {
+                Id = p.Id,
+                ProductTypeId = p.ProductTypeId,
+                ProductTypeName = ProductTypes.GetById(p.ProductTypeId)?.Description ?? "?",
+                MonthlyPrice = p.MonthlyPrice,
+                IsActive = p.IsActive
+            }).ToList(),
             SaveRecordingToPlatform = c.SaveRecordingToPlatform,
             SaveRecordingToOwnStorage = c.SaveRecordingToOwnStorage,
             AutoRecordCalls = c.AutoRecordCalls,
@@ -169,12 +193,29 @@ public class CustomerFactory : ICustomerFactory
             Phone = dto.Phone,
             Email = dto.Email,
             MaxUsers = dto.MaxUsers,
-            MonthlyUnitPrice = dto.MonthlyUnitPrice,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
 
         _customerEs.Add(customer);
+        await _uow.SaveChangesAsync();
+
+        // Musteri urunlerini ekle
+        var products = dto.Products.Count > 0
+            ? dto.Products
+            : new List<CustomerProductInputDto> { new() { ProductTypeId = ProductTypes.Ids.CallCenter, MonthlyPrice = 0 } };
+
+        foreach (var p in products)
+        {
+            _db.CustomerProducts.Add(new CustomerProduct
+            {
+                CustomerId = customer.Id,
+                ProductTypeId = p.ProductTypeId,
+                MonthlyPrice = p.MonthlyPrice,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
         await _uow.SaveChangesAsync();
 
         foreach (var module in PortalModules.All)
@@ -242,10 +283,41 @@ public class CustomerFactory : ICustomerFactory
         customer.Email = dto.Email;
         customer.IsActive = dto.IsActive;
         customer.MaxUsers = dto.MaxUsers;
-        customer.MonthlyUnitPrice = dto.MonthlyUnitPrice;
         customer.SaveRecordingToPlatform = dto.SaveRecordingToPlatform;
         customer.SaveRecordingToOwnStorage = dto.SaveRecordingToOwnStorage;
         customer.AutoRecordCalls = dto.AutoRecordCalls;
+
+        // Products sync
+        var existingProducts = await _db.CustomerProducts
+            .Where(cp => cp.CustomerId == id)
+            .ToListAsync();
+
+        var dtoProductTypeIds = dto.Products.Select(p => p.ProductTypeId).ToHashSet();
+
+        foreach (var p in dto.Products)
+        {
+            var existing = existingProducts.FirstOrDefault(ep => ep.ProductTypeId == p.ProductTypeId);
+            if (existing != null)
+            {
+                existing.MonthlyPrice = p.MonthlyPrice;
+                existing.IsActive = true;
+            }
+            else
+            {
+                _db.CustomerProducts.Add(new CustomerProduct
+                {
+                    CustomerId = id,
+                    ProductTypeId = p.ProductTypeId,
+                    MonthlyPrice = p.MonthlyPrice,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        // Listede olmayan urunleri deaktif et
+        foreach (var ep in existingProducts.Where(ep => !dtoProductTypeIds.Contains(ep.ProductTypeId)))
+            ep.IsActive = false;
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -429,12 +501,22 @@ public class CustomerFactory : ICustomerFactory
             Name = request.SalonName.Trim(),
             Phone = request.Phone,
             Email = request.Email,
-            ProductTypeId = ProductTypes.Ids.Salon,
             MaxUsers = 5,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
         _customerEs.Add(customer);
+        await _uow.SaveChangesAsync();
+
+        // Salon urunu ekle
+        _db.CustomerProducts.Add(new CustomerProduct
+        {
+            CustomerId = customer.Id,
+            ProductTypeId = ProductTypes.Ids.Salon,
+            MonthlyPrice = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
         await _uow.SaveChangesAsync();
 
         // Salon portal modullerini ekle

@@ -11,10 +11,7 @@ public class Customer
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
 
-    /// <summary>Urun tipi: 1=CallCenter, 2=Salon, 3=Her ikisi</summary>
-    public int ProductTypeId { get; set; } = 1;
     public int MaxUsers { get; set; } = 1;
-    public decimal MonthlyUnitPrice { get; set; }
     public bool SaveRecordingToPlatform { get; set; } = true;
     public bool SaveRecordingToOwnStorage { get; set; }
     public bool AutoRecordCalls { get; set; }
@@ -43,6 +40,9 @@ public class Customer
 
     // Hizmet abonelikleri
     public ICollection<CustomerServiceSubscription> ServiceSubscriptions { get; set; } = new List<CustomerServiceSubscription>();
+
+    // Musteri urunleri (CallCenter, Salon vb.)
+    public ICollection<CustomerProduct> Products { get; set; } = new List<CustomerProduct>();
 
     /// <summary>Tahakkuk gunu (ayin kaci). null = ilk tahakkuk henuz olusturulmadi</summary>
     public int? BillingAnchorDay { get; set; }
