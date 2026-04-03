@@ -9,6 +9,10 @@
             <button class="btn btn-outline-success btn-sm" data-bind="click: exportXml">
                 <i class="bi bi-file-earmark-code me-1"></i>XML Export
             </button>
+            <input type="file" id="xmlImportFile" accept=".xml" style="display:none" />
+            <button class="btn btn-outline-warning btn-sm" data-bind="click: importXml">
+                <i class="bi bi-upload me-1"></i>XML Import
+            </button>
             <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
                 <i class="bi bi-plus-lg me-1"></i>Yeni Ceviri
             </button>
@@ -265,6 +269,29 @@ function TranslationsViewModel() {
             success: function() { toastr.success('Cache yenilendi.'); },
             error: function() { toastr.error('Cache yenileme hatasi.'); }
         });
+    };
+
+    self.importXml = function() {
+        var input = document.getElementById('xmlImportFile');
+        input.onchange = function() {
+            if (!input.files.length) return;
+            var formData = new FormData();
+            formData.append('file', input.files[0]);
+            $.ajax({
+                url: '/proxy/translations/import/xml', method: 'POST',
+                data: formData, processData: false, contentType: false,
+                success: function(data) {
+                    toastr.success(data.message || 'Import basarili.');
+                    self.loadData(); self.reloadCache();
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message || 'Import hatasi.';
+                    toastr.error(msg);
+                }
+            });
+            input.value = '';
+        };
+        input.click();
     };
 
     self.loadData();
