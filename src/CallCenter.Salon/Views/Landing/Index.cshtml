@@ -1,0 +1,184 @@
+@{
+    Layout = null;
+    var currentCulture = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var otherLang = currentCulture == "tr" ? "en" : "tr";
+    var otherLangLabel = currentCulture == "tr" ? "EN" : "TR";
+    var langPrefix = $"/{currentCulture}";
+}
+<!DOCTYPE html>
+<html lang="@currentCulture">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CorpLynk Salon — @(currentCulture == "tr" ? "Salon Yonetim Platformu" : "Salon Management Platform")</title>
+    <meta name="description" content="@(currentCulture == "tr" ? "Randevu, POS, sadakat, online rezervasyon. Salonunuz icin her sey tek platformda." : "Appointments, POS, loyalty, online booking. Everything your salon needs in one platform.")" />
+    <link rel="canonical" href="https://corplynk.com@(langPrefix)/salon-app" />
+    <link rel="alternate" hreflang="tr" href="https://corplynk.com/tr/salon-app" />
+    <link rel="alternate" hreflang="en" href="https://corplynk.com/en/salon-app" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-card: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.06);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #ec4899;
+            --accent-light: #f472b6;
+            --accent-glow: rgba(236,72,153,0.15);
+            --radius: 12px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+        a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+        a:hover { color: var(--text-primary); }
+
+        .landing-bg { position:fixed; inset:0; z-index:-1; background: radial-gradient(ellipse at 50% 0%, rgba(236,72,153,0.08) 0%, transparent 60%); }
+
+        .wrapper { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+        /* Nav */
+        .nav-bar { display:flex; justify-content:space-between; align-items:center; padding: 1.25rem 0; }
+        .nav-brand { font-size:1.125rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:0.5rem; }
+        .nav-brand i { color: var(--accent); }
+        .nav-links { display:flex; align-items:center; gap:1.5rem; font-size:0.875rem; }
+        .nav-btn { padding:0.4rem 1rem; border:1px solid var(--border); border-radius:50px; font-size:0.8125rem; font-weight:500; }
+        .nav-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+        /* Hero */
+        .hero { text-align:center; padding: 6rem 0 4rem; }
+        .hero-badge { display:inline-flex; align-items:center; gap:0.5rem; background:var(--bg-card); border:1px solid var(--border); border-radius:50px; padding:0.375rem 1rem; font-size:0.75rem; color:var(--text-secondary); margin-bottom:1.5rem; }
+        .hero-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+        .hero h1 { font-size: clamp(2.5rem,6vw,4rem); font-weight:800; line-height:1.1; margin-bottom:1.5rem; }
+        .hero h1 span { background: linear-gradient(135deg, var(--accent-light) 0%, #f9a8d4 50%, var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .hero p { font-size:1.125rem; color:var(--text-secondary); max-width:600px; margin:0 auto 2rem; line-height:1.7; }
+        .hero-cta { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+        .btn-primary-cta { display:inline-flex; align-items:center; gap:0.5rem; padding:0.75rem 1.75rem; background:var(--accent); color:#fff; border-radius:50px; font-weight:600; font-size:0.9375rem; transition: all 0.2s; }
+        .btn-primary-cta:hover { background:var(--accent-light); color:#fff; transform:translateY(-1px); }
+        .btn-outline-cta { display:inline-flex; align-items:center; gap:0.5rem; padding:0.75rem 1.75rem; border:1px solid var(--border); color:var(--text-primary); border-radius:50px; font-weight:500; font-size:0.9375rem; transition: all 0.2s; }
+        .btn-outline-cta:hover { border-color:var(--accent); color:var(--accent-light); }
+
+        /* Features */
+        .section { padding: 5rem 0; }
+        .section-badge { display:inline-flex; background:var(--accent-glow); color:var(--accent-light); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem; }
+        .section-title { font-size:2rem; font-weight:700; margin-bottom:0.75rem; }
+        .section-desc { color:var(--text-secondary); max-width:550px; margin:0 auto 3rem; }
+        .section-header { text-align:center; margin-bottom:3rem; }
+
+        .features-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:1.5rem; }
+        .feature-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.75rem; transition: border-color 0.2s; }
+        .feature-card:hover { border-color: rgba(236,72,153,0.3); }
+        .feature-icon { width:40px; height:40px; border-radius:10px; background:var(--accent-glow); color:var(--accent-light); display:flex; align-items:center; justify-content:center; font-size:1.125rem; margin-bottom:1rem; }
+        .feature-card h3 { font-size:1rem; font-weight:600; margin-bottom:0.5rem; }
+        .feature-card p { font-size:0.875rem; color:var(--text-secondary); line-height:1.6; }
+
+        /* Footer */
+        .footer { border-top:1px solid var(--border); padding:2rem 0; margin-top:3rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; font-size:0.8125rem; color:var(--text-secondary); }
+        .footer a { color:var(--text-secondary); }
+        .footer a:hover { color:var(--text-primary); }
+
+        @@media (max-width:768px) {
+            .nav-links { display:none; }
+            .features-grid { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-bg"></div>
+
+    <div class="wrapper">
+        <!-- Nav -->
+        <nav class="nav-bar">
+            <a href="https://corplynk.com@(langPrefix)" class="nav-brand">
+                <i class="bi bi-hexagon-fill"></i> CorpLynk
+            </a>
+            <div class="nav-links">
+                <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
+                <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
+                <a href="https://salon.corplynk.com" class="nav-btn">@(currentCulture == "tr" ? "Uygulamayi Ac" : "Open App")</a>
+                <a href="javascript:void(0)" onclick="window.location.href='/@otherLang/salon-app'" class="nav-btn">@otherLangLabel</a>
+            </div>
+        </nav>
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                @(currentCulture == "tr" ? "Salon Yonetim Platformu" : "Salon Management Platform")
+            </div>
+            <h1>
+                @(currentCulture == "tr" ? "Salonunuzu" : "Your Salon,")<br />
+                <span>@(currentCulture == "tr" ? "Dijitallestirin." : "Digitized.")</span>
+            </h1>
+            <p>
+                @(currentCulture == "tr"
+                    ? "Randevu, POS, musteri sadakati, online rezervasyon, personel yonetimi ve detayli raporlar. Salonunuz icin ihtiyaciniz olan her sey tek platformda."
+                    : "Appointments, POS, customer loyalty, online booking, staff management, and detailed reports. Everything your salon needs in one platform.")
+            </p>
+            <div class="hero-cta">
+                <a href="https://salon.corplynk.com" class="btn-primary-cta" target="_blank">
+                    <span>@(currentCulture == "tr" ? "Uygulamayi Ac" : "Open App")</span>
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                <a href="https://salon.corplynk.com/Account/Register" class="btn-outline-cta">
+                    <span>@(currentCulture == "tr" ? "Ucretsiz Baslayın" : "Start Free")</span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="section" id="features">
+            <div class="section-header">
+                <div class="section-badge">@(currentCulture == "tr" ? "Ozellikler" : "Features")</div>
+                <h2 class="section-title">@(currentCulture == "tr" ? "Ihtiyaciniz Olan Her Sey" : "Everything You Need")</h2>
+                <p class="section-desc">@(currentCulture == "tr" ? "Salonunuzu uctan uca yonetmek icin kapsamli araclar." : "Comprehensive tools to manage your salon end-to-end.")</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-calendar-check"></i></div>
+                    <h3>@(currentCulture == "tr" ? "Randevu Yonetimi" : "Appointment Management")</h3>
+                    <p>@(currentCulture == "tr" ? "Takvim gorunumu, otomatik hatirlatmalar, online rezervasyon. Musterileriniz 7/24 randevu alabilir." : "Calendar view, automatic reminders, online booking. Your clients can book 24/7.")</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-credit-card"></i></div>
+                    <h3>@(currentCulture == "tr" ? "Hizli Satis (POS)" : "Quick Sales (POS)")</h3>
+                    <p>@(currentCulture == "tr" ? "Hizmet ve urun satisi, nakit/kart/havale odeme, fisli islem. Recete ve paket destegiyle." : "Service and product sales, cash/card/transfer payment, receipt generation. With recipe and package support.")</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-star"></i></div>
+                    <h3>@(currentCulture == "tr" ? "Sadakat Programi" : "Loyalty Program")</h3>
+                    <p>@(currentCulture == "tr" ? "Puan biriktirme, hediye karti, uyelik/abonelik sistemi. Musterilerinizi geri kazanin." : "Points collection, gift cards, membership/subscription system. Win back your customers.")</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-globe"></i></div>
+                    <h3>@(currentCulture == "tr" ? "Online Rezervasyon" : "Online Booking")</h3>
+                    <p>@(currentCulture == "tr" ? "Salonunuzun profil sayfasi ve online randevu formu. Bekleme listesi destegiyle." : "Your salon's profile page and online booking form. With waitlist support.")</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-person-badge"></i></div>
+                    <h3>@(currentCulture == "tr" ? "Personel Yonetimi" : "Staff Management")</h3>
+                    <p>@(currentCulture == "tr" ? "Calisan profilleri, uzmanlik alanlari, personel bazli fiyatlandirma ve hasilat paylasimi." : "Employee profiles, expertise areas, staff-based pricing, and revenue sharing.")</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-bar-chart"></i></div>
+                    <h3>@(currentCulture == "tr" ? "Raporlar ve Analiz" : "Reports & Analytics")</h3>
+                    <p>@(currentCulture == "tr" ? "Gun sonu kasa, gelir/gider, personel performansi, musteri analizleri. Veriye dayali kararlar." : "End-of-day cash, income/expense, staff performance, customer analytics. Data-driven decisions.")</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>&copy; 2026 CorpLynk — <a href="https://www.limasoft.com.tr" target="_blank">LimaSoft</a></span>
+            <div>
+                <a href="https://corplynk.com@(langPrefix)" style="margin-right:1rem;">CorpLynk</a>
+                <a href="mailto:info@corplynk.com">info@corplynk.com</a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
