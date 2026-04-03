@@ -3,14 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 namespace CallCenter.Salon.Controllers;
 
 /// <summary>
-/// Salon urun tanitim sayfasi (auth gerektirmez)
+/// Salon tanitim sayfasi — root URL.
+/// Login olan kullanici dashboard'a yonlendirilir.
 /// </summary>
 public class LandingController : Controller
 {
-    [HttpGet("/salon-app")]
-    [HttpGet("/{culture}/salon-app")]
+    [HttpGet("/")]
+    [HttpGet("/{culture:culture}")]
     public IActionResult Index()
     {
+        var token = HttpContext.Session.GetString("Token");
+        if (!string.IsNullOrEmpty(token))
+            return RedirectToAction("Index", "Home");
+
         return View();
     }
 }
