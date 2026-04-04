@@ -14,7 +14,7 @@ public class LandingController : Controller
     {
         var token = HttpContext.Session.GetString("Token");
         if (!string.IsNullOrEmpty(token))
-            return RedirectToAction("Index", "Home");
+            return Redirect("/Home");
 
         return View();
     }
