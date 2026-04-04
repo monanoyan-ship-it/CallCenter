@@ -60,7 +60,7 @@ function AppointmentsViewModel() {
         {
             name: 'Su An', css: 'btn-outline-primary', items: [
                 { label: 'Bugun', calc: function () { var d = toDateStr(new Date()); return { from: d, to: d }; } },
-                { label: 'Bu Hafta', calc: function () { var today = new Date(); return { from: toDateStr(today), to: toDateStr(addDays(today, 6)) }; } },
+                { label: 'Bu Hafta', calc: function () { var mon = getMonday(new Date()); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
                 { label: 'Bu Ay', calc: function () { var d = new Date(); return { from: toDateStr(monthStart(d)), to: toDateStr(monthEnd(d)) }; } }
             ]
         },
