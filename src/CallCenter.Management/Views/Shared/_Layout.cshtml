@@ -47,7 +47,7 @@
         var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
         var custOpen = ctrl is "Customers" or "Users" or "Organizations" or "Personnel";
         var modOpen = ctrl is "Modules";
-        var sipOpen = ctrl is "SipAccounts" or "Queues" or "Ivr" or "CallForwarding" or "GatewayHealth";
+        var sipOpen = ctrl is "Queues" or "Ivr" or "CallForwarding";
         var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig";
         var finOpen = ctrl is "ServiceManagement" or "BillingReport";
         var kvkkOpen = ctrl is "Kvkk";
@@ -83,16 +83,14 @@
                 <a class="nav-link @(ctrl == "Modules" && act == "Salon" ? "active" : "")" href="/Modules/Salon"><i class="bi bi-scissors me-2"></i>Salon</a>
             </div>
 
-            <!-- SIP & Telefoni -->
+            <!-- Cagri Yonetimi -->
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>SIP & Telefoni</span><i class="bi bi-chevron-down chevron @(sipOpen ? "open" : "")"></i>
+                <span>Cagri Yonetimi</span><i class="bi bi-chevron-down chevron @(sipOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(sipOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "SipAccounts" ? "active" : "")" href="/SipAccounts"><i class="bi bi-telephone me-2"></i>SIP Hesaplari</a>
                 <a class="nav-link @(ctrl == "Queues" ? "active" : "")" href="/Queues"><i class="bi bi-collection me-2"></i>Kuyruklar</a>
                 <a class="nav-link @(ctrl == "Ivr" ? "active" : "")" href="/Ivr"><i class="bi bi-menu-button-wide me-2"></i>IVR Yonetimi</a>
                 <a class="nav-link @(ctrl == "CallForwarding" ? "active" : "")" href="/CallForwarding"><i class="bi bi-arrow-left-right me-2"></i>Yonlendirme</a>
-                <a class="nav-link @(ctrl == "GatewayHealth" ? "active" : "")" href="/GatewayHealth"><i class="bi bi-heart-pulse me-2"></i>Gateway Durumu</a>
             </div>
 
             <!-- Sistem -->
