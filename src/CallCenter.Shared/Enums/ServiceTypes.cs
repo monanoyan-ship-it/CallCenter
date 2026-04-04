@@ -115,6 +115,23 @@ public static class BillingPeriodStatuses
     }
 }
 
+public static class BillingPaymentMethods
+{
+    public static readonly TypeItem Havale = new(1, "Havale", "BillingPaymentMethod.Havale", "Havale/EFT", "bi-bank", "bg-primary", 1);
+    public static readonly TypeItem MailOrder = new(2, "MailOrder", "BillingPaymentMethod.MailOrder", "Mail Order", "bi-credit-card-2-front", "bg-info", 2);
+    public static readonly TypeItem KrediKarti = new(3, "KrediKarti", "BillingPaymentMethod.KrediKarti", "Kredi Karti", "bi-credit-card", "bg-success", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Havale, MailOrder, KrediKarti };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Havale = 1;
+        public const int MailOrder = 2;
+        public const int KrediKarti = 3;
+    }
+}
+
 public static class BillingItemStatuses
 {
     public static readonly TypeItem Pending = new(1, "Pending", "BillingItemStatus.Pending", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);

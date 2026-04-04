@@ -716,6 +716,7 @@ public class BillingPeriodUpdateDto
 {
     public int? StatusId { get; set; }
     public bool IsPaid { get; set; }
+    public int? PaymentMethodId { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -742,6 +743,10 @@ public class BillingReportDto
     public decimal TotalAmount => Amount + ServiceAmount;
     public int StatusId { get; set; }
     public string StatusName { get; set; } = string.Empty;
+    public int? PaymentMethodId { get; set; }
+    public string? PaymentMethodName { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime? PaidAt { get; set; }
 }
 
 public class BulkBillingGenerateDto

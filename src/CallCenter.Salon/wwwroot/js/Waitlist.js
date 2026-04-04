@@ -16,8 +16,8 @@ function WaitlistViewModel() {
         notes: ko.observable('')
     };
 
-    var statusTexts = { 1: 'Bekliyor', 2: 'Bildirildi', 3: 'Randevu Alindi', 4: 'Iptal' };
-    var statusBadges = { 1: 'bg-warning', 2: 'bg-info', 3: 'bg-success', 4: 'bg-secondary' };
+    var statusTexts = { 1: 'Bekliyor', 2: 'Bildirildi', 3: 'Randevu Alindi', 4: 'Iptal', 5: 'Gerceklesti' };
+    var statusBadges = { 1: 'bg-warning', 2: 'bg-info', 3: 'bg-success', 4: 'bg-secondary', 5: 'bg-primary' };
 
     self.statusText = function (id) { return statusTexts[id] || 'Bilinmiyor'; };
     self.statusBadge = function (id) { return statusBadges[id] || 'bg-secondary'; };
@@ -34,7 +34,8 @@ function WaitlistViewModel() {
     var formModal;
 
     self.loadData = function () {
-        $.ajax({ url: '/proxy/sln-waitlist', method: 'GET' }).done(function (data) {
+        var today = new Date().toISOString().substring(0, 10);
+        $.ajax({ url: '/proxy/sln-waitlist?date=' + today, method: 'GET' }).done(function (data) {
             self.entries(data.items || data);
         });
     };
@@ -103,6 +104,11 @@ function WaitlistViewModel() {
     self.appointmentMade = function (entry) {
         $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/3', method: 'PUT' })
             .done(function () { self.loadData(); toastr.success('Randevu alindi olarak isaretlendi'); });
+    };
+
+    self.markCompleted = function (entry) {
+        $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/5', method: 'PUT' })
+            .done(function () { self.loadData(); toastr.success('Gerceklesti olarak isaretlendi'); });
     };
 
     self.removeEntry = function (entry) {

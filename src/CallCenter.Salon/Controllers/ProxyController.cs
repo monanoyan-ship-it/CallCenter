@@ -48,15 +48,21 @@ public class ProxyController : SlnBaseController
     /// <summary>
     /// API response'unu JSON ContentResult'a cevirir.
     /// Bos body'de "null" doner (jQuery dataType:'json' ile uyumlu).
+    /// 204 NoContent body/Content-Length kabul etmez, StatusCodeResult doner.
     /// </summary>
-    private static async Task<ContentResult> ToJsonResult(HttpResponseMessage response)
+    private static async Task<IActionResult> ToJsonResult(HttpResponseMessage response)
     {
+        var statusCode = (int)response.StatusCode;
+
+        if (statusCode == 204)
+            return new StatusCodeResult(204);
+
         var content = await response.Content.ReadAsStringAsync();
         return new ContentResult
         {
             Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
             ContentType = "application/json; charset=utf-8",
-            StatusCode = (int)response.StatusCode
+            StatusCode = statusCode
         };
     }
 }

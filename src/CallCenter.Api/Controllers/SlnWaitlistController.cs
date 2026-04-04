@@ -16,11 +16,11 @@ public class SlnWaitlistController : ControllerBase
     public SlnWaitlistController(ISlnWaitlistFactory factory) => _factory = factory;
 
     [HttpGet]
-    public async Task<ActionResult<List<SlnWaitlistEntryDto>>> GetEntries()
+    public async Task<ActionResult<List<SlnWaitlistEntryDto>>> GetEntries([FromQuery] DateTime? date)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.GetEntriesAsync(customerId));
+        return Ok(await _factory.GetEntriesAsync(customerId, date));
     }
 
     [HttpGet("{id}")]

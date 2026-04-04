@@ -50,9 +50,16 @@
                                         <i class="bi bi-calendar-check"></i>
                                     </button>
                                     <!-- /ko -->
+                                    <!-- ko if: statusId === 3 -->
+                                    <button class="btn btn-outline-primary" title="Gerceklesti" data-bind="click: $parent.markCompleted">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                    <!-- /ko -->
+                                    <!-- ko if: statusId !== 5 -->
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.removeEntry">
                                         <i class="bi bi-trash"></i>
                                     </button>
+                                    <!-- /ko -->
                                 </div>
                             </td>
                         </tr>

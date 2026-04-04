@@ -116,6 +116,9 @@ public class BillingFactory : IBillingFactory
             period.StatusId = dto.IsPaid ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft;
         }
 
+        if (dto.PaymentMethodId.HasValue)
+            period.PaymentMethodId = dto.PaymentMethodId.Value;
+
         period.Notes = dto.Notes;
 
         await _uow.SaveChangesAsync();
@@ -369,7 +372,7 @@ public class BillingFactory : IBillingFactory
         return (true, null);
     }
 
-    public async Task<List<BillingReportDto>> GetBillingReportAsync(int? year, int? month, int? statusId)
+    public async Task<List<BillingReportDto>> GetBillingReportAsync(int? year, int? month, int? statusId, int? productTypeId = null)
     {
         var query = _billingEs.GetAllQueryable()
             .Include(b => b.Customer)
@@ -381,6 +384,17 @@ public class BillingFactory : IBillingFactory
             query = query.Where(b => b.Month == month.Value);
         if (statusId.HasValue)
             query = query.Where(b => b.StatusId == statusId.Value);
+
+        // Urun tipine gore filtrele (CC=1, Salon=2)
+        if (productTypeId.HasValue)
+        {
+            var customerIds = await _db.CustomerProducts
+                .Where(cp => cp.ProductTypeId == productTypeId.Value && cp.IsActive)
+                .Select(cp => cp.CustomerId)
+                .Distinct()
+                .ToListAsync();
+            query = query.Where(b => customerIds.Contains(b.CustomerId));
+        }
 
         var periods = await query
             .OrderBy(b => b.Customer.Name).ThenByDescending(b => b.Year).ThenByDescending(b => b.Month)
@@ -395,12 +409,19 @@ public class BillingFactory : IBillingFactory
                 PeriodEndDate = b.PeriodEndDate,
                 Amount = b.Amount,
                 ServiceAmount = b.ServiceAmount,
-                StatusId = b.StatusId
+                StatusId = b.StatusId,
+                PaymentMethodId = b.PaymentMethodId,
+                IsPaid = b.IsPaid,
+                PaidAt = b.PaidAt
             })
             .ToListAsync();
 
         foreach (var p in periods)
+        {
             p.StatusName = BillingPeriodStatuses.GetById(p.StatusId)?.Description ?? "?";
+            if (p.PaymentMethodId.HasValue)
+                p.PaymentMethodName = BillingPaymentMethods.GetById(p.PaymentMethodId.Value)?.Description;
+        }
 
         return periods;
     }

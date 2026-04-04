@@ -18,13 +18,19 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId)
+    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null)
     {
-        return await _db.SlnWaitlistEntries
+        var query = _db.SlnWaitlistEntries
             .Where(w => w.CustomerId == customerId)
             .Include(w => w.SlnClient)
             .Include(w => w.Service)
             .Include(w => w.PreferredPersonnel).ThenInclude(p => p!.User)
+            .AsQueryable();
+
+        if (date.HasValue)
+            query = query.Where(w => w.PreferredDate.Date == date.Value.Date);
+
+        return await query
             .OrderByDescending(w => w.CreatedAt)
             .Select(w => MapToDto(w))
             .ToListAsync();

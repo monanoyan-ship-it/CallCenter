@@ -45,14 +45,20 @@ public class ProxyController : MgmtBaseController
         return await ToJsonResult(response);
     }
 
-    private static async Task<ContentResult> ToJsonResult(HttpResponseMessage response)
+    private static async Task<IActionResult> ToJsonResult(HttpResponseMessage response)
     {
+        var statusCode = (int)response.StatusCode;
+
+        // 204 NoContent body/Content-Length kabul etmez
+        if (statusCode == 204)
+            return new StatusCodeResult(204);
+
         var content = await response.Content.ReadAsStringAsync();
         return new ContentResult
         {
             Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
             ContentType = "application/json; charset=utf-8",
-            StatusCode = (int)response.StatusCode
+            StatusCode = statusCode
         };
     }
 }

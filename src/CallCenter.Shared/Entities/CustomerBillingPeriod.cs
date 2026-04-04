@@ -17,6 +17,7 @@ public class CustomerBillingPeriod
     public int StatusId { get; set; } = 1; // BillingPeriodStatuses
     public bool IsPaid { get; set; }
     public DateTime? PaidAt { get; set; }
+    public int? PaymentMethodId { get; set; } // BillingPaymentMethods
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

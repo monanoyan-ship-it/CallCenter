@@ -6,13 +6,13 @@ public class ModulesController : MgmtBaseController
 {
     public IActionResult CallCenter()
     {
-        ViewData["Title"] = "CC Modul Paneli";
+        ViewData["Title"] = "CC Odeme Takibi";
         return View();
     }
 
     public IActionResult Salon()
     {
-        ViewData["Title"] = "Salon Modul Paneli";
+        ViewData["Title"] = "Salon Odeme Takibi";
         return View();
     }
 }

@@ -1,92 +1,311 @@
 @{
-    ViewData["Title"] = "CC Modul Paneli";
+    ViewData["Title"] = "CC Odeme Takibi";
 }
 
-<div id="cc-module-vm">
+<div id="cc-billing-vm">
+    <!-- Filtreler -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-2">
+                    <input type="number" class="form-control form-control-sm" placeholder="Yil" data-bind="value: yearFilter" min="2020" max="2100" />
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: monthFilter">
+                        <option value="">Tum Aylar</option>
+                        <option value="1">Ocak</option><option value="2">Subat</option><option value="3">Mart</option>
+                        <option value="4">Nisan</option><option value="5">Mayis</option><option value="6">Haziran</option>
+                        <option value="7">Temmuz</option><option value="8">Agustos</option><option value="9">Eylul</option>
+                        <option value="10">Ekim</option><option value="11">Kasim</option><option value="12">Aralik</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: statusFilter">
+                        <option value="">Tum Durumlar</option>
+                        <option value="1">Tahakkuk</option>
+                        <option value="2">Faturalanmis</option>
+                        <option value="3">Odenmis</option>
+                        <option value="4">Gecikme</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary btn-sm w-100" data-bind="click: loadData">
+                        <i class="bi bi-funnel me-1"></i>Filtrele
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Ozet Kartlari -->
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-3">
         <div class="col-md-3">
             <div class="card stat-card border-start border-primary border-3">
                 <div class="card-body py-2">
-                    <div class="text-muted small">CC Musterileri</div>
-                    <h4 class="mb-0" data-bind="text: stats().totalCallCenterCustomers || 0"></h4>
+                    <div class="text-muted small">Toplam Tahakkuk</div>
+                    <h4 class="mb-0" data-bind="text: summary().totalCount || 0"></h4>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card stat-card border-start border-success border-3">
+            <div class="card stat-card border-start border-warning border-3">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Online Agent</div>
-                    <h4 class="mb-0 text-success" data-bind="text: stats().onlineAgentCount || 0"></h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card border-start border-danger border-3">
-                <div class="card-body py-2">
-                    <div class="text-muted small">Aktif Cagri</div>
-                    <h4 class="mb-0 text-danger" data-bind="text: stats().activeCallCount || 0"></h4>
+                    <div class="text-muted small">Fatura Bekleyen</div>
+                    <h4 class="mb-0 text-warning" data-bind="text: summary().draftCount || 0"></h4>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card stat-card border-start border-info border-3">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Bugun Cagri</div>
-                    <h4 class="mb-0">
-                        <span class="text-success" data-bind="text: stats().todayAnsweredCalls || 0"></span>
-                        <small class="text-muted">/</small>
-                        <span class="text-danger" data-bind="text: stats().todayMissedCalls || 0"></span>
-                    </h4>
+                    <div class="text-muted small">Odeme Bekleyen</div>
+                    <h4 class="mb-0 text-info" data-bind="text: summary().invoicedCount || 0"></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-danger border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Geciken</div>
+                    <h4 class="mb-0 text-danger" data-bind="text: summary().overdueCount || 0"></h4>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Kuyruk Durumlari -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <h6 class="mb-0"><i class="bi bi-collection me-2"></i>Kuyruk Durumlari</h6>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                    <thead class="table-light">
-                        <tr><th>Kuyruk</th><th>Firma</th><th class="text-center">Bekleyen</th><th class="text-center">Agent</th><th>Durum</th></tr>
-                    </thead>
-                    <tbody data-bind="foreach: queues">
-                        <tr>
-                            <td class="fw-medium" data-bind="text: name"></td>
-                            <td class="text-muted small" data-bind="text: customerName || '-'"></td>
-                            <td class="text-center"><span class="badge bg-warning text-dark" data-bind="text: waitingCount || 0"></span></td>
-                            <td class="text-center"><span class="badge bg-primary" data-bind="text: agentCount || 0"></span></td>
-                            <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="text-center py-3 text-muted" data-bind="visible: queues().length === 0">Kuyruk verisi yok.</div>
-        </div>
+    <!-- Toplu Islemler -->
+    <div class="d-flex gap-2 mb-3" data-bind="visible: selectedIds().length > 0">
+        <span class="badge bg-primary align-self-center" data-bind="text: selectedIds().length + ' secili'"></span>
+        <button class="btn btn-outline-warning btn-sm" data-bind="click: bulkInvoice">
+            <i class="bi bi-receipt me-1"></i>Fatura Kes
+        </button>
+        <button class="btn btn-outline-primary btn-sm" data-bind="click: function() { showPaymentModal('bulk'); }">
+            <i class="bi bi-cash-coin me-1"></i>Odeme Al
+        </button>
     </div>
 
+    <!-- Tablo -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
+                <i class="bi bi-file-earmark-text fs-1 d-block mb-2 opacity-25"></i>Kayit bulunamadi
+            </div>
+            <div data-bind="visible: !isLoading() && items().length > 0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:40px;"><input type="checkbox" class="form-check-input" data-bind="checked: selectAll" /></th>
+                                <th>Firma</th>
+                                <th>Donem</th>
+                                <th class="text-end">Operator</th>
+                                <th class="text-end">Hizmet</th>
+                                <th class="text-end">Toplam</th>
+                                <th>Durum</th>
+                                <th>Odeme</th>
+                                <th style="width:100px;">Islem</th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: items">
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input" data-bind="checkedValue: periodId, checked: $parent.selectedIds" /></td>
+                                <td class="fw-medium" data-bind="text: customerName || '-'"></td>
+                                <td data-bind="text: (month || '-') + '/' + (year || '-')"></td>
+                                <td class="text-end" data-bind="text: (amount || 0).toFixed(2) + ' TL'"></td>
+                                <td class="text-end" data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>
+                                <td class="text-end fw-semibold" data-bind="text: ((amount || 0) + (serviceAmount || 0)).toFixed(2) + ' TL'"></td>
+                                <td>
+                                    <span class="badge" data-bind="text: statusName || 'Tahakkuk',
+                                        css: statusId === 3 ? 'bg-success' :
+                                             statusId === 2 ? 'bg-info' :
+                                             statusId === 4 ? 'bg-danger' : 'bg-warning text-dark'"></span>
+                                </td>
+                                <td>
+                                    <span data-bind="if: paymentMethodName">
+                                        <span class="badge bg-secondary" data-bind="text: paymentMethodName"></span>
+                                    </span>
+                                    <span class="text-muted small" data-bind="if: !paymentMethodName">-</span>
+                                </td>
+                                <td>
+                                    <!-- Tahakkuk -> Fatura Kes -->
+                                    <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Fatura Kes"
+                                        data-bind="visible: statusId === 1, click: function() { $parent.singleInvoice(periodId); }">
+                                        <i class="bi bi-receipt"></i>
+                                    </button>
+                                    <!-- Faturalanmis -> Odeme Al -->
+                                    <button class="btn btn-outline-primary btn-sm py-0 px-1" title="Odeme Al"
+                                        data-bind="visible: statusId === 2, click: function() { $parent.showPaymentModal('single', periodId); }">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </button>
+                                    <!-- Gecikme -> Odeme Al -->
+                                    <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Odeme Al (Geciken)"
+                                        data-bind="visible: statusId === 4, click: function() { $parent.showPaymentModal('single', periodId); }">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Toplam: <span data-bind="text: items().length"></span> kayit |
+                        Toplam tutar: <span data-bind="text: summary().totalAmount + ' TL'"></span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Odeme Yontemi Modali -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title">Odeme Al</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label small">Odeme Yontemi</label>
+                <select class="form-select form-select-sm" id="paymentMethodSelect">
+                    <option value="1">Havale / EFT</option>
+                    <option value="2">Mail Order</option>
+                </select>
+                <label class="form-label small mt-2">Not (opsiyonel)</label>
+                <input type="text" class="form-control form-control-sm" id="paymentNotes" placeholder="Dekont no, aciklama vb." />
+            </div>
+            <div class="modal-footer py-1">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                <button type="button" class="btn btn-primary btn-sm" id="confirmPaymentBtn">Onayla</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
 <script>
-function CcModuleViewModel() {
+function CcBillingViewModel() {
     var self = this;
-    self.stats = ko.observable({});
-    self.queues = ko.observableArray([]);
-    self.loadData = function () {
-        $.get('/proxy/management/dashboard', function (d) { self.stats(d); });
-        $.get('/proxy/supervisor/queues/live', function (d) {
-            self.queues(Array.isArray(d) ? d : []);
+    self.items = ko.observableArray([]);
+    self.isLoading = ko.observable(false);
+    self.yearFilter = ko.observable(new Date().getFullYear());
+    self.monthFilter = ko.observable('');
+    self.statusFilter = ko.observable('');
+    self.selectedIds = ko.observableArray([]);
+    self.selectAll = ko.observable(false);
+    self.summary = ko.observable({});
+
+    self.selectAll.subscribe(function(val) {
+        self.selectedIds(val ? self.items().map(function(i) { return i.periodId; }) : []);
+    });
+
+    self.computeSummary = function() {
+        var all = self.items();
+        var totalAmount = 0;
+        var draftCount = 0, invoicedCount = 0, overdueCount = 0;
+        all.forEach(function(i) {
+            totalAmount += (i.amount || 0) + (i.serviceAmount || 0);
+            if (i.statusId === 1) draftCount++;
+            else if (i.statusId === 2) invoicedCount++;
+            else if (i.statusId === 4) overdueCount++;
+        });
+        self.summary({
+            totalCount: all.length,
+            draftCount: draftCount,
+            invoicedCount: invoicedCount,
+            overdueCount: overdueCount,
+            totalAmount: totalAmount.toFixed(2)
         });
     };
 
+    self.loadData = function() {
+        self.isLoading(true);
+        self.selectedIds([]);
+        var params = { productTypeId: 1 };
+        if (self.yearFilter()) params.year = self.yearFilter();
+        if (self.monthFilter()) params.month = self.monthFilter();
+        if (self.statusFilter()) params.statusId = self.statusFilter();
+        $.get('/proxy/billing/report', params, function(data) {
+            var list = Array.isArray(data) ? data : (data.items || data.data || []);
+            self.items(list);
+            self.computeSummary();
+        }).always(function() { self.isLoading(false); });
+    };
+
+    self.updatePeriod = function(periodId, payload) {
+        return $.ajax({
+            url: '/proxy/customers/billing/' + periodId,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(payload)
+        });
+    };
+
+    // Tekil Fatura Kes
+    self.singleInvoice = function(periodId) {
+        self.updatePeriod(periodId, { statusId: 2, isPaid: false }).done(function() {
+            toastr.success('Fatura kesildi.');
+            self.loadData();
+        }).fail(function() { toastr.error('Islem hatasi.'); });
+    };
+
+    // Toplu Fatura Kes
+    self.bulkInvoice = function() {
+        var ids = self.selectedIds().slice();
+        if (!ids.length) return;
+        // Sadece Tahakkuk (1) olanlari faturala
+        var drafts = self.items().filter(function(i) { return ids.indexOf(i.periodId) >= 0 && i.statusId === 1; });
+        if (!drafts.length) { toastr.warning('Secililer arasinda fatura kesilecek kayit yok.'); return; }
+        var promises = drafts.map(function(d) { return self.updatePeriod(d.periodId, { statusId: 2, isPaid: false }); });
+        $.when.apply($, promises).done(function() {
+            toastr.success(drafts.length + ' fatura kesildi.');
+            self.loadData();
+        }).fail(function() { toastr.error('Islem hatasi.'); });
+    };
+
+    // Odeme Modali
+    self._paymentMode = null;
+    self._paymentPeriodId = null;
+
+    self.showPaymentModal = function(mode, periodId) {
+        self._paymentMode = mode;
+        self._paymentPeriodId = periodId || null;
+        $('#paymentMethodSelect').val('1');
+        $('#paymentNotes').val('');
+        new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    };
+
+    $('#confirmPaymentBtn').on('click', function() {
+        var methodId = parseInt($('#paymentMethodSelect').val());
+        var notes = $('#paymentNotes').val() || null;
+        var payload = { statusId: 3, isPaid: true, paymentMethodId: methodId, notes: notes };
+
+        if (self._paymentMode === 'single') {
+            self.updatePeriod(self._paymentPeriodId, payload).done(function() {
+                toastr.success('Odeme kaydedildi.');
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                self.loadData();
+            }).fail(function() { toastr.error('Islem hatasi.'); });
+        } else {
+            // Toplu odeme: faturalanmis + geciken olanlari al
+            var ids = self.selectedIds().slice();
+            var targets = self.items().filter(function(i) {
+                return ids.indexOf(i.periodId) >= 0 && (i.statusId === 2 || i.statusId === 4);
+            });
+            if (!targets.length) { toastr.warning('Secililer arasinda odeme alinacak kayit yok.'); return; }
+            var promises = targets.map(function(t) { return self.updatePeriod(t.periodId, payload); });
+            $.when.apply($, promises).done(function() {
+                toastr.success(targets.length + ' odeme kaydedildi.');
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                self.loadData();
+            }).fail(function() { toastr.error('Islem hatasi.'); });
+        }
+    });
+
     self.loadData();
-    setInterval(self.loadData, 30000);
 }
-ko.applyBindings(new CcModuleViewModel(), document.getElementById('cc-module-vm'));
+ko.applyBindings(new CcBillingViewModel(), document.getElementById('cc-billing-vm'));
 </script>
 }

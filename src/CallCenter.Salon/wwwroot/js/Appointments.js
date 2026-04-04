@@ -308,11 +308,11 @@ function AppointmentsViewModel() {
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
         self.loadLookups();
-        // Default: Bu Hafta (bugun + 6 gun)
-        var today = new Date();
+        // Default: Bu Hafta (Pazartesi - Pazar)
+        var mon = getMonday(new Date());
         self.dateRanges.push({
-            from: toDateStr(today),
-            to: toDateStr(addDays(today, 6)),
+            from: toDateStr(mon),
+            to: toDateStr(addDays(mon, 6)),
             label: 'Bu Hafta'
         });
     });

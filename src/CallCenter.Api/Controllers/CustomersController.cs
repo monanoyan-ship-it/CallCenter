@@ -218,8 +218,8 @@ public class CustomersController : AuditableControllerBase
     [HttpGet("~/api/billing/report")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<BillingReportDto>>> GetBillingReport(
-        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] int? statusId)
+        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] int? statusId, [FromQuery] int? productTypeId)
     {
-        return Ok(await _billingFactory.GetBillingReportAsync(year, month, statusId));
+        return Ok(await _billingFactory.GetBillingReportAsync(year, month, statusId, productTypeId));
     }
 }
