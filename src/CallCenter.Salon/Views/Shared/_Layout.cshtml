@@ -70,7 +70,7 @@
                 <span>Salon</span><i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(mainOpen ? "show" : "")">
-                @if (can.Contains("Home")) { <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a> }
+                @if (can.Contains("Home")) { <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/Home"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a> }
                 @if (can.Contains("Clients")) { <a class="nav-link @(ctrl == "Clients" ? "active" : "")" href="/Clients"><i class="bi bi-people-fill me-2"></i>Musteriler</a> }
                 @if (can.Contains("Appointments")) { <a class="nav-link @(ctrl == "Appointments" ? "active" : "")" href="/Appointments"><i class="bi bi-calendar-check me-2"></i>Randevular</a> }
                 @if (can.Contains("Waitlist")) { <a class="nav-link @(ctrl == "Waitlist" ? "active" : "")" href="/Waitlist"><i class="bi bi-clock-history me-2"></i>Bekleme Listesi</a> }
