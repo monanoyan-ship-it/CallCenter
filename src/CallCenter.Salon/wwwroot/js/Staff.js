@@ -77,6 +77,15 @@ function StaffViewModel() {
         formModal.show();
     };
 
+    function validatePassword(pwd) {
+        var errors = [];
+        if (pwd.length < 8) errors.push('En az 8 karakter');
+        if (!/[A-Z]/.test(pwd)) errors.push('En az 1 buyuk harf');
+        if (!/[a-z]/.test(pwd)) errors.push('En az 1 kucuk harf');
+        if (!/[0-9]/.test(pwd)) errors.push('En az 1 rakam');
+        return errors;
+    }
+
     self.save = function () {
         var data = {
             fullName: self.form.fullName(),
@@ -94,13 +103,25 @@ function StaffViewModel() {
         if (!self.isEditing()) {
             data.userName = self.form.userName();
             data.password = self.form.password();
-            if (!data.userName || !data.password) {
-                toastr.warning('Kullanici adi ve sifre zorunludur');
+            if (!data.userName) { toastr.warning('Kullanici adi zorunludur'); return; }
+            if (!data.password) { toastr.warning('Sifre zorunludur'); return; }
+            if (data.userName.length < 3) { toastr.warning('Kullanici adi en az 3 karakter olmali'); return; }
+
+            var pwdErrors = validatePassword(data.password);
+            if (pwdErrors.length > 0) {
+                toastr.warning('Sifre gereksinimleri:\n' + pwdErrors.join(', '));
                 return;
             }
         } else {
             var pwd = self.form.password();
-            if (pwd) data.password = pwd;
+            if (pwd) {
+                var pwdErrors = validatePassword(pwd);
+                if (pwdErrors.length > 0) {
+                    toastr.warning('Sifre gereksinimleri:\n' + pwdErrors.join(', '));
+                    return;
+                }
+                data.password = pwd;
+            }
         }
 
         self.isSaving(true);
@@ -121,7 +142,16 @@ function StaffViewModel() {
             toastr.success(self.isEditing() ? 'Personel guncellendi' : 'Personel eklendi');
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            var msg = xhr.responseJSON?.message || xhr.responseJSON?.error || xhr.responseJSON;
+            if (typeof msg === 'string') {
+                // Backend hata mesajlarini kullanici dostu hale getir
+                if (msg.indexOf('kullanici adi') >= 0) toastr.error('Bu kullanici adi zaten kullaniliyor. Farkli bir isim deneyin.');
+                else if (msg.indexOf('e-posta') >= 0) toastr.error('Bu e-posta adresi zaten kullaniliyor.');
+                else if (msg.indexOf('limit') >= 0) toastr.error('Maksimum personel limitine ulasildi.');
+                else toastr.error(msg);
+            } else {
+                toastr.error('Bir hata olustu');
+            }
             self.isSaving(false);
         });
     };
