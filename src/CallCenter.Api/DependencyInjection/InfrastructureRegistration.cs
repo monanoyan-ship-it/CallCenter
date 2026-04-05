@@ -23,6 +23,9 @@ public static class InfrastructureRegistration
         services.AddSingleton<GoogleDriveOAuthService>();
         services.AddSingleton<YandexOAuthService>();
 
+        // GCS Upload
+        services.AddSingleton<GcsUploadService>();
+
         // Email OAuth & Send
         services.AddSingleton<GmailOAuthService>();
         services.AddSingleton<Office365OAuthService>();

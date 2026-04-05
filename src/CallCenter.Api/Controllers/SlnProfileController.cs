@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using CallCenter.Api.Services;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -15,8 +16,13 @@ namespace CallCenter.Api.Controllers;
 public class SlnProfileController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly GcsUploadService _gcs;
 
-    public SlnProfileController(AppDbContext db) => _db = db;
+    public SlnProfileController(AppDbContext db, GcsUploadService gcs)
+    {
+        _db = db;
+        _gcs = gcs;
+    }
 
     [HttpGet]
     public async Task<ActionResult> GetProfile()
@@ -116,6 +122,52 @@ public class SlnProfileController : ControllerBase
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        return Ok();
+    }
+
+    /// <summary>Gorsel yukle (banner, logo vb.). Multipart form-data.</summary>
+    [HttpPost("upload-image")]
+    [RequestSizeLimit(5_242_880)] // 5 MB
+    public async Task<ActionResult> UploadImage(IFormFile file, [FromQuery] string type = "banner")
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+
+        if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
+        if (file.Length > 5_242_880) return BadRequest("Dosya 5 MB'dan buyuk olamaz.");
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
+
+        var ext = file.ContentType switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => ".jpg"
+        };
+
+        var fileName = $"{type}-{Guid.NewGuid():N}{ext}";
+        var path = $"salons/{cid}/{fileName}";
+
+        using var stream = file.OpenReadStream();
+        var (url, error) = await _gcs.UploadAsync(stream, path, file.ContentType);
+
+        if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
+        return Ok(new { url, path });
+    }
+
+    /// <summary>Yuklenmis gorseli sil</summary>
+    [HttpDelete("delete-image")]
+    public async Task<ActionResult> DeleteImage([FromQuery] string path)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        if (string.IsNullOrEmpty(path) || !path.StartsWith($"salons/{cid}/"))
+            return BadRequest("Gecersiz dosya yolu.");
+
+        await _gcs.DeleteAsync(path);
         return Ok();
     }
 
