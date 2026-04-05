@@ -99,13 +99,13 @@ public class AccountController : SlnBaseController
                 var claimRoot = claims.RootElement;
 
                 if (claimRoot.TryGetProperty("CustomerName", out var cn))
-                    HttpContext.Session.SetString("CustomerName", cn.GetString() ?? "");
+                    HttpContext.Session.SetString("CustomerName", cn.ToString());
                 if (claimRoot.TryGetProperty("CustomerRole", out var cr))
-                    HttpContext.Session.SetString("CustomerRole", cr.GetString() ?? "");
+                    HttpContext.Session.SetString("CustomerRole", cr.ToString());
                 if (claimRoot.TryGetProperty("CustomerRoleId", out var cri))
-                    HttpContext.Session.SetString("CustomerRoleId", cri.GetString() ?? "0");
+                    HttpContext.Session.SetString("CustomerRoleId", cri.ToString());
                 if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
-                    HttpContext.Session.SetString("IsCustomerAdmin", ica.GetString() ?? "false");
+                    HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
             }
         }
         catch { }

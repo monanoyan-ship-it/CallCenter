@@ -54,11 +54,11 @@ public class AccountController : CrmBaseController
                 var claimRoot = claims.RootElement;
 
                 if (claimRoot.TryGetProperty("CustomerName", out var cn))
-                    HttpContext.Session.SetString("CustomerName", cn.GetString() ?? "");
+                    HttpContext.Session.SetString("CustomerName", cn.ToString());
                 if (claimRoot.TryGetProperty("CustomerRole", out var cr))
-                    HttpContext.Session.SetString("CustomerRole", cr.GetString() ?? "");
+                    HttpContext.Session.SetString("CustomerRole", cr.ToString());
                 if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
-                    HttpContext.Session.SetString("IsCustomerAdmin", ica.GetString() ?? "false");
+                    HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
 
             }
         }

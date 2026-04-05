@@ -80,6 +80,7 @@ public static class SalonRolePermissions
         "Branches",         // Sube yonetimi
         "NoShowPolicy",     // No-show politikasi
         "ConsentForms",     // Onay formlari
+        "EmailSettings",    // E-posta entegrasyonu
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -91,6 +92,10 @@ public static class SalonRolePermissions
     /// </summary>
     public static bool CanAccess(int roleId, string controllerName)
     {
+        // Salon sahibi her sayfaya erisebilir — yeni sayfa eklendiginde listeye ekleme zorunlulugu yok
+        if (roleId == SalonRoles.Ids.SalonOwner)
+            return true;
+
         return GetAccessiblePages(roleId).Contains(controllerName);
     }
 
@@ -100,7 +105,7 @@ public static class SalonRolePermissions
     /// </summary>
     public static HashSet<string> GetAccessiblePages(int roleId)
     {
-        var pages = new HashSet<string>(EveryonePages);
+        var pages = new HashSet<string>(EveryonePages, StringComparer.OrdinalIgnoreCase);
 
         // Hiyerarsik: ust rol alt rolun sayfalarini da icerir
         switch (roleId)

@@ -32,7 +32,7 @@ public abstract class CrmBaseController : Controller
                     using var claims = System.Text.Json.JsonDocument.Parse(payloadBytes);
                     if (claims.RootElement.TryGetProperty("CustomerRole", out var cr))
                     {
-                        HttpContext.Session.SetString("CustomerRole", cr.GetString() ?? "");
+                        HttpContext.Session.SetString("CustomerRole", cr.ToString());
                     }
                 }
             }
