@@ -55,7 +55,7 @@
                 var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses" or "GiftCards" or "Packages";
                 var reportOpen = ctrl is "Reports";
                 var marketingOpen = ctrl is "Campaigns" or "Loyalty" or "Memberships" or "EmailCampaigns" or "Reviews" or "Winback";
-                var managementOpen = ctrl is "Branches" or "Profile" or "NoShowPolicy" or "ConsentForms" or "BeforeAfter" or "EmailSettings";
+                var managementOpen = ctrl is "Branches" or "Profile" or "NoShowPolicy" or "ConsentForms" or "BeforeAfter" or "EmailSettings" or "PageSettings";
             }
 
             @if (can.Contains("Sales")) {
@@ -139,7 +139,7 @@
             </div>
             }
 
-            @{ var mngLinks = new[] { "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter", "EmailSettings" }.Where(p => can.Contains(p)).ToArray(); }
+            @{ var mngLinks = new[] { "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter", "EmailSettings", "PageSettings" }.Where(p => can.Contains(p)).ToArray(); }
             @if (mngLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
                 <span>Yonetim</span><i class="bi bi-chevron-down chevron @(managementOpen ? "open" : "")"></i>
@@ -151,6 +151,7 @@
                 @if (can.Contains("ConsentForms")) { <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms"><i class="bi bi-file-earmark-text me-2"></i>Onay Formlari</a> }
                 @if (can.Contains("BeforeAfter")) { <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter"><i class="bi bi-images me-2"></i>Once/Sonra</a> }
                 @if (can.Contains("EmailSettings")) { <a class="nav-link @(ctrl == "EmailSettings" ? "active" : "")" href="/EmailSettings"><i class="bi bi-envelope-at me-2"></i>E-posta Ayarlari</a> }
+                @if (can.Contains("PageSettings")) { <a class="nav-link @(ctrl == "PageSettings" ? "active" : "")" href="/PageSettings"><i class="bi bi-layout-text-sidebar me-2"></i>Sayfa Ayarlari</a> }
             </div>
             }
 

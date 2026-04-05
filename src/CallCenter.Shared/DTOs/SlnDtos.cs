@@ -348,6 +348,16 @@ public class SlnSalonProfileUpdateDto
     public bool IsPublished { get; set; } = true;
 }
 
+public class SlnPageSettingsDto
+{
+    public bool ShowServices { get; set; } = true;
+    public bool ShowMemberships { get; set; } = true;
+    public bool ShowBooking { get; set; } = true;
+    public bool ShowHours { get; set; } = true;
+    public bool ShowContact { get; set; } = true;
+    public string? SectionOrderJson { get; set; }
+}
+
 // ═══ SlnNoShowPolicy ═══
 public class SlnNoShowPolicyDto
 {

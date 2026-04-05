@@ -81,6 +81,7 @@ public static class SalonRolePermissions
         "NoShowPolicy",     // No-show politikasi
         "ConsentForms",     // Onay formlari
         "EmailSettings",    // E-posta entegrasyonu
+        "PageSettings",     // Public sayfa ayarlari
     };
 
     // ═══════════════════════════════════════════════════════════════

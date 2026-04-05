@@ -49,7 +49,13 @@ public class SlnProfileController : ControllerBase
             LogoUrl = profile.LogoUrl,
             CoverImageUrl = profile.CoverImageUrl,
             WorkingHoursJson = profile.WorkingHoursJson,
-            IsPublished = profile.IsPublished
+            IsPublished = profile.IsPublished,
+            ShowServices = profile.ShowServices,
+            ShowMemberships = profile.ShowMemberships,
+            ShowBooking = profile.ShowBooking,
+            ShowHours = profile.ShowHours,
+            ShowContact = profile.ShowContact,
+            SectionOrderJson = profile.SectionOrderJson
         });
     }
 
@@ -86,6 +92,27 @@ public class SlnProfileController : ControllerBase
         profile.GoogleMapsUrl = dto.GoogleMapsUrl;
         profile.WorkingHoursJson = dto.WorkingHoursJson;
         profile.IsPublished = dto.IsPublished;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpPut("page-settings")]
+    public async Task<ActionResult> SavePageSettings([FromBody] SlnPageSettingsDto dto)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+
+        var profile = await _db.SlnSalonProfiles.FirstOrDefaultAsync(p => p.CustomerId == cid);
+        if (profile == null) return BadRequest("Once salon profili olusturun.");
+
+        profile.ShowServices = dto.ShowServices;
+        profile.ShowMemberships = dto.ShowMemberships;
+        profile.ShowBooking = dto.ShowBooking;
+        profile.ShowHours = dto.ShowHours;
+        profile.ShowContact = dto.ShowContact;
+        profile.SectionOrderJson = dto.SectionOrderJson;
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
