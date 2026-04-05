@@ -77,6 +77,54 @@
                 <div class="col-lg-8">
                     <!-- ko foreach: orderedSections -->
 
+                    <!-- Bannerlar -->
+                    <!-- ko if: key === 'banners' && $parent.salon().showBanners !== false && $parent.banners().length > 0 -->
+                    <div class="mb-4" id="section-banners">
+                        <!-- ko if: $parent.banners().length === 1 -->
+                        <div data-bind="with: $parent.banners()[0]">
+                            <!-- ko if: link -->
+                            <a data-bind="attr: { href: link }" target="_blank">
+                                <img data-bind="attr: { src: url, alt: title || 'Banner' }" class="w-100 rounded shadow-sm" style="max-height:300px;object-fit:cover;" />
+                            </a>
+                            <!-- /ko -->
+                            <!-- ko if: !link -->
+                            <img data-bind="attr: { src: url, alt: title || 'Banner' }" class="w-100 rounded shadow-sm" style="max-height:300px;object-fit:cover;" />
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: $parent.banners().length > 1 -->
+                        <div id="bannerCarousel" class="carousel slide shadow-sm rounded overflow-hidden" data-bs-ride="carousel">
+                            <div class="carousel-indicators" data-bind="foreach: $parent.banners">
+                                <button type="button" data-bs-target="#bannerCarousel" data-bind="attr: { 'data-bs-slide-to': $index() }, css: { active: $index() === 0 }"></button>
+                            </div>
+                            <div class="carousel-inner" data-bind="foreach: $parent.banners">
+                                <div class="carousel-item" data-bind="css: { active: $index() === 0 }">
+                                    <!-- ko if: link -->
+                                    <a data-bind="attr: { href: link }" target="_blank">
+                                        <img data-bind="attr: { src: url, alt: title || 'Banner' }" class="d-block w-100" style="max-height:300px;object-fit:cover;" />
+                                    </a>
+                                    <!-- /ko -->
+                                    <!-- ko if: !link -->
+                                    <img data-bind="attr: { src: url, alt: title || 'Banner' }" class="d-block w-100" style="max-height:300px;object-fit:cover;" />
+                                    <!-- /ko -->
+                                    <!-- ko if: title -->
+                                    <div class="carousel-caption d-none d-md-block">
+                                        <h6 class="mb-0" data-bind="text: title"></h6>
+                                    </div>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+
                     <!-- Hizmetler -->
                     <!-- ko if: key === 'services' && $parent.salon().showServices !== false -->
                     <div class="mb-4" id="section-services">
@@ -277,6 +325,7 @@
             self.notFound = ko.observable(false);
             self.workingHours = ko.observableArray([]);
             self.membershipPlans = ko.observableArray([]);
+            self.banners = ko.observableArray([]);
             self.selectedPlanId = ko.observable(null);
 
             // Signup
@@ -292,7 +341,7 @@
             var signupModal;
 
             // Bolum siralama
-            var defaultOrder = ['services', 'memberships'];
+            var defaultOrder = ['banners', 'services', 'memberships'];
             self.orderedSections = ko.computed(function () {
                 var s = self.salon();
                 if (!s || !s.slug) return [];
@@ -321,6 +370,14 @@
                                 list.push({ day: dayNames[key], hours: h[key] || 'Kapali', isToday: idx === todayIdx });
                             });
                             self.workingHours(list);
+                        } catch (e) {}
+                    }
+
+                    // Bannerlari parse et
+                    if (data.bannersJson) {
+                        try {
+                            var banners = JSON.parse(data.bannersJson);
+                            self.banners(banners.filter(function (b) { return b.url; }));
                         } catch (e) {}
                     }
 
