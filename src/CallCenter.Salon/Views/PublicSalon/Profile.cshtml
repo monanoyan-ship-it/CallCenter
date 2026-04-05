@@ -22,6 +22,10 @@
         .btn-book:hover { background: #6a1b9a; color: #fff; }
         .social-link { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.15); color: #fff; text-decoration: none; transition: .15s; }
         .social-link:hover { background: rgba(255,255,255,.3); color: #fff; }
+        .plan-card { transition: .2s; border: 2px solid transparent; }
+        .plan-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12) !important; }
+        .plan-card.selected { border-color: #7b1fa2; }
+        .plan-badge { font-size: .65rem; padding: .2rem .5rem; }
     </style>
 </head>
 <body>
@@ -66,25 +70,75 @@
 
         <div class="container py-4">
             <div class="row g-4">
-                <!-- Sol: Hizmetler -->
+                <!-- Sol: Dinamik bolumler -->
                 <div class="col-lg-8">
-                    <h4 class="mb-3"><i class="bi bi-list-check me-2"></i>Hizmetlerimiz</h4>
-                    <!-- ko foreach: salon().serviceCategories -->
-                    <div class="mb-4">
-                        <h6 class="category-header mb-3" data-bind="style: { borderColor: color || '#7b1fa2' }">
-                            <i data-bind="attr: { 'class': iconClass || 'bi bi-tag' }, style: { color: color || '#7b1fa2' }" class="me-2"></i>
-                            <span data-bind="text: name"></span>
-                        </h6>
-                        <div class="row g-2">
-                            <!-- ko foreach: services -->
-                            <div class="col-sm-6">
-                                <div class="card border-0 shadow-sm service-card">
-                                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <div class="fw-semibold small" data-bind="text: name"></div>
-                                            <small class="text-muted" data-bind="text: durationMinutes + ' dk'"></small>
+                    <!-- ko foreach: orderedSections -->
+
+                    <!-- Hizmetler -->
+                    <!-- ko if: key === 'services' && $parent.salon().showServices !== false -->
+                    <div class="mb-4" id="section-services">
+                        <h4 class="mb-3"><i class="bi bi-list-check me-2"></i>Hizmetlerimiz</h4>
+                        <!-- ko foreach: $parent.salon().serviceCategories -->
+                        <div class="mb-4">
+                            <h6 class="category-header mb-3" data-bind="style: { borderColor: color || '#7b1fa2' }">
+                                <i data-bind="attr: { 'class': iconClass || 'bi bi-tag' }, style: { color: color || '#7b1fa2' }" class="me-2"></i>
+                                <span data-bind="text: name"></span>
+                            </h6>
+                            <div class="row g-2">
+                                <!-- ko foreach: services -->
+                                <div class="col-sm-6">
+                                    <div class="card border-0 shadow-sm service-card">
+                                        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="fw-semibold small" data-bind="text: name"></div>
+                                                <small class="text-muted" data-bind="text: durationMinutes + ' dk'"></small>
+                                            </div>
+                                            <span class="fw-bold text-primary" data-bind="text: price.toLocaleString('tr-TR') + ' TL'"></span>
                                         </div>
-                                        <span class="fw-bold text-primary" data-bind="text: price.toLocaleString('tr-TR') + ' TL'"></span>
+                                    </div>
+                                </div>
+                                <!-- /ko -->
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+
+                    <!-- Uyelik Planlari -->
+                    <!-- ko if: key === 'memberships' && $parent.salon().showMemberships !== false -->
+                    <div class="mb-4" id="section-memberships">
+                        <h4 class="mb-3"><i class="bi bi-award me-2"></i>Uyelik Planlari</h4>
+                        <!-- ko if: $parent.membershipPlans().length === 0 -->
+                        <p class="text-muted small">Henuz uyelik plani tanimlanmamis.</p>
+                        <!-- /ko -->
+                        <div class="row g-3">
+                            <!-- ko foreach: $parent.membershipPlans -->
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card border-0 shadow-sm plan-card h-100" data-bind="css: { selected: $parent.selectedPlanId() === id }, click: function() { $parent.selectedPlanId(id); }">
+                                    <div class="card-body text-center py-4">
+                                        <i class="fs-1 d-block mb-2" data-bind="attr: { 'class': iconClass || 'bi bi-star' }, style: { color: color || '#7b1fa2' }"></i>
+                                        <h5 class="fw-bold" data-bind="text: name"></h5>
+                                        <!-- ko if: description -->
+                                        <p class="text-muted small mb-3" data-bind="text: description"></p>
+                                        <!-- /ko -->
+                                        <div class="mb-3">
+                                            <span class="fs-3 fw-bold" data-bind="text: monthlyPrice.toLocaleString('tr-TR')"></span>
+                                            <span class="text-muted">TL/ay</span>
+                                        </div>
+                                        <div class="d-flex flex-column gap-1">
+                                            <!-- ko if: discountPercent > 0 -->
+                                            <span class="plan-badge badge bg-success-subtle text-success">%<span data-bind="text: discountPercent"></span> indirim</span>
+                                            <!-- /ko -->
+                                            <!-- ko if: freeSessionsPerMonth > 0 -->
+                                            <span class="plan-badge badge bg-info-subtle text-info"><span data-bind="text: freeSessionsPerMonth"></span> ucretsiz seans/ay</span>
+                                            <!-- /ko -->
+                                            <!-- ko if: priorityBooking -->
+                                            <span class="plan-badge badge bg-warning-subtle text-warning">Oncelikli randevu</span>
+                                            <!-- /ko -->
+                                        </div>
+                                        <button class="btn btn-book btn-sm mt-3 px-4" data-bind="click: function() { $parents[1].openSignup(id, name); }">
+                                            <i class="bi bi-person-plus me-1"></i>Uye Ol
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -92,16 +146,21 @@
                         </div>
                     </div>
                     <!-- /ko -->
+
+                    <!-- /ko -->
                 </div>
 
                 <!-- Sag: Bilgiler + Randevu -->
                 <div class="col-lg-4">
+                    <!-- Randevu butonu -->
+                    <!-- ko if: salon().showBooking !== false -->
                     <a class="btn btn-book w-100 py-3 mb-3 fs-5" data-bind="attr: { href: '/salon/' + salon().slug + '/book' }">
                         <i class="bi bi-calendar-check me-2"></i>Online Randevu Al
                     </a>
+                    <!-- /ko -->
 
                     <!-- Calisma Saatleri -->
-                    <!-- ko if: workingHours().length > 0 -->
+                    <!-- ko if: salon().showHours !== false && workingHours().length > 0 -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-white fw-semibold small"><i class="bi bi-clock me-2"></i>Calisma Saatleri</div>
                         <div class="card-body p-0">
@@ -118,7 +177,7 @@
                     <!-- /ko -->
 
                     <!-- Adres -->
-                    <!-- ko if: salon().address -->
+                    <!-- ko if: salon().showContact !== false && salon().address -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-white fw-semibold small"><i class="bi bi-geo-alt me-2"></i>Adres</div>
                         <div class="card-body small" data-bind="text: salon().address"></div>
@@ -126,6 +185,7 @@
                     <!-- /ko -->
 
                     <!-- Iletisim -->
+                    <!-- ko if: salon().showContact !== false -->
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white fw-semibold small"><i class="bi bi-telephone me-2"></i>Iletisim</div>
                         <div class="card-body small">
@@ -140,6 +200,7 @@
                             <!-- /ko -->
                         </div>
                     </div>
+                    <!-- /ko -->
                 </div>
             </div>
         </div>
@@ -162,6 +223,40 @@
         <!-- /ko -->
     </div>
 
+    <!-- Uyelik Basvuru Modali -->
+    <div class="modal fade" id="signupModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header py-2" style="background: linear-gradient(135deg, #2d1b3d 0%, #4a1a6b 100%); color: #fff;">
+                    <h6 class="modal-title"><i class="bi bi-person-plus me-2"></i>Uye Ol</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="signup-vm">
+                    <div class="text-center mb-3">
+                        <span class="badge bg-purple text-white px-3 py-2" style="background:#7b1fa2;" data-bind="text: signupPlanName"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Ad Soyad *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: signupForm.fullName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Telefon *</label>
+                        <input type="tel" class="form-control form-control-sm" placeholder="05XX XXX XX XX" data-bind="value: signupForm.phone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">E-posta</label>
+                        <input type="email" class="form-control form-control-sm" data-bind="value: signupForm.email" />
+                    </div>
+                    <button class="btn btn-book w-100" data-bind="click: submitSignup, disable: isSubmitting">
+                        <span data-bind="visible: isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSubmitting()"></i>Basvuruyu Gonder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.min.js"></script>
     <script>
         var salonSlug = '@slug';
@@ -172,10 +267,36 @@
             self.loaded = ko.observable(false);
             self.notFound = ko.observable(false);
             self.workingHours = ko.observableArray([]);
+            self.membershipPlans = ko.observableArray([]);
+            self.selectedPlanId = ko.observable(null);
+
+            // Signup
+            self.signupPlanId = ko.observable(null);
+            self.signupPlanName = ko.observable('');
+            self.isSubmitting = ko.observable(false);
+            self.signupForm = {
+                fullName: ko.observable(''),
+                phone: ko.observable(''),
+                email: ko.observable('')
+            };
+
+            var signupModal;
+
+            // Bolum siralama
+            var defaultOrder = ['services', 'memberships'];
+            self.orderedSections = ko.computed(function () {
+                var s = self.salon();
+                if (!s || !s.slug) return [];
+                var order = defaultOrder;
+                if (s.sectionOrderJson) {
+                    try { order = JSON.parse(s.sectionOrderJson); } catch (e) {}
+                }
+                return order.map(function (key) { return { key: key }; });
+            });
 
             var dayNames = { mon: 'Pazartesi', tue: 'Sali', wed: 'Carsamba', thu: 'Persembe', fri: 'Cuma', sat: 'Cumartesi', sun: 'Pazar' };
             var dayOrder = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-            var todayIdx = (new Date().getDay() + 6) % 7; // 0=Mon
+            var todayIdx = (new Date().getDay() + 6) % 7;
 
             fetch('/proxy/salon/' + salonSlug)
                 .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
@@ -193,9 +314,56 @@
                             self.workingHours(list);
                         } catch (e) {}
                     }
+
+                    // Uyelik planlarini yukle
+                    if (data.showMemberships !== false) {
+                        fetch('/proxy/salon/' + salonSlug + '/memberships')
+                            .then(function (r) { return r.ok ? r.json() : []; })
+                            .then(function (plans) { self.membershipPlans(plans); });
+                    }
+
                     self.loaded(true);
                 })
                 .catch(function () { self.notFound(true); });
+
+            self.openSignup = function (planId, planName) {
+                self.signupPlanId(planId);
+                self.signupPlanName(planName);
+                self.signupForm.fullName('');
+                self.signupForm.phone('');
+                self.signupForm.email('');
+                if (!signupModal) signupModal = new bootstrap.Modal(document.getElementById('signupModal'));
+                signupModal.show();
+            };
+
+            self.submitSignup = function () {
+                var name = self.signupForm.fullName();
+                var phone = self.signupForm.phone();
+                if (!name || !phone) { alert('Ad ve telefon zorunludur.'); return; }
+
+                self.isSubmitting(true);
+                fetch('/proxy/salon/' + salonSlug + '/membership-signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        planId: self.signupPlanId(),
+                        fullName: name,
+                        phone: phone,
+                        email: self.signupForm.email() || null
+                    })
+                })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                .then(function (res) {
+                    self.isSubmitting(false);
+                    if (res.ok && res.data.success) {
+                        signupModal.hide();
+                        alert(res.data.message || 'Uyelik basvurunuz alindi!');
+                    } else {
+                        alert(res.data || 'Bir hata olustu.');
+                    }
+                })
+                .catch(function () { self.isSubmitting(false); alert('Baglanti hatasi.'); });
+            };
         }
 
         ko.applyBindings(new PublicSalonViewModel(), document.getElementById('public-salon-vm'));
