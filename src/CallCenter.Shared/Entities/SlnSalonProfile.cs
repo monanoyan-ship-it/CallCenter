@@ -42,6 +42,11 @@ public class SlnSalonProfile
     /// <summary>Bolum siralamasi JSON (orn: ["services","memberships","booking","hours","contact"])</summary>
     public string? SectionOrderJson { get; set; }
 
+    /// <summary>Banner gorselleri JSON (orn: [{"url":"...","title":"...","link":"..."}])</summary>
+    public string? BannersJson { get; set; }
+    /// <summary>Banner bolumunu goster</summary>
+    public bool ShowBanners { get; set; } = true;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 }

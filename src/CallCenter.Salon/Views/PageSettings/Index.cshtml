@@ -50,6 +50,46 @@
             </div>
         </div>
 
+        <!-- Banner Gorselleri -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 small"><i class="bi bi-images me-1"></i>Reklam Gorselleri (Banner)</h6>
+                <button class="btn btn-outline-primary btn-sm py-0" data-bind="click: addBanner">
+                    <i class="bi bi-plus-lg me-1"></i>Ekle
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- ko if: banners().length === 0 -->
+                <p class="text-muted small text-center mb-0">Henuz gorsel eklenmemis. Public sayfanizda banner bolumu gosterilir.</p>
+                <!-- /ko -->
+                <div data-bind="foreach: banners">
+                    <div class="d-flex align-items-center gap-2 mb-2 p-2 border rounded">
+                        <!-- ko if: url -->
+                        <img data-bind="attr: { src: url }" style="width:80px;height:45px;object-fit:cover;border-radius:4px;" />
+                        <!-- /ko -->
+                        <!-- ko if: !url -->
+                        <div style="width:80px;height:45px;background:#f0f0f0;border-radius:4px;" class="d-flex align-items-center justify-content-center">
+                            <i class="bi bi-image text-muted"></i>
+                        </div>
+                        <!-- /ko -->
+                        <div class="flex-fill">
+                            <input type="text" class="form-control form-control-sm mb-1" placeholder="Baslik (opsiyonel)" data-bind="value: title" />
+                            <input type="text" class="form-control form-control-sm" placeholder="Link (opsiyonel)" data-bind="value: link" />
+                        </div>
+                        <div class="d-flex flex-column gap-1">
+                            <label class="btn btn-outline-secondary btn-sm py-0 px-1 mb-0" title="Gorsel Sec">
+                                <i class="bi bi-upload"></i>
+                                <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: function(d,e) { $parent.uploadBanner($index(), e); } }" />
+                            </label>
+                            <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Sil" data-bind="click: function() { $parent.removeBanner($index()); }">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Kaydet -->
         <button class="btn btn-primary w-100" data-bind="click: save, disable: isSaving">
             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>

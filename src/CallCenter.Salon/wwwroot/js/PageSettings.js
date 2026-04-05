@@ -5,8 +5,10 @@ function PageSettingsViewModel() {
     self.profileExists = ko.observable(false);
     self.slug = ko.observable('');
     self.isPublished = ko.observable(false);
+    self.banners = ko.observableArray([]);
 
     var allSections = [
+        { key: 'banners', label: 'Reklam Gorselleri', icon: 'bi bi-images', field: 'showBanners' },
         { key: 'services', label: 'Hizmetler', icon: 'bi bi-list-check', field: 'showServices' },
         { key: 'memberships', label: 'Uyelik Planlari', icon: 'bi bi-award', field: 'showMemberships' },
         { key: 'booking', label: 'Online Randevu', icon: 'bi bi-calendar-check', field: 'showBooking' },
@@ -29,6 +31,16 @@ function PageSettingsViewModel() {
             self.slug(data.slug || '');
             self.isPublished(data.isPublished || false);
 
+            // Bannerlar
+            if (data.bannersJson) {
+                try {
+                    var b = JSON.parse(data.bannersJson);
+                    self.banners(b.map(function (item) {
+                        return { url: ko.observable(item.url || ''), title: ko.observable(item.title || ''), link: ko.observable(item.link || '') };
+                    }));
+                } catch (e) {}
+            }
+
             // Siralama
             var order = null;
             if (data.sectionOrderJson) {
@@ -37,12 +49,10 @@ function PageSettingsViewModel() {
 
             var ordered = [];
             if (order && Array.isArray(order)) {
-                // Kayitli sirada ekle
                 order.forEach(function (key) {
                     var sec = allSections.find(function (s) { return s.key === key; });
                     if (sec) ordered.push(sec.key);
                 });
-                // Kayitli sirada olmayanlari sona ekle
                 allSections.forEach(function (sec) {
                     if (ordered.indexOf(sec.key) < 0) ordered.push(sec.key);
                 });
@@ -77,7 +87,6 @@ function PageSettingsViewModel() {
                             el.querySelectorAll('.list-group-item').forEach(function (item) {
                                 newOrder.push(item.getAttribute('data-key'));
                             });
-                            // KO array'i guncelle
                             var currentItems = self.sections();
                             var reordered = newOrder.map(function (key) {
                                 return currentItems.find(function (s) { return s.key === key; });
@@ -93,15 +102,55 @@ function PageSettingsViewModel() {
         });
     };
 
+    // ═══ Banner Yonetimi ═══
+    self.addBanner = function () {
+        self.banners.push({ url: ko.observable(''), title: ko.observable(''), link: ko.observable('') });
+    };
+
+    self.removeBanner = function (index) {
+        self.banners.splice(index, 1);
+    };
+
+    self.uploadBanner = function (index, event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { toastr.warning('Dosya 5 MB dan buyuk olamaz.'); return; }
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        toastr.info('Yukleniyor...');
+        $.ajax({
+            url: '/proxy/sln-profile/upload-image?type=banner',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function (result) {
+            self.banners()[index].url(result.url);
+            toastr.success('Gorsel yuklendi.');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON || 'Yukleme hatasi.');
+        });
+    };
+
+    // ═══ Kaydet ═══
     self.save = function () {
         var sectionOrder = self.sections().map(function (s) { return s.key; });
+
+        var bannersData = self.banners().map(function (b) {
+            return { url: b.url(), title: b.title(), link: b.link() };
+        }).filter(function (b) { return b.url; });
+
         var payload = {
             showServices: true,
             showMemberships: true,
             showBooking: true,
             showHours: true,
             showContact: true,
-            sectionOrderJson: JSON.stringify(sectionOrder)
+            showBanners: true,
+            sectionOrderJson: JSON.stringify(sectionOrder),
+            bannersJson: JSON.stringify(bannersData)
         };
 
         self.sections().forEach(function (s) {

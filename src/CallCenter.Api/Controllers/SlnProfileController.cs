@@ -61,7 +61,9 @@ public class SlnProfileController : ControllerBase
             ShowBooking = profile.ShowBooking,
             ShowHours = profile.ShowHours,
             ShowContact = profile.ShowContact,
-            SectionOrderJson = profile.SectionOrderJson
+            SectionOrderJson = profile.SectionOrderJson,
+            ShowBanners = profile.ShowBanners,
+            BannersJson = profile.BannersJson
         });
     }
 
@@ -118,7 +120,9 @@ public class SlnProfileController : ControllerBase
         profile.ShowBooking = dto.ShowBooking;
         profile.ShowHours = dto.ShowHours;
         profile.ShowContact = dto.ShowContact;
+        profile.ShowBanners = dto.ShowBanners;
         profile.SectionOrderJson = dto.SectionOrderJson;
+        profile.BannersJson = dto.BannersJson;
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();

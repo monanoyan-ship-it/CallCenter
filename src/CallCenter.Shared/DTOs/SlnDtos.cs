@@ -328,6 +328,8 @@ public class SlnSalonProfileDto
     public bool ShowHours { get; set; } = true;
     public bool ShowContact { get; set; } = true;
     public string? SectionOrderJson { get; set; }
+    public bool ShowBanners { get; set; } = true;
+    public string? BannersJson { get; set; }
     public List<SlnServiceCategoryDto> ServiceCategories { get; set; } = [];
 }
 
@@ -355,7 +357,9 @@ public class SlnPageSettingsDto
     public bool ShowBooking { get; set; } = true;
     public bool ShowHours { get; set; } = true;
     public bool ShowContact { get; set; } = true;
+    public bool ShowBanners { get; set; } = true;
     public string? SectionOrderJson { get; set; }
+    public string? BannersJson { get; set; }
 }
 
 // ═══ SlnNoShowPolicy ═══

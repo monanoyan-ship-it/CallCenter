@@ -59,6 +59,8 @@ public class SlnPublicController : ControllerBase
             ShowHours = profile.ShowHours,
             ShowContact = profile.ShowContact,
             SectionOrderJson = profile.SectionOrderJson,
+            ShowBanners = profile.ShowBanners,
+            BannersJson = profile.BannersJson,
             ServiceCategories = categories.Select(c => new SlnServiceCategoryDto
             {
                 Id = c.Id,
