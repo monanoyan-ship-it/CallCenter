@@ -27,6 +27,21 @@ public class SlnSalonProfile
     public string? WorkingHoursJson { get; set; }
 
     public bool IsPublished { get; set; }
+
+    // ─── Public Sayfa Ayarlari ───
+    /// <summary>Hizmetler bolumunu goster</summary>
+    public bool ShowServices { get; set; } = true;
+    /// <summary>Uyelik planlari bolumunu goster</summary>
+    public bool ShowMemberships { get; set; } = true;
+    /// <summary>Online randevu bolumunu goster</summary>
+    public bool ShowBooking { get; set; } = true;
+    /// <summary>Calisma saatleri bolumunu goster</summary>
+    public bool ShowHours { get; set; } = true;
+    /// <summary>Iletisim bolumunu goster</summary>
+    public bool ShowContact { get; set; } = true;
+    /// <summary>Bolum siralamasi JSON (orn: ["services","memberships","booking","hours","contact"])</summary>
+    public string? SectionOrderJson { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 }
