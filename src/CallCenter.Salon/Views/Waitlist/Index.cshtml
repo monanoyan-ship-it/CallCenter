@@ -3,79 +3,183 @@
 }
 
 <div id="waitlist-vm">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="input-group" style="max-width: 320px;">
-            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Musteri veya hizmet ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+    <!-- Sekmeler -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#tab-appointments">
+                <i class="bi bi-calendar-check me-1"></i>Bugunun Randevulari
+                <span class="badge bg-primary ms-1" data-bind="text: todayAppointments().length, visible: todayAppointments().length > 0"></span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab-waitlist">
+                <i class="bi bi-clock-history me-1"></i>Bekleme Listesi
+                <span class="badge bg-warning text-dark ms-1" data-bind="text: waitlistEntries().length, visible: waitlistEntries().length > 0"></span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- ═══ TAB 1: Bugunun Randevulari ═══ -->
+        <div class="tab-pane fade show active" id="tab-appointments">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <small class="text-muted">
+                        <i class="bi bi-calendar3 me-1"></i><span data-bind="text: todayLabel"></span>
+                        &mdash; <strong data-bind="text: todayAppointments().length"></strong> randevu
+                    </small>
+                    <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: loadTodayAppointments">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="text-center py-3" data-bind="visible: isLoadingAppts">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
+                    <!-- ko if: !isLoadingAppts() && todayAppointments().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-x" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Bugun icin randevu yok</p>
+                    </div>
+                    <!-- /ko -->
+                    <div class="table-responsive" data-bind="visible: !isLoadingAppts() && todayAppointments().length > 0">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:60px;">Saat</th>
+                                    <th>Musteri</th>
+                                    <th>Hizmetler</th>
+                                    <th>Personel</th>
+                                    <th class="text-center" style="width:60px;">Sure</th>
+                                    <th style="width:100px;">Durum</th>
+                                    <th style="width:140px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: todayAppointments">
+                                <tr data-bind="css: { 'table-success': statusId === 3, 'table-secondary': statusId === 4 || statusId === 5 }">
+                                    <td class="fw-semibold" data-bind="text: startTimeFormatted"></td>
+                                    <td class="small" data-bind="text: clientName"></td>
+                                    <td class="small" data-bind="text: serviceNamesText"></td>
+                                    <td class="small" data-bind="text: personnelName"></td>
+                                    <td class="text-center small" data-bind="text: durationMinutes ? durationMinutes + ' dk' : '-'"></td>
+                                    <td>
+                                        <span class="badge" data-bind="text: statusText, css: statusCss"></span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- Planlanmis/Onaylandi -> Gerceklesti -->
+                                            <!-- ko if: statusId === 1 || statusId === 2 -->
+                                            <button class="btn btn-outline-success py-0 px-1" title="Gerceklesti"
+                                                data-bind="click: $parent.apptComplete">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary py-0 px-1" title="Gelmedi"
+                                                data-bind="click: $parent.apptNoShow">
+                                                <i class="bi bi-person-x"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger py-0 px-1" title="Iptal"
+                                                data-bind="click: $parent.apptCancel">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                            <!-- Tamamlandi -> geri al -->
+                                            <!-- ko if: statusId === 3 -->
+                                            <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>Tamam</span>
+                                            <!-- /ko -->
+                                            <!-- Iptal/Gelmedi bilgi -->
+                                            <!-- ko if: statusId === 4 -->
+                                            <span class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i>Iptal</span>
+                                            <!-- /ko -->
+                                            <!-- ko if: statusId === 5 -->
+                                            <span class="text-secondary small"><i class="bi bi-person-x-fill me-1"></i>Gelmedi</span>
+                                            <!-- /ko -->
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Kayit
-        </button>
+
+        <!-- ═══ TAB 2: Bekleme Listesi ═══ -->
+        <div class="tab-pane fade" id="tab-waitlist">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="input-group" style="max-width: 320px;">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Musteri veya hizmet ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                </div>
+                <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+                    <i class="bi bi-plus-lg me-1"></i>Yeni Kayit
+                </button>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Musteri</th>
+                                    <th>Hizmet</th>
+                                    <th>Tercih Edilen Personel</th>
+                                    <th>Tarih</th>
+                                    <th>Saat Dilimi</th>
+                                    <th>Durum</th>
+                                    <th style="width:150px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: filteredEntries">
+                                <tr>
+                                    <td class="fw-semibold small" data-bind="text: clientName"></td>
+                                    <td class="small" data-bind="text: serviceName"></td>
+                                    <td class="small" data-bind="text: preferredPersonnelName || '-'"></td>
+                                    <td class="small" data-bind="text: new Date(preferredDate).toLocaleDateString('tr-TR')"></td>
+                                    <td class="small" data-bind="text: preferredTimeSlot || '-'"></td>
+                                    <td class="small">
+                                        <span class="badge" data-bind="text: $parent.wlStatusText(statusId), css: $parent.wlStatusBadge(statusId)"></span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- ko if: statusId === 1 -->
+                                            <button class="btn btn-outline-info py-0 px-1" title="Bildir" data-bind="click: $parent.notifyEntry">
+                                                <i class="bi bi-bell"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                            <!-- ko if: statusId <= 2 -->
+                                            <button class="btn btn-outline-success py-0 px-1" title="Randevu Alindi" data-bind="click: $parent.appointmentMade">
+                                                <i class="bi bi-calendar-check"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                            <!-- ko if: statusId === 3 -->
+                                            <button class="btn btn-outline-primary py-0 px-1" title="Gerceklesti" data-bind="click: $parent.markCompleted">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                            <!-- ko if: statusId !== 5 && statusId !== 4 -->
+                                            <button class="btn btn-outline-danger py-0 px-1" title="Sil" data-bind="click: $parent.removeEntry">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            <!-- /ko -->
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: filteredEntries().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-clock-history" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Bekleme listesinde kayit yok</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Musteri</th>
-                            <th>Hizmet</th>
-                            <th>Tercih Edilen Personel</th>
-                            <th>Tarih</th>
-                            <th>Saat Dilimi</th>
-                            <th>Durum</th>
-                            <th style="width:150px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody data-bind="foreach: filteredEntries">
-                        <tr>
-                            <td class="fw-semibold small" data-bind="text: clientName"></td>
-                            <td class="small" data-bind="text: serviceName"></td>
-                            <td class="small" data-bind="text: preferredPersonnelName || '-'"></td>
-                            <td class="small" data-bind="text: new Date(preferredDate).toLocaleDateString('tr-TR')"></td>
-                            <td class="small" data-bind="text: preferredTimeSlot || '-'"></td>
-                            <td class="small">
-                                <span class="badge" data-bind="text: $parent.statusText(statusId), css: $parent.statusBadge(statusId)"></span>
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <!-- ko if: statusId === 1 -->
-                                    <button class="btn btn-outline-info" title="Bildir" data-bind="click: $parent.notifyEntry">
-                                        <i class="bi bi-bell"></i>
-                                    </button>
-                                    <!-- /ko -->
-                                    <!-- ko if: statusId <= 2 -->
-                                    <button class="btn btn-outline-success" title="Randevu Alindi" data-bind="click: $parent.appointmentMade">
-                                        <i class="bi bi-calendar-check"></i>
-                                    </button>
-                                    <!-- /ko -->
-                                    <!-- ko if: statusId === 3 -->
-                                    <button class="btn btn-outline-primary" title="Gerceklesti" data-bind="click: $parent.markCompleted">
-                                        <i class="bi bi-check-circle"></i>
-                                    </button>
-                                    <!-- /ko -->
-                                    <!-- ko if: statusId !== 5 -->
-                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.removeEntry">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                    <!-- /ko -->
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <!-- ko if: filteredEntries().length === 0 -->
-            <div class="text-center text-muted py-4">
-                <i class="bi bi-clock-history" style="font-size:2rem;"></i>
-                <p class="mt-2 small">Bekleme listesinde kayit yok</p>
-            </div>
-            <!-- /ko -->
-        </div>
-    </div>
-
-    <!-- Yeni Kayit Modal -->
+    <!-- Yeni Bekleme Kayit Modal -->
     <div class="modal fade" id="waitlistModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
