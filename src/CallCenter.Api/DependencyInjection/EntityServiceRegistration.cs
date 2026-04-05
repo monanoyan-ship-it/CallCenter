@@ -81,6 +81,9 @@ public static class EntityServiceRegistration
         services.AddScoped<ICrmQualityAnswerSubCriteriaSelectionEntityService, CrmQualityAnswerSubCriteriaSelectionEntityService>();
         services.AddScoped<ICrmQualityScoreThresholdEntityService, CrmQualityScoreThresholdEntityService>();
 
+        // Email Integration
+        services.AddScoped<ICustomerEmailIntegrationEntityService, CustomerEmailIntegrationEntityService>();
+
         // Integration & Webhook
         services.AddScoped<IIntegrationConnectionEntityService, IntegrationConnectionEntityService>();
         services.AddScoped<IWebhookSubscriptionEntityService, WebhookSubscriptionEntityService>();

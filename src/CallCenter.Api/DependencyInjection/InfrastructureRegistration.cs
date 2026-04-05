@@ -2,6 +2,7 @@ using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
 using CallCenter.Api.Services.CloudStorage;
 using CallCenter.Api.Services.Connectors;
+using CallCenter.Api.Services.Email;
 using CallCenter.Shared.Services;
 using Google.Cloud.TextToSpeech.V1;
 
@@ -21,6 +22,11 @@ public static class InfrastructureRegistration
         services.AddSingleton<OneDriveOAuthService>();
         services.AddSingleton<GoogleDriveOAuthService>();
         services.AddSingleton<YandexOAuthService>();
+
+        // Email OAuth & Send
+        services.AddSingleton<GmailOAuthService>();
+        services.AddSingleton<Office365OAuthService>();
+        services.AddScoped<IEmailSendService, MailKitEmailSendService>();
 
         // Scoped utilities
         services.AddScoped<TokenService>();

@@ -100,6 +100,9 @@ public static class FactoryRegistration
         // Salon — Waitlist (C3)
         services.AddScoped<ISlnWaitlistFactory, SlnWaitlistFactory>();
 
+        // Salon — E-posta Entegrasyonu
+        services.AddScoped<ISlnEmailIntegrationFactory, SlnEmailIntegrationFactory>();
+
         // Salon — E-posta Kampanyalari (C5)
         services.AddScoped<ISlnEmailCampaignFactory, SlnEmailCampaignFactory>();
 

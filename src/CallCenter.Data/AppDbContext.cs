@@ -149,6 +149,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnClientPackage> SlnClientPackages => Set<SlnClientPackage>();
     public DbSet<SlnPackageUsage> SlnPackageUsages => Set<SlnPackageUsage>();
 
+    // ─── Email Integration ───
+    public DbSet<CustomerEmailIntegration> CustomerEmailIntegrations => Set<CustomerEmailIntegration>();
+
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
