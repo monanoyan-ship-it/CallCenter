@@ -20,4 +20,10 @@ public class PublicSalonController : Controller
         ViewData["Slug"] = slug;
         return View();
     }
+
+    [HttpGet("kesfet")]
+    public IActionResult Discover()
+    {
+        return View();
+    }
 }

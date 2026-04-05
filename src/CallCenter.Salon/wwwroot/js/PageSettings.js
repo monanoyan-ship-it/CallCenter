@@ -12,7 +12,10 @@ function PageSettingsViewModel() {
         { key: 'services', label: 'Hizmetler', icon: 'bi bi-list-check', field: 'showServices' },
         { key: 'memberships', label: 'Uyelik Planlari', icon: 'bi bi-award', field: 'showMemberships' },
         { key: 'booking', label: 'Online Randevu', icon: 'bi bi-calendar-check', field: 'showBooking' },
+        { key: 'team', label: 'Ekibimiz', icon: 'bi bi-people', field: 'showTeam' },
+        { key: 'reviews', label: 'Musteri Yorumlari', icon: 'bi bi-chat-square-text', field: 'showReviews' },
         { key: 'hours', label: 'Calisma Saatleri', icon: 'bi bi-clock', field: 'showHours' },
+        { key: 'map', label: 'Harita', icon: 'bi bi-geo-alt', field: 'showMap' },
         { key: 'contact', label: 'Iletisim', icon: 'bi bi-telephone', field: 'showContact' }
     ];
 
@@ -149,6 +152,9 @@ function PageSettingsViewModel() {
             showHours: true,
             showContact: true,
             showBanners: true,
+            showTeam: true,
+            showReviews: true,
+            showMap: true,
             sectionOrderJson: JSON.stringify(sectionOrder),
             bannersJson: JSON.stringify(bannersData)
         };

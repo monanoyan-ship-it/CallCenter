@@ -63,7 +63,12 @@ public class SlnProfileController : ControllerBase
             ShowContact = profile.ShowContact,
             SectionOrderJson = profile.SectionOrderJson,
             ShowBanners = profile.ShowBanners,
-            BannersJson = profile.BannersJson
+            ShowTeam = profile.ShowTeam,
+            ShowReviews = profile.ShowReviews,
+            ShowMap = profile.ShowMap,
+            BannersJson = profile.BannersJson,
+            Latitude = profile.Latitude,
+            Longitude = profile.Longitude
         });
     }
 
@@ -121,6 +126,9 @@ public class SlnProfileController : ControllerBase
         profile.ShowHours = dto.ShowHours;
         profile.ShowContact = dto.ShowContact;
         profile.ShowBanners = dto.ShowBanners;
+        profile.ShowTeam = dto.ShowTeam;
+        profile.ShowReviews = dto.ShowReviews;
+        profile.ShowMap = dto.ShowMap;
         profile.SectionOrderJson = dto.SectionOrderJson;
         profile.BannersJson = dto.BannersJson;
         profile.UpdatedAt = DateTime.UtcNow;

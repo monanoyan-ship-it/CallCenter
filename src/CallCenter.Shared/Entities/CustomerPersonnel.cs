@@ -7,6 +7,8 @@ public class CustomerPersonnel
     public string Title { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public bool IsCustomerAdmin { get; set; } // Musteri yoneticisi — tum izinlere sahip, sadece system admin atayabilir
+    public string? PhotoUrl { get; set; }
+    public string? Specialty { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Her CustomerPersonnel bir User'a bağlı (login için)

@@ -28,7 +28,14 @@ public class SlnSalonProfile
 
     public bool IsPublished { get; set; }
 
+    // ─── Konum ───
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     // ─── Public Sayfa Ayarlari ───
+    public bool ShowTeam { get; set; } = true;
+    public bool ShowReviews { get; set; } = true;
+    public bool ShowMap { get; set; } = true;
     /// <summary>Hizmetler bolumunu goster</summary>
     public bool ShowServices { get; set; } = true;
     /// <summary>Uyelik planlari bolumunu goster</summary>

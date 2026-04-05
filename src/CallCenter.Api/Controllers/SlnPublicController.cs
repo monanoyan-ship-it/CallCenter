@@ -60,7 +60,12 @@ public class SlnPublicController : ControllerBase
             ShowContact = profile.ShowContact,
             SectionOrderJson = profile.SectionOrderJson,
             ShowBanners = profile.ShowBanners,
+            ShowTeam = profile.ShowTeam,
+            ShowReviews = profile.ShowReviews,
+            ShowMap = profile.ShowMap,
             BannersJson = profile.BannersJson,
+            Latitude = profile.Latitude,
+            Longitude = profile.Longitude,
             ServiceCategories = categories.Select(c => new SlnServiceCategoryDto
             {
                 Id = c.Id,
@@ -98,10 +103,64 @@ public class SlnPublicController : ControllerBase
                 p.City,
                 p.District,
                 p.LogoUrl,
-                p.Description
+                p.Description,
+                p.Latitude,
+                p.Longitude
             }).ToListAsync();
 
         return Ok(profiles);
+    }
+
+    /// <summary>Salonun onaylanmis yorumlarini getir</summary>
+    [HttpGet("{slug}/reviews")]
+    public async Task<ActionResult> GetReviews(string slug)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var reviews = await _db.SlnReviews
+            .Where(r => r.CustomerId == profile.CustomerId && r.StatusId == 2) // 2=Approved
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(20)
+            .Select(r => new
+            {
+                r.ClientName, r.Rating, r.Comment, r.SourceId, r.CreatedAt
+            })
+            .ToListAsync();
+
+        var stats = new
+        {
+            totalCount = reviews.Count,
+            averageRating = reviews.Count > 0 ? Math.Round(reviews.Average(r => r.Rating), 1) : 0
+        };
+
+        return Ok(new { reviews, stats });
+    }
+
+    /// <summary>Salonun ekibini getir (aktif personel)</summary>
+    [HttpGet("{slug}/team")]
+    public async Task<ActionResult> GetTeam(string slug)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var team = await _db.Set<CustomerPersonnel>()
+            .Where(p => p.CustomerId == profile.CustomerId && p.IsActive)
+            .Include(p => p.User)
+            .OrderBy(p => p.CustomerRoleId)
+            .Select(p => new
+            {
+                name = p.User.FullName,
+                title = p.Title,
+                specialty = p.Specialty,
+                photoUrl = p.PhotoUrl,
+                roleId = p.CustomerRoleId
+            })
+            .ToListAsync();
+
+        return Ok(team);
     }
 
     /// <summary>Salonun aktif uyelik planlarini getir</summary>
