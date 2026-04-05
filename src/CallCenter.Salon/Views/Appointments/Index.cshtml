@@ -235,8 +235,30 @@
                                                   event: { mousedown: function(){ $parent.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <a class="dropdown-item small py-1 px-2 text-primary fw-semibold" href="#"
+                                       data-bind="event: { mousedown: function() { $root.showNewClient(query()); } }">
+                                        <i class="bi bi-person-plus me-1"></i>Yeni musteri olustur
+                                    </a>
                                     <!-- /ko -->
+                                </div>
+                            </div>
+                            <!-- Yeni Musteri Inline Form -->
+                            <div class="border rounded p-2 mt-1 bg-light" data-bind="visible: newClientVisible" style="display:none;">
+                                <div class="row g-1">
+                                    <div class="col-5">
+                                        <input type="text" class="form-control form-control-sm" placeholder="Ad Soyad *" data-bind="value: newClientForm.fullName" />
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="tel" class="form-control form-control-sm" placeholder="Telefon *" data-bind="value: newClientForm.phone" />
+                                    </div>
+                                    <div class="col-3 d-flex gap-1">
+                                        <button class="btn btn-primary btn-sm py-0 flex-fill" data-bind="click: saveNewClient, disable: isCreatingClient">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: hideNewClient">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

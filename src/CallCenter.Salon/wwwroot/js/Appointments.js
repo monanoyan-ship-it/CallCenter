@@ -305,6 +305,51 @@ function AppointmentsViewModel() {
         });
     };
 
+    // ═══ Yeni Musteri Olusturma ═══
+    self.newClientVisible = ko.observable(false);
+    self.isCreatingClient = ko.observable(false);
+    self.newClientForm = {
+        fullName: ko.observable(''),
+        phone: ko.observable('')
+    };
+
+    self.showNewClient = function (queryText) {
+        self.newClientForm.fullName(queryText || '');
+        self.newClientForm.phone('');
+        self.newClientVisible(true);
+        self.clientAutocomplete.showDropdown(false);
+    };
+
+    self.hideNewClient = function () {
+        self.newClientVisible(false);
+    };
+
+    self.saveNewClient = function () {
+        var name = self.newClientForm.fullName();
+        var phone = self.newClientForm.phone();
+        if (!name || !phone) { toastr.warning('Ad ve telefon zorunludur'); return; }
+
+        self.isCreatingClient(true);
+        $.ajax({
+            url: '/proxy/sln-clients',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ fullName: name, phone: phone })
+        }).done(function (newClient) {
+            // Listeye ekle ve sec
+            var list = self.clientList();
+            list.push(newClient);
+            self.clientList(list);
+            self.form.slnClientId(newClient.id);
+            self.clientAutocomplete.query(newClient.fullName);
+            self.clientAutocomplete.selectedName(newClient.fullName);
+            self.newClientVisible(false);
+            toastr.success('Musteri olusturuldu ve secildi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Musteri olusturulamadi');
+        }).always(function () { self.isCreatingClient(false); });
+    };
+
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
         self.loadLookups();
