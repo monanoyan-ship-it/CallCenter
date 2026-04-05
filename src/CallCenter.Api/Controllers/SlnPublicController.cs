@@ -53,6 +53,12 @@ public class SlnPublicController : ControllerBase
             CoverImageUrl = profile.CoverImageUrl,
             WorkingHoursJson = profile.WorkingHoursJson,
             IsPublished = profile.IsPublished,
+            ShowServices = profile.ShowServices,
+            ShowMemberships = profile.ShowMemberships,
+            ShowBooking = profile.ShowBooking,
+            ShowHours = profile.ShowHours,
+            ShowContact = profile.ShowContact,
+            SectionOrderJson = profile.SectionOrderJson,
             ServiceCategories = categories.Select(c => new SlnServiceCategoryDto
             {
                 Id = c.Id,
@@ -94,6 +100,83 @@ public class SlnPublicController : ControllerBase
             }).ToListAsync();
 
         return Ok(profiles);
+    }
+
+    /// <summary>Salonun aktif uyelik planlarini getir</summary>
+    [HttpGet("{slug}/memberships")]
+    public async Task<ActionResult> GetMembershipPlans(string slug)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var plans = await _db.SlnMembershipPlans
+            .Where(p => p.CustomerId == profile.CustomerId && p.IsActive)
+            .OrderBy(p => p.SortOrder)
+            .Select(p => new
+            {
+                p.Id, p.Name, p.Description, p.IconClass, p.Color,
+                p.MonthlyPrice, p.DiscountPercent, p.FreeSessionsPerMonth, p.PriorityBooking
+            })
+            .ToListAsync();
+
+        return Ok(plans);
+    }
+
+    /// <summary>Online uyelik basvurusu (auth gerekmez)</summary>
+    [HttpPost("{slug}/membership-signup")]
+    public async Task<ActionResult> MembershipSignup(string slug, [FromBody] SlnMembershipSignupDto dto)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var plan = await _db.SlnMembershipPlans
+            .FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == profile.CustomerId && p.IsActive);
+        if (plan == null) return BadRequest("Uyelik plani bulunamadi.");
+
+        if (string.IsNullOrWhiteSpace(dto.FullName) || string.IsNullOrWhiteSpace(dto.Phone))
+            return BadRequest("Ad ve telefon zorunludur.");
+
+        // Musteri bul veya olustur
+        var client = await _db.SlnClients
+            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == profile.CustomerId);
+
+        if (client == null)
+        {
+            client = new SlnClient
+            {
+                CustomerId = profile.CustomerId,
+                FullName = dto.FullName,
+                Phone = dto.Phone,
+                Email = dto.Email
+            };
+            _db.SlnClients.Add(client);
+            await _db.SaveChangesAsync();
+        }
+        else
+        {
+            // Mevcut musterinin zaten aktif uyeligi var mi?
+            var existing = await _db.SlnClientMemberships
+                .AnyAsync(m => m.SlnClientId == client.Id && m.CustomerId == profile.CustomerId && m.StatusId == 1);
+            if (existing)
+                return BadRequest("Bu telefon numarasina ait zaten aktif bir uyelik bulunmaktadir.");
+        }
+
+        var membership = new SlnClientMembership
+        {
+            CustomerId = profile.CustomerId,
+            PlanId = plan.Id,
+            SlnClientId = client.Id,
+            StartDate = DateTime.UtcNow,
+            NextPaymentDate = DateTime.UtcNow.AddMonths(1),
+            StatusId = 1
+        };
+
+        _db.SlnClientMemberships.Add(membership);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Uyelik basvurunuz alinmistir. Salonumuz sizinle iletisime gececektir." });
     }
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>

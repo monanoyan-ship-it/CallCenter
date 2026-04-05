@@ -294,6 +294,14 @@ public class SlnOnlineBookingDto
     public string? Notes { get; set; }
 }
 
+public class SlnMembershipSignupDto
+{
+    public int PlanId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
+}
+
 // ═══ SlnSalonProfile ═══
 public class SlnSalonProfileDto
 {
@@ -314,6 +322,12 @@ public class SlnSalonProfileDto
     public string? CoverImageUrl { get; set; }
     public string? WorkingHoursJson { get; set; }
     public bool IsPublished { get; set; }
+    public bool ShowServices { get; set; } = true;
+    public bool ShowMemberships { get; set; } = true;
+    public bool ShowBooking { get; set; } = true;
+    public bool ShowHours { get; set; } = true;
+    public bool ShowContact { get; set; } = true;
+    public string? SectionOrderJson { get; set; }
     public List<SlnServiceCategoryDto> ServiceCategories { get; set; } = [];
 }
 
