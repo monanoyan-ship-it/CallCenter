@@ -242,7 +242,8 @@
       "Bash(ZONE_ID=\"0d41772796a9803e854b5ccc87b41c9e\")",
       "Bash(mv Dockerfile.api.bak Dockerfile)",
       "Bash(cp src/CallCenter.Management/Dockerfile Dockerfile)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "WebFetch(domain:www.kolayrandevu.com)"
     ]
   }
 }

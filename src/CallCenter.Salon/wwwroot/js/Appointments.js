@@ -197,6 +197,15 @@ function AppointmentsViewModel() {
         });
     };
 
+    // ═══ Hizmet Toggle (tikla sec/kaldir) ═══
+    self.toggleService = function (serviceId) {
+        var ids = self.form.serviceIds().slice();
+        var idx = ids.indexOf(serviceId);
+        if (idx >= 0) ids.splice(idx, 1);
+        else ids.push(serviceId);
+        self.form.serviceIds(ids);
+    };
+
     // dateRanges degisince otomatik yukle
     self.dateRanges.subscribe(function () { self.loadAppointments(); });
 

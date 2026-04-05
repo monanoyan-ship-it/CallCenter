@@ -48,7 +48,7 @@
         var custOpen = ctrl is "Customers" or "Users" or "Organizations" or "Personnel";
         var modOpen = ctrl is "Modules";
         // SIP & Cagri Yonetimi kaldirildi — musteri tarafinda yonetiliyor
-        var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig";
+        var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig" or "EmailTemplates";
         var finOpen = ctrl is "ServiceManagement" or "BillingReport";
         var kvkkOpen = ctrl is "Kvkk";
         var advOpen = ctrl is "Licensing" or "Notifications";
@@ -92,6 +92,7 @@
                 <a class="nav-link @(ctrl == "Translations" ? "active" : "")" href="/Translations"><i class="bi bi-translate me-2"></i>Dil Yonetimi</a>
                 <a class="nav-link @(ctrl == "AuditLogs" ? "active" : "")" href="/AuditLogs"><i class="bi bi-journal-text me-2"></i>Denetim Kayitlari</a>
                 <a class="nav-link @(ctrl == "StorageConfig" ? "active" : "")" href="/StorageConfig"><i class="bi bi-cloud me-2"></i>Depolama</a>
+                <a class="nav-link @(ctrl == "EmailTemplates" ? "active" : "")" href="/EmailTemplates"><i class="bi bi-envelope-paper me-2"></i>Email Taslaklari</a>
             </div>
 
             <!-- Finans -->

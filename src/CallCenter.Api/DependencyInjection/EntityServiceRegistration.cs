@@ -83,6 +83,7 @@ public static class EntityServiceRegistration
 
         // Email Integration
         services.AddScoped<ICustomerEmailIntegrationEntityService, CustomerEmailIntegrationEntityService>();
+        services.AddScoped<IPlatformEmailTemplateEntityService, PlatformEmailTemplateEntityService>();
 
         // Integration & Webhook
         services.AddScoped<IIntegrationConnectionEntityService, IntegrationConnectionEntityService>();

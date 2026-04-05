@@ -98,13 +98,10 @@ function ProductsViewModel() {
     };
 
     // Autocomplete'de secilmemis ama yazilmis isim varsa otomatik olustur
-    function ensureLookup(autocomplete, listObservable, createUrl, name) {
+    function ensureLookup(autocomplete, formField, listObservable, createUrl) {
         return new Promise(function (resolve) {
-            var id = autocomplete.query ? null : null;
             // ID zaten secilmisse direkt don
-            var selectedId = listObservable === self.categories
-                ? self.form.categoryId()
-                : self.form.brandId();
+            var selectedId = formField();
             if (selectedId) { resolve(selectedId); return; }
 
             // Yazilan text var mi?
@@ -134,12 +131,25 @@ function ProductsViewModel() {
     self.save = function () {
         if (!self.form.name()) { toastr.warning('Urun adi zorunludur'); return; }
 
+        // Kategori zorunlu - secilmemis ve yazilmamissa uyar
+        var catText = (self.categoryAutocomplete.query() || '').trim();
+        if (!self.form.categoryId() && !catText) {
+            toastr.warning('Kategori zorunludur');
+            return;
+        }
+
         self.isSaving(true);
 
         Promise.all([
-            ensureLookup(self.categoryAutocomplete, self.categories, '/proxy/sln-products/categories'),
-            ensureLookup(self.brandAutocomplete, self.brands, '/proxy/sln-products/brands')
+            ensureLookup(self.categoryAutocomplete, self.form.categoryId, self.categories, '/proxy/sln-products/categories'),
+            ensureLookup(self.brandAutocomplete, self.form.brandId, self.brands, '/proxy/sln-products/brands')
         ]).then(function (results) {
+            if (!results[0]) {
+                toastr.error('Kategori olusturulamadi');
+                self.isSaving(false);
+                return;
+            }
+
             var data = {
                 name: self.form.name(),
                 categoryId: results[0],

@@ -152,6 +152,9 @@ public class AppDbContext : DbContext
     // ─── Email Integration ───
     public DbSet<CustomerEmailIntegration> CustomerEmailIntegrations => Set<CustomerEmailIntegration>();
 
+    // ─── Platform Email Templates ───
+    public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
+
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
@@ -1326,6 +1329,19 @@ public class AppDbContext : DbContext
              .WithMany(c => c.ApiKeys)
              .HasForeignKey(x => x.IntegrationConnectionId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Platform Email Templates
+        modelBuilder.Entity<PlatformEmailTemplate>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Uid).IsUnique();
+            e.HasIndex(x => new { x.EventKey, x.Language }).IsUnique();
+            e.Property(x => x.EventKey).HasMaxLength(100).IsRequired();
+            e.Property(x => x.ProductType).HasMaxLength(50);
+            e.Property(x => x.Subject).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Language).HasMaxLength(5).HasDefaultValue("tr");
+            e.Property(x => x.Description).HasMaxLength(500);
         });
 
         // =============================================

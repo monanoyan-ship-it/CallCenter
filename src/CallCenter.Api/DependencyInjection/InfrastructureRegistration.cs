@@ -31,6 +31,9 @@ public static class InfrastructureRegistration
         services.AddSingleton<Office365OAuthService>();
         services.AddScoped<IEmailSendService, MailKitEmailSendService>();
 
+        // Platform Email (Resend SMTP - sistem emailleri: kayit onayi, sifre sifirlama vb.)
+        services.AddSingleton<IPlatformEmailService, ResendPlatformEmailService>();
+
         // Scoped utilities
         services.AddScoped<TokenService>();
         services.AddScoped<CallDistributionService>();

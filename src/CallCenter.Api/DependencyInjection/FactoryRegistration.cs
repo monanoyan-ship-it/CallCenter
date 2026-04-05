@@ -106,6 +106,9 @@ public static class FactoryRegistration
         // Salon — E-posta Kampanyalari (C5)
         services.AddScoped<ISlnEmailCampaignFactory, SlnEmailCampaignFactory>();
 
+        // Platform Email Taslak Yonetimi
+        services.AddScoped<IPlatformEmailTemplateFactory, PlatformEmailTemplateFactory>();
+
         // Salon — Yorum/Review (C6)
         services.AddScoped<ISlnReviewFactory, SlnReviewFactory>();
 
