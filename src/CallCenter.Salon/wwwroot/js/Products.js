@@ -97,41 +97,80 @@ function ProductsViewModel() {
         formModal.show();
     };
 
-    self.save = function () {
-        var data = {
-            name: self.form.name(),
-            categoryId: self.form.categoryId() || null,
-            brandId: self.form.brandId() || null,
-            barcode: self.form.barcode(),
-            unit: self.form.unit(),
-            stockQuantity: parseInt(self.form.stockQuantity()) || 0,
-            minStockLevel: parseInt(self.form.minStockLevel()) || 0,
-            purchasePrice: parseFloat(self.form.purchasePrice()) || 0,
-            salePrice: parseFloat(self.form.salePrice()) || 0
-        };
+    // Autocomplete'de secilmemis ama yazilmis isim varsa otomatik olustur
+    function ensureLookup(autocomplete, listObservable, createUrl, name) {
+        return new Promise(function (resolve) {
+            var id = autocomplete.query ? null : null;
+            // ID zaten secilmisse direkt don
+            var selectedId = listObservable === self.categories
+                ? self.form.categoryId()
+                : self.form.brandId();
+            if (selectedId) { resolve(selectedId); return; }
 
-        if (!data.name) { toastr.warning('Urun adi zorunludur'); return; }
+            // Yazilan text var mi?
+            var text = (autocomplete.query() || '').trim();
+            if (!text) { resolve(null); return; }
+
+            // Listede var mi? (case-insensitive)
+            var existing = listObservable().find(function (item) {
+                return (item.name || '').toLowerCase() === text.toLowerCase();
+            });
+            if (existing) { resolve(existing.id); return; }
+
+            // Yoksa olustur
+            $.ajax({
+                url: createUrl, method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ name: text, sortOrder: 0 })
+            }).done(function (created) {
+                var list = listObservable();
+                list.push(created);
+                listObservable(list);
+                resolve(created.id);
+            }).fail(function () { resolve(null); });
+        });
+    }
+
+    self.save = function () {
+        if (!self.form.name()) { toastr.warning('Urun adi zorunludur'); return; }
 
         self.isSaving(true);
-        var url = '/proxy/sln-products';
-        var method = 'POST';
-        if (self.isEditing()) {
-            url += '/' + self.editingId();
-            method = 'PUT';
-        }
 
-        $.ajax({
-            url: url, method: method,
-            contentType: 'application/json',
-            data: JSON.stringify(data)
-        }).done(function () {
-            formModal.hide();
-            self.loadData();
-            toastr.success(self.isEditing() ? 'Urun guncellendi' : 'Urun eklendi');
-            self.isSaving(false);
-        }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
-            self.isSaving(false);
+        Promise.all([
+            ensureLookup(self.categoryAutocomplete, self.categories, '/proxy/sln-products/categories'),
+            ensureLookup(self.brandAutocomplete, self.brands, '/proxy/sln-products/brands')
+        ]).then(function (results) {
+            var data = {
+                name: self.form.name(),
+                categoryId: results[0],
+                brandId: results[1],
+                barcode: self.form.barcode(),
+                unit: self.form.unit(),
+                stockQuantity: parseInt(self.form.stockQuantity()) || 0,
+                minStockLevel: parseInt(self.form.minStockLevel()) || 0,
+                purchasePrice: parseFloat(self.form.purchasePrice()) || 0,
+                salePrice: parseFloat(self.form.salePrice()) || 0
+            };
+
+            var url = '/proxy/sln-products';
+            var method = 'POST';
+            if (self.isEditing()) {
+                url += '/' + self.editingId();
+                method = 'PUT';
+            }
+
+            $.ajax({
+                url: url, method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(data)
+            }).done(function () {
+                formModal.hide();
+                self.loadData();
+                self.loadLookups();
+                toastr.success(self.isEditing() ? 'Urun guncellendi' : 'Urun eklendi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            }).always(function () { self.isSaving(false); });
         });
     };
 
