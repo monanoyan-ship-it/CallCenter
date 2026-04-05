@@ -18,60 +18,102 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
         _uow = uow;
     }
 
-    public async Task<List<PlatformEmailTemplateDto>> GetAllAsync()
+    // ─── Event CRUD ───
+
+    public async Task<List<PlatformEmailEventDto>> GetAllEventsAsync()
     {
-        return await _db.PlatformEmailTemplates
-            .OrderBy(t => t.EventKey)
-            .ThenBy(t => t.Language)
-            .Select(t => MapToDto(t))
+        return await _db.PlatformEmailEvents
+            .Include(e => e.Templates)
+            .OrderBy(e => e.ProductType)
+            .ThenBy(e => e.EventKey)
+            .Select(e => MapEventToDto(e))
             .ToListAsync();
     }
 
-    public async Task<PlatformEmailTemplateDto?> GetByIdAsync(int id)
+    public async Task<PlatformEmailEventDto?> GetEventByIdAsync(int id)
     {
-        var template = await _db.PlatformEmailTemplates.FindAsync(id);
-        return template != null ? MapToDto(template) : null;
+        var ev = await _db.PlatformEmailEvents
+            .Include(e => e.Templates)
+            .FirstOrDefaultAsync(e => e.Id == id);
+        return ev != null ? MapEventToDto(ev) : null;
     }
 
-    public async Task<PlatformEmailTemplateDto> CreateAsync(PlatformEmailTemplateCreateDto dto)
+    public async Task<PlatformEmailEventDto> CreateEventAsync(PlatformEmailEventCreateDto dto)
     {
-        var template = new PlatformEmailTemplate
+        var ev = new PlatformEmailEvent
         {
             EventKey = dto.EventKey,
             ProductType = dto.ProductType,
-            Subject = dto.Subject,
-            HtmlBody = dto.HtmlBody,
-            IsActive = dto.IsActive,
             Description = dto.Description,
             AvailablePlaceholders = dto.AvailablePlaceholders,
-            Language = dto.Language
+            IsActive = dto.IsActive
+        };
+        _db.PlatformEmailEvents.Add(ev);
+        await _uow.SaveChangesAsync();
+        return MapEventToDto(ev);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateEventAsync(int id, PlatformEmailEventUpdateDto dto)
+    {
+        var ev = await _db.PlatformEmailEvents.FindAsync(id);
+        if (ev == null) return (false, "Olay bulunamadi");
+
+        if (dto.ProductType != null) ev.ProductType = dto.ProductType;
+        if (dto.Description != null) ev.Description = dto.Description;
+        if (dto.AvailablePlaceholders != null) ev.AvailablePlaceholders = dto.AvailablePlaceholders;
+        if (dto.IsActive.HasValue) ev.IsActive = dto.IsActive.Value;
+        ev.UpdatedAt = DateTime.UtcNow;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteEventAsync(int id)
+    {
+        var ev = await _db.PlatformEmailEvents
+            .Include(e => e.Templates)
+            .FirstOrDefaultAsync(e => e.Id == id);
+        if (ev == null) return (false, "Olay bulunamadi");
+
+        _db.PlatformEmailEvents.Remove(ev); // Cascade delete templates
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    // ─── Template CRUD ───
+
+    public async Task<PlatformEmailTemplateDto> AddTemplateAsync(int eventId, PlatformEmailTemplateCreateDto dto)
+    {
+        var template = new PlatformEmailTemplate
+        {
+            EventId = eventId,
+            Language = dto.Language,
+            Subject = dto.Subject,
+            HtmlBody = dto.HtmlBody,
+            IsActive = dto.IsActive
         };
         _db.PlatformEmailTemplates.Add(template);
         await _uow.SaveChangesAsync();
-        return MapToDto(template);
+        return MapTemplateToDto(template);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateAsync(int id, PlatformEmailTemplateUpdateDto dto)
+    public async Task<(bool Success, string? Error)> UpdateTemplateAsync(int templateId, PlatformEmailTemplateUpdateDto dto)
     {
-        var template = await _db.PlatformEmailTemplates.FindAsync(id);
+        var template = await _db.PlatformEmailTemplates.FindAsync(templateId);
         if (template == null) return (false, "Taslak bulunamadi");
 
-        if (dto.ProductType != null) template.ProductType = dto.ProductType;
         if (dto.Subject != null) template.Subject = dto.Subject;
         if (dto.HtmlBody != null) template.HtmlBody = dto.HtmlBody;
         if (dto.IsActive.HasValue) template.IsActive = dto.IsActive.Value;
-        if (dto.Description != null) template.Description = dto.Description;
-        if (dto.AvailablePlaceholders != null) template.AvailablePlaceholders = dto.AvailablePlaceholders;
-        if (dto.Language != null) template.Language = dto.Language;
         template.UpdatedAt = DateTime.UtcNow;
 
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteAsync(int id)
+    public async Task<(bool Success, string? Error)> DeleteTemplateAsync(int templateId)
     {
-        var template = await _db.PlatformEmailTemplates.FindAsync(id);
+        var template = await _db.PlatformEmailTemplates.FindAsync(templateId);
         if (template == null) return (false, "Taslak bulunamadi");
 
         _db.PlatformEmailTemplates.Remove(template);
@@ -79,18 +121,28 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
         return (true, null);
     }
 
-    private static PlatformEmailTemplateDto MapToDto(PlatformEmailTemplate t) => new()
+    // ─── Mapping ───
+
+    private static PlatformEmailEventDto MapEventToDto(PlatformEmailEvent e) => new()
+    {
+        Id = e.Id,
+        EventKey = e.EventKey,
+        ProductType = e.ProductType,
+        Description = e.Description,
+        AvailablePlaceholders = e.AvailablePlaceholders,
+        IsActive = e.IsActive,
+        CreatedAt = e.CreatedAt,
+        Templates = e.Templates.Select(MapTemplateToDto).ToList()
+    };
+
+    private static PlatformEmailTemplateDto MapTemplateToDto(PlatformEmailTemplate t) => new()
     {
         Id = t.Id,
-        Uid = t.Uid,
-        EventKey = t.EventKey,
-        ProductType = t.ProductType,
+        EventId = t.EventId,
+        Language = t.Language,
         Subject = t.Subject,
         HtmlBody = t.HtmlBody,
         IsActive = t.IsActive,
-        Description = t.Description,
-        AvailablePlaceholders = t.AvailablePlaceholders,
-        Language = t.Language,
         CreatedAt = t.CreatedAt,
         UpdatedAt = t.UpdatedAt
     };

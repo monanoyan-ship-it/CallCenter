@@ -72,7 +72,7 @@ public class ResendPlatformEmailService : IPlatformEmailService
             using var scope = _serviceProvider.CreateScope();
             var templateEs = scope.ServiceProvider.GetRequiredService<IPlatformEmailTemplateEntityService>();
 
-            var template = await templateEs.GetByEventKeyAsync(eventKey, language);
+            var template = await templateEs.GetTemplateAsync(eventKey, language);
             if (template == null)
             {
                 _logger.LogWarning("Email taslagi bulunamadi. EventKey={EventKey}, Language={Language}", eventKey, language);

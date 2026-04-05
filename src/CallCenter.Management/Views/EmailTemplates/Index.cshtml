@@ -6,8 +6,8 @@
     <!-- Baslik -->
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div></div>
-        <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Taslak
+        <button class="btn btn-primary btn-sm" data-bind="click: openCreateEvent">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Olay
         </button>
     </div>
 
@@ -18,7 +18,7 @@
                 <div class="col-md-4">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Olay anahtari veya konu ara..."
+                        <input type="text" class="form-control" placeholder="Olay anahtari veya aciklama ara..."
                                data-bind="value: searchText, valueUpdate: 'afterkeydown'" />
                     </div>
                 </div>
@@ -39,49 +39,54 @@
         </div>
     </div>
 
-    <!-- Tablo -->
+    <!-- Event Tablosu -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="text-center py-5" data-bind="visible: isLoading">
                 <div class="spinner-border text-primary"></div>
             </div>
-            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && filteredTemplates().length === 0">
-                <i class="bi bi-envelope-x fs-1 d-block mb-2 opacity-25"></i>Email taslagi bulunamadi
+            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && filteredEvents().length === 0">
+                <i class="bi bi-envelope-x fs-1 d-block mb-2 opacity-25"></i>Email olayi bulunamadi
             </div>
-            <div data-bind="visible: !isLoading() && filteredTemplates().length > 0">
+            <div data-bind="visible: !isLoading() && filteredEvents().length > 0">
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th>Olay Anahtari</th>
-                                <th>Konu</th>
                                 <th>Urun</th>
-                                <th>Dil</th>
-                                <th class="text-center">Durum</th>
                                 <th>Aciklama</th>
+                                <th class="text-center">Diller</th>
+                                <th class="text-center">Durum</th>
                                 <th class="text-end">Islemler</th>
                             </tr>
                         </thead>
-                        <tbody data-bind="foreach: filteredTemplates">
+                        <tbody data-bind="foreach: filteredEvents">
                             <tr>
                                 <td><code data-bind="text: eventKey"></code></td>
-                                <td data-bind="text: subject"></td>
                                 <td>
-                                    <span class="badge" data-bind="text: productType || 'Tumu', css: productType === 'Salon' ? 'bg-success' : productType === 'CallCenter' ? 'bg-primary' : productType === 'CRM' ? 'bg-info' : 'bg-secondary'"></span>
+                                    <span class="badge" data-bind="text: productType || 'Tumu',
+                                        css: productType === 'Salon' ? 'bg-success' : productType === 'CallCenter' ? 'bg-primary' : productType === 'CRM' ? 'bg-info' : 'bg-secondary'"></span>
                                 </td>
-                                <td><span class="badge bg-light text-dark" data-bind="text: language"></span></td>
+                                <td><small class="text-muted" data-bind="text: description"></small></td>
+                                <td class="text-center">
+                                    <!-- ko foreach: templates -->
+                                    <span class="badge bg-light text-dark me-1" data-bind="text: language,
+                                        css: isActive ? 'border border-success' : 'border border-danger'"></span>
+                                    <!-- /ko -->
+                                    <span class="text-muted" data-bind="visible: templates.length === 0">-</span>
+                                </td>
                                 <td class="text-center">
                                     <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
                                 </td>
-                                <td><small class="text-muted" data-bind="text: description"></small></td>
                                 <td class="text-end">
-                                    <button class="btn btn-outline-primary btn-sm me-1" data-bind="click: $parent.openEdit" title="Duzenle">
+                                    <button class="btn btn-outline-primary btn-sm me-1" data-bind="click: $parent.openEditEvent" title="Duzenle">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-info btn-sm me-1" data-bind="click: $parent.openPreview" title="Onizleme">
-                                        <i class="bi bi-eye"></i>
+                                    <button class="btn btn-outline-success btn-sm me-1" data-bind="click: $parent.openTemplates" title="Dil Taslaklari">
+                                        <i class="bi bi-translate"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.confirmDelete" title="Sil">
+                                    <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.confirmDeleteEvent" title="Sil">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
@@ -93,73 +98,49 @@
         </div>
     </div>
 
-    <!-- Create/Edit Modal -->
-    <div class="modal fade" id="templateModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
+    <!-- Event Create/Edit Modal -->
+    <div class="modal fade" id="eventModal" tabindex="-1">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" data-bind="text: form.id() ? 'Taslak Duzenle' : 'Yeni Taslak'"></h5>
+                    <h5 class="modal-title" data-bind="text: eventForm.id() ? 'Olay Duzenle' : 'Yeni Olay'"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Olay Anahtari <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" placeholder="salon_register_confirm"
-                                   data-bind="value: form.eventKey, attr: { readonly: form.id() }" />
-                            <small class="text-muted">Benzersiz, degistirilemez (orn: password_reset)</small>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Urun</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.productType">
-                                <option value="">Tumu</option>
-                                <option value="Salon">Salon</option>
-                                <option value="CallCenter">CallCenter</option>
-                                <option value="CRM">CRM</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Dil</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.language">
-                                <option value="tr">Turkce</option>
-                                <option value="en">English</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Durum</label>
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" data-bind="checked: form.isActive" />
-                                <label class="form-check-label" data-bind="text: form.isActive() ? 'Aktif' : 'Pasif'"></label>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Konu <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm"
-                                   placeholder="{{SalonAdi}} - Kayit Onayiniz"
-                                   data-bind="value: form.subject" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Aciklama</label>
-                            <input type="text" class="form-control form-control-sm"
-                                   placeholder="Bu taslak ne icin kullaniliyor?"
-                                   data-bind="value: form.description" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Placeholder'lar</label>
-                            <input type="text" class="form-control form-control-sm"
-                                   placeholder='["SalonAdi","KullaniciAdi","OnayLinki"]'
-                                   data-bind="value: form.availablePlaceholders" />
-                            <small class="text-muted">JSON dizi formatinda</small>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">HTML Icerik <span class="text-danger">*</span></label>
-                            <textarea id="htmlEditor" style="height:300px"></textarea>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Olay Anahtari <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" placeholder="salon_register_confirm"
+                               data-bind="value: eventForm.eventKey, attr: { readonly: eventForm.id() }" />
+                        <small class="text-muted">Benzersiz, snake_case (orn: password_reset)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Urun</label>
+                        <select class="form-select form-select-sm" data-bind="value: eventForm.productType">
+                            <option value="">Tumu</option>
+                            <option value="Salon">Salon</option>
+                            <option value="CallCenter">CallCenter</option>
+                            <option value="CRM">CRM</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aciklama</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: eventForm.description"
+                               placeholder="Bu olay ne zaman tetiklenir?" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Placeholder'lar</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: eventForm.availablePlaceholders"
+                               placeholder='["SalonAdi","KullaniciAdi","OnayLinki"]' />
+                        <small class="text-muted">JSON dizi formatinda</small>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" data-bind="checked: eventForm.isActive" />
+                        <label class="form-check-label" data-bind="text: eventForm.isActive() ? 'Aktif' : 'Pasif'"></label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
-                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save">
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveEvent">
                         <i class="bi bi-check-lg me-1"></i>Kaydet
                     </button>
                 </div>
@@ -167,39 +148,113 @@
         </div>
     </div>
 
-    <!-- Preview Modal -->
-    <div class="modal fade" id="previewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+    <!-- Template (Dil) Modal -->
+    <div class="modal fade" id="templateModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Email Onizleme</h5>
+                    <h5 class="modal-title">
+                        <code data-bind="text: currentEvent().eventKey"></code> - Dil Taslaklari
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-2"><strong>Konu:</strong> <span data-bind="text: previewSubject"></span></div>
-                    <hr />
-                    <div class="border rounded p-3" data-bind="html: previewHtml"></div>
+                    <!-- Placeholder bilgisi -->
+                    <div class="alert alert-info py-2 mb-3" data-bind="visible: currentEvent().availablePlaceholders">
+                        <small><strong>Placeholder'lar:</strong> <span data-bind="text: currentEvent().availablePlaceholders"></span></small>
+                    </div>
+
+                    <!-- Dil tab'lari -->
+                    <ul class="nav nav-tabs mb-3" id="langTabs">
+                        <!-- ko foreach: templateTabs -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bind="text: lang.toUpperCase(), click: $parent.selectTab,
+                                css: { active: $parent.activeTab() === lang }"></a>
+                        </li>
+                        <!-- /ko -->
+                        <li class="nav-item">
+                            <a class="nav-link text-success" href="#" data-bind="click: addLanguageTab">
+                                <i class="bi bi-plus-lg"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Aktif tab icerigi -->
+                    <div data-bind="visible: activeTab()">
+                        <div class="row g-3">
+                            <div class="col-md-9">
+                                <label class="form-label">Konu <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="{{SalonAdi}} - Kayit Onayiniz"
+                                       data-bind="value: templateForm.subject" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Durum</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: templateForm.isActive" />
+                                    <label class="form-check-label" data-bind="text: templateForm.isActive() ? 'Aktif' : 'Pasif'"></label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">HTML Icerik <span class="text-danger">*</span></label>
+                                <textarea id="htmlEditor" style="height:300px"></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex justify-content-between">
+                            <button class="btn btn-outline-danger btn-sm" data-bind="click: deleteTemplate, visible: templateForm.id()">
+                                <i class="bi bi-trash me-1"></i>Bu Dili Sil
+                            </button>
+                            <button class="btn btn-primary btn-sm" data-bind="click: saveTemplate">
+                                <i class="bi bi-check-lg me-1"></i>Kaydet
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Delete Confirm Modal -->
+    <!-- Delete Event Confirm -->
     <div class="modal fade" id="deleteModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Taslak Sil</h5>
+                    <h5 class="modal-title">Olay Sil</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <code data-bind="text: deleteTarget().eventKey"></code> taslagi silinecek. Emin misiniz?
+                    <code data-bind="text: deleteTarget().eventKey"></code> olayi ve tum dil taslaklari silinecek. Emin misiniz?
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Vazgec</button>
-                    <button type="button" class="btn btn-danger btn-sm" data-bind="click: executeDelete">
+                    <button type="button" class="btn btn-danger btn-sm" data-bind="click: executeDeleteEvent">
                         <i class="bi bi-trash me-1"></i>Sil
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Language Modal -->
+    <div class="modal fade" id="addLangModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Dil Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <select class="form-select form-select-sm" data-bind="value: newLanguage">
+                        <option value="tr">Turkce (tr)</option>
+                        <option value="en">English (en)</option>
+                        <option value="de">Deutsch (de)</option>
+                        <option value="fr">Francais (fr)</option>
+                        <option value="ar">Arabic (ar)</option>
+                        <option value="ru">Russian (ru)</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: confirmAddLanguage">Ekle</button>
                 </div>
             </div>
         </div>

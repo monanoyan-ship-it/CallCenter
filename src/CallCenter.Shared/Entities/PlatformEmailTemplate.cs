@@ -1,34 +1,26 @@
 namespace CallCenter.Shared.Entities;
 
 /// <summary>
-/// Platform seviyesi email taslagi.
-/// Management panelinden yonetilir, kayit onayi / sifre sifirlama / hosgeldin gibi sistem emailleri icin.
+/// Platform email taslagi (dil bazli).
+/// Her taslak bir PlatformEmailEvent'e aittir.
 /// </summary>
 public class PlatformEmailTemplate
 {
     public int Id { get; set; }
-    public Guid Uid { get; set; } = Guid.NewGuid();
 
-    /// <summary>Benzersiz olay anahtari: "salon_register_confirm", "password_reset" vb.</summary>
-    public string EventKey { get; set; } = string.Empty;
+    public int EventId { get; set; }
+    public PlatformEmailEvent? Event { get; set; }
 
-    /// <summary>Hangi urun icin: "Salon", "CallCenter", "CRM" veya null=tumu</summary>
-    public string? ProductType { get; set; }
+    /// <summary>Dil kodu: "tr", "en"</summary>
+    public string Language { get; set; } = "tr";
 
+    /// <summary>Email basligi. Placeholder destekler: {{SalonAdi}}</summary>
     public string Subject { get; set; } = string.Empty;
 
-    /// <summary>HTML govde. Placeholder: {{SalonAdi}}, {{KullaniciAdi}}, {{OnayLinki}} vb.</summary>
+    /// <summary>HTML govde. WYSIWYG editorle duzenlenir.</summary>
     public string HtmlBody { get; set; } = string.Empty;
 
     public bool IsActive { get; set; } = true;
-
-    /// <summary>Yonetici aciklamasi</summary>
-    public string? Description { get; set; }
-
-    /// <summary>Kullanilabilir placeholder listesi JSON: ["SalonAdi","KullaniciAdi","OnayLinki"]</summary>
-    public string? AvailablePlaceholders { get; set; }
-
-    public string Language { get; set; } = "tr";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

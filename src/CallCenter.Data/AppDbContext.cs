@@ -152,7 +152,8 @@ public class AppDbContext : DbContext
     // ─── Email Integration ───
     public DbSet<CustomerEmailIntegration> CustomerEmailIntegrations => Set<CustomerEmailIntegration>();
 
-    // ─── Platform Email Templates ───
+    // ─── Platform Email ───
+    public DbSet<PlatformEmailEvent> PlatformEmailEvents => Set<PlatformEmailEvent>();
     public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
 
     // ─── Integration & Webhook ───
@@ -1331,17 +1332,27 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Platform Email Templates
+        // Platform Email Events
+        modelBuilder.Entity<PlatformEmailEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.EventKey).IsUnique();
+            e.Property(x => x.EventKey).HasMaxLength(100).IsRequired();
+            e.Property(x => x.ProductType).HasMaxLength(50);
+            e.Property(x => x.Description).HasMaxLength(500);
+        });
+
+        // Platform Email Templates (dil bazli)
         modelBuilder.Entity<PlatformEmailTemplate>(e =>
         {
             e.HasKey(x => x.Id);
-            e.HasIndex(x => x.Uid).IsUnique();
-            e.HasIndex(x => new { x.EventKey, x.Language }).IsUnique();
-            e.Property(x => x.EventKey).HasMaxLength(100).IsRequired();
-            e.Property(x => x.ProductType).HasMaxLength(50);
+            e.HasIndex(x => new { x.EventId, x.Language }).IsUnique();
             e.Property(x => x.Subject).HasMaxLength(500).IsRequired();
             e.Property(x => x.Language).HasMaxLength(5).HasDefaultValue("tr");
-            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasOne(x => x.Event)
+             .WithMany(x => x.Templates)
+             .HasForeignKey(x => x.EventId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // =============================================

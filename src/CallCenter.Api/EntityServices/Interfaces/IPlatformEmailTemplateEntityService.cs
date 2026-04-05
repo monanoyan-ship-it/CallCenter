@@ -4,11 +4,18 @@ namespace CallCenter.Api.EntityServices.Interfaces;
 
 public interface IPlatformEmailTemplateEntityService
 {
-    Task<PlatformEmailTemplate?> GetByIdAsync(int id);
-    Task<PlatformEmailTemplate?> GetByUidAsync(Guid uid);
-    Task<PlatformEmailTemplate?> GetByEventKeyAsync(string eventKey, string language = "tr");
-    IQueryable<PlatformEmailTemplate> GetAllQueryable();
-    void Add(PlatformEmailTemplate entity);
-    void Update(PlatformEmailTemplate entity);
-    void Remove(PlatformEmailTemplate entity);
+    // Event
+    Task<PlatformEmailEvent?> GetEventByIdAsync(int id);
+    Task<PlatformEmailEvent?> GetEventByKeyAsync(string eventKey);
+    IQueryable<PlatformEmailEvent> GetAllEventsQueryable();
+    void AddEvent(PlatformEmailEvent entity);
+    void UpdateEvent(PlatformEmailEvent entity);
+    void RemoveEvent(PlatformEmailEvent entity);
+
+    // Template (dil bazli)
+    Task<PlatformEmailTemplate?> GetTemplateByIdAsync(int id);
+    Task<PlatformEmailTemplate?> GetTemplateAsync(string eventKey, string language);
+    void AddTemplate(PlatformEmailTemplate entity);
+    void UpdateTemplate(PlatformEmailTemplate entity);
+    void RemoveTemplate(PlatformEmailTemplate entity);
 }

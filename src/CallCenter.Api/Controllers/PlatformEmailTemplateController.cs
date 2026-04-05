@@ -14,32 +14,54 @@ public class PlatformEmailTemplateController : ControllerBase
 
     public PlatformEmailTemplateController(IPlatformEmailTemplateFactory factory) => _factory = factory;
 
+    // ─── Event CRUD ───
+
     [HttpGet]
-    public async Task<ActionResult<List<PlatformEmailTemplateDto>>> GetAll()
-        => Ok(await _factory.GetAllAsync());
+    public async Task<ActionResult<List<PlatformEmailEventDto>>> GetAllEvents()
+        => Ok(await _factory.GetAllEventsAsync());
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<PlatformEmailTemplateDto>> GetById(int id)
+    public async Task<ActionResult<PlatformEmailEventDto>> GetEvent(int id)
     {
-        var template = await _factory.GetByIdAsync(id);
-        return template != null ? Ok(template) : NotFound();
+        var ev = await _factory.GetEventByIdAsync(id);
+        return ev != null ? Ok(ev) : NotFound();
     }
 
     [HttpPost]
-    public async Task<ActionResult<PlatformEmailTemplateDto>> Create([FromBody] PlatformEmailTemplateCreateDto dto)
-        => Ok(await _factory.CreateAsync(dto));
+    public async Task<ActionResult<PlatformEmailEventDto>> CreateEvent([FromBody] PlatformEmailEventCreateDto dto)
+        => Ok(await _factory.CreateEventAsync(dto));
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> Update(int id, [FromBody] PlatformEmailTemplateUpdateDto dto)
+    public async Task<ActionResult> UpdateEvent(int id, [FromBody] PlatformEmailEventUpdateDto dto)
     {
-        var (success, error) = await _factory.UpdateAsync(id, dto);
+        var (success, error) = await _factory.UpdateEventAsync(id, dto);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(int id)
+    public async Task<ActionResult> DeleteEvent(int id)
     {
-        var (success, error) = await _factory.DeleteAsync(id);
+        var (success, error) = await _factory.DeleteEventAsync(id);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    // ─── Template CRUD (dil bazli) ───
+
+    [HttpPost("{eventId}/templates")]
+    public async Task<ActionResult<PlatformEmailTemplateDto>> AddTemplate(int eventId, [FromBody] PlatformEmailTemplateCreateDto dto)
+        => Ok(await _factory.AddTemplateAsync(eventId, dto));
+
+    [HttpPut("templates/{templateId}")]
+    public async Task<ActionResult> UpdateTemplate(int templateId, [FromBody] PlatformEmailTemplateUpdateDto dto)
+    {
+        var (success, error) = await _factory.UpdateTemplateAsync(templateId, dto);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpDelete("templates/{templateId}")]
+    public async Task<ActionResult> DeleteTemplate(int templateId)
+    {
+        var (success, error) = await _factory.DeleteTemplateAsync(templateId);
         return success ? Ok() : BadRequest(error);
     }
 }

@@ -4,9 +4,15 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface IPlatformEmailTemplateFactory
 {
-    Task<List<PlatformEmailTemplateDto>> GetAllAsync();
-    Task<PlatformEmailTemplateDto?> GetByIdAsync(int id);
-    Task<PlatformEmailTemplateDto> CreateAsync(PlatformEmailTemplateCreateDto dto);
-    Task<(bool Success, string? Error)> UpdateAsync(int id, PlatformEmailTemplateUpdateDto dto);
-    Task<(bool Success, string? Error)> DeleteAsync(int id);
+    // Event CRUD
+    Task<List<PlatformEmailEventDto>> GetAllEventsAsync();
+    Task<PlatformEmailEventDto?> GetEventByIdAsync(int id);
+    Task<PlatformEmailEventDto> CreateEventAsync(PlatformEmailEventCreateDto dto);
+    Task<(bool Success, string? Error)> UpdateEventAsync(int id, PlatformEmailEventUpdateDto dto);
+    Task<(bool Success, string? Error)> DeleteEventAsync(int id);
+
+    // Template CRUD (event altinda, dil bazli)
+    Task<PlatformEmailTemplateDto> AddTemplateAsync(int eventId, PlatformEmailTemplateCreateDto dto);
+    Task<(bool Success, string? Error)> UpdateTemplateAsync(int templateId, PlatformEmailTemplateUpdateDto dto);
+    Task<(bool Success, string? Error)> DeleteTemplateAsync(int templateId);
 }

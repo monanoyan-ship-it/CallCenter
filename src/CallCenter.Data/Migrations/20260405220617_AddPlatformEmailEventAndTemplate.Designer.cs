@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260405212930_AddPlatformEmailTemplate")]
-    partial class AddPlatformEmailTemplate
+    [Migration("20260405220617_AddPlatformEmailEventAndTemplate")]
+    partial class AddPlatformEmailEventAndTemplate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -2885,7 +2885,7 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("PasswordHistories");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailTemplate", b =>
+            modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailEvent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -2908,6 +2908,38 @@ namespace CallCenter.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ProductType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventKey")
+                        .IsUnique();
+
+                    b.ToTable("PlatformEmailEvents");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("HtmlBody")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2922,27 +2954,17 @@ namespace CallCenter.Data.Migrations
                         .HasColumnType("character varying(5)")
                         .HasDefaultValue("tr");
 
-                    b.Property<string>("ProductType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("Uid")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Uid")
-                        .IsUnique();
-
-                    b.HasIndex("EventKey", "Language")
+                    b.HasIndex("EventId", "Language")
                         .IsUnique();
 
                     b.ToTable("PlatformEmailTemplates");
@@ -7928,6 +7950,17 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailTemplate", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.PlatformEmailEvent", "Event")
+                        .WithMany("Templates")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.PrivacyNotice", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
@@ -9184,6 +9217,11 @@ namespace CallCenter.Data.Migrations
             modelBuilder.Entity("CallCenter.Shared.Entities.Language", b =>
                 {
                     b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailEvent", b =>
+                {
+                    b.Navigation("Templates");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Queue", b =>
