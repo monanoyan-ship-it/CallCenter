@@ -108,11 +108,30 @@
                 });
             });
 
-            // Harita init - Turkiye merkezi
+            // Harita init - Turkiye merkezi (konum alinamazsa fallback)
             map = L.map('discoverMap').setView([39.9, 32.8], 6);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
+
+            var userMarker = null;
+
+            // Kullanici konumu al
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    var lat = pos.coords.latitude, lng = pos.coords.longitude;
+                    map.setView([lat, lng], 12);
+                    userMarker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: '',
+                            html: '<div style="background:#4285f4;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3);"></div>',
+                            iconSize: [14, 14], iconAnchor: [7, 7]
+                        })
+                    }).addTo(map).bindPopup('Konumunuz').openPopup();
+                }, function () {
+                    // Konum izni reddedildi - Turkiye gorunumunde kal
+                }, { timeout: 5000 });
+            }
 
             fetch('/proxy/salon/')
                 .then(function (r) { return r.ok ? r.json() : []; })
@@ -120,7 +139,6 @@
                     self.salons(data);
                     self.isLoading(false);
 
-                    var bounds = [];
                     data.forEach(function (s) {
                         if (s.latitude && s.longitude) {
                             var marker = L.marker([s.latitude, s.longitude]).addTo(map);
@@ -130,13 +148,8 @@
                                 '<br><a href="/salon/' + s.slug + '">Profili Gor</a>'
                             );
                             markers.push(marker);
-                            bounds.push([s.latitude, s.longitude]);
                         }
                     });
-
-                    if (bounds.length > 0) {
-                        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
-                    }
                 })
                 .catch(function () { self.isLoading(false); });
         }
