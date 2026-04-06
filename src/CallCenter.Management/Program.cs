@@ -1,6 +1,15 @@
 using CallCenter.Shared.Localization;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// DataProtection: Cloud Run container restart larinda key kaybolmasin
+var dpKeysPath = Path.Combine(Path.GetTempPath(), "dp-keys-mng");
+Directory.CreateDirectory(dpKeysPath);
+builder.Services.AddDataProtection()
+    .SetApplicationName("CallCenter.Management")
+    .PersistKeysToFileSystem(new DirectoryInfo(dpKeysPath))
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(365));
 
 builder.Services.AddControllersWithViews();
 
