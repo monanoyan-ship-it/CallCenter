@@ -189,7 +189,7 @@ function AppointmentsViewModel() {
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
             self.clientList(data.items || data);
         });
-        $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
             self.serviceList(data.items || data);
         });
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
