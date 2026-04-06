@@ -271,23 +271,41 @@
                             <input type="datetime-local" class="form-control form-control-sm" data-bind="value: form.startTime" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Hizmetler * <small class="text-muted fw-normal">(tikla sec)</small></label>
-                            <!-- ko foreach: serviceList -->
-                            <div class="mb-1">
-                                <small class="text-muted" data-bind="text: name" style="font-size:.7rem;"></small>
-                                <div class="d-flex flex-wrap gap-1">
-                                    <!-- ko foreach: services -->
-                                    <button type="button" class="btn py-1 px-2" style="font-size:.85rem; min-height:36px;"
-                                        data-bind="click: function() { $root.toggleService($data.id); },
-                                                   css: $root.form.serviceIds().indexOf($data.id) >= 0 ? 'btn-primary' : 'btn-outline-secondary'">
-                                        <span data-bind="text: name"></span>
-                                        <small class="ms-1 opacity-75" data-bind="text: durationMinutes + 'dk'"></small>
-                                    </button>
-                                    <!-- /ko -->
-                                </div>
+                            <label class="form-label small">Kategori <small class="text-muted fw-normal">(tikla sec)</small></label>
+                            <div class="d-flex flex-wrap gap-1 mb-2" data-bind="foreach: serviceList">
+                                <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"
+                                    data-bind="text: name,
+                                               click: function() { $root.selectedCategoryId($data.id); },
+                                               css: $root.selectedCategoryId() === $data.id ? 'btn-dark' : 'btn-outline-secondary'">
+                                </button>
                             </div>
-                            <!-- /ko -->
                         </div>
+                        <!-- ko if: selectedCategoryServices().length > 0 -->
+                        <div class="col-12">
+                            <label class="form-label small">Hizmetler * <small class="text-muted fw-normal">(tikla sec)</small></label>
+                            <div class="d-flex flex-wrap gap-1" data-bind="foreach: selectedCategoryServices">
+                                <button type="button" class="btn py-1 px-2" style="font-size:.85rem; min-height:36px;"
+                                    data-bind="click: function() { $root.toggleService($data.id); },
+                                               css: $root.form.serviceIds().indexOf($data.id) >= 0 ? 'btn-primary' : 'btn-outline-secondary'">
+                                    <span data-bind="text: name"></span>
+                                    <small class="ms-1 opacity-75" data-bind="text: durationMinutes + 'dk'"></small>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                        <!-- Secilen hizmetler -->
+                        <!-- ko if: selectedServiceNames().length > 0 -->
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-1">
+                                <!-- ko foreach: selectedServiceNames -->
+                                <span class="badge bg-primary d-inline-flex align-items-center gap-1 py-1 px-2" style="font-size:.8rem;">
+                                    <span data-bind="text: name"></span>
+                                    <i class="bi bi-x" style="cursor:pointer;" data-bind="click: $root.removeSelectedService"></i>
+                                </span>
+                                <!-- /ko -->
+                            </div>
+                        </div>
+                        <!-- /ko -->
                         <div class="col-12">
                             <label class="form-label small">Personel * <small class="text-muted fw-normal">(tikla sec)</small></label>
                             <div class="d-flex flex-wrap gap-1" data-bind="foreach: staffList">

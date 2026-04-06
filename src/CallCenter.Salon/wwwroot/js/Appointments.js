@@ -197,13 +197,40 @@ function AppointmentsViewModel() {
         });
     };
 
-    // ═══ Hizmet Toggle (tikla sec/kaldir) ═══
+    // ═══ Kategori + Hizmet Secimi ═══
+    self.selectedCategoryId = ko.observable(null);
+
+    self.selectedCategoryServices = ko.computed(function () {
+        var catId = self.selectedCategoryId();
+        if (!catId) return [];
+        var cat = self.serviceList().find(function (c) { return c.id === catId; });
+        return cat ? (cat.services || []) : [];
+    });
+
+    // Tum servis listesinden secilen ID'lerin isimlerini bul
+    self.selectedServiceNames = ko.computed(function () {
+        var ids = self.form.serviceIds();
+        if (!ids || !ids.length) return [];
+        var allServices = [];
+        self.serviceList().forEach(function (cat) {
+            (cat.services || []).forEach(function (s) { allServices.push(s); });
+        });
+        return ids.map(function (id) {
+            var svc = allServices.find(function (s) { return s.id === id; });
+            return svc ? { id: svc.id, name: svc.name } : { id: id, name: '?' };
+        });
+    });
+
     self.toggleService = function (serviceId) {
         var ids = self.form.serviceIds().slice();
         var idx = ids.indexOf(serviceId);
         if (idx >= 0) ids.splice(idx, 1);
         else ids.push(serviceId);
         self.form.serviceIds(ids);
+    };
+
+    self.removeSelectedService = function (svc) {
+        self.toggleService(svc.id);
     };
 
     // dateRanges degisince otomatik yukle

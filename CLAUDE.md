@@ -22,6 +22,20 @@ Rehberdeki tüm kurallar, hatalar ve tercihler bu oturumda GEÇERLİDİR.
 ### 3. Rehber Okunamazsa
 ClaudeManager'a erişilemiyorsa kullanıcıyı bilgilendir ve onay almadan devam etme.
 
+### 4. DEPLOY BİLGİLERİ ClaudeManager'da
+Deploy bilgileri (Cloud Run servis adları, domain'ler, Dockerfile konumları, env var'lar, credential'lar) **ClaudeManager Notes**'ta saklanır. Deploy yapmadan önce **mutlaka** ilgili notları oku:
+```
+curl -s http://127.0.0.1:41847/api/projects/15/notes
+```
+Önemli notlar: #52 (API Deploy), #114 (Salon Deploy), #58 (Windows App).
+
+**Dockerfile KURALI:** Root Dockerfile her zaman API'ye ait olmalı. Salon/CRM/Management deploy ederken:
+1. `cp Dockerfile Dockerfile.api.bak`
+2. `cp src/CallCenter.{Proje}/Dockerfile Dockerfile`
+3. Deploy et
+4. `mv Dockerfile.api.bak Dockerfile` ← **UNUTMA!**
+5. `head -3 Dockerfile` ile doğrula (CallCenter API yazmalı)
+
 ---
 
 ## ClaudeManager v2.0 Kullanım Kılavuzu
