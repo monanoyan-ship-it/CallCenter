@@ -27,4 +27,10 @@ public class ModulesController : MgmtBaseController
         ViewData["Title"] = "Modul Talepleri";
         return View();
     }
+
+    public IActionResult Inventory()
+    {
+        ViewData["Title"] = "Modul Envanteri";
+        return View();
+    }
 }

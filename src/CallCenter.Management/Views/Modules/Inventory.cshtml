@@ -1,0 +1,127 @@
+@using CallCenter.Shared.Enums
+@{
+    ViewData["Title"] = "Modül Envanteri";
+    var groups = SalonModuleGroups.GetAllWithModules();
+    var defaultModules = SalonPortalModules.Defaults.ToList();
+}
+
+<div>
+    <small class="text-muted d-block mb-3">Salon uygulamasındaki tüm modüllerin durumu. Bu sayfa kod tarafından otomatik oluşturulur.</small>
+
+    <!-- Özet -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-primary border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Toplam Modül</div>
+                    <h4 class="mb-0">@SalonPortalModules.All.Count()</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-success border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Default (Dahil)</div>
+                    <h4 class="mb-0">@defaultModules.Count</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-warning border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Opsiyonel</div>
+                    <h4 class="mb-0">@(SalonPortalModules.All.Count() - defaultModules.Count)</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-info border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Grup Sayısı</div>
+                    <h4 class="mb-0">@groups.Count</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temel Paket -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2"><strong><i class="bi bi-check-circle text-success me-1"></i>Temel Paket (@defaultModules.Count modül)</strong></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th style="width:40px;"></th><th>ID</th><th>SystemName</th><th>Açıklama</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in defaultModules)
+                        {
+                            <tr>
+                                <td><i class="bi @m.Icon" style="color:#6f42c1;"></i></td>
+                                <td><code>@m.Id</code></td>
+                                <td><code>@m.SystemName</code></td>
+                                <td>@m.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gruplar -->
+    @foreach (var g in groups)
+    {
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-2">
+                <strong><i class="bi @g.Group.Icon me-1"></i>@g.Group.Description (@g.Modules.Count modül)</strong>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr><th style="width:40px;"></th><th>ID</th><th>SystemName</th><th>Açıklama</th><th>Grup ID</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in g.Modules)
+                            {
+                                <tr>
+                                    <td><i class="bi @m.Icon" style="color:#6c757d;"></i></td>
+                                    <td><code>@m.Id</code></td>
+                                    <td><code>@m.SystemName</code></td>
+                                    <td>@m.Description</td>
+                                    <td><span class="badge bg-light text-dark">@g.Group.Id</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Roller -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2"><strong><i class="bi bi-shield me-1"></i>Salon Rolleri</strong></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>ID</th><th>SystemName</th><th>Açıklama</th><th>Default</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in SalonRoles.All)
+                        {
+                            <tr>
+                                <td><code>@r.Id</code></td>
+                                <td><code>@r.SystemName</code></td>
+                                <td><i class="bi @r.Icon me-1"></i>@r.Description</td>
+                                <td>@(r.IsDefault ? "Evet" : "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
