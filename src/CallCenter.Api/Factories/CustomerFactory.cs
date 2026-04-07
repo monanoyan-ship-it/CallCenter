@@ -390,8 +390,9 @@ public class CustomerFactory : ICustomerFactory
         return customer.PortalModules
             .Select(pm =>
             {
-                var moduleDef = PortalModules.GetById(pm.ModuleId)
-                             ?? SalonPortalModules.GetById(pm.ModuleId);
+                var ccDef = PortalModules.GetById(pm.ModuleId);
+                var slnDef = SalonPortalModules.GetById(pm.ModuleId);
+                var moduleDef = ccDef ?? slnDef;
                 if (moduleDef == null) return null;
                 pricingMap.TryGetValue(pm.ModuleId, out var pricing);
                 return new PortalModuleDto
@@ -402,6 +403,7 @@ public class CustomerFactory : ICustomerFactory
                     Icon = moduleDef.Icon,
                     IsActive = pm.IsActive,
                     IsDefault = moduleDef.IsDefault,
+                    ProductTypeId = ccDef != null ? PortalModules.ProductTypeId : SalonPortalModules.ProductTypeId,
                     CatalogPrice = pricing?.MonthlyPrice ?? 0,
                     CustomerPrice = pm.MonthlyPrice,
                     TrialEndsAt = pm.TrialEndsAt,
@@ -473,8 +475,22 @@ public class CustomerFactory : ICustomerFactory
         var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
         if (customer == null) return (false, 0, "Müşteri bulunamadı.");
 
+        // Hangi urunleri kullaniyor? Ona gore modulleri senkronize et
+        var products = await _db.CustomerProducts
+            .Where(p => p.CustomerId == customerId && p.IsActive)
+            .Select(p => p.ProductTypeId)
+            .ToListAsync();
+
+        var allModules = new List<TypeItem>();
+        if (products.Contains(PortalModules.ProductTypeId))
+            allModules.AddRange(PortalModules.All);
+        if (products.Contains(SalonPortalModules.ProductTypeId))
+            allModules.AddRange(SalonPortalModules.All);
+        // Hicbir urun yoksa default olarak Salon ekle
+        if (allModules.Count == 0)
+            allModules.AddRange(SalonPortalModules.All);
+
         var existingModuleIds = customer.PortalModules.Select(pm => pm.ModuleId).ToHashSet();
-        var allModules = PortalModules.All;
         var addedCount = 0;
 
         foreach (var module in allModules)
@@ -485,7 +501,7 @@ public class CustomerFactory : ICustomerFactory
             {
                 CustomerId = customerId,
                 ModuleId = module.Id,
-                IsActive = false,
+                IsActive = module.IsDefault,
                 Notes = "Otomatik senkronizasyon ile eklendi"
             });
             addedCount++;
@@ -495,6 +511,30 @@ public class CustomerFactory : ICustomerFactory
             await _uow.SaveChangesAsync();
 
         return (true, addedCount, null);
+    }
+
+    public async Task<(bool Success, int RemovedCount, string? Error)> CleanupModulesAsync(int customerId, string keep)
+    {
+        var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
+        if (customer == null) return (false, 0, "Müşteri bulunamadı.");
+
+        var salonIds = SalonPortalModules.All.Select(m => m.Id).ToHashSet();
+        var ccIds = PortalModules.All.Select(m => m.Id).ToHashSet();
+
+        var toRemove = keep.ToLower() switch
+        {
+            "salon" => customer.PortalModules.Where(m => ccIds.Contains(m.ModuleId)).ToList(),
+            "callcenter" => customer.PortalModules.Where(m => salonIds.Contains(m.ModuleId)).ToList(),
+            _ => new List<CustomerPortalModule>()
+        };
+
+        foreach (var m in toRemove)
+            _moduleEs.Remove(m);
+
+        if (toRemove.Count > 0)
+            await _uow.SaveChangesAsync();
+
+        return (true, toRemove.Count, null);
     }
 
     // ═══ Salon Self-Registration ═══

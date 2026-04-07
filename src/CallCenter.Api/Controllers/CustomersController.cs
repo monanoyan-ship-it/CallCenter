@@ -129,6 +129,16 @@ public class CustomersController : AuditableControllerBase
         return Ok();
     }
 
+    /// <summary>Tek modulu aktif et</summary>
+    [HttpPost("{id}/modules/{moduleId}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> ActivateModule(int id, int moduleId)
+    {
+        var (success, error) = await _customerFactory.AssignModulesAsync(id, new AssignModulesRequest { ModuleIds = [moduleId] });
+        if (!success) return BadRequest(new { message = error });
+        return Ok();
+    }
+
     /// <summary>Modulu deaktif et</summary>
     [HttpPost("{id}/modules/{moduleId}/deactivate")]
     [Authorize(Roles = "Admin")]
@@ -147,6 +157,16 @@ public class CustomersController : AuditableControllerBase
         var (success, addedCount, error) = await _customerFactory.SyncMissingModulesAsync(id);
         if (!success) return BadRequest(new { message = error });
         return Ok(new { addedCount });
+    }
+
+    /// <summary>Musterinin belirtilen urun tipine ait olmayan modulleri sil</summary>
+    [HttpDelete("{id}/modules/cleanup")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> CleanupModules(int id, [FromQuery] string keep = "salon")
+    {
+        var (success, removedCount, error) = await _customerFactory.CleanupModulesAsync(id, keep);
+        if (!success) return BadRequest(new { message = error });
+        return Ok(new { removed = removedCount });
     }
 
     // BILLING

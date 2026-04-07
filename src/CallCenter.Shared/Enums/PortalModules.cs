@@ -7,6 +7,8 @@ namespace CallCenter.Shared.Enums;
 /// </summary>
 public static class PortalModules
 {
+    public const int ProductTypeId = 1; // CallCenter
+
     public static readonly TypeItem Dashboard = new(1, "Dashboard", "PortalModule.Dashboard", "Gosterge paneli", "bi-speedometer2", "bg-primary", 1, isDefault: true);
     public static readonly TypeItem Calls = new(2, "Calls", "PortalModule.Calls", "Arama yonetimi", "bi-telephone-fill", "bg-success", 2, isDefault: true);
     public static readonly TypeItem Reports = new(3, "Reports", "PortalModule.Reports", "Raporlama", "bi-file-earmark-bar-graph", "bg-info", 3);

@@ -6,6 +6,8 @@ namespace CallCenter.Shared.Enums;
 /// </summary>
 public static class SalonPortalModules
 {
+    public const int ProductTypeId = 2; // Salon
+
     public static readonly TypeItem SlnDashboard = new(201, "SlnDashboard", "SalonModule.Dashboard", "Dashboard", "bi-speedometer2", "bg-primary", 1, isDefault: true);
     public static readonly TypeItem SlnClients = new(202, "SlnClients", "SalonModule.Clients", "Musteri yonetimi", "bi-people-fill", "bg-success", 2, isDefault: true);
     public static readonly TypeItem SlnAppointments = new(203, "SlnAppointments", "SalonModule.Appointments", "Randevu yonetimi", "bi-calendar-check", "bg-info", 3, isDefault: true);

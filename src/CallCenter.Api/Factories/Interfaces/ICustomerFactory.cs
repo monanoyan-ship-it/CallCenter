@@ -19,6 +19,7 @@ public interface ICustomerFactory
     Task<(bool Success, string? Error)> AssignModulesAsync(int customerId, AssignModulesRequest request);
     Task<(bool Success, string? Error)> DeactivateModuleAsync(int customerId, int moduleId);
     Task<(bool Success, int AddedCount, string? Error)> SyncMissingModulesAsync(int customerId);
+    Task<(bool Success, int RemovedCount, string? Error)> CleanupModulesAsync(int customerId, string keep);
 
     /// <summary>Salon self-registration: musteri + admin + default moduller olustur + login token dondur</summary>
     Task<SlnRegisterResponse> SalonRegisterAsync(SlnRegisterRequest request);

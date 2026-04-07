@@ -20,6 +20,8 @@ public class PortalModuleDto
     public string? Icon { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
+    /// <summary>1 = CallCenter, 2 = Salon</summary>
+    public int ProductTypeId { get; set; }
     public decimal CatalogPrice { get; set; }
     public decimal? CustomerPrice { get; set; }
     public decimal EffectivePrice => CustomerPrice ?? CatalogPrice;

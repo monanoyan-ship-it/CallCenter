@@ -192,61 +192,70 @@
 
         <!-- Moduller -->
         <div class="tab-pane fade" id="tabModules">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <strong>Moduller</strong>
-                    <div>
-                        <span class="text-muted small me-3" data-bind="text: 'Toplam Aylik: ' + moduleTotalPrice() + ' TL'"></span>
-                        <button class="btn btn-outline-primary btn-sm me-1" data-bind="click: syncModules" title="Eksik modulleri otomatik ekle">
-                            <i class="bi bi-arrow-repeat me-1"></i>Senkronize Et
-                        </button>
-                        <button class="btn btn-success btn-sm" data-bind="click: activateAllDefaults" title="Default modulleri aktif et">
-                            <i class="bi bi-check-all me-1"></i>Default Aktif Et
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Modul</th>
-                                    <th>Default</th>
-                                    <th>Durum</th>
-                                    <th>Katalog Fiyat</th>
-                                    <th>Firma Fiyat</th>
-                                    <th>Gecerli Fiyat</th>
-                                    <th>Trial Bitis</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody data-bind="foreach: modules">
-                                <tr>
-                                    <td>
-                                        <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }"></i>
-                                        <span data-bind="text: description || systemName"></span>
-                                    </td>
-                                    <td><span class="badge" data-bind="text: isDefault ? 'Evet' : '-', css: isDefault ? 'bg-info' : 'bg-light text-muted'"></span></td>
-                                    <td>
-                                        <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
-                                    </td>
-                                    <td data-bind="text: catalogPrice > 0 ? catalogPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
-                                    <td data-bind="text: customerPrice != null ? customerPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
-                                    <td class="fw-bold" data-bind="text: effectivePrice > 0 ? effectivePrice.toLocaleString('tr-TR') + ' TL' : 'Ucretsiz'"></td>
-                                    <td data-bind="text: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('tr-TR') : '-'"></td>
-                                    <td>
-                                        <button class="btn btn-outline-warning btn-sm" data-bind="click: $parent.toggleModule, text: isActive ? 'Deaktif Et' : 'Aktif Et'"></button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-center py-3 text-muted" data-bind="visible: modules().length === 0">Modul atanmamis.</div>
+            <!-- Ust Bar: Senkronize + Default Aktif -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted small" data-bind="text: 'Toplam Aylik: ' + moduleTotalPrice() + ' TL'"></span>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm me-1" data-bind="click: syncModules">
+                        <i class="bi bi-arrow-repeat me-1"></i>Senkronize Et
+                    </button>
+                    <button class="btn btn-success btn-sm" data-bind="click: activateAllDefaults">
+                        <i class="bi bi-check-all me-1"></i>Default Aktif Et
+                    </button>
                 </div>
             </div>
 
+            <!-- Accordion: Urun bazli modul gruplari -->
+            <div class="accordion" id="moduleAccordion">
+                <!-- ko foreach: moduleGroups -->
+                <div class="accordion-item border-0 shadow-sm mb-2">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                            data-bind="attr: { 'data-bs-target': '#moduleGroup' + productTypeId }, text: productName + ' (' + modules.length + ' modul)'">
+                        </button>
+                    </h2>
+                    <div class="accordion-collapse collapse show" data-bind="attr: { id: 'moduleGroup' + productTypeId }">
+                        <div class="accordion-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Modul</th>
+                                            <th>Default</th>
+                                            <th>Durum</th>
+                                            <th>Katalog Fiyat</th>
+                                            <th>Firma Fiyat</th>
+                                            <th>Gecerli Fiyat</th>
+                                            <th>Trial Bitis</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-bind="foreach: modules">
+                                        <tr>
+                                            <td>
+                                                <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + ($data.icon || 'bi-puzzle') }"></i>
+                                                <span data-bind="text: $data.description || $data.systemName || '-'"></span>
+                                            </td>
+                                            <td><span class="badge" data-bind="text: $data.isDefault ? 'Evet' : '-', css: $data.isDefault ? 'bg-info' : 'bg-light text-muted'"></span></td>
+                                            <td><span class="badge" data-bind="text: $data.isActive ? 'Aktif' : 'Pasif', css: $data.isActive ? 'bg-success' : 'bg-danger'"></span></td>
+                                            <td data-bind="text: ($data.catalogPrice || 0) > 0 ? $data.catalogPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                            <td data-bind="text: $data.customerPrice != null ? $data.customerPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                            <td class="fw-bold" data-bind="text: ($data.effectivePrice || 0) > 0 ? $data.effectivePrice.toLocaleString('tr-TR') + ' TL' : 'Ucretsiz'"></td>
+                                            <td data-bind="text: $data.trialEndsAt ? new Date($data.trialEndsAt).toLocaleDateString('tr-TR') : '-'"></td>
+                                            <td><button class="btn btn-outline-warning btn-sm" data-bind="click: $parents[1].toggleModule, text: $data.isActive ? 'Deaktif Et' : 'Aktif Et'"></button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /ko -->
+            </div>
+            <div class="text-center py-3 text-muted" data-bind="visible: moduleGroups().length === 0">Modul atanmamis. Senkronize Et butonuna basin.</div>
+
             <!-- Bekleyen Talepler -->
-            <div class="card border-0 shadow-sm" data-bind="visible: moduleRequests().length > 0">
+            <div class="card border-0 shadow-sm mt-3" data-bind="visible: moduleRequests().length > 0">
                 <div class="card-header bg-white"><strong>Bekleyen Talepler</strong></div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -297,10 +306,26 @@ function DetailViewModel() {
     self.billing = ko.observableArray([]);
     self.modules = ko.observableArray([]);
     self.moduleRequests = ko.observableArray([]);
+
+    self.moduleGroups = ko.computed(function () {
+        var all = self.modules() || [];
+        var types = self.productTypes() || [];
+        var nameMap = {};
+        types.forEach(function (t) { nameMap[t.id] = t.name; });
+
+        var grouped = {};
+        all.forEach(function (m) {
+            var ptId = m.productTypeId || 0;
+            if (!grouped[ptId]) grouped[ptId] = { productTypeId: ptId, productName: nameMap[ptId] || ('Urun #' + ptId), modules: [] };
+            grouped[ptId].modules.push(m);
+        });
+        return Object.values(grouped).sort(function (a, b) { return a.productTypeId - b.productTypeId; });
+    });
+
     self.moduleTotalPrice = ko.computed(function () {
         var total = 0;
-        self.modules().forEach(function (m) {
-            if (m.isActive && !m.isDefault) total += (m.effectivePrice || 0);
+        (self.modules() || []).forEach(function (m) {
+            if (m && m.isActive && !m.isDefault) total += (m.effectivePrice || 0);
         });
         return total.toLocaleString('tr-TR');
     });
