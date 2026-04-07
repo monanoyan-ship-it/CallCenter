@@ -7,23 +7,23 @@ namespace CallCenter.Shared.Enums;
 public static class ServiceTypes
 {
     // ─── Dahil (Default) Hizmetler ───
-    public static readonly TypeItem CagriDagitimi = new(1, "CagriDagitimi", "Service.CagriDagitimi", "Cagri dagitimi (ACD)", "bi-telephone-forward-fill", "bg-success", 1, isDefault: true);
-    public static readonly TypeItem CagriKaydi = new(2, "CagriKaydi", "Service.CagriKaydi", "Cagri kaydi (CDR)", "bi-journal-text", "bg-success", 2, isDefault: true);
-    public static readonly TypeItem SesKayitlari = new(3, "SesKayitlari", "Service.SesKayitlari", "Ses kayitlari", "bi-record-circle", "bg-success", 3, isDefault: true);
+    public static readonly TypeItem CagriDagitimi = new(1, "CagriDagitimi", "Service.CagriDagitimi", "Çağrı Dağıtımı (ACD)", "bi-telephone-forward-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem CagriKaydi = new(2, "CagriKaydi", "Service.CagriKaydi", "Çağrı Kaydı (CDR)", "bi-journal-text", "bg-success", 2, isDefault: true);
+    public static readonly TypeItem SesKayitlari = new(3, "SesKayitlari", "Service.SesKayitlari", "Ses Kayıtları", "bi-record-circle", "bg-success", 3, isDefault: true);
 
     // ─── Premium (Ucretli) Hizmetler ───
-    public static readonly TypeItem IVR = new(4, "IVR", "Service.IVR", "Sesli yonlendirme (IVR)", "bi-telephone-inbound-fill", "bg-warning text-dark", 4);
-    public static readonly TypeItem KaliteYonetimi = new(5, "KaliteYonetimi", "Service.KaliteYonetimi", "Kalite degerlendirme", "bi-clipboard-check", "bg-warning text-dark", 5);
-    public static readonly TypeItem CRM = new(6, "CRM", "Service.CRM", "CRM modulu (musteri karti, ticket, pipeline)", "bi-person-lines-fill", "bg-warning text-dark", 6);
-    public static readonly TypeItem KampanyaModulu = new(7, "KampanyaModulu", "Service.KampanyaModulu", "Kampanya modulu", "bi-megaphone-fill", "bg-success", 7, isDefault: true);
-    public static readonly TypeItem GelismisRaporlama = new(8, "GelismisRaporlama", "Service.GelismisRaporlama", "Gelismis raporlama", "bi-file-earmark-bar-graph", "bg-success", 8, isDefault: true);
-    public static readonly TypeItem SMSMesajlasma = new(9, "SMSMesajlasma", "Service.SMSMesajlasma", "SMS / Mesajlasma", "bi-chat-dots-fill", "bg-warning text-dark", 9);
-    public static readonly TypeItem APIErisimi = new(10, "APIErisimi", "Service.APIErisimi", "API erisimi", "bi-braces", "bg-warning text-dark", 10);
-    public static readonly TypeItem BulutDepolama = new(11, "BulutDepolama", "Service.BulutDepolama", "Bulut depolama", "bi-cloud-upload", "bg-success", 11, isDefault: true);
-    public static readonly TypeItem EkSipHat = new(12, "EkSipHat", "Service.EkSipHat", "Ek SIP hat", "bi-router-fill", "bg-warning text-dark", 12);
-    public static readonly TypeItem KVKKPaketi = new(14, "KVKKPaketi", "Service.KVKKPaketi", "KVKK uyumluluk paketi", "bi-shield-check", "bg-success", 14, isDefault: true);
-    public static readonly TypeItem OncelikliDestek = new(15, "OncelikliDestek", "Service.OncelikliDestek", "7/24 oncelikli destek", "bi-headset", "bg-warning text-dark", 15);
-    public static readonly TypeItem SesliKarsilama = new(16, "SesliKarsilama", "Service.SesliKarsilama", "Sesli karsilama (Auto-Attendant)", "bi-soundwave", "bg-warning text-dark", 16);
+    public static readonly TypeItem IVR = new(4, "IVR", "Service.IVR", "Sesli Yönlendirme (IVR)", "bi-telephone-inbound-fill", "bg-warning text-dark", 4);
+    public static readonly TypeItem KaliteYonetimi = new(5, "KaliteYonetimi", "Service.KaliteYonetimi", "Kalite Değerlendirme", "bi-clipboard-check", "bg-warning text-dark", 5);
+    public static readonly TypeItem CRM = new(6, "CRM", "Service.CRM", "CRM Modülü (Müşteri Kartı, Ticket, Pipeline)", "bi-person-lines-fill", "bg-warning text-dark", 6);
+    public static readonly TypeItem KampanyaModulu = new(7, "KampanyaModulu", "Service.KampanyaModulu", "Kampanya Modülü", "bi-megaphone-fill", "bg-success", 7, isDefault: true);
+    public static readonly TypeItem GelismisRaporlama = new(8, "GelismisRaporlama", "Service.GelismisRaporlama", "Gelişmiş Raporlama", "bi-file-earmark-bar-graph", "bg-success", 8, isDefault: true);
+    public static readonly TypeItem SMSMesajlasma = new(9, "SMSMesajlasma", "Service.SMSMesajlasma", "SMS / Mesajlaşma", "bi-chat-dots-fill", "bg-warning text-dark", 9);
+    public static readonly TypeItem APIErisimi = new(10, "APIErisimi", "Service.APIErisimi", "API Erişimi", "bi-braces", "bg-warning text-dark", 10);
+    public static readonly TypeItem BulutDepolama = new(11, "BulutDepolama", "Service.BulutDepolama", "Bulut Depolama", "bi-cloud-upload", "bg-success", 11, isDefault: true);
+    public static readonly TypeItem EkSipHat = new(12, "EkSipHat", "Service.EkSipHat", "Ek SIP Hat", "bi-router-fill", "bg-warning text-dark", 12);
+    public static readonly TypeItem KVKKPaketi = new(14, "KVKKPaketi", "Service.KVKKPaketi", "KVKK Uyumluluk Paketi", "bi-shield-check", "bg-success", 14, isDefault: true);
+    public static readonly TypeItem OncelikliDestek = new(15, "OncelikliDestek", "Service.OncelikliDestek", "7/24 Öncelikli Destek", "bi-headset", "bg-warning text-dark", 15);
+    public static readonly TypeItem SesliKarsilama = new(16, "SesliKarsilama", "Service.SesliKarsilama", "Sesli Karşılama (Auto-Attendant)", "bi-soundwave", "bg-warning text-dark", 16);
     public static IEnumerable<TypeItem> All => new[]
     {
         CagriDagitimi, CagriKaydi, SesKayitlari,
@@ -66,8 +66,8 @@ public static class ServiceTypes
 
 public static class ServiceCategories
 {
-    public static readonly TypeItem Default = new(1, "Default", "ServiceCategory.Default", "Standart dahil hizmet", "bi-check-circle-fill", "bg-success", 1, isDefault: true);
-    public static readonly TypeItem Premium = new(2, "Premium", "ServiceCategory.Premium", "Ucretli ek hizmet", "bi-star-fill", "bg-warning text-dark", 2);
+    public static readonly TypeItem Default = new(1, "Default", "ServiceCategory.Default", "Standart Dahil Hizmet", "bi-check-circle-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem Premium = new(2, "Premium", "ServiceCategory.Premium", "Ücretli Ek Hizmet", "bi-star-fill", "bg-warning text-dark", 2);
 
     public static IEnumerable<TypeItem> All => new[] { Default, Premium };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -81,9 +81,9 @@ public static class ServiceCategories
 
 public static class SubscriptionStatuses
 {
-    public static readonly TypeItem Active = new(1, "Active", "SubscriptionStatus.Active", "Aktif abonelik", "bi-check-circle-fill", "bg-success", 1, isDefault: true);
-    public static readonly TypeItem Suspended = new(2, "Suspended", "SubscriptionStatus.Suspended", "Askiya alinmis", "bi-pause-circle-fill", "bg-warning text-dark", 2);
-    public static readonly TypeItem Cancelled = new(3, "Cancelled", "SubscriptionStatus.Cancelled", "Iptal edilmis", "bi-x-circle-fill", "bg-danger", 3);
+    public static readonly TypeItem Active = new(1, "Active", "SubscriptionStatus.Active", "Aktif Abonelik", "bi-check-circle-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem Suspended = new(2, "Suspended", "SubscriptionStatus.Suspended", "Askıya Alınmış", "bi-pause-circle-fill", "bg-warning text-dark", 2);
+    public static readonly TypeItem Cancelled = new(3, "Cancelled", "SubscriptionStatus.Cancelled", "İptal Edilmiş", "bi-x-circle-fill", "bg-danger", 3);
 
     public static IEnumerable<TypeItem> All => new[] { Active, Suspended, Cancelled };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -99,9 +99,9 @@ public static class SubscriptionStatuses
 public static class BillingPeriodStatuses
 {
     public static readonly TypeItem Draft = new(1, "Draft", "BillingPeriodStatus.Draft", "Tahakkuk", "bi-pencil-fill", "bg-warning text-dark", 1, isDefault: true);
-    public static readonly TypeItem Invoiced = new(2, "Invoiced", "BillingPeriodStatus.Invoiced", "Faturalanmis", "bi-receipt", "bg-info", 2);
-    public static readonly TypeItem Paid = new(3, "Paid", "BillingPeriodStatus.Paid", "Odenmis", "bi-check-circle-fill", "bg-success", 3);
-    public static readonly TypeItem Overdue = new(4, "Overdue", "BillingPeriodStatus.Overdue", "Gecikme", "bi-exclamation-triangle-fill", "bg-danger", 4);
+    public static readonly TypeItem Invoiced = new(2, "Invoiced", "BillingPeriodStatus.Invoiced", "Faturalanmış", "bi-receipt", "bg-info", 2);
+    public static readonly TypeItem Paid = new(3, "Paid", "BillingPeriodStatus.Paid", "Ödenmiş", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem Overdue = new(4, "Overdue", "BillingPeriodStatus.Overdue", "Gecikmiş", "bi-exclamation-triangle-fill", "bg-danger", 4);
 
     public static IEnumerable<TypeItem> All => new[] { Draft, Invoiced, Paid, Overdue };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -119,7 +119,7 @@ public static class BillingPaymentMethods
 {
     public static readonly TypeItem Havale = new(1, "Havale", "BillingPaymentMethod.Havale", "Havale/EFT", "bi-bank", "bg-primary", 1);
     public static readonly TypeItem MailOrder = new(2, "MailOrder", "BillingPaymentMethod.MailOrder", "Mail Order", "bi-credit-card-2-front", "bg-info", 2);
-    public static readonly TypeItem KrediKarti = new(3, "KrediKarti", "BillingPaymentMethod.KrediKarti", "Kredi Karti", "bi-credit-card", "bg-success", 3);
+    public static readonly TypeItem KrediKarti = new(3, "KrediKarti", "BillingPaymentMethod.KrediKarti", "Kredi Kartı", "bi-credit-card", "bg-success", 3);
 
     public static IEnumerable<TypeItem> All => new[] { Havale, MailOrder, KrediKarti };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -135,9 +135,9 @@ public static class BillingPaymentMethods
 public static class BillingItemStatuses
 {
     public static readonly TypeItem Pending = new(1, "Pending", "BillingItemStatus.Pending", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);
-    public static readonly TypeItem Invoiced = new(2, "Invoiced", "BillingItemStatus.Invoiced", "Faturalanmis", "bi-receipt", "bg-info", 2);
-    public static readonly TypeItem Paid = new(3, "Paid", "BillingItemStatus.Paid", "Odenmis", "bi-check-circle-fill", "bg-success", 3);
-    public static readonly TypeItem Overdue = new(4, "Overdue", "BillingItemStatus.Overdue", "Gecmis", "bi-exclamation-triangle-fill", "bg-danger", 4);
+    public static readonly TypeItem Invoiced = new(2, "Invoiced", "BillingItemStatus.Invoiced", "Faturalanmış", "bi-receipt", "bg-info", 2);
+    public static readonly TypeItem Paid = new(3, "Paid", "BillingItemStatus.Paid", "Ödenmiş", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem Overdue = new(4, "Overdue", "BillingItemStatus.Overdue", "Gecikmiş", "bi-exclamation-triangle-fill", "bg-danger", 4);
 
     public static IEnumerable<TypeItem> All => new[] { Pending, Invoiced, Paid, Overdue };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);

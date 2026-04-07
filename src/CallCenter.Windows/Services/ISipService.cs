@@ -105,4 +105,8 @@ public interface ISipService : IAsyncDisposable
 
     // ─── Hold Music ───
     void SetHoldMusicEnabled(bool enabled);
+
+    // ─── Reset ───
+    /// <summary>SIP baglantiyi sifirla: tum hatlari temizle, re-register yap, API'deki hat atamasini serbest birak</summary>
+    Task ResetConnectionAsync();
 }

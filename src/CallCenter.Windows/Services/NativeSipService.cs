@@ -2086,6 +2086,49 @@ public class NativeSipService : ISipService
     };
 
     // ═══════════════════════════════════════════════════
+    // RESET
+    // ═══════════════════════════════════════════════════
+
+    public async Task ResetConnectionAsync()
+    {
+        Log("[SIP] === BAGLANTI SIFIRLANIYOR ===");
+
+        // 1. Tum hatlari temizle
+        for (int i = 0; i < MaxLines; i++)
+            CleanupLine(_lines[i]);
+
+        // 2. Kayit agentini durdur
+        if (_regAgent != null)
+        {
+            _regAgent.Stop();
+            _regAgent = null;
+        }
+
+        // 3. SIP transport'u kapat
+        if (_sipTransport != null)
+        {
+            _sipTransport.Shutdown();
+            _sipTransport = null;
+        }
+
+        IsRegistered = false;
+        _winAudioEndPoint = null;
+        Log("[SIP] Tum hatlar ve baglanti temizlendi.");
+
+        // 4. Config varsa yeniden baglanti kur
+        if (_config != null)
+        {
+            await Task.Delay(1000); // Gateway'in temizlenmesi icin kisa bekleme
+            Log("[SIP] Yeniden baglanti kuruluyor...");
+            await InitializeAsync(_config);
+        }
+        else
+        {
+            Log("[SIP] Config yok — manuel baglanti gerekli.");
+        }
+    }
+
+    // ═══════════════════════════════════════════════════
     // DISPOSE
     // ═══════════════════════════════════════════════════
 

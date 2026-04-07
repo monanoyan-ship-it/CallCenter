@@ -2,9 +2,9 @@ namespace CallCenter.Shared.Enums;
 
 public static class MessageTypes
 {
-    public static readonly TypeItem Text = new(1, "Text", "MessageType.Text", "Metin mesaji", "bi-chat-dots", "bg-primary", 1, isDefault: true);
-    public static readonly TypeItem System = new(2, "System", "MessageType.System", "Sistem mesaji", "bi-info-circle", "bg-secondary", 2);
-    public static readonly TypeItem File = new(3, "File", "MessageType.File", "Dosya mesaji", "bi-paperclip", "bg-info", 3);
+    public static readonly TypeItem Text = new(1, "Text", "MessageType.Text", "Metin Mesajı", "bi-chat-dots", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem System = new(2, "System", "MessageType.System", "Sistem Mesajı", "bi-info-circle", "bg-secondary", 2);
+    public static readonly TypeItem File = new(3, "File", "MessageType.File", "Dosya Mesajı", "bi-paperclip", "bg-info", 3);
 
     public static IEnumerable<TypeItem> All => new[] { Text, System, File };
     public static TypeItem Default => All.First(x => x.IsDefault);

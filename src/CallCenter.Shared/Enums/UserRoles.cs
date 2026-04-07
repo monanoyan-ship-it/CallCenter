@@ -2,10 +2,10 @@ namespace CallCenter.Shared.Enums;
 
 public static class UserRoles
 {
-    public static readonly TypeItem Agent = new(1, "Agent", "Role.Agent", "Cagri merkezi temsilcisi", "bi-headset", "bg-primary", 1, isDefault: true);
-    public static readonly TypeItem Supervisor = new(2, "Supervisor", "Role.Supervisor", "Takim lideri / denetleyici", "bi-eye-fill", "bg-info", 2);
-    public static readonly TypeItem Admin = new(3, "Admin", "Role.Admin", "Sistem yoneticisi", "bi-shield-fill-check", "bg-danger", 3);
-    public static readonly TypeItem CustomerUser = new(4, "CustomerUser", "Role.CustomerUser", "Musteri kullanicisi", "bi-building", "bg-warning", 4);
+    public static readonly TypeItem Agent = new(1, "Agent", "Role.Agent", "Çağrı Merkezi Temsilcisi", "bi-headset", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem Supervisor = new(2, "Supervisor", "Role.Supervisor", "Takım Lideri / Denetleyici", "bi-eye-fill", "bg-info", 2);
+    public static readonly TypeItem Admin = new(3, "Admin", "Role.Admin", "Sistem Yöneticisi", "bi-shield-fill-check", "bg-danger", 3);
+    public static readonly TypeItem CustomerUser = new(4, "CustomerUser", "Role.CustomerUser", "Müşteri Kullanıcısı", "bi-building", "bg-warning", 4);
 
     public static IEnumerable<TypeItem> All => new[] { Agent, Supervisor, Admin, CustomerUser };
     public static TypeItem Default => All.First(x => x.IsDefault);

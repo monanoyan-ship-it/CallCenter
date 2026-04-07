@@ -1,5 +1,6 @@
 @inject CallCenter.Windows.Services.ISipService SipService
 @inject CallCenter.Windows.Services.SecureStorage Storage
+@inject HttpClient Http
 
 <div class="dropdown">
     <button class="btn btn-link text-muted btn-audio-settings" title="Ses Ayarlari"
@@ -63,6 +64,20 @@
                         Ses cihazi bulunamadi
                     </div>
                 }
+
+                <div class="audio-section" style="border-top:1px solid #eee; padding-top:8px;">
+                    <button class="btn btn-outline-danger btn-sm w-100" @onclick="ResetSip" disabled="@isResetting">
+                        @if (isResetting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        }
+                        SIP Sifirla
+                    </button>
+                </div>
             }
         </div>
     }
@@ -75,6 +90,7 @@
     private List<CallCenter.Windows.Models.AudioDeviceInfo> speakers = new();
     private int selectedMicIndex = -1;
     private int selectedSpeakerIndex = -1;
+    private bool isResetting;
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,5 +153,25 @@
         selectedSpeakerIndex = deviceIndex;
         await SipService.SetAudioOutputDeviceAsync(deviceIndex);
         await Storage.SetAsync("audio_output_device", deviceIndex.ToString());
+    }
+
+    private async Task ResetSip()
+    {
+        isResetting = true;
+        StateHasChanged();
+
+        try
+        {
+            // 1. API'deki hat atamasini serbest birak
+            try { await Http.PostAsync("api/sipaccounts/my/release", null); } catch { }
+
+            // 2. SIP baglantiyi sifirla ve yeniden kur
+            await SipService.ResetConnectionAsync();
+        }
+        finally
+        {
+            isResetting = false;
+            StateHasChanged();
+        }
     }
 }

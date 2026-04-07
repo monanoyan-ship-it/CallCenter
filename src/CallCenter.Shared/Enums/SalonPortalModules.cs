@@ -8,36 +8,36 @@ public static class SalonPortalModules
 {
     public const int ProductTypeId = 2; // Salon
 
-    public static readonly TypeItem SlnDashboard = new(201, "SlnDashboard", "SalonModule.Dashboard", "Dashboard", "bi-speedometer2", "bg-primary", 1, isDefault: true);
-    public static readonly TypeItem SlnClients = new(202, "SlnClients", "SalonModule.Clients", "Musteri yonetimi", "bi-people-fill", "bg-success", 2, isDefault: true);
-    public static readonly TypeItem SlnAppointments = new(203, "SlnAppointments", "SalonModule.Appointments", "Randevu yonetimi", "bi-calendar-check", "bg-info", 3, isDefault: true);
-    public static readonly TypeItem SlnServices = new(204, "SlnServices", "SalonModule.Services", "Hizmet tanimlari", "bi-list-check", "bg-warning text-dark", 4, isDefault: true);
-    public static readonly TypeItem SlnProducts = new(205, "SlnProducts", "SalonModule.Products", "Urun ve stok", "bi-box-seam", "bg-secondary", 5);
-    public static readonly TypeItem SlnInvoices = new(206, "SlnInvoices", "SalonModule.Invoices", "Adisyon ve satis", "bi-receipt", "bg-danger", 6, isDefault: true);
-    public static readonly TypeItem SlnCash = new(207, "SlnCash", "SalonModule.Cash", "Kasa yonetimi", "bi-cash-stack", "bg-success", 7);
-    public static readonly TypeItem SlnExpenses = new(208, "SlnExpenses", "SalonModule.Expenses", "Masraf takibi", "bi-credit-card", "bg-dark", 8);
-    public static readonly TypeItem SlnStaff = new(209, "SlnStaff", "SalonModule.Staff", "Personel ve maas", "bi-person-badge", "bg-indigo", 9);
-    public static readonly TypeItem SlnSuppliers = new(210, "SlnSuppliers", "SalonModule.Suppliers", "Tedarikci ve cari", "bi-truck", "bg-teal", 10);
+    public static readonly TypeItem SlnDashboard = new(201, "SlnDashboard", "SalonModule.Dashboard", "Gösterge Paneli", "bi-speedometer2", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem SlnClients = new(202, "SlnClients", "SalonModule.Clients", "Müşteri Yönetimi", "bi-people-fill", "bg-success", 2, isDefault: true);
+    public static readonly TypeItem SlnAppointments = new(203, "SlnAppointments", "SalonModule.Appointments", "Randevu Yönetimi", "bi-calendar-check", "bg-info", 3, isDefault: true);
+    public static readonly TypeItem SlnServices = new(204, "SlnServices", "SalonModule.Services", "Hizmet Tanımları", "bi-list-check", "bg-warning text-dark", 4, isDefault: true);
+    public static readonly TypeItem SlnProducts = new(205, "SlnProducts", "SalonModule.Products", "Ürün ve Stok", "bi-box-seam", "bg-secondary", 5);
+    public static readonly TypeItem SlnInvoices = new(206, "SlnInvoices", "SalonModule.Invoices", "Adisyon ve Satış", "bi-receipt", "bg-danger", 6, isDefault: true);
+    public static readonly TypeItem SlnCash = new(207, "SlnCash", "SalonModule.Cash", "Kasa Yönetimi", "bi-cash-stack", "bg-success", 7);
+    public static readonly TypeItem SlnExpenses = new(208, "SlnExpenses", "SalonModule.Expenses", "Masraf Takibi", "bi-credit-card", "bg-dark", 8);
+    public static readonly TypeItem SlnStaff = new(209, "SlnStaff", "SalonModule.Staff", "Personel ve Maaş", "bi-person-badge", "bg-indigo", 9, isDefault: true);
+    public static readonly TypeItem SlnSuppliers = new(210, "SlnSuppliers", "SalonModule.Suppliers", "Tedarikçi ve Cari", "bi-truck", "bg-teal", 10);
     public static readonly TypeItem SlnReports = new(211, "SlnReports", "SalonModule.Reports", "Raporlama", "bi-bar-chart-line", "bg-orange", 11);
     public static readonly TypeItem SlnCampaigns = new(212, "SlnCampaigns", "SalonModule.Campaigns", "Pazarlama ve SMS", "bi-megaphone-fill", "bg-pink", 12);
-    public static readonly TypeItem SlnBranches = new(213, "SlnBranches", "SalonModule.Branches", "Sube yonetimi", "bi-building", "bg-cyan", 13);
+    public static readonly TypeItem SlnBranches = new(213, "SlnBranches", "SalonModule.Branches", "Şube Yönetimi", "bi-building", "bg-cyan", 13);
 
-    // ─── Yeni moduller (Faz A-D) ───
-    public static readonly TypeItem SlnSales = new(214, "SlnSales", "SalonModule.Sales", "Hizli satis POS", "bi-cart-check-fill", "bg-success", 14, isDefault: true);
-    public static readonly TypeItem SlnRecipes = new(215, "SlnRecipes", "SalonModule.Recipes", "Recete/paket tanimlari", "bi-journal-bookmark", "bg-purple", 15, isDefault: true);
-    public static readonly TypeItem SlnGiftCards = new(216, "SlnGiftCards", "SalonModule.GiftCards", "Hediye kartlari", "bi-gift", "bg-warning text-dark", 16);
-    public static readonly TypeItem SlnPackages = new(217, "SlnPackages", "SalonModule.Packages", "Seans paketleri", "bi-box-seam", "bg-info", 17);
-    public static readonly TypeItem SlnMemberships = new(218, "SlnMemberships", "SalonModule.Memberships", "Uyelik planlari", "bi-award", "bg-primary", 18);
-    public static readonly TypeItem SlnLoyalty = new(219, "SlnLoyalty", "SalonModule.Loyalty", "Sadakat programi", "bi-star", "bg-warning", 19);
-    public static readonly TypeItem SlnProfile = new(220, "SlnProfile", "SalonModule.Profile", "Salon profili", "bi-shop", "bg-dark", 20, isDefault: true);
-    public static readonly TypeItem SlnWaitlist = new(221, "SlnWaitlist", "SalonModule.Waitlist", "Bekleme listesi", "bi-clock-history", "bg-secondary", 21);
-    public static readonly TypeItem SlnEmailCampaigns = new(222, "SlnEmailCampaigns", "SalonModule.EmailCampaigns", "E-posta kampanyalari", "bi-envelope", "bg-info", 22);
-    public static readonly TypeItem SlnReviews = new(223, "SlnReviews", "SalonModule.Reviews", "Yorum yonetimi", "bi-chat-square-text", "bg-success", 23);
-    public static readonly TypeItem SlnNoShowPolicy = new(224, "SlnNoShowPolicy", "SalonModule.NoShowPolicy", "No-show politikasi", "bi-shield-exclamation", "bg-danger", 24);
-    public static readonly TypeItem SlnConsentForms = new(225, "SlnConsentForms", "SalonModule.ConsentForms", "Onay formlari", "bi-file-earmark-text", "bg-secondary", 25);
-    public static readonly TypeItem SlnBeforeAfter = new(226, "SlnBeforeAfter", "SalonModule.BeforeAfter", "Once/sonra fotograflari", "bi-images", "bg-pink", 26);
-    public static readonly TypeItem SlnWinback = new(227, "SlnWinback", "SalonModule.Winback", "Kayip musteri geri kazanim", "bi-arrow-repeat", "bg-orange", 27);
-    public static readonly TypeItem SlnPersonnelPrices = new(228, "SlnPersonnelPrices", "SalonModule.PersonnelPrices", "Personel fiyatlari ve hasilat", "bi-currency-exchange", "bg-teal", 28);
+    // ─── Yeni modüller (Faz A-D) ───
+    public static readonly TypeItem SlnSales = new(214, "SlnSales", "SalonModule.Sales", "Hızlı Satış POS", "bi-cart-check-fill", "bg-success", 14, isDefault: true);
+    public static readonly TypeItem SlnRecipes = new(215, "SlnRecipes", "SalonModule.Recipes", "Reçete Tanımları", "bi-journal-bookmark", "bg-purple", 15, isDefault: true);
+    public static readonly TypeItem SlnGiftCards = new(216, "SlnGiftCards", "SalonModule.GiftCards", "Hediye Kartları", "bi-gift", "bg-warning text-dark", 16);
+    public static readonly TypeItem SlnPackages = new(217, "SlnPackages", "SalonModule.Packages", "Seans Paketleri", "bi-box-seam", "bg-info", 17);
+    public static readonly TypeItem SlnMemberships = new(218, "SlnMemberships", "SalonModule.Memberships", "Üyelik Planları", "bi-award", "bg-primary", 18);
+    public static readonly TypeItem SlnLoyalty = new(219, "SlnLoyalty", "SalonModule.Loyalty", "Sadakat Programı", "bi-star", "bg-warning", 19);
+    public static readonly TypeItem SlnProfile = new(220, "SlnProfile", "SalonModule.Profile", "Salon Profili", "bi-shop", "bg-dark", 20, isDefault: true);
+    public static readonly TypeItem SlnWaitlist = new(221, "SlnWaitlist", "SalonModule.Waitlist", "Bekleme Listesi", "bi-clock-history", "bg-secondary", 21);
+    public static readonly TypeItem SlnEmailCampaigns = new(222, "SlnEmailCampaigns", "SalonModule.EmailCampaigns", "E-posta Kampanyaları", "bi-envelope", "bg-info", 22);
+    public static readonly TypeItem SlnReviews = new(223, "SlnReviews", "SalonModule.Reviews", "Yorum Yönetimi", "bi-chat-square-text", "bg-success", 23);
+    public static readonly TypeItem SlnNoShowPolicy = new(224, "SlnNoShowPolicy", "SalonModule.NoShowPolicy", "No-Show Politikası", "bi-shield-exclamation", "bg-danger", 24);
+    public static readonly TypeItem SlnConsentForms = new(225, "SlnConsentForms", "SalonModule.ConsentForms", "Onay Formları", "bi-file-earmark-text", "bg-secondary", 25);
+    public static readonly TypeItem SlnBeforeAfter = new(226, "SlnBeforeAfter", "SalonModule.BeforeAfter", "Önce/Sonra Fotoğrafları", "bi-images", "bg-pink", 26);
+    public static readonly TypeItem SlnWinback = new(227, "SlnWinback", "SalonModule.Winback", "Kayıp Müşteri Geri Kazanım", "bi-arrow-repeat", "bg-orange", 27);
+    public static readonly TypeItem SlnPersonnelPrices = new(228, "SlnPersonnelPrices", "SalonModule.PersonnelPrices", "Personel Fiyatları ve Hasılat", "bi-currency-exchange", "bg-teal", 28);
 
     public static IEnumerable<TypeItem> All => new[]
     {

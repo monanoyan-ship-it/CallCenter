@@ -3,12 +3,12 @@ namespace CallCenter.Shared.Enums;
 public static class SipPresenceStatuses
 {
     // RFC 3863 PIDF basic status + RFC 4480 RPID activities
-    public static readonly TypeItem Offline = new(1, "closed", "SipPresence.Offline", "Cevrimdisi (closed)", "bi-circle", "offline", 1);
-    public static readonly TypeItem Online = new(2, "open", "SipPresence.Online", "Cevrimici (open)", "bi-circle-fill", "online", 2, isDefault: true);
-    public static readonly TypeItem Busy = new(3, "busy", "SipPresence.Busy", "Mesgul (busy)", "bi-circle-fill", "busy", 3);
+    public static readonly TypeItem Offline = new(1, "closed", "SipPresence.Offline", "Çevrimdışı (closed)", "bi-circle", "offline", 1);
+    public static readonly TypeItem Online = new(2, "open", "SipPresence.Online", "Çevrimiçi (open)", "bi-circle-fill", "online", 2, isDefault: true);
+    public static readonly TypeItem Busy = new(3, "busy", "SipPresence.Busy", "Meşgul (busy)", "bi-circle-fill", "busy", 3);
     public static readonly TypeItem Away = new(4, "away", "SipPresence.Away", "Uzakta (away)", "bi-circle-fill", "break", 4);
     public static readonly TypeItem OnThePhone = new(5, "on-the-phone", "SipPresence.OnThePhone", "Aramada (on-the-phone)", "bi-telephone-fill", "busy", 5);
-    public static readonly TypeItem DoNotDisturb = new(6, "dnd", "SipPresence.DND", "Rahatsiz etmeyin (DND)", "bi-slash-circle-fill", "busy", 6);
+    public static readonly TypeItem DoNotDisturb = new(6, "dnd", "SipPresence.DND", "Rahatsız Etmeyin (DND)", "bi-slash-circle-fill", "busy", 6);
 
     public static IEnumerable<TypeItem> All => new[] { Offline, Online, Busy, Away, OnThePhone, DoNotDisturb };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);

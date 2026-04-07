@@ -243,7 +243,10 @@
       "Bash(mv Dockerfile.api.bak Dockerfile)",
       "Bash(cp src/CallCenter.Management/Dockerfile Dockerfile)",
       "Bash(git ls-tree:*)",
-      "WebFetch(domain:www.kolayrandevu.com)"
+      "WebFetch(domain:www.kolayrandevu.com)",
+      "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c/Program Files/**)"
     ]
   }
 }

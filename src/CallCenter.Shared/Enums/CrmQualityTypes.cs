@@ -7,10 +7,10 @@ namespace CallCenter.Shared.Enums;
 public static class CrmQualityScoringMethods
 {
     /// <summary>Maximum: (GivenPoints / MaxPoints) * WeightPoints — Klasik ağırlıklı puanlama</summary>
-    public static readonly TypeItem Maximum = new(1, "Maximum", "CrmQualityScoringMethod.Maximum", "Maksimum yontem", "bi-calculator", "bg-primary", 1, isDefault: true);
+    public static readonly TypeItem Maximum = new(1, "Maximum", "CrmQualityScoringMethod.Maximum", "Maksimum Yöntem", "bi-calculator", "bg-primary", 1, isDefault: true);
 
     /// <summary>CriteriaTotal: Seçenek puanı direkt sayılır — Alt kriter bazlı puanlama</summary>
-    public static readonly TypeItem CriteriaTotal = new(2, "CriteriaTotal", "CrmQualityScoringMethod.CriteriaTotal", "Kriter toplam yontem", "bi-list-check", "bg-info", 2);
+    public static readonly TypeItem CriteriaTotal = new(2, "CriteriaTotal", "CrmQualityScoringMethod.CriteriaTotal", "Kriter Toplam Yöntem", "bi-list-check", "bg-info", 2);
 
     public static IEnumerable<TypeItem> All => new[] { Maximum, CriteriaTotal };
     public static TypeItem Default => All.First(x => x.IsDefault);
@@ -30,13 +30,13 @@ public static class CrmQualityScoringMethods
 public static class CrmQualityScoringTypes
 {
     /// <summary>Puanlı — Normal puanlama yapılır</summary>
-    public static readonly TypeItem Scored = new(1, "Scored", "CrmQualityScoringType.Scored", "Puanli", "bi-star-fill", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem Scored = new(1, "Scored", "CrmQualityScoringType.Scored", "Puanlı", "bi-star-fill", "bg-success", 1, isDefault: true);
 
     /// <summary>Puansız — Sadece gözlem, puan hesaplanmaz</summary>
-    public static readonly TypeItem Unscored = new(2, "Unscored", "CrmQualityScoringType.Unscored", "Puansiz", "bi-eye", "bg-secondary", 2);
+    public static readonly TypeItem Unscored = new(2, "Unscored", "CrmQualityScoringType.Unscored", "Puansız", "bi-eye", "bg-secondary", 2);
 
     /// <summary>Cezalı — Sarı/kırmızı kart uygulanır</summary>
-    public static readonly TypeItem Penalty = new(3, "Penalty", "CrmQualityScoringType.Penalty", "Cezali", "bi-exclamation-triangle-fill", "bg-danger", 3);
+    public static readonly TypeItem Penalty = new(3, "Penalty", "CrmQualityScoringType.Penalty", "Cezalı", "bi-exclamation-triangle-fill", "bg-danger", 3);
 
     public static IEnumerable<TypeItem> All => new[] { Scored, Unscored, Penalty };
     public static TypeItem Default => All.First(x => x.IsDefault);
@@ -56,13 +56,13 @@ public static class CrmQualityScoringTypes
 /// </summary>
 public static class CrmQualityPenaltyTypes
 {
-    public static readonly TypeItem None = new(0, "None", "CrmQualityPenaltyType.None", "Ceza yok", "bi-dash", "bg-light text-dark", 0, isDefault: true);
+    public static readonly TypeItem None = new(0, "None", "CrmQualityPenaltyType.None", "Ceza Yok", "bi-dash", "bg-light text-dark", 0, isDefault: true);
 
     /// <summary>Sarı Kart — Uyarı seviyesi hata</summary>
-    public static readonly TypeItem YellowCard = new(1, "YellowCard", "CrmQualityPenaltyType.YellowCard", "Sari kart", "bi-card-heading", "bg-warning text-dark", 1);
+    public static readonly TypeItem YellowCard = new(1, "YellowCard", "CrmQualityPenaltyType.YellowCard", "Sarı Kart", "bi-card-heading", "bg-warning text-dark", 1);
 
     /// <summary>Kırmızı Kart — Kritik hata (ör: müşteriye hakaret, yanlış bilgi verme)</summary>
-    public static readonly TypeItem RedCard = new(2, "RedCard", "CrmQualityPenaltyType.RedCard", "Kirmizi kart", "bi-card-heading", "bg-danger", 2);
+    public static readonly TypeItem RedCard = new(2, "RedCard", "CrmQualityPenaltyType.RedCard", "Kırmızı Kart", "bi-card-heading", "bg-danger", 2);
 
     public static IEnumerable<TypeItem> All => new[] { None, YellowCard, RedCard };
     public static TypeItem Default => All.First(x => x.IsDefault);
@@ -83,10 +83,10 @@ public static class CrmQualityPenaltyTypes
 public static class CrmQualityEvaluationStatuses
 {
     public static readonly TypeItem Pending = new(1, "Pending", "CrmQualityEvaluationStatus.Pending", "Bekliyor", "bi-hourglass", "bg-secondary", 1, isDefault: true);
-    public static readonly TypeItem InProgress = new(2, "InProgress", "CrmQualityEvaluationStatus.InProgress", "Devam ediyor", "bi-pencil-fill", "bg-primary", 2);
-    public static readonly TypeItem Completed = new(3, "Completed", "CrmQualityEvaluationStatus.Completed", "Tamamlandi", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem InProgress = new(2, "InProgress", "CrmQualityEvaluationStatus.InProgress", "Devam Ediyor", "bi-pencil-fill", "bg-primary", 2);
+    public static readonly TypeItem Completed = new(3, "Completed", "CrmQualityEvaluationStatus.Completed", "Tamamlandı", "bi-check-circle-fill", "bg-success", 3);
     public static readonly TypeItem Draft = new(4, "Draft", "CrmQualityEvaluationStatus.Draft", "Taslak", "bi-file-earmark", "bg-info", 4);
-    public static readonly TypeItem Cancelled = new(5, "Cancelled", "CrmQualityEvaluationStatus.Cancelled", "Iptal edildi", "bi-x-circle-fill", "bg-danger", 5);
+    public static readonly TypeItem Cancelled = new(5, "Cancelled", "CrmQualityEvaluationStatus.Cancelled", "İptal Edildi", "bi-x-circle-fill", "bg-danger", 5);
 
     public static IEnumerable<TypeItem> All => new[] { Pending, InProgress, Completed, Draft, Cancelled };
     public static TypeItem Default => All.First(x => x.IsDefault);

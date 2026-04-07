@@ -7,7 +7,7 @@ public static class AudioCodecs
     public static readonly TypeItem G722 = new(3, "G722", "AudioCodec.G722", "G.722 Wideband (16kHz, 64kbps)", "bi-soundwave", "bg-info", 3);
     public static readonly TypeItem Opus = new(4, "Opus", "AudioCodec.Opus", "Opus (8-48kHz, 6-510kbps, adaptif)", "bi-soundwave", "bg-success", 4, isDefault: true);
     public static readonly TypeItem G726 = new(5, "G726", "AudioCodec.G726", "G.726 ADPCM (8kHz, 32kbps)", "bi-soundwave", "bg-secondary", 5);
-    public static readonly TypeItem Speex = new(6, "Speex", "AudioCodec.Speex", "Speex (8-32kHz, degisken)", "bi-soundwave", "bg-warning text-dark", 6);
+    public static readonly TypeItem Speex = new(6, "Speex", "AudioCodec.Speex", "Speex (8-32kHz, Değişken)", "bi-soundwave", "bg-warning text-dark", 6);
     public static readonly TypeItem ILBC = new(7, "iLBC", "AudioCodec.iLBC", "iLBC (8kHz, 13.3/15.2kbps)", "bi-soundwave", "bg-dark", 7);
 
     public static IEnumerable<TypeItem> All => new[] { PCMU, PCMA, G722, Opus, G726, Speex, ILBC };
@@ -38,9 +38,9 @@ public static class AudioCodecs
 
 public static class VideoCodecs
 {
-    public static readonly TypeItem VP8 = new(1, "VP8", "VideoCodec.VP8", "VP8 (WebRTC varsayilan, 720p)", "bi-camera-video", "bg-success", 1, isDefault: true);
-    public static readonly TypeItem H264 = new(2, "H264", "VideoCodec.H264", "H.264/AVC (yuksek uyumluluk)", "bi-camera-video-fill", "bg-primary", 2);
-    public static readonly TypeItem VP9 = new(3, "VP9", "VideoCodec.VP9", "VP9 (verimli, yuksek kalite)", "bi-camera-video", "bg-info", 3);
+    public static readonly TypeItem VP8 = new(1, "VP8", "VideoCodec.VP8", "VP8 (WebRTC Varsayılan, 720p)", "bi-camera-video", "bg-success", 1, isDefault: true);
+    public static readonly TypeItem H264 = new(2, "H264", "VideoCodec.H264", "H.264/AVC (Yüksek Uyumluluk)", "bi-camera-video-fill", "bg-primary", 2);
+    public static readonly TypeItem VP9 = new(3, "VP9", "VideoCodec.VP9", "VP9 (Verimli, Yüksek Kalite)", "bi-camera-video", "bg-info", 3);
 
     public static IEnumerable<TypeItem> All => new[] { VP8, H264, VP9 };
     public static TypeItem Default => All.First(x => x.IsDefault);

@@ -2,14 +2,14 @@ namespace CallCenter.Shared.Enums;
 
 public static class CallStatuses
 {
-    public static readonly TypeItem Ringing = new(1, "Ringing", "CallStatus.Ringing", "Caliyor", "bi-bell-fill", "bg-warning text-dark", 1, isDefault: true);
-    public static readonly TypeItem InProgress = new(2, "InProgress", "CallStatus.InProgress", "Devam ediyor", "bi-telephone-fill", "bg-success", 2);
+    public static readonly TypeItem Ringing = new(1, "Ringing", "CallStatus.Ringing", "Çalıyor", "bi-bell-fill", "bg-warning text-dark", 1, isDefault: true);
+    public static readonly TypeItem InProgress = new(2, "InProgress", "CallStatus.InProgress", "Devam Ediyor", "bi-telephone-fill", "bg-success", 2);
     public static readonly TypeItem OnHold = new(3, "OnHold", "CallStatus.OnHold", "Beklemede", "bi-pause-circle-fill", "bg-info", 3);
-    public static readonly TypeItem Transferred = new(4, "Transferred", "CallStatus.Transferred", "Transfer edildi", "bi-arrow-left-right", "bg-secondary", 4);
-    public static readonly TypeItem Completed = new(5, "Completed", "CallStatus.Completed", "Tamamlandi", "bi-check-circle-fill", "bg-success", 5);
-    public static readonly TypeItem Missed = new(6, "Missed", "CallStatus.Missed", "Cevapsiz", "bi-telephone-x-fill", "bg-warning text-dark", 6);
-    public static readonly TypeItem Failed = new(7, "Failed", "CallStatus.Failed", "Basarisiz", "bi-x-circle-fill", "bg-danger", 7);
-    public static readonly TypeItem Queued = new(8, "Queued", "CallStatus.Queued", "Kuyrukta bekliyor", "bi-hourglass-split", "bg-purple", 8);
+    public static readonly TypeItem Transferred = new(4, "Transferred", "CallStatus.Transferred", "Transfer Edildi", "bi-arrow-left-right", "bg-secondary", 4);
+    public static readonly TypeItem Completed = new(5, "Completed", "CallStatus.Completed", "Tamamlandı", "bi-check-circle-fill", "bg-success", 5);
+    public static readonly TypeItem Missed = new(6, "Missed", "CallStatus.Missed", "Cevapsız", "bi-telephone-x-fill", "bg-warning text-dark", 6);
+    public static readonly TypeItem Failed = new(7, "Failed", "CallStatus.Failed", "Başarısız", "bi-x-circle-fill", "bg-danger", 7);
+    public static readonly TypeItem Queued = new(8, "Queued", "CallStatus.Queued", "Kuyrukta Bekliyor", "bi-hourglass-split", "bg-purple", 8);
 
     public static IEnumerable<TypeItem> All => new[] { Ringing, InProgress, OnHold, Transferred, Completed, Missed, Failed, Queued };
     public static TypeItem Default => All.First(x => x.IsDefault);
@@ -40,8 +40,8 @@ public static class CallStatuses
 
 public static class CallDirections
 {
-    public static readonly TypeItem Inbound = new(1, "Inbound", "CallDirection.Inbound", "Gelen arama", "bi-telephone-inbound-fill", "text-success", 1, isDefault: true);
-    public static readonly TypeItem Outbound = new(2, "Outbound", "CallDirection.Outbound", "Giden arama", "bi-telephone-outbound-fill", "text-primary", 2);
+    public static readonly TypeItem Inbound = new(1, "Inbound", "CallDirection.Inbound", "Gelen Arama", "bi-telephone-inbound-fill", "text-success", 1, isDefault: true);
+    public static readonly TypeItem Outbound = new(2, "Outbound", "CallDirection.Outbound", "Giden Arama", "bi-telephone-outbound-fill", "text-primary", 2);
 
     public static IEnumerable<TypeItem> All => new[] { Inbound, Outbound };
     public static TypeItem Default => All.First(x => x.IsDefault);
@@ -58,9 +58,9 @@ public static class CallDirections
 public static class CallbackStatuses
 {
     public static readonly TypeItem Todo = new(1, "Todo", "CallbackStatus.Todo", "Bekliyor", "bi-clock-history", "bg-warning text-dark", 1, isDefault: true);
-    public static readonly TypeItem InProgress = new(2, "InProgress", "CallbackStatus.InProgress", "Araniyor", "bi-telephone-outbound", "bg-info", 2);
-    public static readonly TypeItem Completed = new(3, "Completed", "CallbackStatus.Completed", "Tamamlandi", "bi-check-circle-fill", "bg-success", 3);
-    public static readonly TypeItem Cancelled = new(4, "Cancelled", "CallbackStatus.Cancelled", "Iptal edildi", "bi-slash-circle", "bg-secondary", 4);
+    public static readonly TypeItem InProgress = new(2, "InProgress", "CallbackStatus.InProgress", "Aranıyor", "bi-telephone-outbound", "bg-info", 2);
+    public static readonly TypeItem Completed = new(3, "Completed", "CallbackStatus.Completed", "Tamamlandı", "bi-check-circle-fill", "bg-success", 3);
+    public static readonly TypeItem Cancelled = new(4, "Cancelled", "CallbackStatus.Cancelled", "İptal edildi", "bi-slash-circle", "bg-secondary", 4);
 
     public static IEnumerable<TypeItem> All => new[] { Todo, InProgress, Completed, Cancelled };
     public static TypeItem Default => All.First(x => x.IsDefault);

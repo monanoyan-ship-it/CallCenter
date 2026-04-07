@@ -7,27 +7,27 @@ namespace CallCenter.Shared.Enums;
 public static class WebhookEventTypes
 {
     // ─── Call Events (1-9) ───
-    public static readonly TypeItem CallStarted = new(1, "call.started", "WebhookEvent.CallStarted", "Cagri basladi", "bi-telephone-fill", "bg-success", 1);
-    public static readonly TypeItem CallAnswered = new(2, "call.answered", "WebhookEvent.CallAnswered", "Cagri cevaplandi", "bi-telephone-inbound-fill", "bg-success", 2);
-    public static readonly TypeItem CallEnded = new(3, "call.ended", "WebhookEvent.CallEnded", "Cagri sonlandi", "bi-telephone-x-fill", "bg-danger", 3);
-    public static readonly TypeItem CallMissed = new(4, "call.missed", "WebhookEvent.CallMissed", "Cagri kacti", "bi-telephone-minus-fill", "bg-warning text-dark", 4);
-    public static readonly TypeItem CallTransferred = new(5, "call.transferred", "WebhookEvent.CallTransferred", "Cagri transfer edildi", "bi-arrow-left-right", "bg-info", 5);
-    public static readonly TypeItem CallHeld = new(6, "call.held", "WebhookEvent.CallHeld", "Cagri beklemeye alindi", "bi-pause-circle-fill", "bg-secondary", 6);
+    public static readonly TypeItem CallStarted = new(1, "call.started", "WebhookEvent.CallStarted", "Çağrı Başladı", "bi-telephone-fill", "bg-success", 1);
+    public static readonly TypeItem CallAnswered = new(2, "call.answered", "WebhookEvent.CallAnswered", "Çağrı Cevaplandı", "bi-telephone-inbound-fill", "bg-success", 2);
+    public static readonly TypeItem CallEnded = new(3, "call.ended", "WebhookEvent.CallEnded", "Çağrı Sonlandı", "bi-telephone-x-fill", "bg-danger", 3);
+    public static readonly TypeItem CallMissed = new(4, "call.missed", "WebhookEvent.CallMissed", "Çağrı Kaçtı", "bi-telephone-minus-fill", "bg-warning text-dark", 4);
+    public static readonly TypeItem CallTransferred = new(5, "call.transferred", "WebhookEvent.CallTransferred", "Çağrı Transfer Edildi", "bi-arrow-left-right", "bg-info", 5);
+    public static readonly TypeItem CallHeld = new(6, "call.held", "WebhookEvent.CallHeld", "Çağrı Beklemeye Alındı", "bi-pause-circle-fill", "bg-secondary", 6);
 
     // ─── Agent Events (10-19) ───
-    public static readonly TypeItem AgentStatusChanged = new(10, "agent.status_changed", "WebhookEvent.AgentStatusChanged", "Agent durumu degisti", "bi-person-fill-gear", "bg-primary", 10);
-    public static readonly TypeItem AgentLoggedIn = new(11, "agent.logged_in", "WebhookEvent.AgentLoggedIn", "Agent giris yapti", "bi-box-arrow-in-right", "bg-success", 11);
-    public static readonly TypeItem AgentLoggedOut = new(12, "agent.logged_out", "WebhookEvent.AgentLoggedOut", "Agent cikis yapti", "bi-box-arrow-left", "bg-danger", 12);
+    public static readonly TypeItem AgentStatusChanged = new(10, "agent.status_changed", "WebhookEvent.AgentStatusChanged", "Agent Durumu Değişti", "bi-person-fill-gear", "bg-primary", 10);
+    public static readonly TypeItem AgentLoggedIn = new(11, "agent.logged_in", "WebhookEvent.AgentLoggedIn", "Agent Giriş Yaptı", "bi-box-arrow-in-right", "bg-success", 11);
+    public static readonly TypeItem AgentLoggedOut = new(12, "agent.logged_out", "WebhookEvent.AgentLoggedOut", "Agent Çıkış Yaptı", "bi-box-arrow-left", "bg-danger", 12);
 
     // ─── Queue Events (20-29) ───
-    public static readonly TypeItem QueueUpdated = new(20, "queue.updated", "WebhookEvent.QueueUpdated", "Kuyruk guncellendi", "bi-people-fill", "bg-info", 20);
-    public static readonly TypeItem QueueThresholdExceeded = new(21, "queue.threshold_exceeded", "WebhookEvent.QueueThresholdExceeded", "Kuyruk esigi asildi", "bi-exclamation-triangle-fill", "bg-danger", 21);
+    public static readonly TypeItem QueueUpdated = new(20, "queue.updated", "WebhookEvent.QueueUpdated", "Kuyruk Güncellendi", "bi-people-fill", "bg-info", 20);
+    public static readonly TypeItem QueueThresholdExceeded = new(21, "queue.threshold_exceeded", "WebhookEvent.QueueThresholdExceeded", "Kuyruk Eşiği Aşıldı", "bi-exclamation-triangle-fill", "bg-danger", 21);
 
     // ─── CRM Events (30-49) ───
-    public static readonly TypeItem CrmContactCreated = new(30, "contact.created", "WebhookEvent.CrmContactCreated", "Kisi olusturuldu", "bi-person-plus-fill", "bg-success", 30);
-    public static readonly TypeItem CrmContactUpdated = new(31, "contact.updated", "WebhookEvent.CrmContactUpdated", "Kisi guncellendi", "bi-person-fill-check", "bg-info", 31);
-    public static readonly TypeItem TicketCreated = new(40, "ticket.created", "WebhookEvent.TicketCreated", "Talep olusturuldu", "bi-ticket-detailed-fill", "bg-warning text-dark", 40);
-    public static readonly TypeItem TicketUpdated = new(41, "ticket.updated", "WebhookEvent.TicketUpdated", "Talep guncellendi", "bi-ticket-fill", "bg-info", 41);
+    public static readonly TypeItem CrmContactCreated = new(30, "contact.created", "WebhookEvent.CrmContactCreated", "Kişi Oluşturuldu", "bi-person-plus-fill", "bg-success", 30);
+    public static readonly TypeItem CrmContactUpdated = new(31, "contact.updated", "WebhookEvent.CrmContactUpdated", "Kişi Güncellendi", "bi-person-fill-check", "bg-info", 31);
+    public static readonly TypeItem TicketCreated = new(40, "ticket.created", "WebhookEvent.TicketCreated", "Talep Oluşturuldu", "bi-ticket-detailed-fill", "bg-warning text-dark", 40);
+    public static readonly TypeItem TicketUpdated = new(41, "ticket.updated", "WebhookEvent.TicketUpdated", "Talep Güncellendi", "bi-ticket-fill", "bg-info", 41);
 
     public static IEnumerable<TypeItem> All => new[]
     {
