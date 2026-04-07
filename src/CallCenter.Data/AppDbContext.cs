@@ -156,6 +156,10 @@ public class AppDbContext : DbContext
     public DbSet<PlatformEmailEvent> PlatformEmailEvents => Set<PlatformEmailEvent>();
     public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
 
+    // ─── Platform User ───
+    public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
+    public DbSet<PlatformUserSalon> PlatformUserSalons => Set<PlatformUserSalon>();
+
     // ─── Salon Role Permissions ───
     public DbSet<SalonRolePermission> SalonRolePermissions => Set<SalonRolePermission>();
 
@@ -230,6 +234,38 @@ public class AppDbContext : DbContext
              .WithMany(c => c.PortalModules)
              .HasForeignKey(m => m.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PlatformUser
+        modelBuilder.Entity<PlatformUser>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.HasIndex(u => u.Uid).IsUnique();
+            e.HasIndex(u => u.Phone).IsUnique();
+            e.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
+            e.Property(u => u.FullName).HasMaxLength(200);
+            e.Property(u => u.Phone).HasMaxLength(20);
+            e.Property(u => u.Email).HasMaxLength(200);
+            e.Property(u => u.PreferredLanguage).HasMaxLength(5);
+        });
+
+        // PlatformUserSalon
+        modelBuilder.Entity<PlatformUserSalon>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => new { s.PlatformUserId, s.CustomerId }).IsUnique();
+            e.HasOne(s => s.PlatformUser)
+             .WithMany(u => u.Salons)
+             .HasForeignKey(s => s.PlatformUserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Customer)
+             .WithMany()
+             .HasForeignKey(s => s.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.SlnClient)
+             .WithMany()
+             .HasForeignKey(s => s.SlnClientId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // SalonRolePermission (merkezi rol-sayfa izinleri)
