@@ -82,6 +82,7 @@ public static class SalonRolePermissions
         "ConsentForms",     // Onay formlari
         "EmailSettings",    // E-posta entegrasyonu
         "PageSettings",     // Public sayfa ayarlari
+        "Modules",          // Modul yonetimi ve talep
     };
 
     // ═══════════════════════════════════════════════════════════════

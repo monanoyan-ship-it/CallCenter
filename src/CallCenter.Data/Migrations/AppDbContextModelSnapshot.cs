@@ -1941,9 +1941,16 @@ namespace CallCenter.Data.Migrations
                     b.Property<int>("ModuleId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("MonthlyPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -2854,6 +2861,92 @@ namespace CallCenter.Data.Migrations
                             IsDefault = false,
                             Name = "English"
                         });
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.ModulePricing", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ModuleId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MonthlyPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleId")
+                        .IsUnique();
+
+                    b.ToTable("ModulePricings");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.ModuleRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ModuleId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RequestNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RequestedByPersonnelId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("Uid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedByPersonnelId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("Uid")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId", "ModuleId", "StatusId");
+
+                    b.ToTable("ModuleRequests");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.PasswordHistory", b =>
@@ -5250,6 +5343,12 @@ namespace CallCenter.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("FacebookUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FaviconUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GalleryImagesJson")
                         .HasColumnType("text");
 
                     b.Property<string>("GoogleMapsUrl")
@@ -7936,6 +8035,32 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("TargetQueue");
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.ModuleRequest", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
+                        .WithMany("ModuleRequests")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "RequestedByPersonnel")
+                        .WithMany()
+                        .HasForeignKey("RequestedByPersonnelId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("CallCenter.Shared.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("RequestedByPersonnel");
+
+                    b.Navigation("ReviewedByUser");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.PasswordHistory", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.User", "User")
@@ -9156,6 +9281,8 @@ namespace CallCenter.Data.Migrations
             modelBuilder.Entity("CallCenter.Shared.Entities.Customer", b =>
                 {
                     b.Navigation("BillingPeriods");
+
+                    b.Navigation("ModuleRequests");
 
                     b.Navigation("OrganizationUnits");
 

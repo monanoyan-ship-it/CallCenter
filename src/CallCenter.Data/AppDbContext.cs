@@ -156,6 +156,10 @@ public class AppDbContext : DbContext
     public DbSet<PlatformEmailEvent> PlatformEmailEvents => Set<PlatformEmailEvent>();
     public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
 
+    // ─── Module Licensing ───
+    public DbSet<ModulePricing> ModulePricings => Set<ModulePricing>();
+    public DbSet<ModuleRequest> ModuleRequests => Set<ModuleRequest>();
+
     // ─── Integration & Webhook ───
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
@@ -218,10 +222,41 @@ public class AppDbContext : DbContext
             e.HasKey(m => m.Id);
             e.HasIndex(m => new { m.CustomerId, m.ModuleId }).IsUnique();
             e.Property(m => m.Notes).HasMaxLength(500);
+            e.Property(m => m.MonthlyPrice).HasPrecision(18, 2);
             e.HasOne(m => m.Customer)
              .WithMany(c => c.PortalModules)
              .HasForeignKey(m => m.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ModulePricing (modul katalog fiyatlari)
+        modelBuilder.Entity<ModulePricing>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.ModuleId).IsUnique();
+            e.Property(p => p.MonthlyPrice).HasPrecision(18, 2);
+        });
+
+        // ModuleRequest (firma modul talepleri)
+        modelBuilder.Entity<ModuleRequest>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.Uid).IsUnique();
+            e.HasIndex(r => new { r.CustomerId, r.ModuleId, r.StatusId });
+            e.Property(r => r.RequestNotes).HasMaxLength(1000);
+            e.Property(r => r.AdminNotes).HasMaxLength(1000);
+            e.HasOne(r => r.Customer)
+             .WithMany(c => c.ModuleRequests)
+             .HasForeignKey(r => r.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.RequestedByPersonnel)
+             .WithMany()
+             .HasForeignKey(r => r.RequestedByPersonnelId)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(r => r.ReviewedByUser)
+             .WithMany()
+             .HasForeignKey(r => r.ReviewedByUserId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // CustomerOrganizationUnit (organizasyon hiyerarsisi)

@@ -25,6 +25,98 @@
             <span class="badge" data-bind="text: isPublished() ? 'Yayinda' : 'Taslak', css: isPublished() ? 'bg-success' : 'bg-secondary'"></span>
         </div>
 
+        <!-- Logo & Favicon -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0 small"><i class="bi bi-image me-1"></i>Logo</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <!-- ko if: logoUrl() -->
+                        <img data-bind="attr: { src: logoUrl }" style="max-height:80px;max-width:200px;object-fit:contain;" class="mb-2 d-block mx-auto" />
+                        <button class="btn btn-outline-danger btn-sm me-1" data-bind="click: function() { removeSingleImage('logo'); }"><i class="bi bi-trash me-1"></i>Kaldir</button>
+                        <!-- /ko -->
+                        <!-- ko if: !logoUrl() -->
+                        <div class="py-3 text-muted"><i class="bi bi-image fs-1 d-block mb-1 opacity-25"></i><small>Logo yuklenmemis</small></div>
+                        <!-- /ko -->
+                        <label class="btn btn-outline-primary btn-sm mt-1">
+                            <i class="bi bi-upload me-1"></i>Logo Sec
+                            <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingle('logo', e); } }" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-2">
+                        <h6 class="mb-0 small"><i class="bi bi-bookmark-star me-1"></i>Favicon</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <!-- ko if: faviconUrl() -->
+                        <img data-bind="attr: { src: faviconUrl }" style="width:48px;height:48px;object-fit:contain;" class="mb-2 d-block mx-auto" />
+                        <button class="btn btn-outline-danger btn-sm me-1" data-bind="click: function() { removeSingleImage('favicon'); }"><i class="bi bi-trash me-1"></i>Kaldir</button>
+                        <!-- /ko -->
+                        <!-- ko if: !faviconUrl() -->
+                        <div class="py-3 text-muted"><i class="bi bi-bookmark-star fs-1 d-block mb-1 opacity-25"></i><small>Favicon yuklenmemis</small></div>
+                        <!-- /ko -->
+                        <label class="btn btn-outline-primary btn-sm mt-1">
+                            <i class="bi bi-upload me-1"></i>Favicon Sec
+                            <input type="file" accept="image/jpeg,image/png,image/webp,image/x-icon" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingle('favicon', e); } }" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kapak Gorseli -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-2">
+                <h6 class="mb-0 small"><i class="bi bi-card-image me-1"></i>Kapak Gorseli</h6>
+            </div>
+            <div class="card-body text-center">
+                <!-- ko if: coverImageUrl() -->
+                <img data-bind="attr: { src: coverImageUrl }" style="max-height:200px;width:100%;object-fit:cover;border-radius:8px;" class="mb-2" />
+                <div>
+                    <button class="btn btn-outline-danger btn-sm" data-bind="click: function() { removeSingleImage('cover'); }"><i class="bi bi-trash me-1"></i>Kaldir</button>
+                </div>
+                <!-- /ko -->
+                <!-- ko if: !coverImageUrl() -->
+                <div class="py-4 text-muted"><i class="bi bi-card-image fs-1 d-block mb-1 opacity-25"></i><small>Kapak gorseli yuklenmemis</small></div>
+                <!-- /ko -->
+                <label class="btn btn-outline-primary btn-sm mt-1">
+                    <i class="bi bi-upload me-1"></i>Kapak Gorseli Sec
+                    <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingle('cover', e); } }" />
+                </label>
+                <small class="text-muted d-block mt-1">Onerilen: 1200x400 piksel, max 5 MB</small>
+            </div>
+        </div>
+
+        <!-- Galeri -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 small"><i class="bi bi-images me-1"></i>Galeri</h6>
+                <label class="btn btn-outline-primary btn-sm py-0 mb-0">
+                    <i class="bi bi-plus-lg me-1"></i>Gorsel Ekle
+                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" data-bind="event: { change: uploadGalleryImages }" />
+                </label>
+            </div>
+            <div class="card-body">
+                <!-- ko if: galleryImages().length === 0 -->
+                <p class="text-muted small text-center mb-0">Galeri bos. Public sayfanizda salon fotograflarinizi sergileyebilirsiniz.</p>
+                <!-- /ko -->
+                <div class="row g-2" data-bind="foreach: galleryImages">
+                    <div class="col-4 col-md-3 col-lg-2 position-relative">
+                        <img data-bind="attr: { src: $data }" style="width:100%;height:100px;object-fit:cover;border-radius:6px;" />
+                        <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 py-0 px-1" style="font-size:.7rem;"
+                            data-bind="click: function() { $parent.removeGalleryImage($index()); }">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Bolum Toggle'lari -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2">
@@ -53,14 +145,14 @@
         <!-- Banner Gorselleri -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 small"><i class="bi bi-images me-1"></i>Reklam Gorselleri (Banner)</h6>
+                <h6 class="mb-0 small"><i class="bi bi-collection-play me-1"></i>Reklam Gorselleri (Carousel)</h6>
                 <button class="btn btn-outline-primary btn-sm py-0" data-bind="click: addBanner">
                     <i class="bi bi-plus-lg me-1"></i>Ekle
                 </button>
             </div>
             <div class="card-body">
                 <!-- ko if: banners().length === 0 -->
-                <p class="text-muted small text-center mb-0">Henuz gorsel eklenmemis. Public sayfanizda banner bolumu gosterilir.</p>
+                <p class="text-muted small text-center mb-0">Henuz gorsel eklenmemis. Public sayfanizda carousel/slider olarak gosterilir.</p>
                 <!-- /ko -->
                 <div data-bind="foreach: banners">
                     <div class="d-flex align-items-center gap-2 mb-2 p-2 border rounded">

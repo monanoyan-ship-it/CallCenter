@@ -44,6 +44,9 @@ public class Customer
     // Musteri urunleri (CallCenter, Salon vb.)
     public ICollection<CustomerProduct> Products { get; set; } = new List<CustomerProduct>();
 
+    // Modul talepleri
+    public ICollection<ModuleRequest> ModuleRequests { get; set; } = new List<ModuleRequest>();
+
     /// <summary>Tahakkuk gunu (ayin kaci). null = ilk tahakkuk henuz olusturulmadi</summary>
     public int? BillingAnchorDay { get; set; }
 }

@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using CallCenter.Api.Filters;
 using CallCenter.Api.Services;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +15,7 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/sln-profile")]
 [Authorize]
+[RequireModule(SalonPortalModules.Ids.SlnProfile)]
 public class SlnProfileController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -54,6 +57,8 @@ public class SlnProfileController : ControllerBase
             GoogleMapsUrl = profile.GoogleMapsUrl,
             LogoUrl = profile.LogoUrl,
             CoverImageUrl = profile.CoverImageUrl,
+            FaviconUrl = profile.FaviconUrl,
+            GalleryImagesJson = profile.GalleryImagesJson,
             WorkingHoursJson = profile.WorkingHoursJson,
             IsPublished = profile.IsPublished,
             ShowServices = profile.ShowServices,
@@ -131,6 +136,10 @@ public class SlnProfileController : ControllerBase
         profile.ShowMap = dto.ShowMap;
         profile.SectionOrderJson = dto.SectionOrderJson;
         profile.BannersJson = dto.BannersJson;
+        profile.LogoUrl = dto.LogoUrl;
+        profile.CoverImageUrl = dto.CoverImageUrl;
+        profile.FaviconUrl = dto.FaviconUrl;
+        profile.GalleryImagesJson = dto.GalleryImagesJson;
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();

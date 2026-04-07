@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Filters;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +11,7 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/sln-memberships")]
 [Authorize]
+[RequireModule(SalonPortalModules.Ids.SlnMemberships)]
 public class SlnMembershipController : ControllerBase
 {
     private readonly ISlnMembershipFactory _factory;

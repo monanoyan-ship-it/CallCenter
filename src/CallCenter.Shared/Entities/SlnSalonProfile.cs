@@ -22,6 +22,8 @@ public class SlnSalonProfile
     public string? GoogleMapsUrl { get; set; }
     public string? LogoUrl { get; set; }
     public string? CoverImageUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? GalleryImagesJson { get; set; }
 
     /// <summary>Calisma saatleri JSON (orn: {"mon":"09:00-19:00","tue":"09:00-19:00",...})</summary>
     public string? WorkingHoursJson { get; set; }

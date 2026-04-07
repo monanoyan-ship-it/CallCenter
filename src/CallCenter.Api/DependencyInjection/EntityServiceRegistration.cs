@@ -25,6 +25,8 @@ public static class EntityServiceRegistration
         services.AddScoped<ISipLineEntityService, SipLineEntityService>();
         services.AddScoped<IOrganizationEntityService, OrganizationEntityService>();
         services.AddScoped<ICustomerPortalModuleEntityService, CustomerPortalModuleEntityService>();
+        services.AddScoped<IModulePricingEntityService, ModulePricingEntityService>();
+        services.AddScoped<IModuleRequestEntityService, ModuleRequestEntityService>();
         // Faz 4
         services.AddScoped<IAuditLogEntityService, AuditLogEntityService>();
         services.AddScoped<ITranslationKeyEntityService, TranslationKeyEntityService>();

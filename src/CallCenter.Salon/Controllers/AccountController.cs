@@ -106,6 +106,8 @@ public class AccountController : SlnBaseController
                     HttpContext.Session.SetString("CustomerRoleId", cri.ToString());
                 if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
                     HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
+                if (claimRoot.TryGetProperty("CustomerModules", out var cm))
+                    HttpContext.Session.SetString("CustomerModules", cm.ToString());
             }
         }
         catch { }

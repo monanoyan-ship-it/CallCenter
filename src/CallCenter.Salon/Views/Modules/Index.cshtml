@@ -1,0 +1,152 @@
+@{
+    ViewData["Title"] = "Modul Yonetimi";
+}
+
+<div id="modules-vm">
+    <!-- Aktif Moduller -->
+    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Modulleriniz</h6>
+    <div class="row g-3 mb-4" data-bind="foreach: activeModules">
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-3 border-success">
+                <div class="card-body text-center py-3">
+                    <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.8rem;color:#6f42c1;"></i>
+                    <div class="fw-bold mt-2" data-bind="text: description || systemName"></div>
+                    <span class="badge bg-success mt-1">Aktif</span>
+                    <!-- ko if: effectivePrice > 0 -->
+                    <div class="small text-muted mt-1" data-bind="text: effectivePrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Satin Alinabilir Moduller -->
+    <h6 class="text-muted mb-3"><i class="bi bi-cart-plus me-1"></i>Satin Alinabilir Moduller</h6>
+    <!-- ko if: availableModules().length === 0 -->
+    <div class="alert alert-info">Tum moduller zaten aktif.</div>
+    <!-- /ko -->
+    <div class="row g-3 mb-4" data-bind="foreach: availableModules">
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.8rem;color:#6c757d;"></i>
+                    <div class="fw-bold mt-2" data-bind="text: description || moduleName"></div>
+                    <!-- ko if: monthlyPrice > 0 -->
+                    <div class="text-primary fw-bold mt-1" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
+                    <!-- /ko -->
+                    <!-- ko if: monthlyPrice === 0 -->
+                    <div class="text-muted small mt-1">Fiyat icin iletisime gecin</div>
+                    <!-- /ko -->
+                    <button class="btn btn-sm btn-outline-primary mt-2" data-bind="click: $parent.requestModule">
+                        <i class="bi bi-send me-1"></i>Talep Et
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taleplerim -->
+    <h6 class="text-muted mb-3"><i class="bi bi-clock-history me-1"></i>Taleplerim</h6>
+    <!-- ko if: requests().length === 0 -->
+    <div class="alert alert-secondary">Henuz modul talebiniz yok.</div>
+    <!-- /ko -->
+    <!-- ko if: requests().length > 0 -->
+    <div class="table-responsive">
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Modul</th>
+                    <th>Fiyat</th>
+                    <th>Durum</th>
+                    <th>Talep Tarihi</th>
+                    <th>Admin Notu</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: requests">
+                <tr>
+                    <td><i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i><span data-bind="text: moduleName"></span></td>
+                    <td data-bind="text: catalogPrice ? catalogPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                    <td>
+                        <span class="badge" data-bind="text: statusName, css: statusId === 1 ? 'bg-warning text-dark' : statusId === 2 ? 'bg-success' : statusId === 3 ? 'bg-danger' : 'bg-secondary'"></span>
+                    </td>
+                    <td data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
+                    <td data-bind="text: adminNotes || '-'"></td>
+                    <td>
+                        <!-- ko if: statusId === 1 -->
+                        <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.cancelRequest" title="Iptal Et">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                        <!-- /ko -->
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- /ko -->
+</div>
+
+@section Scripts {
+<script>
+    function ModulesViewModel() {
+        var self = this;
+        self.activeModules = ko.observableArray([]);
+        self.availableModules = ko.observableArray([]);
+        self.requests = ko.observableArray([]);
+
+        self.load = function () {
+            // Aktif moduller (firma modulleri)
+            $.get('/proxy/sln-module-requests', function (data) {
+                self.requests(data || []);
+            });
+            $.get('/proxy/sln-module-requests/available', function (data) {
+                self.availableModules(data || []);
+            });
+            // Aktif moduller
+            $.get('/proxy/sln-module-requests/active', function (data) {
+                var active = (data || []).filter(function (m) { return m.isActive; });
+                self.activeModules(active);
+            });
+        };
+
+        self.requestModule = function (mod) {
+            if (!confirm((mod.description || mod.moduleName) + ' modulunu talep etmek istiyor musunuz?')) return;
+            var notes = prompt('Not eklemek ister misiniz? (Bos birakilabilir)');
+            $.ajax({
+                url: '/proxy/sln-module-requests',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ moduleId: mod.moduleId, notes: notes || null }),
+                success: function () {
+                    toastr.success('Modul talebi olusturuldu.');
+                    self.load();
+                },
+                error: function (xhr) {
+                    var msg = xhr.responseJSON?.message || 'Talep olusturulamadi.';
+                    toastr.error(msg);
+                }
+            });
+        };
+
+        self.cancelRequest = function (req) {
+            if (!confirm('Bu talebi iptal etmek istiyor musunuz?')) return;
+            $.ajax({
+                url: '/proxy/sln-module-requests/' + req.id,
+                method: 'DELETE',
+                success: function () {
+                    toastr.success('Talep iptal edildi.');
+                    self.load();
+                },
+                error: function (xhr) {
+                    var msg = xhr.responseJSON?.message || 'Iptal edilemedi.';
+                    toastr.error(msg);
+                }
+            });
+        };
+
+        self.load();
+    }
+
+    ko.applyBindings(new ModulesViewModel(), document.getElementById('modules-vm'));
+</script>
+}

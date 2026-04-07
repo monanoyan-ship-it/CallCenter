@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Filters;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +11,7 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/sln-finance")]
 [Authorize]
+[RequireModule(SalonPortalModules.Ids.SlnInvoices)]
 public class SlnFinanceController : ControllerBase
 {
     private readonly ISlnFinanceFactory _financeFactory;

@@ -22,6 +22,7 @@ public static class FactoryRegistration
 
         // Faz 3 Factory'ler
         services.AddScoped<ICustomerFactory, CustomerFactory>();
+        services.AddScoped<IModuleRequestFactory, ModuleRequestFactory>();
         services.AddScoped<IPortalFactory, PortalFactory>();
         services.AddScoped<ISipAccountFactory, SipAccountFactory>();
         services.AddScoped<IOrganizationFactory, OrganizationFactory>();

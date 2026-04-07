@@ -384,11 +384,16 @@ public class CustomerFactory : ICustomerFactory
         var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
         if (customer == null) return null;
 
+        var pricings = await _db.ModulePricings.ToListAsync();
+        var pricingMap = pricings.ToDictionary(p => p.ModuleId);
+
         return customer.PortalModules
             .Select(pm =>
             {
-                var moduleDef = PortalModules.GetById(pm.ModuleId);
+                var moduleDef = PortalModules.GetById(pm.ModuleId)
+                             ?? SalonPortalModules.GetById(pm.ModuleId);
                 if (moduleDef == null) return null;
+                pricingMap.TryGetValue(pm.ModuleId, out var pricing);
                 return new PortalModuleDto
                 {
                     Id = moduleDef.Id,
@@ -396,6 +401,10 @@ public class CustomerFactory : ICustomerFactory
                     Description = moduleDef.Description,
                     Icon = moduleDef.Icon,
                     IsActive = pm.IsActive,
+                    IsDefault = moduleDef.IsDefault,
+                    CatalogPrice = pricing?.MonthlyPrice ?? 0,
+                    CustomerPrice = pm.MonthlyPrice,
+                    TrialEndsAt = pm.TrialEndsAt,
                     Permissions = CustomerPermissionTypes.GetByModule(moduleDef.Id).Select(p => new PermissionTypeDto
                     {
                         Id = p.Id,
@@ -419,13 +428,15 @@ public class CustomerFactory : ICustomerFactory
 
         foreach (var moduleId in request.ModuleIds)
         {
-            if (PortalModules.GetById(moduleId) == null) continue;
+            if (PortalModules.GetById(moduleId) == null && SalonPortalModules.GetById(moduleId) == null) continue;
 
             var existing = customer.PortalModules.FirstOrDefault(m => m.ModuleId == moduleId);
             if (existing != null)
             {
                 existing.IsActive = true;
                 existing.DeactivatedAt = null;
+                if (request.MonthlyPrice.HasValue) existing.MonthlyPrice = request.MonthlyPrice;
+                if (request.TrialEndsAt.HasValue) existing.TrialEndsAt = request.TrialEndsAt;
             }
             else
             {
@@ -434,7 +445,9 @@ public class CustomerFactory : ICustomerFactory
                     CustomerId = customerId,
                     ModuleId = moduleId,
                     IsActive = true,
-                    Notes = request.Notes
+                    Notes = request.Notes,
+                    MonthlyPrice = request.MonthlyPrice,
+                    TrialEndsAt = request.TrialEndsAt
                 });
             }
         }

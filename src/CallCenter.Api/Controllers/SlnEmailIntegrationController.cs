@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Filters;
 using CallCenter.Api.Services;
 using CallCenter.Api.Services.Email;
 using CallCenter.Shared.DTOs;
@@ -13,6 +14,7 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/sln-email-integrations")]
 [Authorize]
+[RequireModule(SalonPortalModules.Ids.SlnEmailCampaigns)]
 public class SlnEmailIntegrationController : ControllerBase
 {
     private readonly ISlnEmailIntegrationFactory _factory;

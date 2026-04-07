@@ -7,8 +7,15 @@ function PageSettingsViewModel() {
     self.isPublished = ko.observable(false);
     self.banners = ko.observableArray([]);
 
+    // Gorseller
+    self.logoUrl = ko.observable('');
+    self.coverImageUrl = ko.observable('');
+    self.faviconUrl = ko.observable('');
+    self.galleryImages = ko.observableArray([]);
+
     var allSections = [
-        { key: 'banners', label: 'Reklam Gorselleri', icon: 'bi bi-images', field: 'showBanners' },
+        { key: 'banners', label: 'Reklam Gorselleri', icon: 'bi bi-collection-play', field: 'showBanners' },
+        { key: 'gallery', label: 'Galeri', icon: 'bi bi-images', field: 'showGallery' },
         { key: 'services', label: 'Hizmetler', icon: 'bi bi-list-check', field: 'showServices' },
         { key: 'memberships', label: 'Uyelik Planlari', icon: 'bi bi-award', field: 'showMemberships' },
         { key: 'booking', label: 'Online Randevu', icon: 'bi bi-calendar-check', field: 'showBooking' },
@@ -21,6 +28,7 @@ function PageSettingsViewModel() {
 
     self.sections = ko.observableArray([]);
 
+    // ═══ Veri Yukleme ═══
     self.loadData = function () {
         self.isLoading(true);
         $.get('/proxy/sln-profile').done(function (data) {
@@ -34,6 +42,16 @@ function PageSettingsViewModel() {
             self.slug(data.slug || '');
             self.isPublished(data.isPublished || false);
 
+            // Gorseller
+            self.logoUrl(data.logoUrl || '');
+            self.coverImageUrl(data.coverImageUrl || '');
+            self.faviconUrl(data.faviconUrl || '');
+
+            // Galeri
+            if (data.galleryImagesJson) {
+                try { self.galleryImages(JSON.parse(data.galleryImagesJson)); } catch (e) {}
+            }
+
             // Bannerlar
             if (data.bannersJson) {
                 try {
@@ -44,7 +62,7 @@ function PageSettingsViewModel() {
                 } catch (e) {}
             }
 
-            // Siralama
+            // Bolum siralamasi
             var order = null;
             if (data.sectionOrderJson) {
                 try { order = JSON.parse(data.sectionOrderJson); } catch (e) {}
@@ -105,6 +123,80 @@ function PageSettingsViewModel() {
         });
     };
 
+    // ═══ Tekli Gorsel Yukleme (logo, cover, favicon) ═══
+    self.uploadSingle = function (type, event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { toastr.warning('Dosya 5 MB dan buyuk olamaz.'); return; }
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        toastr.info('Yukleniyor...');
+        $.ajax({
+            url: '/proxy/sln-profile/upload-image?type=' + type,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function (result) {
+            if (type === 'logo') self.logoUrl(result.url);
+            else if (type === 'cover') self.coverImageUrl(result.url);
+            else if (type === 'favicon') self.faviconUrl(result.url);
+            toastr.success('Gorsel yuklendi.');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.message || 'Yukleme hatasi.');
+        });
+
+        // Input'u sifirla (ayni dosyayi tekrar secebilsin)
+        event.target.value = '';
+    };
+
+    self.removeSingleImage = function (type) {
+        if (type === 'logo') self.logoUrl('');
+        else if (type === 'cover') self.coverImageUrl('');
+        else if (type === 'favicon') self.faviconUrl('');
+    };
+
+    // ═══ Galeri Yukleme ═══
+    self.uploadGalleryImages = function (data, event) {
+        var files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        var remaining = files.length;
+        toastr.info(files.length + ' gorsel yukleniyor...');
+
+        for (var i = 0; i < files.length; i++) {
+            (function (file) {
+                if (file.size > 5 * 1024 * 1024) { toastr.warning(file.name + ' 5 MB sinirini asiyor.'); remaining--; return; }
+
+                var formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/proxy/sln-profile/upload-image?type=gallery',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false
+                }).done(function (result) {
+                    self.galleryImages.push(result.url);
+                }).fail(function () {
+                    toastr.error(file.name + ' yuklenemedi.');
+                }).always(function () {
+                    remaining--;
+                    if (remaining <= 0) toastr.success('Galeri gorselleri yuklendi.');
+                });
+            })(files[i]);
+        }
+
+        event.target.value = '';
+    };
+
+    self.removeGalleryImage = function (index) {
+        self.galleryImages.splice(index, 1);
+    };
+
     // ═══ Banner Yonetimi ═══
     self.addBanner = function () {
         self.banners.push({ url: ko.observable(''), title: ko.observable(''), link: ko.observable('') });
@@ -133,8 +225,10 @@ function PageSettingsViewModel() {
             self.banners()[index].url(result.url);
             toastr.success('Gorsel yuklendi.');
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Yukleme hatasi.');
+            toastr.error(xhr.responseJSON?.message || 'Yukleme hatasi.');
         });
+
+        event.target.value = '';
     };
 
     // ═══ Kaydet ═══
@@ -156,7 +250,11 @@ function PageSettingsViewModel() {
             showReviews: true,
             showMap: true,
             sectionOrderJson: JSON.stringify(sectionOrder),
-            bannersJson: JSON.stringify(bannersData)
+            bannersJson: JSON.stringify(bannersData),
+            logoUrl: self.logoUrl() || null,
+            coverImageUrl: self.coverImageUrl() || null,
+            faviconUrl: self.faviconUrl() || null,
+            galleryImagesJson: self.galleryImages().length > 0 ? JSON.stringify(self.galleryImages()) : null
         };
 
         self.sections().forEach(function (s) {

@@ -320,6 +320,8 @@ public class SlnSalonProfileDto
     public string? GoogleMapsUrl { get; set; }
     public string? LogoUrl { get; set; }
     public string? CoverImageUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? GalleryImagesJson { get; set; }
     public string? WorkingHoursJson { get; set; }
     public bool IsPublished { get; set; }
     public bool ShowServices { get; set; } = true;
@@ -368,6 +370,10 @@ public class SlnPageSettingsDto
     public bool ShowMap { get; set; } = true;
     public string? SectionOrderJson { get; set; }
     public string? BannersJson { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? GalleryImagesJson { get; set; }
 }
 
 // ═══ SlnNoShowPolicy ═══

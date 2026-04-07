@@ -19,6 +19,11 @@ public class PortalModuleDto
     public string? Description { get; set; }
     public string? Icon { get; set; }
     public bool IsActive { get; set; }
+    public bool IsDefault { get; set; }
+    public decimal CatalogPrice { get; set; }
+    public decimal? CustomerPrice { get; set; }
+    public decimal EffectivePrice => CustomerPrice ?? CatalogPrice;
+    public DateTime? TrialEndsAt { get; set; }
     public List<PermissionTypeDto> Permissions { get; set; } = new();
 }
 
@@ -27,4 +32,6 @@ public class AssignModulesRequest
 {
     public int[] ModuleIds { get; set; } = Array.Empty<int>();
     public string? Notes { get; set; }
+    public decimal? MonthlyPrice { get; set; }
+    public DateTime? TrialEndsAt { get; set; }
 }

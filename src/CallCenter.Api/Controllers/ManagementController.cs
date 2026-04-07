@@ -107,4 +107,129 @@ public class ManagementController : ControllerBase
 
         return Ok(dto);
     }
+
+    // ═══ MODULE PRICING ═══
+
+    /// <summary>Tum modul fiyatlarini listele</summary>
+    [HttpGet("module-pricing")]
+    public async Task<IActionResult> GetModulePricing()
+    {
+        var pricings = await _db.ModulePricings.ToListAsync();
+        var pricingMap = pricings.ToDictionary(p => p.ModuleId);
+
+        var result = SalonPortalModules.All.Select(m =>
+        {
+            pricingMap.TryGetValue(m.Id, out var pricing);
+            return new ModulePricingDto
+            {
+                ModuleId = m.Id,
+                ModuleName = m.SystemName,
+                Description = m.Description,
+                Icon = m.Icon,
+                IsDefault = m.IsDefault,
+                MonthlyPrice = pricing?.MonthlyPrice ?? 0,
+                HasPricing = pricing != null
+            };
+        }).OrderBy(x => x.ModuleId).ToList();
+
+        return Ok(result);
+    }
+
+    /// <summary>Tek modul fiyat guncelle (upsert)</summary>
+    [HttpPost("module-pricing")]
+    public async Task<IActionResult> UpdateModulePricing([FromBody] UpdateModulePricingRequest request)
+    {
+        var existing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == request.ModuleId);
+        if (existing != null)
+        {
+            existing.MonthlyPrice = request.MonthlyPrice;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _db.ModulePricings.Add(new Shared.Entities.ModulePricing
+            {
+                ModuleId = request.ModuleId,
+                MonthlyPrice = request.MonthlyPrice
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true });
+    }
+
+    /// <summary>Toplu modul fiyat guncelle</summary>
+    [HttpPost("module-pricing/bulk")]
+    public async Task<IActionResult> BulkUpdateModulePricing([FromBody] BulkUpdateModulePricingRequest request)
+    {
+        var existingPricings = await _db.ModulePricings.ToListAsync();
+        var existingMap = existingPricings.ToDictionary(p => p.ModuleId);
+
+        foreach (var price in request.Prices)
+        {
+            if (existingMap.TryGetValue(price.ModuleId, out var existing))
+            {
+                existing.MonthlyPrice = price.MonthlyPrice;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                _db.ModulePricings.Add(new Shared.Entities.ModulePricing
+                {
+                    ModuleId = price.ModuleId,
+                    MonthlyPrice = price.MonthlyPrice
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, count = request.Prices.Count });
+    }
+
+    // ═══ MODULE REQUESTS (Admin) ═══
+
+    /// <summary>Modul talepleri (varsayilan: sadece bekleyenler, all=true ile tumu)</summary>
+    [HttpGet("module-requests")]
+    public async Task<IActionResult> GetModuleRequests([FromQuery] bool all = false)
+    {
+        var query = _db.ModuleRequests
+            .Include(r => r.Customer)
+            .Include(r => r.RequestedByPersonnel)
+            .Include(r => r.ReviewedByUser)
+            .AsQueryable();
+
+        if (!all)
+            query = query.Where(r => r.StatusId == ModuleRequestStatuses.Ids.Pending);
+
+        var requests = await query
+            .OrderByDescending(r => r.RequestedAt)
+            .Select(r => new ModuleRequestDto
+            {
+                Id = r.Id,
+                Uid = r.Uid,
+                CustomerId = r.CustomerId,
+                CustomerName = r.Customer.Name,
+                ModuleId = r.ModuleId,
+                StatusId = r.StatusId,
+                RequestNotes = r.RequestNotes,
+                AdminNotes = r.AdminNotes,
+                RequestedAt = r.RequestedAt,
+                ReviewedAt = r.ReviewedAt,
+                ReviewedByName = r.ReviewedByUser != null ? r.ReviewedByUser.FullName : null
+            })
+            .ToListAsync();
+
+        // Modul bilgilerini ekle
+        var pricings = await _db.ModulePricings.ToListAsync();
+        foreach (var req in requests)
+        {
+            var module = SalonPortalModules.GetById(req.ModuleId);
+            req.ModuleName = module?.SystemName;
+            req.ModuleIcon = module?.Icon;
+            req.StatusName = ModuleRequestStatuses.GetById(req.StatusId)?.Description;
+            req.CatalogPrice = pricings.FirstOrDefault(p => p.ModuleId == req.ModuleId)?.MonthlyPrice;
+        }
+
+        return Ok(requests);
+    }
 }

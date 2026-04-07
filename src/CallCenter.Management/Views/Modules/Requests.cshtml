@@ -1,0 +1,204 @@
+@{
+    ViewData["Title"] = "Modul Talepleri";
+}
+
+<div id="requests-vm">
+    <!-- Ozet -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-warning border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Bekleyen</div>
+                    <h4 class="mb-0 text-warning" data-bind="text: pendingCount()"></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-success border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Onaylanan (Bu Ay)</div>
+                    <h4 class="mb-0 text-success" data-bind="text: approvedCount()"></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card border-start border-danger border-3">
+                <div class="card-body py-2">
+                    <div class="text-muted small">Reddedilen (Bu Ay)</div>
+                    <h4 class="mb-0 text-danger" data-bind="text: rejectedCount()"></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bekleyen Talepler -->
+    <h6 class="text-muted mb-2"><i class="bi bi-hourglass-split me-1"></i>Bekleyen Talepler</h6>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="text-center py-4 text-muted" data-bind="visible: pending().length === 0">
+                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>Bekleyen talep yok
+            </div>
+            <div class="table-responsive" data-bind="visible: pending().length > 0">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Firma</th>
+                            <th>Modul</th>
+                            <th>Katalog Fiyat</th>
+                            <th>Talep Tarihi</th>
+                            <th>Firma Notu</th>
+                            <th style="width:200px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: pending">
+                        <tr>
+                            <td class="fw-medium">
+                                <a data-bind="text: customerName, attr: { href: '/Customers/Detail/' + customerId }" class="text-decoration-none"></a>
+                            </td>
+                            <td>
+                                <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i>
+                                <span data-bind="text: moduleName"></span>
+                            </td>
+                            <td data-bind="text: catalogPrice ? catalogPrice.toLocaleString('tr-TR') + ' TL/ay' : '-'"></td>
+                            <td data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
+                            <td class="text-muted small" data-bind="text: requestNotes || '-'"></td>
+                            <td>
+                                <button class="btn btn-success btn-sm me-1" data-bind="click: $parent.approve">
+                                    <i class="bi bi-check-lg me-1"></i>Onayla
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.reject">
+                                    <i class="bi bi-x-lg me-1"></i>Reddet
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gecmis Talepler -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="text-muted mb-0"><i class="bi bi-clock-history me-1"></i>Gecmis Talepler</h6>
+        <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadHistory, visible: !historyLoaded()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Yukle
+        </button>
+    </div>
+    <!-- ko if: historyLoaded() -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="text-center py-4 text-muted" data-bind="visible: history().length === 0">Gecmis talep yok.</div>
+            <div class="table-responsive" data-bind="visible: history().length > 0">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Firma</th>
+                            <th>Modul</th>
+                            <th>Durum</th>
+                            <th>Talep</th>
+                            <th>Degerlendirme</th>
+                            <th>Admin Notu</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: history">
+                        <tr>
+                            <td data-bind="text: customerName"></td>
+                            <td>
+                                <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i>
+                                <span data-bind="text: moduleName"></span>
+                            </td>
+                            <td>
+                                <span class="badge" data-bind="text: statusName,
+                                    css: statusId === 2 ? 'bg-success' : statusId === 3 ? 'bg-danger' : 'bg-secondary'"></span>
+                            </td>
+                            <td data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
+                            <td data-bind="text: reviewedAt ? new Date(reviewedAt).toLocaleDateString('tr-TR') : '-'"></td>
+                            <td class="text-muted small" data-bind="text: adminNotes || '-'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- /ko -->
+</div>
+
+@section Scripts {
+<script>
+function RequestsViewModel() {
+    var self = this;
+    self.pending = ko.observableArray([]);
+    self.history = ko.observableArray([]);
+    self.historyLoaded = ko.observable(false);
+
+    self.pendingCount = ko.computed(function () { return self.pending().length; });
+    self.approvedCount = ko.observable(0);
+    self.rejectedCount = ko.observable(0);
+
+    self.load = function () {
+        $.get('/proxy/management/module-requests', function (data) {
+            var list = Array.isArray(data) ? data : [];
+            self.pending(list);
+        });
+    };
+
+    self.loadHistory = function () {
+        // Tum talepleri cek (tum statusler)
+        $.get('/proxy/management/module-requests?all=true', function (data) {
+            var list = Array.isArray(data) ? data : [];
+            var nonPending = list.filter(function (r) { return r.statusId !== 1; });
+            self.history(nonPending);
+            self.historyLoaded(true);
+
+            // Bu ayin istatistikleri
+            var now = new Date();
+            var thisMonth = nonPending.filter(function (r) {
+                return r.reviewedAt && new Date(r.reviewedAt).getMonth() === now.getMonth()
+                    && new Date(r.reviewedAt).getFullYear() === now.getFullYear();
+            });
+            self.approvedCount(thisMonth.filter(function (r) { return r.statusId === 2; }).length);
+            self.rejectedCount(thisMonth.filter(function (r) { return r.statusId === 3; }).length);
+        });
+    };
+
+    self.approve = function (req) {
+        if (!confirm(req.customerName + ' - ' + req.moduleName + ' talebini onaylamak istiyor musunuz?')) return;
+        var notes = prompt('Admin notu (opsiyonel):');
+        $.ajax({
+            url: '/proxy/sln-module-requests/' + req.id + '/approve',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ notes: notes || null }),
+            success: function () {
+                toastr.success('Talep onaylandi. Modul aktif edildi.');
+                self.load();
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Onay hatasi.');
+            }
+        });
+    };
+
+    self.reject = function (req) {
+        var notes = prompt('Red sebebi:');
+        if (notes === null) return; // Iptal
+        $.ajax({
+            url: '/proxy/sln-module-requests/' + req.id + '/reject',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ notes: notes || null }),
+            success: function () {
+                toastr.success('Talep reddedildi.');
+                self.load();
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Red hatasi.');
+            }
+        });
+    };
+
+    self.load();
+}
+ko.applyBindings(new RequestsViewModel(), document.getElementById('requests-vm'));
+</script>
+}

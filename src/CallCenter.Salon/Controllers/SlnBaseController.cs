@@ -16,18 +16,36 @@ public abstract class SlnBaseController : Controller
             return;
         }
 
-        // Rol bazli sayfa erisim kontrolu (Proxy ve PublicProxy muaf)
+        // Rol + modul bazli sayfa erisim kontrolu (Proxy, PublicProxy, Modules muaf)
         if (!string.IsNullOrEmpty(token)
             && controllerType != typeof(ProxyController)
-            && controllerType != typeof(PublicProxyController))
+            && controllerType != typeof(PublicProxyController)
+            && controllerType != typeof(ModulesController))
         {
             var controllerName = context.RouteData.Values["controller"]?.ToString() ?? "";
             var roleId = int.TryParse(HttpContext.Session.GetString("CustomerRoleId"), out var rid) ? rid : 101;
 
+            // Rol bazli kontrol
             if (!string.IsNullOrEmpty(controllerName) && !SalonRolePermissions.CanAccess(roleId, controllerName))
             {
                 context.Result = RedirectToAction("Index", "Home");
                 return;
+            }
+
+            // Modul bazli kontrol
+            var modulesCsv = HttpContext.Session.GetString("CustomerModules");
+            if (!string.IsNullOrEmpty(modulesCsv) && !string.IsNullOrEmpty(controllerName))
+            {
+                var activeModuleIds = modulesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+                    .Where(id => id > 0)
+                    .ToHashSet();
+
+                if (!SalonModuleControllerMap.HasModule(activeModuleIds, controllerName))
+                {
+                    context.Result = RedirectToAction("Index", "Home");
+                    return;
+                }
             }
         }
 

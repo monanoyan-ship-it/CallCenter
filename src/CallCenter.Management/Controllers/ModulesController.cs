@@ -15,4 +15,16 @@ public class ModulesController : MgmtBaseController
         ViewData["Title"] = "Salon Odeme Takibi";
         return View();
     }
+
+    public IActionResult Pricing()
+    {
+        ViewData["Title"] = "Modul Fiyatlari";
+        return View();
+    }
+
+    public IActionResult Requests()
+    {
+        ViewData["Title"] = "Modul Talepleri";
+        return View();
+    }
 }

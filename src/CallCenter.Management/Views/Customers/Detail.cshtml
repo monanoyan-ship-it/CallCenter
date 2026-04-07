@@ -192,19 +192,48 @@
 
         <!-- Moduller -->
         <div class="tab-pane fade" id="tabModules">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Moduller</strong>
+                    <div>
+                        <span class="text-muted small me-3" data-bind="text: 'Toplam Aylik: ' + moduleTotalPrice() + ' TL'"></span>
+                        <button class="btn btn-outline-primary btn-sm me-1" data-bind="click: syncModules" title="Eksik modulleri otomatik ekle">
+                            <i class="bi bi-arrow-repeat me-1"></i>Senkronize Et
+                        </button>
+                        <button class="btn btn-success btn-sm" data-bind="click: activateAllDefaults" title="Default modulleri aktif et">
+                            <i class="bi bi-check-all me-1"></i>Default Aktif Et
+                        </button>
+                    </div>
+                </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Modul</th><th>Durum</th><th></th></tr>
+                                <tr>
+                                    <th>Modul</th>
+                                    <th>Default</th>
+                                    <th>Durum</th>
+                                    <th>Katalog Fiyat</th>
+                                    <th>Firma Fiyat</th>
+                                    <th>Gecerli Fiyat</th>
+                                    <th>Trial Bitis</th>
+                                    <th></th>
+                                </tr>
                             </thead>
                             <tbody data-bind="foreach: modules">
                                 <tr>
-                                    <td data-bind="text: moduleName || name"></td>
+                                    <td>
+                                        <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }"></i>
+                                        <span data-bind="text: description || systemName"></span>
+                                    </td>
+                                    <td><span class="badge" data-bind="text: isDefault ? 'Evet' : '-', css: isDefault ? 'bg-info' : 'bg-light text-muted'"></span></td>
                                     <td>
                                         <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span>
                                     </td>
+                                    <td data-bind="text: catalogPrice > 0 ? catalogPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                    <td data-bind="text: customerPrice != null ? customerPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                    <td class="fw-bold" data-bind="text: effectivePrice > 0 ? effectivePrice.toLocaleString('tr-TR') + ' TL' : 'Ucretsiz'"></td>
+                                    <td data-bind="text: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('tr-TR') : '-'"></td>
                                     <td>
                                         <button class="btn btn-outline-warning btn-sm" data-bind="click: $parent.toggleModule, text: isActive ? 'Deaktif Et' : 'Aktif Et'"></button>
                                     </td>
@@ -213,6 +242,31 @@
                         </table>
                     </div>
                     <div class="text-center py-3 text-muted" data-bind="visible: modules().length === 0">Modul atanmamis.</div>
+                </div>
+            </div>
+
+            <!-- Bekleyen Talepler -->
+            <div class="card border-0 shadow-sm" data-bind="visible: moduleRequests().length > 0">
+                <div class="card-header bg-white"><strong>Bekleyen Talepler</strong></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Modul</th><th>Talep Tarihi</th><th>Not</th><th></th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: moduleRequests">
+                                <tr>
+                                    <td><i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i><span data-bind="text: moduleName"></span></td>
+                                    <td data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
+                                    <td data-bind="text: requestNotes || '-'"></td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm me-1" data-bind="click: $parent.approveRequest"><i class="bi bi-check-lg"></i> Onayla</button>
+                                        <button class="btn btn-danger btn-sm" data-bind="click: $parent.rejectRequest"><i class="bi bi-x-lg"></i> Reddet</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -242,6 +296,14 @@ function DetailViewModel() {
     self.queues = ko.observableArray([]);
     self.billing = ko.observableArray([]);
     self.modules = ko.observableArray([]);
+    self.moduleRequests = ko.observableArray([]);
+    self.moduleTotalPrice = ko.computed(function () {
+        var total = 0;
+        self.modules().forEach(function (m) {
+            if (m.isActive && !m.isDefault) total += (m.effectivePrice || 0);
+        });
+        return total.toLocaleString('tr-TR');
+    });
 
     // Urun checkbox/fiyat yonetimi
     self.isProductActive = function (productTypeId) {
@@ -306,6 +368,7 @@ function DetailViewModel() {
         $.get('/proxy/customers/' + CUSTOMER_ID + '/modules', function (d) {
             self.modules(Array.isArray(d) ? d : (d.items || d.data || []));
         });
+        self.loadModuleRequests();
     };
 
     self.saveGeneral = function () {
@@ -338,6 +401,39 @@ function DetailViewModel() {
         });
     };
 
+    self.syncModules = function () {
+        $.ajax({
+            url: '/proxy/customers/' + CUSTOMER_ID + '/modules/sync',
+            method: 'POST',
+            success: function (data) {
+                var count = data.addedCount || 0;
+                if (count > 0) {
+                    toastr.success(count + ' eksik modul eklendi.');
+                } else {
+                    toastr.info('Tum moduller zaten mevcut.');
+                }
+                self.loadTabs();
+            },
+            error: function () { toastr.error('Senkronizasyon hatasi.'); }
+        });
+    };
+
+    self.activateAllDefaults = function () {
+        // Default modul ID leri: 201,202,203,204,206,214,215,220
+        var defaultIds = [201,202,203,204,206,214,215,220];
+        $.ajax({
+            url: '/proxy/customers/' + CUSTOMER_ID + '/modules/assign',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ moduleIds: defaultIds, notes: 'Default moduller toplu aktif edildi' }),
+            success: function () {
+                toastr.success('Default moduller aktif edildi.');
+                self.loadTabs();
+            },
+            error: function () { toastr.error('Islem hatasi.'); }
+        });
+    };
+
     self.toggleModule = function (mod) {
         var action = mod.isActive ? 'deactivate' : 'activate';
         var url = '/proxy/customers/' + CUSTOMER_ID + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
@@ -345,6 +441,40 @@ function DetailViewModel() {
             url: url, method: 'POST',
             success: function () { toastr.success('Modul guncellendi.'); self.loadTabs(); },
             error: function () { toastr.error('Islem hatasi.'); }
+        });
+    };
+
+    self.loadModuleRequests = function () {
+        $.get('/proxy/management/module-requests', function (d) {
+            var all = Array.isArray(d) ? d : [];
+            // Sadece bu musterinin taleplerini filtrele
+            self.moduleRequests(all.filter(function (r) { return r.customerId === CUSTOMER_ID; }));
+        }).fail(function () { self.moduleRequests([]); });
+    };
+
+    self.approveRequest = function (req) {
+        if (!confirm('Bu talebi onaylamak istiyor musunuz?')) return;
+        var notes = prompt('Admin notu (opsiyonel):');
+        $.ajax({
+            url: '/proxy/sln-module-requests/' + req.id + '/approve',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ notes: notes || null }),
+            success: function () { toastr.success('Talep onaylandi.'); self.loadTabs(); self.loadModuleRequests(); },
+            error: function () { toastr.error('Onay hatasi.'); }
+        });
+    };
+
+    self.rejectRequest = function (req) {
+        if (!confirm('Bu talebi reddetmek istiyor musunuz?')) return;
+        var notes = prompt('Red sebebi:');
+        $.ajax({
+            url: '/proxy/sln-module-requests/' + req.id + '/reject',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ notes: notes || null }),
+            success: function () { toastr.success('Talep reddedildi.'); self.loadModuleRequests(); },
+            error: function () { toastr.error('Red hatasi.'); }
         });
     };
 

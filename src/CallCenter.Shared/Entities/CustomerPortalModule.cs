@@ -27,4 +27,10 @@ public class CustomerPortalModule
 
     /// <summary>Aciklama / not (ornegin: "3 aylik deneme", "premium paket")</summary>
     public string? Notes { get; set; }
+
+    /// <summary>Firma bazli fiyat override (null = katalog fiyati kullanilir)</summary>
+    public decimal? MonthlyPrice { get; set; }
+
+    /// <summary>Deneme suresi bitis tarihi (null = trial yok)</summary>
+    public DateTime? TrialEndsAt { get; set; }
 }
