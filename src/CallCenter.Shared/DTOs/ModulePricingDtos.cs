@@ -8,6 +8,8 @@ public class ModulePricingDto
     public string? Description { get; set; }
     public string? Icon { get; set; }
     public bool IsDefault { get; set; }
+    public int? GroupId { get; set; }
+    public string? GroupName { get; set; }
     public decimal MonthlyPrice { get; set; }
     public bool HasPricing { get; set; }
 }

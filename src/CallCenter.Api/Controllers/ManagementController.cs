@@ -120,6 +120,7 @@ public class ManagementController : ControllerBase
         var result = SalonPortalModules.All.Select(m =>
         {
             pricingMap.TryGetValue(m.Id, out var pricing);
+            var groupId = SalonModuleGroups.GetGroupId(m.Id);
             return new ModulePricingDto
             {
                 ModuleId = m.Id,
@@ -127,6 +128,8 @@ public class ManagementController : ControllerBase
                 Description = m.Description,
                 Icon = m.Icon,
                 IsDefault = m.IsDefault,
+                GroupId = groupId,
+                GroupName = SalonModuleGroups.GetById(groupId ?? 0)?.Description,
                 MonthlyPrice = pricing?.MonthlyPrice ?? 0,
                 HasPricing = pricing != null
             };
