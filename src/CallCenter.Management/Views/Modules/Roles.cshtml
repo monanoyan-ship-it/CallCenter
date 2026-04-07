@@ -1,0 +1,155 @@
+@{
+    ViewData["Title"] = "Salon Rol Yönetimi";
+}
+
+<div id="roles-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <small class="text-muted">Tüm salonlar için geçerli merkezi rol-izin matrisi. Bir rolün hangi sayfalara erişebileceğini düzenleyin.</small>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-1" data-bind="click: seedFromStatic, visible: !hasData()">
+                <i class="bi bi-database-add me-1"></i>Mevcut Yapıyı Yükle
+            </button>
+            <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                <i class="bi bi-check-lg me-1"></i>Kaydet
+            </button>
+        </div>
+    </div>
+
+    <div class="text-center py-3" data-bind="visible: isLoading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+
+    <div data-bind="visible: !isLoading()">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0" style="font-size:.8rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sticky-top bg-light" style="min-width:140px;">Sayfa</th>
+                                <!-- ko foreach: roles -->
+                                <th class="text-center sticky-top bg-light" style="min-width:90px;">
+                                    <i class="bi d-block" data-bind="attr: { 'class': 'bi ' + icon }"></i>
+                                    <span data-bind="text: name" class="small"></span>
+                                </th>
+                                <!-- /ko -->
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: pages">
+                            <tr>
+                                <td class="fw-medium" data-bind="text: name"></td>
+                                <!-- ko foreach: $parent.roles -->
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input"
+                                        data-bind="checked: $parents[1].isAllowed($data.id, $parent.name),
+                                                   click: function() { $parents[1].toggle($data.id, $parent.name); return true; }" />
+                                </td>
+                                <!-- /ko -->
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function RolesViewModel() {
+    var self = this;
+    self.isLoading = ko.observable(true);
+    self.isSaving = ko.observable(false);
+    self.hasData = ko.observable(false);
+    self.roles = ko.observableArray([]);
+    self.pages = ko.observableArray([]);
+    self.matrix = {}; // { "roleId:pageName": ko.observable(bool) }
+
+    self.isAllowed = function (roleId, pageName) {
+        var key = roleId + ':' + pageName;
+        if (!self.matrix[key]) self.matrix[key] = ko.observable(false);
+        return self.matrix[key];
+    };
+
+    self.toggle = function (roleId, pageName) {
+        var key = roleId + ':' + pageName;
+        if (!self.matrix[key]) self.matrix[key] = ko.observable(false);
+        // checkbox binding handles the toggle
+        return true;
+    };
+
+    self.load = function () {
+        self.isLoading(true);
+        $.get('/proxy/management/salon-role-matrix', function (data) {
+            if (!Array.isArray(data) || data.length === 0) {
+                self.hasData(false);
+                self.isLoading(false);
+                return;
+            }
+
+            self.hasData(true);
+
+            // Roller
+            self.roles(data.map(function (r) {
+                return { id: r.roleId, name: r.roleName, icon: r.roleIcon || 'bi-person' };
+            }));
+
+            // Sayfalar (ilk rolden al)
+            var pageNames = data[0].pages.map(function (p) { return { name: p.pageName, moduleId: p.moduleId }; });
+            self.pages(pageNames);
+
+            // Matris
+            self.matrix = {};
+            data.forEach(function (role) {
+                role.pages.forEach(function (p) {
+                    var key = role.roleId + ':' + p.pageName;
+                    self.matrix[key] = ko.observable(p.isAllowed);
+                });
+            });
+
+            self.isLoading(false);
+        }).fail(function () {
+            self.hasData(false);
+            self.isLoading(false);
+        });
+    };
+
+    self.seedFromStatic = function () {
+        $.ajax({
+            url: '/proxy/management/salon-role-matrix/seed',
+            method: 'POST',
+            success: function (resp) {
+                toastr.success((resp.seeded || 0) + ' izin kaydı oluşturuldu.');
+                self.load();
+            },
+            error: function () { toastr.error('Seed hatası.'); }
+        });
+    };
+
+    self.save = function () {
+        var items = [];
+        self.roles().forEach(function (role) {
+            self.pages().forEach(function (page) {
+                var key = role.id + ':' + page.name;
+                var allowed = self.matrix[key] ? self.matrix[key]() : false;
+                items.push({ roleId: role.id, pageName: page.name, isAllowed: allowed });
+            });
+        });
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/management/salon-role-matrix',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(items),
+            success: function (resp) {
+                toastr.success((resp.saved || items.length) + ' izin kaydedildi.');
+            },
+            error: function () { toastr.error('Kaydetme hatası.'); },
+            complete: function () { self.isSaving(false); }
+        });
+    };
+
+    self.load();
+}
+ko.applyBindings(new RolesViewModel(), document.getElementById('roles-vm'));
+</script>
+}

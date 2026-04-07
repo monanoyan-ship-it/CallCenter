@@ -33,4 +33,10 @@ public class ModulesController : MgmtBaseController
         ViewData["Title"] = "Modul Envanteri";
         return View();
     }
+
+    public IActionResult Roles()
+    {
+        ViewData["Title"] = "Salon Rol Yonetimi";
+        return View();
+    }
 }

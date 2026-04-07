@@ -1,4 +1,5 @@
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
@@ -106,6 +107,39 @@ public class ManagementController : ControllerBase
         }
 
         return Ok(dto);
+    }
+
+    // ═══ SALON ROLE PERMISSIONS ═══
+
+    /// <summary>Rol-sayfa izin matrisi</summary>
+    [HttpGet("salon-role-matrix")]
+    public async Task<IActionResult> GetSalonRoleMatrix([FromServices] Services.SalonRolePermissionService svc)
+    {
+        var matrix = await svc.GetMatrixAsync();
+        return Ok(matrix);
+    }
+
+    /// <summary>Rol-sayfa izin matrisini kaydet</summary>
+    [HttpPost("salon-role-matrix")]
+    public async Task<IActionResult> SaveSalonRoleMatrix([FromServices] Services.SalonRolePermissionService svc, [FromBody] List<RolePermissionSaveItem> items)
+    {
+        var perms = items.Select(i => new Shared.Entities.SalonRolePermission
+        {
+            RoleId = i.RoleId,
+            PageName = i.PageName,
+            IsAllowed = i.IsAllowed
+        }).ToList();
+
+        await svc.SaveMatrixAsync(perms);
+        return Ok(new { saved = perms.Count });
+    }
+
+    /// <summary>Static yapiyi DB'ye seed et (ilk kullanim)</summary>
+    [HttpPost("salon-role-matrix/seed")]
+    public async Task<IActionResult> SeedSalonRoleMatrix([FromServices] Services.SalonRolePermissionService svc)
+    {
+        var count = await svc.SeedFromStaticAsync();
+        return Ok(new { seeded = count });
     }
 
     // ═══ MODULE PRICING ═══

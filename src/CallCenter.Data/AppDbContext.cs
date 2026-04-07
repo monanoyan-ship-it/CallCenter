@@ -156,6 +156,9 @@ public class AppDbContext : DbContext
     public DbSet<PlatformEmailEvent> PlatformEmailEvents => Set<PlatformEmailEvent>();
     public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
 
+    // ─── Salon Role Permissions ───
+    public DbSet<SalonRolePermission> SalonRolePermissions => Set<SalonRolePermission>();
+
     // ─── Module Licensing ───
     public DbSet<ModulePricing> ModulePricings => Set<ModulePricing>();
     public DbSet<ModuleRequest> ModuleRequests => Set<ModuleRequest>();
@@ -227,6 +230,14 @@ public class AppDbContext : DbContext
              .WithMany(c => c.PortalModules)
              .HasForeignKey(m => m.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SalonRolePermission (merkezi rol-sayfa izinleri)
+        modelBuilder.Entity<SalonRolePermission>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.RoleId, p.PageName }).IsUnique();
+            e.Property(p => p.PageName).HasMaxLength(100);
         });
 
         // ModulePricing (modul katalog fiyatlari)
