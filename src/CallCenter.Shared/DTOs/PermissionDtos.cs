@@ -22,6 +22,9 @@ public class PortalModuleDto
     public bool IsDefault { get; set; }
     /// <summary>1 = CallCenter, 2 = Salon</summary>
     public int ProductTypeId { get; set; }
+    /// <summary>Modül grup ID (SalonModuleGroups.Ids). null = grupsuz (default modül)</summary>
+    public int? GroupId { get; set; }
+    public string? GroupName { get; set; }
     public decimal CatalogPrice { get; set; }
     public decimal? CustomerPrice { get; set; }
     public decimal EffectivePrice => CustomerPrice ?? CatalogPrice;

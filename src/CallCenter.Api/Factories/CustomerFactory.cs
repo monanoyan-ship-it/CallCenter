@@ -404,6 +404,8 @@ public class CustomerFactory : ICustomerFactory
                     IsActive = pm.IsActive,
                     IsDefault = moduleDef.IsDefault,
                     ProductTypeId = ccDef != null ? PortalModules.ProductTypeId : SalonPortalModules.ProductTypeId,
+                    GroupId = SalonModuleGroups.GetGroupId(pm.ModuleId),
+                    GroupName = SalonModuleGroups.GetById(SalonModuleGroups.GetGroupId(pm.ModuleId) ?? 0)?.Description,
                     CatalogPrice = pricing?.MonthlyPrice ?? 0,
                     CustomerPrice = pm.MonthlyPrice,
                     TrialEndsAt = pm.TrialEndsAt,
