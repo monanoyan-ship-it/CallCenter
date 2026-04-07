@@ -147,15 +147,21 @@ public class ModuleRequestFactory : IModuleRequestFactory
 
         return SalonPortalModules.All
             .Where(m => !m.IsDefault && !activeIds.Contains(m.Id))
-            .Select(m => new ModulePricingDto
+            .Select(m =>
             {
-                ModuleId = m.Id,
-                ModuleName = m.SystemName,
-                Description = m.Description,
-                Icon = m.Icon,
-                IsDefault = m.IsDefault,
-                MonthlyPrice = pricingMap.TryGetValue(m.Id, out var p) ? p.MonthlyPrice : 0,
-                HasPricing = pricingMap.ContainsKey(m.Id)
+                var groupId = SalonModuleGroups.GetGroupId(m.Id);
+                return new ModulePricingDto
+                {
+                    ModuleId = m.Id,
+                    ModuleName = m.SystemName,
+                    Description = m.Description,
+                    Icon = m.Icon,
+                    IsDefault = m.IsDefault,
+                    GroupId = groupId,
+                    GroupName = SalonModuleGroups.GetById(groupId ?? 0)?.Description,
+                    MonthlyPrice = pricingMap.TryGetValue(m.Id, out var p) ? p.MonthlyPrice : 0,
+                    HasPricing = pricingMap.ContainsKey(m.Id)
+                };
             })
             .ToList();
     }

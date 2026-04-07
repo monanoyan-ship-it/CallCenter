@@ -20,30 +20,40 @@
         </div>
     </div>
 
-    <!-- Satin Alinabilir Moduller -->
-    <h6 class="text-muted mb-3"><i class="bi bi-cart-plus me-1"></i>Satin Alinabilir Moduller</h6>
+    <!-- Satın Alınabilir Modüller - Grup Bazlı -->
+    <h6 class="text-muted mb-3"><i class="bi bi-cart-plus me-1"></i>Satın Alınabilir Modüller</h6>
     <!-- ko if: availableModules().length === 0 -->
-    <div class="alert alert-info">Tum moduller zaten aktif.</div>
+    <div class="alert alert-info">Tüm modüller zaten aktif.</div>
     <!-- /ko -->
-    <div class="row g-3 mb-4" data-bind="foreach: availableModules">
-        <div class="col-md-4 col-lg-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center py-3">
-                    <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.8rem;color:#6c757d;"></i>
-                    <div class="fw-bold mt-2" data-bind="text: description || moduleName"></div>
-                    <!-- ko if: monthlyPrice > 0 -->
-                    <div class="text-primary fw-bold mt-1" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
-                    <!-- /ko -->
-                    <!-- ko if: monthlyPrice === 0 -->
-                    <div class="text-muted small mt-1">Fiyat icin iletisime gecin</div>
-                    <!-- /ko -->
-                    <button class="btn btn-sm btn-outline-primary mt-2" data-bind="click: $parent.requestModule">
-                        <i class="bi bi-send me-1"></i>Talep Et
-                    </button>
+    <!-- ko foreach: availableGroups -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2">
+            <strong data-bind="text: groupName"></strong>
+            <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modül)'"></span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" data-bind="foreach: modules">
+                <div class="col-md-4 col-lg-3">
+                    <div class="card border h-100">
+                        <div class="card-body text-center py-3">
+                            <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.5rem;color:#6c757d;"></i>
+                            <div class="fw-bold mt-2 small" data-bind="text: description || moduleName"></div>
+                            <!-- ko if: monthlyPrice > 0 -->
+                            <div class="text-primary fw-bold mt-1 small" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
+                            <!-- /ko -->
+                            <!-- ko if: monthlyPrice === 0 -->
+                            <div class="text-muted small mt-1">Fiyat için iletişime geçin</div>
+                            <!-- /ko -->
+                            <button class="btn btn-sm btn-outline-primary mt-2" data-bind="click: $parents[1].requestModule">
+                                <i class="bi bi-send me-1"></i>Talep Et
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    <!-- /ko -->
 
     <!-- Taleplerim -->
     <h6 class="text-muted mb-3"><i class="bi bi-clock-history me-1"></i>Taleplerim</h6>
@@ -93,6 +103,18 @@
         self.activeModules = ko.observableArray([]);
         self.availableModules = ko.observableArray([]);
         self.requests = ko.observableArray([]);
+
+        self.availableGroups = ko.computed(function () {
+            var all = self.availableModules();
+            var grouped = {};
+            all.forEach(function (m) {
+                var gId = m.groupId || 0;
+                var gName = m.groupName || 'Diğer';
+                if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, modules: [] };
+                grouped[gId].modules.push(m);
+            });
+            return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
+        });
 
         self.load = function () {
             // Aktif moduller (firma modulleri)
