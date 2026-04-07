@@ -476,13 +476,14 @@ function DetailViewModel() {
             });
         } else {
             // Toplu deaktif et
-            var promises = moduleIds.map(function (mid) {
-                return $.ajax({ url: '/proxy/customers/' + CUSTOMER_ID + '/modules/' + mid + '/deactivate', method: 'POST' });
+            $.ajax({
+                url: '/proxy/customers/' + CUSTOMER_ID + '/modules/deactivate-bulk',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(moduleIds),
+                success: function () { toastr.success(group.groupName + ' grubu kapatıldı.'); self.loadTabs(); },
+                error: function () { toastr.error('İşlem hatası.'); }
             });
-            $.when.apply($, promises).done(function () {
-                toastr.success(group.groupName + ' grubu kapatıldı.');
-                self.loadTabs();
-            }).fail(function () { toastr.error('İşlem hatası.'); });
         }
     };
 

@@ -139,6 +139,16 @@ public class CustomersController : AuditableControllerBase
         return Ok();
     }
 
+    /// <summary>Birden fazla modulu toplu deaktif et</summary>
+    [HttpPost("{id}/modules/deactivate-bulk")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> DeactivateModulesBulk(int id, [FromBody] int[] moduleIds)
+    {
+        foreach (var moduleId in moduleIds)
+            await _customerFactory.DeactivateModuleAsync(id, moduleId);
+        return Ok(new { deactivated = moduleIds.Length });
+    }
+
     /// <summary>Modulu deaktif et</summary>
     [HttpPost("{id}/modules/{moduleId}/deactivate")]
     [Authorize(Roles = "Admin")]
