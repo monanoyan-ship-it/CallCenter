@@ -1,0 +1,83 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kayıt - CorpLynk Salon</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <style>
+        body { background: linear-gradient(135deg, #2d1b3d 0%, #1a1028 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: #fff; border-radius: 16px; padding: 2rem; max-width: 400px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="text-center mb-4">
+            <i class="bi bi-scissors" style="font-size:2rem; color:#6f42c1;"></i>
+            <h5 class="mt-2">CorpLynk <span style="color:#ce93d8;">Salon</span></h5>
+            <p class="text-muted small">Yeni hesap oluşturun</p>
+        </div>
+        <div id="register-form">
+            <div class="mb-3">
+                <label class="form-label small">Ad Soyad</label>
+                <input type="text" class="form-control" id="fullName" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label small">Telefon</label>
+                <input type="tel" class="form-control" id="phone" placeholder="05XX XXX XX XX" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label small">E-posta (opsiyonel)</label>
+                <input type="email" class="form-control" id="email" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label small">Şifre</label>
+                <input type="password" class="form-control" id="password" />
+            </div>
+            <div id="error-msg" class="alert alert-danger py-1 small d-none"></div>
+            <button class="btn btn-primary w-100" id="regBtn" onclick="doRegister()">
+                <i class="bi bi-person-plus me-1"></i>Kayıt Ol
+            </button>
+            <div class="text-center mt-3">
+                <a href="/uye/giris" class="small">Zaten hesabınız var mı? <strong>Giriş yapın</strong></a>
+            </div>
+        </div>
+    </div>
+    <script>
+        if (localStorage.getItem('platformToken')) window.location.href = '/uye/panel';
+
+        async function doRegister() {
+            var btn = document.getElementById('regBtn');
+            btn.disabled = true;
+            document.getElementById('error-msg').classList.add('d-none');
+
+            try {
+                var resp = await fetch('/public-proxy/platform/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: document.getElementById('fullName').value.trim(),
+                        phone: document.getElementById('phone').value.trim(),
+                        email: document.getElementById('email').value.trim() || null,
+                        password: document.getElementById('password').value
+                    })
+                });
+                var data = await resp.json();
+                if (!resp.ok) throw new Error(data.message || 'Kayıt başarısız.');
+                localStorage.setItem('platformToken', data.token);
+                localStorage.setItem('platformUser', JSON.stringify(data.user));
+                window.location.href = '/uye/panel';
+            } catch (e) {
+                document.getElementById('error-msg').textContent = e.message;
+                document.getElementById('error-msg').classList.remove('d-none');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

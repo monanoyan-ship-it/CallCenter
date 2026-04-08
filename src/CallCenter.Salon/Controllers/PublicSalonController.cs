@@ -26,4 +26,24 @@ public class PublicSalonController : Controller
     {
         return View();
     }
+
+    // ─── Platform User Sayfaları ───
+
+    [HttpGet("uye/giris")]
+    public IActionResult Login()
+    {
+        return View();
+    }
+
+    [HttpGet("uye/kayit")]
+    public IActionResult Register()
+    {
+        return View();
+    }
+
+    [HttpGet("uye/panel")]
+    public IActionResult Panel()
+    {
+        return View();
+    }
 }
