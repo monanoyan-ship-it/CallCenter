@@ -149,6 +149,12 @@ public class AppDbContext : DbContext
     public DbSet<SlnClientPackage> SlnClientPackages => Set<SlnClientPackage>();
     public DbSet<SlnPackageUsage> SlnPackageUsages => Set<SlnPackageUsage>();
 
+    // ─── Salon Finance (ek) ───
+    public DbSet<SlnInvoicePayment> SlnInvoicePayments => Set<SlnInvoicePayment>();
+    public DbSet<SlnInvoiceRefund> SlnInvoiceRefunds => Set<SlnInvoiceRefund>();
+    public DbSet<SlnCashOpening> SlnCashOpenings => Set<SlnCashOpening>();
+    public DbSet<SlnClientLedger> SlnClientLedgers => Set<SlnClientLedger>();
+
     // ─── Email Integration ───
     public DbSet<CustomerEmailIntegration> CustomerEmailIntegrations => Set<CustomerEmailIntegration>();
 
@@ -254,6 +260,70 @@ public class AppDbContext : DbContext
             e.Property(t => t.ErrorMessage).HasMaxLength(1000);
             e.HasOne(t => t.Customer).WithMany().HasForeignKey(t => t.CustomerId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.PlatformUser).WithMany().HasForeignKey(t => t.PlatformUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // SlnInvoicePayment (karma odeme)
+        modelBuilder.Entity<SlnInvoicePayment>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Amount).HasPrecision(18, 2);
+            e.HasOne(p => p.Invoice).WithMany(i => i.Payments).HasForeignKey(p => p.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SlnInvoiceRefund (iade)
+        modelBuilder.Entity<SlnInvoiceRefund>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.RefundAmount).HasPrecision(18, 2);
+            e.HasOne(r => r.Invoice).WithMany().HasForeignKey(r => r.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SlnCashOpening (kasa acilis)
+        modelBuilder.Entity<SlnCashOpening>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.OpeningBalance).HasPrecision(18, 2);
+            e.HasIndex(o => new { o.RegisterId, o.OpeningDate }).IsUnique();
+        });
+
+        // SlnClientLedger (cari hesap)
+        modelBuilder.Entity<SlnClientLedger>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Amount).HasPrecision(18, 2);
+            e.Property(l => l.RunningBalance).HasPrecision(18, 2);
+            e.HasIndex(l => new { l.CustomerId, l.SlnClientId });
+        });
+
+        // SlnInvoice ek decimal precision
+        modelBuilder.Entity<SlnInvoice>(e =>
+        {
+            e.Property(i => i.TaxAmount).HasPrecision(18, 2);
+            e.Property(i => i.GrandTotal).HasPrecision(18, 2);
+        });
+
+        // SlnInvoiceItem ek decimal precision
+        modelBuilder.Entity<SlnInvoiceItem>(e =>
+        {
+            e.Property(i => i.TaxRate).HasPrecision(5, 2);
+            e.Property(i => i.TaxAmount).HasPrecision(18, 2);
+        });
+
+        // SlnExpense ek alanlar
+        modelBuilder.Entity<SlnExpense>(e =>
+        {
+            e.Property(x => x.TaxAmount).HasPrecision(18, 2);
+            e.Property(x => x.DocumentRef).HasMaxLength(200);
+        });
+
+        // SlnService/Product tax rate
+        modelBuilder.Entity<SlnService>(e =>
+        {
+            e.Property(s => s.TaxRate).HasPrecision(5, 2);
+        });
+        modelBuilder.Entity<SlnProduct>(e =>
+        {
+            e.Property(p => p.TaxRate).HasPrecision(5, 2);
         });
 
         // PlatformUser

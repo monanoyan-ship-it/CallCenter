@@ -10,8 +10,19 @@ public class SlnExpense
     public SlnExpenseCategory? Category { get; set; }
 
     public decimal Amount { get; set; }
+    /// <summary>KDV tutari</summary>
+    public decimal TaxAmount { get; set; }
     public DateTime ExpenseDate { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>1=Beklemede, 2=Onayli, 3=Reddedildi</summary>
+    public int StatusId { get; set; } = 2;
+
+    /// <summary>Onaylayan personel</summary>
+    public int? ApprovedByPersonnelId { get; set; }
+
+    /// <summary>Belge/fatura referansi</summary>
+    public string? DocumentRef { get; set; }
 
     /// <summary>1=Cash, 2=CreditCard, 3=BankTransfer</summary>
     public int PaymentMethodId { get; set; } = 1;

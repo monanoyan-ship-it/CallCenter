@@ -16,6 +16,8 @@ public class SlnProduct
     public string? Barcode { get; set; }
     public decimal PurchasePrice { get; set; }
     public decimal SalePrice { get; set; }
+    /// <summary>KDV orani (varsayilan %20)</summary>
+    public decimal TaxRate { get; set; } = 20;
     public decimal StockQuantity { get; set; }
     public decimal MinStockLevel { get; set; }
     public string Unit { get; set; } = "Adet";

@@ -15,6 +15,12 @@ public class SlnInvoice
     public decimal DiscountAmount { get; set; }
     public decimal NetAmount { get; set; }
 
+    /// <summary>KDV toplam tutari</summary>
+    public decimal TaxAmount { get; set; }
+
+    /// <summary>Genel toplam (NetAmount + TaxAmount)</summary>
+    public decimal GrandTotal { get; set; }
+
     /// <summary>1=Cash, 2=CreditCard, 3=Mixed</summary>
     public int PaymentMethodId { get; set; } = 1;
 
@@ -32,4 +38,5 @@ public class SlnInvoice
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<SlnInvoiceItem> Items { get; set; } = [];
+    public ICollection<SlnInvoicePayment> Payments { get; set; } = [];
 }

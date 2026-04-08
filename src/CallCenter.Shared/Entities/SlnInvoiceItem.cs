@@ -22,4 +22,10 @@ public class SlnInvoiceItem
     public decimal UnitPrice { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal LineTotal { get; set; }
+
+    /// <summary>KDV orani (ornegin: 10, 20)</summary>
+    public decimal TaxRate { get; set; }
+
+    /// <summary>KDV tutari</summary>
+    public decimal TaxAmount { get; set; }
 }
