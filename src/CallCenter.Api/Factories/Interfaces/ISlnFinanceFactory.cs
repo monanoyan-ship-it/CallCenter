@@ -27,4 +27,24 @@ public interface ISlnFinanceFactory
     Task<List<SlnExpenseDto>> GetExpensesAsync(int customerId, DateTime? from, DateTime? to, int? categoryId = null);
     Task<SlnExpenseDto> CreateExpenseAsync(SlnExpenseCreateDto dto, int userId, int customerId);
     Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId);
+
+    // Z Raporu
+    Task<object> GetZReportAsync(int registerId, int customerId, DateTime? date = null);
+
+    // Kasa Acilis
+    Task<(object? Result, string? Error)> CreateCashOpeningAsync(int registerId, int customerId, decimal? manualBalance, int personnelId);
+
+    // Musteri Cari Hesap
+    Task<object> GetClientLedgerAsync(int customerId, int slnClientId);
+    Task AddLedgerEntryAsync(int customerId, int slnClientId, int typeId, decimal amount, int? invoiceId, string? description);
+
+    // Iade
+    Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId);
+
+    // Personel Hasilat
+    Task<object> GetStaffRevenueAsync(int customerId, DateTime startDate, DateTime endDate);
+
+    // Finans Raporlari
+    Task<object> GetIncomeExpenseReportAsync(int customerId, DateTime startDate, DateTime endDate);
+    Task<object> GetTaxReportAsync(int customerId, DateTime startDate, DateTime endDate);
 }

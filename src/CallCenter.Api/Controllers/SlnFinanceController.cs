@@ -196,6 +196,93 @@ public class SlnFinanceController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int GetPersonnelId()
+        => int.Parse(User.FindFirst("CustomerPersonnelId")?.Value ?? "0");
+
+    // ═══ Z RAPORU ═══
+
+    [HttpGet("z-report/{registerId}")]
+    public async Task<ActionResult> GetZReport(int registerId, [FromQuery] DateTime? date)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        return Ok(await _financeFactory.GetZReportAsync(registerId, cid, date));
+    }
+
+    // ═══ KASA AÇILIŞ ═══
+
+    [HttpPost("cash-registers/{registerId}/open")]
+    public async Task<ActionResult> OpenCash(int registerId, [FromBody] CashOpeningRequest? request)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        var (result, error) = await _financeFactory.CreateCashOpeningAsync(registerId, cid, request?.ManualBalance, GetPersonnelId());
+        if (error != null) return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
+    // ═══ MÜŞTERİ CARİ HESAP ═══
+
+    [HttpGet("client-ledger/{slnClientId}")]
+    public async Task<ActionResult> GetClientLedger(int slnClientId)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        return Ok(await _financeFactory.GetClientLedgerAsync(cid, slnClientId));
+    }
+
+    // ═══ İADE ═══
+
+    [HttpPost("invoices/{invoiceId}/refund")]
+    public async Task<ActionResult> CreateRefund(int invoiceId, [FromBody] RefundRequest request)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        var (result, error) = await _financeFactory.CreateRefundAsync(cid, invoiceId, request.Amount, request.RefundMethodId, request.Reason, GetPersonnelId());
+        if (error != null) return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
+    // ═══ PERSONEL HASILAT ═══
+
+    [HttpGet("staff-revenue")]
+    public async Task<ActionResult> GetStaffRevenue([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        return Ok(await _financeFactory.GetStaffRevenueAsync(cid, startDate, endDate));
+    }
+
+    // ═══ FİNANS RAPORLARI ═══
+
+    [HttpGet("reports/income-expense")]
+    public async Task<ActionResult> GetIncomeExpenseReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        return Ok(await _financeFactory.GetIncomeExpenseReportAsync(cid, startDate, endDate));
+    }
+
+    [HttpGet("reports/tax")]
+    public async Task<ActionResult> GetTaxReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        return Ok(await _financeFactory.GetTaxReportAsync(cid, startDate, endDate));
+    }
+}
+
+public class CashOpeningRequest
+{
+    public decimal? ManualBalance { get; set; }
+}
+
+public class RefundRequest
+{
+    public decimal Amount { get; set; }
+    public int RefundMethodId { get; set; } = 1;
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class SlnCashTransactionCreateRequest

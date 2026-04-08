@@ -511,4 +511,330 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             transactionCount = transactions.Count
         };
     }
+
+    // ═══ Z RAPORU ═══
+
+    public async Task<object> GetZReportAsync(int registerId, int customerId, DateTime? date = null)
+    {
+        var register = await _cashRegisters.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        if (register == null) return new { error = "Kasa bulunamadi" };
+
+        var targetDate = (date ?? DateTime.UtcNow).Date;
+        var nextDate = targetDate.AddDays(1);
+
+        // Acilis bakiyesi
+        var opening = await _db.SlnCashOpenings
+            .Where(o => o.RegisterId == registerId && o.OpeningDate >= targetDate && o.OpeningDate < nextDate)
+            .FirstOrDefaultAsync();
+
+        // Gun icindeki islemler
+        var transactions = await _cashTransactions.GetAllQueryable()
+            .Where(t => t.RegisterId == registerId && t.CreatedAt >= targetDate && t.CreatedAt < nextDate)
+            .ToListAsync();
+
+        // Odeme yontemi bazli
+        var cashIncome = transactions.Where(t => t.TransactionTypeId == 1 && t.PaymentMethodId == 1).Sum(t => t.Amount);
+        var cashExpense = transactions.Where(t => t.TransactionTypeId == 2 && t.PaymentMethodId == 1).Sum(t => t.Amount);
+        var ccIncome = transactions.Where(t => t.TransactionTypeId == 1 && t.PaymentMethodId == 2).Sum(t => t.Amount);
+        var ccExpense = transactions.Where(t => t.TransactionTypeId == 2 && t.PaymentMethodId == 2).Sum(t => t.Amount);
+        var transferIncome = transactions.Where(t => t.TransactionTypeId == 1 && t.PaymentMethodId == 3).Sum(t => t.Amount);
+        var totalIncome = transactions.Where(t => t.TransactionTypeId == 1).Sum(t => t.Amount);
+        var totalExpense = transactions.Where(t => t.TransactionTypeId == 2).Sum(t => t.Amount);
+
+        // Kapanis
+        var closing = await _db.SlnCashClosings
+            .Where(c => c.RegisterId == registerId && c.ClosingDate >= targetDate && c.ClosingDate < nextDate)
+            .FirstOrDefaultAsync();
+
+        // Gun adisyonlari
+        var invoices = await _db.SlnInvoices
+            .Where(i => i.CustomerId == customerId && i.InvoiceDate >= targetDate && i.InvoiceDate < nextDate && i.StatusId != 3)
+            .ToListAsync();
+
+        return new
+        {
+            date = targetDate,
+            registerName = register.Name,
+            openingBalance = opening?.OpeningBalance ?? 0,
+            cashIncome, cashExpense, cashNet = cashIncome - cashExpense,
+            ccIncome, ccExpense, ccNet = ccIncome - ccExpense,
+            transferIncome,
+            totalIncome, totalExpense, netTotal = totalIncome - totalExpense,
+            closingSystemTotal = closing?.SystemTotal,
+            closingCountedTotal = closing?.CountedTotal,
+            closingDifference = closing?.Difference,
+            isClosed = closing != null,
+            invoiceCount = invoices.Count,
+            invoiceTotal = invoices.Sum(i => i.GrandTotal > 0 ? i.GrandTotal : i.NetAmount),
+            taxTotal = invoices.Sum(i => i.TaxAmount),
+            transactionCount = transactions.Count
+        };
+    }
+
+    // ═══ KASA ACILIS ═══
+
+    public async Task<(object? Result, string? Error)> CreateCashOpeningAsync(int registerId, int customerId, decimal? manualBalance, int personnelId)
+    {
+        var register = await _cashRegisters.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        if (register == null) return (null, "Kasa bulunamadi");
+
+        var today = DateTime.UtcNow.Date;
+        var exists = await _db.SlnCashOpenings.AnyAsync(o => o.RegisterId == registerId && o.OpeningDate >= today && o.OpeningDate < today.AddDays(1));
+        if (exists) return (null, "Bugun zaten acilis yapilmis.");
+
+        // Onceki kapanistan bakiye tasi
+        decimal openingBalance = 0;
+        bool isCarried = false;
+        var lastClosing = await _db.SlnCashClosings
+            .Where(c => c.RegisterId == registerId)
+            .OrderByDescending(c => c.ClosingDate)
+            .FirstOrDefaultAsync();
+
+        if (manualBalance.HasValue)
+        {
+            openingBalance = manualBalance.Value;
+        }
+        else if (lastClosing != null)
+        {
+            openingBalance = lastClosing.CountedTotal;
+            isCarried = true;
+        }
+
+        var opening = new SlnCashOpening
+        {
+            RegisterId = registerId,
+            OpeningDate = DateTime.UtcNow,
+            OpeningBalance = openingBalance,
+            IsCarriedForward = isCarried,
+            OpenedByPersonnelId = personnelId
+        };
+
+        _db.SlnCashOpenings.Add(opening);
+        await _uow.SaveChangesAsync();
+
+        return (new { opening.Id, opening.OpeningBalance, opening.IsCarriedForward }, null);
+    }
+
+    // ═══ MÜŞTERİ CARİ HESAP ═══
+
+    public async Task<object> GetClientLedgerAsync(int customerId, int slnClientId)
+    {
+        var entries = await _db.SlnClientLedgers
+            .Where(l => l.CustomerId == customerId && l.SlnClientId == slnClientId)
+            .OrderByDescending(l => l.TransactionDate)
+            .Take(100)
+            .ToListAsync();
+
+        var balance = entries.FirstOrDefault()?.RunningBalance ?? 0;
+
+        return new
+        {
+            balance,
+            entries = entries.Select(e => new
+            {
+                e.Id,
+                e.TransactionTypeId,
+                typeName = e.TransactionTypeId == 1 ? "Borç" : e.TransactionTypeId == 2 ? "Alacak" : "İade",
+                e.Amount,
+                e.RunningBalance,
+                e.InvoiceId,
+                e.Description,
+                e.TransactionDate
+            })
+        };
+    }
+
+    public async Task AddLedgerEntryAsync(int customerId, int slnClientId, int typeId, decimal amount, int? invoiceId, string? description)
+    {
+        var lastEntry = await _db.SlnClientLedgers
+            .Where(l => l.CustomerId == customerId && l.SlnClientId == slnClientId)
+            .OrderByDescending(l => l.TransactionDate)
+            .FirstOrDefaultAsync();
+
+        var runningBalance = lastEntry?.RunningBalance ?? 0;
+        if (typeId == 1) runningBalance += amount;      // Borc
+        else if (typeId == 2) runningBalance -= amount;  // Alacak (odeme)
+        else if (typeId == 3) runningBalance -= amount;  // Iade
+
+        _db.SlnClientLedgers.Add(new SlnClientLedger
+        {
+            CustomerId = customerId,
+            SlnClientId = slnClientId,
+            TransactionTypeId = typeId,
+            Amount = amount,
+            RunningBalance = runningBalance,
+            InvoiceId = invoiceId,
+            Description = description
+        });
+        await _uow.SaveChangesAsync();
+    }
+
+    // ═══ İADE ═══
+
+    public async Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId)
+    {
+        var invoice = await _db.SlnInvoices
+            .Include(i => i.Items).ThenInclude(item => item.Product)
+            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.CustomerId == customerId);
+        if (invoice == null) return (null, "Adisyon bulunamadi.");
+        if (invoice.StatusId == 3) return (null, "Iptal edilmis adisyon icin iade yapilamaz.");
+
+        var maxRefundable = invoice.GrandTotal > 0 ? invoice.GrandTotal : invoice.NetAmount;
+        if (refundAmount > maxRefundable) return (null, "Iade tutari adisyon tutarini asamaz.");
+
+        // Iade kaydi
+        var refund = new SlnInvoiceRefund
+        {
+            InvoiceId = invoiceId,
+            RefundAmount = refundAmount,
+            RefundMethodId = refundMethodId,
+            Reason = reason,
+            PersonnelId = personnelId
+        };
+        _db.SlnInvoiceRefunds.Add(refund);
+
+        // Tam iade ise adisyonu iptal et
+        if (refundAmount >= maxRefundable)
+        {
+            invoice.StatusId = 3; // Cancelled
+
+            // Urun stok geri yukle
+            foreach (var item in invoice.Items.Where(i => i.ProductId != null && i.Product != null))
+                item.Product!.StockQuantity += item.Quantity;
+        }
+
+        // Cari hesaba iade kaydi
+        if (invoice.SlnClientId.HasValue)
+        {
+            await AddLedgerEntryAsync(customerId, invoice.SlnClientId.Value, 3, refundAmount, invoiceId, $"İade: {reason}");
+        }
+
+        await _uow.SaveChangesAsync();
+
+        return (new { refund.Id, refund.RefundAmount, refund.Reason }, null);
+    }
+
+    // ═══ PERSONEL HASILAT ═══
+
+    public async Task<object> GetStaffRevenueAsync(int customerId, DateTime startDate, DateTime endDate)
+    {
+        var invoiceItems = await _db.SlnInvoiceItems
+            .Include(i => i.Invoice)
+            .Include(i => i.Personnel).ThenInclude(p => p!.User)
+            .Where(i => i.Invoice!.CustomerId == customerId
+                     && i.Invoice.InvoiceDate >= startDate
+                     && i.Invoice.InvoiceDate < endDate
+                     && i.Invoice.StatusId != 3
+                     && i.PersonnelId != null)
+            .ToListAsync();
+
+        var personnelIds = invoiceItems.Where(i => i.PersonnelId.HasValue).Select(i => i.PersonnelId!.Value).Distinct().ToList();
+        var commissions = await _db.SlnPersonnelCommissions
+            .Where(c => personnelIds.Contains(c.PersonnelId))
+            .ToListAsync();
+
+        var grouped = invoiceItems
+            .GroupBy(i => i.PersonnelId)
+            .Select(g =>
+            {
+                var personnel = g.First().Personnel;
+                var totalRevenue = g.Sum(i => i.LineTotal);
+                // Genel komisyon (ServiceId ve ProductId null olan)
+                var commission = commissions.FirstOrDefault(c => c.PersonnelId == g.Key && c.ServiceId == null && c.ProductId == null);
+                var commissionRate = commission != null && commission.IsPercentage ? commission.Rate : 0;
+                var commissionAmount = commission != null && commission.IsPercentage
+                    ? totalRevenue * commissionRate / 100
+                    : (commission?.Rate ?? 0);
+
+                return new
+                {
+                    personnelId = g.Key,
+                    personnelName = personnel?.User?.FullName ?? personnel?.Title ?? "-",
+                    serviceCount = g.Count(i => i.ServiceId != null),
+                    productCount = g.Count(i => i.ProductId != null),
+                    totalRevenue,
+                    commissionRate,
+                    commissionAmount,
+                    netRevenue = totalRevenue - commissionAmount
+                };
+            })
+            .OrderByDescending(x => x.totalRevenue)
+            .ToList();
+
+        return new
+        {
+            startDate, endDate,
+            totalRevenue = grouped.Sum(g => g.totalRevenue),
+            totalCommission = grouped.Sum(g => g.commissionAmount),
+            staff = grouped
+        };
+    }
+
+    // ═══ FİNANS RAPORLARI ═══
+
+    public async Task<object> GetIncomeExpenseReportAsync(int customerId, DateTime startDate, DateTime endDate)
+    {
+        // Gelirler (adisyonlar)
+        var invoices = await _db.SlnInvoices
+            .Where(i => i.CustomerId == customerId && i.InvoiceDate >= startDate && i.InvoiceDate < endDate && i.StatusId != 3)
+            .ToListAsync();
+
+        // Giderler (masraflar)
+        var expenses = await _db.SlnExpenses
+            .Include(e => e.Category)
+            .Where(e => e.CustomerId == customerId && e.ExpenseDate >= startDate && e.ExpenseDate < endDate && e.StatusId != 3)
+            .ToListAsync();
+
+        var totalIncome = invoices.Sum(i => i.GrandTotal > 0 ? i.GrandTotal : i.NetAmount);
+        var totalTax = invoices.Sum(i => i.TaxAmount);
+        var totalExpense = expenses.Sum(e => e.Amount);
+        var totalExpenseTax = expenses.Sum(e => e.TaxAmount);
+
+        // Kategoriye gore gider dagilimi
+        var expenseByCategory = expenses
+            .GroupBy(e => e.Category?.Name ?? "Diger")
+            .Select(g => new { category = g.Key, amount = g.Sum(e => e.Amount) })
+            .OrderByDescending(x => x.amount)
+            .ToList();
+
+        return new
+        {
+            startDate, endDate,
+            income = new { total = totalIncome, tax = totalTax, net = totalIncome - totalTax, invoiceCount = invoices.Count },
+            expense = new { total = totalExpense, tax = totalExpenseTax, net = totalExpense - totalExpenseTax, count = expenses.Count, byCategory = expenseByCategory },
+            profit = totalIncome - totalExpense,
+            profitAfterTax = (totalIncome - totalTax) - (totalExpense - totalExpenseTax)
+        };
+    }
+
+    public async Task<object> GetTaxReportAsync(int customerId, DateTime startDate, DateTime endDate)
+    {
+        var invoiceItems = await _db.SlnInvoiceItems
+            .Include(i => i.Invoice)
+            .Where(i => i.Invoice!.CustomerId == customerId && i.Invoice.InvoiceDate >= startDate && i.Invoice.InvoiceDate < endDate && i.Invoice.StatusId != 3)
+            .ToListAsync();
+
+        var byRate = invoiceItems
+            .GroupBy(i => i.TaxRate)
+            .Select(g => new
+            {
+                taxRate = g.Key,
+                lineCount = g.Count(),
+                totalBeforeTax = g.Sum(i => i.LineTotal),
+                totalTax = g.Sum(i => i.TaxAmount),
+                totalWithTax = g.Sum(i => i.LineTotal + i.TaxAmount)
+            })
+            .OrderBy(x => x.taxRate)
+            .ToList();
+
+        return new
+        {
+            startDate, endDate,
+            totalTax = byRate.Sum(x => x.totalTax),
+            totalBeforeTax = byRate.Sum(x => x.totalBeforeTax),
+            byRate
+        };
+    }
 }
