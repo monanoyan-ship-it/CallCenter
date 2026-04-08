@@ -76,6 +76,41 @@ public class TokenService
     }
 
     /// <summary>
+    /// Platform kullanicisi icin JWT token olusturur.
+    /// User tablosundan bagimsiz — PlatformUserId claim'i tasir.
+    /// </summary>
+    public string GeneratePlatformToken(PlatformUser platformUser)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, platformUser.Id.ToString()),
+            new(ClaimTypes.Name, platformUser.Phone),
+            new(ClaimTypes.GivenName, platformUser.FullName),
+            new(ClaimTypes.Role, "PlatformUser"),
+            new("PlatformUserId", platformUser.Id.ToString())
+        };
+
+        if (!string.IsNullOrEmpty(platformUser.Email))
+            claims.Add(new Claim(ClaimTypes.Email, platformUser.Email));
+        if (!string.IsNullOrEmpty(platformUser.PreferredLanguage))
+            claims.Add(new Claim("PreferredLanguage", platformUser.PreferredLanguage));
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(expireMinutes),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
     /// Kriptografik olarak guvenli refresh token uretir.
     /// </summary>
     public RefreshToken GenerateRefreshToken(int userId)
