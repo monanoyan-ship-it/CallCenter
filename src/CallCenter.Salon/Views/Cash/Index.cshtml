@@ -42,6 +42,12 @@
                         <button class="btn btn-outline-success" data-bind="click: $parent.openNewTransaction">
                             <i class="bi bi-plus-lg me-1"></i>Islem
                         </button>
+                        <button class="btn btn-outline-info" data-bind="click: $parent.openCashRegister">
+                            <i class="bi bi-unlock me-1"></i>Kasa Ac
+                        </button>
+                        <button class="btn btn-outline-secondary" data-bind="click: $parent.openZReport">
+                            <i class="bi bi-file-earmark-bar-graph me-1"></i>Z Raporu
+                        </button>
                         <button class="btn btn-outline-warning" data-bind="click: $parent.openClosing">
                             <i class="bi bi-lock me-1"></i>Gun Sonu
                         </button>
@@ -201,6 +207,127 @@
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-lock me-1" data-bind="visible: !isSaving()"></i>Kapamayi Tamamla
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kasa Ac Modal -->
+    <div class="modal fade" id="openRegisterModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info bg-opacity-10">
+                    <h6 class="modal-title"><i class="bi bi-unlock me-2"></i>Kasa Ac (Gun Basi)</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Acilis Bakiyesi</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="openBalanceType" id="openBalanceAuto" value="auto"
+                                   data-bind="checked: openRegisterForm.balanceType" />
+                            <label class="form-check-label small" for="openBalanceAuto">
+                                Onceki kapanistan otomatik tasi
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="openBalanceType" id="openBalanceManual" value="manual"
+                                   data-bind="checked: openRegisterForm.balanceType" />
+                            <label class="form-check-label small" for="openBalanceManual">
+                                Manuel bakiye gir
+                            </label>
+                        </div>
+                        <!-- ko if: openRegisterForm.balanceType() === 'manual' -->
+                        <div class="mt-2">
+                            <label class="form-label small">Bakiye (TL)</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: openRegisterForm.openingBalance" />
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: openRegisterForm.balanceType() === 'auto' && openRegisterForm.lastClosingBalance() !== null -->
+                        <div class="alert alert-info py-2 mt-2 small">
+                            <i class="bi bi-info-circle me-1"></i>Son kapanistan tasinacak bakiye:
+                            <strong data-bind="text: (openRegisterForm.lastClosingBalance() || 0).toLocaleString('tr-TR') + ' TL'"></strong>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-info btn-sm" data-bind="click: saveOpenRegister, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-unlock me-1" data-bind="visible: !isSaving()"></i>Kasayi Ac
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Z Raporu Modal -->
+    <div class="modal fade" id="zReportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-file-earmark-bar-graph me-2"></i>Z Raporu</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: zReportLoading() -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                        <p class="small text-muted mt-2">Rapor yukleniyor...</p>
+                    </div>
+                    <!-- /ko -->
+                    <!-- ko if: !zReportLoading() && zReport() -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="card bg-light border-0">
+                                <div class="card-body py-2 text-center">
+                                    <div class="text-muted" style="font-size:.7rem;">Acilis Bakiyesi</div>
+                                    <div class="fw-bold" data-bind="text: (zReport().openingBalance || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light border-0">
+                                <div class="card-body py-2 text-center">
+                                    <div class="text-muted" style="font-size:.7rem;">Kapanis Bakiyesi</div>
+                                    <div class="fw-bold" data-bind="text: (zReport().closingBalance || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr><th></th><th class="text-end">Gelir</th><th class="text-end">Gider</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="small fw-semibold">Nakit</td>
+                                <td class="small text-end text-success" data-bind="text: (zReport().cashIncome || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small text-end text-danger" data-bind="text: (zReport().cashExpense || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                            </tr>
+                            <tr>
+                                <td class="small fw-semibold">Kredi Karti</td>
+                                <td class="small text-end text-success" data-bind="text: (zReport().creditCardIncome || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small text-end text-danger" data-bind="text: (zReport().creditCardExpense || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                            </tr>
+                            <tr class="table-light fw-bold">
+                                <td class="small">Toplam</td>
+                                <td class="small text-end text-success" data-bind="text: (zReport().totalIncome || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small text-end text-danger" data-bind="text: (zReport().totalExpense || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <!-- /ko -->
+                    <!-- ko if: !zReportLoading() && !zReport() -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-file-earmark-bar-graph" style="font-size:2rem;"></i>
+                        <p class="mt-2 small">Rapor verisi bulunamadi</p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
                 </div>
             </div>
         </div>

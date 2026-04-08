@@ -60,7 +60,8 @@
                             <th>Aciklama</th>
                             <th>Tutar</th>
                             <th>Odeme</th>
-                            <th style="width: 80px;"></th>
+                            <th>Durum</th>
+                            <th style="width: 140px;"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredExpenses">
@@ -71,7 +72,18 @@
                             <td class="small fw-semibold text-danger" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL'"></td>
                             <td class="small" data-bind="text: paymentMethodText"></td>
                             <td>
+                                <span class="badge" data-bind="text: statusText, css: statusCss"></span>
+                            </td>
+                            <td>
                                 <div class="btn-group btn-group-sm">
+                                    <!-- ko if: statusId === 1 -->
+                                    <button class="btn btn-outline-success" title="Onayla" data-bind="click: $parent.approveExpense">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="Reddet" data-bind="click: $parent.rejectExpense">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                    <!-- /ko -->
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>

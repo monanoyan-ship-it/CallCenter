@@ -76,6 +76,7 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" title="Detay" data-bind="click: $parent.openDetail"><i class="bi bi-eye"></i></button>
+                                    <button class="btn btn-outline-warning" title="Iade" data-bind="click: $parent.openRefund, visible: statusId === 2"><i class="bi bi-arrow-return-left"></i></button>
                                     <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancelInvoice, visible: statusId === 1"><i class="bi bi-x-lg"></i></button>
                                 </div>
                             </td>
@@ -86,6 +87,51 @@
             <!-- ko if: filteredInvoices().length === 0 -->
             <div class="text-center text-muted py-4"><i class="bi bi-receipt" style="font-size:2rem;"></i><p class="mt-2 small">Adisyon bulunamadi</p></div>
             <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- ═══ Modal: Iade ═══ -->
+    <div class="modal fade" id="refundModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning bg-opacity-10">
+                    <h6 class="modal-title"><i class="bi bi-arrow-return-left me-2"></i>Iade</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: refundInvoice() -->
+                    <div class="alert alert-info py-2 small mb-3">
+                        Adisyon: <strong data-bind="text: refundInvoice().invoiceNo"></strong> |
+                        Tutar: <strong data-bind="text: (refundInvoice().totalAmount || 0).toLocaleString('tr-TR') + ' TL'"></strong>
+                    </div>
+                    <!-- /ko -->
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Iade Tutari (TL) *</label>
+                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: refundForm.amount" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Iade Yontemi *</label>
+                            <select class="form-select form-select-sm" data-bind="value: refundForm.paymentMethodId">
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Karti</option>
+                                <option value="4">Havale</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Iade Sebebi *</label>
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="Iade sebebini yaziniz..." data-bind="value: refundForm.reason"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-warning btn-sm" data-bind="click: saveRefund, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-arrow-return-left me-1" data-bind="visible: !isSaving()"></i>Iade Yap
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -173,13 +219,15 @@
                     <div class="mb-3 mt-3">
                         <table class="table table-sm table-bordered mb-0">
                             <thead class="table-light">
-                                <tr><th>Hizmet/Urun</th><th style="width:90px;">Fiyat</th><th style="width:80px;">Iskonto</th><th style="width:130px;">Personel</th><th style="width:80px;">Toplam</th><th style="width:30px;"></th></tr>
+                                <tr><th>Hizmet/Urun</th><th style="width:90px;">Fiyat</th><th style="width:80px;">Iskonto</th><th style="width:60px;">KDV%</th><th style="width:70px;">KDV</th><th style="width:130px;">Personel</th><th style="width:80px;">Toplam</th><th style="width:30px;"></th></tr>
                             </thead>
                             <tbody data-bind="foreach: form.items">
                                 <tr>
                                     <td class="small fw-medium align-middle" data-bind="text: itemName"></td>
                                     <td class="small align-middle text-end" data-bind="text: unitPrice().toLocaleString('tr-TR') + ' ₺'"></td>
                                     <td><input type="number" class="form-control form-control-sm text-center" step="1" min="0" data-bind="value: discountAmount" /></td>
+                                    <td class="small align-middle text-center" data-bind="text: '%' + (taxRate() || 0)"></td>
+                                    <td class="small align-middle text-end text-muted" data-bind="text: taxAmount()"></td>
                                     <td>
                                         <select class="form-select form-select-sm" data-bind="options: $root.staffList, optionsText: 'fullName', optionsValue: 'id', value: personnelId, optionsCaption: '-'"></select>
                                     </td>
@@ -187,6 +235,15 @@
                                     <td class="align-middle"><button class="btn btn-outline-danger btn-sm py-0 px-1" data-bind="click: $parent.removeItem"><i class="bi bi-x"></i></button></td>
                                 </tr>
                             </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="4" class="small text-end fw-semibold">KDV Toplam:</td>
+                                    <td class="small text-end fw-semibold" data-bind="text: totalTax()"></td>
+                                    <td class="small text-end fw-semibold">Genel Toplam:</td>
+                                    <td class="small text-end fw-bold text-success" data-bind="text: grandTotal().toLocaleString('tr-TR') + ' ₺'"></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                     <!-- /ko -->
@@ -202,6 +259,31 @@
                                 <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(3); }, css: form.paymentMethodId() == 3 ? 'btn-warning' : 'btn-outline-secondary'"><i class="bi bi-shuffle me-1"></i>Karma</button>
                             </div>
                         </div>
+                        <!-- Karma Odeme Detay -->
+                        <!-- ko if: form.paymentMethodId() == 3 -->
+                        <div class="col-12 mt-2">
+                            <div class="card border-warning border-opacity-50 bg-warning bg-opacity-10">
+                                <div class="card-body py-2">
+                                    <div class="small fw-semibold mb-2"><i class="bi bi-shuffle me-1"></i>Karma Odeme Detay</div>
+                                    <div class="row g-2">
+                                        <div class="col-4">
+                                            <label class="form-label small">Nakit (TL)</label>
+                                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.splitCash" />
+                                        </div>
+                                        <div class="col-4">
+                                            <label class="form-label small">Kredi Karti (TL)</label>
+                                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.splitCreditCard" />
+                                        </div>
+                                        <div class="col-4">
+                                            <label class="form-label small">Havale (TL)</label>
+                                            <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.splitTransfer" />
+                                        </div>
+                                    </div>
+                                    <div class="small text-muted mt-1" data-bind="text: 'Toplam: ' + splitTotal().toLocaleString('tr-TR') + ' TL'"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /ko -->
                         <div class="col-2">
                             <label class="form-label small">Indirim</label>
                             <input type="number" class="form-control form-control-sm" step="1" data-bind="value: form.discountAmount" />

@@ -246,7 +246,8 @@
       "WebFetch(domain:www.kolayrandevu.com)",
       "Bash(\"/c/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" installer/corplynk-setup.iss)",
       "Read(//c/Program Files \\(x86\\)/**)",
-      "Read(//c/Program Files/**)"
+      "Read(//c/Program Files/**)",
+      "Bash(xxd -l 200 -s 1710 \"C:/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/src/CallCenter.Salon/wwwroot/js/Invoices.js\")"
     ]
   }
 }

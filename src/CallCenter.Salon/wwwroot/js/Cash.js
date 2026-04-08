@@ -123,6 +123,78 @@ function CashViewModel() {
         });
     };
 
+    // ═══ Kasa Ac (Gun Basi) ═══
+    self.openRegisterForm = {
+        balanceType: ko.observable('auto'),
+        openingBalance: ko.observable(0),
+        lastClosingBalance: ko.observable(null)
+    };
+
+    var openRegisterModal;
+    var openRegisterId = null;
+
+    self.openCashRegister = function (register) {
+        openRegisterId = register.id;
+        self.openRegisterForm.balanceType('auto');
+        self.openRegisterForm.openingBalance(0);
+        self.openRegisterForm.lastClosingBalance(null);
+
+        // Son kapanistan bakiye bilgisi al
+        $.ajax({ url: '/proxy/sln-finance/cash-registers/' + register.id + '/daily-summary', method: 'GET' }).done(function (data) {
+            if (data && data.closingBalance !== undefined) {
+                self.openRegisterForm.lastClosingBalance(data.closingBalance);
+            } else if (data && data.net !== undefined) {
+                self.openRegisterForm.lastClosingBalance(data.net);
+            }
+        });
+        openRegisterModal.show();
+    };
+
+    self.saveOpenRegister = function () {
+        var balanceType = self.openRegisterForm.balanceType();
+        var openingBalance = balanceType === 'manual'
+            ? (parseFloat(self.openRegisterForm.openingBalance()) || 0)
+            : null;
+
+        var payload = { openingBalance: openingBalance };
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-finance/cash-registers/' + openRegisterId + '/open',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload)
+        }).done(function () {
+            openRegisterModal.hide();
+            self.loadRegisters();
+            toastr.success('Kasa acildi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Kasa acilamadi');
+        }).always(function () {
+            self.isSaving(false);
+        });
+    };
+
+    // ═══ Z Raporu ═══
+    self.zReport = ko.observable(null);
+    self.zReportLoading = ko.observable(false);
+
+    var zReportModal;
+
+    self.openZReport = function (register) {
+        self.zReport(null);
+        self.zReportLoading(true);
+        zReportModal.show();
+
+        $.ajax({ url: '/proxy/sln-finance/z-report/' + register.id, method: 'GET' }).done(function (data) {
+            self.zReport(data);
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Z Raporu yuklenemedi');
+        }).always(function () {
+            self.zReportLoading(false);
+        });
+    };
+
     // ═══ Gun Sonu Kasa Kapama ═══
     self.closingForm = {
         countedTotal: ko.observable(0),
@@ -180,6 +252,8 @@ function CashViewModel() {
         registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
         transactionModal = new bootstrap.Modal(document.getElementById('transactionModal'));
         closingModal = new bootstrap.Modal(document.getElementById('closingModal'));
+        openRegisterModal = new bootstrap.Modal(document.getElementById('openRegisterModal'));
+        zReportModal = new bootstrap.Modal(document.getElementById('zReportModal'));
         self.loadRegisters();
         self.loadClosings();
     });

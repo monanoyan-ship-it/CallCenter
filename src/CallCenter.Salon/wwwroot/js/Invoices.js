@@ -64,15 +64,23 @@ function InvoicesViewModel() {
     var paymentNames = { 1: 'Nakit', 2: 'Kredi Karti', 3: 'Karma', 4: 'Havale' };
 
     // ���══ Kalem Yonetimi ═══
-    function createItem(type, id, name, price) {
+    function createItem(type, id, name, price, taxRateVal) {
         var item = {
             type: type,
             itemId: id,
             itemName: name,
             unitPrice: ko.observable(price || 0),
             discountAmount: ko.observable(0),
-            personnelId: ko.observable(null)
+            personnelId: ko.observable(null),
+            taxRate: ko.observable(taxRateVal || 20)
         };
+        item.taxAmountRaw = ko.computed(function () {
+            var net = Math.max(0, (parseFloat(item.unitPrice()) || 0) - (parseFloat(item.discountAmount()) || 0));
+            return net * (parseFloat(item.taxRate()) || 0) / 100;
+        });
+        item.taxAmount = ko.computed(function () {
+            return item.taxAmountRaw().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        });
         item.lineTotal = ko.computed(function () {
             var total = (parseFloat(item.unitPrice()) || 0) - (parseFloat(item.discountAmount()) || 0);
             return Math.max(0, total).toLocaleString('tr-TR') + ' ₺';
@@ -84,13 +92,13 @@ function InvoicesViewModel() {
         // Toggle: zaten ekliyse kaldir
         var existing = self.form.items().find(function (i) { return i.type === 'Service' && i.itemId === svc.id; });
         if (existing) { self.form.items.remove(existing); return; }
-        self.form.items.push(createItem('Service', svc.id, svc.name, svc.price));
+        self.form.items.push(createItem('Service', svc.id, svc.name, svc.price, svc.taxRate));
     };
 
     self.addProductItem = function (prod) {
         var existing = self.form.items().find(function (i) { return i.type === 'Product' && i.itemId === prod.id; });
         if (existing) { self.form.items.remove(existing); return; }
-        self.form.items.push(createItem('Product', prod.id, prod.name, prod.salePrice || 0));
+        self.form.items.push(createItem('Product', prod.id, prod.name, prod.salePrice || 0, prod.taxRate));
     };
 
     self.isItemAdded = function (id, type) {
@@ -99,6 +107,14 @@ function InvoicesViewModel() {
 
     self.removeItem = function (item) { self.form.items.remove(item); };
 
+    self.totalTax = ko.computed(function () {
+        var tax = 0;
+        self.form.items().forEach(function (item) {
+            tax += item.taxAmountRaw();
+        });
+        return tax.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+    });
+
     self.grandTotal = ko.computed(function () {
         var total = 0;
         self.form.items().forEach(function (item) {
@@ -106,6 +122,65 @@ function InvoicesViewModel() {
         });
         return total - (parseFloat(self.form.discountAmount()) || 0) + (parseFloat(self.form.tipAmount()) || 0);
     });
+
+    // ═══ Karma Odeme ═══
+    self.form.splitCash = ko.observable(0);
+    self.form.splitCreditCard = ko.observable(0);
+    self.form.splitTransfer = ko.observable(0);
+
+    self.splitTotal = ko.computed(function () {
+        return (parseFloat(self.form.splitCash()) || 0)
+             + (parseFloat(self.form.splitCreditCard()) || 0)
+             + (parseFloat(self.form.splitTransfer()) || 0);
+    });
+
+    // ═══ Iade ═══
+    self.refundInvoice = ko.observable(null);
+    self.refundForm = {
+        amount: ko.observable(0),
+        paymentMethodId: ko.observable(1),
+        reason: ko.observable('')
+    };
+
+    var refundModal;
+
+    self.openRefund = function (invoice) {
+        self.refundInvoice(invoice);
+        self.refundForm.amount(invoice.totalAmount || 0);
+        self.refundForm.paymentMethodId(invoice.paymentMethodId || 1);
+        self.refundForm.reason('');
+        refundModal.show();
+    };
+
+    self.saveRefund = function () {
+        var inv = self.refundInvoice();
+        if (!inv) return;
+
+        var amount = parseFloat(self.refundForm.amount()) || 0;
+        var reason = self.refundForm.reason();
+        if (!amount || !reason) {
+            toastr.warning('Tutar ve sebep zorunludur');
+            return;
+        }
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-finance/invoices/' + inv.id + '/refund',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                amount: amount,
+                paymentMethodId: parseInt(self.refundForm.paymentMethodId()) || 1,
+                reason: reason
+            })
+        }).done(function () {
+            refundModal.hide();
+            self.loadData();
+            toastr.success('Iade islemi tamamlandi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || 'Iade yapilamadi');
+        }).always(function () { self.isSaving(false); });
+    };
 
     // ═══ Filtre ═══
     self.filteredInvoices = ko.computed(function () {
@@ -183,6 +258,9 @@ function InvoicesViewModel() {
         self.form.tipAmount(0);
         self.form.notes('');
         self.form.items([]);
+        self.form.splitCash(0);
+        self.form.splitCreditCard(0);
+        self.form.splitTransfer(0);
         self.clientAutocomplete.clear();
         self.newClientVisible(false);
         formModal.show();
@@ -205,7 +283,7 @@ function InvoicesViewModel() {
             serviceIds.forEach(function (sid) {
                 var svc = allServices.find(function (s) { return s.id === sid; });
                 if (svc) {
-                    var item = createItem('Service', svc.id, svc.name, svc.price);
+                    var item = createItem('Service', svc.id, svc.name, svc.price, svc.taxRate);
                     if (personnelId) item.personnelId(personnelId);
                     self.form.items.push(item);
                 }
@@ -230,7 +308,8 @@ function InvoicesViewModel() {
                 isService ? 'Service' : 'Product',
                 isService ? it.serviceId : it.productId,
                 it.itemName,
-                it.unitPrice || 0
+                it.unitPrice || 0,
+                it.taxRate
             );
             item.discountAmount(it.discountAmount || 0);
             item.personnelId(it.personnelId || null);
@@ -290,6 +369,7 @@ function InvoicesViewModel() {
 
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+        refundModal = new bootstrap.Modal(document.getElementById('refundModal'));
         self.loadLookups();
         self.loadData();
 

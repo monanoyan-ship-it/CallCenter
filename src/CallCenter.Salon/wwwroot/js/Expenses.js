@@ -57,6 +57,9 @@ function ExpensesViewModel() {
 
     var formModal;
 
+    var statusNames = { 1: 'Beklemede', 2: 'Onayli', 3: 'Reddedildi' };
+    var statusCssMap = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
+
     self.loadData = function () {
         var url = '/proxy/sln-finance/expenses';
         var params = [];
@@ -69,6 +72,9 @@ function ExpensesViewModel() {
             var pmNames = { 1: 'Nakit', 2: 'Kredi Karti', 3: 'Havale/EFT' };
             items.forEach(function (e) {
                 e.paymentMethodText = pmNames[e.paymentMethodId] || '-';
+                e.statusId = e.statusId || 1;
+                e.statusText = statusNames[e.statusId] || 'Beklemede';
+                e.statusCss = statusCssMap[e.statusId] || 'bg-secondary';
             });
             self.expenses(items);
         }).fail(function () {
@@ -147,6 +153,36 @@ function ExpensesViewModel() {
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
             self.isSaving(false);
+        });
+    };
+
+    self.approveExpense = function (expense) {
+        if (!confirm('Bu masrafi onaylamak istediginize emin misiniz?')) return;
+        $.ajax({
+            url: '/proxy/sln-finance/expenses/' + expense.id,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ statusId: 2 })
+        }).done(function () {
+            self.loadData();
+            toastr.success('Masraf onaylandi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Onaylama basarisiz');
+        });
+    };
+
+    self.rejectExpense = function (expense) {
+        if (!confirm('Bu masrafi reddetmek istediginize emin misiniz?')) return;
+        $.ajax({
+            url: '/proxy/sln-finance/expenses/' + expense.id,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ statusId: 3 })
+        }).done(function () {
+            self.loadData();
+            toastr.success('Masraf reddedildi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Reddetme basarisiz');
         });
     };
 
