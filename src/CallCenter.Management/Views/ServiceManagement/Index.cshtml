@@ -53,10 +53,11 @@
                 <div class="tab-pane fade show active" id="tabCC">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
-                            <thead class="table-light"><tr><th>Hizmet</th><th>Önceki Fiyat</th><th style="width:160px;">Aylık Fiyat (TL)</th><th>Fark</th></tr></thead>
+                            <thead class="table-light"><tr><th>Hizmet</th><th>Default</th><th>Önceki Fiyat</th><th style="width:160px;">Aylık Fiyat (TL)</th><th>Fark</th></tr></thead>
                             <tbody data-bind="foreach: selectedPeriod().callCenter">
                                 <tr>
                                     <td class="fw-medium" data-bind="text: serviceName"></td>
+                                    <td><span class="badge" data-bind="text: isDefault ? 'Dahil' : 'Ücretli', css: isDefault ? 'bg-success' : 'bg-warning text-dark'"></span></td>
                                     <td class="small text-muted" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                                     <td>
                                         <div class="input-group input-group-sm">
@@ -76,29 +77,59 @@
                     </div>
                 </div>
                 <div class="tab-pane fade" id="tabSalon">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm mb-0">
-                            <thead class="table-light"><tr><th>Modül</th><th>Önceki Fiyat</th><th style="width:160px;">Aylık Fiyat (TL)</th><th>Fark</th></tr></thead>
-                            <tbody data-bind="foreach: selectedPeriod().salon">
-                                <tr>
-                                    <td class="fw-medium" data-bind="text: serviceName"></td>
-                                    <td class="small text-muted" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
-                                    <td>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" step="0.01" min="0" data-bind="value: monthlyPrice, event: { change: function() { $root.updatePrice(id, monthlyPrice); } }" />
-                                            <span class="input-group-text">TL</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <!-- ko if: previousPrice != null && monthlyPrice !== previousPrice -->
-                                        <span class="badge" data-bind="text: (monthlyPrice > previousPrice ? '+' : '') + (monthlyPrice - previousPrice).toFixed(2) + ' TL',
-                                            css: monthlyPrice > previousPrice ? 'bg-danger' : monthlyPrice < previousPrice ? 'bg-success' : 'bg-secondary'"></span>
-                                        <!-- /ko -->
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Default moduller -->
+                    <!-- ko if: selectedPeriod().salon.filter(function(s) { return s.isDefault; }).length > 0 -->
+                    <div class="p-2 bg-light border-bottom">
+                        <small class="text-muted fw-bold"><i class="bi bi-check-circle text-success me-1"></i>Temel Paket (Dahil - Ücretsiz)</small>
+                        <div class="mt-1">
+                            <!-- ko foreach: selectedPeriod().salon.filter(function(s) { return s.isDefault; }) -->
+                            <span class="badge bg-success me-1 mb-1" data-bind="text: serviceName"></span>
+                            <!-- /ko -->
+                        </div>
                     </div>
+                    <!-- /ko -->
+                    <!-- Gruplu moduller -->
+                    <!-- ko if: selectedPeriod().salonGroups -->
+                    <div class="accordion" id="salonPricingAccordion">
+                        <!-- ko foreach: selectedPeriod().salonGroups -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
+                                    data-bind="attr: { 'data-bs-target': '#spg' + groupId }">
+                                    <strong class="small" data-bind="text: groupName"></strong>
+                                    <span class="badge bg-secondary ms-2 small" data-bind="text: items.length + ' modül'"></span>
+                                </button>
+                            </h2>
+                            <div class="accordion-collapse collapse" data-bind="attr: { id: 'spg' + groupId }">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-sm mb-0">
+                                        <thead class="table-light"><tr><th>Modül</th><th>Default</th><th>Önceki</th><th style="width:150px;">Fiyat (TL)</th><th>Fark</th></tr></thead>
+                                        <tbody data-bind="foreach: items">
+                                            <tr>
+                                                <td class="fw-medium small" data-bind="text: serviceName"></td>
+                                                <td><span class="badge" data-bind="text: isDefault ? 'Evet' : '-', css: isDefault ? 'bg-info' : 'bg-light text-muted'"></span></td>
+                                                <td class="small text-muted" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') : '-'"></td>
+                                                <td>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" class="form-control" step="0.01" min="0" data-bind="value: monthlyPrice, event: { change: function() { $root.updatePrice(id, monthlyPrice); } }" />
+                                                        <span class="input-group-text">TL</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <!-- ko if: previousPrice != null && monthlyPrice !== previousPrice -->
+                                                    <span class="badge" data-bind="text: (monthlyPrice > previousPrice ? '+' : '') + (monthlyPrice - previousPrice).toFixed(2),
+                                                        css: monthlyPrice > previousPrice ? 'bg-danger' : 'bg-success'"></span>
+                                                    <!-- /ko -->
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
                 </div>
             </div>
         </div>

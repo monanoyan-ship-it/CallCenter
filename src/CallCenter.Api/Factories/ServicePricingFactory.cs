@@ -41,11 +41,33 @@ public class ServicePricingFactory
         var ccItems = period.Items.Where(i => i.ProductTypeId == PortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
         var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
 
+        // Salon modullerini gruplara ayir
+        var salonGrouped = slnItems.Select(i =>
+        {
+            var groupId = SalonModuleGroups.GetGroupId(i.ServiceId);
+            var group = SalonModuleGroups.GetById(groupId ?? 0);
+            var moduleDef = SalonPortalModules.GetById(i.ServiceId);
+            return new
+            {
+                i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice,
+                isDefault = moduleDef?.IsDefault ?? false,
+                groupId = groupId ?? 0,
+                groupName = group?.Description ?? "Diğer"
+            };
+        }).GroupBy(i => i.groupId).Select(g => new
+        {
+            groupId = g.Key,
+            groupName = g.First().groupName,
+            items = g.OrderBy(i => i.ServiceId).ToList()
+        }).OrderBy(g => g.groupId).ToList();
+
         return new
         {
             period.Id, period.Name, period.StartDate, period.EndDate, period.StatusId,
-            callCenter = ccItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice }),
-            salon = slnItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice })
+            callCenter = ccItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = ServiceTypes.GetById(i.ServiceId)?.IsDefault ?? false }),
+            salon = slnItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = SalonPortalModules.GetById(i.ServiceId)?.IsDefault ?? false }),
+            salonGroups = salonGrouped,
+            operatorUnitPrice = 0m // CC operatör birim fiyatı - TODO
         };
     }
 
