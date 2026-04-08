@@ -414,6 +414,8 @@ public class SlnMembershipPlanDto
     public bool PriorityBooking { get; set; }
     public bool IsActive { get; set; }
     public int ActiveMembers { get; set; }
+    public List<int> ServiceIds { get; set; } = new();
+    public List<string> ServiceNames { get; set; } = new();
 }
 
 public class SlnMembershipPlanCreateDto
@@ -427,6 +429,7 @@ public class SlnMembershipPlanCreateDto
     public int FreeSessionsPerMonth { get; set; }
     public bool PriorityBooking { get; set; }
     public bool IsActive { get; set; } = true;
+    public List<int> ServiceIds { get; set; } = new();
 }
 
 public class SlnClientMembershipDto

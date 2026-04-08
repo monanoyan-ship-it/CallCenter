@@ -22,6 +22,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
     {
         var plans = await _db.SlnMembershipPlans
             .Where(p => p.CustomerId == customerId)
+            .Include(p => p.Services).ThenInclude(s => s.Service)
             .OrderBy(p => p.SortOrder)
             .ToListAsync();
 
@@ -43,7 +44,9 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             FreeSessionsPerMonth = p.FreeSessionsPerMonth,
             PriorityBooking = p.PriorityBooking,
             IsActive = p.IsActive,
-            ActiveMembers = memberCounts.GetValueOrDefault(p.Id, 0)
+            ActiveMembers = memberCounts.GetValueOrDefault(p.Id, 0),
+            ServiceIds = p.Services.Select(s => s.ServiceId).ToList(),
+            ServiceNames = p.Services.Where(s => s.Service != null).Select(s => s.Service!.Name).ToList()
         }).ToList();
     }
 
@@ -65,6 +68,15 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         };
         _db.SlnMembershipPlans.Add(plan);
         await _uow.SaveChangesAsync();
+
+        // Hizmet iliskilerini ekle
+        if (dto.ServiceIds.Count > 0)
+        {
+            foreach (var svcId in dto.ServiceIds)
+                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = plan.Id, ServiceId = svcId });
+            await _uow.SaveChangesAsync();
+        }
+
         return (await GetPlansAsync(customerId)).First(p => p.Id == plan.Id);
     }
 
@@ -82,6 +94,13 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         plan.FreeSessionsPerMonth = dto.FreeSessionsPerMonth;
         plan.PriorityBooking = dto.PriorityBooking;
         plan.IsActive = dto.IsActive;
+
+        // Hizmet iliskilerini guncelle (sil + yeniden ekle)
+        var existingServices = await _db.SlnMembershipPlanServices.Where(s => s.PlanId == id).ToListAsync();
+        _db.SlnMembershipPlanServices.RemoveRange(existingServices);
+        foreach (var svcId in dto.ServiceIds)
+            _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = id, ServiceId = svcId });
+
         await _uow.SaveChangesAsync();
         return (true, null);
     }
