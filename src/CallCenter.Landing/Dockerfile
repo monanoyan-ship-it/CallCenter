@@ -6,9 +6,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+COPY src/CallCenter.Shared/CallCenter.Shared.csproj CallCenter.Shared/
 COPY src/CallCenter.Landing/CallCenter.Landing.csproj CallCenter.Landing/
 RUN dotnet restore CallCenter.Landing/CallCenter.Landing.csproj
 
+COPY src/CallCenter.Shared/ CallCenter.Shared/
 COPY src/CallCenter.Landing/ CallCenter.Landing/
 RUN dotnet publish CallCenter.Landing/CallCenter.Landing.csproj \
     -c Release \
