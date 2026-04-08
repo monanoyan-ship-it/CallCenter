@@ -168,8 +168,8 @@ public class SlnClientFactory : ISlnClientFactory
         {
             CustomerId = customerId,
             FullName = dto.FullName,
-            Phone = dto.Phone,
-            Phone2 = dto.Phone2,
+            Phone = Shared.Helpers.PhoneHelper.Normalize(dto.Phone),
+            Phone2 = Shared.Helpers.PhoneHelper.Normalize(dto.Phone2),
             Email = dto.Email,
             GenderId = dto.GenderId,
             BirthDate = dto.BirthDate,
@@ -211,8 +211,8 @@ public class SlnClientFactory : ISlnClientFactory
         if (client == null) return (false, "Musteri bulunamadi");
 
         client.FullName = dto.FullName;
-        client.Phone = dto.Phone;
-        client.Phone2 = dto.Phone2;
+        client.Phone = Shared.Helpers.PhoneHelper.Normalize(dto.Phone);
+        client.Phone2 = Shared.Helpers.PhoneHelper.Normalize(dto.Phone2);
         client.Email = dto.Email;
         client.GenderId = dto.GenderId;
         client.BirthDate = dto.BirthDate;

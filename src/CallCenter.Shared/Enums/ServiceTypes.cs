@@ -150,3 +150,60 @@ public static class BillingItemStatuses
         public const int Overdue = 4;
     }
 }
+
+// ─── Online Odeme Gateway Tanimlari ───
+
+public static class PaymentProviders
+{
+    public static readonly TypeItem Iyzico = new(1, "Iyzico", "PaymentProvider.Iyzico", "Iyzico", "bi-credit-card-2-front", "bg-success", 1);
+    public static readonly TypeItem PayTR = new(2, "PayTR", "PaymentProvider.PayTR", "PayTR", "bi-credit-card", "bg-primary", 2);
+    public static readonly TypeItem Param = new(3, "Param", "PaymentProvider.Param", "Param", "bi-credit-card-fill", "bg-info", 3);
+
+    public static IEnumerable<TypeItem> All => new[] { Iyzico, PayTR, Param };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Iyzico = 1;
+        public const int PayTR = 2;
+        public const int Param = 3;
+    }
+}
+
+public static class PaymentTypes
+{
+    public static readonly TypeItem SalonAdisyon = new(1, "SalonAdisyon", "PaymentType.SalonAdisyon", "Salon Adisyon Odemesi", "bi-receipt", "bg-info", 1);
+    public static readonly TypeItem PlatformAbonelik = new(2, "PlatformAbonelik", "PaymentType.PlatformAbonelik", "Platform Abonelik Odemesi", "bi-box-seam", "bg-primary", 2);
+    public static readonly TypeItem UyelikOdemesi = new(3, "UyelikOdemesi", "PaymentType.UyelikOdemesi", "Uyelik Odemesi", "bi-person-check", "bg-success", 3);
+    public static readonly TypeItem ModulSatinAlma = new(4, "ModulSatinAlma", "PaymentType.ModulSatinAlma", "Modul Satin Alma", "bi-cart-check", "bg-warning text-dark", 4);
+
+    public static IEnumerable<TypeItem> All => new[] { SalonAdisyon, PlatformAbonelik, UyelikOdemesi, ModulSatinAlma };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int SalonAdisyon = 1;
+        public const int PlatformAbonelik = 2;
+        public const int UyelikOdemesi = 3;
+        public const int ModulSatinAlma = 4;
+    }
+}
+
+public static class PaymentStatuses
+{
+    public static readonly TypeItem Beklemede = new(1, "Beklemede", "PaymentStatus.Beklemede", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);
+    public static readonly TypeItem Basarili = new(2, "Basarili", "PaymentStatus.Basarili", "Basarili", "bi-check-circle-fill", "bg-success", 2);
+    public static readonly TypeItem Basarisiz = new(3, "Basarisiz", "PaymentStatus.Basarisiz", "Basarisiz", "bi-x-circle-fill", "bg-danger", 3);
+    public static readonly TypeItem Iade = new(4, "Iade", "PaymentStatus.Iade", "Iade Edildi", "bi-arrow-counterclockwise", "bg-warning text-dark", 4);
+
+    public static IEnumerable<TypeItem> All => new[] { Beklemede, Basarili, Basarisiz, Iade };
+    public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+
+    public static class Ids
+    {
+        public const int Beklemede = 1;
+        public const int Basarili = 2;
+        public const int Basarisiz = 3;
+        public const int Iade = 4;
+    }
+}

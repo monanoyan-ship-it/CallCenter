@@ -23,6 +23,8 @@ public static class FactoryRegistration
         // Faz 3 Factory'ler
         services.AddScoped<ICustomerFactory, CustomerFactory>();
         services.AddScoped<IModuleRequestFactory, ModuleRequestFactory>();
+        services.AddScoped<ISubscriptionFactory, SubscriptionFactory>();
+        services.AddScoped<ServicePricingFactory>();
         services.AddScoped<IPortalFactory, PortalFactory>();
         services.AddScoped<ISipAccountFactory, SipAccountFactory>();
         services.AddScoped<IOrganizationFactory, OrganizationFactory>();
@@ -124,6 +126,9 @@ public static class FactoryRegistration
 
         // Salon — Personel Fiyat + Hasilat Paylasimi (D4+D5)
         services.AddScoped<ISlnPersonnelPriceFactory, SlnPersonnelPriceFactory>();
+
+        // Odeme Gateway Yapilandirma
+        services.AddScoped<IPaymentConfigFactory, PaymentConfigFactory>();
 
         return services;
     }

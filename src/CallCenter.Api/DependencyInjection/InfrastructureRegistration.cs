@@ -3,6 +3,7 @@ using CallCenter.Api.Services;
 using CallCenter.Api.Services.CloudStorage;
 using CallCenter.Api.Services.Connectors;
 using CallCenter.Api.Services.Email;
+using CallCenter.Api.Services.Payment;
 using CallCenter.Shared.Services;
 using Google.Cloud.TextToSpeech.V1;
 
@@ -19,6 +20,7 @@ public static class InfrastructureRegistration
         services.AddSingleton<AesEncryptionService>();
         services.AddSingleton<ITranslationService, TranslationService>();
         services.AddSingleton<CloudStorageFactory>();
+        services.AddSingleton<PaymentGatewayFactory>();
         services.AddSingleton<OneDriveOAuthService>();
         services.AddSingleton<GoogleDriveOAuthService>();
         services.AddSingleton<YandexOAuthService>();

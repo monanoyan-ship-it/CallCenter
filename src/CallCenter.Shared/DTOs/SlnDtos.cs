@@ -306,6 +306,7 @@ public class SlnMembershipSignupDto
 public class SlnSalonProfileDto
 {
     public int Id { get; set; }
+    public int CustomerId { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string SalonName { get; set; } = string.Empty;
     public string? Description { get; set; }

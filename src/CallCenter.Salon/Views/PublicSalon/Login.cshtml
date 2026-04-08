@@ -24,7 +24,18 @@
         <div id="login-form">
             <div class="mb-3">
                 <label class="form-label small">Telefon</label>
-                <input type="tel" class="form-control" id="phone" placeholder="05XX XXX XX XX" />
+                <div class="input-group">
+                    <select id="phoneCountry" class="form-select" style="max-width:100px;">
+                        <option value="+90" selected>+90</option>
+                        <option value="+49">+49</option>
+                        <option value="+44">+44</option>
+                        <option value="+1">+1</option>
+                        <option value="+33">+33</option>
+                        <option value="+31">+31</option>
+                        <option value="+43">+43</option>
+                    </select>
+                    <input type="tel" class="form-control" id="phone" placeholder="5XX XXX XX XX" />
+                </div>
             </div>
             <div class="mb-3">
                 <label class="form-label small">Şifre</label>
@@ -42,6 +53,13 @@
     <script>
         if (localStorage.getItem('platformToken')) window.location.href = '/uye/panel';
 
+        function normalizePhoneValue() {
+            var code = document.getElementById('phoneCountry').value;
+            var raw = document.getElementById('phone').value.replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+            if (raw.startsWith('0')) raw = raw.substring(1);
+            return code + raw;
+        }
+
         async function doLogin() {
             var btn = document.getElementById('loginBtn');
             btn.disabled = true;
@@ -53,7 +71,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        phone: document.getElementById('phone').value.trim(),
+                        phone: normalizePhoneValue(),
                         password: document.getElementById('password').value
                     })
                 });

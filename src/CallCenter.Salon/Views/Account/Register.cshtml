@@ -44,7 +44,18 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label small">Telefon</label>
-                    <input type="tel" name="phone" class="form-control" />
+                    <div class="input-group">
+                        <select id="phoneCountry" class="form-select" style="max-width:100px;">
+                            <option value="+90" selected>+90</option>
+                            <option value="+49">+49</option>
+                            <option value="+44">+44</option>
+                            <option value="+1">+1</option>
+                            <option value="+33">+33</option>
+                            <option value="+31">+31</option>
+                            <option value="+43">+43</option>
+                        </select>
+                        <input type="tel" name="phone" class="form-control" id="phoneInput" placeholder="5XX XXX XX XX" />
+                    </div>
                 </div>
             </div>
             <div class="row">
@@ -68,6 +79,13 @@
     </div>
 
     <script>
+        function normalizePhoneValue() {
+            var code = document.getElementById('phoneCountry').value;
+            var raw = document.getElementById('phoneInput').value.replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+            if (raw.startsWith('0')) raw = raw.substring(1);
+            return code + raw;
+        }
+
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var btn = document.getElementById('btnRegister');
@@ -81,7 +99,7 @@
                 salonName: fd.get('salonName'),
                 ownerFullName: fd.get('ownerFullName'),
                 email: fd.get('email'),
-                phone: fd.get('phone'),
+                phone: normalizePhoneValue(),
                 userName: fd.get('userName'),
                 password: fd.get('password')
             };

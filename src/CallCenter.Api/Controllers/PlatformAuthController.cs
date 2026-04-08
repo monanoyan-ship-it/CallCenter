@@ -29,7 +29,11 @@ public class PlatformAuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Phone) || string.IsNullOrWhiteSpace(dto.Password))
             return BadRequest(new { message = "Telefon ve şifre zorunludur." });
 
-        var exists = await _db.PlatformUsers.AnyAsync(u => u.Phone == dto.Phone);
+        var normalizedPhone = CallCenter.Shared.Helpers.PhoneHelper.Normalize(dto.Phone) ?? "";
+        if (string.IsNullOrEmpty(normalizedPhone))
+            return BadRequest(new { message = "Geçerli bir telefon numarası giriniz." });
+
+        var exists = await _db.PlatformUsers.AnyAsync(u => u.Phone == normalizedPhone);
         if (exists)
             return BadRequest(new { message = "Bu telefon numarası zaten kayıtlı." });
 
@@ -43,7 +47,7 @@ public class PlatformAuthController : ControllerBase
         var user = new PlatformUser
         {
             FullName = dto.FullName.Trim(),
-            Phone = dto.Phone.Trim(),
+            Phone = normalizedPhone,
             Email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             IsPhoneVerified = false,
@@ -65,9 +69,10 @@ public class PlatformAuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<PlatformAuthResponse>> Login([FromBody] PlatformLoginDto dto)
     {
+        var normalizedPhone = CallCenter.Shared.Helpers.PhoneHelper.Normalize(dto.Phone) ?? "";
         var user = await _db.PlatformUsers
             .Include(u => u.Salons)
-            .FirstOrDefaultAsync(u => u.Phone == dto.Phone);
+            .FirstOrDefaultAsync(u => u.Phone == normalizedPhone);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return Unauthorized(new { message = "Telefon veya şifre hatalı." });

@@ -9,7 +9,7 @@ public class PaymentTransaction
     public int Id { get; set; }
     public Guid Uid { get; set; } = Guid.NewGuid();
 
-    /// <summary>Odeme tipi: 1=SalonAdisyon, 2=PlatformAbonelik</summary>
+    /// <summary>Odeme tipi: 1=SalonAdisyon, 2=PlatformAbonelik, 3=UyelikOdemesi, 4=ModulSatinAlma</summary>
     public int PaymentTypeId { get; set; }
 
     /// <summary>Ilgili firma (salon veya CC musterisi)</summary>
@@ -25,6 +25,9 @@ public class PaymentTransaction
 
     /// <summary>Ilgili faturalama donemi (platform abonelikte)</summary>
     public int? BillingPeriodId { get; set; }
+
+    /// <summary>Satin alinan modul ID (modul satin almada)</summary>
+    public int? ModuleId { get; set; }
 
     /// <summary>Odeme tutari</summary>
     public decimal Amount { get; set; }

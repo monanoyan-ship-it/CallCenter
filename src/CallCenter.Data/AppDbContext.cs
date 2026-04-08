@@ -164,8 +164,17 @@ public class AppDbContext : DbContext
     public DbSet<PlatformEmailEvent> PlatformEmailEvents => Set<PlatformEmailEvent>();
     public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
 
+    // ─── Service Pricing Periods ───
+    public DbSet<ServicePricingPeriod> ServicePricingPeriods => Set<ServicePricingPeriod>();
+    public DbSet<ServicePricingItem> ServicePricingItems => Set<ServicePricingItem>();
+
+    // ─── Subscription ───
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<CustomerSubscription> CustomerSubscriptions => Set<CustomerSubscription>();
+
     // ─── Payment ───
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<PlatformPaymentConfig> PlatformPaymentConfigs => Set<PlatformPaymentConfig>();
 
     // ─── Platform User ───
     public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
@@ -247,6 +256,41 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // ServicePricingPeriod
+        modelBuilder.Entity<ServicePricingPeriod>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Name).HasMaxLength(200);
+        });
+        modelBuilder.Entity<ServicePricingItem>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.HasIndex(i => new { i.PeriodId, i.ProductTypeId, i.ServiceId }).IsUnique();
+            e.Property(i => i.MonthlyPrice).HasPrecision(18, 2);
+            e.Property(i => i.PreviousPrice).HasPrecision(18, 2);
+            e.Property(i => i.ServiceName).HasMaxLength(200);
+            e.HasOne(i => i.Period).WithMany(p => p.Items).HasForeignKey(i => i.PeriodId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SubscriptionPlan
+        modelBuilder.Entity<SubscriptionPlan>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Name).HasMaxLength(100);
+            e.Property(p => p.DiscountPercent).HasPrecision(5, 2);
+        });
+
+        // CustomerSubscription
+        modelBuilder.Entity<CustomerSubscription>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => new { s.CustomerId, s.StatusId });
+            e.Property(s => s.MonthlyPrice).HasPrecision(18, 2);
+            e.Property(s => s.PeriodPrice).HasPrecision(18, 2);
+            e.HasOne(s => s.Customer).WithMany(c => c.Subscriptions).HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Plan).WithMany().HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Restrict);
+        });
+
         // PaymentTransaction
         modelBuilder.Entity<PaymentTransaction>(e =>
         {
@@ -262,6 +306,25 @@ public class AppDbContext : DbContext
             e.Property(t => t.ErrorMessage).HasMaxLength(1000);
             e.HasOne(t => t.Customer).WithMany().HasForeignKey(t => t.CustomerId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.PlatformUser).WithMany().HasForeignKey(t => t.PlatformUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // PlatformPaymentConfig
+        modelBuilder.Entity<PlatformPaymentConfig>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Uid).IsUnique();
+            e.HasIndex(c => new { c.ProviderTypeId, c.IsActive });
+            e.Property(c => c.EncryptedCredentials).HasMaxLength(2000);
+            e.Property(c => c.EncryptedBankInfo).HasMaxLength(2000);
+            e.Property(c => c.LastTestError).HasMaxLength(1000);
+        });
+
+        // SlnClient (ayni salonda ayni telefon mukerrer olamaz)
+        modelBuilder.Entity<SlnClient>(e =>
+        {
+            e.HasIndex(c => new { c.CustomerId, c.Phone }).IsUnique().HasFilter("\"Phone\" IS NOT NULL");
+            e.Property(c => c.Phone).HasMaxLength(20);
+            e.Property(c => c.Phone2).HasMaxLength(20);
         });
 
         // SlnMembershipPlanService (plan-hizmet iliskisi)

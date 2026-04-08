@@ -7,7 +7,7 @@ function MembershipsViewModel() {
     self.editingPlanId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
-    self.serviceList = ko.observableArray([]);
+    self.serviceCategories = ko.observableArray([]);
 
     self.planForm = {
         name: ko.observable(''), description: ko.observable(''), iconClass: ko.observable('bi-award'),
@@ -16,7 +16,36 @@ function MembershipsViewModel() {
         serviceIds: ko.observableArray([])
     };
 
-    self.serviceAutocomplete = createMultiAutocomplete(self.serviceList, 'name', self.planForm.serviceIds);
+    // Kategori → Hizmet secim yapisi (randevudaki gibi)
+    self.selectedCategoryId = ko.observable(null);
+
+    self.selectedCategoryServices = ko.computed(function () {
+        var catId = self.selectedCategoryId();
+        if (!catId) return [];
+        var cat = self.serviceCategories().find(function (c) { return c.id === catId; });
+        return cat ? (cat.services || []) : [];
+    });
+
+    self.selectedPlanServiceNames = ko.computed(function () {
+        var ids = self.planForm.serviceIds();
+        if (!ids || !ids.length) return [];
+        var allServices = [];
+        self.serviceCategories().forEach(function (cat) {
+            (cat.services || []).forEach(function (s) { allServices.push(s); });
+        });
+        return ids.map(function (id) {
+            var svc = allServices.find(function (s) { return s.id === id; });
+            return svc ? { id: svc.id, name: svc.name } : { id: id, name: '?' };
+        });
+    });
+
+    self.togglePlanService = function (serviceId) {
+        var ids = self.planForm.serviceIds().slice();
+        var idx = ids.indexOf(serviceId);
+        if (idx >= 0) ids.splice(idx, 1);
+        else ids.push(serviceId);
+        self.planForm.serviceIds(ids);
+    };
 
     self.memberForm = { planId: ko.observable(null), slnClientId: ko.observable(null) };
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.memberForm.slnClientId);
@@ -33,25 +62,51 @@ function MembershipsViewModel() {
     };
 
     self.loadServices = function () {
-        $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (d) { self.serviceList(d.items || d || []); });
+        $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (d) { self.serviceCategories(d.items || d || []); });
     };
 
-    self.quickAddClient = function () {
-        var name = self.clientAutocomplete.query();
-        if (!name) return;
+    // Yeni musteri inline form (Appointments ile ayni yapi)
+    self.newClientVisible = ko.observable(false);
+    self.isCreatingClient = ko.observable(false);
+    self.newClientForm = {
+        fullName: ko.observable(''),
+        phone: ko.observable('')
+    };
+
+    self.showNewClient = function (queryText) {
+        self.newClientForm.fullName(queryText || '');
+        self.newClientForm.phone('');
+        self.newClientVisible(true);
+        self.clientAutocomplete.showDropdown(false);
+    };
+
+    self.hideNewClient = function () {
+        self.newClientVisible(false);
+    };
+
+    self.saveNewClient = function () {
+        var name = self.newClientForm.fullName();
+        var phone = self.newClientForm.phone();
+        if (!name || !phone) { toastr.warning('Ad ve telefon zorunludur'); return; }
+
+        self.isCreatingClient(true);
         $.ajax({
-            url: '/proxy/sln-clients', method: 'POST', contentType: 'application/json',
-            data: JSON.stringify({ fullName: name, phone: '' })
+            url: '/proxy/sln-clients',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ fullName: name, phone: phone })
         }).done(function (newClient) {
-            toastr.success(name + ' eklendi.');
-            self.loadClients();
-            // Kisa gecikme ile yeni musteri sec
-            setTimeout(function () {
-                var list = self.clientList();
-                var found = list.find(function (c) { return c.fullName === name; });
-                if (found) self.clientAutocomplete.select(found);
-            }, 500);
-        }).fail(function (x) { toastr.error(x.responseJSON?.message || 'Müşteri eklenemedi.'); });
+            var list = self.clientList();
+            list.push(newClient);
+            self.clientList(list);
+            self.memberForm.slnClientId(newClient.id);
+            self.clientAutocomplete.query(newClient.fullName);
+            self.clientAutocomplete.selectedName(newClient.fullName);
+            self.newClientVisible(false);
+            toastr.success('Müşteri oluşturuldu ve seçildi');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.error || 'Müşteri oluşturulamadı');
+        }).always(function () { self.isCreatingClient(false); });
     };
 
     // Plan CRUD
@@ -60,7 +115,7 @@ function MembershipsViewModel() {
         self.planForm.name(''); self.planForm.description(''); self.planForm.color('#7b1fa2');
         self.planForm.monthlyPrice(0); self.planForm.discountPercent(10);
         self.planForm.freeSessionsPerMonth(0); self.planForm.priorityBooking(false);
-        self.planForm.serviceIds([]); self.serviceAutocomplete.clear();
+        self.planForm.serviceIds([]); self.selectedCategoryId(null);
         planModal.show();
     };
 
@@ -71,7 +126,7 @@ function MembershipsViewModel() {
         self.planForm.discountPercent(p.discountPercent); self.planForm.freeSessionsPerMonth(p.freeSessionsPerMonth);
         self.planForm.priorityBooking(p.priorityBooking);
         self.planForm.serviceIds(p.serviceIds || []);
-        self.serviceAutocomplete.setFromValues(p.serviceIds || []);
+        self.selectedCategoryId(null);
         planModal.show();
     };
 

@@ -87,7 +87,7 @@
                 </div>
                 <div class="col-6">
                     <label class="form-label small">Telefon *</label>
-                    <input type="tel" class="form-control" data-bind="value: form.phone" />
+                    <div data-bind="phoneInput: form.phone"></div>
                 </div>
                 <div class="col-6">
                     <label class="form-label small">E-posta</label>
@@ -143,6 +143,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.min.js"></script>
+    <script src="/js/phone-input.js"></script>
     <script>
         var bookSlug = '@slug';
 

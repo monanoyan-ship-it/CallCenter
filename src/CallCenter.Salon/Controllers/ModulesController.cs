@@ -9,4 +9,11 @@ public class ModulesController : SlnBaseController
         ViewData["Title"] = "Modul Yonetimi";
         return View();
     }
+
+    public IActionResult Purchase(int moduleId)
+    {
+        ViewData["Title"] = "Modul Satin Al";
+        ViewData["ModuleId"] = moduleId;
+        return View();
+    }
 }

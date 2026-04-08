@@ -1,158 +1,154 @@
+@{
+    ViewData["Title"] = "Hizmet Yönetimi";
+}
+
 <div id="servicemanagement-vm">
-    <!-- Ozet Kartlar -->
-    <div class="row g-3 mb-4">
+    <!-- Donem Listesi + Yeni Donem -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 text-muted"><i class="bi bi-calendar3 me-1"></i>Fiyatlandırma Dönemleri</h6>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNewPeriod"><i class="bi bi-plus-lg me-1"></i>Yeni Dönem</button>
+    </div>
+
+    <!-- Donem Kartlari -->
+    <div class="row g-3 mb-4" data-bind="foreach: periods">
         <div class="col-md-4">
-            <div class="card stat-card">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle"></i></div>
-                    <div>
-                        <div class="text-muted small">Aktif Abonelik</div>
-                        <h4 class="mb-0" data-bind="text: summary().totalActiveSubscriptions || 0"></h4>
+            <div class="card border-0 shadow-sm h-100" data-bind="css: { 'border-start border-3 border-success': statusId === 1, 'border-start border-3 border-secondary': statusId === 2, 'border-start border-3 border-warning': statusId === 3 }">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="mb-1" data-bind="text: name"></h6>
+                        <span class="badge" data-bind="text: statusName, css: statusId === 1 ? 'bg-success' : statusId === 2 ? 'bg-secondary' : 'bg-warning text-dark'"></span>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-cash-stack"></i></div>
-                    <div>
-                        <div class="text-muted small">Aylik Gelir</div>
-                        <h4 class="mb-0" data-bind="text: (summary().totalMonthlyRevenue || 0).toFixed(2) + ' TL'"></h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="bi bi-box"></i></div>
-                    <div>
-                        <div class="text-muted small">Hizmet Turu</div>
-                        <h4 class="mb-0" data-bind="text: summary().serviceBreakdown ? summary().serviceBreakdown.length : 0"></h4>
+                    <div class="small text-muted" data-bind="text: new Date(startDate).toLocaleDateString('tr-TR') + ' - ' + new Date(endDate).toLocaleDateString('tr-TR')"></div>
+                    <div class="small text-muted mt-1" data-bind="text: itemCount + ' hizmet kalemi'"></div>
+                    <div class="mt-2 d-flex gap-1">
+                        <button class="btn btn-outline-primary btn-sm" data-bind="click: $parent.openPeriodDetail"><i class="bi bi-pencil me-1"></i>Detay</button>
+                        <!-- ko if: statusId === 3 -->
+                        <button class="btn btn-success btn-sm" data-bind="click: $parent.activatePeriod"><i class="bi bi-check-lg me-1"></i>Aktif Et</button>
+                        <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.deletePeriod"><i class="bi bi-trash"></i></button>
+                        <!-- /ko -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Toolbar -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div></div>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-warning btn-sm" data-bind="click: openBulkAdjust">
-                <i class="bi bi-arrow-up-right me-1"></i>Toplu Fiyat Artir
-            </button>
-            <button class="btn btn-outline-success btn-sm" data-bind="click: openGenerateBilling">
-                <i class="bi bi-receipt me-1"></i>Fatura Olustur
-            </button>
-        </div>
+    <div class="text-center text-muted py-4" data-bind="visible: periods().length === 0">
+        <i class="bi bi-calendar3 fs-1 d-block mb-2 opacity-25"></i>Henüz dönem oluşturulmamış.
     </div>
 
-    <!-- Hizmet Tablosu -->
+    <!-- Donem Detay -->
+    <!-- ko if: selectedPeriod() -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white">
-            <h6 class="mb-0"><i class="bi bi-box me-2"></i>Hizmetler</h6>
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <strong data-bind="text: selectedPeriod().name"></strong>
+            <div>
+                <button class="btn btn-outline-warning btn-sm me-1" data-bind="click: openBulkAdjust"><i class="bi bi-arrow-up-right me-1"></i>Toplu Fiyat Değiştir</button>
+            </div>
         </div>
         <div class="card-body p-0">
-            <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
-            <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && services().length === 0">
-                <i class="bi bi-box fs-1 d-block mb-2 opacity-25"></i>Hizmet bulunamadi
+            <ul class="nav nav-tabs px-3 pt-2">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabCC"><i class="bi bi-telephone me-1"></i>Call Center</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSalon"><i class="bi bi-scissors me-1"></i>Salon</button></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tabCC">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light"><tr><th>Hizmet</th><th>Önceki Fiyat</th><th style="width:160px;">Aylık Fiyat (TL)</th><th>Fark</th></tr></thead>
+                            <tbody data-bind="foreach: selectedPeriod().callCenter">
+                                <tr>
+                                    <td class="fw-medium" data-bind="text: serviceName"></td>
+                                    <td class="small text-muted" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" step="0.01" min="0" data-bind="value: monthlyPrice, event: { change: function() { $root.updatePrice(id, monthlyPrice); } }" />
+                                            <span class="input-group-text">TL</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <!-- ko if: previousPrice != null && monthlyPrice !== previousPrice -->
+                                        <span class="badge" data-bind="text: (monthlyPrice > previousPrice ? '+' : '') + (monthlyPrice - previousPrice).toFixed(2) + ' TL',
+                                            css: monthlyPrice > previousPrice ? 'bg-danger' : monthlyPrice < previousPrice ? 'bg-success' : 'bg-secondary'"></span>
+                                        <!-- /ko -->
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="tabSalon">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light"><tr><th>Modül</th><th>Önceki Fiyat</th><th style="width:160px;">Aylık Fiyat (TL)</th><th>Fark</th></tr></thead>
+                            <tbody data-bind="foreach: selectedPeriod().salon">
+                                <tr>
+                                    <td class="fw-medium" data-bind="text: serviceName"></td>
+                                    <td class="small text-muted" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" step="0.01" min="0" data-bind="value: monthlyPrice, event: { change: function() { $root.updatePrice(id, monthlyPrice); } }" />
+                                            <span class="input-group-text">TL</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <!-- ko if: previousPrice != null && monthlyPrice !== previousPrice -->
+                                        <span class="badge" data-bind="text: (monthlyPrice > previousPrice ? '+' : '') + (monthlyPrice - previousPrice).toFixed(2) + ' TL',
+                                            css: monthlyPrice > previousPrice ? 'bg-danger' : monthlyPrice < previousPrice ? 'bg-success' : 'bg-secondary'"></span>
+                                        <!-- /ko -->
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div data-bind="visible: !isLoading() && services().length > 0">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Kod</th>
-                                <th>Hizmet Adi</th>
-                                <th>Kategori</th>
-                                <th>Varsayilan</th>
-                                <th>Ucretli</th>
-                            </tr>
-                        </thead>
-                        <tbody data-bind="foreach: services">
-                            <tr>
-                                <td class="fw-medium" data-bind="text: code || '-'"></td>
-                                <td data-bind="text: name || '-'"></td>
-                                <td><span class="badge bg-secondary" data-bind="text: categoryName || '-'"></span></td>
-                                <td><span class="badge" data-bind="text: isDefault ? 'Evet' : 'Hayir', css: isDefault ? 'bg-success' : 'bg-secondary'"></span></td>
-                                <td><span class="badge" data-bind="text: isDefault ? 'Hayir' : 'Evet', css: isDefault ? 'bg-secondary' : 'bg-warning'"></span></td>
-                            </tr>
-                        </tbody>
-                    </table>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- Yeni Donem Modal -->
+    <div class="modal fade" id="newPeriodModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header py-2"><h6 class="modal-title">Yeni Dönem</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-2"><label class="form-label small">Dönem Adı *</label><input type="text" class="form-control form-control-sm" data-bind="value: periodForm.name" placeholder="Nisan 2026" /></div>
+                    <div class="mb-2"><label class="form-label small">Başlangıç *</label><input type="date" class="form-control form-control-sm" data-bind="value: periodForm.startDate" /></div>
+                    <div class="mb-2"><label class="form-label small">Bitiş *</label><input type="date" class="form-control form-control-sm" data-bind="value: periodForm.endDate" /></div>
+                    <small class="text-muted">Önceki dönemin fiyatları otomatik kopyalanır.</small>
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: savePeriod">Oluştur</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toplu Fiyat Artirma Modal -->
+    <!-- Toplu Fiyat Modal -->
     <div class="modal fade" id="bulkAdjustModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-sm">
             <div class="modal-content">
-                <div class="modal-header py-2">
-                    <h6 class="modal-title"><i class="bi bi-arrow-up-right me-2"></i>Toplu Fiyat Artirma</h6>
-                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header py-2"><h6 class="modal-title">Toplu Fiyat Değiştir</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small">Hizmet</label>
-                        <select class="form-select form-select-sm" data-bind="value: bulkForm.serviceId, options: services, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Tum Hizmetler'"></select>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small">Artis Tipi</label>
-                            <select class="form-select form-select-sm" data-bind="value: bulkForm.adjustType">
-                                <option value="amount">Tutar (TL)</option>
-                                <option value="percentage">Oran (%)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small">Deger</label>
-                            <input type="number" step="0.01" class="form-control form-control-sm" data-bind="value: bulkForm.value" />
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer py-2">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
-                    <button class="btn btn-warning btn-sm" data-bind="click: executeBulkAdjust, disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Uygula
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Fatura Olustur Modal -->
-    <div class="modal fade" id="generateBillingModal" tabindex="-1">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header py-2">
-                    <h6 class="modal-title"><i class="bi bi-receipt me-2"></i>Hizmet Faturasi Olustur</h6>
-                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small">Yil</label>
-                        <input type="number" class="form-control form-control-sm" data-bind="value: billingYear" min="2020" max="2100" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small">Ay</label>
-                        <select class="form-select form-select-sm" data-bind="value: billingMonth">
-                            <option value="1">Ocak</option><option value="2">Subat</option><option value="3">Mart</option>
-                            <option value="4">Nisan</option><option value="5">Mayis</option><option value="6">Haziran</option>
-                            <option value="7">Temmuz</option><option value="8">Agustos</option><option value="9">Eylul</option>
-                            <option value="10">Ekim</option><option value="11">Kasim</option><option value="12">Aralik</option>
+                    <div class="mb-2"><label class="form-label small">Uygulama</label>
+                        <select class="form-select form-select-sm" data-bind="value: bulkForm.productTypeId">
+                            <option value="">Tümü</option>
+                            <option value="1">Call Center</option>
+                            <option value="2">Salon</option>
                         </select>
                     </div>
+                    <div class="mb-2"><label class="form-label small">Tür</label>
+                        <select class="form-select form-select-sm" data-bind="value: bulkForm.adjustType">
+                            <option value="amount">Tutar (TL)</option>
+                            <option value="percentage">Oran (%)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2"><label class="form-label small">Değer</label>
+                        <input type="number" step="0.01" class="form-control form-control-sm" data-bind="value: bulkForm.value" /></div>
                 </div>
-                <div class="modal-footer py-2">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
-                    <button class="btn btn-success btn-sm" data-bind="click: executeGenerateBilling, disable: isGenerating">
-                        <span data-bind="visible: isGenerating" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-gear me-1" data-bind="visible: !isGenerating()"></i>Olustur
-                    </button>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-warning btn-sm" data-bind="click: executeBulkAdjust">Uygula</button>
                 </div>
             </div>
         </div>
@@ -163,80 +159,68 @@
 <script>
 function ServiceManagementViewModel() {
     var self = this;
-    self.services = ko.observableArray([]);
-    self.summary = ko.observable({});
-    self.isLoading = ko.observable(false);
-    self.isSaving = ko.observable(false);
-    self.isGenerating = ko.observable(false);
+    self.periods = ko.observableArray([]);
+    self.selectedPeriod = ko.observable(null);
+    self.periodForm = { name: ko.observable(''), startDate: ko.observable(''), endDate: ko.observable('') };
+    self.bulkForm = { productTypeId: ko.observable(''), adjustType: ko.observable('amount'), value: ko.observable(0) };
 
-    var now = new Date();
-    self.billingYear = ko.observable(now.getFullYear());
-    self.billingMonth = ko.observable(now.getMonth() + 1);
-
-    self.bulkForm = {
-        serviceId: ko.observable(''), adjustType: ko.observable('amount'), value: ko.observable(0)
+    self.load = function () {
+        $.get('/proxy/service-pricing/periods', function (d) { self.periods(d || []); });
     };
 
-    self.loadSummary = function() {
-        $.get('/proxy/service-subscriptions/summary', function(data) {
-            self.summary(data || {});
-        });
+    self.openNewPeriod = function () {
+        self.periodForm.name(''); self.periodForm.startDate(''); self.periodForm.endDate('');
+        new bootstrap.Modal('#newPeriodModal').show();
     };
 
-    self.loadServices = function() {
-        self.isLoading(true);
-        $.get('/proxy/services', function(data) {
-            var items = Array.isArray(data) ? data : (data.items || data.data || []);
-            self.services(items);
-        }).always(function() { self.isLoading(false); });
+    self.savePeriod = function () {
+        var d = { name: self.periodForm.name(), startDate: self.periodForm.startDate(), endDate: self.periodForm.endDate() };
+        if (!d.name || !d.startDate || !d.endDate) { toastr.warning('Tüm alanlar zorunludur.'); return; }
+        $.ajax({ url: '/proxy/service-pricing/periods', method: 'POST', contentType: 'application/json', data: JSON.stringify(d) })
+            .done(function () { bootstrap.Modal.getInstance(document.getElementById('newPeriodModal')).hide(); self.load(); toastr.success('Dönem oluşturuldu.'); })
+            .fail(function (x) { toastr.error(x.responseJSON?.message || 'Hata'); });
     };
 
-    self.openBulkAdjust = function() {
-        self.bulkForm.serviceId(''); self.bulkForm.adjustType('amount'); self.bulkForm.value(0);
+    self.openPeriodDetail = function (p) {
+        $.get('/proxy/service-pricing/periods/' + p.id, function (d) { self.selectedPeriod(d); });
+    };
+
+    self.updatePrice = function (itemId, newPrice) {
+        $.ajax({ url: '/proxy/service-pricing/items/' + itemId + '/price', method: 'PUT', contentType: 'application/json', data: JSON.stringify({ monthlyPrice: parseFloat(newPrice) || 0 }) })
+            .done(function () { toastr.success('Fiyat güncellendi.'); })
+            .fail(function () { toastr.error('Güncelleme hatası.'); });
+    };
+
+    self.openBulkAdjust = function () {
+        self.bulkForm.productTypeId(''); self.bulkForm.adjustType('amount'); self.bulkForm.value(0);
         new bootstrap.Modal('#bulkAdjustModal').show();
     };
 
-    self.executeBulkAdjust = function() {
-        self.isSaving(true);
-        var payload = {
-            serviceId: self.bulkForm.serviceId() || null,
-            adjustType: self.bulkForm.adjustType(),
-            value: parseFloat(self.bulkForm.value())
-        };
-        $.ajax({
-            url: '/proxy/service-subscriptions/bulk-adjust', method: 'POST',
-            contentType: 'application/json', data: JSON.stringify(payload),
-            success: function() {
-                toastr.success('Fiyat artirma uygulandi.');
-                bootstrap.Modal.getInstance(document.getElementById('bulkAdjustModal')).hide();
-                self.loadSummary();
-            },
-            error: function() { toastr.error('Islem hatasi.'); }
-        }).always(function() { self.isSaving(false); });
+    self.executeBulkAdjust = function () {
+        var pid = self.selectedPeriod()?.id;
+        if (!pid) return;
+        var d = { productTypeId: self.bulkForm.productTypeId() ? parseInt(self.bulkForm.productTypeId()) : null, adjustType: self.bulkForm.adjustType(), value: parseFloat(self.bulkForm.value()) };
+        $.ajax({ url: '/proxy/service-pricing/periods/' + pid + '/bulk-adjust', method: 'POST', contentType: 'application/json', data: JSON.stringify(d) })
+            .done(function (r) { bootstrap.Modal.getInstance(document.getElementById('bulkAdjustModal')).hide(); toastr.success((r.updated || 0) + ' kalem güncellendi.'); self.openPeriodDetail({ id: pid }); })
+            .fail(function () { toastr.error('Hata'); });
     };
 
-    self.openGenerateBilling = function() {
-        new bootstrap.Modal('#generateBillingModal').show();
+    self.activatePeriod = function (p) {
+        if (!confirm(p.name + ' dönemini aktif etmek istiyor musunuz? Fiyatlar tüm sisteme yansıyacak.')) return;
+        $.ajax({ url: '/proxy/service-pricing/periods/' + p.id + '/activate', method: 'PUT' })
+            .done(function () { self.load(); toastr.success('Dönem aktif edildi.'); })
+            .fail(function (x) { toastr.error(x.responseJSON?.message || 'Hata'); });
     };
 
-    self.executeGenerateBilling = function() {
-        self.isGenerating(true);
-        $.ajax({
-            url: '/proxy/service-subscriptions/billing/generate', method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ year: parseInt(self.billingYear()), month: parseInt(self.billingMonth()) }),
-            success: function() {
-                toastr.success('Faturalar olusturuldu.');
-                bootstrap.Modal.getInstance(document.getElementById('generateBillingModal')).hide();
-            },
-            error: function() { toastr.error('Fatura olusturma hatasi.'); }
-        }).always(function() { self.isGenerating(false); });
+    self.deletePeriod = function (p) {
+        if (!confirm(p.name + ' dönemini silmek istiyor musunuz?')) return;
+        $.ajax({ url: '/proxy/service-pricing/periods/' + p.id, method: 'DELETE' })
+            .done(function () { self.load(); self.selectedPeriod(null); toastr.success('Dönem silindi.'); })
+            .fail(function (x) { toastr.error(x.responseJSON?.message || 'Silinemedi'); });
     };
 
-    self.loadSummary();
-    self.loadServices();
+    self.load();
 }
-
 ko.applyBindings(new ServiceManagementViewModel(), document.getElementById('servicemanagement-vm'));
 </script>
 }

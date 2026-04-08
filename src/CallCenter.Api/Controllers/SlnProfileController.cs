@@ -43,6 +43,7 @@ public class SlnProfileController : ControllerBase
         return Ok(new SlnSalonProfileDto
         {
             Id = profile.Id,
+            CustomerId = profile.CustomerId,
             Slug = profile.Slug,
             SalonName = profile.Customer?.Name ?? "",
             Description = profile.Description,

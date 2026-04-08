@@ -1,0 +1,262 @@
+@{
+    ViewData["Title"] = "Abonelik Yönetimi";
+}
+
+<div id="sub-vm">
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabPlans"><i class="bi bi-card-list me-1"></i>Planlar</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSubs"><i class="bi bi-people me-1"></i>Abonelikler</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabBilling"><i class="bi bi-receipt me-1"></i>Tahakkuk Oluştur</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- PLANLAR -->
+        <div class="tab-pane fade show active" id="tabPlans">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary btn-sm" data-bind="click: openNewPlan"><i class="bi bi-plus-lg me-1"></i>Yeni Plan</button>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr><th>Plan</th><th>Aralık</th><th>İndirim</th><th>Durum</th><th></th></tr>
+                        </thead>
+                        <tbody data-bind="foreach: plans">
+                            <tr>
+                                <td class="fw-medium" data-bind="text: name"></td>
+                                <td data-bind="text: intervalMonths + ' ay'"></td>
+                                <td data-bind="text: discountPercent > 0 ? '%' + discountPercent : '-'"></td>
+                                <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span></td>
+                                <td>
+                                    <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: $parent.editPlan"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-danger btn-sm py-0" data-bind="click: $parent.deletePlan"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABONELİKLER -->
+        <div class="tab-pane fade" id="tabSubs">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-success btn-sm" data-bind="click: openNewSub"><i class="bi bi-person-plus me-1"></i>Abonelik Oluştur</button>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr><th>Firma</th><th>Plan</th><th>Başlangıç</th><th>Dönem Fiyat</th><th>Sonraki Tahakkuk</th><th>Durum</th><th></th></tr>
+                        </thead>
+                        <tbody data-bind="foreach: subscriptions">
+                            <tr>
+                                <td class="fw-medium" data-bind="text: customerName"></td>
+                                <td><span class="badge bg-primary" data-bind="text: planName"></span></td>
+                                <td class="small" data-bind="text: new Date(startDate).toLocaleDateString('tr-TR')"></td>
+                                <td class="fw-bold" data-bind="text: periodPrice.toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small" data-bind="text: new Date(nextBillingDate).toLocaleDateString('tr-TR')"></td>
+                                <td><span class="badge" data-bind="text: statusName, css: statusId === 1 ? 'bg-success' : statusId === 2 ? 'bg-warning text-dark' : 'bg-danger'"></span></td>
+                                <td>
+                                    <!-- ko if: statusId === 1 -->
+                                    <button class="btn btn-outline-danger btn-sm py-0" data-bind="click: $parent.cancelSub" title="İptal"><i class="bi bi-x-lg"></i></button>
+                                    <!-- /ko -->
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="text-center py-3 text-muted" data-bind="visible: subscriptions().length === 0">Abonelik yok.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAHAKKUK -->
+        <div class="tab-pane fade" id="tabBilling">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted small">Belirtilen ay için aktif aboneliklerin tahakkuklarını oluşturur. Sadece o ayda tahakkuk tarihi olan abonelikler için kayıt oluşturulur.</p>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small">Yıl</label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: billingYear" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Ay</label>
+                            <select class="form-select form-select-sm" data-bind="value: billingMonth">
+                                <option value="1">Ocak</option><option value="2">Şubat</option><option value="3">Mart</option>
+                                <option value="4">Nisan</option><option value="5">Mayıs</option><option value="6">Haziran</option>
+                                <option value="7">Temmuz</option><option value="8">Ağustos</option><option value="9">Eylül</option>
+                                <option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-primary btn-sm w-100" data-bind="click: generateBilling, disable: isGenerating">
+                                <span data-bind="visible: isGenerating" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-play-fill me-1" data-bind="visible: !isGenerating()"></i>Tahakkuk Oluştur
+                            </button>
+                        </div>
+                    </div>
+                    <!-- ko if: billingResult() -->
+                    <div class="alert alert-info mt-3 py-2 small" data-bind="html: billingResult"></div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Modal -->
+    <div class="modal fade" id="planModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header py-2"><h6 class="modal-title" data-bind="text: editingPlanId() ? 'Plan Düzenle' : 'Yeni Plan'"></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-2"><label class="form-label small">Plan Adı *</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
+                    <div class="mb-2"><label class="form-label small">Aralık (Ay) *</label><input type="number" class="form-control form-control-sm" min="1" data-bind="value: planForm.intervalMonths" /></div>
+                    <div class="mb-2"><label class="form-label small">İndirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" step="0.01" data-bind="value: planForm.discountPercent" /></div>
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: savePlan">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abonelik Modal -->
+    <div class="modal fade" id="subModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2"><h6 class="modal-title">Abonelik Oluştur</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-2"><label class="form-label small">Firma *</label>
+                        <select class="form-select form-select-sm" data-bind="value: subForm.customerId, options: customers, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Firma seçiniz'"></select></div>
+                    <div class="mb-2"><label class="form-label small">Plan *</label>
+                        <select class="form-select form-select-sm" data-bind="value: subForm.planId, options: plans, optionsText: function(p) { return p.name + ' (' + p.intervalMonths + ' ay' + (p.discountPercent > 0 ? ', %' + p.discountPercent + ' indirim' : '') + ')'; }, optionsValue: 'id', optionsCaption: 'Plan seçiniz'"></select></div>
+                    <div class="mb-2"><label class="form-label small">Başlangıç Tarihi *</label>
+                        <input type="date" class="form-control form-control-sm" data-bind="value: subForm.startDate" /></div>
+                    <div class="mb-2"><label class="form-label small">Aylık Fiyat (TL) *</label>
+                        <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: subForm.monthlyPrice" /></div>
+                    <!-- ko if: subForm.planId() -->
+                    <div class="alert alert-light py-1 small">
+                        <strong>Dönem Fiyatı:</strong> <span data-bind="text: computedPeriodPrice() + ' TL'"></span>
+                    </div>
+                    <!-- /ko -->
+                </div>
+                <div class="modal-footer py-1">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-success btn-sm" data-bind="click: saveSub">Oluştur</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function SubViewModel() {
+    var self = this;
+    self.plans = ko.observableArray([]);
+    self.subscriptions = ko.observableArray([]);
+    self.customers = ko.observableArray([]);
+    self.editingPlanId = ko.observable(null);
+    self.isGenerating = ko.observable(false);
+    self.billingResult = ko.observable('');
+    self.billingYear = ko.observable(new Date().getFullYear());
+    self.billingMonth = ko.observable(new Date().getMonth() + 1);
+
+    self.planForm = { name: ko.observable(''), intervalMonths: ko.observable(1), discountPercent: ko.observable(0) };
+    self.subForm = { customerId: ko.observable(null), planId: ko.observable(null), startDate: ko.observable(''), monthlyPrice: ko.observable(0) };
+
+    self.computedPeriodPrice = ko.computed(function () {
+        var plan = self.plans().find(function (p) { return p.id == self.subForm.planId(); });
+        if (!plan) return '0';
+        var mp = parseFloat(self.subForm.monthlyPrice()) || 0;
+        var total = mp * plan.intervalMonths * (1 - (plan.discountPercent || 0) / 100);
+        return total.toFixed(2);
+    });
+
+    var planModal, subModal;
+
+    self.load = function () {
+        $.get('/proxy/subscriptions/plans', function (d) { self.plans(d); });
+        $.get('/proxy/subscriptions', function (d) { self.subscriptions(d); });
+        $.get('/proxy/customers?pageSize=500', function (d) { self.customers(d.items || d); });
+    };
+
+    // Plan CRUD
+    self.openNewPlan = function () {
+        self.editingPlanId(null);
+        self.planForm.name(''); self.planForm.intervalMonths(1); self.planForm.discountPercent(0);
+        planModal.show();
+    };
+    self.editPlan = function (p) {
+        self.editingPlanId(p.id);
+        self.planForm.name(p.name); self.planForm.intervalMonths(p.intervalMonths); self.planForm.discountPercent(p.discountPercent);
+        planModal.show();
+    };
+    self.savePlan = function () {
+        var d = { name: self.planForm.name(), intervalMonths: parseInt(self.planForm.intervalMonths()), discountPercent: parseFloat(self.planForm.discountPercent()) || 0, isActive: true };
+        var url = '/proxy/subscriptions/plans';
+        var method = 'POST';
+        if (self.editingPlanId()) { url += '/' + self.editingPlanId(); method = 'PUT'; }
+        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
+            planModal.hide(); self.load(); toastr.success('Plan kaydedildi.');
+        }).fail(function (x) { toastr.error(x.responseJSON?.message || 'Hata'); });
+    };
+    self.deletePlan = function (p) {
+        if (!confirm(p.name + ' planını silmek istediğinize emin misiniz?')) return;
+        $.ajax({ url: '/proxy/subscriptions/plans/' + p.id, method: 'DELETE' }).done(function () {
+            self.load(); toastr.success('Plan silindi.');
+        }).fail(function (x) { toastr.error(x.responseJSON?.message || 'Silinemedi'); });
+    };
+
+    // Abonelik
+    self.openNewSub = function () {
+        self.subForm.customerId(null); self.subForm.planId(null);
+        self.subForm.startDate(new Date().toISOString().substring(0, 10));
+        self.subForm.monthlyPrice(0);
+        subModal.show();
+    };
+    self.saveSub = function () {
+        var d = {
+            customerId: parseInt(self.subForm.customerId()),
+            planId: parseInt(self.subForm.planId()),
+            startDate: self.subForm.startDate(),
+            monthlyPrice: parseFloat(self.subForm.monthlyPrice()) || 0
+        };
+        if (!d.customerId || !d.planId || !d.startDate) { toastr.warning('Tüm alanlar zorunludur.'); return; }
+        $.ajax({ url: '/proxy/subscriptions', method: 'POST', contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
+            subModal.hide(); self.load(); toastr.success('Abonelik oluşturuldu.');
+        }).fail(function (x) { toastr.error(x.responseJSON?.message || 'Hata'); });
+    };
+    self.cancelSub = function (s) {
+        if (!confirm(s.customerName + ' aboneliğini iptal etmek istiyor musunuz?')) return;
+        $.ajax({ url: '/proxy/subscriptions/' + s.id + '/cancel', method: 'PUT' }).done(function () {
+            self.load(); toastr.success('Abonelik iptal edildi.');
+        }).fail(function (x) { toastr.error(x.responseJSON?.message || 'Hata'); });
+    };
+
+    // Tahakkuk
+    self.generateBilling = function () {
+        self.isGenerating(true); self.billingResult('');
+        $.ajax({
+            url: '/proxy/subscriptions/generate-billing',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ year: parseInt(self.billingYear()), month: parseInt(self.billingMonth()) })
+        }).done(function (d) {
+            self.billingResult('<strong>' + d.created + '</strong> tahakkuk oluşturuldu, <strong>' + d.skipped + '</strong> atlandı (zaten mevcut).');
+        }).fail(function (x) {
+            toastr.error(x.responseJSON?.message || 'Hata');
+        }).always(function () { self.isGenerating(false); });
+    };
+
+    $(document).ready(function () {
+        planModal = new bootstrap.Modal(document.getElementById('planModal'));
+        subModal = new bootstrap.Modal(document.getElementById('subModal'));
+        self.load();
+    });
+}
+ko.applyBindings(new SubViewModel(), document.getElementById('sub-vm'));
+</script>
+}

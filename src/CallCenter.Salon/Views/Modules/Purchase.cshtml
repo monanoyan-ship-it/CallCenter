@@ -1,0 +1,257 @@
+@{
+    var moduleId = ViewData["ModuleId"];
+}
+
+<div id="purchase-vm">
+    <!-- Yukleniyor -->
+    <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
+
+    <!-- Modul bulunamadi -->
+    <div class="text-center py-5" data-bind="visible: !isLoading() && !moduleInfo()">
+        <i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-2"></i>
+        <p>Modul bilgisi bulunamadi.</p>
+        <a href="/Modules" class="btn btn-outline-primary btn-sm">Modullere Don</a>
+    </div>
+
+    <!-- Modul Bilgisi + Odeme Formu -->
+    <div data-bind="visible: !isLoading() && moduleInfo()">
+        <div class="row g-3">
+            <!-- Sol: Modul Bilgisi -->
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 data-bind="text: moduleInfo() ? moduleInfo().name : ''"></h5>
+                        <p class="text-muted small" data-bind="text: moduleInfo() ? moduleInfo().description : ''"></p>
+                        <hr />
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Aylik Ucret:</span>
+                            <span class="fs-4 fw-bold text-primary" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString('tr-TR', {style:'currency', currency:'TRY'}) : ''"></span>
+                        </div>
+                        <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i>Odeme sonrasi modul hemen aktif olacaktir.</div>
+                    </div>
+                </div>
+
+                <!-- Odeme Sonucu -->
+                <div class="card border-0 shadow-sm mt-3" data-bind="visible: paymentResult()">
+                    <div class="card-body text-center py-4">
+                        <div data-bind="visible: paymentResult() && paymentResult().success">
+                            <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+                            <h5 class="text-success">Odeme Basarili!</h5>
+                            <p class="text-muted small">Modulunuz aktif edildi. Sayfa yenilendiginde kullanabilirsiniz.</p>
+                            <a href="/Modules" class="btn btn-success btn-sm mt-2">Modullere Don</a>
+                        </div>
+                        <div data-bind="visible: paymentResult() && !paymentResult().success">
+                            <i class="bi bi-x-circle-fill text-danger fs-1 d-block mb-2"></i>
+                            <h5 class="text-danger">Odeme Basarisiz</h5>
+                            <p class="text-muted small" data-bind="text: paymentResult() ? paymentResult().error : ''"></p>
+                            <button class="btn btn-outline-primary btn-sm mt-2" data-bind="click: function(){ paymentResult(null); }">Tekrar Dene</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sag: Odeme Formu -->
+            <div class="col-md-7" data-bind="visible: !paymentResult()">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <!-- Odeme Yontemi Secimi -->
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check" name="payMethod" id="pmKK" value="kk" data-bind="checked: paymentMethod" />
+                            <label class="btn btn-outline-primary" for="pmKK"><i class="bi bi-credit-card me-1"></i>Kredi Karti</label>
+                            <input type="radio" class="btn-check" name="payMethod" id="pmHavale" value="havale" data-bind="checked: paymentMethod" />
+                            <label class="btn btn-outline-primary" for="pmHavale"><i class="bi bi-bank me-1"></i>Havale/EFT</label>
+                        </div>
+
+                        <!-- KK Formu -->
+                        <div data-bind="visible: paymentMethod() === 'kk'">
+                            <div class="mb-2">
+                                <label class="form-label small">Kart Uzerindeki Isim *</label>
+                                <input class="form-control form-control-sm" data-bind="value: card.holderName" placeholder="AD SOYAD" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Kart Numarasi *</label>
+                                <input class="form-control form-control-sm" data-bind="value: card.number, event: { input: formatCardNumber }" maxlength="19" placeholder="0000 0000 0000 0000" />
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-4">
+                                    <label class="form-label small">Ay *</label>
+                                    <select class="form-select form-select-sm" data-bind="value: card.expMonth">
+                                        <option value="">Ay</option>
+                                        <option value="01">01</option><option value="02">02</option><option value="03">03</option>
+                                        <option value="04">04</option><option value="05">05</option><option value="06">06</option>
+                                        <option value="07">07</option><option value="08">08</option><option value="09">09</option>
+                                        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small">Yil *</label>
+                                    <select class="form-select form-select-sm" data-bind="value: card.expYear, options: yearOptions"></select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small">CVV *</label>
+                                    <input class="form-control form-control-sm" data-bind="value: card.cvc" maxlength="4" placeholder="***" type="password" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Taksit</label>
+                                <select class="form-select form-select-sm" data-bind="value: card.installment">
+                                    <option value="1">Tek Cekim</option>
+                                    <option value="2">2 Taksit</option>
+                                    <option value="3">3 Taksit</option>
+                                    <option value="6">6 Taksit</option>
+                                    <option value="9">9 Taksit</option>
+                                    <option value="12">12 Taksit</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary w-100" data-bind="click: payWithCard, disable: isProcessing">
+                                <span data-bind="visible: isProcessing" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-lock-fill me-1" data-bind="visible: !isProcessing()"></i>
+                                <span data-bind="text: moduleInfo() ? 'Ode ' + moduleInfo().monthlyPrice.toLocaleString('tr-TR', {style:'currency', currency:'TRY'}) : 'Ode'"></span>
+                            </button>
+                            <div class="text-center mt-2">
+                                <i class="bi bi-shield-check text-success me-1"></i>
+                                <span class="text-muted small">256-bit SSL ile guvenli odeme</span>
+                            </div>
+                        </div>
+
+                        <!-- Havale Bilgileri -->
+                        <div data-bind="visible: paymentMethod() === 'havale'">
+                            <div data-bind="visible: bankInfo()">
+                                <div class="alert alert-info small mb-3">
+                                    <i class="bi bi-info-circle me-1"></i>Asagidaki hesaba havale yaptiktan sonra "Havale Yaptim" butonuna tiklayiniz.
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered mb-3">
+                                        <tr><th class="bg-light" style="width:35%">Banka</th><td data-bind="text: bankInfo() ? bankInfo().bankName : ''"></td></tr>
+                                        <tr><th class="bg-light">Hesap Sahibi</th><td data-bind="text: bankInfo() ? bankInfo().accountHolder : ''"></td></tr>
+                                        <tr>
+                                            <th class="bg-light">IBAN</th>
+                                            <td>
+                                                <code data-bind="text: bankInfo() ? bankInfo().iban || bankInfo().IBAN : ''"></code>
+                                                <button class="btn btn-outline-secondary btn-sm ms-2" data-bind="click: copyIban" title="Kopyala"><i class="bi bi-clipboard"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr><th class="bg-light">Tutar</th><td class="fw-bold" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString('tr-TR', {style:'currency', currency:'TRY'}) : ''"></td></tr>
+                                        <tr data-bind="visible: bankInfo() && bankInfo().description"><th class="bg-light">Aciklama</th><td data-bind="text: bankInfo() ? bankInfo().description : ''"></td></tr>
+                                    </table>
+                                </div>
+                                <button class="btn btn-primary w-100" data-bind="click: submitHavale, disable: isProcessing">
+                                    <span data-bind="visible: isProcessing" class="spinner-border spinner-border-sm me-1"></span>
+                                    <i class="bi bi-check-lg me-1" data-bind="visible: !isProcessing()"></i>Havale Yaptim
+                                </button>
+                            </div>
+                            <div class="text-center text-muted py-4" data-bind="visible: !bankInfo()">
+                                <i class="bi bi-bank fs-1 d-block mb-2 opacity-25"></i>
+                                Havale banka bilgisi tanimlanmamis. Lutfen yoneticinizle iletisime gecin.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function PurchaseViewModel() {
+    var self = this;
+    var moduleId = @(moduleId ?? 0);
+
+    self.isLoading = ko.observable(true);
+    self.isProcessing = ko.observable(false);
+    self.moduleInfo = ko.observable(null);
+    self.bankInfo = ko.observable(null);
+    self.paymentMethod = ko.observable('kk');
+    self.paymentResult = ko.observable(null);
+
+    self.card = {
+        holderName: ko.observable(''), number: ko.observable(''),
+        expMonth: ko.observable(''), expYear: ko.observable(''),
+        cvc: ko.observable(''), installment: ko.observable('1')
+    };
+
+    // Yil secenekleri
+    var currentYear = new Date().getFullYear();
+    self.yearOptions = [];
+    for (var y = currentYear; y <= currentYear + 12; y++) self.yearOptions.push(String(y).slice(-2));
+
+    self.loadModule = function() {
+        $.get('/proxy/sln-module-requests/available', function(data) {
+            var modules = Array.isArray(data) ? data : (data.items || data.data || []);
+            var mod = modules.find(function(m) { return m.moduleId === moduleId; });
+            if (mod) {
+                self.moduleInfo({ name: mod.moduleName || mod.name, description: mod.description || '', monthlyPrice: mod.monthlyPrice || 0 });
+            }
+        }).always(function() { self.isLoading(false); });
+
+        // Banka bilgileri
+        $.get('/proxy/payment-config/bank-info', function(data) { self.bankInfo(data); }).fail(function() {});
+    };
+
+    self.formatCardNumber = function(vm, e) {
+        var val = self.card.number().replace(/\D/g, '').substring(0, 16);
+        var formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+        self.card.number(formatted);
+        return true;
+    };
+
+    self.payWithCard = function() {
+        var num = self.card.number().replace(/\s/g, '');
+        if (!self.card.holderName() || num.length < 15 || !self.card.expMonth() || !self.card.expYear() || !self.card.cvc()) {
+            toastr.warning('Lutfen tum kart bilgilerini doldurun.'); return;
+        }
+
+        self.isProcessing(true);
+        $.ajax({
+            url: '/proxy/payments/module-purchase', method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                moduleId: moduleId,
+                card: {
+                    cardHolderName: self.card.holderName(),
+                    cardNumber: num,
+                    expireMonth: self.card.expMonth(),
+                    expireYear: self.card.expYear(),
+                    cvc: self.card.cvc(),
+                    installment: parseInt(self.card.installment())
+                }
+            }),
+            success: function(data) {
+                self.paymentResult({ success: true, transactionId: data.transactionId });
+            },
+            error: function(xhr) {
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Odeme islemi basarisiz oldu.';
+                self.paymentResult({ success: false, error: msg });
+            }
+        }).always(function() { self.isProcessing(false); });
+    };
+
+    self.submitHavale = function() {
+        if (!confirm('Havaleyi yaptiginizi onayliyor musunuz?')) return;
+        self.isProcessing(true);
+        $.ajax({
+            url: '/proxy/payments/havale-request', method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ moduleId: moduleId }),
+            success: function(data) {
+                self.paymentResult({ success: true, message: data.message });
+            },
+            error: function(xhr) {
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Havale talebi olusturulamadi.';
+                self.paymentResult({ success: false, error: msg });
+            }
+        }).always(function() { self.isProcessing(false); });
+    };
+
+    self.copyIban = function() {
+        var iban = self.bankInfo() ? (self.bankInfo().iban || self.bankInfo().IBAN) : '';
+        navigator.clipboard.writeText(iban).then(function() { toastr.success('IBAN kopyalandi.'); });
+    };
+
+    self.loadModule();
+}
+
+ko.applyBindings(new PurchaseViewModel(), document.getElementById('purchase-vm'));
+</script>
+}

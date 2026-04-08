@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260408203302_AddPaymentGatewaySystem")]
+    partial class AddPaymentGatewaySystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3705,74 +3708,6 @@ namespace CallCenter.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ServiceBillingItems");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("MonthlyPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("PeriodId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("PreviousPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("ProductTypeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ServiceId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ServiceName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PeriodId", "ProductTypeId", "ServiceId")
-                        .IsUnique();
-
-                    b.ToTable("ServicePricingItems");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingPeriod", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("StatusId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ServicePricingPeriods");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SipAccount", b =>
@@ -8924,17 +8859,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("CustomerServiceSubscription");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingItem", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.ServicePricingPeriod", "Period")
-                        .WithMany("Items")
-                        .HasForeignKey("PeriodId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Period");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.SipAccount", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
@@ -10200,11 +10124,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("CallRecords");
 
                     b.Navigation("QueueAgents");
-                });
-
-            modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingPeriod", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SipAccount", b =>

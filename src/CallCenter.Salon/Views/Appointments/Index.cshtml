@@ -253,7 +253,7 @@
                                         <input type="text" class="form-control form-control-sm" placeholder="Ad Soyad *" data-bind="value: newClientForm.fullName" />
                                     </div>
                                     <div class="col-4">
-                                        <input type="tel" class="form-control form-control-sm" placeholder="Telefon *" data-bind="value: newClientForm.phone" />
+                                        <div data-bind="phoneInput: newClientForm.phone"></div>
                                     </div>
                                     <div class="col-3 d-flex gap-1">
                                         <button class="btn btn-primary btn-sm py-0 flex-fill" data-bind="click: saveNewClient, disable: isCreatingClient">

@@ -49,4 +49,7 @@ public class Customer
 
     /// <summary>Tahakkuk gunu (ayin kaci). null = ilk tahakkuk henuz olusturulmadi</summary>
     public int? BillingAnchorDay { get; set; }
+
+    // Abonelik
+    public ICollection<CustomerSubscription> Subscriptions { get; set; } = new List<CustomerSubscription>();
 }

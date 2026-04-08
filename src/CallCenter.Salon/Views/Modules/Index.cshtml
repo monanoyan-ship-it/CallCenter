@@ -44,9 +44,16 @@
                             <!-- ko if: monthlyPrice === 0 -->
                             <div class="text-muted small mt-1">Fiyat için iletişime geçin</div>
                             <!-- /ko -->
+                            <!-- ko if: monthlyPrice > 0 -->
+                            <a class="btn btn-sm btn-primary mt-2" data-bind="attr: { href: '/Modules/Purchase?moduleId=' + moduleId }">
+                                <i class="bi bi-cart-check me-1"></i>Satin Al
+                            </a>
+                            <!-- /ko -->
+                            <!-- ko if: monthlyPrice <= 0 -->
                             <button class="btn btn-sm btn-outline-primary mt-2" data-bind="click: $parents[1].requestModule">
                                 <i class="bi bi-send me-1"></i>Talep Et
                             </button>
+                            <!-- /ko -->
                         </div>
                     </div>
                 </div>

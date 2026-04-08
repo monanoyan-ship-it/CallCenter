@@ -39,4 +39,10 @@ public class ModulesController : MgmtBaseController
         ViewData["Title"] = "Salon Rol Yonetimi";
         return View();
     }
+
+    public IActionResult Subscriptions()
+    {
+        ViewData["Title"] = "Abonelik Yonetimi";
+        return View();
+    }
 }

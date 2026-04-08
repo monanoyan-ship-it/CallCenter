@@ -30,4 +30,42 @@ public static class PhoneHelper
 
         return new string(result, 0, pos);
     }
+
+    /// <summary>
+    /// Telefon numarasini normalize et: "+905XXXXXXXXX" formatina cevirir.
+    /// "+90 532 123 45 67" -> "+905321234567"
+    /// "0532 123 45 67"    -> "+905321234567"
+    /// "532 123 4567"      -> "+905321234567"
+    /// </summary>
+    public static string? Normalize(string? phone, string defaultCountryCode = "+90")
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return null;
+
+        var cleaned = Sanitize(phone);
+        if (string.IsNullOrEmpty(cleaned)) return null;
+
+        // + ile basliyorsa ulke kodu var — zaten normalize
+        if (cleaned.StartsWith('+'))
+            return cleaned;
+
+        // 00 ile basliyorsa uluslararasi format
+        if (cleaned.StartsWith("00"))
+            return "+" + cleaned[2..];
+
+        // 0 ile basliyorsa yerel format — default ulke kodu ekle
+        if (cleaned.StartsWith('0'))
+            return defaultCountryCode + cleaned[1..];
+
+        // Hicbir prefix yok — default ulke kodu ekle
+        return defaultCountryCode + cleaned;
+    }
+
+    /// <summary>Telefon numarasi gecerli mi? (en az 7 rakam)</summary>
+    public static bool IsValid(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return false;
+        var sanitized = Sanitize(phone);
+        var digitCount = sanitized.Count(c => c is >= '0' and <= '9');
+        return digitCount >= 7;
+    }
 }
