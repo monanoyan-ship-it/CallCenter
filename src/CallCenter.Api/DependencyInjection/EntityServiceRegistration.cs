@@ -28,6 +28,7 @@ public static class EntityServiceRegistration
         services.AddScoped<IModulePricingEntityService, ModulePricingEntityService>();
         services.AddScoped<IModuleRequestEntityService, ModuleRequestEntityService>();
         services.AddScoped<CallCenter.Api.Services.SalonRolePermissionService>();
+        services.AddScoped<CallCenter.Api.Services.PaymentService>();
         // Faz 4
         services.AddScoped<IAuditLogEntityService, AuditLogEntityService>();
         services.AddScoped<ITranslationKeyEntityService, TranslationKeyEntityService>();

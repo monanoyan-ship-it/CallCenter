@@ -156,6 +156,9 @@ public class AppDbContext : DbContext
     public DbSet<PlatformEmailEvent> PlatformEmailEvents => Set<PlatformEmailEvent>();
     public DbSet<PlatformEmailTemplate> PlatformEmailTemplates => Set<PlatformEmailTemplate>();
 
+    // ─── Payment ───
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+
     // ─── Platform User ───
     public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
     public DbSet<PlatformUserSalon> PlatformUserSalons => Set<PlatformUserSalon>();
@@ -234,6 +237,23 @@ public class AppDbContext : DbContext
              .WithMany(c => c.PortalModules)
              .HasForeignKey(m => m.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PaymentTransaction
+        modelBuilder.Entity<PaymentTransaction>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => t.Uid).IsUnique();
+            e.HasIndex(t => t.ProviderTransactionId);
+            e.Property(t => t.Amount).HasPrecision(18, 2);
+            e.Property(t => t.Currency).HasMaxLength(5);
+            e.Property(t => t.Provider).HasMaxLength(50);
+            e.Property(t => t.ProviderTransactionId).HasMaxLength(200);
+            e.Property(t => t.ProviderPaymentId).HasMaxLength(200);
+            e.Property(t => t.CardLastFour).HasMaxLength(4);
+            e.Property(t => t.ErrorMessage).HasMaxLength(1000);
+            e.HasOne(t => t.Customer).WithMany().HasForeignKey(t => t.CustomerId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.PlatformUser).WithMany().HasForeignKey(t => t.PlatformUserId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // PlatformUser
