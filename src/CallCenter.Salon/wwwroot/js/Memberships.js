@@ -7,11 +7,16 @@ function MembershipsViewModel() {
     self.editingPlanId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
+    self.serviceList = ko.observableArray([]);
+
     self.planForm = {
         name: ko.observable(''), description: ko.observable(''), iconClass: ko.observable('bi-award'),
         color: ko.observable('#7b1fa2'), monthlyPrice: ko.observable(0), discountPercent: ko.observable(10),
-        freeSessionsPerMonth: ko.observable(0), priorityBooking: ko.observable(false)
+        freeSessionsPerMonth: ko.observable(0), priorityBooking: ko.observable(false),
+        serviceIds: ko.observableArray([])
     };
+
+    self.serviceAutocomplete = createMultiAutocomplete(self.serviceList, 'name', self.planForm.serviceIds);
 
     self.memberForm = { planId: ko.observable(null), slnClientId: ko.observable(null) };
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.memberForm.slnClientId);
@@ -27,12 +32,35 @@ function MembershipsViewModel() {
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (d) { self.clientList(d.items || d); });
     };
 
+    self.loadServices = function () {
+        $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (d) { self.serviceList(d.items || d || []); });
+    };
+
+    self.quickAddClient = function () {
+        var name = self.clientAutocomplete.query();
+        if (!name) return;
+        $.ajax({
+            url: '/proxy/sln-clients', method: 'POST', contentType: 'application/json',
+            data: JSON.stringify({ fullName: name, phone: '' })
+        }).done(function (newClient) {
+            toastr.success(name + ' eklendi.');
+            self.loadClients();
+            // Kisa gecikme ile yeni musteri sec
+            setTimeout(function () {
+                var list = self.clientList();
+                var found = list.find(function (c) { return c.fullName === name; });
+                if (found) self.clientAutocomplete.select(found);
+            }, 500);
+        }).fail(function (x) { toastr.error(x.responseJSON?.message || 'Müşteri eklenemedi.'); });
+    };
+
     // Plan CRUD
     self.openNewPlan = function () {
         self.isEditingPlan(false); self.editingPlanId(null);
         self.planForm.name(''); self.planForm.description(''); self.planForm.color('#7b1fa2');
         self.planForm.monthlyPrice(0); self.planForm.discountPercent(10);
         self.planForm.freeSessionsPerMonth(0); self.planForm.priorityBooking(false);
+        self.planForm.serviceIds([]); self.serviceAutocomplete.clear();
         planModal.show();
     };
 
@@ -42,6 +70,8 @@ function MembershipsViewModel() {
         self.planForm.color(p.color || '#7b1fa2'); self.planForm.monthlyPrice(p.monthlyPrice);
         self.planForm.discountPercent(p.discountPercent); self.planForm.freeSessionsPerMonth(p.freeSessionsPerMonth);
         self.planForm.priorityBooking(p.priorityBooking);
+        self.planForm.serviceIds(p.serviceIds || []);
+        self.serviceAutocomplete.setFromValues(p.serviceIds || []);
         planModal.show();
     };
 
@@ -52,7 +82,8 @@ function MembershipsViewModel() {
             monthlyPrice: parseFloat(self.planForm.monthlyPrice()) || 0,
             discountPercent: parseInt(self.planForm.discountPercent()) || 0,
             freeSessionsPerMonth: parseInt(self.planForm.freeSessionsPerMonth()) || 0,
-            priorityBooking: self.planForm.priorityBooking(), isActive: true
+            priorityBooking: self.planForm.priorityBooking(), isActive: true,
+            serviceIds: self.planForm.serviceIds() || []
         };
         if (!d.name) { toastr.warning('Plan adi zorunludur'); return; }
 
@@ -104,7 +135,7 @@ function MembershipsViewModel() {
     $(document).ready(function () {
         planModal = new bootstrap.Modal(document.getElementById('planModal'));
         memberModal = new bootstrap.Modal(document.getElementById('memberModal'));
-        self.loadClients(); self.loadData();
+        self.loadClients(); self.loadServices(); self.loadData();
     });
 }
 

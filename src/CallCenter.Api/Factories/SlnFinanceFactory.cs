@@ -53,10 +53,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             .Where(i => i.CustomerId == customerId);
 
         if (from.HasValue)
-            query = query.Where(i => i.InvoiceDate >= from.Value);
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value, DateTimeKind.Utc);
+            query = query.Where(i => i.InvoiceDate >= fromUtc);
+        }
 
         if (to.HasValue)
-            query = query.Where(i => i.InvoiceDate <= to.Value);
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value, DateTimeKind.Utc);
+            query = query.Where(i => i.InvoiceDate <= toUtc);
+        }
 
         if (statusId.HasValue)
             query = query.Where(i => i.StatusId == statusId.Value);
@@ -320,10 +326,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             .Where(e => e.CustomerId == customerId);
 
         if (from.HasValue)
-            query = query.Where(e => e.ExpenseDate >= from.Value);
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value, DateTimeKind.Utc);
+            query = query.Where(e => e.ExpenseDate >= fromUtc);
+        }
 
         if (to.HasValue)
-            query = query.Where(e => e.ExpenseDate <= to.Value);
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value, DateTimeKind.Utc);
+            query = query.Where(e => e.ExpenseDate <= toUtc);
+        }
 
         if (categoryId.HasValue)
             query = query.Where(e => e.CategoryId == categoryId.Value);

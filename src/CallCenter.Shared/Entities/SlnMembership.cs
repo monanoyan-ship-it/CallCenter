@@ -29,6 +29,9 @@ public class SlnMembershipPlan
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Plana dahil hizmetler</summary>
+    public ICollection<SlnMembershipPlanService> Services { get; set; } = [];
 }
 
 /// <summary>

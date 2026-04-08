@@ -99,6 +99,24 @@
                         <div class="col-4"><label class="form-label small">Indirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: planForm.discountPercent" /></div>
                         <div class="col-4"><label class="form-label small">Ucretsiz Seans/Ay</label><input type="number" class="form-control form-control-sm" min="0" data-bind="value: planForm.freeSessionsPerMonth" /></div>
                         <div class="col-6"><div class="form-check mt-3"><input type="checkbox" class="form-check-input" data-bind="checked: planForm.priorityBooking" /><label class="form-check-label small">Oncelikli Randevu</label></div></div>
+                        <div class="col-12">
+                            <label class="form-label small">Dahil Hizmetler</label>
+                            <div class="position-relative" data-bind="with: serviceAutocomplete">
+                                <input type="text" class="form-control form-control-sm" placeholder="Hizmet ara ve ekle..." autocomplete="off"
+                                       data-bind="value: query, valueUpdate: 'afterkeydown', event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#" data-bind="text: $parent.getDisplayText($data), click: $parent.select, css: { active: $parent.highlightIndex() === $index() }, event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
+                            <div class="mt-1" data-bind="foreach: serviceAutocomplete.selectedItems">
+                                <span class="badge bg-primary me-1 mb-1">
+                                    <span data-bind="text: name"></span>
+                                    <i class="bi bi-x ms-1" style="cursor:pointer;" data-bind="click: function() { $parent.serviceAutocomplete.remove($data); }"></i>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button><button type="button" class="btn btn-primary btn-sm" data-bind="click: savePlan, disable: isSaving">Kaydet</button></div>
@@ -114,13 +132,18 @@
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label small">Plan *</label>
                         <select class="form-select form-select-sm" data-bind="value: memberForm.planId, options: plans, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Plan seciniz'"></select></div>
-                    <div class="mb-3"><label class="form-label small">Musteri *</label>
+                    <div class="mb-3"><label class="form-label small">Müşteri *</label>
                         <div class="position-relative" data-bind="with: clientAutocomplete">
-                            <input type="text" class="form-control form-control-sm" placeholder="Musteri adi..." autocomplete="off"
+                            <input type="text" class="form-control form-control-sm" placeholder="Müşteri adı..." autocomplete="off"
                                    data-bind="value: query, valueUpdate: 'afterkeydown', event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                            <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
+                            <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown()" style="max-height:200px;overflow-y:auto;">
                                 <!-- ko foreach: filteredItems -->
                                 <a class="dropdown-item small py-1 px-2" href="#" data-bind="text: $parent.getDisplayText($data), click: $parent.select, css: { active: $parent.highlightIndex() === $index() }, event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                <!-- /ko -->
+                                <!-- ko if: query() && filteredItems().length === 0 -->
+                                <div class="dropdown-item small py-1 px-2 text-primary" style="cursor:pointer;" data-bind="event: { mousedown: function() { $parent.quickAddClient(); } }">
+                                    <i class="bi bi-plus-circle me-1"></i>"<span data-bind="text: query"></span>" adında yeni müşteri ekle
+                                </div>
                                 <!-- /ko -->
                             </div>
                         </div>

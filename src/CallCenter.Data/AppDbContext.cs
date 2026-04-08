@@ -149,6 +149,8 @@ public class AppDbContext : DbContext
     public DbSet<SlnClientPackage> SlnClientPackages => Set<SlnClientPackage>();
     public DbSet<SlnPackageUsage> SlnPackageUsages => Set<SlnPackageUsage>();
 
+    public DbSet<SlnMembershipPlanService> SlnMembershipPlanServices => Set<SlnMembershipPlanService>();
+
     // ─── Salon Finance (ek) ───
     public DbSet<SlnInvoicePayment> SlnInvoicePayments => Set<SlnInvoicePayment>();
     public DbSet<SlnInvoiceRefund> SlnInvoiceRefunds => Set<SlnInvoiceRefund>();
@@ -260,6 +262,15 @@ public class AppDbContext : DbContext
             e.Property(t => t.ErrorMessage).HasMaxLength(1000);
             e.HasOne(t => t.Customer).WithMany().HasForeignKey(t => t.CustomerId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.PlatformUser).WithMany().HasForeignKey(t => t.PlatformUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // SlnMembershipPlanService (plan-hizmet iliskisi)
+        modelBuilder.Entity<SlnMembershipPlanService>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => new { s.PlanId, s.ServiceId }).IsUnique();
+            e.HasOne(s => s.Plan).WithMany(p => p.Services).HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Service).WithMany().HasForeignKey(s => s.ServiceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // SlnInvoicePayment (karma odeme)
