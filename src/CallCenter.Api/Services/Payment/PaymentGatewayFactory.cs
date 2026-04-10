@@ -27,10 +27,8 @@ public class PaymentGatewayFactory
         return config.ProviderTypeId switch
         {
             PaymentProviders.Ids.Iyzico => CreateIyzicoGateway(credentialsJson, config.IsSandbox),
-            PaymentProviders.Ids.PayTR => throw new NotSupportedException(
-                "PayTR entegrasyonu henuz tamamlanmadi. Lutfen Iyzico kullanin."),
-            PaymentProviders.Ids.Param => throw new NotSupportedException(
-                "Param entegrasyonu henuz tamamlanmadi. Lutfen Iyzico kullanin."),
+            PaymentProviders.Ids.PayTR => CreatePayTrGateway(credentialsJson),
+            PaymentProviders.Ids.Param => CreateParamGateway(credentialsJson),
             _ => throw new NotSupportedException(
                 $"PaymentProvider {config.ProviderTypeId} desteklenmiyor. " +
                 $"Desteklenen: Iyzico(1), PayTR(2), Param(3)")
@@ -106,6 +104,20 @@ public class PaymentGatewayFactory
             creds.BaseUrl = "https://api.iyzipay.com";
 
         return new IyzicoGateway(creds);
+    }
+
+    private static PayTrGateway CreatePayTrGateway(string json)
+    {
+        var creds = JsonSerializer.Deserialize<PayTrCredentials>(json, JsonOpts)
+            ?? throw new InvalidOperationException("PayTR credential bilgileri okunamadı");
+        return new PayTrGateway(creds);
+    }
+
+    private static ParamGateway CreateParamGateway(string json)
+    {
+        var creds = JsonSerializer.Deserialize<ParamCredentials>(json, JsonOpts)
+            ?? throw new InvalidOperationException("Param credential bilgileri okunamadı");
+        return new ParamGateway(creds);
     }
 
     private static readonly JsonSerializerOptions JsonOpts = new()

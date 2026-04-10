@@ -11,6 +11,12 @@ public class Customer
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Test/beta musteri — tahakkuk olusturulmaz, moduller ucretsiz</summary>
+    public bool IsTest { get; set; }
+
+    /// <summary>Test musterisi notu (neden test, ne zaman bitiyor vb.)</summary>
+    public string? TestNotes { get; set; }
+
     public int MaxUsers { get; set; } = 1;
     public bool SaveRecordingToPlatform { get; set; } = true;
     public bool SaveRecordingToOwnStorage { get; set; }

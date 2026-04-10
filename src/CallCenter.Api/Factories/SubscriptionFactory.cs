@@ -150,7 +150,8 @@ public class SubscriptionFactory : ISubscriptionFactory
         var monthEnd = monthStart.AddMonths(1);
 
         var activeSubscriptions = await _db.CustomerSubscriptions
-            .Where(s => s.StatusId == 1 && s.NextBillingDate >= monthStart && s.NextBillingDate < monthEnd)
+            .Where(s => s.StatusId == 1 && s.NextBillingDate >= monthStart && s.NextBillingDate < monthEnd
+                     && !s.Customer.IsTest) // Test musterileri atla
             .Include(s => s.Customer)
             .Include(s => s.Plan)
             .ToListAsync();

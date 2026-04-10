@@ -146,7 +146,7 @@ public class BillingFactory : IBillingFactory
             return (0, 0, 0, "Gecersiz yil degeri.");
 
         var activeCustomers = await _customerEs.GetAllQueryable()
-            .Where(c => c.IsActive)
+            .Where(c => c.IsActive && !c.IsTest) // Test musterileri atla
             .Select(c => new { c.Id, c.BillingAnchorDay, c.MaxUsers })
             .ToListAsync();
 

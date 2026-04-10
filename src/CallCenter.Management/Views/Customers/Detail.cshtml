@@ -54,6 +54,16 @@
                                     <label class="form-label small">Max Kullanici</label>
                                     <input type="number" class="form-control form-control-sm" data-bind="value: edit.maxUsers" />
                                 </div>
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check mt-4">
+                                        <input type="checkbox" class="form-check-input" data-bind="checked: edit.isTest" />
+                                        <label class="form-check-label small">Test/Beta Müşteri</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2" data-bind="visible: edit.isTest">
+                                    <label class="form-label small">Test Notu</label>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Neden test?" data-bind="value: edit.testNotes" />
+                                </div>
                                 <div class="col-12 mb-2">
                                     <label class="form-label small">Urunler ve Fiyatlandirma</label>
                                     <!-- ko foreach: productTypes -->
@@ -324,6 +334,8 @@ function DetailViewModel() {
         phone: ko.observable(''), email: ko.observable(''),
         address: ko.observable(''),
         maxUsers: ko.observable(5),
+        isTest: ko.observable(false),
+        testNotes: ko.observable(''),
         products: ko.observableArray([])
     };
 
@@ -395,6 +407,8 @@ function DetailViewModel() {
             self.edit.email(c.contactEmail || c.email || '');
             self.edit.address(c.address || '');
             self.edit.maxUsers(c.maxUsers || 5);
+            self.edit.isTest(c.isTest || false);
+            self.edit.testNotes(c.testNotes || '');
 
             // Products bilgisini isle
             var apiProducts = c.products || [];
@@ -439,6 +453,8 @@ function DetailViewModel() {
                 contactPhone: self.edit.phone(), contactEmail: self.edit.email(),
                 address: self.edit.address(),
                 maxUsers: parseInt(self.edit.maxUsers()),
+                isTest: self.edit.isTest(),
+                testNotes: self.edit.testNotes(),
                 products: activeProducts.map(function(p) {
                     return { productTypeId: p.productTypeId, monthlyPrice: parseFloat(p.monthlyPrice()) || 0 };
                 })

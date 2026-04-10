@@ -149,6 +149,7 @@ public class CustomerListDto
     public int PersonnelCount { get; set; }
     public int QueueCount { get; set; }
     public int SipAccountCount { get; set; }
+    public bool IsTest { get; set; }
 }
 
 public class CustomerCreateDto
@@ -212,6 +213,9 @@ public class CustomerUpdateDto
     public bool? SaveRecordingToOwnStorage { get; set; }
     public bool? AutoRecordCalls { get; set; }
     public bool? IsCallbackManagementEnabled { get; set; }
+
+    public bool IsTest { get; set; }
+    public string? TestNotes { get; set; }
 }
 
 public class CustomerDetailDto
@@ -231,6 +235,8 @@ public class CustomerDetailDto
     public bool IsCallbackManagementEnabled { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? BillingAnchorDay { get; set; }
+    public bool IsTest { get; set; }
+    public string? TestNotes { get; set; }
     public List<PersonnelSimpleDto> Personnel { get; set; } = new();
 
     // Admin kullanici bilgileri

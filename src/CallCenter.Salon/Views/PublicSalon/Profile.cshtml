@@ -395,9 +395,41 @@
                         <label class="form-label small">E-posta</label>
                         <input type="email" class="form-control form-control-sm" data-bind="value: signupForm.email" />
                     </div>
+                    <!-- Ucretli plan ise odeme formu -->
+                    <!-- ko if: signupPlanPrice() > 0 -->
+                    <div class="border rounded p-2 mb-3 bg-light">
+                        <div class="small fw-bold mb-2"><i class="bi bi-credit-card me-1"></i>Ödeme Bilgileri</div>
+                        <div class="alert alert-info py-1 small mb-2">
+                            <i class="bi bi-info-circle me-1"></i>Aylık <strong data-bind="text: signupPlanPrice().toLocaleString('tr-TR') + ' TL'"></strong> ödeme alınacaktır.
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" placeholder="Kart Üzerindeki İsim" data-bind="value: signupForm.cardName" />
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" placeholder="Kart Numarası" maxlength="19" data-bind="value: signupForm.cardNumber, event: { input: formatCardNumber }" />
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <input type="text" class="form-control form-control-sm" placeholder="AA" maxlength="2" data-bind="value: signupForm.expMonth" />
+                            </div>
+                            <div class="col-4">
+                                <input type="text" class="form-control form-control-sm" placeholder="YY" maxlength="2" data-bind="value: signupForm.expYear" />
+                            </div>
+                            <div class="col-4">
+                                <input type="text" class="form-control form-control-sm" placeholder="CVC" maxlength="4" data-bind="value: signupForm.cvc" />
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /ko -->
                     <button class="btn btn-book w-100" data-bind="click: submitSignup, disable: isSubmitting">
                         <span data-bind="visible: isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSubmitting()"></i>Basvuruyu Gonder
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSubmitting()"></i>
+                        <!-- ko if: signupPlanPrice() > 0 -->
+                        <span>Öde ve Üye Ol</span>
+                        <!-- /ko -->
+                        <!-- ko if: signupPlanPrice() <= 0 -->
+                        <span>Başvuruyu Gönder</span>
+                        <!-- /ko -->
                     </button>
                 </div>
             </div>
@@ -427,11 +459,25 @@
             // Signup
             self.signupPlanId = ko.observable(null);
             self.signupPlanName = ko.observable('');
+            self.signupPlanPrice = ko.observable(0);
             self.isSubmitting = ko.observable(false);
             self.signupForm = {
                 fullName: ko.observable(''),
                 phone: ko.observable(''),
-                email: ko.observable('')
+                email: ko.observable(''),
+                cardName: ko.observable(''),
+                cardNumber: ko.observable(''),
+                expMonth: ko.observable(''),
+                expYear: ko.observable(''),
+                cvc: ko.observable('')
+            };
+
+            self.formatCardNumber = function (data, event) {
+                var val = self.signupForm.cardNumber().replace(/\D/g, '');
+                if (val.length > 16) val = val.substring(0, 16);
+                var formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+                self.signupForm.cardNumber(formatted);
+                return true;
             };
 
             var signupModal;
@@ -525,9 +571,17 @@
             self.openSignup = function (planId, planName) {
                 self.signupPlanId(planId);
                 self.signupPlanName(planName);
+                // Plan fiyatini bul
+                var plan = self.membershipPlans().find(function (p) { return p.id === planId; });
+                self.signupPlanPrice(plan ? plan.monthlyPrice : 0);
                 self.signupForm.fullName('');
                 self.signupForm.phone('');
                 self.signupForm.email('');
+                self.signupForm.cardName('');
+                self.signupForm.cardNumber('');
+                self.signupForm.expMonth('');
+                self.signupForm.expYear('');
+                self.signupForm.cvc('');
                 if (!signupModal) signupModal = new bootstrap.Modal(document.getElementById('signupModal'));
                 signupModal.show();
             };
@@ -537,7 +591,17 @@
                 var phone = self.signupForm.phone();
                 if (!name || !phone) { alert('Ad ve telefon zorunludur.'); return; }
 
+                var price = self.signupPlanPrice();
+                if (price > 0) {
+                    var cn = self.signupForm.cardNumber().replace(/\s/g, '');
+                    if (!cn || cn.length < 15 || !self.signupForm.expMonth() || !self.signupForm.expYear() || !self.signupForm.cvc()) {
+                        alert('Kart bilgilerini eksiksiz doldurunuz.'); return;
+                    }
+                }
+
                 self.isSubmitting(true);
+
+                // Adim 1: Uyelik basvurusu
                 fetch('/proxy/salon/' + salonSlug + '/membership-signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -550,15 +614,49 @@
                 })
                 .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
                 .then(function (res) {
-                    self.isSubmitting(false);
-                    if (res.ok && res.data.success) {
-                        signupModal.hide();
-                        alert(res.data.message || 'Uyelik basvurunuz alindi!');
+                    if (!res.ok || !res.data.success) {
+                        self.isSubmitting(false);
+                        alert(res.data.message || res.data || 'Bir hata oluştu.');
+                        return;
+                    }
+
+                    // Ucretli plan ise odeme yap
+                    if (price > 0 && res.data.slnClientId) {
+                        var token = localStorage.getItem('platformToken');
+                        fetch('/public-proxy/payments/membership', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' },
+                            body: JSON.stringify({
+                                planId: self.signupPlanId(),
+                                slnClientId: res.data.slnClientId,
+                                card: {
+                                    cardHolderName: self.signupForm.cardName(),
+                                    cardNumber: self.signupForm.cardNumber().replace(/\s/g, ''),
+                                    expireMonth: self.signupForm.expMonth(),
+                                    expireYear: '20' + self.signupForm.expYear(),
+                                    cvc: self.signupForm.cvc(),
+                                    installment: 0
+                                }
+                            })
+                        })
+                        .then(function (r2) { return r2.json().then(function (d2) { return { ok: r2.ok, data: d2 }; }); })
+                        .then(function (payRes) {
+                            self.isSubmitting(false);
+                            signupModal.hide();
+                            if (payRes.ok) {
+                                alert('Ödeme başarılı! Üyeliğiniz aktif edildi.');
+                            } else {
+                                alert('Üyelik oluşturuldu ama ödeme başarısız: ' + (payRes.data.message || 'Bilinmeyen hata'));
+                            }
+                        })
+                        .catch(function () { self.isSubmitting(false); alert('Ödeme bağlantı hatası.'); });
                     } else {
-                        alert(res.data || 'Bir hata olustu.');
+                        self.isSubmitting(false);
+                        signupModal.hide();
+                        alert(res.data.message || 'Üyelik başvurunuz alındı!');
                     }
                 })
-                .catch(function () { self.isSubmitting(false); alert('Baglanti hatasi.'); });
+                .catch(function () { self.isSubmitting(false); alert('Bağlantı hatası.'); });
             };
         }
 

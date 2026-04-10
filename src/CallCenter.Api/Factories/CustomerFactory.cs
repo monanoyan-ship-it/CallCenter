@@ -80,7 +80,8 @@ public class CustomerFactory : ICustomerFactory
                 }).ToList(),
                 PersonnelCount = c.Personnel.Count,
                 QueueCount = c.Queues.Count,
-                SipAccountCount = c.SipAccounts.Count
+                SipAccountCount = c.SipAccounts.Count,
+                IsTest = c.IsTest
             })
             .ToListAsync();
 
@@ -149,6 +150,8 @@ public class CustomerFactory : ICustomerFactory
             IsCallbackManagementEnabled = c.IsCallbackManagementEnabled,
             CreatedAt = c.CreatedAt,
             BillingAnchorDay = c.BillingAnchorDay,
+            IsTest = c.IsTest,
+            TestNotes = c.TestNotes,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
             {
                 Id = p.Id,
@@ -291,6 +294,8 @@ public class CustomerFactory : ICustomerFactory
             customer.AutoRecordCalls = dto.AutoRecordCalls.Value;
         if (dto.IsCallbackManagementEnabled.HasValue)
             customer.IsCallbackManagementEnabled = dto.IsCallbackManagementEnabled.Value;
+        customer.IsTest = dto.IsTest;
+        customer.TestNotes = dto.TestNotes;
 
         // Products sync
         var existingProducts = await _db.CustomerProducts
