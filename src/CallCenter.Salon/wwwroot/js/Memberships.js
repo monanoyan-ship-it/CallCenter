@@ -11,8 +11,9 @@ function MembershipsViewModel() {
 
     self.planForm = {
         name: ko.observable(''), description: ko.observable(''), iconClass: ko.observable('bi-award'),
-        color: ko.observable('#7b1fa2'), monthlyPrice: ko.observable(0), discountPercent: ko.observable(10),
-        freeSessionsPerMonth: ko.observable(0), priorityBooking: ko.observable(false),
+        color: ko.observable('#7b1fa2'), price: ko.observable(0), discountPercent: ko.observable(10),
+        priorityBooking: ko.observable(false),
+        durationType: ko.observable(1), durationDays: ko.observable(30),
         serviceIds: ko.observableArray([])
     };
 
@@ -26,7 +27,10 @@ function MembershipsViewModel() {
         return cat ? (cat.services || []) : [];
     });
 
-    self.selectedPlanServiceNames = ko.computed(function () {
+    // Hizmet detay listesi (freeCount + discount observable)
+    self._planServiceDetailMap = {};
+
+    self.planServiceDetails = ko.computed(function () {
         var ids = self.planForm.serviceIds();
         if (!ids || !ids.length) return [];
         var allServices = [];
@@ -35,7 +39,15 @@ function MembershipsViewModel() {
         });
         return ids.map(function (id) {
             var svc = allServices.find(function (s) { return s.id === id; });
-            return svc ? { id: svc.id, name: svc.name } : { id: id, name: '?' };
+            if (!self._planServiceDetailMap[id]) {
+                self._planServiceDetailMap[id] = {
+                    serviceId: id,
+                    name: svc ? svc.name : '?',
+                    freeCount: ko.observable(0),
+                    discount: ko.observable(0)
+                };
+            }
+            return self._planServiceDetailMap[id];
         });
     });
 
@@ -113,18 +125,31 @@ function MembershipsViewModel() {
     self.openNewPlan = function () {
         self.isEditingPlan(false); self.editingPlanId(null);
         self.planForm.name(''); self.planForm.description(''); self.planForm.color('#7b1fa2');
-        self.planForm.monthlyPrice(0); self.planForm.discountPercent(10);
-        self.planForm.freeSessionsPerMonth(0); self.planForm.priorityBooking(false);
-        self.planForm.serviceIds([]); self.selectedCategoryId(null);
+        self.planForm.price(0); self.planForm.discountPercent(10);
+        self.planForm.priorityBooking(false);
+        self.planForm.durationType(1); self.planForm.durationDays(30);
+        self.planForm.serviceIds([]); self._planServiceDetailMap = {}; self.selectedCategoryId(null);
         planModal.show();
     };
 
     self.openEditPlan = function (p) {
         self.isEditingPlan(true); self.editingPlanId(p.id);
         self.planForm.name(p.name); self.planForm.description(p.description || '');
-        self.planForm.color(p.color || '#7b1fa2'); self.planForm.monthlyPrice(p.monthlyPrice);
-        self.planForm.discountPercent(p.discountPercent); self.planForm.freeSessionsPerMonth(p.freeSessionsPerMonth);
-        self.planForm.priorityBooking(p.priorityBooking);
+        self.planForm.color(p.color || '#7b1fa2'); self.planForm.price(p.price || 0);
+        self.planForm.discountPercent(p.discountPercent); self.planForm.priorityBooking(p.priorityBooking);
+        self.planForm.durationType(p.durationType || 1); self.planForm.durationDays(p.durationDays || 30);
+        // Mevcut hizmet detaylarini yukle
+        self._planServiceDetailMap = {};
+        if (p.serviceDetails) {
+            p.serviceDetails.forEach(function (sd) {
+                self._planServiceDetailMap[sd.serviceId] = {
+                    serviceId: sd.serviceId,
+                    name: sd.serviceName || '?',
+                    freeCount: ko.observable(sd.freeCount || 0),
+                    discount: ko.observable(sd.discountPercent || 0)
+                };
+            });
+        }
         self.planForm.serviceIds(p.serviceIds || []);
         self.selectedCategoryId(null);
         planModal.show();
@@ -134,11 +159,15 @@ function MembershipsViewModel() {
         var d = {
             name: self.planForm.name(), description: self.planForm.description(),
             iconClass: 'bi-award', color: self.planForm.color(),
-            monthlyPrice: parseFloat(self.planForm.monthlyPrice()) || 0,
+            price: parseFloat(self.planForm.price()) || 0,
             discountPercent: parseInt(self.planForm.discountPercent()) || 0,
-            freeSessionsPerMonth: parseInt(self.planForm.freeSessionsPerMonth()) || 0,
+            durationType: parseInt(self.planForm.durationType()) || 1,
+            durationDays: parseInt(self.planForm.durationDays()) || 30,
             priorityBooking: self.planForm.priorityBooking(), isActive: true,
-            serviceIds: self.planForm.serviceIds() || []
+            serviceIds: self.planForm.serviceIds() || [],
+            serviceDetails: self.planServiceDetails().map(function (s) {
+                return { serviceId: s.serviceId, freeCount: parseInt(s.freeCount()) || 0, discountPercent: parseInt(s.discount()) || 0 };
+            })
         };
         if (!d.name) { toastr.warning('Plan adi zorunludur'); return; }
 

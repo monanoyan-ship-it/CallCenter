@@ -409,14 +409,24 @@ public class SlnMembershipPlanDto
     public string? Description { get; set; }
     public string? IconClass { get; set; }
     public string? Color { get; set; }
-    public decimal MonthlyPrice { get; set; }
+    public int DurationType { get; set; }
+    public int DurationDays { get; set; }
+    public decimal Price { get; set; }
     public int DiscountPercent { get; set; }
-    public int FreeSessionsPerMonth { get; set; }
     public bool PriorityBooking { get; set; }
     public bool IsActive { get; set; }
     public int ActiveMembers { get; set; }
     public List<int> ServiceIds { get; set; } = new();
     public List<string> ServiceNames { get; set; } = new();
+    public List<MembershipServiceDetailDto> ServiceDetails { get; set; } = new();
+}
+
+public class MembershipServiceDetailDto
+{
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int FreeCount { get; set; }
+    public int DiscountPercent { get; set; }
 }
 
 public class SlnMembershipPlanCreateDto
@@ -425,12 +435,14 @@ public class SlnMembershipPlanCreateDto
     public string? Description { get; set; }
     public string? IconClass { get; set; }
     public string? Color { get; set; }
-    public decimal MonthlyPrice { get; set; }
+    public int DurationType { get; set; } = 1;
+    public int DurationDays { get; set; } = 30;
+    public decimal Price { get; set; }
     public int DiscountPercent { get; set; }
-    public int FreeSessionsPerMonth { get; set; }
     public bool PriorityBooking { get; set; }
     public bool IsActive { get; set; } = true;
     public List<int> ServiceIds { get; set; } = new();
+    public List<MembershipServiceDetailDto> ServiceDetails { get; set; } = new();
 }
 
 public class SlnClientMembershipDto
@@ -442,7 +454,9 @@ public class SlnClientMembershipDto
     public int DiscountPercent { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public DateTime NextPaymentDate { get; set; }
+    public DateTime? CurrentPeriodStart { get; set; }
+    public DateTime? CurrentPeriodEnd { get; set; }
+    public decimal PaidAmount { get; set; }
     public int StatusId { get; set; }
 }
 

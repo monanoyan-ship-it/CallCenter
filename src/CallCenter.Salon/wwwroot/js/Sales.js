@@ -313,9 +313,98 @@ function SalesViewModel() {
 
         // Randevu bağla
         self.linkedAppointmentId(appt.id);
-
         appointmentModal.hide();
+
+        // Ön ödemeli ise direkt tamamla mı sor
+        if (appt.isPrepaid && appt.prepaidAmount > 0) {
+            if (confirm('Bu randevu online ödenmiş (' + appt.prepaidAmount + ' TL). Ek işlem yoksa direkt tamamlansın mı?')) {
+                self.completeWithoutPayment(appt.id);
+                return;
+            }
+        }
+
+        // Üyelik avantajı kontrolü
+        if (appt.slnClientId) {
+            var serviceIds = self.cartItems().filter(function (i) { return i.serviceId; }).map(function (i) { return i.serviceId; });
+            if (serviceIds.length > 0) {
+                $.ajax({
+                    url: '/proxy/sln-memberships/check-benefits',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ slnClientId: parseInt(appt.slnClientId), serviceIds: serviceIds })
+                }).done(function (benefits) {
+                    if (!benefits || !benefits.length) return;
+
+                    var allFree = true;
+                    self.cartItems().forEach(function (item) {
+                        var b = benefits.find(function (x) { return x.serviceId === item.serviceId; });
+                        if (!b) { allFree = false; return; }
+
+                        if (b.hasFreeBenefit && b.remainingFree > 0) {
+                            item.editPrice(0);
+                            item.benefitText = b.planName + ': ücretsiz (' + b.usedThisMonth + '/' + b.freeCountPerMonth + ')';
+                        } else if (b.discountPercent && b.discountPercent > 0) {
+                            item.editPrice(Math.round(item.unitPrice * (1 - b.discountPercent / 100) * 100) / 100);
+                            item.benefitText = b.planName + ': %' + b.discountPercent + ' indirim';
+                            allFree = false;
+                        } else {
+                            allFree = false;
+                        }
+                    });
+
+                    if (allFree && self.cartItems().length > 0) {
+                        if (confirm('Tüm hizmetler üyelik kapsamında ücretsiz. Ek işlem yoksa direkt tamamlansın mı?')) {
+                            self.completeWithoutPayment(appt.id);
+                            return;
+                        }
+                    }
+
+                    toastr.info('Üyelik avantajları uygulandı. Ek hizmet/ürün ekleyebilirsiniz.');
+                });
+                return;
+            }
+        }
+
         toastr.info('Randevu sepete alındı. Ek hizmet/ürün ekleyebilirsiniz.');
+    };
+
+    self.completeWithoutPayment = function (appointmentId) {
+        // Adisyon 0 TL olustur (kayit icin) + randevu tamamla
+        var items = self.cartItems().map(function (item) {
+            return {
+                serviceId: item.serviceId, productId: null,
+                personnelId: self.selectedPersonnelId() ? parseInt(self.selectedPersonnelId()) : null,
+                quantity: item.quantity(), unitPrice: 0, discountAmount: 0
+            };
+        });
+
+        var data = {
+            slnClientId: self.clientId() ? parseInt(self.clientId()) : null,
+            paymentMethodId: 1,
+            discountAmount: 0, tipAmount: 0,
+            notes: self.isPrepaid() ? 'Ön ödeme ile tamamlandı' : 'Üyelik kapsamında tamamlandı',
+            prepaidAmount: self.prepaidAmount(),
+            items: items
+        };
+
+        $.ajax({
+            url: '/proxy/sln-finance/invoices', method: 'POST',
+            contentType: 'application/json', data: JSON.stringify(data)
+        }).done(function () {
+            // Randevu tamamla
+            $.ajax({
+                url: '/proxy/sln-appointments/' + appointmentId + '/status',
+                method: 'PUT', contentType: 'application/json',
+                data: JSON.stringify({ statusId: 3 })
+            });
+            toastr.success('İşlem tamamlandı (ödeme alınmadı).');
+            self.cartItems([]);
+            self.clientId(null);
+            self.clientAutocomplete.clear();
+            self.linkedAppointmentId(null);
+            self.isPrepaid(false);
+            self.prepaidAmount(0);
+        }).fail(function () { toastr.error('İşlem kaydedilemedi.'); });
     };
 
     self.unlinkAppointment = function () {

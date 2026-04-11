@@ -27,9 +27,9 @@ public class ServiceMembershipBenefit
     public int ServiceId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public bool HasFreeBenefit { get; set; }
-    public int FreeCountPerMonth { get; set; }
-    public int UsedThisMonth { get; set; }
-    public int RemainingFree => Math.Max(0, FreeCountPerMonth - UsedThisMonth);
+    public int FreeCount { get; set; }
+    public int UsedThisPeriod { get; set; }
+    public int RemainingFree => Math.Max(0, FreeCount - UsedThisPeriod);
     public int? DiscountPercent { get; set; }
     public string? PlanName { get; set; }
 }

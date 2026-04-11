@@ -17,6 +17,6 @@ public class SlnMembershipPlanService
     /// <summary>Bu hizmete ozel indirim orani (null = planin genel indirimi)</summary>
     public int? DiscountPercent { get; set; }
 
-    /// <summary>Ayda kac kez ucretsiz (0 = ucretsiz degil, sadece indirimli)</summary>
-    public int FreeCountPerMonth { get; set; }
+    /// <summary>Sureli plan: donem basina kac kez. Kullanimlik plan: toplam kac hak.</summary>
+    public int FreeCount { get; set; }
 }

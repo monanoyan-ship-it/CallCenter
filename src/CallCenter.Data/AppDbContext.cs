@@ -339,11 +339,21 @@ public class AppDbContext : DbContext
             e.Property(f => f.MaterialCost).HasPrecision(18, 2);
         });
 
+        // SlnMembershipPlan
+        modelBuilder.Entity<SlnMembershipPlan>(e =>
+        {
+            e.Property(p => p.Price).HasPrecision(18, 2);
+        });
+        modelBuilder.Entity<SlnClientMembership>(e =>
+        {
+            e.Property(m => m.PaidAmount).HasPrecision(18, 2);
+        });
+
         // SlnMembershipUsage (hizmet bazli kullanim takibi)
         modelBuilder.Entity<SlnMembershipUsage>(e =>
         {
             e.HasKey(u => u.Id);
-            e.HasIndex(u => new { u.MembershipId, u.ServiceId, u.Year, u.Month }).IsUnique();
+            e.HasIndex(u => new { u.MembershipId, u.ServiceId, u.PeriodStart }).IsUnique();
         });
 
         // SlnAppointment prepaid

@@ -1,7 +1,8 @@
 namespace CallCenter.Shared.Entities;
 
 /// <summary>
-/// Uyelik plani tanimi (orn: Gold Uye - aylik 500 TL, %20 indirim)
+/// Uyelik plani tanimi.
+/// DurationType ile sureli veya kullanimlik olabilir.
 /// </summary>
 public class SlnMembershipPlan
 {
@@ -14,14 +15,17 @@ public class SlnMembershipPlan
     public string? IconClass { get; set; }
     public string? Color { get; set; }
 
-    /// <summary>Aylik ucret</summary>
-    public decimal MonthlyPrice { get; set; }
+    /// <summary>1=Sureli (gun bazli), 2=Kullanimlik (hak bazli)</summary>
+    public int DurationType { get; set; } = 1;
 
-    /// <summary>Yuzde indirim orani (0-100)</summary>
+    /// <summary>Sureli ise: kac gun gecerli (30/90/180/365). Kullanimlik ise: 0</summary>
+    public int DurationDays { get; set; } = 30;
+
+    /// <summary>Plan ucreti</summary>
+    public decimal Price { get; set; }
+
+    /// <summary>Genel yuzde indirim orani (0-100). Hizmet bazli indirim planService'te</summary>
     public int DiscountPercent { get; set; }
-
-    /// <summary>Aylik ucretsiz seans hakki (0=sinirsiz degil)</summary>
-    public int FreeSessionsPerMonth { get; set; }
 
     /// <summary>Oncelikli randevu hakki</summary>
     public bool PriorityBooking { get; set; }
@@ -35,7 +39,9 @@ public class SlnMembershipPlan
 }
 
 /// <summary>
-/// Musteriye atanmis uyelik
+/// Musteriye atanmis uyelik.
+/// Sureli: StartDate + DurationDays = EndDate, donem bazli hak sifirlama.
+/// Kullanimlik: EndDate yok, haklar bitince biter.
 /// </summary>
 public class SlnClientMembership
 {
@@ -49,14 +55,22 @@ public class SlnClientMembership
     public int SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }
 
+    /// <summary>Uyelik baslangici</summary>
     public DateTime StartDate { get; set; }
+
+    /// <summary>Sureli ise: bitis tarihi. Kullanimlik ise: null (haklar bitince biter)</summary>
     public DateTime? EndDate { get; set; }
-    public DateTime NextPaymentDate { get; set; }
 
-    /// <summary>Bu ay kullanilan ucretsiz seans</summary>
-    public int UsedFreeSessionsThisMonth { get; set; }
+    /// <summary>Sureli ise: mevcut donemin baslangici (hak sifirlama icin)</summary>
+    public DateTime? CurrentPeriodStart { get; set; }
 
-    /// <summary>1=Aktif, 2=Dondurulmus, 3=Iptal</summary>
+    /// <summary>Sureli ise: mevcut donemin bitisi</summary>
+    public DateTime? CurrentPeriodEnd { get; set; }
+
+    /// <summary>Odeme tutari</summary>
+    public decimal PaidAmount { get; set; }
+
+    /// <summary>1=Aktif, 2=Dondurulmus, 3=Iptal, 4=Suresi Doldu</summary>
     public int StatusId { get; set; } = 1;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

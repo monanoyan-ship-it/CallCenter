@@ -21,22 +21,27 @@
                             <i class="fs-2" data-bind="attr: { 'class': iconClass || 'bi bi-award' }, style: { color: color || '#7b1fa2' }"></i>
                             <h5 class="mt-2 mb-1" data-bind="text: name"></h5>
                             <p class="small text-muted" data-bind="text: description || ''"></p>
-                            <div class="fs-4 fw-bold" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL'"></div>
-                            <small class="text-muted">/ ay</small>
+                            <div class="fs-4 fw-bold" data-bind="text: ($data.price || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                            <small class="text-muted" data-bind="text: $data.durationType === 1 ? ($data.durationDays + ' Gün') : 'Kullanımlık'"></small>
                             <hr />
                             <div class="small text-start">
                                 <div><i class="bi bi-check-circle text-success me-1"></i>%<span data-bind="text: discountPercent"></span> indirim</div>
-                                <!-- ko if: freeSessionsPerMonth > 0 -->
-                                <div><i class="bi bi-check-circle text-success me-1"></i><span data-bind="text: freeSessionsPerMonth"></span> ücretsiz seans/ay</div>
-                                <!-- /ko -->
                                 <!-- ko if: priorityBooking -->
                                 <div><i class="bi bi-check-circle text-success me-1"></i>Öncelikli randevu</div>
                                 <!-- /ko -->
-                                <!-- ko if: serviceNames && serviceNames.length > 0 -->
+                                <!-- ko if: serviceDetails && serviceDetails.length > 0 -->
                                 <hr class="my-2" />
                                 <div class="text-muted" style="font-size:.75rem;"><i class="bi bi-list-check me-1"></i>Dahil Hizmetler:</div>
-                                <!-- ko foreach: serviceNames -->
-                                <div><i class="bi bi-dot text-primary"></i><span data-bind="text: $data"></span></div>
+                                <!-- ko foreach: serviceDetails -->
+                                <div style="font-size:.8rem;">
+                                    <i class="bi bi-dot text-primary"></i><span data-bind="text: serviceName"></span>
+                                    <!-- ko if: $data.freeCount > 0 -->
+                                    <span class="badge bg-success ms-1" style="font-size:.6rem;" data-bind="text: $parent.durationType === 1 ? ($data.freeCount + 'x/dönem') : ($data.freeCount + ' hak')"></span>
+                                    <!-- /ko -->
+                                    <!-- ko if: discountPercent > 0 && ($data.freeCount || 0) === 0 -->
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size:.6rem;" data-bind="text: '%' + discountPercent + ' indirim'"></span>
+                                    <!-- /ko -->
+                                </div>
                                 <!-- /ko -->
                                 <!-- /ko -->
                             </div>
@@ -63,13 +68,14 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-hover table-sm">
-                    <thead class="table-light"><tr><th>Musteri</th><th>Plan</th><th>Baslangic</th><th>Sonraki Odeme</th><th>Durum</th><th></th></tr></thead>
+                    <thead class="table-light"><tr><th>Musteri</th><th>Plan</th><th>Baslangic</th><th>Bitis</th><th>Donem</th><th>Durum</th><th></th></tr></thead>
                     <tbody data-bind="foreach: memberships">
                         <tr>
                             <td class="small fw-semibold" data-bind="text: clientName"></td>
                             <td><span class="badge" data-bind="text: planName, style: { background: planColor || '#7b1fa2' }"></span></td>
                             <td class="small" data-bind="text: new Date(startDate).toLocaleDateString('tr-TR')"></td>
-                            <td class="small" data-bind="text: new Date(nextPaymentDate).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: $data.durationType === 1 && $data.endDate ? new Date($data.endDate).toLocaleDateString('tr-TR') : 'Hak bitince'"></td>
+                            <td class="small" data-bind="text: $data.durationType === 1 && $data.currentPeriodStart && $data.currentPeriodEnd ? (new Date($data.currentPeriodStart).toLocaleDateString('tr-TR') + ' - ' + new Date($data.currentPeriodEnd).toLocaleDateString('tr-TR')) : '-'"></td>
                             <td>
                                 <span class="badge" data-bind="text: statusId === 1 ? 'Aktif' : statusId === 2 ? 'Dondurulmus' : 'Iptal',
                                     css: statusId === 1 ? 'bg-success' : statusId === 2 ? 'bg-warning text-dark' : 'bg-danger'"></span>
@@ -94,50 +100,96 @@
 
     <!-- Plan Modal -->
     <div class="modal fade" id="planModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header"><h6 class="modal-title" data-bind="text: isEditingPlan() ? 'Plan Duzenle' : 'Yeni Plan'"></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-8"><label class="form-label small">Plan Adi *</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
-                        <div class="col-4"><label class="form-label small">Renk</label><input type="color" class="form-control form-control-sm form-control-color" data-bind="value: planForm.color" /></div>
-                        <div class="col-12"><label class="form-label small">Aciklama</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.description" /></div>
-                        <div class="col-4"><label class="form-label small">Aylik Ucret *</label><input type="number" class="form-control form-control-sm" step="1" data-bind="value: planForm.monthlyPrice" /></div>
-                        <div class="col-4"><label class="form-label small">Indirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: planForm.discountPercent" /></div>
-                        <div class="col-4"><label class="form-label small">Ucretsiz Seans/Ay</label><input type="number" class="form-control form-control-sm" min="0" data-bind="value: planForm.freeSessionsPerMonth" /></div>
-                        <div class="col-6"><div class="form-check mt-3"><input type="checkbox" class="form-check-input" data-bind="checked: planForm.priorityBooking" /><label class="form-check-label small">Oncelikli Randevu</label></div></div>
-                        <div class="col-12">
-                            <label class="form-label small">Dahil Hizmetler <small class="text-muted fw-normal">(kategori seç, hizmeti tıkla)</small></label>
+                <div class="modal-header py-2"><h6 class="modal-title" data-bind="text: isEditingPlan() ? 'Plan Düzenle' : 'Yeni Plan'"></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-0">
+                    <div class="row g-0">
+                        <!-- SOL: Plan bilgileri + Hizmet seçimi -->
+                        <div class="col-md-6 p-3 border-end" style="background:#f8f9fa;">
+                            <div class="row g-2 mb-3">
+                                <div class="col-8"><label class="form-label small">Plan Adı *</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
+                                <div class="col-4"><label class="form-label small">Renk</label><input type="color" class="form-control form-control-sm form-control-color" data-bind="value: planForm.color" /></div>
+                                <div class="col-12"><label class="form-label small">Açıklama</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.description" /></div>
+                                <div class="col-4"><label class="form-label small">Plan Ücreti *</label><input type="number" class="form-control form-control-sm" step="1" data-bind="value: planForm.price" /></div>
+                                <div class="col-4"><label class="form-label small">Genel İndirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: planForm.discountPercent" /></div>
+                                <div class="col-4"><div class="form-check mt-4"><input type="checkbox" class="form-check-input" data-bind="checked: planForm.priorityBooking" /><label class="form-check-label small">Öncelikli Randevu</label></div></div>
+                                <div class="col-12">
+                                    <label class="form-label small">Süre Tipi</label>
+                                    <div class="btn-group btn-group-sm w-100">
+                                        <button type="button" class="btn" data-bind="click: function() { planForm.durationType(1); }, css: planForm.durationType() === 1 ? 'btn-dark' : 'btn-outline-secondary'">Süreli</button>
+                                        <button type="button" class="btn" data-bind="click: function() { planForm.durationType(2); }, css: planForm.durationType() === 2 ? 'btn-dark' : 'btn-outline-secondary'">Kullanımlık</button>
+                                    </div>
+                                </div>
+                                <!-- ko if: planForm.durationType() === 1 -->
+                                <div class="col-12">
+                                    <label class="form-label small">Süre</label>
+                                    <div class="btn-group btn-group-sm w-100">
+                                        <button type="button" class="btn" data-bind="click: function() { planForm.durationDays(30); }, css: planForm.durationDays() === 30 ? 'btn-primary' : 'btn-outline-secondary'">30 Gün</button>
+                                        <button type="button" class="btn" data-bind="click: function() { planForm.durationDays(90); }, css: planForm.durationDays() === 90 ? 'btn-primary' : 'btn-outline-secondary'">90 Gün</button>
+                                        <button type="button" class="btn" data-bind="click: function() { planForm.durationDays(180); }, css: planForm.durationDays() === 180 ? 'btn-primary' : 'btn-outline-secondary'">180 Gün</button>
+                                        <button type="button" class="btn" data-bind="click: function() { planForm.durationDays(365); }, css: planForm.durationDays() === 365 ? 'btn-primary' : 'btn-outline-secondary'">365 Gün</button>
+                                    </div>
+                                </div>
+                                <!-- /ko -->
+                            </div>
+                            <hr class="my-2" />
+                            <label class="form-label small fw-bold"><i class="bi bi-list-check me-1"></i>Hizmet Seç (tıkla ekle)</label>
                             <div class="d-flex flex-wrap gap-1 mb-2" data-bind="foreach: serviceCategories">
-                                <button type="button" class="btn py-1 px-3" style="font-size:.8rem; min-height:32px;"
+                                <button type="button" class="btn py-1 px-2" style="font-size:.75rem; min-height:28px;"
                                     data-bind="text: name,
                                                click: function() { $root.selectedCategoryId($data.id); },
                                                css: $root.selectedCategoryId() === $data.id ? 'btn-dark' : 'btn-outline-secondary'">
                                 </button>
                             </div>
                             <!-- ko if: selectedCategoryServices().length > 0 -->
-                            <div class="d-flex flex-wrap gap-1 mb-2" data-bind="foreach: selectedCategoryServices">
-                                <button type="button" class="btn py-1 px-2" style="font-size:.8rem; min-height:32px;"
+                            <div class="d-flex flex-wrap gap-1" data-bind="foreach: selectedCategoryServices">
+                                <button type="button" class="btn py-1 px-2" style="font-size:.75rem; min-height:28px;"
                                     data-bind="click: function() { $root.togglePlanService($data.id); },
                                                css: $root.planForm.serviceIds().indexOf($data.id) >= 0 ? 'btn-primary' : 'btn-outline-secondary'">
                                     <span data-bind="text: name"></span>
                                 </button>
                             </div>
                             <!-- /ko -->
-                            <!-- ko if: selectedPlanServiceNames().length > 0 -->
-                            <div class="d-flex flex-wrap gap-1">
-                                <!-- ko foreach: selectedPlanServiceNames -->
-                                <span class="badge bg-primary d-inline-flex align-items-center gap-1 py-1 px-2" style="font-size:.75rem;">
-                                    <span data-bind="text: name"></span>
-                                    <i class="bi bi-x" style="cursor:pointer;" data-bind="click: function() { $root.togglePlanService(id); }"></i>
-                                </span>
-                                <!-- /ko -->
+                        </div>
+
+                        <!-- SAĞ: Seçilen hizmetler + haklar -->
+                        <div class="col-md-6 p-3">
+                            <label class="form-label small fw-bold"><i class="bi bi-card-checklist me-1"></i>Plana Dahil Hizmetler</label>
+                            <!-- ko if: planServiceDetails().length === 0 -->
+                            <div class="text-center text-muted py-4 small"><i class="bi bi-arrow-left me-1"></i>Soldan hizmet seçin</div>
+                            <!-- /ko -->
+                            <!-- ko if: planServiceDetails().length > 0 -->
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0" style="font-size:.8rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Hizmet</th>
+                                            <th style="width:100px;" data-bind="text: planForm.durationType() === 1 ? 'Dönem Başına' : 'Toplam Hak', attr: { title: planForm.durationType() === 1 ? 'Her dönem sıfırlanır' : 'Bitince biter' }"></th>
+                                            <th style="width:80px;">İndirim %</th>
+                                            <th style="width:25px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-bind="foreach: planServiceDetails">
+                                        <tr>
+                                            <td class="fw-medium" data-bind="text: name"></td>
+                                            <td><input type="number" class="form-control form-control-sm py-0 text-center" min="0" data-bind="value: freeCount" /></td>
+                                            <td><input type="number" class="form-control form-control-sm py-0 text-center" min="0" max="100" data-bind="value: discount" /></td>
+                                            <td><i class="bi bi-x-circle text-danger" style="cursor:pointer;" data-bind="click: function() { $root.togglePlanService(serviceId); }"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-2 small text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <span data-bind="text: planForm.durationType() === 1 ? 'Dönem Başına: Her dönemde kaç kez ücretsiz.' : 'Toplam Hak: Toplam kaç kez kullanılabilir.'"></span>
+                                İndirim: 100 = tamamen ücretsiz, 50 = yarı fiyat.
                             </div>
                             <!-- /ko -->
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button><button type="button" class="btn btn-primary btn-sm" data-bind="click: savePlan, disable: isSaving">Kaydet</button></div>
+                <div class="modal-footer py-2"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button><button type="button" class="btn btn-primary btn-sm" data-bind="click: savePlan, disable: isSaving">Kaydet</button></div>
             </div>
         </div>
     </div>

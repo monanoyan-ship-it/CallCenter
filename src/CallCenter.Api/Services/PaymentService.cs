@@ -259,14 +259,14 @@ public class PaymentService
     {
         var plan = await _db.SlnMembershipPlans.FirstOrDefaultAsync(p => p.Id == planId && p.IsActive);
         if (plan == null) return PaymentResult.Fail("Uyelik plani bulunamadi.");
-        if (plan.MonthlyPrice <= 0) return PaymentResult.Fail("Bu plan ucretsizdir.");
+        if (plan.Price <= 0) return PaymentResult.Fail("Bu plan ucretsizdir.");
 
         var tx = new PaymentTransaction
         {
             PaymentTypeId = PaymentTypes.Ids.UyelikOdemesi,
             CustomerId = plan.CustomerId,
             PlatformUserId = platformUserId,
-            Amount = plan.MonthlyPrice,
+            Amount = plan.Price,
             PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
             InstallmentCount = card.Installment,
             CardLastFour = card.CardNumber?.Length >= 4 ? card.CardNumber[^4..] : null
@@ -277,13 +277,17 @@ public class PaymentService
         if (gatewayResult.Success)
         {
             // Uyelik olustur
+            var now = DateTime.UtcNow;
             _db.SlnClientMemberships.Add(new SlnClientMembership
             {
                 CustomerId = plan.CustomerId,
                 PlanId = planId,
                 SlnClientId = slnClientId,
-                StartDate = DateTime.UtcNow,
-                NextPaymentDate = DateTime.UtcNow.AddMonths(1),
+                StartDate = now,
+                CurrentPeriodStart = plan.DurationType == 1 ? now : null,
+                CurrentPeriodEnd = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+                EndDate = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+                PaidAmount = plan.Price,
                 StatusId = 1 // Active
             });
 

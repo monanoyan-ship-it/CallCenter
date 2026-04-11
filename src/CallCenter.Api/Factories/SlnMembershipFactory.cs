@@ -39,14 +39,22 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             Description = p.Description,
             IconClass = p.IconClass,
             Color = p.Color,
-            MonthlyPrice = p.MonthlyPrice,
+            DurationType = p.DurationType,
+            DurationDays = p.DurationDays,
+            Price = p.Price,
             DiscountPercent = p.DiscountPercent,
-            FreeSessionsPerMonth = p.FreeSessionsPerMonth,
             PriorityBooking = p.PriorityBooking,
             IsActive = p.IsActive,
             ActiveMembers = memberCounts.GetValueOrDefault(p.Id, 0),
             ServiceIds = p.Services.Select(s => s.ServiceId).ToList(),
-            ServiceNames = p.Services.Where(s => s.Service != null).Select(s => s.Service!.Name).ToList()
+            ServiceNames = p.Services.Where(s => s.Service != null).Select(s => s.Service!.Name).ToList(),
+            ServiceDetails = p.Services.Select(s => new MembershipServiceDetailDto
+            {
+                ServiceId = s.ServiceId,
+                ServiceName = s.Service?.Name ?? "",
+                FreeCount = s.FreeCount,
+                DiscountPercent = s.DiscountPercent ?? 0
+            }).ToList()
         }).ToList();
     }
 
@@ -59,9 +67,10 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             Description = dto.Description,
             IconClass = dto.IconClass,
             Color = dto.Color,
-            MonthlyPrice = dto.MonthlyPrice,
+            DurationType = dto.DurationType,
+            DurationDays = dto.DurationDays,
+            Price = dto.Price,
             DiscountPercent = dto.DiscountPercent,
-            FreeSessionsPerMonth = dto.FreeSessionsPerMonth,
             PriorityBooking = dto.PriorityBooking,
             IsActive = dto.IsActive,
             SortOrder = await _db.SlnMembershipPlans.CountAsync(p => p.CustomerId == customerId) + 1
@@ -69,8 +78,19 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         _db.SlnMembershipPlans.Add(plan);
         await _uow.SaveChangesAsync();
 
-        // Hizmet iliskilerini ekle
-        if (dto.ServiceIds.Count > 0)
+        // Hizmet iliskilerini ekle (detayli: freeCount + discount)
+        if (dto.ServiceDetails.Count > 0)
+        {
+            foreach (var sd in dto.ServiceDetails)
+                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService
+                {
+                    PlanId = plan.Id, ServiceId = sd.ServiceId,
+                    FreeCount = sd.FreeCount,
+                    DiscountPercent = sd.DiscountPercent > 0 ? sd.DiscountPercent : null
+                });
+            await _uow.SaveChangesAsync();
+        }
+        else if (dto.ServiceIds.Count > 0)
         {
             foreach (var svcId in dto.ServiceIds)
                 _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = plan.Id, ServiceId = svcId });
@@ -89,17 +109,31 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         plan.Description = dto.Description;
         plan.IconClass = dto.IconClass;
         plan.Color = dto.Color;
-        plan.MonthlyPrice = dto.MonthlyPrice;
+        plan.DurationType = dto.DurationType;
+        plan.DurationDays = dto.DurationDays;
+        plan.Price = dto.Price;
         plan.DiscountPercent = dto.DiscountPercent;
-        plan.FreeSessionsPerMonth = dto.FreeSessionsPerMonth;
         plan.PriorityBooking = dto.PriorityBooking;
         plan.IsActive = dto.IsActive;
 
         // Hizmet iliskilerini guncelle (sil + yeniden ekle)
         var existingServices = await _db.SlnMembershipPlanServices.Where(s => s.PlanId == id).ToListAsync();
         _db.SlnMembershipPlanServices.RemoveRange(existingServices);
-        foreach (var svcId in dto.ServiceIds)
-            _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = id, ServiceId = svcId });
+        if (dto.ServiceDetails.Count > 0)
+        {
+            foreach (var sd in dto.ServiceDetails)
+                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService
+                {
+                    PlanId = id, ServiceId = sd.ServiceId,
+                    FreeCount = sd.FreeCount,
+                    DiscountPercent = sd.DiscountPercent > 0 ? sd.DiscountPercent : null
+                });
+        }
+        else
+        {
+            foreach (var svcId in dto.ServiceIds)
+                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = id, ServiceId = svcId });
+        }
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -136,7 +170,9 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             DiscountPercent = m.Plan != null ? m.Plan.DiscountPercent : 0,
             StartDate = m.StartDate,
             EndDate = m.EndDate,
-            NextPaymentDate = m.NextPaymentDate,
+            CurrentPeriodStart = m.CurrentPeriodStart,
+            CurrentPeriodEnd = m.CurrentPeriodEnd,
+            PaidAmount = m.PaidAmount,
             StatusId = m.StatusId
         }).ToListAsync();
     }
@@ -150,13 +186,17 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             .AnyAsync(m => m.SlnClientId == dto.SlnClientId && m.CustomerId == customerId && m.StatusId == 1);
         if (existing) return (null, "Bu musterinin zaten aktif uyeligi var");
 
+        var now = DateTime.UtcNow;
         var membership = new SlnClientMembership
         {
             CustomerId = customerId,
             PlanId = dto.PlanId,
             SlnClientId = dto.SlnClientId,
-            StartDate = DateTime.UtcNow,
-            NextPaymentDate = DateTime.UtcNow.AddMonths(1),
+            StartDate = now,
+            CurrentPeriodStart = plan.DurationType == 1 ? now : null,
+            CurrentPeriodEnd = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+            EndDate = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+            PaidAmount = plan.Price,
             StatusId = 1
         };
         _db.SlnClientMemberships.Add(membership);
@@ -204,13 +244,12 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         if (membership?.Plan == null)
             return serviceIds.Select(id => new ServiceMembershipBenefit { ServiceId = id }).ToList();
 
-        var now = DateTime.UtcNow;
-        var year = now.Year;
-        var month = now.Month;
+        // Mevcut donem baslangicinı belirle
+        var periodStart = membership.CurrentPeriodStart;
 
-        // Bu aydaki kullanim kayitlari
+        // Bu donemdeki kullanim kayitlari
         var usages = await _db.SlnMembershipUsages
-            .Where(u => u.MembershipId == membership.Id && u.Year == year && u.Month == month)
+            .Where(u => u.MembershipId == membership.Id && u.PeriodStart == periodStart)
             .ToListAsync();
 
         return serviceIds.Select(serviceId =>
@@ -235,9 +274,9 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             {
                 ServiceId = serviceId,
                 ServiceName = planService.Service?.Name ?? "",
-                HasFreeBenefit = planService.FreeCountPerMonth > 0,
-                FreeCountPerMonth = planService.FreeCountPerMonth,
-                UsedThisMonth = usedCount,
+                HasFreeBenefit = planService.FreeCount > 0,
+                FreeCount = planService.FreeCount,
+                UsedThisPeriod = usedCount,
                 DiscountPercent = planService.DiscountPercent ?? (membership.Plan.DiscountPercent > 0 ? membership.Plan.DiscountPercent : null),
                 PlanName = membership.Plan.Name
             };
@@ -246,13 +285,17 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task RecordUsageAsync(int customerId, int membershipId, int serviceId)
     {
-        var now = DateTime.UtcNow;
+        // Uyeligin mevcut donem baslangicini al
+        var membership = await _db.SlnClientMemberships.FindAsync(membershipId);
+        var periodStart = membership?.CurrentPeriodStart;
+
         var usage = await _db.SlnMembershipUsages
-            .FirstOrDefaultAsync(u => u.MembershipId == membershipId && u.ServiceId == serviceId && u.Year == now.Year && u.Month == now.Month);
+            .FirstOrDefaultAsync(u => u.MembershipId == membershipId && u.ServiceId == serviceId && u.PeriodStart == periodStart);
 
         if (usage != null)
         {
             usage.UsedCount++;
+            usage.LastUsedAt = DateTime.UtcNow;
         }
         else
         {
@@ -261,8 +304,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
                 CustomerId = customerId,
                 MembershipId = membershipId,
                 ServiceId = serviceId,
-                Year = now.Year,
-                Month = now.Month,
+                PeriodStart = periodStart,
                 UsedCount = 1
             });
         }

@@ -178,7 +178,7 @@ public class SlnPublicController : ControllerBase
             .Select(p => new
             {
                 p.Id, p.Name, p.Description, p.IconClass, p.Color,
-                p.MonthlyPrice, p.DiscountPercent, p.FreeSessionsPerMonth, p.PriorityBooking
+                p.DurationType, p.DurationDays, p.Price, p.DiscountPercent, p.PriorityBooking
             })
             .ToListAsync();
 
@@ -225,13 +225,17 @@ public class SlnPublicController : ControllerBase
                 return BadRequest("Bu telefon numarasina ait zaten aktif bir uyelik bulunmaktadir.");
         }
 
+        var now = DateTime.UtcNow;
         var membership = new SlnClientMembership
         {
             CustomerId = profile.CustomerId,
             PlanId = plan.Id,
             SlnClientId = client.Id,
-            StartDate = DateTime.UtcNow,
-            NextPaymentDate = DateTime.UtcNow.AddMonths(1),
+            StartDate = now,
+            CurrentPeriodStart = plan.DurationType == 1 ? now : null,
+            CurrentPeriodEnd = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+            EndDate = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+            PaidAmount = plan.Price,
             StatusId = 1
         };
 

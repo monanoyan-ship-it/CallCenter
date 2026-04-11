@@ -2,8 +2,8 @@ namespace CallCenter.Shared.Entities;
 
 /// <summary>
 /// Uyelik hizmet kullanim takibi.
-/// Musteri + Hizmet + Yil + Ay bazli kac kez ucretsiz kullanildigi.
-/// Sales'te adisyon olusturulurken guncellenir.
+/// Sureli plan: donem bazli (PeriodStart ile). Her yeni donemde sifirlanir.
+/// Kullanimlik plan: toplam bazli (PeriodStart null). Bitince uyelik biter.
 /// </summary>
 public class SlnMembershipUsage
 {
@@ -18,9 +18,11 @@ public class SlnMembershipUsage
     public int ServiceId { get; set; }
     public SlnService? Service { get; set; }
 
-    public int Year { get; set; }
-    public int Month { get; set; }
+    /// <summary>Sureli: donemin baslangic tarihi. Kullanimlik: null (toplam takip)</summary>
+    public DateTime? PeriodStart { get; set; }
 
-    /// <summary>Bu ay kac kez ucretsiz kullanildi</summary>
+    /// <summary>Kullanim sayisi</summary>
     public int UsedCount { get; set; }
+
+    public DateTime LastUsedAt { get; set; } = DateTime.UtcNow;
 }
