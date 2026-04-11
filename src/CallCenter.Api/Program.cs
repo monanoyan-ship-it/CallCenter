@@ -21,7 +21,8 @@ builder.Services.AddHttpClient();
 
 // PostgreSQL + EF Core
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"]
