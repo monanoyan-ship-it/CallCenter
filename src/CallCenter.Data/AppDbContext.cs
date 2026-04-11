@@ -319,6 +319,24 @@ public class AppDbContext : DbContext
             e.Property(c => c.LastTestError).HasMaxLength(1000);
         });
 
+        // SlnRecipe (malzeme bazli recete)
+        modelBuilder.Entity<SlnRecipe>(e =>
+        {
+            e.Property(r => r.EstimatedCost).HasPrecision(18, 2);
+        });
+        modelBuilder.Entity<SlnRecipeItem>(e =>
+        {
+            e.Property(i => i.Quantity).HasPrecision(10, 3);
+            e.Property(i => i.Cost).HasPrecision(18, 2);
+            e.Property(i => i.Unit).HasMaxLength(20);
+            e.Property(i => i.Notes).HasMaxLength(500);
+            e.HasOne(i => i.Product).WithMany().HasForeignKey(i => i.ProductId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<SlnFormula>(e =>
+        {
+            e.Property(f => f.MaterialCost).HasPrecision(18, 2);
+        });
+
         // SlnClient (ayni salonda ayni telefon mukerrer olamaz)
         modelBuilder.Entity<SlnClient>(e =>
         {

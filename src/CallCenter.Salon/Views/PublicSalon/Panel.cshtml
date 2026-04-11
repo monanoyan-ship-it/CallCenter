@@ -36,6 +36,7 @@
             <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabAppointments"><i class="bi bi-calendar-check me-1"></i>Randevularım</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabLoyalty"><i class="bi bi-star me-1"></i>Sadakat</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabProfile"><i class="bi bi-person me-1"></i>Profilim</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabBilling"><i class="bi bi-receipt me-1"></i>Fatura Bilgileri</a></li>
         </ul>
 
         <div class="tab-content">
@@ -77,6 +78,59 @@
                             <input type="email" class="form-control" id="profEmail" />
                         </div>
                         <button class="btn btn-primary btn-sm" onclick="saveProfile()"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Fatura Bilgileri -->
+            <div class="tab-pane fade" id="tabBilling">
+                <div class="card section-card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small">Fatura Tipi</label>
+                            <select class="form-select form-select-sm" id="billingType" onchange="toggleBillingType()">
+                                <option value="1">Bireysel</option>
+                                <option value="2">Kurumsal</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Ad Soyad</label>
+                            <input type="text" class="form-control form-control-sm" id="billingFullName" />
+                        </div>
+                        <div id="corporateFields" style="display:none;">
+                            <div class="mb-2">
+                                <label class="form-label small">Firma Adı</label>
+                                <input type="text" class="form-control form-control-sm" id="billingCompanyName" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6 mb-2">
+                                    <label class="form-label small">Vergi Dairesi</label>
+                                    <input type="text" class="form-control form-control-sm" id="billingTaxOffice" />
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label class="form-label small">Vergi No</label>
+                                    <input type="text" class="form-control form-control-sm" id="billingTaxNumber" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Adres</label>
+                            <input type="text" class="form-control form-control-sm" id="billingAddress" />
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-4 mb-2">
+                                <label class="form-label small">İl</label>
+                                <input type="text" class="form-control form-control-sm" id="billingCity" />
+                            </div>
+                            <div class="col-4 mb-2">
+                                <label class="form-label small">İlçe</label>
+                                <input type="text" class="form-control form-control-sm" id="billingDistrict" />
+                            </div>
+                            <div class="col-4 mb-2">
+                                <label class="form-label small">Posta Kodu</label>
+                                <input type="text" class="form-control form-control-sm" id="billingPostalCode" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="saveBilling()"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
                     </div>
                 </div>
             </div>
@@ -198,6 +252,46 @@
         loadAppointments(false);
         loadLoyalty();
         loadProfile();
+        loadBilling();
+
+        // ═══ Fatura Bilgileri ═══
+        function toggleBillingType() {
+            var type = document.getElementById('billingType').value;
+            document.getElementById('corporateFields').style.display = type === '2' ? '' : 'none';
+        }
+
+        function loadBilling() {
+            api('platform/me').then(function(data) {
+                if (!data) return;
+                document.getElementById('billingType').value = data.billingType || 1;
+                document.getElementById('billingFullName').value = data.billingFullName || data.fullName || '';
+                document.getElementById('billingCompanyName').value = data.billingCompanyName || '';
+                document.getElementById('billingTaxOffice').value = data.billingTaxOffice || '';
+                document.getElementById('billingTaxNumber').value = data.billingTaxNumber || '';
+                document.getElementById('billingAddress').value = data.billingAddress || '';
+                document.getElementById('billingCity').value = data.billingCity || '';
+                document.getElementById('billingDistrict').value = data.billingDistrict || '';
+                document.getElementById('billingPostalCode').value = data.billingPostalCode || '';
+                toggleBillingType();
+            });
+        }
+
+        function saveBilling() {
+            api('platform/billing-info', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    billingType: parseInt(document.getElementById('billingType').value),
+                    billingFullName: document.getElementById('billingFullName').value || null,
+                    billingCompanyName: document.getElementById('billingCompanyName').value || null,
+                    billingTaxOffice: document.getElementById('billingTaxOffice').value || null,
+                    billingTaxNumber: document.getElementById('billingTaxNumber').value || null,
+                    billingAddress: document.getElementById('billingAddress').value || null,
+                    billingCity: document.getElementById('billingCity').value || null,
+                    billingDistrict: document.getElementById('billingDistrict').value || null,
+                    billingPostalCode: document.getElementById('billingPostalCode').value || null
+                })
+            }).then(function() { alert('Fatura bilgileri güncellendi.'); });
+        }
     </script>
 </body>
 </html>

@@ -25,6 +25,18 @@ public class PlatformUser
     public bool IsPhoneVerified { get; set; }
     public bool IsEmailVerified { get; set; }
 
+    // ─── Fatura Bilgileri ───
+    /// <summary>Fatura tipi: 1=Bireysel, 2=Kurumsal</summary>
+    public int BillingType { get; set; } = 1;
+    public string? BillingFullName { get; set; }
+    public string? BillingCompanyName { get; set; }
+    public string? BillingTaxOffice { get; set; }
+    public string? BillingTaxNumber { get; set; }
+    public string? BillingAddress { get; set; }
+    public string? BillingCity { get; set; }
+    public string? BillingDistrict { get; set; }
+    public string? BillingPostalCode { get; set; }
+
     /// <summary>Son giris tarihi</summary>
     public DateTime? LastLoginAt { get; set; }
 

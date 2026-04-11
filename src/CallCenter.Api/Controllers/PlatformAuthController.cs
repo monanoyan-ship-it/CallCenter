@@ -125,6 +125,29 @@ public class PlatformAuthController : ControllerBase
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
 
+    /// <summary>Fatura bilgilerini guncelle</summary>
+    [HttpPut("billing-info")]
+    [Authorize(Roles = "PlatformUser")]
+    public async Task<ActionResult> UpdateBillingInfo([FromBody] PlatformBillingUpdateDto dto)
+    {
+        var userId = GetPlatformUserId();
+        var user = await _db.PlatformUsers.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        user.BillingType = dto.BillingType;
+        user.BillingFullName = dto.BillingFullName;
+        user.BillingCompanyName = dto.BillingCompanyName;
+        user.BillingTaxOffice = dto.BillingTaxOffice;
+        user.BillingTaxNumber = dto.BillingTaxNumber;
+        user.BillingAddress = dto.BillingAddress;
+        user.BillingCity = dto.BillingCity;
+        user.BillingDistrict = dto.BillingDistrict;
+        user.BillingPostalCode = dto.BillingPostalCode;
+
+        await _db.SaveChangesAsync();
+        return Ok(MapToDto(user));
+    }
+
     private static PlatformUserDto MapToDto(PlatformUser u) => new()
     {
         Uid = u.Uid,
@@ -132,6 +155,15 @@ public class PlatformAuthController : ControllerBase
         Phone = u.Phone,
         Email = u.Email,
         AvatarUrl = u.AvatarUrl,
-        SalonCount = u.Salons?.Count(s => s.IsActive) ?? 0
+        SalonCount = u.Salons?.Count(s => s.IsActive) ?? 0,
+        BillingType = u.BillingType,
+        BillingFullName = u.BillingFullName,
+        BillingCompanyName = u.BillingCompanyName,
+        BillingTaxOffice = u.BillingTaxOffice,
+        BillingTaxNumber = u.BillingTaxNumber,
+        BillingAddress = u.BillingAddress,
+        BillingCity = u.BillingCity,
+        BillingDistrict = u.BillingDistrict,
+        BillingPostalCode = u.BillingPostalCode
     };
 }

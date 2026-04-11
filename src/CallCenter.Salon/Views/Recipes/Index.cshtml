@@ -21,23 +21,25 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-2">
                         <i class="fs-4 me-2" data-bind="attr: { 'class': iconClass || 'bi bi-journal-text' }" style="color:#7b1fa2;"></i>
-                        <div>
+                        <div class="flex-grow-1 min-width-0">
                             <div class="fw-semibold" data-bind="text: name"></div>
                             <small class="text-muted" data-bind="text: (description || '')"></small>
                         </div>
                     </div>
+                    <!-- ko if: $parent.getServiceName(serviceId) -->
+                    <span class="badge bg-info bg-opacity-10 text-info mb-2" data-bind="text: $parent.getServiceName(serviceId)"></span>
+                    <!-- /ko -->
                     <div class="mb-2">
                         <!-- ko foreach: items -->
                         <div class="small text-muted">
-                            <span data-bind="text: quantity > 1 ? quantity + 'x ' : ''"></span>
-                            <span data-bind="text: serviceName"></span>
+                            <span data-bind="text: (quantity || '') + (unit ? unit : '') + ' ' + (productName || '')"></span>
                         </div>
                         <!-- /ko -->
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="fw-bold text-primary" data-bind="text: totalPrice.toLocaleString('tr-TR') + ' TL'"></span>
-                            <small class="text-muted ms-1" data-bind="text: totalDurationMinutes + ' dk'"></small>
+                            <span class="fw-bold text-primary" data-bind="text: (estimatedCost || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'"></span>
+                            <small class="text-muted ms-1">maliyet</small>
                         </div>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-secondary" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
@@ -53,7 +55,7 @@
     <div class="text-center text-muted py-5">
         <i class="bi bi-journal-text" style="font-size: 3rem; opacity:.3;"></i>
         <p class="mt-2 small">Henuz recete olusturulmamis</p>
-        <p class="small">Receteler, sik kullanilan hizmet kombinasyonlarini tek tikla uygulamanizi saglar.</p>
+        <p class="small">Receteler, hizmetler icin gereken malzeme ve miktarlari tanimlamanizi saglar.</p>
     </div>
     <!-- /ko -->
 
@@ -79,45 +81,92 @@
                             <label class="form-label small">Aciklama</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.description" />
                         </div>
+                        <!-- Hizmet Secimi (opsiyonel) -->
+                        <div class="col-12">
+                            <label class="form-label small">Hizmet (opsiyonel)</label>
+                            <div class="position-relative" data-bind="with: serviceAutocomplete">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control" placeholder="Hizmet secin..."
+                                           data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                      event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                    <!-- ko if: selectedName() -->
+                                    <button class="btn btn-outline-secondary" data-bind="click: clear"><i class="bi bi-x"></i></button>
+                                    <!-- /ko -->
+                                </div>
+                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:200px;overflow-y:auto;"
+                                     data-bind="css: { show: showDropdown() && filteredItems().length > 0 }">
+                                    <!-- ko foreach: filteredItems -->
+                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Hizmet Kalemleri -->
+                    <!-- Malzeme Kalemleri -->
                     <div class="mt-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label small mb-0">Hizmet Kalemleri</label>
+                            <label class="form-label small mb-0">Malzemeler</label>
                             <button class="btn btn-outline-primary btn-sm" data-bind="click: addItem">
-                                <i class="bi bi-plus me-1"></i>Kalem Ekle
+                                <i class="bi bi-plus me-1"></i>Malzeme Ekle
                             </button>
                         </div>
-                        <table class="table table-sm" data-bind="visible: form.items().length > 0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Hizmet</th>
-                                    <th style="width:80px;">Adet</th>
-                                    <th style="width:100px;">Fiyat</th>
-                                    <th style="width:40px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody data-bind="foreach: form.items">
-                                <tr>
-                                    <td>
-                                        <select class="form-select form-select-sm" data-bind="value: serviceId,
-                                            options: $parent.serviceList, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Hizmet seciniz'"></select>
-                                    </td>
-                                    <td>
-                                        <input type="number" class="form-control form-control-sm" min="1" data-bind="value: quantity" />
-                                    </td>
-                                    <td class="text-end small pt-2" data-bind="text: $parent.getItemTotal($data)"></td>
-                                    <td>
-                                        <button class="btn btn-outline-danger btn-sm px-1" data-bind="click: $parent.removeItem"><i class="bi bi-x"></i></button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div data-bind="visible: form.items().length > 0">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Urun</th>
+                                        <th style="width:90px;">Miktar</th>
+                                        <th style="width:90px;">Birim</th>
+                                        <th style="width:130px;">Not</th>
+                                        <th style="width:90px;" class="text-end">Maliyet</th>
+                                        <th style="width:40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-bind="foreach: form.items">
+                                    <tr>
+                                        <td>
+                                            <div class="position-relative" data-bind="with: productAutocomplete">
+                                                <input type="text" class="form-control form-control-sm" placeholder="Urun ara..."
+                                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:180px;overflow-y:auto;z-index:1060;"
+                                                     data-bind="css: { show: showDropdown() && filteredItems().length > 0 }">
+                                                    <!-- ko foreach: filteredItems -->
+                                                    <a class="dropdown-item small py-1 px-2" href="#"
+                                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
+                                                                  css: { active: $parent.highlightIndex() === $index() },
+                                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                                    <!-- /ko -->
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" step="0.1" min="0"
+                                                   data-bind="value: quantity" />
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm"
+                                                    data-bind="value: unit, options: unitOptions"></select>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm" placeholder="Not..."
+                                                   data-bind="value: notes" />
+                                        </td>
+                                        <td class="text-end small pt-2" data-bind="text: $parent.getItemCost($data)"></td>
+                                        <td>
+                                            <button class="btn btn-outline-danger btn-sm px-1" data-bind="click: $parent.removeItem"><i class="bi bi-x"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
                         <div class="d-flex justify-content-end gap-3 mt-2" data-bind="visible: form.items().length > 0">
-                            <span class="text-muted small">Toplam Sure: <strong data-bind="text: calculatedDuration() + ' dk'"></strong></span>
-                            <span class="text-muted small">Toplam Fiyat: <strong class="text-primary" data-bind="text: calculatedPrice().toLocaleString('tr-TR') + ' TL'"></strong></span>
+                            <span class="text-muted small">Tahmini Maliyet: <strong class="text-primary" data-bind="text: calculatedCost().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'"></strong></span>
                         </div>
                     </div>
                 </div>

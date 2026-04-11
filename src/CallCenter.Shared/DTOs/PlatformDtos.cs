@@ -32,6 +32,15 @@ public class PlatformUserDto
     public string? Email { get; set; }
     public string? AvatarUrl { get; set; }
     public int SalonCount { get; set; }
+    public int BillingType { get; set; }
+    public string? BillingFullName { get; set; }
+    public string? BillingCompanyName { get; set; }
+    public string? BillingTaxOffice { get; set; }
+    public string? BillingTaxNumber { get; set; }
+    public string? BillingAddress { get; set; }
+    public string? BillingCity { get; set; }
+    public string? BillingDistrict { get; set; }
+    public string? BillingPostalCode { get; set; }
 }
 
 public class PlatformUserUpdateDto
@@ -39,6 +48,19 @@ public class PlatformUserUpdateDto
     public string? FullName { get; set; }
     public string? Email { get; set; }
     public string? AvatarUrl { get; set; }
+}
+
+public class PlatformBillingUpdateDto
+{
+    public int BillingType { get; set; } = 1;
+    public string? BillingFullName { get; set; }
+    public string? BillingCompanyName { get; set; }
+    public string? BillingTaxOffice { get; set; }
+    public string? BillingTaxNumber { get; set; }
+    public string? BillingAddress { get; set; }
+    public string? BillingCity { get; set; }
+    public string? BillingDistrict { get; set; }
+    public string? BillingPostalCode { get; set; }
 }
 
 // ═══ Salon Uyelik ═══
