@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260411173117_AddTimeZoneAndRecipeRedesign")]
-    partial class AddTimeZoneAndRecipeRedesign
+    [Migration("20260411183834_AddTimeZoneSupport")]
+    partial class AddTimeZoneSupport
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
