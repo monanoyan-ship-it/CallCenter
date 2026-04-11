@@ -21,6 +21,9 @@ public class PlatformUser
     /// <summary>Tercih edilen dil (orn: "tr", "en")</summary>
     public string PreferredLanguage { get; set; } = "tr";
 
+    /// <summary>Kullanici timezone (IANA format: Europe/Istanbul vb.)</summary>
+    public string TimeZone { get; set; } = "Europe/Istanbul";
+
     public bool IsActive { get; set; } = true;
     public bool IsPhoneVerified { get; set; }
     public bool IsEmailVerified { get; set; }

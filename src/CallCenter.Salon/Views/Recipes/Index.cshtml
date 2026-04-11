@@ -74,8 +74,17 @@
                             <input type="text" class="form-control form-control-sm" placeholder="Orn: Siyahtan Sariya" data-bind="value: form.name" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Ikon</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="bi-palette" data-bind="value: form.iconClass" />
+                            <label class="form-label small">İkon</label>
+                            <div class="d-flex flex-wrap gap-1">
+                                <!-- ko foreach: iconOptions -->
+                                <button type="button" class="btn py-1 px-2" style="font-size:1.1rem;"
+                                    data-bind="attr: { title: $data },
+                                               click: function() { $root.form.iconClass($data); },
+                                               css: $root.form.iconClass() === $data ? 'btn-primary' : 'btn-outline-secondary'">
+                                    <i data-bind="attr: { 'class': 'bi ' + $data }"></i>
+                                </button>
+                                <!-- /ko -->
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label small">Aciklama</label>

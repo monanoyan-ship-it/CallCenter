@@ -13,6 +13,9 @@ function SalesViewModel() {
     self.paymentMethodId = ko.observable('1');
     self.discountAmount = ko.observable(0);
     self.tipAmount = ko.observable(0);
+    self.linkedAppointmentId = ko.observable(null);
+    self.todayAppointments = ko.observableArray([]);
+    self.appointmentsLoading = ko.observable(false);
     self.isSaving = ko.observable(false);
 
     // ═══ Autocomplete ═══
@@ -159,17 +162,108 @@ function SalesViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(data)
         }).done(function () {
-            toastr.success('Odeme alindi');
+            toastr.success('Ödeme alındı');
+
+            // Randevu bağlıysa tamamlandı olarak işaretle
+            if (self.linkedAppointmentId()) {
+                $.ajax({
+                    url: '/proxy/sln-appointments/' + self.linkedAppointmentId() + '/status',
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ statusId: 3 }) // Tamamlandı
+                });
+            }
+
             self.cartItems([]);
             self.clientId(null);
             self.clientAutocomplete.clear();
             self.discountAmount(0);
             self.tipAmount(0);
+            self.linkedAppointmentId(null);
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Odeme alinamadi');
+            toastr.error(xhr.responseJSON?.error || 'Ödeme alınamadı');
             self.isSaving(false);
         });
+    };
+
+    // ═══ Randevu Çek ═══
+    var appointmentModal;
+
+    self.openAppointments = function () {
+        self.appointmentsLoading(true);
+        self.todayAppointments([]);
+        if (!appointmentModal) appointmentModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+        appointmentModal.show();
+
+        $.get('/proxy/sln-appointments?date=today', function (data) {
+            var list = (data.items || data || []).map(function (a) {
+                var startTime = new Date(a.startTime);
+                a.startTimeText = startTime.getHours().toString().padStart(2, '0') + ':' + startTime.getMinutes().toString().padStart(2, '0');
+                a.clientName = a.clientName || '-';
+                a.personnelName = a.personnelName || null;
+                a.serviceNamesText = (a.serviceNames || []).join(', ') || (a.serviceName || '-');
+                return a;
+            });
+            self.todayAppointments(list);
+            self.appointmentsLoading(false);
+        }).fail(function () { self.appointmentsLoading(false); });
+    };
+
+    self.selectAppointment = function (appt) {
+        // Sepeti temizle
+        self.cartItems([]);
+
+        // Müşteriyi seç
+        if (appt.slnClientId) {
+            self.clientId(appt.slnClientId);
+            self.clientAutocomplete.query(appt.clientName || '');
+            self.clientAutocomplete.selectedName(appt.clientName || '');
+        }
+
+        // Personeli seç
+        if (appt.personnelId) {
+            self.selectedPersonnelId(appt.personnelId.toString());
+        }
+
+        // Hizmetleri sepete ekle
+        var services = appt.services || [];
+        if (services.length > 0) {
+            services.forEach(function (s) {
+                var svc = self.allServices().find(function (sv) { return sv.id === (s.slnServiceId || s.serviceId); });
+                if (svc) {
+                    self.cartItems.push({
+                        serviceId: svc.id,
+                        name: svc.name,
+                        unitPrice: svc.price,
+                        quantity: ko.observable(1)
+                    });
+                }
+            });
+        } else if (appt.serviceNames && appt.serviceNames.length > 0) {
+            // serviceNames varsa isimleriyle eşleştir
+            appt.serviceNames.forEach(function (svcName) {
+                var svc = self.allServices().find(function (sv) { return sv.name === svcName; });
+                if (svc) {
+                    self.cartItems.push({
+                        serviceId: svc.id,
+                        name: svc.name,
+                        unitPrice: svc.price,
+                        quantity: ko.observable(1)
+                    });
+                }
+            });
+        }
+
+        // Randevu bağla
+        self.linkedAppointmentId(appt.id);
+
+        appointmentModal.hide();
+        toastr.info('Randevu sepete alındı. Ek hizmet/ürün ekleyebilirsiniz.');
+    };
+
+    self.unlinkAppointment = function () {
+        self.linkedAppointmentId(null);
     };
 
     // ═══ Init ═══

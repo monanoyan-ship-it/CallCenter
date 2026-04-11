@@ -11,6 +11,9 @@ public class Customer
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Salon/firma timezone (IANA format: Europe/Istanbul, Europe/Berlin vb.)</summary>
+    public string TimeZone { get; set; } = "Europe/Istanbul";
+
     /// <summary>Test/beta musteri — tahakkuk olusturulmaz, moduller ucretsiz</summary>
     public bool IsTest { get; set; }
 

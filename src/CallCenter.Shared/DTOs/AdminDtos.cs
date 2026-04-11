@@ -214,6 +214,7 @@ public class CustomerUpdateDto
     public bool? AutoRecordCalls { get; set; }
     public bool? IsCallbackManagementEnabled { get; set; }
 
+    public string? TimeZone { get; set; }
     public bool IsTest { get; set; }
     public string? TestNotes { get; set; }
 }
@@ -235,6 +236,7 @@ public class CustomerDetailDto
     public bool IsCallbackManagementEnabled { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? BillingAnchorDay { get; set; }
+    public string? TimeZone { get; set; }
     public bool IsTest { get; set; }
     public string? TestNotes { get; set; }
     public List<PersonnelSimpleDto> Personnel { get; set; } = new();

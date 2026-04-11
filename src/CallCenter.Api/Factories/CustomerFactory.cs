@@ -150,6 +150,7 @@ public class CustomerFactory : ICustomerFactory
             IsCallbackManagementEnabled = c.IsCallbackManagementEnabled,
             CreatedAt = c.CreatedAt,
             BillingAnchorDay = c.BillingAnchorDay,
+            TimeZone = c.TimeZone,
             IsTest = c.IsTest,
             TestNotes = c.TestNotes,
             Personnel = c.Personnel.Select(p => new PersonnelSimpleDto
@@ -294,6 +295,7 @@ public class CustomerFactory : ICustomerFactory
             customer.AutoRecordCalls = dto.AutoRecordCalls.Value;
         if (dto.IsCallbackManagementEnabled.HasValue)
             customer.IsCallbackManagementEnabled = dto.IsCallbackManagementEnabled.Value;
+        if (!string.IsNullOrEmpty(dto.TimeZone)) customer.TimeZone = dto.TimeZone;
         customer.IsTest = dto.IsTest;
         customer.TestNotes = dto.TestNotes;
 

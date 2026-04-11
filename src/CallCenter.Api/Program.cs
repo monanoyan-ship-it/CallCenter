@@ -10,6 +10,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
+// Npgsql: DateTime Kind=Unspecified gelirse UTC kabul et (strict mode'da hata verir)
+// Legacy behavior KAPALI — tum tarihler UTC olarak kaydedilir, gosterimde timezone cevrimi yapilir
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // HttpClientFactory (WhatsApp API vb. dis servis cagrilari icin)

@@ -4,6 +4,22 @@ function RecipesViewModel() {
     self.productList = ko.observableArray([]);
     self.serviceList = ko.observableArray([]);
     self.searchQuery = ko.observable('');
+    self.iconOptions = [
+        // Saç
+        'bi-scissors', 'bi-paint-bucket', 'bi-palette', 'bi-palette2',
+        'bi-droplet', 'bi-droplet-half', 'bi-brush', 'bi-eyedropper',
+        // Güzellik / Cilt
+        'bi-stars', 'bi-gem', 'bi-flower1', 'bi-flower2', 'bi-flower3',
+        'bi-heart-pulse', 'bi-feather', 'bi-sun',
+        // Tırnak / El
+        'bi-hand-index', 'bi-hand-thumbs-up', 'bi-fingerprint',
+        // Genel
+        'bi-magic', 'bi-fire', 'bi-snow', 'bi-lightning',
+        'bi-moon-stars', 'bi-rainbow', 'bi-water',
+        'bi-journal-text', 'bi-clipboard-check', 'bi-prescription2',
+        // Vücut
+        'bi-person-arms-up', 'bi-body-text', 'bi-emoji-smile'
+    ];
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);

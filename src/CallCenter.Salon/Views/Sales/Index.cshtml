@@ -72,6 +72,17 @@
 
         <!-- SAG: Sepet -->
         <div class="col-md-4 d-flex flex-column" style="background: #fff; border-left: 1px solid #dee2e6;">
+            <!-- Randevu Çek + Müşteri -->
+            <div class="p-2 border-bottom d-flex gap-1">
+                <button class="btn btn-outline-info btn-sm flex-fill" data-bind="click: openAppointments">
+                    <i class="bi bi-calendar-check me-1"></i>Randevu Çek
+                </button>
+                <!-- ko if: linkedAppointmentId() -->
+                <span class="badge bg-info align-self-center" data-bind="text: 'Randevu #' + linkedAppointmentId()"></span>
+                <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: unlinkAppointment" title="Randevu bağlantısını kaldır"><i class="bi bi-x"></i></button>
+                <!-- /ko -->
+            </div>
+
             <!-- Musteri Secimi -->
             <div class="p-3 border-bottom">
                 <div class="position-relative" data-bind="with: clientAutocomplete">
@@ -85,7 +96,7 @@
                         <button class="btn btn-outline-secondary" data-bind="click: clear"><i class="bi bi-x"></i></button>
                         <!-- /ko -->
                     </div>
-                    <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
+                    <div class="dropdown-menu w-100 shadow-sm" style="max-height:200px;overflow-y:auto;" data-bind="css: { show: showDropdown }">
                         <!-- ko foreach: filteredItems -->
                         <a class="dropdown-item small py-1 px-2" href="#"
                            data-bind="text: $parent.getDisplayText($data), click: $parent.select,
@@ -174,6 +185,48 @@
                     <i class="bi bi-check-circle me-1" data-bind="visible: !isSaving()"></i>
                     <span class="fw-bold">Odeme Al</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Randevu Çek Modal -->
+    <div class="modal fade" id="appointmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title"><i class="bi bi-calendar-check me-2"></i>Bugünün Randevuları</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="text-center py-3" data-bind="visible: appointmentsLoading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: !appointmentsLoading() && todayAppointments().length === 0">Bugün randevu yok.</div>
+                    <div class="table-responsive" data-bind="visible: todayAppointments().length > 0">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Saat</th><th>Müşteri</th><th>Personel</th><th>Hizmetler</th><th>Durum</th><th></th></tr>
+                            </thead>
+                            <tbody data-bind="foreach: todayAppointments">
+                                <tr>
+                                    <td class="fw-medium" data-bind="text: startTimeText"></td>
+                                    <td data-bind="text: clientName"></td>
+                                    <td class="small" data-bind="text: personnelName || '-'"></td>
+                                    <td class="small" data-bind="text: serviceNamesText"></td>
+                                    <td>
+                                        <span class="badge" data-bind="text: statusId === 1 ? 'Bekliyor' : statusId === 2 ? 'Devam' : statusId === 3 ? 'Tamamlandı' : 'İptal',
+                                            css: statusId === 1 ? 'bg-warning text-dark' : statusId === 2 ? 'bg-primary' : statusId === 3 ? 'bg-success' : 'bg-danger'"></span>
+                                    </td>
+                                    <td>
+                                        <!-- ko if: statusId < 3 -->
+                                        <button class="btn btn-primary btn-sm py-0" data-bind="click: $parent.selectAppointment">
+                                            <i class="bi bi-cart-plus me-1"></i>Sepete Al
+                                        </button>
+                                        <!-- /ko -->
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

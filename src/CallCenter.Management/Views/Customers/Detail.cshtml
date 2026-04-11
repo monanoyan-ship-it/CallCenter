@@ -51,8 +51,23 @@
                                     <textarea class="form-control form-control-sm" rows="2" data-bind="value: edit.address"></textarea>
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label small">Max Kullanici</label>
+                                    <label class="form-label small">Max Kullanıcı</label>
                                     <input type="number" class="form-control form-control-sm" data-bind="value: edit.maxUsers" />
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label small">Zaman Dilimi</label>
+                                    <select class="form-select form-select-sm" data-bind="value: edit.timeZone">
+                                        <option value="Europe/Istanbul">Türkiye (UTC+3)</option>
+                                        <option value="Europe/Berlin">Almanya (UTC+1/+2)</option>
+                                        <option value="Europe/London">İngiltere (UTC+0/+1)</option>
+                                        <option value="Europe/Paris">Fransa (UTC+1/+2)</option>
+                                        <option value="Europe/Amsterdam">Hollanda (UTC+1/+2)</option>
+                                        <option value="Europe/Vienna">Avusturya (UTC+1/+2)</option>
+                                        <option value="Europe/Zurich">İsviçre (UTC+1/+2)</option>
+                                        <option value="Europe/Moscow">Rusya (UTC+3)</option>
+                                        <option value="Asia/Dubai">BAE (UTC+4)</option>
+                                        <option value="America/New_York">ABD Doğu (UTC-5)</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check mt-4">
@@ -334,6 +349,7 @@ function DetailViewModel() {
         phone: ko.observable(''), email: ko.observable(''),
         address: ko.observable(''),
         maxUsers: ko.observable(5),
+        timeZone: ko.observable('Europe/Istanbul'),
         isTest: ko.observable(false),
         testNotes: ko.observable(''),
         products: ko.observableArray([])
@@ -407,6 +423,7 @@ function DetailViewModel() {
             self.edit.email(c.contactEmail || c.email || '');
             self.edit.address(c.address || '');
             self.edit.maxUsers(c.maxUsers || 5);
+            self.edit.timeZone(c.timeZone || 'Europe/Istanbul');
             self.edit.isTest(c.isTest || false);
             self.edit.testNotes(c.testNotes || '');
 
@@ -453,6 +470,7 @@ function DetailViewModel() {
                 contactPhone: self.edit.phone(), contactEmail: self.edit.email(),
                 address: self.edit.address(),
                 maxUsers: parseInt(self.edit.maxUsers()),
+                timeZone: self.edit.timeZone(),
                 isTest: self.edit.isTest(),
                 testNotes: self.edit.testNotes(),
                 products: activeProducts.map(function(p) {
