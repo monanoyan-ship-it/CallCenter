@@ -96,6 +96,22 @@ public class SlnMembershipController : ControllerBase
         return s ? Ok() : BadRequest(e);
     }
 
+    /// <summary>Musteri icin hizmet bazli uyelik hak kontrolu</summary>
+    [HttpPost("check-benefits")]
+    public async Task<ActionResult> CheckBenefits([FromBody] CheckBenefitsRequest request)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        var benefits = await _factory.CheckBenefitsAsync(cid, request.SlnClientId, request.ServiceIds);
+        return Ok(benefits);
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+}
+
+public class CheckBenefitsRequest
+{
+    public int SlnClientId { get; set; }
+    public List<int> ServiceIds { get; set; } = new();
 }

@@ -48,7 +48,8 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (invoice, error) = await _financeFactory.CreateInvoiceAsync(dto, userId, customerId);
+        var personnelId = GetPersonnelId();
+        var (invoice, error) = await _financeFactory.CreateInvoiceAsync(dto, personnelId, customerId);
         return invoice != null ? Ok(invoice) : BadRequest(error);
     }
 

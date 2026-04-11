@@ -33,6 +33,13 @@ public class SlnAppointment
     /// <summary>Iptal/NoShow nedeniyle kesilen ucret</summary>
     public decimal PenaltyAmount { get; set; }
 
+    /// <summary>Online on odeme yapildi mi?</summary>
+    public bool IsPrepaid { get; set; }
+    /// <summary>On odeme tutari</summary>
+    public decimal PrepaidAmount { get; set; }
+    /// <summary>On odeme islem referansi</summary>
+    public int? PaymentTransactionId { get; set; }
+
     public int? CreatedByPersonnelId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

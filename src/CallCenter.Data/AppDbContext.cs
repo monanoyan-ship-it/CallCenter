@@ -151,6 +151,8 @@ public class AppDbContext : DbContext
 
     public DbSet<SlnMembershipPlanService> SlnMembershipPlanServices => Set<SlnMembershipPlanService>();
 
+    public DbSet<SlnMembershipUsage> SlnMembershipUsages => Set<SlnMembershipUsage>();
+
     // ─── Salon Finance (ek) ───
     public DbSet<SlnInvoicePayment> SlnInvoicePayments => Set<SlnInvoicePayment>();
     public DbSet<SlnInvoiceRefund> SlnInvoiceRefunds => Set<SlnInvoiceRefund>();
@@ -335,6 +337,19 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnFormula>(e =>
         {
             e.Property(f => f.MaterialCost).HasPrecision(18, 2);
+        });
+
+        // SlnMembershipUsage (hizmet bazli kullanim takibi)
+        modelBuilder.Entity<SlnMembershipUsage>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.HasIndex(u => new { u.MembershipId, u.ServiceId, u.Year, u.Month }).IsUnique();
+        });
+
+        // SlnAppointment prepaid
+        modelBuilder.Entity<SlnAppointment>(e =>
+        {
+            e.Property(a => a.PrepaidAmount).HasPrecision(18, 2);
         });
 
         // SlnClient (ayni salonda ayni telefon mukerrer olamaz)

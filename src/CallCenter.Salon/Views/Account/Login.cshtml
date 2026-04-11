@@ -37,10 +37,14 @@
                 <input type="text" name="username" class="form-control" required autofocus />
             </div>
             <div class="mb-3">
-                <label class="form-label small">Sifre</label>
+                <label class="form-label small">Şifre</label>
                 <input type="password" name="password" class="form-control" required />
             </div>
-            <button type="submit" class="btn btn-salon w-100">Giris Yap</button>
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="rememberMe" value="true" class="form-check-input" id="rememberMe" />
+                <label class="form-check-label small" for="rememberMe">Beni hatırla <span class="text-muted">(30 gün)</span></label>
+            </div>
+            <button type="submit" class="btn btn-salon w-100">Giriş Yap</button>
         </form>
 
         <div class="text-center mt-3">

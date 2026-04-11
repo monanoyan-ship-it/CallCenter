@@ -15,7 +15,7 @@ public class AccountController : MgmtBaseController
     }
 
     [HttpPost]
-    public async Task<IActionResult> Login(string username, string password)
+    public async Task<IActionResult> Login(string username, string password, bool rememberMe = false)
     {
         using var client = CreateApiClient();
         var payload = JsonSerializer.Serialize(new { username, password });
@@ -39,9 +39,19 @@ public class AccountController : MgmtBaseController
             return View();
         }
 
-        HttpContext.Session.SetString("Token", root.GetProperty("token").GetString() ?? "");
+        var tokenStr = root.GetProperty("token").GetString() ?? "";
+        HttpContext.Session.SetString("Token", tokenStr);
         HttpContext.Session.SetString("UserName", root.GetProperty("fullName").GetString() ?? "");
         HttpContext.Session.SetString("UserRole", role ?? "");
+
+        if (rememberMe)
+        {
+            Response.Cookies.Append("RememberToken", tokenStr, new CookieOptions
+            {
+                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(30)
+            });
+        }
 
         return RedirectToAction("Index", "Home");
     }
@@ -49,6 +59,7 @@ public class AccountController : MgmtBaseController
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
+        Response.Cookies.Delete("RememberToken");
         return RedirectToAction("Login");
     }
 }

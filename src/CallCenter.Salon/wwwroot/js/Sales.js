@@ -17,9 +17,50 @@ function SalesViewModel() {
     self.todayAppointments = ko.observableArray([]);
     self.appointmentsLoading = ko.observable(false);
     self.isSaving = ko.observable(false);
+    self.isPrepaid = ko.observable(false);
+    self.prepaidAmount = ko.observable(0);
 
     // ═══ Autocomplete ═══
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.clientId);
+
+    // Musteri secildiginde uyelik kontrolu
+    self.clientId.subscribe(function (newClientId) {
+        if (!newClientId || self.cartItems().length === 0) return;
+        self.applyMembershipBenefits();
+    });
+
+    self.applyMembershipBenefits = function () {
+        var clientId = self.clientId();
+        if (!clientId) return;
+        var serviceIds = self.cartItems().filter(function (i) { return i.serviceId; }).map(function (i) { return i.serviceId; });
+        if (serviceIds.length === 0) return;
+
+        $.ajax({
+            url: '/proxy/sln-memberships/check-benefits',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ slnClientId: parseInt(clientId), serviceIds: serviceIds })
+        }).done(function (benefits) {
+            if (!benefits || !benefits.length) return;
+            self.cartItems().forEach(function (item) {
+                var benefit = benefits.find(function (b) { return b.serviceId === item.serviceId; });
+                if (!benefit) return;
+
+                if (benefit.hasFreeBenefit && benefit.remainingFree > 0) {
+                    // Ucretsiz hakki var
+                    item.editPrice(0);
+                    item.benefitText = benefit.planName + ': ' + benefit.usedThisMonth + '/' + benefit.freeCountPerMonth + ' kullanildi (ucretsiz)';
+                } else if (benefit.discountPercent && benefit.discountPercent > 0) {
+                    // Indirimli
+                    var discounted = item.unitPrice * (1 - benefit.discountPercent / 100);
+                    item.editPrice(Math.round(discounted * 100) / 100);
+                    item.benefitText = benefit.planName + ': %' + benefit.discountPercent + ' indirim';
+                }
+            });
+            if (benefits.some(function (b) { return b.hasFreeBenefit || b.discountPercent; }))
+                toastr.info('Üyelik avantajları uygulandı.');
+        });
+    };
 
     self.filteredServices = ko.computed(function () {
         var catId = self.selectedCategoryId();
@@ -29,7 +70,7 @@ function SalesViewModel() {
 
     self.subtotal = ko.computed(function () {
         var total = 0;
-        self.cartItems().forEach(function (item) { total += item.quantity() * item.unitPrice; });
+        self.cartItems().forEach(function (item) { total += item.quantity() * (parseFloat(item.editPrice()) || 0); });
         return total;
     });
 
@@ -83,6 +124,7 @@ function SalesViewModel() {
                         serviceId: item.serviceId,
                         name: item.serviceName,
                         unitPrice: item.servicePrice,
+                        editPrice: ko.observable(item.servicePrice),
                         quantity: ko.observable(1)
                     });
                 }
@@ -108,8 +150,12 @@ function SalesViewModel() {
             serviceId: service.id,
             name: service.name,
             unitPrice: service.price,
-            quantity: ko.observable(1)
+            editPrice: ko.observable(service.price),
+            quantity: ko.observable(1),
+            benefitText: null
         });
+        // Uyelik kontrolu
+        self.applyMembershipBenefits();
     };
 
     self.increaseQty = function (item) {
@@ -141,7 +187,7 @@ function SalesViewModel() {
                 productId: null,
                 personnelId: self.selectedPersonnelId() ? parseInt(self.selectedPersonnelId()) : null,
                 quantity: item.quantity(),
-                unitPrice: item.unitPrice,
+                unitPrice: parseFloat(item.editPrice()) || item.unitPrice,
                 discountAmount: 0
             };
         });
@@ -151,7 +197,8 @@ function SalesViewModel() {
             paymentMethodId: parseInt(self.paymentMethodId()) || 1,
             discountAmount: parseFloat(self.discountAmount()) || 0,
             tipAmount: parseFloat(self.tipAmount()) || 0,
-            notes: null,
+            notes: self.isPrepaid() ? 'Ön ödeme: ' + self.prepaidAmount() + ' TL (Online)' : null,
+            prepaidAmount: self.prepaidAmount(),
             items: items
         };
 
@@ -210,9 +257,17 @@ function SalesViewModel() {
         }).fail(function () { self.appointmentsLoading(false); });
     };
 
+    self.remainingAmount = ko.computed(function () {
+        return Math.max(0, self.grandTotal() - self.prepaidAmount());
+    });
+
     self.selectAppointment = function (appt) {
         // Sepeti temizle
         self.cartItems([]);
+
+        // Ön ödeme kontrolü
+        self.isPrepaid(appt.isPrepaid || false);
+        self.prepaidAmount(appt.prepaidAmount || 0);
 
         // Müşteriyi seç
         if (appt.slnClientId) {
@@ -236,12 +291,12 @@ function SalesViewModel() {
                         serviceId: svc.id,
                         name: svc.name,
                         unitPrice: svc.price,
+                        editPrice: ko.observable(svc.price),
                         quantity: ko.observable(1)
                     });
                 }
             });
         } else if (appt.serviceNames && appt.serviceNames.length > 0) {
-            // serviceNames varsa isimleriyle eşleştir
             appt.serviceNames.forEach(function (svcName) {
                 var svc = self.allServices().find(function (sv) { return sv.name === svcName; });
                 if (svc) {
@@ -249,6 +304,7 @@ function SalesViewModel() {
                         serviceId: svc.id,
                         name: svc.name,
                         unitPrice: svc.price,
+                        editPrice: ko.observable(svc.price),
                         quantity: ko.observable(1)
                     });
                 }
@@ -264,6 +320,8 @@ function SalesViewModel() {
 
     self.unlinkAppointment = function () {
         self.linkedAppointmentId(null);
+        self.isPrepaid(false);
+        self.prepaidAmount(0);
     };
 
     // ═══ Init ═══

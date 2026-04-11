@@ -15,7 +15,7 @@ public class AccountController : SlnBaseController
     }
 
     [HttpPost]
-    public async Task<IActionResult> Login(string username, string password)
+    public async Task<IActionResult> Login(string username, string password, bool rememberMe = false)
     {
         using var client = CreateApiClient();
         var payload = JsonSerializer.Serialize(new { username, password });
@@ -30,6 +30,19 @@ public class AccountController : SlnBaseController
 
         var json = await response.Content.ReadAsStringAsync();
         SetSessionFromLoginResponse(json);
+
+        // Beni hatirla — token'i persistent cookie'ye yaz
+        if (rememberMe)
+        {
+            Response.Cookies.Append("RememberToken", HttpContext.Session.GetString("Token") ?? "", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(30)
+            });
+        }
+
         return RedirectToAction("Index", "Home");
     }
 
@@ -70,6 +83,7 @@ public class AccountController : SlnBaseController
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
+        Response.Cookies.Delete("RememberToken");
         return RedirectToAction("Login");
     }
 

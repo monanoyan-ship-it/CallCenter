@@ -10,10 +10,50 @@ public abstract class SlnBaseController : Controller
     {
         var controllerType = context.Controller.GetType();
         var token = HttpContext.Session.GetString("Token");
+
+        // Session dustu ama "Beni Hatirla" cookie'si varsa — session'i geri yukle
         if (string.IsNullOrEmpty(token) && controllerType != typeof(AccountController))
         {
-            context.Result = RedirectToAction("Login", "Account");
-            return;
+            var rememberToken = HttpContext.Request.Cookies["RememberToken"];
+            if (!string.IsNullOrEmpty(rememberToken))
+            {
+                // Token'dan session'i yeniden olustur
+                HttpContext.Session.SetString("Token", rememberToken);
+                try
+                {
+                    var jwtParts = rememberToken.Split('.');
+                    if (jwtParts.Length == 3)
+                    {
+                        var jwtPayload = jwtParts[1].Replace('-', '+').Replace('_', '/');
+                        switch (jwtPayload.Length % 4)
+                        {
+                            case 2: jwtPayload += "=="; break;
+                            case 3: jwtPayload += "="; break;
+                        }
+                        var payloadBytes = Convert.FromBase64String(jwtPayload);
+                        using var claims = System.Text.Json.JsonDocument.Parse(payloadBytes);
+                        var claimRoot = claims.RootElement;
+
+                        if (claimRoot.TryGetProperty("given_name", out var gn))
+                            HttpContext.Session.SetString("UserName", gn.ToString());
+                        if (claimRoot.TryGetProperty("CustomerName", out var cn))
+                            HttpContext.Session.SetString("CustomerName", cn.ToString());
+                        if (claimRoot.TryGetProperty("CustomerRoleId", out var cri))
+                            HttpContext.Session.SetString("CustomerRoleId", cri.ToString());
+                        if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
+                            HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
+                        if (claimRoot.TryGetProperty("CustomerModules", out var cm))
+                            HttpContext.Session.SetString("CustomerModules", cm.ToString());
+                    }
+                }
+                catch { }
+                token = rememberToken;
+            }
+            else
+            {
+                context.Result = RedirectToAction("Login", "Account");
+                return;
+            }
         }
 
         // Rol + modul bazli sayfa erisim kontrolu (Proxy, PublicProxy, Modules muaf)

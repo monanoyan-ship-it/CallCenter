@@ -193,4 +193,79 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    public async Task<List<ServiceMembershipBenefit>> CheckBenefitsAsync(int customerId, int slnClientId, List<int> serviceIds)
+    {
+        // Musterinin aktif uyeligi
+        var membership = await _db.SlnClientMemberships
+            .Include(m => m.Plan).ThenInclude(p => p!.Services).ThenInclude(s => s.Service)
+            .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.SlnClientId == slnClientId && m.StatusId == 1);
+
+        if (membership?.Plan == null)
+            return serviceIds.Select(id => new ServiceMembershipBenefit { ServiceId = id }).ToList();
+
+        var now = DateTime.UtcNow;
+        var year = now.Year;
+        var month = now.Month;
+
+        // Bu aydaki kullanim kayitlari
+        var usages = await _db.SlnMembershipUsages
+            .Where(u => u.MembershipId == membership.Id && u.Year == year && u.Month == month)
+            .ToListAsync();
+
+        return serviceIds.Select(serviceId =>
+        {
+            var planService = membership.Plan.Services.FirstOrDefault(s => s.ServiceId == serviceId);
+            if (planService == null)
+            {
+                // Bu hizmet planda yok — genel plan indirimi uygula
+                return new ServiceMembershipBenefit
+                {
+                    ServiceId = serviceId,
+                    ServiceName = "",
+                    DiscountPercent = membership.Plan.DiscountPercent > 0 ? membership.Plan.DiscountPercent : null,
+                    PlanName = membership.Plan.Name
+                };
+            }
+
+            var usage = usages.FirstOrDefault(u => u.ServiceId == serviceId);
+            var usedCount = usage?.UsedCount ?? 0;
+
+            return new ServiceMembershipBenefit
+            {
+                ServiceId = serviceId,
+                ServiceName = planService.Service?.Name ?? "",
+                HasFreeBenefit = planService.FreeCountPerMonth > 0,
+                FreeCountPerMonth = planService.FreeCountPerMonth,
+                UsedThisMonth = usedCount,
+                DiscountPercent = planService.DiscountPercent ?? (membership.Plan.DiscountPercent > 0 ? membership.Plan.DiscountPercent : null),
+                PlanName = membership.Plan.Name
+            };
+        }).ToList();
+    }
+
+    public async Task RecordUsageAsync(int customerId, int membershipId, int serviceId)
+    {
+        var now = DateTime.UtcNow;
+        var usage = await _db.SlnMembershipUsages
+            .FirstOrDefaultAsync(u => u.MembershipId == membershipId && u.ServiceId == serviceId && u.Year == now.Year && u.Month == now.Month);
+
+        if (usage != null)
+        {
+            usage.UsedCount++;
+        }
+        else
+        {
+            _db.SlnMembershipUsages.Add(new SlnMembershipUsage
+            {
+                CustomerId = customerId,
+                MembershipId = membershipId,
+                ServiceId = serviceId,
+                Year = now.Year,
+                Month = now.Month,
+                UsedCount = 1
+            });
+        }
+        await _uow.SaveChangesAsync();
+    }
 }

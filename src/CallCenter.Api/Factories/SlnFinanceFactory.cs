@@ -113,7 +113,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             InvoiceDate = today,
             PaymentMethodId = dto.PaymentMethodId,
             PosDeviceId = dto.PosDeviceId,
-            PersonnelId = userId,
+            PersonnelId = userId > 0 ? userId : null, // userId = CustomerPersonnelId
             DiscountAmount = dto.DiscountAmount,
             TipAmount = dto.TipAmount,
             Notes = dto.Notes
