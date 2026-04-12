@@ -50,6 +50,10 @@ public class TokenService
             if (customerPersonnel.IsCustomerAdmin)
                 claims.Add(new Claim("IsCustomerAdmin", "true"));
 
+            // Sube bilgisi (null = tum subeler / merkez)
+            if (customerPersonnel.BranchId.HasValue)
+                claims.Add(new Claim("BranchId", customerPersonnel.BranchId.Value.ToString()));
+
             // Rol bazli statik izinler
             var permIds = string.Join(",", CustomerRoles.GetPermissionsForRole(customerPersonnel.CustomerRoleId));
             if (!string.IsNullOrEmpty(permIds))

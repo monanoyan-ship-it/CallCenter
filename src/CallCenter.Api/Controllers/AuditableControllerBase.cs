@@ -45,6 +45,16 @@ public abstract class AuditableControllerBase : ControllerBase
         }
     }
 
+    /// <summary>Kullanicinin sube ID'si (null = tum subeler / merkez)</summary>
+    protected int? CurrentBranchId
+    {
+        get
+        {
+            var claim = User.FindFirstValue("BranchId");
+            return claim != null && int.TryParse(claim, out var id) ? id : null;
+        }
+    }
+
     // ───────── Audit log kolaylik metotlari ─────────
 
     /// <summary>Auth olaylarini loglar (login, logout, refresh, revoke)</summary>

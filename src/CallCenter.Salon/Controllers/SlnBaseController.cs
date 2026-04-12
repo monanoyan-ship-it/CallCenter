@@ -44,6 +44,8 @@ public abstract class SlnBaseController : Controller
                             HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
                         if (claimRoot.TryGetProperty("CustomerModules", out var cm))
                             HttpContext.Session.SetString("CustomerModules", cm.ToString());
+                        if (claimRoot.TryGetProperty("BranchId", out var bid))
+                            HttpContext.Session.SetString("BranchId", bid.ToString());
                     }
                 }
                 catch { }
