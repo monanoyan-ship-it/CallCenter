@@ -198,8 +198,8 @@ function DetailViewModel() {
     };
 
     self.activateAllDefaults = function () {
-        // Default modul ID leri: 201,202,203,204,206,214,215,220
-        var defaultIds = [201,202,203,204,206,214,215,220];
+        // Default modul ID leri: 201,202,203,204,206,209,214,215,220
+        var defaultIds = [201,202,203,204,206,209,214,215,220];
         $.ajax({
             url: '/proxy/customers/' + CUSTOMER_ID + '/modules/assign',
             method: 'POST',
