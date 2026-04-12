@@ -19,7 +19,10 @@ function TranslationsViewModel() {
         module: ko.observable(''),
         description: ko.observable(''),
         tr: ko.observable(''),
-        en: ko.observable('')
+        en: ko.observable(''),
+        de: ko.observable(''),
+        ar: ko.observable(''),
+        ru: ko.observable('')
     };
 
     self.pageNumbers = ko.computed(function() {
@@ -63,7 +66,7 @@ function TranslationsViewModel() {
 
     self.resetForm = function() {
         self.form.id(null); self.form.key(''); self.form.module('');
-        self.form.description(''); self.form.tr(''); self.form.en('');
+        self.form.description(''); self.form.tr(''); self.form.en(''); self.form.de(''); self.form.ar(''); self.form.ru('');
     };
 
     self.openCreate = function() {
@@ -78,6 +81,9 @@ function TranslationsViewModel() {
         self.form.module(item.module || '');
         self.form.description(item.description || '');
         self.form.tr(item.values && item.values['tr'] || '');
+        self.form.de(item.values && item.values['de'] || '');
+        self.form.ar(item.values && item.values['ar'] || '');
+        self.form.ru(item.values && item.values['ru'] || '');
         self.form.en(item.values && item.values['en'] || '');
         self.formTitle('Ceviri Duzenle');
         new bootstrap.Modal('#translationModal').show();
@@ -89,7 +95,7 @@ function TranslationsViewModel() {
         var payload = {
             key: self.form.key(), module: self.form.module(),
             description: self.form.description(),
-            values: { tr: self.form.tr(), en: self.form.en() }
+            values: { tr: self.form.tr(), en: self.form.en(), de: self.form.de(), ar: self.form.ar(), ru: self.form.ru() }
         };
         var method = self.form.id() ? 'PUT' : 'POST';
         var url = self.form.id() ? '/proxy/translations/keys/' + self.form.id() : '/proxy/translations/keys';

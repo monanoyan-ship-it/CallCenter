@@ -158,5 +158,135 @@
 
     <!-- ═══ MODULES ═══ -->
     <Key Id="salon.modules.title" Module="modules" Description="Modules page title"><Value Lang="tr">Modül Yönetimi</Value><Value Lang="en">Module Management</Value><Value Lang="de">Modulverwaltung</Value><Value Lang="ar">إدارة الوحدات</Value><Value Lang="ru">Управление модулями</Value></Key>
+    <Key Id="salon.modules.basic_package" Module="modules" Description="Basic Package"><Value Lang="tr">Temel Paket (Dahil)</Value><Value Lang="en">Basic Package (Included)</Value><Value Lang="de">Basispaket (Enthalten)</Value><Value Lang="ar">الباقة الأساسية (مضمنة)</Value><Value Lang="ru">Базовый пакет (Включён)</Value></Key>
+    <Key Id="salon.modules.active_extras" Module="modules" Description="Active extras"><Value Lang="tr">Aktif Ek Modülleriniz</Value><Value Lang="en">Your Active Add-ons</Value><Value Lang="de">Ihre aktiven Zusatzmodule</Value><Value Lang="ar">إضافاتك النشطة</Value><Value Lang="ru">Ваши активные дополнения</Value></Key>
+    <Key Id="salon.modules.available" Module="modules" Description="Available modules"><Value Lang="tr">Satın Alınabilir Modüller</Value><Value Lang="en">Available Modules</Value><Value Lang="de">Verfügbare Module</Value><Value Lang="ar">الوحدات المتاحة</Value><Value Lang="ru">Доступные модули</Value></Key>
+    <Key Id="salon.modules.monthly_total" Module="modules" Description="Monthly total"><Value Lang="tr">Aylık Modül Tutarı</Value><Value Lang="en">Monthly Module Cost</Value><Value Lang="de">Monatliche Modulkosten</Value><Value Lang="ar">التكلفة الشهرية للوحدات</Value><Value Lang="ru">Ежемесячная стоимость модулей</Value></Key>
+    <Key Id="salon.modules.btn.request" Module="modules" Description="Request module"><Value Lang="tr">Talep Et</Value><Value Lang="en">Request</Value><Value Lang="de">Anfragen</Value><Value Lang="ar">طلب</Value><Value Lang="ru">Запросить</Value></Key>
+    <Key Id="salon.modules.btn.cancel_request" Module="modules" Description="Cancel request"><Value Lang="tr">İptal Talep Et</Value><Value Lang="en">Request Cancellation</Value><Value Lang="de">Kündigung beantragen</Value><Value Lang="ar">طلب إلغاء</Value><Value Lang="ru">Запрос на отмену</Value></Key>
+
+    <!-- ═══ INVOICES ═══ -->
+    <Key Id="salon.invoices.title" Module="invoices" Description="Invoices page title"><Value Lang="tr">Adisyonlar</Value><Value Lang="en">Invoices</Value><Value Lang="de">Rechnungen</Value><Value Lang="ar">الفواتير</Value><Value Lang="ru">Счета</Value></Key>
+    <Key Id="salon.invoices.btn.add_new" Module="invoices" Description="New invoice"><Value Lang="tr">Yeni Adisyon</Value><Value Lang="en">New Invoice</Value><Value Lang="de">Neue Rechnung</Value><Value Lang="ar">فاتورة جديدة</Value><Value Lang="ru">Новый счёт</Value></Key>
+    <Key Id="salon.invoices.success.cancelled" Module="invoices" Description="Invoice cancelled"><Value Lang="tr">Adisyon iptal edildi</Value><Value Lang="en">Invoice cancelled</Value><Value Lang="de">Rechnung storniert</Value><Value Lang="ar">تم إلغاء الفاتورة</Value><Value Lang="ru">Счёт отменён</Value></Key>
+
+    <!-- ═══ CASH ═══ -->
+    <Key Id="salon.cash.title" Module="cash" Description="Cash page title"><Value Lang="tr">Kasa</Value><Value Lang="en">Cash Register</Value><Value Lang="de">Kasse</Value><Value Lang="ar">الصندوق</Value><Value Lang="ru">Касса</Value></Key>
+    <Key Id="salon.cash.btn.add_register" Module="cash" Description="New register"><Value Lang="tr">Yeni Kasa</Value><Value Lang="en">New Register</Value><Value Lang="de">Neue Kasse</Value><Value Lang="ar">صندوق جديد</Value><Value Lang="ru">Новая касса</Value></Key>
+    <Key Id="salon.cash.btn.add_transaction" Module="cash" Description="New transaction"><Value Lang="tr">Yeni İşlem</Value><Value Lang="en">New Transaction</Value><Value Lang="de">Neue Transaktion</Value><Value Lang="ar">عملية جديدة</Value><Value Lang="ru">Новая операция</Value></Key>
+    <Key Id="salon.cash.success.transaction_saved" Module="cash" Description="Transaction saved"><Value Lang="tr">İşlem kaydedildi</Value><Value Lang="en">Transaction saved</Value><Value Lang="de">Transaktion gespeichert</Value><Value Lang="ar">تم حفظ العملية</Value><Value Lang="ru">Операция сохранена</Value></Key>
+
+    <!-- ═══ EXPENSES ═══ -->
+    <Key Id="salon.expenses.title" Module="expenses" Description="Expenses page title"><Value Lang="tr">Masraflar</Value><Value Lang="en">Expenses</Value><Value Lang="de">Ausgaben</Value><Value Lang="ar">المصروفات</Value><Value Lang="ru">Расходы</Value></Key>
+    <Key Id="salon.expenses.btn.add_new" Module="expenses" Description="New expense"><Value Lang="tr">Yeni Masraf</Value><Value Lang="en">New Expense</Value><Value Lang="de">Neue Ausgabe</Value><Value Lang="ar">مصروف جديد</Value><Value Lang="ru">Новый расход</Value></Key>
+    <Key Id="salon.expenses.btn.approve" Module="expenses" Description="Approve"><Value Lang="tr">Onayla</Value><Value Lang="en">Approve</Value><Value Lang="de">Genehmigen</Value><Value Lang="ar">موافقة</Value><Value Lang="ru">Одобрить</Value></Key>
+    <Key Id="salon.expenses.btn.reject" Module="expenses" Description="Reject"><Value Lang="tr">Reddet</Value><Value Lang="en">Reject</Value><Value Lang="de">Ablehnen</Value><Value Lang="ar">رفض</Value><Value Lang="ru">Отклонить</Value></Key>
+
+    <!-- ═══ GIFT CARDS ═══ -->
+    <Key Id="salon.giftcards.title" Module="giftcards" Description="Gift Cards page title"><Value Lang="tr">Hediye Kartları</Value><Value Lang="en">Gift Cards</Value><Value Lang="de">Geschenkkarten</Value><Value Lang="ar">بطاقات الهدايا</Value><Value Lang="ru">Подарочные карты</Value></Key>
+    <Key Id="salon.giftcards.btn.add_new" Module="giftcards" Description="New gift card"><Value Lang="tr">Yeni Hediye Kartı</Value><Value Lang="en">New Gift Card</Value><Value Lang="de">Neue Geschenkkarte</Value><Value Lang="ar">بطاقة هدية جديدة</Value><Value Lang="ru">Новая подарочная карта</Value></Key>
+
+    <!-- ═══ PACKAGES ═══ -->
+    <Key Id="salon.packages.title" Module="packages" Description="Packages page title"><Value Lang="tr">Seans Paketleri</Value><Value Lang="en">Session Packages</Value><Value Lang="de">Sitzungspakete</Value><Value Lang="ar">باقات الجلسات</Value><Value Lang="ru">Пакеты сеансов</Value></Key>
+    <Key Id="salon.packages.btn.add_new" Module="packages" Description="New package"><Value Lang="tr">Yeni Paket</Value><Value Lang="en">New Package</Value><Value Lang="de">Neues Paket</Value><Value Lang="ar">باقة جديدة</Value><Value Lang="ru">Новый пакет</Value></Key>
+    <Key Id="salon.packages.btn.use_session" Module="packages" Description="Use session"><Value Lang="tr">Seans Kullan</Value><Value Lang="en">Use Session</Value><Value Lang="de">Sitzung verwenden</Value><Value Lang="ar">استخدم جلسة</Value><Value Lang="ru">Использовать сеанс</Value></Key>
+
+    <!-- ═══ CAMPAIGNS ═══ -->
+    <Key Id="salon.campaigns.title" Module="campaigns" Description="Campaigns page title"><Value Lang="tr">Kampanyalar</Value><Value Lang="en">Campaigns</Value><Value Lang="de">Kampagnen</Value><Value Lang="ar">الحملات</Value><Value Lang="ru">Кампании</Value></Key>
+    <Key Id="salon.campaigns.btn.add_new" Module="campaigns" Description="New campaign"><Value Lang="tr">Yeni Kampanya</Value><Value Lang="en">New Campaign</Value><Value Lang="de">Neue Kampagne</Value><Value Lang="ar">حملة جديدة</Value><Value Lang="ru">Новая кампания</Value></Key>
+    <Key Id="salon.campaigns.btn.send" Module="campaigns" Description="Send campaign"><Value Lang="tr">Gönder</Value><Value Lang="en">Send</Value><Value Lang="de">Senden</Value><Value Lang="ar">إرسال</Value><Value Lang="ru">Отправить</Value></Key>
+    <Key Id="salon.campaigns.success.sent" Module="campaigns" Description="Campaign sent"><Value Lang="tr">Kampanya gönderildi</Value><Value Lang="en">Campaign sent</Value><Value Lang="de">Kampagne gesendet</Value><Value Lang="ar">تم إرسال الحملة</Value><Value Lang="ru">Кампания отправлена</Value></Key>
+
+    <!-- ═══ MEMBERSHIPS ═══ -->
+    <Key Id="salon.memberships.title" Module="memberships" Description="Memberships page title"><Value Lang="tr">Üyelik Planları</Value><Value Lang="en">Membership Plans</Value><Value Lang="de">Mitgliedschaftspläne</Value><Value Lang="ar">خطط العضوية</Value><Value Lang="ru">Планы членства</Value></Key>
+    <Key Id="salon.memberships.btn.add_plan" Module="memberships" Description="New plan"><Value Lang="tr">Yeni Plan</Value><Value Lang="en">New Plan</Value><Value Lang="de">Neuer Plan</Value><Value Lang="ar">خطة جديدة</Value><Value Lang="ru">Новый план</Value></Key>
+    <Key Id="salon.memberships.btn.add_member" Module="memberships" Description="New member"><Value Lang="tr">Yeni Üye</Value><Value Lang="en">New Member</Value><Value Lang="de">Neues Mitglied</Value><Value Lang="ar">عضو جديد</Value><Value Lang="ru">Новый участник</Value></Key>
+
+    <!-- ═══ LOYALTY ═══ -->
+    <Key Id="salon.loyalty.title" Module="loyalty" Description="Loyalty page title"><Value Lang="tr">Sadakat Programı</Value><Value Lang="en">Loyalty Program</Value><Value Lang="de">Treueprogramm</Value><Value Lang="ar">برنامج الولاء</Value><Value Lang="ru">Программа лояльности</Value></Key>
+
+    <!-- ═══ EMAIL CAMPAIGNS ═══ -->
+    <Key Id="salon.emailcampaigns.title" Module="emailcampaigns" Description="Email Campaigns page title"><Value Lang="tr">E-posta Kampanyaları</Value><Value Lang="en">Email Campaigns</Value><Value Lang="de">E-Mail-Kampagnen</Value><Value Lang="ar">حملات البريد الإلكتروني</Value><Value Lang="ru">Email-кампании</Value></Key>
+
+    <!-- ═══ REVIEWS ═══ -->
+    <Key Id="salon.reviews.title" Module="reviews" Description="Reviews page title"><Value Lang="tr">Yorumlar</Value><Value Lang="en">Reviews</Value><Value Lang="de">Bewertungen</Value><Value Lang="ar">التقييمات</Value><Value Lang="ru">Отзывы</Value></Key>
+    <Key Id="salon.reviews.btn.approve" Module="reviews" Description="Approve review"><Value Lang="tr">Onayla</Value><Value Lang="en">Approve</Value><Value Lang="de">Genehmigen</Value><Value Lang="ar">موافقة</Value><Value Lang="ru">Одобрить</Value></Key>
+    <Key Id="salon.reviews.btn.reject" Module="reviews" Description="Reject review"><Value Lang="tr">Reddet</Value><Value Lang="en">Reject</Value><Value Lang="de">Ablehnen</Value><Value Lang="ar">رفض</Value><Value Lang="ru">Отклонить</Value></Key>
+
+    <!-- ═══ WINBACK ═══ -->
+    <Key Id="salon.winback.title" Module="winback" Description="Winback page title"><Value Lang="tr">Müşteri Geri Kazanım</Value><Value Lang="en">Customer Winback</Value><Value Lang="de">Kundenrückgewinnung</Value><Value Lang="ar">استعادة العملاء</Value><Value Lang="ru">Возврат клиентов</Value></Key>
+    <Key Id="salon.winback.btn.add_rule" Module="winback" Description="New rule"><Value Lang="tr">Yeni Kural</Value><Value Lang="en">New Rule</Value><Value Lang="de">Neue Regel</Value><Value Lang="ar">قاعدة جديدة</Value><Value Lang="ru">Новое правило</Value></Key>
+
+    <!-- ═══ RECIPES ═══ -->
+    <Key Id="salon.recipes.title" Module="recipes" Description="Recipes page title"><Value Lang="tr">Reçeteler</Value><Value Lang="en">Recipes</Value><Value Lang="de">Rezepte</Value><Value Lang="ar">الوصفات</Value><Value Lang="ru">Рецепты</Value></Key>
+    <Key Id="salon.recipes.btn.add_new" Module="recipes" Description="New recipe"><Value Lang="tr">Yeni Reçete</Value><Value Lang="en">New Recipe</Value><Value Lang="de">Neues Rezept</Value><Value Lang="ar">وصفة جديدة</Value><Value Lang="ru">Новый рецепт</Value></Key>
+
+    <!-- ═══ PRODUCTS ═══ -->
+    <Key Id="salon.products.title" Module="products" Description="Products page title"><Value Lang="tr">Ürünler</Value><Value Lang="en">Products</Value><Value Lang="de">Produkte</Value><Value Lang="ar">المنتجات</Value><Value Lang="ru">Продукты</Value></Key>
+    <Key Id="salon.products.btn.add_new" Module="products" Description="New product"><Value Lang="tr">Yeni Ürün</Value><Value Lang="en">New Product</Value><Value Lang="de">Neues Produkt</Value><Value Lang="ar">منتج جديد</Value><Value Lang="ru">Новый продукт</Value></Key>
+    <Key Id="salon.products.col.name" Module="products" Description="Name column"><Value Lang="tr">Ürün Adı</Value><Value Lang="en">Product Name</Value><Value Lang="de">Produktname</Value><Value Lang="ar">اسم المنتج</Value><Value Lang="ru">Название продукта</Value></Key>
+    <Key Id="salon.products.col.brand" Module="products" Description="Brand column"><Value Lang="tr">Marka</Value><Value Lang="en">Brand</Value><Value Lang="de">Marke</Value><Value Lang="ar">العلامة التجارية</Value><Value Lang="ru">Бренд</Value></Key>
+    <Key Id="salon.products.col.stock" Module="products" Description="Stock column"><Value Lang="tr">Stok</Value><Value Lang="en">Stock</Value><Value Lang="de">Bestand</Value><Value Lang="ar">المخزون</Value><Value Lang="ru">Остаток</Value></Key>
+    <Key Id="salon.products.col.price" Module="products" Description="Price column"><Value Lang="tr">Fiyat</Value><Value Lang="en">Price</Value><Value Lang="de">Preis</Value><Value Lang="ar">السعر</Value><Value Lang="ru">Цена</Value></Key>
+
+    <!-- ═══ SUPPLIERS ═══ -->
+    <Key Id="salon.suppliers.title" Module="suppliers" Description="Suppliers page title"><Value Lang="tr">Tedarikçiler</Value><Value Lang="en">Suppliers</Value><Value Lang="de">Lieferanten</Value><Value Lang="ar">الموردون</Value><Value Lang="ru">Поставщики</Value></Key>
+    <Key Id="salon.suppliers.btn.add_new" Module="suppliers" Description="New supplier"><Value Lang="tr">Yeni Tedarikçi</Value><Value Lang="en">New Supplier</Value><Value Lang="de">Neuer Lieferant</Value><Value Lang="ar">مورد جديد</Value><Value Lang="ru">Новый поставщик</Value></Key>
+
+    <!-- ═══ REPORTS ═══ -->
+    <Key Id="salon.reports.title" Module="reports" Description="Reports page title"><Value Lang="tr">Raporlar</Value><Value Lang="en">Reports</Value><Value Lang="de">Berichte</Value><Value Lang="ar">التقارير</Value><Value Lang="ru">Отчёты</Value></Key>
+
+    <!-- ═══ NOSHOW POLICY ═══ -->
+    <Key Id="salon.noshowpolicy.title" Module="noshowpolicy" Description="NoShow Policy page title"><Value Lang="tr">Randevu Kuralları</Value><Value Lang="en">Appointment Rules</Value><Value Lang="de">Terminregeln</Value><Value Lang="ar">قواعد المواعيد</Value><Value Lang="ru">Правила записи</Value></Key>
+    <Key Id="salon.noshowpolicy.deposit_required" Module="noshowpolicy" Description="Deposit required"><Value Lang="tr">Ön Ödeme Zorunlu</Value><Value Lang="en">Deposit Required</Value><Value Lang="de">Anzahlung erforderlich</Value><Value Lang="ar">الدفع المسبق مطلوب</Value><Value Lang="ru">Депозит обязателен</Value></Key>
+    <Key Id="salon.noshowpolicy.deposit_amount" Module="noshowpolicy" Description="Deposit amount"><Value Lang="tr">Ön Ödeme Tutarı (TL)</Value><Value Lang="en">Deposit Amount (TL)</Value><Value Lang="de">Anzahlungsbetrag (TL)</Value><Value Lang="ar">مبلغ الدفع المسبق (TL)</Value><Value Lang="ru">Сумма депозита (TL)</Value></Key>
+    <Key Id="salon.noshowpolicy.free_cancel_hours" Module="noshowpolicy" Description="Free cancellation hours"><Value Lang="tr">Ücretsiz İptal Süresi (saat)</Value><Value Lang="en">Free Cancellation Period (hours)</Value><Value Lang="de">Kostenlose Stornierung (Stunden)</Value><Value Lang="ar">فترة الإلغاء المجاني (ساعات)</Value><Value Lang="ru">Бесплатная отмена (часы)</Value></Key>
+    <Key Id="salon.noshowpolicy.late_cancel_fee" Module="noshowpolicy" Description="Late cancellation fee"><Value Lang="tr">Geç İptal Ücreti (TL)</Value><Value Lang="en">Late Cancellation Fee (TL)</Value><Value Lang="de">Späte Stornierungsgebühr (TL)</Value><Value Lang="ar">رسوم الإلغاء المتأخر (TL)</Value><Value Lang="ru">Штраф за позднюю отмену (TL)</Value></Key>
+    <Key Id="salon.noshowpolicy.noshow_fee" Module="noshowpolicy" Description="No-show fee"><Value Lang="tr">Gelmeme Ücreti (TL)</Value><Value Lang="en">No-Show Fee (TL)</Value><Value Lang="de">Nichterscheinungsgebühr (TL)</Value><Value Lang="ar">رسوم عدم الحضور (TL)</Value><Value Lang="ru">Штраф за неявку (TL)</Value></Key>
+    <Key Id="salon.noshowpolicy.blacklist_threshold" Module="noshowpolicy" Description="Blacklist threshold"><Value Lang="tr">Engelleme Sınırı</Value><Value Lang="en">Block Threshold</Value><Value Lang="de">Sperrschwelle</Value><Value Lang="ar">حد الحظر</Value><Value Lang="ru">Порог блокировки</Value></Key>
+
+    <!-- ═══ CONSENT FORMS ═══ -->
+    <Key Id="salon.consentforms.title" Module="consentforms" Description="Consent Forms page title"><Value Lang="tr">Onay Formları</Value><Value Lang="en">Consent Forms</Value><Value Lang="de">Einwilligungsformulare</Value><Value Lang="ar">نماذج الموافقة</Value><Value Lang="ru">Формы согласия</Value></Key>
+    <Key Id="salon.consentforms.btn.add_new" Module="consentforms" Description="New form"><Value Lang="tr">Yeni Form</Value><Value Lang="en">New Form</Value><Value Lang="de">Neues Formular</Value><Value Lang="ar">نموذج جديد</Value><Value Lang="ru">Новая форма</Value></Key>
+
+    <!-- ═══ BEFORE/AFTER ═══ -->
+    <Key Id="salon.beforeafter.title" Module="beforeafter" Description="Before/After page title"><Value Lang="tr">Önce/Sonra Fotoğrafları</Value><Value Lang="en">Before/After Photos</Value><Value Lang="de">Vorher/Nachher Fotos</Value><Value Lang="ar">صور قبل/بعد</Value><Value Lang="ru">Фото до/после</Value></Key>
+    <Key Id="salon.beforeafter.btn.add_new" Module="beforeafter" Description="New photo"><Value Lang="tr">Yeni Fotoğraf</Value><Value Lang="en">New Photo</Value><Value Lang="de">Neues Foto</Value><Value Lang="ar">صورة جديدة</Value><Value Lang="ru">Новое фото</Value></Key>
+
+    <!-- ═══ EMAIL SETTINGS ═══ -->
+    <Key Id="salon.emailsettings.title" Module="emailsettings" Description="Email Settings page title"><Value Lang="tr">E-posta Ayarları</Value><Value Lang="en">Email Settings</Value><Value Lang="de">E-Mail-Einstellungen</Value><Value Lang="ar">إعدادات البريد الإلكتروني</Value><Value Lang="ru">Настройки email</Value></Key>
+
+    <!-- ═══ PAGE SETTINGS ═══ -->
+    <Key Id="salon.pagesettings.title" Module="pagesettings" Description="Page Settings page title"><Value Lang="tr">Sayfa Ayarları</Value><Value Lang="en">Page Settings</Value><Value Lang="de">Seiteneinstellungen</Value><Value Lang="ar">إعدادات الصفحة</Value><Value Lang="ru">Настройки страницы</Value></Key>
+
+    <!-- ═══ WAITLIST ═══ -->
+    <Key Id="salon.waitlist.title" Module="waitlist" Description="Waitlist page title"><Value Lang="tr">Bekleme Listesi</Value><Value Lang="en">Waitlist</Value><Value Lang="de">Warteliste</Value><Value Lang="ar">قائمة الانتظار</Value><Value Lang="ru">Лист ожидания</Value></Key>
+    <Key Id="salon.waitlist.btn.add_new" Module="waitlist" Description="New entry"><Value Lang="tr">Yeni Kayıt</Value><Value Lang="en">New Entry</Value><Value Lang="de">Neuer Eintrag</Value><Value Lang="ar">إدخال جديد</Value><Value Lang="ru">Новая запись</Value></Key>
+
+    <!-- ═══ HOME / DASHBOARD ═══ -->
+    <Key Id="salon.home.title" Module="home" Description="Dashboard page title"><Value Lang="tr">Dashboard</Value><Value Lang="en">Dashboard</Value><Value Lang="de">Dashboard</Value><Value Lang="ar">لوحة التحكم</Value><Value Lang="ru">Панель</Value></Key>
+    <Key Id="salon.home.today_appointments" Module="home" Description="Today appointments"><Value Lang="tr">Bugünün Randevuları</Value><Value Lang="en">Today's Appointments</Value><Value Lang="de">Heutige Termine</Value><Value Lang="ar">مواعيد اليوم</Value><Value Lang="ru">Записи на сегодня</Value></Key>
+    <Key Id="salon.home.weekly_revenue" Module="home" Description="Weekly revenue"><Value Lang="tr">Haftalık Gelir</Value><Value Lang="en">Weekly Revenue</Value><Value Lang="de">Wochenumsatz</Value><Value Lang="ar">إيرادات الأسبوع</Value><Value Lang="ru">Недельная выручка</Value></Key>
+    <Key Id="salon.home.active_clients" Module="home" Description="Active clients"><Value Lang="tr">Aktif Müşteriler</Value><Value Lang="en">Active Clients</Value><Value Lang="de">Aktive Kunden</Value><Value Lang="ar">العملاء النشطون</Value><Value Lang="ru">Активные клиенты</Value></Key>
+
+    <!-- ═══ ACCOUNT ═══ -->
+    <Key Id="salon.account.login_title" Module="account" Description="Login page title"><Value Lang="tr">Giriş</Value><Value Lang="en">Login</Value><Value Lang="de">Anmelden</Value><Value Lang="ar">تسجيل الدخول</Value><Value Lang="ru">Вход</Value></Key>
+    <Key Id="salon.account.register_title" Module="account" Description="Register page title"><Value Lang="tr">Kayıt Ol</Value><Value Lang="en">Register</Value><Value Lang="de">Registrieren</Value><Value Lang="ar">التسجيل</Value><Value Lang="ru">Регистрация</Value></Key>
+    <Key Id="salon.account.username" Module="account" Description="Username"><Value Lang="tr">Kullanıcı Adı</Value><Value Lang="en">Username</Value><Value Lang="de">Benutzername</Value><Value Lang="ar">اسم المستخدم</Value><Value Lang="ru">Имя пользователя</Value></Key>
+    <Key Id="salon.account.password" Module="account" Description="Password"><Value Lang="tr">Şifre</Value><Value Lang="en">Password</Value><Value Lang="de">Passwort</Value><Value Lang="ar">كلمة المرور</Value><Value Lang="ru">Пароль</Value></Key>
+    <Key Id="salon.account.btn.login" Module="account" Description="Login button"><Value Lang="tr">Giriş Yap</Value><Value Lang="en">Sign In</Value><Value Lang="de">Anmelden</Value><Value Lang="ar">تسجيل الدخول</Value><Value Lang="ru">Войти</Value></Key>
+    <Key Id="salon.account.error.invalid_credentials" Module="account" Description="Invalid credentials"><Value Lang="tr">Kullanıcı adı veya şifre hatalı</Value><Value Lang="en">Invalid username or password</Value><Value Lang="de">Ungültiger Benutzername oder Passwort</Value><Value Lang="ar">اسم المستخدم أو كلمة المرور غير صحيحة</Value><Value Lang="ru">Неверное имя пользователя или пароль</Value></Key>
+
+    <!-- ═══ PERSONNEL PRICES ═══ -->
+    <Key Id="salon.personnelprices.title" Module="personnelprices" Description="Personnel Prices page title"><Value Lang="tr">Personel Fiyatları &amp; Hasılat</Value><Value Lang="en">Staff Prices &amp; Revenue</Value><Value Lang="de">Personalpreise &amp; Umsatz</Value><Value Lang="ar">أسعار الموظفين والإيرادات</Value><Value Lang="ru">Цены персонала и выручка</Value></Key>
+
+    <!-- ═══ CLIENT DETAIL ═══ -->
+    <Key Id="salon.clients.detail_title" Module="clients" Description="Client detail page title"><Value Lang="tr">Müşteri Detay</Value><Value Lang="en">Client Details</Value><Value Lang="de">Kundendetails</Value><Value Lang="ar">تفاصيل العميل</Value><Value Lang="ru">Детали клиента</Value></Key>
+    <Key Id="salon.clients.detail.formulas" Module="clients" Description="Formulas tab"><Value Lang="tr">Formüller</Value><Value Lang="en">Formulas</Value><Value Lang="de">Formeln</Value><Value Lang="ar">الصيغ</Value><Value Lang="ru">Формулы</Value></Key>
+    <Key Id="salon.clients.detail.photos" Module="clients" Description="Photos tab"><Value Lang="tr">Fotoğraflar</Value><Value Lang="en">Photos</Value><Value Lang="de">Fotos</Value><Value Lang="ar">الصور</Value><Value Lang="ru">Фотографии</Value></Key>
+    <Key Id="salon.clients.detail.appointments" Module="clients" Description="Appointments tab"><Value Lang="tr">Randevular</Value><Value Lang="en">Appointments</Value><Value Lang="de">Termine</Value><Value Lang="ar">المواعيد</Value><Value Lang="ru">Записи</Value></Key>
+    <Key Id="salon.clients.detail.invoices" Module="clients" Description="Invoices tab"><Value Lang="tr">Adisyonlar</Value><Value Lang="en">Invoices</Value><Value Lang="de">Rechnungen</Value><Value Lang="ar">الفواتير</Value><Value Lang="ru">Счета</Value></Key>
+    <Key Id="salon.clients.form.hair_color" Module="clients" Description="Hair color"><Value Lang="tr">Saç Rengi</Value><Value Lang="en">Hair Color</Value><Value Lang="de">Haarfarbe</Value><Value Lang="ar">لون الشعر</Value><Value Lang="ru">Цвет волос</Value></Key>
+    <Key Id="salon.clients.form.skin_type" Module="clients" Description="Skin type"><Value Lang="tr">Cilt Tipi</Value><Value Lang="en">Skin Type</Value><Value Lang="de">Hauttyp</Value><Value Lang="ar">نوع البشرة</Value><Value Lang="ru">Тип кожи</Value></Key>
   </Keys>
 </Translations>
