@@ -11,45 +11,24 @@ public abstract class SlnBaseController : Controller
         var controllerType = context.Controller.GetType();
         var token = HttpContext.Session.GetString("Token");
 
-        // Session dustu ama "Beni Hatirla" cookie'si varsa — session'i geri yukle
+        // Session dustu ama "Beni Hatirla" cookie'si varsa — API'den yeni token al
         if (string.IsNullOrEmpty(token) && controllerType != typeof(AccountController))
         {
             var rememberToken = HttpContext.Request.Cookies["RememberToken"];
             if (!string.IsNullOrEmpty(rememberToken))
             {
-                // Token'dan session'i yeniden olustur
-                HttpContext.Session.SetString("Token", rememberToken);
-                try
+                // Eski token ile refresh dene — guncel modulleri alir
+                var refreshed = TryRefreshToken(rememberToken).GetAwaiter().GetResult();
+                if (refreshed)
                 {
-                    var jwtParts = rememberToken.Split('.');
-                    if (jwtParts.Length == 3)
-                    {
-                        var jwtPayload = jwtParts[1].Replace('-', '+').Replace('_', '/');
-                        switch (jwtPayload.Length % 4)
-                        {
-                            case 2: jwtPayload += "=="; break;
-                            case 3: jwtPayload += "="; break;
-                        }
-                        var payloadBytes = Convert.FromBase64String(jwtPayload);
-                        using var claims = System.Text.Json.JsonDocument.Parse(payloadBytes);
-                        var claimRoot = claims.RootElement;
-
-                        if (claimRoot.TryGetProperty("given_name", out var gn))
-                            HttpContext.Session.SetString("UserName", gn.ToString());
-                        if (claimRoot.TryGetProperty("CustomerName", out var cn))
-                            HttpContext.Session.SetString("CustomerName", cn.ToString());
-                        if (claimRoot.TryGetProperty("CustomerRoleId", out var cri))
-                            HttpContext.Session.SetString("CustomerRoleId", cri.ToString());
-                        if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
-                            HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
-                        if (claimRoot.TryGetProperty("CustomerModules", out var cm))
-                            HttpContext.Session.SetString("CustomerModules", cm.ToString());
-                        if (claimRoot.TryGetProperty("BranchId", out var bid))
-                            HttpContext.Session.SetString("BranchId", bid.ToString());
-                    }
+                    token = HttpContext.Session.GetString("Token");
                 }
-                catch { }
-                token = rememberToken;
+                else
+                {
+                    // Refresh basarisiz — eski token'dan session kur (fallback)
+                    RestoreSessionFromJwt(rememberToken);
+                    token = rememberToken;
+                }
             }
             else
             {
@@ -92,6 +71,80 @@ public abstract class SlnBaseController : Controller
         }
 
         base.OnActionExecuting(context);
+    }
+
+    private async Task<bool> TryRefreshToken(string oldToken)
+    {
+        try
+        {
+            var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var client = factory.CreateClient("SalonApi");
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", oldToken);
+
+            var response = await client.PostAsync("api/auth/refresh", null);
+            if (!response.IsSuccessStatusCode) return false;
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("token", out var newTokenProp)) return false;
+            var newToken = newTokenProp.GetString();
+            if (string.IsNullOrEmpty(newToken)) return false;
+
+            // Yeni token ile session kur
+            HttpContext.Session.SetString("Token", newToken);
+            RestoreSessionFromJwt(newToken);
+
+            // Cookie'yi de guncelle
+            HttpContext.Response.Cookies.Append("RememberToken", newToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(30)
+            });
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void RestoreSessionFromJwt(string token)
+    {
+        try
+        {
+            HttpContext.Session.SetString("Token", token);
+            var jwtParts = token.Split('.');
+            if (jwtParts.Length != 3) return;
+
+            var jwtPayload = jwtParts[1].Replace('-', '+').Replace('_', '/');
+            switch (jwtPayload.Length % 4)
+            {
+                case 2: jwtPayload += "=="; break;
+                case 3: jwtPayload += "="; break;
+            }
+            var payloadBytes = Convert.FromBase64String(jwtPayload);
+            using var claims = System.Text.Json.JsonDocument.Parse(payloadBytes);
+            var claimRoot = claims.RootElement;
+
+            if (claimRoot.TryGetProperty("given_name", out var gn))
+                HttpContext.Session.SetString("UserName", gn.ToString());
+            if (claimRoot.TryGetProperty("CustomerName", out var cn))
+                HttpContext.Session.SetString("CustomerName", cn.ToString());
+            if (claimRoot.TryGetProperty("CustomerRoleId", out var cri))
+                HttpContext.Session.SetString("CustomerRoleId", cri.ToString());
+            if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
+                HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
+            if (claimRoot.TryGetProperty("CustomerModules", out var cm))
+                HttpContext.Session.SetString("CustomerModules", cm.ToString());
+            if (claimRoot.TryGetProperty("BranchId", out var bid))
+                HttpContext.Session.SetString("BranchId", bid.ToString());
+        }
+        catch { }
     }
 
     protected HttpClient CreateApiClient()
