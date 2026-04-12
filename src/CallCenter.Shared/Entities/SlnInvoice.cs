@@ -6,6 +6,10 @@ public class SlnInvoice
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
+    /// <summary>Hangi sube (null = merkez)</summary>
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     public int? SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }
 

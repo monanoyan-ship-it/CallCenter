@@ -6,6 +6,9 @@ public class SlnExpense
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
+    /// <summary>Hangi sube (null = merkez)</summary>
+    public int? BranchId { get; set; }
+
     public int CategoryId { get; set; }
     public SlnExpenseCategory? Category { get; set; }
 

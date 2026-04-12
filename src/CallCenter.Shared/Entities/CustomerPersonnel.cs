@@ -22,6 +22,10 @@ public class CustomerPersonnel
     // Sabit firma rolu (CustomerRoles TypeItem referansi, FK degil)
     public int CustomerRoleId { get; set; }
 
+    // Sube (opsiyonel — null = merkez/tum subeler)
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     // Organizasyon birimi (opsiyonel)
     public int? OrganizationUnitId { get; set; }
     public CustomerOrganizationUnit? OrganizationUnit { get; set; }

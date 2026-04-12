@@ -5,6 +5,9 @@ public class SlnStockMovement
     public int Id { get; set; }
     public int CustomerId { get; set; }
 
+    /// <summary>Hangi sube (null = merkez)</summary>
+    public int? BranchId { get; set; }
+
     public int ProductId { get; set; }
     public SlnProduct? Product { get; set; }
 
