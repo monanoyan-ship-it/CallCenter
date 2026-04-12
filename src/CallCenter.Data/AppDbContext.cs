@@ -280,6 +280,7 @@ public class AppDbContext : DbContext
             e.HasKey(p => p.Id);
             e.Property(p => p.Name).HasMaxLength(100);
             e.Property(p => p.DiscountPercent).HasPrecision(5, 2);
+            e.Property(p => p.BranchPrice).HasPrecision(18, 2);
         });
 
         // CustomerSubscription

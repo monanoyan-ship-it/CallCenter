@@ -22,13 +22,14 @@ public class SubscriptionFactory : ISubscriptionFactory
     public async Task<List<SubscriptionPlan>> GetPlansAsync()
         => await _db.SubscriptionPlans.OrderBy(p => p.SortOrder).ToListAsync();
 
-    public async Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent)
+    public async Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent, decimal branchPrice)
     {
         var plan = new SubscriptionPlan
         {
             Name = name,
             IntervalMonths = intervalMonths,
             DiscountPercent = discountPercent,
+            BranchPrice = branchPrice,
             SortOrder = await _db.SubscriptionPlans.CountAsync() + 1
         };
         _db.SubscriptionPlans.Add(plan);
@@ -36,13 +37,14 @@ public class SubscriptionFactory : ISubscriptionFactory
         return plan;
     }
 
-    public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, string name, int intervalMonths, decimal discountPercent, bool isActive)
+    public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, string name, int intervalMonths, decimal discountPercent, decimal branchPrice, bool isActive)
     {
         var plan = await _db.SubscriptionPlans.FindAsync(id);
         if (plan == null) return (false, "Plan bulunamadı.");
         plan.Name = name;
         plan.IntervalMonths = intervalMonths;
         plan.DiscountPercent = discountPercent;
+        plan.BranchPrice = branchPrice;
         plan.IsActive = isActive;
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -169,6 +171,11 @@ public class SubscriptionFactory : ISubscriptionFactory
             // Aktif modullerin fiyatini hesapla
             var moduleAmount = await CalculateModuleAmountAsync(sub.CustomerId);
 
+            // Ek sube ucreti (ilk sube ucretsiz, ek subeler BranchPrice)
+            var branchCount = await _db.SlnBranches.CountAsync(b => b.CustomerId == sub.CustomerId && b.IsActive);
+            var extraBranches = Math.Max(0, branchCount - 1);
+            var branchAmount = extraBranches * sub.Plan.BranchPrice * sub.Plan.IntervalMonths;
+
             var period = new CustomerBillingPeriod
             {
                 CustomerId = sub.CustomerId,
@@ -176,9 +183,9 @@ public class SubscriptionFactory : ISubscriptionFactory
                 Month = month,
                 PeriodStartDate = sub.NextBillingDate,
                 PeriodEndDate = sub.NextBillingDate.AddMonths(sub.Plan.IntervalMonths),
-                UserCount = 0, // Salon'da user limiti yok
+                UserCount = branchCount,
                 UnitPrice = sub.PeriodPrice,
-                Amount = sub.PeriodPrice,
+                Amount = sub.PeriodPrice + branchAmount,
                 ServiceAmount = moduleAmount,
                 StatusId = 1, // Draft
                 IsPaid = false

@@ -6,8 +6,8 @@ public interface ISubscriptionFactory
 {
     // Plan
     Task<List<SubscriptionPlan>> GetPlansAsync();
-    Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent);
-    Task<(bool Success, string? Error)> UpdatePlanAsync(int id, string name, int intervalMonths, decimal discountPercent, bool isActive);
+    Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent, decimal branchPrice);
+    Task<(bool Success, string? Error)> UpdatePlanAsync(int id, string name, int intervalMonths, decimal discountPercent, decimal branchPrice, bool isActive);
     Task<(bool Success, string? Error)> DeletePlanAsync(int id);
 
     // Abonelik

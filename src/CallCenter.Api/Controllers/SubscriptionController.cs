@@ -23,12 +23,12 @@ public class SubscriptionController : ControllerBase
 
     [HttpPost("plans")]
     public async Task<ActionResult> CreatePlan([FromBody] PlanRequest request)
-        => Ok(await _factory.CreatePlanAsync(request.Name, request.IntervalMonths, request.DiscountPercent));
+        => Ok(await _factory.CreatePlanAsync(request.Name, request.IntervalMonths, request.DiscountPercent, request.BranchPrice));
 
     [HttpPut("plans/{id}")]
     public async Task<ActionResult> UpdatePlan(int id, [FromBody] PlanRequest request)
     {
-        var (s, e) = await _factory.UpdatePlanAsync(id, request.Name, request.IntervalMonths, request.DiscountPercent, request.IsActive);
+        var (s, e) = await _factory.UpdatePlanAsync(id, request.Name, request.IntervalMonths, request.DiscountPercent, request.BranchPrice, request.IsActive);
         return s ? Ok() : BadRequest(new { message = e });
     }
 
@@ -99,6 +99,7 @@ public class PlanRequest
     public string Name { get; set; } = string.Empty;
     public int IntervalMonths { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal BranchPrice { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

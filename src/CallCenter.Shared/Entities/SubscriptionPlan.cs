@@ -17,6 +17,9 @@ public class SubscriptionPlan
     /// <summary>Indirim orani (yuzde). Ornegin yillik %20 indirim</summary>
     public decimal DiscountPercent { get; set; }
 
+    /// <summary>Sube basina ek aylik ucret (ilk sube ucretsiz, ek subeler bu fiyattan)</summary>
+    public decimal BranchPrice { get; set; }
+
     /// <summary>Siralama</summary>
     public int SortOrder { get; set; }
 

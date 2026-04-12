@@ -19,13 +19,14 @@
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Plan</th><th>Aralık</th><th>İndirim</th><th>Durum</th><th></th></tr>
+                            <tr><th>Plan</th><th>Aralık</th><th>İndirim</th><th>Şube Fiyat</th><th>Durum</th><th></th></tr>
                         </thead>
                         <tbody data-bind="foreach: plans">
                             <tr>
                                 <td class="fw-medium" data-bind="text: name"></td>
                                 <td data-bind="text: intervalMonths + ' ay'"></td>
                                 <td data-bind="text: discountPercent > 0 ? '%' + discountPercent : '-'"></td>
+                                <td data-bind="text: branchPrice > 0 ? branchPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                                 <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span></td>
                                 <td>
                                     <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: $parent.editPlan"><i class="bi bi-pencil"></i></button>
@@ -113,6 +114,7 @@
                     <div class="mb-2"><label class="form-label small">Plan Adı *</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
                     <div class="mb-2"><label class="form-label small">Aralık (Ay) *</label><input type="number" class="form-control form-control-sm" min="1" data-bind="value: planForm.intervalMonths" /></div>
                     <div class="mb-2"><label class="form-label small">İndirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" step="0.01" data-bind="value: planForm.discountPercent" /></div>
+                    <div class="mb-2"><label class="form-label small">Ek Şube Ücreti (TL/ay)</label><input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: planForm.branchPrice" /></div>
                 </div>
                 <div class="modal-footer py-1">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
@@ -164,7 +166,7 @@ function SubViewModel() {
     self.billingYear = ko.observable(new Date().getFullYear());
     self.billingMonth = ko.observable(new Date().getMonth() + 1);
 
-    self.planForm = { name: ko.observable(''), intervalMonths: ko.observable(1), discountPercent: ko.observable(0) };
+    self.planForm = { name: ko.observable(''), intervalMonths: ko.observable(1), discountPercent: ko.observable(0), branchPrice: ko.observable(0) };
     self.subForm = { customerId: ko.observable(null), planId: ko.observable(null), startDate: ko.observable(''), monthlyPrice: ko.observable(0) };
 
     self.computedPeriodPrice = ko.computed(function () {
@@ -186,16 +188,16 @@ function SubViewModel() {
     // Plan CRUD
     self.openNewPlan = function () {
         self.editingPlanId(null);
-        self.planForm.name(''); self.planForm.intervalMonths(1); self.planForm.discountPercent(0);
+        self.planForm.name(''); self.planForm.intervalMonths(1); self.planForm.discountPercent(0); self.planForm.branchPrice(0);
         planModal.show();
     };
     self.editPlan = function (p) {
         self.editingPlanId(p.id);
-        self.planForm.name(p.name); self.planForm.intervalMonths(p.intervalMonths); self.planForm.discountPercent(p.discountPercent);
+        self.planForm.name(p.name); self.planForm.intervalMonths(p.intervalMonths); self.planForm.discountPercent(p.discountPercent); self.planForm.branchPrice(p.branchPrice || 0);
         planModal.show();
     };
     self.savePlan = function () {
-        var d = { name: self.planForm.name(), intervalMonths: parseInt(self.planForm.intervalMonths()), discountPercent: parseFloat(self.planForm.discountPercent()) || 0, isActive: true };
+        var d = { name: self.planForm.name(), intervalMonths: parseInt(self.planForm.intervalMonths()), discountPercent: parseFloat(self.planForm.discountPercent()) || 0, branchPrice: parseFloat(self.planForm.branchPrice()) || 0, isActive: true };
         var url = '/proxy/subscriptions/plans';
         var method = 'POST';
         if (self.editingPlanId()) { url += '/' + self.editingPlanId(); method = 'PUT'; }
