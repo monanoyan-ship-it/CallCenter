@@ -76,18 +76,36 @@
                             <label class="form-label small">Adres</label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <label class="form-label small">İl</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.city" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small">İlçe</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.district" />
+                        </div>
+                        <div class="col-4">
                             <label class="form-label small">Telefon</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.phone" />
+                            <div data-bind="phoneInput: form.phone"></div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Mudur (Personel ID)</label>
-                            <input type="number" class="form-control form-control-sm" data-bind="value: form.managerPersonnelId" />
+                            <label class="form-label small">E-posta</label>
+                            <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
+                            <label class="form-label small">Şube Müdürü</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.managerPersonnelId, options: staffList, optionsText: 'title', optionsValue: 'id', optionsCaption: 'Seçiniz'"></select>
+                        </div>
+                        <div class="col-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="branchActive" data-bind="checked: form.isActive" />
                                 <label class="form-check-label small" for="branchActive">Aktif</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="branchHQ" data-bind="checked: form.isHeadquarter" />
+                                <label class="form-check-label small" for="branchHQ">Ana Şube</label>
                             </div>
                         </div>
                     </div>

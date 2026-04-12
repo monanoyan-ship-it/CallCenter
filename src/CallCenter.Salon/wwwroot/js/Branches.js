@@ -5,12 +5,18 @@ function BranchesViewModel() {
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
+    self.staffList = ko.observableArray([]);
+
     self.form = {
         name: ko.observable(''),
         address: ko.observable(''),
+        city: ko.observable(''),
+        district: ko.observable(''),
         phone: ko.observable(''),
+        email: ko.observable(''),
         managerPersonnelId: ko.observable(''),
-        isActive: ko.observable(true)
+        isActive: ko.observable(true),
+        isHeadquarter: ko.observable(false)
     };
 
     var formModal;
@@ -23,12 +29,20 @@ function BranchesViewModel() {
         });
     };
 
+    self.loadStaff = function () {
+        $.get('/proxy/portal/personnel', function (d) { self.staffList(d.items || d || []); });
+    };
+
     self.resetForm = function () {
         self.form.name('');
         self.form.address('');
+        self.form.city('');
+        self.form.district('');
         self.form.phone('');
+        self.form.email('');
         self.form.managerPersonnelId('');
         self.form.isActive(true);
+        self.form.isHeadquarter(false);
         self.isEditing(false);
         self.editingId(null);
     };
@@ -43,9 +57,13 @@ function BranchesViewModel() {
         self.editingId(branch.id);
         self.form.name(branch.name || '');
         self.form.address(branch.address || '');
+        self.form.city(branch.city || '');
+        self.form.district(branch.district || '');
         self.form.phone(branch.phone || '');
+        self.form.email(branch.email || '');
         self.form.managerPersonnelId(branch.managerPersonnelId || '');
         self.form.isActive(branch.isActive);
+        self.form.isHeadquarter(branch.isHeadquarter || false);
         formModal.show();
     };
 
@@ -53,9 +71,13 @@ function BranchesViewModel() {
         var data = {
             name: self.form.name(),
             address: self.form.address(),
+            city: self.form.city(),
+            district: self.form.district(),
             phone: self.form.phone(),
+            email: self.form.email(),
             managerPersonnelId: self.form.managerPersonnelId() ? parseInt(self.form.managerPersonnelId()) : null,
-            isActive: self.form.isActive()
+            isActive: self.form.isActive(),
+            isHeadquarter: self.form.isHeadquarter()
         };
 
         if (!data.name) {
@@ -101,6 +123,7 @@ function BranchesViewModel() {
 
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('branchModal'));
+        self.loadStaff();
         self.loadData();
     });
 }
