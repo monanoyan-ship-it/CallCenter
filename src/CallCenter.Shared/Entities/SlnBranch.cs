@@ -48,6 +48,13 @@ public class SlnBranch
     public string? MersisNo { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Aktif edilme tarihi (faturalama icin — ne zamandan itibaren aktif)</summary>
+    public DateTime? ActivatedAt { get; set; }
+
+    /// <summary>Pasif yapilma tarihi (faturalama icin — ne zamana kadar aktifti)</summary>
+    public DateTime? DeactivatedAt { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Subeye ait personeller

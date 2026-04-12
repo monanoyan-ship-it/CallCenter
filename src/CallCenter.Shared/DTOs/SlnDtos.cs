@@ -863,6 +863,8 @@ public class SlnBranchDto
     public string? TaxOffice { get; set; }
     public string? TaxNumber { get; set; }
     public string? MersisNo { get; set; }
+    public DateTime? ActivatedAt { get; set; }
+    public DateTime? DeactivatedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

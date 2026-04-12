@@ -47,6 +47,7 @@ public class SlnBranchFactory : ISlnBranchFactory
                 Name = "Merkez",
                 IsHeadquarter = true,
                 IsActive = true,
+                ActivatedAt = DateTime.UtcNow,
                 CompanyTitle = customerName
             };
             _branches.Add(hq);
@@ -115,6 +116,7 @@ public class SlnBranchFactory : ISlnBranchFactory
             ManagerPersonnelId = dto.ManagerPersonnelId,
             IsHeadquarter = dto.IsHeadquarter,
             IsActive = dto.IsActive,
+            ActivatedAt = dto.IsActive ? DateTime.UtcNow : null,
             CompanyTitle = dto.CompanyTitle,
             TaxOffice = dto.TaxOffice,
             TaxNumber = dto.TaxNumber,
@@ -146,6 +148,15 @@ public class SlnBranchFactory : ISlnBranchFactory
         branch.WorkingHoursJson = dto.WorkingHoursJson;
         branch.ManagerPersonnelId = dto.ManagerPersonnelId;
         branch.IsHeadquarter = dto.IsHeadquarter;
+        // Aktif/pasif gecis tarihlerini takip et
+        if (!dto.IsActive && branch.IsActive)
+            branch.DeactivatedAt = DateTime.UtcNow;
+        else if (dto.IsActive && !branch.IsActive)
+        {
+            branch.ActivatedAt = DateTime.UtcNow;
+            branch.DeactivatedAt = null;
+        }
+
         branch.IsActive = dto.IsActive;
         branch.CompanyTitle = dto.CompanyTitle;
         branch.TaxOffice = dto.TaxOffice;
@@ -179,6 +190,8 @@ public class SlnBranchFactory : ISlnBranchFactory
         TaxOffice = b.TaxOffice,
         TaxNumber = b.TaxNumber,
         MersisNo = b.MersisNo,
+        ActivatedAt = b.ActivatedAt,
+        DeactivatedAt = b.DeactivatedAt,
         CreatedAt = b.CreatedAt
     };
 
@@ -188,6 +201,16 @@ public class SlnBranchFactory : ISlnBranchFactory
             .FirstOrDefaultAsync(b => b.Id == branchId && b.CustomerId == customerId);
 
         if (branch == null) return (false, "Sube bulunamadi");
+        if (branch.IsHeadquarter) return (false, "Merkez sube silinemez. Yalnizca pasif yapilabilir.");
+
+        // Altinda kayit var mi kontrol et
+        var hasRecords = await _db.SlnAppointments.AnyAsync(a => a.BranchId == branchId)
+            || await _db.SlnInvoices.AnyAsync(i => i.BranchId == branchId)
+            || await _db.SlnCashRegisters.AnyAsync(c => c.BranchId == branchId)
+            || await _db.SlnExpenses.AnyAsync(e => e.BranchId == branchId)
+            || await _db.CustomerPersonnel.AnyAsync(p => p.BranchId == branchId);
+
+        if (hasRecords) return (false, "Bu subeye ait kayitlar var. Sube silinemez, yalnizca pasif yapilabilir.");
 
         _branches.Remove(branch);
         await _uow.SaveChangesAsync();
