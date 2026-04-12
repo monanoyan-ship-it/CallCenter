@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /proxy/
+Disallow: /public-proxy/
+Disallow: /Account/
+Disallow: /user/panel
+
+Sitemap: https://sln.corplynk.com/sitemap.xml
