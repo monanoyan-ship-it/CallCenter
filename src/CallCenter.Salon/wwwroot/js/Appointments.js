@@ -26,11 +26,64 @@ function AppointmentsViewModel() {
         notes: ko.observable('')
     };
 
+    // ═══ Musait Slotlar ═══
+    self.availableSlots = ko.observableArray([]);
+    self.slotsLoading = ko.observable(false);
+    self.availableStaffForService = ko.observableArray([]);
+    self.slotDate = ko.observable('');
+
     // ═══ Autocomplete'ler ═══
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.slnClientId);
     self.serviceAutocomplete = createMultiAutocomplete(self.serviceList, 'name', self.form.serviceIds);
     self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.personnelId);
     self.staffFilterAutocomplete = createMultiAutocomplete(self.staffList, 'fullName', self.selectedStaffIds);
+
+    // Hizmet secildiginde uygun personelleri getir
+    self.form.serviceIds.subscribe(function (ids) {
+        if (!ids || ids.length === 0) {
+            self.availableStaffForService([]);
+            return;
+        }
+        $.get('/proxy/sln-appointments/available-staff?serviceIds=' + ids.join(','), function (data) {
+            self.availableStaffForService(data || []);
+        });
+    });
+
+    // Personel + tarih secildiginde musait slotlari getir
+    function loadSlots() {
+        var personnelId = self.form.personnelId();
+        var dateStr = self.slotDate();
+        var serviceIds = self.form.serviceIds();
+        if (!personnelId || !dateStr || !serviceIds.length) {
+            self.availableSlots([]);
+            return;
+        }
+        // Toplam sure hesapla
+        var totalDuration = 0;
+        var allSvcs = [];
+        self.serviceList().forEach(function (cat) { (cat.services || []).forEach(function (s) { allSvcs.push(s); }); });
+        serviceIds.forEach(function (id) {
+            var svc = allSvcs.find(function (s) { return s.id === id; });
+            if (svc) totalDuration += (svc.durationMinutes || 30);
+        });
+
+        self.slotsLoading(true);
+        $.get('/proxy/sln-appointments/available-slots?personnelId=' + personnelId + '&date=' + dateStr + '&durationMinutes=' + totalDuration, function (data) {
+            self.availableSlots(data || []);
+            self.slotsLoading(false);
+        }).fail(function () { self.slotsLoading(false); });
+    }
+
+    self.form.personnelId.subscribe(loadSlots);
+    self.slotDate.subscribe(loadSlots);
+
+    self.selectSlot = function (slot) {
+        if (!slot.available) return;
+        var dt = new Date(slot.startTime);
+        var str = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0')
+            + 'T' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+        self.form.startTime(str);
+    };
 
     var statusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
     var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
@@ -240,6 +293,9 @@ function AppointmentsViewModel() {
     self.resetForm = function () {
         self.form.slnClientId(null);
         self.form.startTime('');
+        self.slotDate('');
+        self.availableSlots([]);
+        self.availableStaffForService([]);
         self.form.serviceIds([]);
         self.form.personnelId(null);
         self.form.notes('');
@@ -260,6 +316,7 @@ function AppointmentsViewModel() {
         self.editingId(appt.id);
         self.form.slnClientId(appt.slnClientId);
         self.form.startTime(appt.startTime ? appt.startTime.substring(0, 16) : '');
+        self.slotDate(appt.startTime ? appt.startTime.substring(0, 10) : '');
         self.form.serviceIds(appt.serviceIds || (appt.serviceId ? [appt.serviceId] : []));
         self.form.personnelId(appt.personnelId);
         self.form.notes(appt.notes || '');

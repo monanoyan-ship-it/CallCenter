@@ -23,6 +23,7 @@ public class PortalPersonnelListDto
     public string? BranchName { get; set; }
     public bool IsActive { get; set; }
     public bool IsLocked { get; set; }
+    public List<int>? SkillServiceIds { get; set; }
 }
 
 public class PortalPersonnelCreateDto
@@ -52,6 +53,7 @@ public class PortalPersonnelCreateDto
     public int? OrganizationUnitId { get; set; }
     public int? ReportsToPersonnelId { get; set; }
     public int? BranchId { get; set; }
+    public List<int>? SkillServiceIds { get; set; }
 }
 
 public class PortalPersonnelUpdateDto
@@ -79,6 +81,7 @@ public class PortalPersonnelUpdateDto
     public int? OrganizationUnitId { get; set; }
     public int? ReportsToPersonnelId { get; set; }
     public int? BranchId { get; set; }
+    public List<int>? SkillServiceIds { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

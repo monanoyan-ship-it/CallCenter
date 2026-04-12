@@ -19,6 +19,7 @@ public class PortalFactory : IPortalFactory
     private readonly ICallRecordEntityService _callEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly AesEncryptionService _encryption;
+    private readonly ISlnPersonnelSkillEntityService _skillEs;
     private readonly IUnitOfWork _uow;
 
     public PortalFactory(
@@ -30,6 +31,7 @@ public class PortalFactory : IPortalFactory
         ICallRecordEntityService callEs,
         IPasswordPolicyFactory passwordPolicy,
         AesEncryptionService encryption,
+        ISlnPersonnelSkillEntityService skillEs,
         IUnitOfWork uow)
     {
         _customerEs = customerEs;
@@ -40,6 +42,7 @@ public class PortalFactory : IPortalFactory
         _callEs = callEs;
         _passwordPolicy = passwordPolicy;
         _encryption = encryption;
+        _skillEs = skillEs;
         _uow = uow;
     }
 
@@ -166,8 +169,19 @@ public class PortalFactory : IPortalFactory
             .OrderBy(p => p.FullName)
             .ToListAsync();
 
+        // Skill bilgilerini yukle
+        var personnelIds = personnel.Select(p => p.Id).ToList();
+        var skills = await _skillEs.GetAllQueryable()
+            .Where(s => personnelIds.Contains(s.PersonnelId))
+            .ToListAsync();
+        var skillMap = skills.GroupBy(s => s.PersonnelId)
+            .ToDictionary(g => g.Key, g => g.Select(s => s.ServiceId).ToList());
+
         foreach (var p in personnel)
+        {
             p.CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description;
+            p.SkillServiceIds = skillMap.GetValueOrDefault(p.Id);
+        }
 
         return personnel;
     }
@@ -229,6 +243,14 @@ public class PortalFactory : IPortalFactory
         };
         _personnelEs.Add(personnelEntity);
         await _uow.SaveChangesAsync();
+
+        // Hizmet yetenekleri ekle
+        if (dto.SkillServiceIds?.Count > 0)
+        {
+            foreach (var serviceId in dto.SkillServiceIds)
+                _skillEs.Add(new SlnPersonnelSkill { PersonnelId = personnelEntity.Id, ServiceId = serviceId });
+            await _uow.SaveChangesAsync();
+        }
 
         return (true, new PortalPersonnelListDto
         {
@@ -314,6 +336,18 @@ public class PortalFactory : IPortalFactory
         personnel.OrganizationUnitId = dto.OrganizationUnitId;
         personnel.ReportsToPersonnelId = dto.ReportsToPersonnelId;
         personnel.BranchId = dto.BranchId;
+
+        // Hizmet yetenekleri guncelle
+        if (dto.SkillServiceIds != null)
+        {
+            var existingSkills = await _skillEs.GetAllQueryable()
+                .Where(s => s.PersonnelId == id)
+                .ToListAsync();
+            foreach (var s in existingSkills) _skillEs.Remove(s);
+
+            foreach (var serviceId in dto.SkillServiceIds)
+                _skillEs.Add(new SlnPersonnelSkill { PersonnelId = id, ServiceId = serviceId });
+        }
 
         await _uow.SaveChangesAsync();
         return (true, null);

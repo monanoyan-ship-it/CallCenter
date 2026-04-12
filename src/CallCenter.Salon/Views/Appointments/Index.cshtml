@@ -269,10 +269,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label small">Tarih ve Saat *</label>
-                            <input type="datetime-local" class="form-control form-control-sm" data-bind="value: form.startTime" />
-                        </div>
+                        <!-- Tarih/Saat asagida personel secildikten sonra slot olarak gosterilir -->
                         <div class="col-12">
                             <label class="form-label small">Kategori <small class="text-muted fw-normal">(tikla sec)</small></label>
                             <div class="d-flex flex-wrap gap-1 mb-2" data-bind="foreach: serviceList">
@@ -311,6 +308,16 @@
                         <!-- /ko -->
                         <div class="col-12">
                             <label class="form-label small">Personel * <small class="text-muted fw-normal">(tikla sec)</small></label>
+                            <!-- ko if: availableStaffForService().length > 0 -->
+                            <div class="d-flex flex-wrap gap-1" data-bind="foreach: availableStaffForService">
+                                <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"
+                                    data-bind="text: name,
+                                               click: function() { $root.form.personnelId($data.id); },
+                                               css: $root.form.personnelId() === $data.id ? 'btn-success' : 'btn-outline-secondary'">
+                                </button>
+                            </div>
+                            <!-- /ko -->
+                            <!-- ko if: availableStaffForService().length === 0 -->
                             <div class="d-flex flex-wrap gap-1" data-bind="foreach: staffList">
                                 <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"
                                     data-bind="text: fullName,
@@ -318,7 +325,38 @@
                                                css: $root.form.personnelId() === $data.id ? 'btn-success' : 'btn-outline-secondary'">
                                 </button>
                             </div>
+                            <!-- /ko -->
                         </div>
+                        <!-- Tarih + Musait Saatler -->
+                        <div class="col-4">
+                            <label class="form-label small">Tarih *</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: slotDate" />
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label small">Saat * <small class="text-muted fw-normal">(musait saatleri tikla)</small></label>
+                            <!-- ko if: slotsLoading() -->
+                            <div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>Yukleniyor...</div>
+                            <!-- /ko -->
+                            <!-- ko if: !slotsLoading() && availableSlots().length > 0 -->
+                            <div class="d-flex flex-wrap gap-1">
+                                <!-- ko foreach: availableSlots -->
+                                <button type="button" class="btn py-0 px-2" style="font-size:.8rem;"
+                                    data-bind="text: timeText,
+                                               click: $root.selectSlot,
+                                               css: !available ? 'btn-outline-danger disabled' : ($root.form.startTime().indexOf(timeText) >= 0 ? 'btn-primary' : 'btn-outline-success'),
+                                               attr: { disabled: !available }">
+                                </button>
+                                <!-- /ko -->
+                            </div>
+                            <!-- /ko -->
+                            <!-- ko if: !slotsLoading() && availableSlots().length === 0 && form.personnelId() && slotDate() -->
+                            <div class="text-muted small">Musait saat bulunamadi</div>
+                            <!-- /ko -->
+                            <!-- ko if: !form.personnelId() || !slotDate() -->
+                            <div class="text-muted small">Once personel ve tarih seciniz</div>
+                            <!-- /ko -->
+                        </div>
+                        <input type="hidden" data-bind="value: form.startTime" />
                         <div class="col-12">
                             <label class="form-label small">Not</label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>

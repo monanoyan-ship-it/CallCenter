@@ -8,6 +8,7 @@ function StaffViewModel() {
     self.isSaving = ko.observable(false);
 
     self.branchList = ko.observableArray([]);
+    self.serviceCategories = ko.observableArray([]);
 
     self.form = {
         userName: ko.observable(''),
@@ -17,7 +18,16 @@ function StaffViewModel() {
         title: ko.observable(''),
         customerRoleId: ko.observable(103),
         branchId: ko.observable(null),
+        skillServiceIds: ko.observableArray([]),
         isActive: ko.observable('true')
+    };
+
+    self.toggleSkill = function (serviceId) {
+        var ids = self.form.skillServiceIds().slice();
+        var idx = ids.indexOf(serviceId);
+        if (idx >= 0) ids.splice(idx, 1);
+        else ids.push(serviceId);
+        self.form.skillServiceIds(ids);
     };
 
     self.filteredStaff = ko.computed(function () {
@@ -53,8 +63,13 @@ function StaffViewModel() {
     self.loadBranches = function () {
         $.get('/proxy/sln-branches', function (data) {
             self.branchList(data || []);
-            // Tek sube varsa otomatik sec
             if (data && data.length === 1) self.form.branchId(data[0].id);
+        });
+    };
+
+    self.loadServices = function () {
+        $.get('/proxy/sln-services/categories', function (data) {
+            self.serviceCategories(data || []);
         });
     };
 
@@ -66,6 +81,7 @@ function StaffViewModel() {
         self.form.title('');
         self.form.customerRoleId(103);
         self.form.branchId(self.branchList().length === 1 ? self.branchList()[0].id : null);
+        self.form.skillServiceIds([]);
         self.form.isActive('true');
         self.isEditing(false);
         self.editingId(null);
@@ -86,6 +102,7 @@ function StaffViewModel() {
         self.form.title(staff.title || '');
         self.form.customerRoleId(staff.customerRoleId || 103);
         self.form.branchId(staff.branchId || null);
+        self.form.skillServiceIds(staff.skillServiceIds || []);
         self.form.isActive(staff.isActive ? 'true' : 'false');
         formModal.show();
     };
@@ -106,6 +123,7 @@ function StaffViewModel() {
             title: self.form.title(),
             customerRoleId: parseInt(self.form.customerRoleId()) || 103,
             branchId: self.form.branchId() ? parseInt(self.form.branchId()) : null,
+            skillServiceIds: self.form.skillServiceIds(),
             isActive: self.form.isActive() === 'true'
         };
 
@@ -217,6 +235,7 @@ function StaffViewModel() {
         formModal = new bootstrap.Modal(document.getElementById('staffModal'));
         self.loadRoles();
         self.loadBranches();
+        self.loadServices();
         self.loadData();
     });
 }

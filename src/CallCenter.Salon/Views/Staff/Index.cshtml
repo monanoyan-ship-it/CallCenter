@@ -136,6 +136,26 @@
                                 <option value="false">Pasif</option>
                             </select>
                         </div>
+                        <!-- Hizmet Yetenekleri -->
+                        <!-- ko if: serviceCategories().length > 0 -->
+                        <div class="col-12">
+                            <label class="form-label small">Hizmet Yetenekleri <small class="text-muted fw-normal">(bu personel hangi hizmetleri yapabilir?)</small></label>
+                            <!-- ko foreach: serviceCategories -->
+                            <div class="mb-2">
+                                <small class="text-muted fw-bold" data-bind="text: name"></small>
+                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                    <!-- ko foreach: services -->
+                                    <button type="button" class="btn py-0 px-2" style="font-size:.8rem;"
+                                        data-bind="text: name,
+                                                   click: function() { $root.toggleSkill($data.id); },
+                                                   css: $root.form.skillServiceIds().indexOf($data.id) >= 0 ? 'btn-primary' : 'btn-outline-secondary'">
+                                    </button>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">

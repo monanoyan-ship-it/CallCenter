@@ -243,8 +243,16 @@ function SalesViewModel() {
         if (!appointmentModal) appointmentModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
         appointmentModal.show();
 
-        $.get('/proxy/sln-appointments?date=today', function (data) {
-            var list = (data.items || data || []).map(function (a) {
+        var today = new Date();
+        var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        var tomorrowDate = new Date(today); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        var tomorrowStr = tomorrowDate.getFullYear() + '-' + String(tomorrowDate.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrowDate.getDate()).padStart(2, '0');
+
+        $.get('/proxy/sln-appointments?from=' + todayStr + '&to=' + tomorrowStr, function (data) {
+            var list = (data.items || data || []).filter(function (a) {
+                // Sadece planlanan(1) ve onaylanan(2) randevulari goster
+                return a.statusId === 1 || a.statusId === 2;
+            }).map(function (a) {
                 var startTime = new Date(a.startTime);
                 a.startTimeText = startTime.getHours().toString().padStart(2, '0') + ':' + startTime.getMinutes().toString().padStart(2, '0');
                 a.clientName = a.clientName || '-';

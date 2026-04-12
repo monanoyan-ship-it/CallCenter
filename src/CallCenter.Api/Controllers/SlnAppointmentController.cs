@@ -95,6 +95,32 @@ public class SlnAppointmentController : ControllerBase
         return Ok(hasConflict);
     }
 
+    /// <summary>Secilen hizmetleri yapabilecek personeller</summary>
+    [HttpGet("available-staff")]
+    public async Task<ActionResult> GetAvailableStaff([FromQuery] string serviceIds)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var ids = (serviceIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+            .Where(id => id > 0).ToList();
+
+        var staff = await _appointmentFactory.GetAvailableStaffAsync(customerId, ids, GetBranchId());
+        return Ok(staff);
+    }
+
+    /// <summary>Personelin belirtilen gundeki musait saat slotlari</summary>
+    [HttpGet("available-slots")]
+    public async Task<ActionResult> GetAvailableSlots([FromQuery] int personnelId, [FromQuery] DateTime date, [FromQuery] int durationMinutes = 30)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, GetBranchId());
+        return Ok(slots);
+    }
+
     private int GetUserId()
         => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 

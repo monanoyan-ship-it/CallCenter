@@ -13,6 +13,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private readonly ISlnServiceEntityService _services;
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
+    private readonly ISlnPersonnelSkillEntityService _skills;
+    private readonly ICustomerPersonnelEntityService _personnel;
+    private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnAppointmentFactory> _logger;
 
@@ -21,6 +24,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         ISlnServiceEntityService services,
         ISlnClientEntityService clients,
         ISlnNoShowPolicyEntityService noShowPolicies,
+        ISlnPersonnelSkillEntityService skills,
+        ICustomerPersonnelEntityService personnel,
+        ISlnBranchEntityService branches,
         IUnitOfWork uow,
         ILogger<SlnAppointmentFactory> logger)
     {
@@ -28,6 +34,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         _services = services;
         _clients = clients;
         _noShowPolicies = noShowPolicies;
+        _skills = skills;
+        _personnel = personnel;
+        _branches = branches;
         _uow = uow;
         _logger = logger;
     }
@@ -293,5 +302,115 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             StatusId = a.StatusId,
             Notes = a.Notes
         };
+    }
+
+    public async Task<List<object>> GetAvailableStaffAsync(int customerId, List<int> serviceIds, int? branchId = null)
+    {
+        // Skill eslemesi olan personelleri bul
+        var skillQuery = _skills.GetAllQueryable()
+            .Where(s => serviceIds.Contains(s.ServiceId));
+
+        var skilledPersonnelIds = await skillQuery
+            .Select(s => s.PersonnelId)
+            .Distinct()
+            .ToListAsync();
+
+        var personnelQuery = _personnel.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId && p.IsActive);
+
+        if (branchId.HasValue)
+            personnelQuery = personnelQuery.Where(p => p.BranchId == branchId.Value || p.BranchId == null);
+
+        // Skill tanimlanmissa filtrele, tanimlanmamissa tum aktif personelleri don
+        if (skilledPersonnelIds.Count > 0)
+            personnelQuery = personnelQuery.Where(p => skilledPersonnelIds.Contains(p.Id));
+
+        return await personnelQuery
+            .Include(p => p.User)
+            .OrderBy(p => p.User.FullName)
+            .Select(p => (object)new
+            {
+                p.Id,
+                Name = p.User.FullName,
+                p.Title,
+                p.PhotoUrl,
+                p.Specialty,
+                p.BranchId
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null)
+    {
+        // Subenin calisma saatlerini al
+        var branch = branchId.HasValue
+            ? await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.Id == branchId.Value)
+            : await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+
+        var dayKey = date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "mon", DayOfWeek.Tuesday => "tue", DayOfWeek.Wednesday => "wed",
+            DayOfWeek.Thursday => "thu", DayOfWeek.Friday => "fri", DayOfWeek.Saturday => "sat",
+            _ => "sun"
+        };
+
+        var openHour = 9; var openMin = 0;
+        var closeHour = 19; var closeMin = 0;
+        if (branch?.WorkingHoursJson != null)
+        {
+            try
+            {
+                var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(branch.WorkingHoursJson);
+                if (hours != null && hours.TryGetValue(dayKey, out var val))
+                {
+                    if (val == "closed") return new List<object>();
+                    var parts = val.Split('-');
+                    if (parts.Length == 2)
+                    {
+                        var openParts = parts[0].Split(':');
+                        var closeParts = parts[1].Split(':');
+                        openHour = int.Parse(openParts[0]);
+                        openMin = openParts.Length > 1 ? int.Parse(openParts[1]) : 0;
+                        closeHour = int.Parse(closeParts[0]);
+                        closeMin = closeParts.Length > 1 ? int.Parse(closeParts[1]) : 0;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // Personelin o gundeki mevcut randevulari
+        var dayStart = date.Date;
+        var dayEnd = date.Date.AddDays(1);
+        var existingAppointments = await _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == customerId
+                && a.PersonnelId == personnelId
+                && a.StatusId != 4 && a.StatusId != 5
+                && a.StartTime >= dayStart && a.StartTime < dayEnd)
+            .Select(a => new { a.StartTime, a.EndTime })
+            .ToListAsync();
+
+        // Musait slotlari hesapla (30 dk aralikla)
+        var slots = new List<object>();
+        var slotStart = date.Date.AddHours(openHour).AddMinutes(openMin);
+        var dayClose = date.Date.AddHours(closeHour).AddMinutes(closeMin);
+
+        while (slotStart.AddMinutes(durationMinutes) <= dayClose)
+        {
+            var slotEnd = slotStart.AddMinutes(durationMinutes);
+            var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
+
+            slots.Add(new
+            {
+                startTime = slotStart,
+                endTime = slotEnd,
+                available = !hasConflict,
+                timeText = slotStart.ToString("HH:mm")
+            });
+
+            slotStart = slotStart.AddMinutes(30);
+        }
+
+        return slots;
     }
 }

@@ -11,4 +11,10 @@ public interface ISlnAppointmentFactory
     Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId);
     Task<(bool Success, string? Error)> DeleteAppointmentAsync(int appointmentId, int customerId);
     Task<bool> CheckConflictAsync(int personnelId, DateTime startTime, DateTime endTime, int customerId, int? excludeAppointmentId = null);
+
+    /// <summary>Belirtilen hizmetleri yapabilecek personeller (skill eslemesi yoksa tum aktifler)</summary>
+    Task<List<object>> GetAvailableStaffAsync(int customerId, List<int> serviceIds, int? branchId = null);
+
+    /// <summary>Personelin belirtilen gundeki musait saat slotlari</summary>
+    Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null);
 }

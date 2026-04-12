@@ -135,6 +135,7 @@ public static class EntityServiceRegistration
         // Salon — Profil + Public + NoShowPolicy
         services.AddScoped<ISlnSalonProfileEntityService, SlnSalonProfileEntityService>();
         services.AddScoped<ISlnNoShowPolicyEntityService, SlnNoShowPolicyEntityService>();
+        services.AddScoped<ISlnPersonnelSkillEntityService, SlnPersonnelSkillEntityService>();
         services.AddScoped<ISlnReviewEntityService, SlnReviewEntityService>();
         services.AddScoped<ISlnMembershipPlanEntityService, SlnMembershipPlanEntityService>();
         services.AddScoped<ISlnClientMembershipEntityService, SlnClientMembershipEntityService>();
