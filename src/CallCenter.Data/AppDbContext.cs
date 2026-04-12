@@ -570,6 +570,11 @@ public class AppDbContext : DbContext
              .WithMany(cp => cp.Subordinates)
              .HasForeignKey(cp => cp.ReportsToPersonnelId)
              .OnDelete(DeleteBehavior.SetNull);
+            // Şube (opsiyonel)
+            e.HasOne(cp => cp.Branch)
+             .WithMany(b => b.Personnel)
+             .HasForeignKey(cp => cp.BranchId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // CallRecord

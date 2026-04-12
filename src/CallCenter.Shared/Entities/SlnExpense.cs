@@ -8,6 +8,7 @@ public class SlnExpense
 
     /// <summary>Hangi sube (null = merkez)</summary>
     public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
 
     public int CategoryId { get; set; }
     public SlnExpenseCategory? Category { get; set; }
