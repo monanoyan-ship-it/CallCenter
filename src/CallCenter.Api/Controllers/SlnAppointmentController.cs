@@ -26,7 +26,7 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId);
+        var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, GetBranchId());
         return Ok(appointments);
     }
 
@@ -47,7 +47,7 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (appointment, error) = await _appointmentFactory.CreateAppointmentAsync(dto, userId, customerId);
+        var (appointment, error) = await _appointmentFactory.CreateAppointmentAsync(dto, userId, customerId, GetBranchId());
         return appointment != null ? Ok(appointment) : BadRequest(error);
     }
 
@@ -99,6 +99,12 @@ public class SlnAppointmentController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 }
 
 public class SlnAppointmentStatusRequest

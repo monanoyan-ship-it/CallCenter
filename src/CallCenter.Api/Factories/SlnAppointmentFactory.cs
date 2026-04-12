@@ -32,10 +32,13 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         .Include(a => a.Service)
         .Include(a => a.Services).ThenInclude(s => s.SlnService);
 
-    public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null)
+    public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null, int? branchId = null)
     {
         var query = _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(a => a.BranchId == branchId.Value);
 
         if (from.HasValue)
             query = query.Where(a => a.StartTime >= from.Value);
@@ -64,7 +67,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return appointment != null ? MapToDto(appointment) : null;
     }
 
-    public async Task<(SlnAppointmentDto? Appointment, string? Error)> CreateAppointmentAsync(SlnAppointmentCreateDto dto, int userId, int customerId)
+    public async Task<(SlnAppointmentDto? Appointment, string? Error)> CreateAppointmentAsync(SlnAppointmentCreateDto dto, int userId, int customerId, int? branchId = null)
     {
         if (dto.ServiceIds.Count == 0)
             return (null, "En az bir hizmet secilmeli");
@@ -86,6 +89,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         var appointment = new SlnAppointment
         {
             CustomerId = customerId,
+            BranchId = branchId,
             SlnClientId = dto.SlnClientId,
             PersonnelId = dto.PersonnelId,
             StartTime = dto.StartTime,

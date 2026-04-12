@@ -27,7 +27,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var invoices = await _financeFactory.GetInvoicesAsync(customerId, from, to, statusId);
+        var invoices = await _financeFactory.GetInvoicesAsync(customerId, from, to, statusId, GetBranchId());
         return Ok(invoices);
     }
 
@@ -49,7 +49,7 @@ public class SlnFinanceController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var personnelId = GetPersonnelId();
-        var (invoice, error) = await _financeFactory.CreateInvoiceAsync(dto, personnelId, customerId);
+        var (invoice, error) = await _financeFactory.CreateInvoiceAsync(dto, personnelId, customerId, GetBranchId());
         return invoice != null ? Ok(invoice) : BadRequest(error);
     }
 
@@ -71,7 +71,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var registers = await _financeFactory.GetCashRegistersAsync(customerId);
+        var registers = await _financeFactory.GetCashRegistersAsync(customerId, GetBranchId());
         return Ok(registers);
     }
 
@@ -81,7 +81,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var register = await _financeFactory.CreateCashRegisterAsync(req.Name, customerId);
+        var register = await _financeFactory.CreateCashRegisterAsync(req.Name, customerId, GetBranchId());
         return Ok(register);
     }
 
@@ -92,7 +92,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var transactions = await _financeFactory.GetCashTransactionsAsync(registerId, customerId, from, to);
+        var transactions = await _financeFactory.GetCashTransactionsAsync(registerId, customerId, from, to, GetBranchId());
         return Ok(transactions);
     }
 
@@ -104,7 +104,7 @@ public class SlnFinanceController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var (transaction, error) = await _financeFactory.AddCashTransactionAsync(
-            registerId, req.TransactionTypeId, req.Amount, req.Description, req.PaymentMethodId, userId, customerId);
+            registerId, req.TransactionTypeId, req.Amount, req.Description, req.PaymentMethodId, userId, customerId, GetBranchId());
 
         return transaction != null ? Ok(transaction) : BadRequest(error);
     }
@@ -138,7 +138,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var expenses = await _financeFactory.GetExpensesAsync(customerId, from, to, categoryId);
+        var expenses = await _financeFactory.GetExpensesAsync(customerId, from, to, categoryId, GetBranchId());
         return Ok(expenses);
     }
 
@@ -149,7 +149,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var expense = await _financeFactory.CreateExpenseAsync(dto, userId, customerId);
+        var expense = await _financeFactory.CreateExpenseAsync(dto, userId, customerId, GetBranchId());
         return Ok(expense);
     }
 
@@ -170,7 +170,7 @@ public class SlnFinanceController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetCashClosingsAsync(customerId, registerId));
+        return Ok(await _financeFactory.GetCashClosingsAsync(customerId, registerId, GetBranchId()));
     }
 
     [HttpPost("cash-closings")]
@@ -179,7 +179,7 @@ public class SlnFinanceController : ControllerBase
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (closing, error) = await _financeFactory.CreateCashClosingAsync(dto, userId, customerId);
+        var (closing, error) = await _financeFactory.CreateCashClosingAsync(dto, userId, customerId, GetBranchId());
         return closing != null ? Ok(closing) : BadRequest(error);
     }
 
@@ -188,7 +188,7 @@ public class SlnFinanceController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var summary = await _financeFactory.GetDailySummaryAsync(registerId, customerId);
+        var summary = await _financeFactory.GetDailySummaryAsync(registerId, customerId, GetBranchId());
         return Ok(summary);
     }
 
@@ -201,6 +201,12 @@ public class SlnFinanceController : ControllerBase
     private int GetPersonnelId()
         => int.Parse(User.FindFirst("CustomerPersonnelId")?.Value ?? "0");
 
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
+
     // ═══ Z RAPORU ═══
 
     [HttpGet("z-report/{registerId}")]
@@ -208,7 +214,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetZReportAsync(registerId, cid, date));
+        return Ok(await _financeFactory.GetZReportAsync(registerId, cid, date, GetBranchId()));
     }
 
     // ═══ KASA AÇILIŞ ═══
@@ -218,7 +224,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (result, error) = await _financeFactory.CreateCashOpeningAsync(registerId, cid, request?.ManualBalance, GetPersonnelId());
+        var (result, error) = await _financeFactory.CreateCashOpeningAsync(registerId, cid, request?.ManualBalance, GetPersonnelId(), GetBranchId());
         if (error != null) return BadRequest(new { message = error });
         return Ok(result);
     }
@@ -252,7 +258,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetStaffRevenueAsync(cid, startDate, endDate));
+        return Ok(await _financeFactory.GetStaffRevenueAsync(cid, startDate, endDate, GetBranchId()));
     }
 
     // ═══ FİNANS RAPORLARI ═══
@@ -262,7 +268,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetIncomeExpenseReportAsync(cid, startDate, endDate));
+        return Ok(await _financeFactory.GetIncomeExpenseReportAsync(cid, startDate, endDate, GetBranchId()));
     }
 
     [HttpGet("reports/tax")]
@@ -270,7 +276,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetTaxReportAsync(cid, startDate, endDate));
+        return Ok(await _financeFactory.GetTaxReportAsync(cid, startDate, endDate, GetBranchId()));
     }
 }
 

@@ -47,10 +47,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ Adisyon (Invoice) ═══
 
-    public async Task<List<SlnInvoiceDto>> GetInvoicesAsync(int customerId, DateTime? from, DateTime? to, int? statusId = null)
+    public async Task<List<SlnInvoiceDto>> GetInvoicesAsync(int customerId, DateTime? from, DateTime? to, int? statusId = null, int? branchId = null)
     {
         var query = _invoices.GetAllQueryable()
             .Where(i => i.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.BranchId == branchId.Value);
 
         if (from.HasValue)
         {
@@ -92,7 +95,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return invoice != null ? MapInvoiceToDto(invoice) : null;
     }
 
-    public async Task<(SlnInvoiceDto? Invoice, string? Error)> CreateInvoiceAsync(SlnInvoiceCreateDto dto, int userId, int customerId)
+    public async Task<(SlnInvoiceDto? Invoice, string? Error)> CreateInvoiceAsync(SlnInvoiceCreateDto dto, int userId, int customerId, int? branchId = null)
     {
         if (dto.Items.Count == 0)
             return (null, "Adisyonda en az bir kalem olmali");
@@ -108,6 +111,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var invoice = new SlnInvoice
         {
             CustomerId = customerId,
+            BranchId = branchId,
             SlnClientId = dto.SlnClientId,
             InvoiceNo = invoiceNo,
             InvoiceDate = today,
@@ -203,20 +207,25 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ Kasa ═══
 
-    public async Task<List<object>> GetCashRegistersAsync(int customerId)
+    public async Task<List<object>> GetCashRegistersAsync(int customerId, int? branchId = null)
     {
-        var registers = await _cashRegisters.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId)
-            .ToListAsync();
+        var query = _cashRegisters.GetAllQueryable()
+            .Where(r => r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(r => r.BranchId == branchId.Value);
+
+        var registers = await query.ToListAsync();
 
         return registers.Select(r => (object)new { r.Id, r.Name, r.IsActive }).ToList();
     }
 
-    public async Task<object> CreateCashRegisterAsync(string name, int customerId)
+    public async Task<object> CreateCashRegisterAsync(string name, int customerId, int? branchId = null)
     {
         var register = new SlnCashRegister
         {
             CustomerId = customerId,
+            BranchId = branchId,
             Name = name
         };
 
@@ -226,11 +235,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return new { register.Id, register.Name, register.IsActive };
     }
 
-    public async Task<List<SlnCashTransactionDto>> GetCashTransactionsAsync(int registerId, int customerId, DateTime? from, DateTime? to)
+    public async Task<List<SlnCashTransactionDto>> GetCashTransactionsAsync(int registerId, int customerId, DateTime? from, DateTime? to, int? branchId = null)
     {
         // Kasanin bu firmaya ait oldugunu dogrula
-        var register = await _cashRegisters.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.Id == registerId && r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            registerQuery = registerQuery.Where(r => r.BranchId == branchId.Value);
+
+        var register = await registerQuery.FirstOrDefaultAsync();
 
         if (register == null) return [];
 
@@ -262,10 +276,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task<(SlnCashTransactionDto? Transaction, string? Error)> AddCashTransactionAsync(
         int registerId, int transactionTypeId, decimal amount, string description,
-        int paymentMethodId, int userId, int customerId)
+        int paymentMethodId, int userId, int customerId, int? branchId = null)
     {
-        var register = await _cashRegisters.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.Id == registerId && r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            registerQuery = registerQuery.Where(r => r.BranchId == branchId.Value);
+
+        var register = await registerQuery.FirstOrDefaultAsync();
 
         if (register == null) return (null, "Kasa bulunamadi");
 
@@ -320,10 +339,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return new { category.Id, category.Name, category.IsSystem };
     }
 
-    public async Task<List<SlnExpenseDto>> GetExpensesAsync(int customerId, DateTime? from, DateTime? to, int? categoryId = null)
+    public async Task<List<SlnExpenseDto>> GetExpensesAsync(int customerId, DateTime? from, DateTime? to, int? categoryId = null, int? branchId = null)
     {
         var query = _expenses.GetAllQueryable()
             .Where(e => e.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(e => e.BranchId == branchId.Value);
 
         if (from.HasValue)
         {
@@ -356,11 +378,12 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         }).ToList();
     }
 
-    public async Task<SlnExpenseDto> CreateExpenseAsync(SlnExpenseCreateDto dto, int userId, int customerId)
+    public async Task<SlnExpenseDto> CreateExpenseAsync(SlnExpenseCreateDto dto, int userId, int customerId, int? branchId = null)
     {
         var expense = new SlnExpense
         {
             CustomerId = customerId,
+            BranchId = branchId,
             CategoryId = dto.CategoryId,
             Amount = dto.Amount,
             ExpenseDate = dto.ExpenseDate,
@@ -424,12 +447,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ Gun Sonu Kasa Kapama ═══
 
-    public async Task<List<SlnCashClosingDto>> GetCashClosingsAsync(int customerId, int? registerId)
+    public async Task<List<SlnCashClosingDto>> GetCashClosingsAsync(int customerId, int? registerId, int? branchId = null)
     {
         var query = _db.SlnCashClosings
             .Include(c => c.Register)
             .Include(c => c.ClosedByPersonnel).ThenInclude(p => p!.User)
             .Where(c => c.Register != null && c.Register.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(c => c.Register != null && c.Register.BranchId == branchId.Value);
 
         if (registerId.HasValue)
             query = query.Where(c => c.RegisterId == registerId.Value);
@@ -449,10 +475,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         }).ToListAsync();
     }
 
-    public async Task<(SlnCashClosingDto? Closing, string? Error)> CreateCashClosingAsync(SlnCashClosingCreateDto dto, int userId, int customerId)
+    public async Task<(SlnCashClosingDto? Closing, string? Error)> CreateCashClosingAsync(SlnCashClosingCreateDto dto, int userId, int customerId, int? branchId = null)
     {
-        var register = await _cashRegisters.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == dto.RegisterId && r.CustomerId == customerId);
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.Id == dto.RegisterId && r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            registerQuery = registerQuery.Where(r => r.BranchId == branchId.Value);
+
+        var register = await registerQuery.FirstOrDefaultAsync();
 
         if (register == null) return (null, "Kasa bulunamadi");
 
@@ -499,10 +530,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         }, null);
     }
 
-    public async Task<object> GetDailySummaryAsync(int registerId, int customerId)
+    public async Task<object> GetDailySummaryAsync(int registerId, int customerId, int? branchId = null)
     {
-        var register = await _cashRegisters.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.Id == registerId && r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            registerQuery = registerQuery.Where(r => r.BranchId == branchId.Value);
+
+        var register = await registerQuery.FirstOrDefaultAsync();
 
         if (register == null) return new { error = "Kasa bulunamadi" };
 
@@ -526,10 +562,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ Z RAPORU ═══
 
-    public async Task<object> GetZReportAsync(int registerId, int customerId, DateTime? date = null)
+    public async Task<object> GetZReportAsync(int registerId, int customerId, DateTime? date = null, int? branchId = null)
     {
-        var register = await _cashRegisters.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.Id == registerId && r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            registerQuery = registerQuery.Where(r => r.BranchId == branchId.Value);
+
+        var register = await registerQuery.FirstOrDefaultAsync();
         if (register == null) return new { error = "Kasa bulunamadi" };
 
         var targetDate = (date ?? DateTime.UtcNow).Date;
@@ -586,10 +627,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ KASA ACILIS ═══
 
-    public async Task<(object? Result, string? Error)> CreateCashOpeningAsync(int registerId, int customerId, decimal? manualBalance, int personnelId)
+    public async Task<(object? Result, string? Error)> CreateCashOpeningAsync(int registerId, int customerId, decimal? manualBalance, int personnelId, int? branchId = null)
     {
-        var register = await _cashRegisters.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.Id == registerId && r.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            registerQuery = registerQuery.Where(r => r.BranchId == branchId.Value);
+
+        var register = await registerQuery.FirstOrDefaultAsync();
         if (register == null) return (null, "Kasa bulunamadi");
 
         var today = DateTime.UtcNow.Date;
@@ -730,17 +776,21 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ PERSONEL HASILAT ═══
 
-    public async Task<object> GetStaffRevenueAsync(int customerId, DateTime startDate, DateTime endDate)
+    public async Task<object> GetStaffRevenueAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null)
     {
-        var invoiceItems = await _db.SlnInvoiceItems
+        var query = _db.SlnInvoiceItems
             .Include(i => i.Invoice)
             .Include(i => i.Personnel).ThenInclude(p => p!.User)
             .Where(i => i.Invoice!.CustomerId == customerId
                      && i.Invoice.InvoiceDate >= startDate
                      && i.Invoice.InvoiceDate < endDate
                      && i.Invoice.StatusId != 3
-                     && i.PersonnelId != null)
-            .ToListAsync();
+                     && i.PersonnelId != null);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.Invoice!.BranchId == branchId.Value);
+
+        var invoiceItems = await query.ToListAsync();
 
         var personnelIds = invoiceItems.Where(i => i.PersonnelId.HasValue).Select(i => i.PersonnelId!.Value).Distinct().ToList();
         var commissions = await _db.SlnPersonnelCommissions
@@ -786,18 +836,26 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ FİNANS RAPORLARI ═══
 
-    public async Task<object> GetIncomeExpenseReportAsync(int customerId, DateTime startDate, DateTime endDate)
+    public async Task<object> GetIncomeExpenseReportAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null)
     {
         // Gelirler (adisyonlar)
-        var invoices = await _db.SlnInvoices
-            .Where(i => i.CustomerId == customerId && i.InvoiceDate >= startDate && i.InvoiceDate < endDate && i.StatusId != 3)
-            .ToListAsync();
+        var invoiceQuery = _db.SlnInvoices
+            .Where(i => i.CustomerId == customerId && i.InvoiceDate >= startDate && i.InvoiceDate < endDate && i.StatusId != 3);
+
+        if (branchId.HasValue)
+            invoiceQuery = invoiceQuery.Where(i => i.BranchId == branchId.Value);
+
+        var invoices = await invoiceQuery.ToListAsync();
 
         // Giderler (masraflar)
-        var expenses = await _db.SlnExpenses
+        var expenseQuery = _db.SlnExpenses
             .Include(e => e.Category)
-            .Where(e => e.CustomerId == customerId && e.ExpenseDate >= startDate && e.ExpenseDate < endDate && e.StatusId != 3)
-            .ToListAsync();
+            .Where(e => e.CustomerId == customerId && e.ExpenseDate >= startDate && e.ExpenseDate < endDate && e.StatusId != 3);
+
+        if (branchId.HasValue)
+            expenseQuery = expenseQuery.Where(e => e.BranchId == branchId.Value);
+
+        var expenses = await expenseQuery.ToListAsync();
 
         var totalIncome = invoices.Sum(i => i.GrandTotal > 0 ? i.GrandTotal : i.NetAmount);
         var totalTax = invoices.Sum(i => i.TaxAmount);
@@ -821,12 +879,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         };
     }
 
-    public async Task<object> GetTaxReportAsync(int customerId, DateTime startDate, DateTime endDate)
+    public async Task<object> GetTaxReportAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null)
     {
-        var invoiceItems = await _db.SlnInvoiceItems
+        var taxQuery = _db.SlnInvoiceItems
             .Include(i => i.Invoice)
-            .Where(i => i.Invoice!.CustomerId == customerId && i.Invoice.InvoiceDate >= startDate && i.Invoice.InvoiceDate < endDate && i.Invoice.StatusId != 3)
-            .ToListAsync();
+            .Where(i => i.Invoice!.CustomerId == customerId && i.Invoice.InvoiceDate >= startDate && i.Invoice.InvoiceDate < endDate && i.Invoice.StatusId != 3);
+
+        if (branchId.HasValue)
+            taxQuery = taxQuery.Where(i => i.Invoice!.BranchId == branchId.Value);
+
+        var invoiceItems = await taxQuery.ToListAsync();
 
         var byRate = invoiceItems
             .GroupBy(i => i.TaxRate)

@@ -24,7 +24,7 @@ public class SlnReportController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var report = await _reportFactory.GetSalesReportAsync(customerId, from, to);
+        var report = await _reportFactory.GetSalesReportAsync(customerId, from, to, GetBranchId());
         return Ok(report);
     }
 
@@ -34,7 +34,7 @@ public class SlnReportController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var report = await _reportFactory.GetStaffReportAsync(customerId, from, to);
+        var report = await _reportFactory.GetStaffReportAsync(customerId, from, to, GetBranchId());
         return Ok(report);
     }
 
@@ -54,7 +54,7 @@ public class SlnReportController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var report = await _reportFactory.GetFinanceReportAsync(customerId, from, to);
+        var report = await _reportFactory.GetFinanceReportAsync(customerId, from, to, GetBranchId());
         return Ok(report);
     }
 
@@ -64,10 +64,16 @@ public class SlnReportController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var report = await _reportFactory.GetClientReportAsync(customerId, from, to);
+        var report = await _reportFactory.GetClientReportAsync(customerId, from, to, GetBranchId());
         return Ok(report);
     }
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 }

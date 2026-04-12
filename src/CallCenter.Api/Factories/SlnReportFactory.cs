@@ -40,10 +40,15 @@ public class SlnReportFactory : ISlnReportFactory
         _logger = logger;
     }
 
-    public async Task<SlnSalesReportDto> GetSalesReportAsync(int customerId, DateTime from, DateTime to)
+    public async Task<SlnSalesReportDto> GetSalesReportAsync(int customerId, DateTime from, DateTime to, int? branchId = null)
     {
-        var invoices = await _invoices.GetAllQueryable()
-            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.InvoiceDate >= from && i.InvoiceDate <= to)
+        var query = _invoices.GetAllQueryable()
+            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.InvoiceDate >= from && i.InvoiceDate <= to);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.BranchId == branchId.Value);
+
+        var invoices = await query
             .Include(i => i.Items).ThenInclude(it => it.Service)
             .Include(i => i.Items).ThenInclude(it => it.Product)
             .ToListAsync();
@@ -98,13 +103,18 @@ public class SlnReportFactory : ISlnReportFactory
         };
     }
 
-    public async Task<SlnStaffReportDto> GetStaffReportAsync(int customerId, DateTime from, DateTime to)
+    public async Task<SlnStaffReportDto> GetStaffReportAsync(int customerId, DateTime from, DateTime to, int? branchId = null)
     {
-        var items = await _invoiceItems.GetAllQueryable()
+        var staffQuery = _invoiceItems.GetAllQueryable()
             .Where(it => it.Invoice != null && it.Invoice.CustomerId == customerId
                 && it.Invoice.StatusId != 3
                 && it.Invoice.InvoiceDate >= from && it.Invoice.InvoiceDate <= to
-                && it.PersonnelId.HasValue)
+                && it.PersonnelId.HasValue);
+
+        if (branchId.HasValue)
+            staffQuery = staffQuery.Where(it => it.Invoice!.BranchId == branchId.Value);
+
+        var items = await staffQuery
             .Include(it => it.Personnel).ThenInclude(p => p!.User)
             .Include(it => it.Invoice)
             .ToListAsync();
@@ -191,16 +201,25 @@ public class SlnReportFactory : ISlnReportFactory
         };
     }
 
-    public async Task<SlnFinanceReportDto> GetFinanceReportAsync(int customerId, DateTime from, DateTime to)
+    public async Task<SlnFinanceReportDto> GetFinanceReportAsync(int customerId, DateTime from, DateTime to, int? branchId = null)
     {
         // Gelir
-        var totalIncome = await _invoices.GetAllQueryable()
-            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.InvoiceDate >= from && i.InvoiceDate <= to)
-            .SumAsync(i => i.NetAmount);
+        var incomeQuery = _invoices.GetAllQueryable()
+            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.InvoiceDate >= from && i.InvoiceDate <= to);
+
+        if (branchId.HasValue)
+            incomeQuery = incomeQuery.Where(i => i.BranchId == branchId.Value);
+
+        var totalIncome = await incomeQuery.SumAsync(i => i.NetAmount);
 
         // Gider
-        var expensesList = await _expenses.GetAllQueryable()
-            .Where(e => e.CustomerId == customerId && e.ExpenseDate >= from && e.ExpenseDate <= to)
+        var expenseQuery = _expenses.GetAllQueryable()
+            .Where(e => e.CustomerId == customerId && e.ExpenseDate >= from && e.ExpenseDate <= to);
+
+        if (branchId.HasValue)
+            expenseQuery = expenseQuery.Where(e => e.BranchId == branchId.Value);
+
+        var expensesList = await expenseQuery
             .Include(e => e.Category)
             .ToListAsync();
 
@@ -226,7 +245,7 @@ public class SlnReportFactory : ISlnReportFactory
         };
     }
 
-    public async Task<SlnClientReportDto> GetClientReportAsync(int customerId, DateTime from, DateTime to)
+    public async Task<SlnClientReportDto> GetClientReportAsync(int customerId, DateTime from, DateTime to, int? branchId = null)
     {
         var totalClients = await _clients.GetAllQueryable()
             .Where(c => c.CustomerId == customerId)
@@ -237,9 +256,14 @@ public class SlnReportFactory : ISlnReportFactory
             .CountAsync();
 
         // En degerli musteriler
-        var clientStats = await _invoices.GetAllQueryable()
+        var clientInvoiceQuery = _invoices.GetAllQueryable()
             .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue
-                && i.InvoiceDate >= from && i.InvoiceDate <= to)
+                && i.InvoiceDate >= from && i.InvoiceDate <= to);
+
+        if (branchId.HasValue)
+            clientInvoiceQuery = clientInvoiceQuery.Where(i => i.BranchId == branchId.Value);
+
+        var clientStats = await clientInvoiceQuery
             .GroupBy(i => i.SlnClientId)
             .Select(g => new
             {
