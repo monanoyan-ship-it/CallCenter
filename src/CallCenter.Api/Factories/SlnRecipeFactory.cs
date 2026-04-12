@@ -62,6 +62,7 @@ public class SlnRecipeFactory : ISlnRecipeFactory
             Description = dto.Description,
             IconClass = dto.IconClass,
             ServiceId = dto.ServiceId,
+            PhotoUrl = dto.PhotoUrl,
             IsActive = dto.IsActive
         };
 
@@ -110,6 +111,7 @@ public class SlnRecipeFactory : ISlnRecipeFactory
         recipe.Description = dto.Description;
         recipe.IconClass = dto.IconClass;
         recipe.ServiceId = dto.ServiceId;
+        recipe.PhotoUrl = dto.PhotoUrl;
         recipe.IsActive = dto.IsActive;
 
         // Eski itemlari sil
@@ -166,6 +168,7 @@ public class SlnRecipeFactory : ISlnRecipeFactory
         ServiceId = r.ServiceId,
         ServiceName = r.Service?.Name,
         EstimatedCost = r.EstimatedCost,
+        PhotoUrl = r.PhotoUrl,
         IsActive = r.IsActive,
         Items = r.Items.OrderBy(i => i.SortOrder).Select(i => new SlnRecipeItemDto
         {

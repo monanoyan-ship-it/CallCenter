@@ -21,6 +21,9 @@ public class SlnRecipe
     /// <summary>Tahmini toplam malzeme maliyeti (item larin toplamı)</summary>
     public decimal EstimatedCost { get; set; }
 
+    /// <summary>Referans fotograf URL (sonuc gorseli, renk ornegi vb.)</summary>
+    public string? PhotoUrl { get; set; }
+
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

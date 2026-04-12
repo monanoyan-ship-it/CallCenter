@@ -805,6 +805,7 @@ public class SlnRecipeDto
     public int? ServiceId { get; set; }
     public string? ServiceName { get; set; }
     public decimal EstimatedCost { get; set; }
+    public string? PhotoUrl { get; set; }
     public bool IsActive { get; set; }
     public List<SlnRecipeItemDto> Items { get; set; } = [];
 }
@@ -827,6 +828,7 @@ public class SlnRecipeCreateDto
     public string? Description { get; set; }
     public string? IconClass { get; set; }
     public int? ServiceId { get; set; }
+    public string? PhotoUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public List<SlnRecipeItemCreateDto> Items { get; set; } = [];
 }

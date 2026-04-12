@@ -31,6 +31,7 @@ function RecipesViewModel() {
         description: ko.observable(''),
         iconClass: ko.observable(''),
         serviceId: ko.observable(null),
+        photoUrl: ko.observable(''),
         items: ko.observableArray([])
     };
 
@@ -123,6 +124,7 @@ function RecipesViewModel() {
         self.form.description('');
         self.form.iconClass('');
         self.form.serviceId(null);
+        self.form.photoUrl('');
         self.form.items([]);
         self.serviceAutocomplete.clear();
         self.isEditing(false);
@@ -142,6 +144,7 @@ function RecipesViewModel() {
         self.form.description(recipe.description || '');
         self.form.iconClass(recipe.iconClass || '');
         self.form.serviceId(recipe.serviceId || null);
+        self.form.photoUrl(recipe.photoUrl || '');
         if (recipe.serviceId) {
             self.serviceAutocomplete.setFromValue(recipe.serviceId);
         } else {
@@ -191,6 +194,7 @@ function RecipesViewModel() {
             description: self.form.description(),
             iconClass: self.form.iconClass(),
             serviceId: self.form.serviceId() ? parseInt(self.form.serviceId()) : null,
+            photoUrl: self.form.photoUrl() || null,
             isActive: true,
             estimatedCost: self.calculatedCost(),
             items: items
@@ -220,6 +224,24 @@ function RecipesViewModel() {
             toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
             self.isSaving(false);
         });
+    };
+
+    self.uploadRecipePhoto = function (data, event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { toastr.warning('Dosya 5 MB dan büyük olamaz.'); return; }
+
+        var formData = new FormData();
+        formData.append('file', file);
+        toastr.info('Yükleniyor...');
+        $.ajax({
+            url: '/proxy/sln-profile/upload-image?type=recipe',
+            method: 'POST', data: formData, processData: false, contentType: false
+        }).done(function (result) {
+            self.form.photoUrl(result.url);
+            toastr.success('Fotoğraf yüklendi.');
+        }).fail(function () { toastr.error('Yükleme hatası.'); });
+        event.target.value = '';
     };
 
     self.remove = function (recipe) {
