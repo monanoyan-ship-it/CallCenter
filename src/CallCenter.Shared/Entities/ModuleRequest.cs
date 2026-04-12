@@ -17,6 +17,9 @@ public class ModuleRequest
     /// <summary>Talep edilen modul ID (SalonPortalModules.Ids.*)</summary>
     public int ModuleId { get; set; }
 
+    /// <summary>Talep tipi: 1=Aktivasyon, 2=Iptal (ModuleRequestTypes)</summary>
+    public int RequestTypeId { get; set; } = 1;
+
     /// <summary>Talebi olusturan personel</summary>
     public int RequestedByPersonnelId { get; set; }
     public CustomerPersonnel RequestedByPersonnel { get; set; } = null!;

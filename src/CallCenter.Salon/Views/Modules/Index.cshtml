@@ -3,57 +3,95 @@
 }
 
 <div id="modules-vm">
-    <!-- Aktif Moduller -->
-    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Modulleriniz</h6>
-    <div class="row g-3 mb-4" data-bind="foreach: activeModules">
+    <!-- Temel Paket (Default Moduller) -->
+    <h6 class="text-muted mb-3"><i class="bi bi-box-seam me-1"></i>Temel Paket</h6>
+    <div class="row g-3 mb-4" data-bind="foreach: defaultModules">
         <div class="col-md-4 col-lg-3">
-            <div class="card border-0 shadow-sm h-100 border-start border-3 border-success">
-                <div class="card-body text-center py-3">
-                    <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.8rem;color:#6f42c1;"></i>
-                    <div class="fw-bold mt-2" data-bind="text: description || systemName"></div>
-                    <span class="badge bg-success mt-1">Aktif</span>
-                    <!-- ko if: effectivePrice > 0 -->
-                    <div class="small text-muted mt-1" data-bind="text: effectivePrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
-                    <!-- /ko -->
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi me-2" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.5rem;color:#6f42c1;"></i>
+                        <div>
+                            <div class="fw-bold small" data-bind="text: description || systemName"></div>
+                            <span class="badge bg-success" style="font-size:0.6rem;">Dahil</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Satın Alınabilir Modüller - Grup Bazlı -->
-    <h6 class="text-muted mb-3"><i class="bi bi-cart-plus me-1"></i>Satın Alınabilir Modüller</h6>
+    <!-- Aktif Ek Moduller (grup bazli) -->
+    <!-- ko if: activeGroups().length > 0 -->
+    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Ek Modulleriniz</h6>
+    <!-- ko foreach: activeGroups -->
+    <div class="mb-3">
+        <span class="badge bg-secondary mb-2" data-bind="text: groupName"></span>
+        <div class="row g-3" data-bind="foreach: modules">
+            <div class="col-md-4 col-lg-3">
+                <div class="card border-0 shadow-sm h-100 border-start border-3 border-success">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center mb-1">
+                            <i class="bi me-2" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.3rem;color:#198754;"></i>
+                            <div class="fw-bold small" data-bind="text: description || systemName"></div>
+                        </div>
+                        <!-- ko if: effectivePrice > 0 -->
+                        <div class="small text-muted" data-bind="text: effectivePrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
+                        <!-- /ko -->
+                        <!-- ko if: trialEndsAt -->
+                        <span class="badge bg-warning text-dark mt-1" style="font-size:0.6rem;">Deneme</span>
+                        <!-- /ko -->
+                        <button class="btn btn-sm btn-outline-danger mt-1 py-0" data-bind="click: $parents[1].requestDeactivation" title="Iptal Talep Et">
+                            <i class="bi bi-dash-circle me-1"></i><span class="small">Iptal Talep Et</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /ko -->
+    <!-- /ko -->
+
+    <!-- Satin Alinabilir Moduller - Grup Bazli -->
+    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-cart-plus me-1"></i>Satin Alinabilir Moduller</h6>
     <!-- ko if: availableModules().length === 0 -->
-    <div class="alert alert-info">Tüm modüller zaten aktif.</div>
+    <div class="alert alert-info py-2 small">Tum moduller zaten aktif.</div>
     <!-- /ko -->
     <!-- ko foreach: availableGroups -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white py-2">
             <strong data-bind="text: groupName"></strong>
-            <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modül)'"></span>
+            <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modul)'"></span>
         </div>
         <div class="card-body">
             <div class="row g-3" data-bind="foreach: modules">
-                <div class="col-md-4 col-lg-3">
+                <div class="col-md-6 col-lg-4">
                     <div class="card border h-100">
-                        <div class="card-body text-center py-3">
-                            <i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.5rem;color:#6c757d;"></i>
-                            <div class="fw-bold mt-2 small" data-bind="text: description || moduleName"></div>
-                            <!-- ko if: monthlyPrice > 0 -->
-                            <div class="text-primary fw-bold mt-1 small" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
-                            <!-- /ko -->
-                            <!-- ko if: monthlyPrice === 0 -->
-                            <div class="text-muted small mt-1">Fiyat için iletişime geçin</div>
-                            <!-- /ko -->
-                            <!-- ko if: monthlyPrice > 0 -->
-                            <a class="btn btn-sm btn-primary mt-2" data-bind="attr: { href: '/Modules/Purchase?moduleId=' + moduleId }">
-                                <i class="bi bi-cart-check me-1"></i>Satin Al
-                            </a>
-                            <!-- /ko -->
-                            <!-- ko if: monthlyPrice <= 0 -->
-                            <button class="btn btn-sm btn-outline-primary mt-2" data-bind="click: $parents[1].requestModule">
-                                <i class="bi bi-send me-1"></i>Talep Et
-                            </button>
-                            <!-- /ko -->
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-start">
+                                <i class="bi me-2 mt-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.3rem;color:#6c757d;"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold small" data-bind="text: description || moduleName"></div>
+                                    <!-- ko if: monthlyPrice > 0 -->
+                                    <div class="text-primary fw-bold mt-1" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
+                                    <!-- /ko -->
+                                    <!-- ko if: !monthlyPrice || monthlyPrice === 0 -->
+                                    <div class="text-muted small mt-1">Fiyat icin iletisime gecin</div>
+                                    <!-- /ko -->
+                                </div>
+                                <div class="ms-2">
+                                    <!-- ko if: monthlyPrice > 0 -->
+                                    <button class="btn btn-sm btn-primary" data-bind="click: $parents[1].requestModule" title="Talep Et">
+                                        <i class="bi bi-send"></i>
+                                    </button>
+                                    <!-- /ko -->
+                                    <!-- ko if: !monthlyPrice || monthlyPrice === 0 -->
+                                    <button class="btn btn-sm btn-outline-primary" data-bind="click: $parents[1].requestModule" title="Talep Et">
+                                        <i class="bi bi-send"></i>
+                                    </button>
+                                    <!-- /ko -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -63,42 +101,55 @@
     <!-- /ko -->
 
     <!-- Taleplerim -->
-    <h6 class="text-muted mb-3"><i class="bi bi-clock-history me-1"></i>Taleplerim</h6>
-    <!-- ko if: requests().length === 0 -->
-    <div class="alert alert-secondary">Henuz modul talebiniz yok.</div>
-    <!-- /ko -->
     <!-- ko if: requests().length > 0 -->
-    <div class="table-responsive">
-        <table class="table table-sm table-hover">
-            <thead>
-                <tr>
-                    <th>Modul</th>
-                    <th>Fiyat</th>
-                    <th>Durum</th>
-                    <th>Talep Tarihi</th>
-                    <th>Admin Notu</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody data-bind="foreach: requests">
-                <tr>
-                    <td><i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i><span data-bind="text: moduleName"></span></td>
-                    <td data-bind="text: catalogPrice ? catalogPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
-                    <td>
-                        <span class="badge" data-bind="text: statusName, css: statusId === 1 ? 'bg-warning text-dark' : statusId === 2 ? 'bg-success' : statusId === 3 ? 'bg-danger' : 'bg-secondary'"></span>
-                    </td>
-                    <td data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
-                    <td data-bind="text: adminNotes || '-'"></td>
-                    <td>
-                        <!-- ko if: statusId === 1 -->
-                        <button class="btn btn-sm btn-outline-danger" data-bind="click: $parent.cancelRequest" title="Iptal Et">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                        <!-- /ko -->
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-clock-history me-1"></i>Taleplerim</h6>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Modul</th>
+                            <th>Tip</th>
+                            <th>Fiyat</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>Admin Notu</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: requests">
+                        <tr>
+                            <td class="small"><i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i><span data-bind="text: moduleName"></span></td>
+                            <td><span class="badge" data-bind="text: requestTypeName || 'Aktivasyon', css: requestTypeId === 2 ? 'bg-danger' : 'bg-success'" style="font-size:0.65rem;"></span></td>
+                            <td class="small" data-bind="text: catalogPrice ? catalogPrice.toLocaleString('tr-TR') + ' TL/ay' : '-'"></td>
+                            <td>
+                                <span class="badge" data-bind="text: statusName, css: statusId === 1 ? 'bg-warning text-dark' : statusId === 2 ? 'bg-success' : statusId === 3 ? 'bg-danger' : 'bg-secondary'"></span>
+                            </td>
+                            <td class="small" data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
+                            <td class="small text-muted" data-bind="text: adminNotes || '-'"></td>
+                            <td>
+                                <!-- ko if: statusId === 1 -->
+                                <button class="btn btn-sm btn-outline-danger py-0" data-bind="click: $parent.cancelRequest" title="Iptal Et">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                                <!-- /ko -->
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- Aylik Toplam -->
+    <!-- ko if: monthlyTotal() > 0 -->
+    <div class="card border-0 shadow-sm mt-4 bg-light">
+        <div class="card-body py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Aylik Modul Tutari</span>
+            <span class="fs-5 fw-bold text-primary" data-bind="text: monthlyTotal().toLocaleString('tr-TR') + ' TL/ay'"></span>
+        </div>
     </div>
     <!-- /ko -->
 </div>
@@ -111,30 +162,59 @@
         self.availableModules = ko.observableArray([]);
         self.requests = ko.observableArray([]);
 
-        self.availableGroups = ko.computed(function () {
-            var all = self.availableModules();
+        self.defaultModules = ko.computed(function () {
+            return self.activeModules().filter(function (m) { return m.isDefault; });
+        });
+
+        self.activeGroups = ko.computed(function () {
+            var nonDefault = self.activeModules().filter(function (m) { return !m.isDefault && m.isActive; });
             var grouped = {};
-            all.forEach(function (m) {
+            nonDefault.forEach(function (m) {
                 var gId = m.groupId || 0;
-                var gName = m.groupName || 'Diğer';
+                var gName = m.groupName || 'Diger';
                 if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, modules: [] };
                 grouped[gId].modules.push(m);
             });
             return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
         });
 
+        self.availableGroups = ko.computed(function () {
+            var all = self.availableModules();
+            var grouped = {};
+            all.forEach(function (m) {
+                var gId = m.groupId || 0;
+                var gName = m.groupName || 'Diger';
+                if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, modules: [] };
+                grouped[gId].modules.push(m);
+            });
+            return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
+        });
+
+        self.monthlyTotal = ko.computed(function () {
+            var total = 0;
+            self.activeModules().forEach(function (m) {
+                if (!m.isDefault && m.isActive) total += (m.effectivePrice || 0);
+            });
+            return total;
+        });
+
         self.load = function () {
-            // Aktif moduller (firma modulleri)
-            $.get('/proxy/sln-module-requests', function (data) {
-                self.requests(data || []);
-            });
-            $.get('/proxy/sln-module-requests/available', function (data) {
-                self.availableModules(data || []);
-            });
-            // Aktif moduller
-            $.get('/proxy/sln-module-requests/active', function (data) {
-                var active = (data || []).filter(function (m) { return m.isActive; });
-                self.activeModules(active);
+            $.get('/proxy/sln-module-requests', function (data) { self.requests(data || []); });
+            $.get('/proxy/sln-module-requests/available', function (data) { self.availableModules(data || []); });
+            $.get('/proxy/sln-module-requests/active', function (data) { self.activeModules(data || []); });
+        };
+
+        self.requestDeactivation = function (mod) {
+            var name = mod.description || mod.systemName;
+            if (!confirm(name + ' modulunu iptal etmek istediginize emin misiniz?\nIptal talebi admin onayina gonderilecektir.')) return;
+            var notes = prompt('Iptal sebebi (zorunlu degil):');
+            $.ajax({
+                url: '/proxy/sln-module-requests',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ moduleId: mod.id, requestTypeId: 2, notes: notes || null }),
+                success: function () { toastr.success('Iptal talebi olusturuldu.'); self.load(); },
+                error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Talep olusturulamadi.'); }
             });
         };
 
@@ -146,14 +226,8 @@
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ moduleId: mod.moduleId, notes: notes || null }),
-                success: function () {
-                    toastr.success('Modul talebi olusturuldu.');
-                    self.load();
-                },
-                error: function (xhr) {
-                    var msg = xhr.responseJSON?.message || 'Talep olusturulamadi.';
-                    toastr.error(msg);
-                }
+                success: function () { toastr.success('Modul talebi olusturuldu.'); self.load(); },
+                error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Talep olusturulamadi.'); }
             });
         };
 
@@ -162,14 +236,8 @@
             $.ajax({
                 url: '/proxy/sln-module-requests/' + req.id,
                 method: 'DELETE',
-                success: function () {
-                    toastr.success('Talep iptal edildi.');
-                    self.load();
-                },
-                error: function (xhr) {
-                    var msg = xhr.responseJSON?.message || 'Iptal edilemedi.';
-                    toastr.error(msg);
-                }
+                success: function () { toastr.success('Talep iptal edildi.'); self.load(); },
+                error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Iptal edilemedi.'); }
             });
         };
 

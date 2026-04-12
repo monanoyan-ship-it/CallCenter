@@ -42,10 +42,25 @@ public class ModuleRequestFactory : IModuleRequestFactory
 
     public async Task<ModuleRequestDto> CreateRequestAsync(int customerId, int personnelId, CreateModuleRequestDto dto)
     {
-        // Modul zaten aktif mi kontrol et
         var existing = await _moduleEs.GetByCustomerAndModuleAsync(customerId, dto.ModuleId);
-        if (existing?.IsActive == true)
-            throw new InvalidOperationException("Bu modul zaten aktif.");
+        var isDeactivation = dto.RequestTypeId == ModuleRequestTypes.Ids.Deactivation;
+
+        if (isDeactivation)
+        {
+            // Iptal talebi: modul aktif olmali
+            if (existing?.IsActive != true)
+                throw new InvalidOperationException("Bu modul zaten aktif degil.");
+            // Default modul iptal edilemez
+            var moduleDef = SalonPortalModules.GetById(dto.ModuleId);
+            if (moduleDef?.IsDefault == true)
+                throw new InvalidOperationException("Temel paket modulleri iptal edilemez.");
+        }
+        else
+        {
+            // Aktivasyon talebi: modul zaten aktif olmamali
+            if (existing?.IsActive == true)
+                throw new InvalidOperationException("Bu modul zaten aktif.");
+        }
 
         // Ayni modul icin pending talep var mi kontrol et
         if (await _requestEs.HasPendingRequestAsync(customerId, dto.ModuleId))
@@ -55,6 +70,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
         {
             CustomerId = customerId,
             ModuleId = dto.ModuleId,
+            RequestTypeId = dto.RequestTypeId,
             RequestedByPersonnelId = personnelId,
             StatusId = ModuleRequestStatuses.Ids.Pending,
             RequestNotes = dto.Notes
@@ -80,23 +96,38 @@ public class ModuleRequestFactory : IModuleRequestFactory
         request.ReviewedAt = DateTime.UtcNow;
         request.ReviewedByUserId = reviewerUserId;
 
-        // Modulu otomatik aktif et
+        // Talep tipine gore modul aktif/deaktif et
         var module = await _moduleEs.GetByCustomerAndModuleAsync(request.CustomerId, request.ModuleId);
-        if (module != null)
+
+        if (request.RequestTypeId == ModuleRequestTypes.Ids.Deactivation)
         {
-            module.IsActive = true;
-            module.DeactivatedAt = null;
-            module.ActivatedAt = DateTime.UtcNow;
+            // Iptal talebi onaylandi — modulu deaktif et
+            if (module != null)
+            {
+                module.IsActive = false;
+                module.DeactivatedAt = DateTime.UtcNow;
+                module.Notes = "Iptal talebi ile deaktif edildi";
+            }
         }
         else
         {
-            _moduleEs.Add(new CustomerPortalModule
+            // Aktivasyon talebi onaylandi — modulu aktif et
+            if (module != null)
             {
-                CustomerId = request.CustomerId,
-                ModuleId = request.ModuleId,
-                IsActive = true,
-                Notes = "Talep ile aktif edildi"
-            });
+                module.IsActive = true;
+                module.DeactivatedAt = null;
+                module.ActivatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                _moduleEs.Add(new CustomerPortalModule
+                {
+                    CustomerId = request.CustomerId,
+                    ModuleId = request.ModuleId,
+                    IsActive = true,
+                    Notes = "Talep ile aktif edildi"
+                });
+            }
         }
 
         await _db.SaveChangesAsync();
@@ -171,6 +202,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
         var module = SalonPortalModules.GetById(r.ModuleId);
         var pricing = pricings.FirstOrDefault(p => p.ModuleId == r.ModuleId);
         var status = ModuleRequestStatuses.GetById(r.StatusId);
+        var requestType = ModuleRequestTypes.GetById(r.RequestTypeId);
 
         return new ModuleRequestDto
         {
@@ -179,9 +211,11 @@ public class ModuleRequestFactory : IModuleRequestFactory
             CustomerId = r.CustomerId,
             CustomerName = r.Customer?.Name,
             ModuleId = r.ModuleId,
-            ModuleName = module?.SystemName,
+            ModuleName = module?.Description ?? module?.SystemName,
             ModuleIcon = module?.Icon,
             CatalogPrice = pricing?.MonthlyPrice,
+            RequestTypeId = r.RequestTypeId,
+            RequestTypeName = requestType?.Description,
             StatusId = r.StatusId,
             StatusName = status?.Description,
             RequestNotes = r.RequestNotes,

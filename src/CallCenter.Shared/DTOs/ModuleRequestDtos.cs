@@ -11,6 +11,8 @@ public class ModuleRequestDto
     public string? ModuleName { get; set; }
     public string? ModuleIcon { get; set; }
     public decimal? CatalogPrice { get; set; }
+    public int RequestTypeId { get; set; } = 1;
+    public string? RequestTypeName { get; set; }
     public int StatusId { get; set; }
     public string? StatusName { get; set; }
     public string? RequestNotes { get; set; }
@@ -24,6 +26,7 @@ public class ModuleRequestDto
 public class CreateModuleRequestDto
 {
     public int ModuleId { get; set; }
+    public int RequestTypeId { get; set; } = 1;
     public string? Notes { get; set; }
 }
 
