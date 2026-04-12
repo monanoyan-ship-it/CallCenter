@@ -49,19 +49,8 @@ public class SlnBranchFactory : ISlnBranchFactory
                 .ToDictionaryAsync(p => p.Id, p => p.User?.FullName ?? "");
         }
 
-        return branches.Select(b => new SlnBranchDto
-        {
-            Id = b.Id,
-            Name = b.Name,
-            Address = b.Address,
-            Phone = b.Phone,
-            ManagerPersonnelId = b.ManagerPersonnelId,
-            ManagerName = b.ManagerPersonnelId.HasValue
-                ? managerNames.GetValueOrDefault(b.ManagerPersonnelId.Value)
-                : null,
-            IsActive = b.IsActive,
-            CreatedAt = b.CreatedAt
-        }).ToList();
+        return branches.Select(b => MapToDto(b, b.ManagerPersonnelId.HasValue
+            ? managerNames.GetValueOrDefault(b.ManagerPersonnelId.Value) : null)).ToList();
     }
 
     public async Task<SlnBranchDto?> GetBranchAsync(int branchId, int customerId)
@@ -80,17 +69,7 @@ public class SlnBranchFactory : ISlnBranchFactory
             managerName = manager?.User?.FullName;
         }
 
-        return new SlnBranchDto
-        {
-            Id = branch.Id,
-            Name = branch.Name,
-            Address = branch.Address,
-            Phone = branch.Phone,
-            ManagerPersonnelId = branch.ManagerPersonnelId,
-            ManagerName = managerName,
-            IsActive = branch.IsActive,
-            CreatedAt = branch.CreatedAt
-        };
+        return MapToDto(branch, managerName);
     }
 
     public async Task<SlnBranchDto> CreateBranchAsync(SlnBranchCreateDto dto, int customerId)
@@ -99,27 +78,28 @@ public class SlnBranchFactory : ISlnBranchFactory
         {
             CustomerId = customerId,
             Name = dto.Name,
+            Slug = dto.Slug,
             Address = dto.Address,
+            City = dto.City,
+            District = dto.District,
             Phone = dto.Phone,
+            Email = dto.Email,
+            GoogleMapsUrl = dto.GoogleMapsUrl,
+            WorkingHoursJson = dto.WorkingHoursJson,
             ManagerPersonnelId = dto.ManagerPersonnelId,
-            IsActive = dto.IsActive
+            IsHeadquarter = dto.IsHeadquarter,
+            IsActive = dto.IsActive,
+            CompanyTitle = dto.CompanyTitle,
+            TaxOffice = dto.TaxOffice,
+            TaxNumber = dto.TaxNumber,
+            MersisNo = dto.MersisNo
         };
 
         _branches.Add(branch);
         await _uow.SaveChangesAsync();
 
         _logger.LogInformation("Yeni sube olusturuldu: {BranchId} - {Name}", branch.Id, branch.Name);
-
-        return new SlnBranchDto
-        {
-            Id = branch.Id,
-            Name = branch.Name,
-            Address = branch.Address,
-            Phone = branch.Phone,
-            ManagerPersonnelId = branch.ManagerPersonnelId,
-            IsActive = branch.IsActive,
-            CreatedAt = branch.CreatedAt
-        };
+        return MapToDto(branch, null);
     }
 
     public async Task<(bool Success, string? Error)> UpdateBranchAsync(int branchId, SlnBranchUpdateDto dto, int customerId)
@@ -130,14 +110,51 @@ public class SlnBranchFactory : ISlnBranchFactory
         if (branch == null) return (false, "Sube bulunamadi");
 
         branch.Name = dto.Name;
+        branch.Slug = dto.Slug;
         branch.Address = dto.Address;
+        branch.City = dto.City;
+        branch.District = dto.District;
         branch.Phone = dto.Phone;
+        branch.Email = dto.Email;
+        branch.GoogleMapsUrl = dto.GoogleMapsUrl;
+        branch.WorkingHoursJson = dto.WorkingHoursJson;
         branch.ManagerPersonnelId = dto.ManagerPersonnelId;
+        branch.IsHeadquarter = dto.IsHeadquarter;
         branch.IsActive = dto.IsActive;
+        branch.CompanyTitle = dto.CompanyTitle;
+        branch.TaxOffice = dto.TaxOffice;
+        branch.TaxNumber = dto.TaxNumber;
+        branch.MersisNo = dto.MersisNo;
 
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    private static SlnBranchDto MapToDto(SlnBranch b, string? managerName) => new()
+    {
+        Id = b.Id,
+        Name = b.Name,
+        Slug = b.Slug,
+        Address = b.Address,
+        City = b.City,
+        District = b.District,
+        Phone = b.Phone,
+        Email = b.Email,
+        GoogleMapsUrl = b.GoogleMapsUrl,
+        WorkingHoursJson = b.WorkingHoursJson,
+        PhotoUrl = b.PhotoUrl,
+        Latitude = b.Latitude,
+        Longitude = b.Longitude,
+        ManagerPersonnelId = b.ManagerPersonnelId,
+        ManagerName = managerName,
+        IsHeadquarter = b.IsHeadquarter,
+        IsActive = b.IsActive,
+        CompanyTitle = b.CompanyTitle,
+        TaxOffice = b.TaxOffice,
+        TaxNumber = b.TaxNumber,
+        MersisNo = b.MersisNo,
+        CreatedAt = b.CreatedAt
+    };
 
     public async Task<(bool Success, string? Error)> DeleteBranchAsync(int branchId, int customerId)
     {

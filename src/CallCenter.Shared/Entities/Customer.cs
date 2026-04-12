@@ -59,6 +59,9 @@ public class Customer
     /// <summary>Tahakkuk gunu (ayin kaci). null = ilk tahakkuk henuz olusturulmadi</summary>
     public int? BillingAnchorDay { get; set; }
 
+    /// <summary>Faturalama tipi: 1=Tek fatura (merkez sube bilgileri), 2=Sube bazli ayri fatura</summary>
+    public int BillingType { get; set; } = 1;
+
     // Subeler
     public ICollection<SlnBranch> Branches { get; set; } = new List<SlnBranch>();
 

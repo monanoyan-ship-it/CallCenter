@@ -18,7 +18,8 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Sube Adi</th>
+                            <th>Sube</th>
+                            <th>Slug</th>
                             <th>Adres</th>
                             <th>Telefon</th>
                             <th>Mudur</th>
@@ -28,8 +29,14 @@
                     </thead>
                     <tbody data-bind="foreach: branches">
                         <tr>
-                            <td class="fw-semibold small" data-bind="text: name"></td>
-                            <td class="small" data-bind="text: address || '-'"></td>
+                            <td class="fw-semibold small">
+                                <span data-bind="text: name"></span>
+                                <!-- ko if: isHeadquarter -->
+                                <span class="badge bg-primary ms-1" style="font-size:0.65rem;">Merkez</span>
+                                <!-- /ko -->
+                            </td>
+                            <td class="small text-muted" data-bind="text: slug || '-'"></td>
+                            <td class="small" data-bind="text: (city || '') + (district ? ' / ' + district : '') || address || '-'"></td>
                             <td class="small" data-bind="text: phone || '-'"></td>
                             <td class="small" data-bind="text: managerName || '-'"></td>
                             <td class="small">
@@ -40,9 +47,11 @@
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    <!-- ko if: !isHeadquarter -->
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
+                                    <!-- /ko -->
                                 </div>
                             </td>
                         </tr>
@@ -60,53 +69,108 @@
 
     <!-- Modal -->
     <div class="modal fade" id="branchModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h6 class="modal-title" data-bind="text: isEditing() ? 'Sube Duzenle' : 'Yeni Sube'"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
+                    <!-- Genel Bilgiler -->
+                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-building me-1"></i>Genel Bilgiler</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
                             <label class="form-label small">Sube Adi *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Profil Adresi (slug)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">corplynk.com/salon/</span>
+                                <input type="text" class="form-control" data-bind="value: form.slug" placeholder="sube-adi" />
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label small">Adres</label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">İl</label>
+                            <label class="form-label small">Il</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.city" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">İlçe</label>
+                            <label class="form-label small">Ilce</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.district" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Telefon</label>
                             <div data-bind="phoneInput: form.phone"></div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <label class="form-label small">E-posta</label>
                             <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small">Şube Müdürü</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.managerPersonnelId, options: staffList, optionsText: 'title', optionsValue: 'id', optionsCaption: 'Seçiniz'"></select>
+                        <div class="col-4">
+                            <label class="form-label small">Google Maps</label>
+                            <input type="url" class="form-control form-control-sm" data-bind="value: form.googleMapsUrl" placeholder="https://maps.google.com/..." />
                         </div>
-                        <div class="col-6">
-                            <div class="form-check form-switch">
+                        <div class="col-4">
+                            <label class="form-label small">Sube Muduru</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.managerPersonnelId, options: staffList, optionsText: 'title', optionsValue: 'id', optionsCaption: 'Seciniz'"></select>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="branchHQ" data-bind="checked: form.isHeadquarter" />
+                                <label class="form-check-label small" for="branchHQ">Ana Sube (Merkez)</label>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-check form-switch mt-4">
                                 <input class="form-check-input" type="checkbox" id="branchActive" data-bind="checked: form.isActive" />
                                 <label class="form-check-label small" for="branchActive">Aktif</label>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="branchHQ" data-bind="checked: form.isHeadquarter" />
-                                <label class="form-check-label small" for="branchHQ">Ana Şube</label>
+                    </div>
+
+                    <!-- Calisma Saatleri -->
+                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-clock me-1"></i>Calisma Saatleri</h6>
+                    <div class="mb-4">
+                        <!-- ko foreach: workingDays -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="small fw-medium" style="min-width:75px;" data-bind="text: label"></span>
+                            <div class="form-check form-switch me-2">
+                                <input class="form-check-input" type="checkbox" data-bind="checked: isOpen" />
                             </div>
+                            <!-- ko if: isOpen() -->
+                            <input type="time" class="form-control form-control-sm" style="max-width:110px;" data-bind="value: open" />
+                            <span class="small">-</span>
+                            <input type="time" class="form-control form-control-sm" style="max-width:110px;" data-bind="value: close" />
+                            <!-- /ko -->
+                            <!-- ko ifnot: isOpen() -->
+                            <span class="text-muted small">Kapali</span>
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
+                    </div>
+
+                    <!-- Fatura Bilgileri -->
+                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-receipt me-1"></i>Fatura Bilgileri</h6>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Ticari Unvan</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.companyTitle" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Vergi Dairesi</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.taxOffice" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Vergi No</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.taxNumber" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Mersis No</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.mersisNo" />
                         </div>
                     </div>
                 </div>

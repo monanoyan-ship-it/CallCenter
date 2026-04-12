@@ -307,24 +307,18 @@ public class SlnSalonProfileDto
 {
     public int Id { get; set; }
     public int CustomerId { get; set; }
-    public string Slug { get; set; } = string.Empty;
     public string SalonName { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string? Address { get; set; }
-    public string? City { get; set; }
-    public string? District { get; set; }
-    public string? Phone { get; set; }
-    public string? Email { get; set; }
     public string? Website { get; set; }
     public string? InstagramHandle { get; set; }
     public string? FacebookUrl { get; set; }
-    public string? GoogleMapsUrl { get; set; }
     public string? LogoUrl { get; set; }
     public string? CoverImageUrl { get; set; }
     public string? FaviconUrl { get; set; }
     public string? GalleryImagesJson { get; set; }
-    public string? WorkingHoursJson { get; set; }
     public bool IsPublished { get; set; }
+    public int BillingType { get; set; } = 1;
+    // PageSettings (hala profil entity'sinde)
     public bool ShowServices { get; set; } = true;
     public bool ShowMemberships { get; set; } = true;
     public bool ShowBooking { get; set; } = true;
@@ -336,26 +330,28 @@ public class SlnSalonProfileDto
     public bool ShowReviews { get; set; } = true;
     public bool ShowMap { get; set; } = true;
     public string? BannersJson { get; set; }
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
     public List<SlnServiceCategoryDto> ServiceCategories { get; set; } = [];
-}
-
-public class SlnSalonProfileUpdateDto
-{
+    // Geriye uyumluluk: Public sayfa slug'i merkez subeden alinir
     public string Slug { get; set; } = string.Empty;
-    public string? Description { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? District { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
+    public string? GoogleMapsUrl { get; set; }
+    public string? WorkingHoursJson { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+}
+
+public class SlnSalonProfileUpdateDto
+{
+    public string? Description { get; set; }
     public string? Website { get; set; }
     public string? InstagramHandle { get; set; }
     public string? FacebookUrl { get; set; }
-    public string? GoogleMapsUrl { get; set; }
-    public string? WorkingHoursJson { get; set; }
     public bool IsPublished { get; set; } = true;
+    public int BillingType { get; set; } = 1;
 }
 
 public class SlnPageSettingsDto
@@ -847,21 +843,48 @@ public class SlnBranchDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Slug { get; set; }
     public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
     public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? GoogleMapsUrl { get; set; }
+    public string? WorkingHoursJson { get; set; }
+    public string? PhotoUrl { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public int? ManagerPersonnelId { get; set; }
     public string? ManagerName { get; set; }
+    public bool IsHeadquarter { get; set; }
     public bool IsActive { get; set; }
+    // Fatura bilgileri
+    public string? CompanyTitle { get; set; }
+    public string? TaxOffice { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? MersisNo { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
 public class SlnBranchCreateDto
 {
     public string Name { get; set; } = string.Empty;
+    public string? Slug { get; set; }
     public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? District { get; set; }
     public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? GoogleMapsUrl { get; set; }
+    public string? WorkingHoursJson { get; set; }
     public int? ManagerPersonnelId { get; set; }
+    public bool IsHeadquarter { get; set; }
     public bool IsActive { get; set; } = true;
+    // Fatura bilgileri
+    public string? CompanyTitle { get; set; }
+    public string? TaxOffice { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? MersisNo { get; set; }
 }
 
 public class SlnBranchUpdateDto : SlnBranchCreateDto

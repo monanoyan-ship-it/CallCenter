@@ -18,18 +18,42 @@ public class SlnPublicController : ControllerBase
 
     public SlnPublicController(AppDbContext db) => _db = db;
 
-    /// <summary>Slug ile salon profili getir</summary>
+    /// <summary>Slug ile salon profili getir (branch slug veya eski profile slug)</summary>
     [HttpGet("{slug}")]
     public async Task<ActionResult<SlnSalonProfileDto>> GetBySlug(string slug)
     {
-        var profile = await _db.SlnSalonProfiles
-            .Include(p => p.Customer)
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        // Oncelik: branch slug → sonra eski profile slug (geriye uyumluluk)
+        var branch = await _db.SlnBranches
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive);
+
+        SlnSalonProfile? profile;
+        int customerId;
+
+        if (branch != null)
+        {
+            customerId = branch.CustomerId;
+            profile = await _db.SlnSalonProfiles
+                .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.IsPublished);
+        }
+        else
+        {
+            profile = await _db.SlnSalonProfiles
+                .Include(p => p.Customer)
+                .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+
+            if (profile == null) return NotFound();
+            customerId = profile.CustomerId;
+
+            // Eski slug ile geldiyse merkez subeyi bul
+            branch = await _db.SlnBranches
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+        }
 
         if (profile == null) return NotFound();
 
         var categories = await _db.SlnServiceCategories
-            .Where(c => c.CustomerId == profile.CustomerId && c.IsActive)
+            .Where(c => c.CustomerId == customerId && c.IsActive)
             .Include(c => c.Services.Where(s => s.IsActive))
             .OrderBy(c => c.SortOrder)
             .ToListAsync();
@@ -37,22 +61,20 @@ public class SlnPublicController : ControllerBase
         return Ok(new SlnSalonProfileDto
         {
             Id = profile.Id,
-            CustomerId = profile.CustomerId,
-            Slug = profile.Slug,
-            SalonName = profile.Customer?.Name ?? "",
+            CustomerId = customerId,
+            Slug = branch?.Slug ?? profile.Slug ?? "",
+            SalonName = branch?.Customer?.Name ?? profile.Customer?.Name ?? "",
             Description = profile.Description,
-            Address = profile.Address,
-            City = profile.City,
-            District = profile.District,
-            Phone = profile.Phone,
-            Email = profile.Email,
+            Address = branch?.Address ?? profile.Address,
+            City = branch?.City ?? profile.City,
+            District = branch?.District ?? profile.District,
+            Phone = branch?.Phone ?? profile.Phone,
+            Email = branch?.Email ?? profile.Email,
             Website = profile.Website,
-            InstagramHandle = profile.InstagramHandle,
-            FacebookUrl = profile.FacebookUrl,
-            GoogleMapsUrl = profile.GoogleMapsUrl,
+            GoogleMapsUrl = branch?.GoogleMapsUrl ?? profile.GoogleMapsUrl,
             LogoUrl = profile.LogoUrl,
             CoverImageUrl = profile.CoverImageUrl,
-            WorkingHoursJson = profile.WorkingHoursJson,
+            WorkingHoursJson = branch?.WorkingHoursJson ?? profile.WorkingHoursJson,
             IsPublished = profile.IsPublished,
             ShowServices = profile.ShowServices,
             ShowMemberships = profile.ShowMemberships,
@@ -65,8 +87,8 @@ public class SlnPublicController : ControllerBase
             ShowReviews = profile.ShowReviews,
             ShowMap = profile.ShowMap,
             BannersJson = profile.BannersJson,
-            Latitude = profile.Latitude,
-            Longitude = profile.Longitude,
+            Latitude = branch?.Latitude ?? profile.Latitude,
+            Longitude = branch?.Longitude ?? profile.Longitude,
             ServiceCategories = categories.Select(c => new SlnServiceCategoryDto
             {
                 Id = c.Id,
@@ -89,39 +111,58 @@ public class SlnPublicController : ControllerBase
         });
     }
 
-    /// <summary>Tum yayinlanmis salonlari listele</summary>
+    /// <summary>Tum yayinlanmis salonlari listele (merkez sube bilgileriyle)</summary>
     [HttpGet]
     public async Task<ActionResult> GetAllPublished()
     {
         var profiles = await _db.SlnSalonProfiles
             .Where(p => p.IsPublished)
             .Include(p => p.Customer)
-            .OrderBy(p => p.Customer!.Name)
-            .Select(p => new
+            .ToListAsync();
+
+        var customerIds = profiles.Select(p => p.CustomerId).ToList();
+        var hqBranches = await _db.SlnBranches
+            .Where(b => customerIds.Contains(b.CustomerId) && b.IsHeadquarter && b.IsActive)
+            .ToDictionaryAsync(b => b.CustomerId);
+
+        var result = profiles.OrderBy(p => p.Customer?.Name).Select(p =>
+        {
+            hqBranches.TryGetValue(p.CustomerId, out var hq);
+            return new
             {
-                p.Slug,
-                SalonName = p.Customer != null ? p.Customer.Name : "",
-                p.City,
-                p.District,
+                Slug = hq?.Slug ?? p.Slug ?? "",
+                SalonName = p.Customer?.Name ?? "",
+                City = hq?.City ?? p.City,
+                District = hq?.District ?? p.District,
                 p.LogoUrl,
                 p.Description,
-                p.Latitude,
-                p.Longitude
-            }).ToListAsync();
+                Latitude = hq?.Latitude ?? p.Latitude,
+                Longitude = hq?.Longitude ?? p.Longitude
+            };
+        }).ToList();
 
-        return Ok(profiles);
+        return Ok(result);
+    }
+
+    /// <summary>Branch slug veya eski profile slug'dan customerId bul</summary>
+    private async Task<int?> ResolveCustomerIdAsync(string slug)
+    {
+        var branch = await _db.SlnBranches.FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive);
+        if (branch != null) return branch.CustomerId;
+
+        var profile = await _db.SlnSalonProfiles.FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        return profile?.CustomerId;
     }
 
     /// <summary>Salonun onaylanmis yorumlarini getir</summary>
     [HttpGet("{slug}/reviews")]
     public async Task<ActionResult> GetReviews(string slug)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
 
         var reviews = await _db.SlnReviews
-            .Where(r => r.CustomerId == profile.CustomerId && r.StatusId == 2) // 2=Approved
+            .Where(r => r.CustomerId == customerId.Value && r.StatusId == 2) // 2=Approved
             .OrderByDescending(r => r.CreatedAt)
             .Take(20)
             .Select(r => new
@@ -143,12 +184,11 @@ public class SlnPublicController : ControllerBase
     [HttpGet("{slug}/team")]
     public async Task<ActionResult> GetTeam(string slug)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
 
         var team = await _db.Set<CustomerPersonnel>()
-            .Where(p => p.CustomerId == profile.CustomerId && p.IsActive)
+            .Where(p => p.CustomerId == customerId.Value && p.IsActive)
             .Include(p => p.User)
             .OrderBy(p => p.CustomerRoleId)
             .Select(p => new
@@ -168,12 +208,11 @@ public class SlnPublicController : ControllerBase
     [HttpGet("{slug}/branches")]
     public async Task<ActionResult> GetBranches(string slug)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
 
         var branches = await _db.SlnBranches
-            .Where(b => b.CustomerId == profile.CustomerId && b.IsActive)
+            .Where(b => b.CustomerId == customerId.Value && b.IsActive)
             .OrderByDescending(b => b.IsHeadquarter)
             .ThenBy(b => b.Name)
             .Select(b => new
@@ -191,12 +230,11 @@ public class SlnPublicController : ControllerBase
     [HttpGet("{slug}/memberships")]
     public async Task<ActionResult> GetMembershipPlans(string slug)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
 
         var plans = await _db.SlnMembershipPlans
-            .Where(p => p.CustomerId == profile.CustomerId && p.IsActive)
+            .Where(p => p.CustomerId == customerId.Value && p.IsActive)
             .OrderBy(p => p.SortOrder)
             .Select(p => new
             {
@@ -212,12 +250,12 @@ public class SlnPublicController : ControllerBase
     [HttpPost("{slug}/membership-signup")]
     public async Task<ActionResult> MembershipSignup(string slug, [FromBody] SlnMembershipSignupDto dto)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
+        var cid = customerId.Value;
 
         var plan = await _db.SlnMembershipPlans
-            .FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == profile.CustomerId && p.IsActive);
+            .FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == cid && p.IsActive);
         if (plan == null) return BadRequest("Uyelik plani bulunamadi.");
 
         if (string.IsNullOrWhiteSpace(dto.FullName) || string.IsNullOrWhiteSpace(dto.Phone))
@@ -225,13 +263,13 @@ public class SlnPublicController : ControllerBase
 
         // Musteri bul veya olustur
         var client = await _db.SlnClients
-            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == profile.CustomerId);
+            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
 
         if (client == null)
         {
             client = new SlnClient
             {
-                CustomerId = profile.CustomerId,
+                CustomerId = cid,
                 FullName = dto.FullName,
                 Phone = dto.Phone,
                 Email = dto.Email
@@ -243,7 +281,7 @@ public class SlnPublicController : ControllerBase
         {
             // Mevcut musterinin zaten aktif uyeligi var mi?
             var existing = await _db.SlnClientMemberships
-                .AnyAsync(m => m.SlnClientId == client.Id && m.CustomerId == profile.CustomerId && m.StatusId == 1);
+                .AnyAsync(m => m.SlnClientId == client.Id && m.CustomerId == cid && m.StatusId == 1);
             if (existing)
                 return BadRequest("Bu telefon numarasina ait zaten aktif bir uyelik bulunmaktadir.");
         }
@@ -251,7 +289,7 @@ public class SlnPublicController : ControllerBase
         var now = DateTime.UtcNow;
         var membership = new SlnClientMembership
         {
-            CustomerId = profile.CustomerId,
+            CustomerId = cid,
             PlanId = plan.Id,
             SlnClientId = client.Id,
             StartDate = now,
@@ -272,15 +310,18 @@ public class SlnPublicController : ControllerBase
     [HttpGet("{slug}/available-slots")]
     public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
+        var cid = customerId.Value;
 
         var service = await _db.SlnServices
-            .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == profile.CustomerId && s.IsActive);
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == cid && s.IsActive);
         if (service == null) return BadRequest("Hizmet bulunamadi");
 
-        // Calisma saatleri
+        // Calisma saatleri (branch'ten al)
+        var branch = await _db.SlnBranches.FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive)
+            ?? await _db.SlnBranches.FirstOrDefaultAsync(b => b.CustomerId == cid && b.IsHeadquarter);
+
         var dayKey = date.DayOfWeek switch
         {
             DayOfWeek.Monday => "mon", DayOfWeek.Tuesday => "tue", DayOfWeek.Wednesday => "wed",
@@ -289,13 +330,15 @@ public class SlnPublicController : ControllerBase
         };
 
         var openHour = 9; var closeHour = 19;
-        if (!string.IsNullOrEmpty(profile.WorkingHoursJson))
+        var workingHoursJson = branch?.WorkingHoursJson;
+        if (!string.IsNullOrEmpty(workingHoursJson))
         {
             try
             {
-                var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(profile.WorkingHoursJson);
+                var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(workingHoursJson);
                 if (hours != null && hours.TryGetValue(dayKey, out var val))
                 {
+                    if (val == "closed") return Ok(new List<object>());
                     var parts = val.Split('-');
                     if (parts.Length == 2)
                     {
@@ -311,7 +354,7 @@ public class SlnPublicController : ControllerBase
         var dayStart = date.Date;
         var dayEnd = date.Date.AddDays(1);
         var existingAppointments = await _db.SlnAppointments
-            .Where(a => a.CustomerId == profile.CustomerId && a.StartTime >= dayStart && a.StartTime < dayEnd && a.StatusId != 4)
+            .Where(a => a.CustomerId == cid && a.StartTime >= dayStart && a.StartTime < dayEnd && a.StatusId != 4)
             .Select(a => new { a.StartTime, a.EndTime })
             .ToListAsync();
 
@@ -343,23 +386,23 @@ public class SlnPublicController : ControllerBase
     [HttpPost("{slug}/book")]
     public async Task<ActionResult> BookAppointment(string slug, [FromBody] SlnOnlineBookingDto dto)
     {
-        var profile = await _db.SlnSalonProfiles
-            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        if (profile == null) return NotFound();
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return NotFound();
+        var cid = customerId.Value;
 
         var service = await _db.SlnServices
-            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == profile.CustomerId && s.IsActive);
+            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
         if (service == null) return BadRequest("Hizmet bulunamadi");
 
         // Musteri bul veya olustur
         var client = await _db.SlnClients
-            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == profile.CustomerId);
+            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
 
         if (client == null)
         {
             client = new SlnClient
             {
-                CustomerId = profile.CustomerId,
+                CustomerId = cid,
                 FullName = dto.FullName,
                 Phone = dto.Phone,
                 Email = dto.Email
@@ -371,7 +414,7 @@ public class SlnPublicController : ControllerBase
         // Randevu olustur (StatusId=1: Planlanmis, onay bekliyor)
         var appointment = new SlnAppointment
         {
-            CustomerId = profile.CustomerId,
+            CustomerId = cid,
             SlnClientId = client.Id,
             PersonnelId = dto.PersonnelId ?? 0,
             ServiceId = dto.ServiceId,
@@ -385,7 +428,7 @@ public class SlnPublicController : ControllerBase
         if (appointment.PersonnelId == 0)
         {
             var firstPersonnel = await _db.Set<CustomerPersonnel>()
-                .FirstOrDefaultAsync(p => p.CustomerId == profile.CustomerId && p.IsActive);
+                .FirstOrDefaultAsync(p => p.CustomerId == cid && p.IsActive);
             appointment.PersonnelId = firstPersonnel?.Id ?? 0;
         }
 

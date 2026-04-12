@@ -33,35 +33,34 @@ public class SlnProfileController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
+        var customer = await _db.Customers.FindAsync(cid);
+        if (customer == null) return Unauthorized();
+
         var profile = await _db.SlnSalonProfiles
-            .Include(p => p.Customer)
             .FirstOrDefaultAsync(p => p.CustomerId == cid);
 
         if (profile == null)
-            return Ok(new { exists = false });
+            return Ok(new { exists = false, billingType = customer.BillingType });
+
+        // Merkez sube bilgilerini al (public sayfa icin geriye uyumluluk)
+        var hqBranch = await _db.SlnBranches
+            .FirstOrDefaultAsync(b => b.CustomerId == cid && b.IsHeadquarter);
 
         return Ok(new SlnSalonProfileDto
         {
             Id = profile.Id,
             CustomerId = profile.CustomerId,
-            Slug = profile.Slug,
-            SalonName = profile.Customer?.Name ?? "",
+            SalonName = customer.Name,
             Description = profile.Description,
-            Address = profile.Address,
-            City = profile.City,
-            District = profile.District,
-            Phone = profile.Phone,
-            Email = profile.Email,
             Website = profile.Website,
             InstagramHandle = profile.InstagramHandle,
             FacebookUrl = profile.FacebookUrl,
-            GoogleMapsUrl = profile.GoogleMapsUrl,
             LogoUrl = profile.LogoUrl,
             CoverImageUrl = profile.CoverImageUrl,
             FaviconUrl = profile.FaviconUrl,
             GalleryImagesJson = profile.GalleryImagesJson,
-            WorkingHoursJson = profile.WorkingHoursJson,
             IsPublished = profile.IsPublished,
+            BillingType = customer.BillingType,
             ShowServices = profile.ShowServices,
             ShowMemberships = profile.ShowMemberships,
             ShowBooking = profile.ShowBooking,
@@ -73,8 +72,17 @@ public class SlnProfileController : ControllerBase
             ShowReviews = profile.ShowReviews,
             ShowMap = profile.ShowMap,
             BannersJson = profile.BannersJson,
-            Latitude = profile.Latitude,
-            Longitude = profile.Longitude
+            // Merkez subeden alinan alanlar
+            Slug = hqBranch?.Slug ?? profile.Slug ?? "",
+            Address = hqBranch?.Address ?? profile.Address,
+            City = hqBranch?.City ?? profile.City,
+            District = hqBranch?.District ?? profile.District,
+            Phone = hqBranch?.Phone ?? profile.Phone,
+            Email = hqBranch?.Email ?? profile.Email,
+            GoogleMapsUrl = hqBranch?.GoogleMapsUrl ?? profile.GoogleMapsUrl,
+            WorkingHoursJson = hqBranch?.WorkingHoursJson ?? profile.WorkingHoursJson,
+            Latitude = hqBranch?.Latitude ?? profile.Latitude,
+            Longitude = hqBranch?.Longitude ?? profile.Longitude
         });
     }
 
@@ -84,12 +92,8 @@ public class SlnProfileController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var slug = GenerateSlug(dto.Slug);
-        if (string.IsNullOrWhiteSpace(slug)) return BadRequest("Gecerli bir slug gerekli");
-
-        // Slug benzersizlik kontrolu
-        var existing = await _db.SlnSalonProfiles.FirstOrDefaultAsync(p => p.Slug == slug && p.CustomerId != cid);
-        if (existing != null) return BadRequest("Bu adres zaten kullaniliyor");
+        var customer = await _db.Customers.FindAsync(cid);
+        if (customer == null) return Unauthorized();
 
         var profile = await _db.SlnSalonProfiles.FirstOrDefaultAsync(p => p.CustomerId == cid);
         if (profile == null)
@@ -98,20 +102,41 @@ public class SlnProfileController : ControllerBase
             _db.SlnSalonProfiles.Add(profile);
         }
 
-        profile.Slug = slug;
         profile.Description = dto.Description;
-        profile.Address = dto.Address;
-        profile.City = dto.City;
-        profile.District = dto.District;
-        profile.Phone = dto.Phone;
-        profile.Email = dto.Email;
         profile.Website = dto.Website;
         profile.InstagramHandle = dto.InstagramHandle;
         profile.FacebookUrl = dto.FacebookUrl;
-        profile.GoogleMapsUrl = dto.GoogleMapsUrl;
-        profile.WorkingHoursJson = dto.WorkingHoursJson;
         profile.IsPublished = dto.IsPublished;
         profile.UpdatedAt = DateTime.UtcNow;
+
+        // BillingType kaydet
+        customer.BillingType = dto.BillingType;
+
+        // Merkez sube yoksa otomatik olustur
+        var hasAnyBranch = await _db.SlnBranches.AnyAsync(b => b.CustomerId == cid);
+        if (!hasAnyBranch)
+        {
+            var hqBranch = new SlnBranch
+            {
+                CustomerId = cid,
+                Name = "Merkez",
+                IsHeadquarter = true,
+                IsActive = true,
+                CompanyTitle = customer.Name,
+                // Mevcut profildeki bilgileri merkez subeye tasi
+                Address = profile.Address,
+                City = profile.City,
+                District = profile.District,
+                Phone = profile.Phone,
+                Email = profile.Email,
+                WorkingHoursJson = profile.WorkingHoursJson,
+                GoogleMapsUrl = profile.GoogleMapsUrl,
+                Latitude = profile.Latitude,
+                Longitude = profile.Longitude,
+                Slug = GenerateSlug(customer.Name)
+            };
+            _db.SlnBranches.Add(hqBranch);
+        }
 
         await _db.SaveChangesAsync();
         return Ok();
@@ -197,7 +222,6 @@ public class SlnProfileController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(input)) return "";
         var slug = input.ToLowerInvariant().Trim();
-        // Turkce karakter donusumu
         slug = slug.Replace("ı", "i").Replace("ğ", "g").Replace("ü", "u")
                    .Replace("ş", "s").Replace("ö", "o").Replace("ç", "c");
         slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");

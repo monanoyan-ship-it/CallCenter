@@ -34,6 +34,19 @@ public class SlnBranch
     /// <summary>Ana sube mi? (firma basina bir tane)</summary>
     public bool IsHeadquarter { get; set; }
 
+    /// <summary>Sube profil adresi (corplynk.com/salon/{slug})</summary>
+    public string? Slug { get; set; }
+
+    /// <summary>Google Maps embed/link</summary>
+    public string? GoogleMapsUrl { get; set; }
+
+    // ─── Fatura Bilgileri ───
+    /// <summary>Ticari unvan (default: Customer.Name)</summary>
+    public string? CompanyTitle { get; set; }
+    public string? TaxOffice { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? MersisNo { get; set; }
+
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
