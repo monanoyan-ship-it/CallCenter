@@ -7,6 +7,7 @@ function TranslationsViewModel() {
     self.platformFilter = ko.observable('');
     self.platforms = ko.observableArray([]);
     self.moduleFilter = ko.observable('');
+    self.selectedLang = ko.observable('tr');
     self.currentPage = ko.observable(1);
     self.totalCount = ko.observable(0);
     self.pageSize = 20;

@@ -39,6 +39,15 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: selectedLang">
+                        <option value="tr">🇹🇷 TR</option>
+                        <option value="en">🇬🇧 EN</option>
+                        <option value="de">🇩🇪 DE</option>
+                        <option value="ar">🇸🇦 AR</option>
+                        <option value="ru">🇷🇺 RU</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <button class="btn btn-outline-secondary btn-sm w-100" data-bind="click: loadData">
                         <i class="bi bi-arrow-clockwise me-1"></i>Yenile
                     </button>
@@ -61,8 +70,7 @@
                             <tr>
                                 <th>Key</th>
                                 <th>Modul</th>
-                                <th>TR</th>
-                                <th>EN</th>
+                                <th data-bind="text: selectedLang().toUpperCase()">TR</th>
                                 <th style="width:120px;"></th>
                             </tr>
                         </thead>
@@ -70,8 +78,7 @@
                             <tr>
                                 <td class="fw-medium small" data-bind="text: key"></td>
                                 <td><span class="badge bg-secondary" data-bind="text: module || '-'"></span></td>
-                                <td class="small" data-bind="text: $data.values && $data.values['tr'] || '-'"></td>
-                                <td class="small" data-bind="text: $data.values && $data.values['en'] || '-'"></td>
+                                <td class="small" data-bind="text: $data.values && $data.values[$root.selectedLang()] || '-'"></td>
                                 <td>
                                     <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
                                     <button class="btn btn-outline-danger btn-sm" title="Sil" data-bind="click: $parent.confirmDelete"><i class="bi bi-trash"></i></button>
