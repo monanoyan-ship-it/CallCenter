@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +12,20 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 {
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnServiceEntityService _services;
+    private readonly AppDbContext _db;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnAppointmentFactory> _logger;
 
     public SlnAppointmentFactory(
         ISlnAppointmentEntityService appointments,
         ISlnServiceEntityService services,
+        AppDbContext db,
         IUnitOfWork uow,
         ILogger<SlnAppointmentFactory> logger)
     {
         _appointments = appointments;
         _services = services;
+        _db = db;
         _uow = uow;
         _logger = logger;
     }
@@ -81,6 +85,14 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         var totalMinutes = services.Sum(s => s.DurationMinutes);
         var endTime = dto.StartTime.AddMinutes(totalMinutes);
+
+        // Engelli musteri kontrolu
+        if (dto.SlnClientId > 0)
+        {
+            var client = await _db.SlnClients.FindAsync(dto.SlnClientId);
+            if (client?.IsBlacklisted == true)
+                return (null, $"Bu musteri engellenmis ({client.NoShowCount} kez gelmedi). Engeli kaldirmak icin musteri kartini kullanin.");
+        }
 
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId);
         if (hasConflict)
@@ -157,18 +169,69 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateStatusAsync(int appointmentId, int statusId, int customerId)
+    public async Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId)
     {
         var appointment = await _appointments.GetAllQueryable()
+            .Include(a => a.SlnClient)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
-        if (appointment == null) return (false, "Randevu bulunamadi");
+        if (appointment == null) return (false, "Randevu bulunamadi", 0);
+
+        var policy = await _db.SlnNoShowPolicies
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.IsActive);
+
+        decimal penalty = 0;
+
+        // ═══ GELMEDİ (StatusId=5) ═══
+        if (statusId == 5 && appointment.SlnClient != null)
+        {
+            appointment.SlnClient.NoShowCount++;
+
+            if (policy != null)
+            {
+                // Ceza hesapla
+                penalty = policy.NoShowFee > 0 ? policy.NoShowFee : appointment.DepositAmount;
+                appointment.PenaltyAmount = penalty;
+
+                // Engelleme esigi kontrolu
+                if (appointment.SlnClient.NoShowCount >= policy.BlacklistThreshold)
+                {
+                    appointment.SlnClient.IsBlacklisted = true;
+                    _logger.LogWarning("Musteri engellendi: ClientId={ClientId}, NoShowCount={Count}",
+                        appointment.SlnClientId, appointment.SlnClient.NoShowCount);
+                }
+            }
+
+            _logger.LogInformation("Randevu gelmedi: AppointmentId={Id}, ClientId={ClientId}, NoShowCount={Count}",
+                appointmentId, appointment.SlnClientId, appointment.SlnClient.NoShowCount);
+        }
+
+        // ═══ İPTAL (StatusId=4) ═══
+        if (statusId == 4 && policy != null)
+        {
+            var hoursUntilAppointment = (appointment.StartTime - DateTime.UtcNow).TotalHours;
+
+            if (hoursUntilAppointment < policy.FreeCancellationHours)
+            {
+                // Gec iptal — ceza uygula
+                penalty = policy.LateCancellationFee > 0 ? policy.LateCancellationFee : appointment.DepositAmount;
+                appointment.PenaltyAmount = penalty;
+                appointment.DepositRefunded = false;
+            }
+            else
+            {
+                // Ucretsiz iptal — depozito iade
+                appointment.PenaltyAmount = 0;
+                if (appointment.DepositAmount > 0)
+                    appointment.DepositRefunded = true;
+            }
+        }
 
         appointment.StatusId = statusId;
         appointment.UpdatedAt = DateTime.UtcNow;
 
         await _uow.SaveChangesAsync();
-        return (true, null);
+        return (true, null, penalty);
     }
 
     public async Task<(bool Success, string? Error)> DeleteAppointmentAsync(int appointmentId, int customerId)

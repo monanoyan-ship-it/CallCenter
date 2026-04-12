@@ -335,9 +335,28 @@ function AppointmentsViewModel() {
             method: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({ statusId: 4 })
-        }).done(function () {
+        }).done(function (res) {
             self.loadAppointments();
-            toastr.success('Randevu iptal edildi');
+            if (res && res.penalty > 0) {
+                toastr.warning('Gec iptal — ' + res.message);
+            } else {
+                toastr.success('Randevu iptal edildi');
+            }
+        });
+    };
+
+    self.markNoShow = function (appt) {
+        if (!confirm('Bu musteriyi gelmedi olarak isaretlemek istiyor musunuz?')) return;
+        $.ajax({
+            url: '/proxy/sln-appointments/' + appt.id + '/status',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ statusId: 5 })
+        }).done(function (res) {
+            self.loadAppointments();
+            var msg = 'Musteri gelmedi olarak isaretlendi';
+            if (res && res.penalty > 0) msg += ' — ' + res.message;
+            toastr.warning(msg);
         });
     };
 

@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
+using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -15,8 +17,13 @@ namespace CallCenter.Api.Controllers;
 public class SlnClientController : ControllerBase
 {
     private readonly ISlnClientFactory _clientFactory;
+    private readonly AppDbContext _db;
 
-    public SlnClientController(ISlnClientFactory clientFactory) => _clientFactory = clientFactory;
+    public SlnClientController(ISlnClientFactory clientFactory, AppDbContext db)
+    {
+        _clientFactory = clientFactory;
+        _db = db;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetClients([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
@@ -104,6 +111,21 @@ public class SlnClientController : ControllerBase
 
         var (success, error) = await _clientFactory.DeleteFormulaAsync(id, customerId);
         return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpPut("{id}/unblock")]
+    public async Task<ActionResult> UnblockClient(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var client = await _db.SlnClients.FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
+        if (client == null) return NotFound();
+
+        client.IsBlacklisted = false;
+        client.NoShowCount = 0;
+        await _db.SaveChangesAsync();
+        return Ok();
     }
 
     private int GetUserId()

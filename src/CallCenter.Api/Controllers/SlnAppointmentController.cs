@@ -67,8 +67,9 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _appointmentFactory.UpdateStatusAsync(id, req.StatusId, customerId);
-        return success ? Ok() : BadRequest(error);
+        var (success, error, penalty) = await _appointmentFactory.UpdateStatusAsync(id, req.StatusId, customerId);
+        if (!success) return BadRequest(error);
+        return Ok(new { penalty, message = penalty > 0 ? $"{penalty:F0} TL ceza uygulandi" : (string?)null });
     }
 
     [HttpDelete("{id}")]

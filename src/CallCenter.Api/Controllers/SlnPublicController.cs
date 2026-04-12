@@ -410,6 +410,10 @@ public class SlnPublicController : ControllerBase
             _db.SlnClients.Add(client);
             await _db.SaveChangesAsync();
         }
+        else if (client.IsBlacklisted)
+        {
+            return BadRequest("Gecmis randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen salonu arayiniz.");
+        }
 
         // Randevu olustur (StatusId=1: Planlanmis, onay bekliyor)
         var appointment = new SlnAppointment

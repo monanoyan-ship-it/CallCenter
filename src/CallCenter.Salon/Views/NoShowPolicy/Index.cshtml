@@ -1,10 +1,12 @@
 @{
-    ViewData["Title"] = "No-Show Politikasi";
+    ViewData["Title"] = "Randevu Kurallari";
 }
 
 <div id="noshow-vm">
-    <div class="card border-0 shadow-sm" style="max-width:600px;">
+    <div class="card border-0 shadow-sm" style="max-width:650px;">
+        <div class="card-header bg-white fw-semibold"><i class="bi bi-shield-exclamation me-2"></i>Randevu Kurallari</div>
         <div class="card-body">
+            <p class="text-muted small mb-3">Randevuya gelmeyen veya gec iptal eden musteriler icin uygulanacak kurallari belirleyin.</p>
             <div class="row g-3">
                 <div class="col-6">
                     <label class="form-label small">Durum</label>
@@ -16,31 +18,33 @@
                 <div class="col-6">
                     <div class="form-check form-switch mt-4">
                         <input class="form-check-input" type="checkbox" id="requireDeposit" data-bind="checked: config.requireDeposit" />
-                        <label class="form-check-label small" for="requireDeposit">Depozito Zorunlu</label>
+                        <label class="form-check-label small" for="requireDeposit">On Odeme Zorunlu</label>
                     </div>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Depozito Tutari (TL)</label>
+                    <label class="form-label small">On Odeme Tutari (TL)</label>
                     <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.depositAmount" />
+                    <small class="text-muted">Online randevu sirasinda alinacak tutar</small>
                 </div>
                 <div class="col-6">
                     <label class="form-label small">Ucretsiz Iptal Suresi (saat)</label>
                     <input type="number" class="form-control form-control-sm" min="0" data-bind="value: config.freeCancellationHours" />
+                    <small class="text-muted">Randevudan kac saat once ucretsiz iptal edilebilir</small>
                 </div>
                 <div class="col-6">
                     <label class="form-label small">Gec Iptal Ucreti (TL)</label>
                     <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.lateCancellationFee" />
-                    <small class="text-muted">0 = depozito kadar</small>
+                    <small class="text-muted">0 = on odeme tutari kadar kesilir</small>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">No-Show Ucreti (TL)</label>
+                    <label class="form-label small">Gelmeme Ucreti (TL)</label>
                     <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.noShowFee" />
-                    <small class="text-muted">0 = depozito kadar</small>
+                    <small class="text-muted">0 = on odeme tutari kadar kesilir</small>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Kara Liste Esigi</label>
+                    <label class="form-label small">Engelleme Siniri</label>
                     <input type="number" class="form-control form-control-sm" min="1" data-bind="value: config.blacklistThreshold" />
-                    <small class="text-muted">X kez no-show sonrasi blokla</small>
+                    <small class="text-muted">Kac kez gelmezse musteri engellenir</small>
                 </div>
             </div>
             <button class="btn btn-primary btn-sm mt-3" data-bind="click: saveConfig, disable: isSaving">

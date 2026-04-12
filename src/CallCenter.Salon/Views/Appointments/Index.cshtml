@@ -156,7 +156,7 @@
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredAppointments">
-                        <tr data-bind="css: { 'table-success': statusId === 3, 'table-warning': statusId === 2, 'table-danger': statusId === 4 }">
+                        <tr data-bind="css: { 'table-success': statusId === 3, 'table-warning': statusId === 2, 'table-danger': statusId === 4, 'table-secondary': statusId === 5 }">
                             <td class="small" data-bind="text: dateFormatted || '-'"></td>
                             <td class="small fw-semibold" data-bind="text: startTimeFormatted || '-'"></td>
                             <td class="small">
@@ -168,14 +168,17 @@
                             <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: statusId !== 3 && statusId !== 4">
+                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: statusId !== 3 && statusId !== 4 && statusId !== 5">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancel, visible: statusId !== 3 && statusId !== 4">
+                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancel, visible: statusId !== 3 && statusId !== 4 && statusId !== 5">
                                         <i class="bi bi-x-lg"></i>
+                                    </button>
+                                    <button class="btn btn-outline-dark" title="Gelmedi" data-bind="click: $parent.markNoShow, visible: statusId === 1 || statusId === 2">
+                                        <i class="bi bi-person-x"></i>
                                     </button>
                                     <a class="btn btn-outline-info" title="Adisyon Olustur" data-bind="visible: statusId === 3,
                                         attr: { href: '/Invoices?fromAppt=1&clientId=' + slnClientId + '&clientName=' + encodeURIComponent(clientName || '') + '&serviceIds=' + (serviceIds || []).join(',') + '&personnelId=' + (personnelId || '') }">
