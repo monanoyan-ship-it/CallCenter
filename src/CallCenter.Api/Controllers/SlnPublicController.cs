@@ -164,6 +164,29 @@ public class SlnPublicController : ControllerBase
         return Ok(team);
     }
 
+    /// <summary>Salonun subelerini getir (online randevu icin sube secimi)</summary>
+    [HttpGet("{slug}/branches")]
+    public async Task<ActionResult> GetBranches(string slug)
+    {
+        var profile = await _db.SlnSalonProfiles
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null) return NotFound();
+
+        var branches = await _db.SlnBranches
+            .Where(b => b.CustomerId == profile.CustomerId && b.IsActive)
+            .OrderByDescending(b => b.IsHeadquarter)
+            .ThenBy(b => b.Name)
+            .Select(b => new
+            {
+                b.Id, b.Name, b.Address, b.City, b.District,
+                b.Phone, b.IsHeadquarter, b.Latitude, b.Longitude,
+                b.PhotoUrl, b.WorkingHoursJson
+            })
+            .ToListAsync();
+
+        return Ok(branches);
+    }
+
     /// <summary>Salonun aktif uyelik planlarini getir</summary>
     [HttpGet("{slug}/memberships")]
     public async Task<ActionResult> GetMembershipPlans(string slug)
