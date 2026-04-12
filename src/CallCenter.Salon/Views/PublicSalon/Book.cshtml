@@ -150,7 +150,7 @@
 
         // Auth kontrolu — yoksa login e yonlendir
         if (!localStorage.getItem('platformToken')) {
-            window.location.href = '/uye/giris?returnUrl=' + encodeURIComponent(window.location.pathname);
+            window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname);
         }
 
         function BookViewModel() {

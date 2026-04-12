@@ -96,7 +96,7 @@
                             <span class="badge bg-success" id="alreadyMember" style="display:none;">
                                 <i class="bi bi-check-circle me-1"></i>Üye
                             </span>
-                            <a href="/uye/giris" class="btn btn-outline-light btn-sm" id="btnLoginToJoin" style="display:none;">
+                            <a href="/user/login" class="btn btn-outline-light btn-sm" id="btnLoginToJoin" style="display:none;">
                                 <i class="bi bi-box-arrow-in-right me-1"></i>Giriş Yap / Üye Ol
                             </a>
                         </div>
@@ -721,7 +721,7 @@
 
         function joinThisSalon() {
             var token = localStorage.getItem('platformToken');
-            if (!token) { window.location.href = '/uye/giris'; return; }
+            if (!token) { window.location.href = '/user/login'; return; }
 
             if (!confirm('Bu salonun müşterisi olarak kaydolmak ve bilgilerinizi paylaşmak istiyor musunuz?')) return;
 

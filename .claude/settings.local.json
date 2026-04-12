@@ -251,7 +251,12 @@
       "Bash(PGPASSWORD='1123Azs+-' psql:*)",
       "Bash(project=15 2>&1)",
       "Bash(git worktree:*)",
-      "Bash(C:/Program Files/PostgreSQL/17/bin/psql.exe:*)"
+      "Bash(C:/Program Files/PostgreSQL/17/bin/psql.exe:*)",
+      "Bash(sed -i 's|\\\\[HttpGet\\(\"kesfet\"\\)\\\\]|[HttpGet\\(\"discover\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
+      "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/giris\"\\)\\\\]|[HttpGet\\(\"user/login\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
+      "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/kayit\"\\)\\\\]|[HttpGet\\(\"user/register\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
+      "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/panel\"\\)\\\\]|[HttpGet\\(\"user/panel\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
+      "Bash(sed -i 's|\\\\[HttpGet\\(\"gizlilik\"\\)\\\\]|[HttpGet\\(\"privacy\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)"
     ]
   }
 }

@@ -52,12 +52,12 @@
                 <i class="bi bi-box-arrow-in-right me-1"></i>Giriş Yap
             </button>
             <div class="text-center mt-3">
-                <a href="/uye/kayit" id="registerLink" class="small">Hesabınız yok mu? <strong>Kayıt olun</strong></a>
+                <a href="/user/register" id="registerLink" class="small">Hesabınız yok mu? <strong>Kayıt olun</strong></a>
             </div>
         </div>
     </div>
     <script>
-        var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/uye/panel';
+        var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/user/panel';
         if (localStorage.getItem('platformToken')) window.location.href = _returnUrl;
 
         function normalizePhoneValue() {
@@ -98,7 +98,7 @@
     
         // Kayit ol linkine returnUrl aktar
         var regLink = document.getElementById('registerLink');
-        if (regLink && _returnUrl !== '/uye/panel') regLink.href = '/uye/kayit?returnUrl=' + encodeURIComponent(_returnUrl);
+        if (regLink && _returnUrl !== '/user/panel') regLink.href = '/user/register?returnUrl=' + encodeURIComponent(_returnUrl);
     </script>
 </body>
 </html>

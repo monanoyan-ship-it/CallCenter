@@ -42,7 +42,7 @@ public class PublicSalonController : Controller
         return View();
     }
 
-    [HttpGet("kesfet")]
+    [HttpGet("discover")]
     public IActionResult Discover()
     {
         return View();
@@ -50,31 +50,31 @@ public class PublicSalonController : Controller
 
     // ─── Platform User Sayfaları ───
 
-    [HttpGet("uye/giris")]
+    [HttpGet("user/login")]
     public IActionResult Login()
     {
         return View();
     }
 
-    [HttpGet("uye/kayit")]
+    [HttpGet("user/register")]
     public IActionResult Register()
     {
         return View();
     }
 
-    [HttpGet("gizlilik")]
+    [HttpGet("privacy")]
     public IActionResult Privacy()
     {
         return View();
     }
 
-    [HttpGet("kullanim-kosullari")]
+    [HttpGet("terms")]
     public IActionResult Terms()
     {
         return View();
     }
 
-    [HttpGet("uye/panel")]
+    [HttpGet("user/panel")]
     public IActionResult Panel()
     {
         return View();
