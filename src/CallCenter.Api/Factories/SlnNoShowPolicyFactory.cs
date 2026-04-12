@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,29 +9,29 @@ namespace CallCenter.Api.Factories;
 
 public class SlnNoShowPolicyFactory : ISlnNoShowPolicyFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnNoShowPolicyEntityService _policies;
     private readonly IUnitOfWork _uow;
 
-    public SlnNoShowPolicyFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnNoShowPolicyFactory(ISlnNoShowPolicyEntityService policies, IUnitOfWork uow)
     {
-        _db = db;
+        _policies = policies;
         _uow = uow;
     }
 
     public async Task<SlnNoShowPolicyDto?> GetPolicyAsync(int customerId)
     {
-        var policy = await _db.SlnNoShowPolicies.FirstOrDefaultAsync(p => p.CustomerId == customerId);
+        var policy = await _policies.GetAllQueryable().FirstOrDefaultAsync(p => p.CustomerId == customerId);
         if (policy == null) return null;
         return MapToDto(policy);
     }
 
     public async Task<SlnNoShowPolicyDto> SavePolicyAsync(SlnNoShowPolicyUpdateDto dto, int customerId)
     {
-        var policy = await _db.SlnNoShowPolicies.FirstOrDefaultAsync(p => p.CustomerId == customerId);
+        var policy = await _policies.GetAllQueryable().FirstOrDefaultAsync(p => p.CustomerId == customerId);
         if (policy == null)
         {
             policy = new SlnNoShowPolicy { CustomerId = customerId };
-            _db.SlnNoShowPolicies.Add(policy);
+            _policies.Add(policy);
         }
         policy.RequireDeposit = dto.RequireDeposit;
         policy.DepositAmount = dto.DepositAmount;

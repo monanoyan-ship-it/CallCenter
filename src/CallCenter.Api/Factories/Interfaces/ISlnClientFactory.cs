@@ -12,4 +12,5 @@ public interface ISlnClientFactory
     Task<SlnClientSuggestionsDto> GetSuggestionsAsync(int customerId);
     Task<SlnFormulaDto> AddFormulaAsync(SlnFormulaCreateDto dto, int userId, int customerId);
     Task<(bool Success, string? Error)> DeleteFormulaAsync(int formulaId, int customerId);
+    Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId);
 }

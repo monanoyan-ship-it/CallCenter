@@ -85,10 +85,11 @@ function ConsentFormsViewModel() {
     };
 
     self.removeForm = function (form) {
-        if (!confirm('Bu formu silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-consent-forms/' + form.id, method: 'DELETE' })
-            .done(function () { self.loadForms(); toastr.success('Form silindi'); })
-            .fail(function () { toastr.error('Silinemedi'); });
+        confirmModal('Onay', 'Bu formu silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-consent-forms/' + form.id, method: 'DELETE' })
+                .done(function () { self.loadForms(); toastr.success('Form silindi'); })
+                .fail(function () { toastr.error('Silinemedi'); });
+        });
     };
 
     $(document).ready(function () {

@@ -2,7 +2,6 @@ using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Helpers;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -16,29 +15,44 @@ public class CustomerFactory : ICustomerFactory
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
     private readonly IUserEntityService _userEs;
+    private readonly ICustomerProductEntityService _customerProductEs;
+    private readonly IModulePricingEntityService _modulePricingEs;
+    private readonly ISlnServiceCategoryEntityService _serviceCategoryEs;
+    private readonly ISlnServiceEntityService _serviceEs;
+    private readonly ISlnExpenseCategoryEntityService _expenseCategoryEs;
+    private readonly ISlnCashRegisterEntityService _cashRegisterEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IAuthFactory _authFactory;
     private readonly IUnitOfWork _uow;
-    private readonly AppDbContext _db;
 
     public CustomerFactory(
         ICustomerEntityService customerEs,
         ICustomerPersonnelEntityService personnelEs,
         ICustomerPortalModuleEntityService moduleEs,
         IUserEntityService userEs,
+        ICustomerProductEntityService customerProductEs,
+        IModulePricingEntityService modulePricingEs,
+        ISlnServiceCategoryEntityService serviceCategoryEs,
+        ISlnServiceEntityService serviceEs,
+        ISlnExpenseCategoryEntityService expenseCategoryEs,
+        ISlnCashRegisterEntityService cashRegisterEs,
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
-        IUnitOfWork uow,
-        AppDbContext db)
+        IUnitOfWork uow)
     {
         _customerEs = customerEs;
         _personnelEs = personnelEs;
         _moduleEs = moduleEs;
         _userEs = userEs;
+        _customerProductEs = customerProductEs;
+        _modulePricingEs = modulePricingEs;
+        _serviceCategoryEs = serviceCategoryEs;
+        _serviceEs = serviceEs;
+        _expenseCategoryEs = expenseCategoryEs;
+        _cashRegisterEs = cashRegisterEs;
         _passwordPolicy = passwordPolicy;
         _authFactory = authFactory;
         _uow = uow;
-        _db = db;
     }
 
     // CUSTOMERS
@@ -122,7 +136,7 @@ public class CustomerFactory : ICustomerFactory
         }
 
         // Products'i ayri yukle (GetByIdWithPersonnelAsync Products'i Include etmeyebilir)
-        var products = await _db.CustomerProducts
+        var products = await _customerProductEs.GetAllQueryable()
             .Where(cp => cp.CustomerId == c.Id && cp.IsActive)
             .ToListAsync();
 
@@ -211,7 +225,7 @@ public class CustomerFactory : ICustomerFactory
 
         foreach (var p in products)
         {
-            _db.CustomerProducts.Add(new CustomerProduct
+            _customerProductEs.Add(new CustomerProduct
             {
                 CustomerId = customer.Id,
                 ProductTypeId = p.ProductTypeId,
@@ -300,7 +314,7 @@ public class CustomerFactory : ICustomerFactory
         customer.TestNotes = dto.TestNotes;
 
         // Products sync
-        var existingProducts = await _db.CustomerProducts
+        var existingProducts = await _customerProductEs.GetAllQueryable()
             .Where(cp => cp.CustomerId == id)
             .ToListAsync();
 
@@ -316,7 +330,7 @@ public class CustomerFactory : ICustomerFactory
             }
             else
             {
-                _db.CustomerProducts.Add(new CustomerProduct
+                _customerProductEs.Add(new CustomerProduct
                 {
                     CustomerId = id,
                     ProductTypeId = p.ProductTypeId,
@@ -391,7 +405,7 @@ public class CustomerFactory : ICustomerFactory
         var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
         if (customer == null) return null;
 
-        var pricings = await _db.ModulePricings.ToListAsync();
+        var pricings = await _modulePricingEs.GetAllAsync();
         var pricingMap = pricings.ToDictionary(p => p.ModuleId);
 
         return customer.PortalModules
@@ -485,7 +499,7 @@ public class CustomerFactory : ICustomerFactory
         if (customer == null) return (false, 0, "Müşteri bulunamadı.");
 
         // Hangi urunleri kullaniyor? Ona gore modulleri senkronize et
-        var products = await _db.CustomerProducts
+        var products = await _customerProductEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId && p.IsActive)
             .Select(p => p.ProductTypeId)
             .ToListAsync();
@@ -576,7 +590,7 @@ public class CustomerFactory : ICustomerFactory
         await _uow.SaveChangesAsync();
 
         // Salon urunu ekle
-        _db.CustomerProducts.Add(new CustomerProduct
+        _customerProductEs.Add(new CustomerProduct
         {
             CustomerId = customer.Id,
             ProductTypeId = ProductTypes.Ids.Salon,
@@ -632,7 +646,7 @@ public class CustomerFactory : ICustomerFactory
         await _uow.SaveChangesAsync();
 
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
-        await SalonDefaultDataHelper.SeedDefaultDataAsync(_db, customer.Id);
+        await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _uow, customer.Id);
 
         // Otomatik login
         var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest

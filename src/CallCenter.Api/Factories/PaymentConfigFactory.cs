@@ -1,6 +1,7 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services.Payment;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -10,18 +11,20 @@ namespace CallCenter.Api.Factories;
 
 public class PaymentConfigFactory : IPaymentConfigFactory
 {
-    private readonly AppDbContext _db;
+    private readonly IPlatformPaymentConfigEntityService _configEs;
+    private readonly IUnitOfWork _uow;
     private readonly PaymentGatewayFactory _gatewayFactory;
 
-    public PaymentConfigFactory(AppDbContext db, PaymentGatewayFactory gatewayFactory)
+    public PaymentConfigFactory(IPlatformPaymentConfigEntityService configEs, IUnitOfWork uow, PaymentGatewayFactory gatewayFactory)
     {
-        _db = db;
+        _configEs = configEs;
+        _uow = uow;
         _gatewayFactory = gatewayFactory;
     }
 
     public async Task<List<PaymentConfigListDto>> GetAllAsync()
     {
-        var configs = await _db.PlatformPaymentConfigs
+        var configs = await _configEs.GetAllQueryable()
             .OrderByDescending(c => c.IsActive)
             .ThenByDescending(c => c.CreatedAt)
             .ToListAsync();
@@ -31,14 +34,14 @@ public class PaymentConfigFactory : IPaymentConfigFactory
 
     public async Task<PaymentConfigDetailDto?> GetByIdAsync(int id)
     {
-        var config = await _db.PlatformPaymentConfigs.FindAsync(id);
+        var config = await _configEs.GetByIdAsync(id);
         if (config == null) return null;
         return MapToDetailDto(config);
     }
 
     public async Task<PaymentConfigDetailDto?> GetActiveAsync()
     {
-        var config = await _db.PlatformPaymentConfigs
+        var config = await _configEs.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return null;
         return MapToDetailDto(config);
@@ -47,7 +50,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     public async Task<PaymentBankInfoDto?> GetBankInfoAsync()
     {
         // Aktif config'in banka bilgilerini dondur, yoksa herhangi config'den
-        var config = await _db.PlatformPaymentConfigs
+        var config = await _configEs.GetAllQueryable()
             .Where(c => c.EncryptedBankInfo != null)
             .OrderByDescending(c => c.IsActive)
             .FirstOrDefaultAsync();
@@ -69,7 +72,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     public async Task<(bool Success, int? Id, string? Error)> CreateAsync(PaymentConfigSaveDto dto)
     {
         // Ayni provider'dan aktif config varsa uyar
-        var existing = await _db.PlatformPaymentConfigs
+        var existing = await _configEs.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.ProviderTypeId == dto.ProviderTypeId);
         if (existing != null)
             return (false, null, $"Bu provider icin zaten bir yapilandirma mevcut (ID: {existing.Id}).");
@@ -86,20 +89,20 @@ public class PaymentConfigFactory : IPaymentConfigFactory
         // Eger yeni config aktif ise, diger aktif config'leri pasif yap
         if (config.IsActive)
         {
-            var activeConfigs = await _db.PlatformPaymentConfigs.Where(c => c.IsActive).ToListAsync();
+            var activeConfigs = await _configEs.GetAllQueryable().Where(c => c.IsActive).ToListAsync();
             foreach (var ac in activeConfigs)
                 ac.IsActive = false;
         }
 
-        _db.PlatformPaymentConfigs.Add(config);
-        await _db.SaveChangesAsync();
+        _configEs.Add(config);
+        await _uow.SaveChangesAsync();
 
         return (true, config.Id, null);
     }
 
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, PaymentConfigSaveDto dto)
     {
-        var config = await _db.PlatformPaymentConfigs.FindAsync(id);
+        var config = await _configEs.GetByIdAsync(id);
         if (config == null) return (false, "Yapilandirma bulunamadi.");
 
         config.ProviderTypeId = dto.ProviderTypeId;
@@ -111,30 +114,30 @@ public class PaymentConfigFactory : IPaymentConfigFactory
         // Aktif durumu degisiyorsa
         if (dto.IsActive && !config.IsActive)
         {
-            var activeConfigs = await _db.PlatformPaymentConfigs
+            var activeConfigs = await _configEs.GetAllQueryable()
                 .Where(c => c.IsActive && c.Id != id).ToListAsync();
             foreach (var ac in activeConfigs)
                 ac.IsActive = false;
         }
         config.IsActive = dto.IsActive;
 
-        await _db.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> DeleteAsync(int id)
     {
-        var config = await _db.PlatformPaymentConfigs.FindAsync(id);
+        var config = await _configEs.GetByIdAsync(id);
         if (config == null) return (false, "Yapilandirma bulunamadi.");
 
-        _db.PlatformPaymentConfigs.Remove(config);
-        await _db.SaveChangesAsync();
+        _configEs.Remove(config);
+        await _uow.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<PaymentConfigTestResultDto> TestConnectionAsync(int id, CancellationToken ct = default)
     {
-        var config = await _db.PlatformPaymentConfigs.FindAsync(id);
+        var config = await _configEs.GetByIdAsync(id);
         if (config == null)
             return new PaymentConfigTestResultDto { Success = false, Error = "Yapilandirma bulunamadi.", TestedAt = DateTime.UtcNow };
 
@@ -146,7 +149,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
             config.LastTestedAt = DateTime.UtcNow;
             config.LastTestSuccess = success;
             config.LastTestError = success ? null : error;
-            await _db.SaveChangesAsync();
+            await _uow.SaveChangesAsync();
 
             return new PaymentConfigTestResultDto { Success = success, Error = error, TestedAt = config.LastTestedAt.Value };
         }
@@ -155,7 +158,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
             config.LastTestedAt = DateTime.UtcNow;
             config.LastTestSuccess = false;
             config.LastTestError = ex.Message;
-            await _db.SaveChangesAsync();
+            await _uow.SaveChangesAsync();
 
             return new PaymentConfigTestResultDto { Success = false, Error = ex.Message, TestedAt = config.LastTestedAt.Value };
         }

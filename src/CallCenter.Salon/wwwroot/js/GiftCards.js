@@ -71,13 +71,14 @@ function GiftCardsViewModel() {
     };
 
     self.deactivate = function (card) {
-        if (!confirm("'" + card.code + "' kartini iptal etmek istediginize emin misiniz?")) return;
-        $.ajax({
-            url: '/proxy/sln-gift-cards/' + card.id + '/deactivate',
-            method: 'PUT'
-        }).done(function () {
-            self.loadData();
-            toastr.success('Hediye karti iptal edildi');
+        confirmModal('Onay', "'" + card.code + "' kartini iptal etmek istediginize emin misiniz?", function() {
+            $.ajax({
+                url: '/proxy/sln-gift-cards/' + card.id + '/deactivate',
+                method: 'PUT'
+            }).done(function () {
+                self.loadData();
+                toastr.success('Hediye karti iptal edildi');
+            });
         });
     };
 

@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,12 +9,20 @@ namespace CallCenter.Api.Factories;
 
 public class SlnPackageFactory : ISlnPackageFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnPackageDefinitionEntityService _defEs;
+    private readonly ISlnClientPackageEntityService _pkgEs;
+    private readonly ISlnPackageUsageEntityService _usageEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnPackageFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnPackageFactory(
+        ISlnPackageDefinitionEntityService defEs,
+        ISlnClientPackageEntityService pkgEs,
+        ISlnPackageUsageEntityService usageEs,
+        IUnitOfWork uow)
     {
-        _db = db;
+        _defEs = defEs;
+        _pkgEs = pkgEs;
+        _usageEs = usageEs;
         _uow = uow;
     }
 
@@ -22,7 +30,7 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<List<SlnPackageDefinitionDto>> GetDefinitionsAsync(int customerId)
     {
-        return await _db.SlnPackageDefinitions
+        return await _defEs.GetAllQueryable()
             .Where(d => d.CustomerId == customerId)
             .Include(d => d.Service)
             .OrderBy(d => d.Name)
@@ -54,7 +62,7 @@ public class SlnPackageFactory : ISlnPackageFactory
             ValidDays = dto.ValidDays,
             IsActive = dto.IsActive
         };
-        _db.SlnPackageDefinitions.Add(def);
+        _defEs.Add(def);
         await _uow.SaveChangesAsync();
 
         return (await GetDefinitionsAsync(customerId)).First(d => d.Id == def.Id);
@@ -62,7 +70,7 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(bool Success, string? Error)> UpdateDefinitionAsync(int id, SlnPackageDefinitionCreateDto dto, int customerId)
     {
-        var def = await _db.SlnPackageDefinitions.FirstOrDefaultAsync(d => d.Id == id && d.CustomerId == customerId);
+        var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == id && d.CustomerId == customerId);
         if (def == null) return (false, "Paket tanimi bulunamadi");
 
         def.Name = dto.Name;
@@ -78,9 +86,9 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(bool Success, string? Error)> DeleteDefinitionAsync(int id, int customerId)
     {
-        var def = await _db.SlnPackageDefinitions.FirstOrDefaultAsync(d => d.Id == id && d.CustomerId == customerId);
+        var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == id && d.CustomerId == customerId);
         if (def == null) return (false, "Paket tanimi bulunamadi");
-        _db.SlnPackageDefinitions.Remove(def);
+        _defEs.Remove(def);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -89,7 +97,7 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<List<SlnClientPackageDto>> GetClientPackagesAsync(int customerId, int? clientId = null)
     {
-        var query = _db.SlnClientPackages
+        var query = _pkgEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId)
             .Include(p => p.PackageDefinition).ThenInclude(d => d!.Service)
             .Include(p => p.SlnClient)
@@ -116,7 +124,7 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(SlnClientPackageDto? Package, string? Error)> SellPackageAsync(SlnClientPackageSellDto dto, int userId, int customerId)
     {
-        var def = await _db.SlnPackageDefinitions.FirstOrDefaultAsync(d => d.Id == dto.PackageDefinitionId && d.CustomerId == customerId);
+        var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == dto.PackageDefinitionId && d.CustomerId == customerId);
         if (def == null) return (null, "Paket tanimi bulunamadi");
 
         var pkg = new SlnClientPackage
@@ -132,7 +140,7 @@ public class SlnPackageFactory : ISlnPackageFactory
             IsActive = true,
             SoldByPersonnelId = userId
         };
-        _db.SlnClientPackages.Add(pkg);
+        _pkgEs.Add(pkg);
         await _uow.SaveChangesAsync();
 
         var result = (await GetClientPackagesAsync(customerId)).First(p => p.Id == pkg.Id);
@@ -141,7 +149,7 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(bool Success, string? Error)> UseSessionAsync(SlnPackageUseDto dto, int userId, int customerId)
     {
-        var pkg = await _db.SlnClientPackages.FirstOrDefaultAsync(p => p.Id == dto.ClientPackageId && p.CustomerId == customerId);
+        var pkg = await _pkgEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.ClientPackageId && p.CustomerId == customerId);
         if (pkg == null) return (false, "Paket bulunamadi");
         if (!pkg.IsActive) return (false, "Bu paket aktif degil");
         if (pkg.RemainingSessions <= 0) return (false, "Kalan seans yok");
@@ -151,7 +159,7 @@ public class SlnPackageFactory : ISlnPackageFactory
         pkg.RemainingSessions--;
         if (pkg.RemainingSessions == 0) pkg.IsActive = false;
 
-        _db.SlnPackageUsages.Add(new SlnPackageUsage
+        _usageEs.Add(new SlnPackageUsage
         {
             ClientPackageId = pkg.Id,
             PersonnelId = userId,

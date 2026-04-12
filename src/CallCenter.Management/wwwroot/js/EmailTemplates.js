@@ -235,18 +235,18 @@ function EmailTemplatesViewModel() {
     self.deleteTemplate = function () {
         var templateId = self.templateForm.id();
         if (!templateId) return;
-        if (!confirm('Bu dil taslagi silinecek. Emin misiniz?')) return;
-
-        $.ajax({
-            url: '/proxy/platform-email-templates/templates/' + templateId,
-            method: 'DELETE',
-            success: function () {
-                toastr.success('Dil taslagi silindi');
+        confirmModal('Dil Taslagi Sil', 'Bu dil taslagi silinecek. Emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/platform-email-templates/templates/' + templateId,
+                method: 'DELETE',
+                success: function () {
+                    toastr.success('Dil taslagi silindi');
                 var eventId = self.currentEvent().id;
                 refreshCurrentEvent(eventId);
             },
             error: function () { toastr.error('Silme basarisiz'); }
         });
+        }, { confirmText: 'Sil', confirmClass: 'btn-danger' });
     };
 
     function refreshCurrentEvent(eventId) {

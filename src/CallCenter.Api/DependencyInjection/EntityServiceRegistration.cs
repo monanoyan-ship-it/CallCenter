@@ -132,6 +132,67 @@ public static class EntityServiceRegistration
         // Salon S9 — Cok Subeli Yonetim
         services.AddScoped<ISlnBranchEntityService, SlnBranchEntityService>();
 
+        // Salon — Profil + Public + NoShowPolicy
+        services.AddScoped<ISlnSalonProfileEntityService, SlnSalonProfileEntityService>();
+        services.AddScoped<ISlnNoShowPolicyEntityService, SlnNoShowPolicyEntityService>();
+        services.AddScoped<ISlnReviewEntityService, SlnReviewEntityService>();
+        services.AddScoped<ISlnMembershipPlanEntityService, SlnMembershipPlanEntityService>();
+        services.AddScoped<ISlnClientMembershipEntityService, SlnClientMembershipEntityService>();
+
+        // Payment
+        services.AddScoped<IPlatformPaymentConfigEntityService, PlatformPaymentConfigEntityService>();
+
+        // Platform
+        services.AddScoped<IPlatformUserEntityService, PlatformUserEntityService>();
+        services.AddScoped<IPlatformUserSalonEntityService, PlatformUserSalonEntityService>();
+
+        // Service Pricing
+        services.AddScoped<IServicePricingPeriodEntityService, ServicePricingPeriodEntityService>();
+        services.AddScoped<IServicePricingItemEntityService, ServicePricingItemEntityService>();
+
+        // Salon — Before/After, Consent, Email Campaign, Waitlist
+        services.AddScoped<ISlnBeforeAfterPhotoEntityService, SlnBeforeAfterPhotoEntityService>();
+        services.AddScoped<ISlnConsentFormEntityService, SlnConsentFormEntityService>();
+        services.AddScoped<ISlnClientConsentEntityService, SlnClientConsentEntityService>();
+        services.AddScoped<ISlnEmailCampaignEntityService, SlnEmailCampaignEntityService>();
+        services.AddScoped<ISlnWaitlistEntryEntityService, SlnWaitlistEntryEntityService>();
+
+        // Salon — WhatsApp, Winback
+        services.AddScoped<ISlnWhatsAppConfigEntityService, SlnWhatsAppConfigEntityService>();
+        services.AddScoped<ISlnWhatsAppMessageEntityService, SlnWhatsAppMessageEntityService>();
+        services.AddScoped<ISlnWinbackRuleEntityService, SlnWinbackRuleEntityService>();
+
+        // Salon — Personnel Pricing, Revenue Share
+        services.AddScoped<ISlnPersonnelServicePriceEntityService, SlnPersonnelServicePriceEntityService>();
+        services.AddScoped<ISlnRevenueShareEntityService, SlnRevenueShareEntityService>();
+
+        // Salon — Loyalty
+        services.AddScoped<ISlnLoyaltyConfigEntityService, SlnLoyaltyConfigEntityService>();
+        services.AddScoped<ISlnClientLoyaltyEntityService, SlnClientLoyaltyEntityService>();
+        services.AddScoped<ISlnLoyaltyTransactionEntityService, SlnLoyaltyTransactionEntityService>();
+
+        // Salon — Membership
+        services.AddScoped<ISlnMembershipPlanServiceEntityService, SlnMembershipPlanServiceEntityService>();
+        services.AddScoped<ISlnMembershipUsageEntityService, SlnMembershipUsageEntityService>();
+
+        // Salon — Packages
+        services.AddScoped<ISlnPackageDefinitionEntityService, SlnPackageDefinitionEntityService>();
+        services.AddScoped<ISlnClientPackageEntityService, SlnClientPackageEntityService>();
+        services.AddScoped<ISlnPackageUsageEntityService, SlnPackageUsageEntityService>();
+
+        // Subscription
+        services.AddScoped<ISubscriptionPlanEntityService, SubscriptionPlanEntityService>();
+        services.AddScoped<ICustomerSubscriptionEntityService, CustomerSubscriptionEntityService>();
+
+        // Salon — Appointment Service
+        services.AddScoped<ISlnAppointmentServiceEntityService, SlnAppointmentServiceEntityService>();
+
+        // Salon — Finance (Cash Closing, Cash Opening, Client Ledger, Invoice Refund)
+        services.AddScoped<ISlnCashClosingEntityService, SlnCashClosingEntityService>();
+        services.AddScoped<ISlnCashOpeningEntityService, SlnCashOpeningEntityService>();
+        services.AddScoped<ISlnClientLedgerEntityService, SlnClientLedgerEntityService>();
+        services.AddScoped<ISlnInvoiceRefundEntityService, SlnInvoiceRefundEntityService>();
+
         return services;
     }
 }

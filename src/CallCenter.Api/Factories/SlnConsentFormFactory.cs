@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,22 @@ namespace CallCenter.Api.Factories;
 
 public class SlnConsentFormFactory : ISlnConsentFormFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnConsentFormEntityService _formEs;
+    private readonly ISlnClientConsentEntityService _consentEs;
+    private readonly ISlnClientEntityService _clientEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnConsentFormFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnConsentFormFactory(ISlnConsentFormEntityService formEs, ISlnClientConsentEntityService consentEs, ISlnClientEntityService clientEs, IUnitOfWork uow)
     {
-        _db = db;
+        _formEs = formEs;
+        _consentEs = consentEs;
+        _clientEs = clientEs;
         _uow = uow;
     }
 
     public async Task<List<SlnConsentFormDto>> GetFormsAsync(int customerId)
     {
-        return await _db.SlnConsentForms
+        return await _formEs.GetAllQueryable()
             .Where(f => f.CustomerId == customerId)
             .OrderByDescending(f => f.CreatedAt)
             .Select(f => new SlnConsentFormDto
@@ -30,7 +34,7 @@ public class SlnConsentFormFactory : ISlnConsentFormFactory
                 HtmlContent = f.HtmlContent,
                 RequireSignature = f.RequireSignature,
                 IsActive = f.IsActive,
-                SignedCount = _db.SlnClientConsents.Count(c => c.FormId == f.Id),
+                SignedCount = _consentEs.GetAllQueryable().Count(c => c.FormId == f.Id),
                 CreatedAt = f.CreatedAt
             })
             .ToListAsync();
@@ -38,7 +42,7 @@ public class SlnConsentFormFactory : ISlnConsentFormFactory
 
     public async Task<SlnConsentFormDto?> GetFormAsync(int id, int customerId)
     {
-        var form = await _db.SlnConsentForms
+        var form = await _formEs.GetAllQueryable()
             .FirstOrDefaultAsync(f => f.Id == id && f.CustomerId == customerId);
         if (form == null) return null;
 
@@ -49,7 +53,7 @@ public class SlnConsentFormFactory : ISlnConsentFormFactory
             HtmlContent = form.HtmlContent,
             RequireSignature = form.RequireSignature,
             IsActive = form.IsActive,
-            SignedCount = await _db.SlnClientConsents.CountAsync(c => c.FormId == form.Id),
+            SignedCount = await _consentEs.GetAllQueryable().CountAsync(c => c.FormId == form.Id),
             CreatedAt = form.CreatedAt
         };
     }
@@ -64,14 +68,14 @@ public class SlnConsentFormFactory : ISlnConsentFormFactory
             RequireSignature = dto.RequireSignature,
             IsActive = dto.IsActive
         };
-        _db.SlnConsentForms.Add(form);
+        _formEs.Add(form);
         await _uow.SaveChangesAsync();
         return (await GetFormAsync(form.Id, customerId))!;
     }
 
     public async Task<(bool Success, string? Error)> UpdateFormAsync(int id, SlnConsentFormUpdateDto dto, int customerId)
     {
-        var form = await _db.SlnConsentForms.FirstOrDefaultAsync(f => f.Id == id && f.CustomerId == customerId);
+        var form = await _formEs.GetAllQueryable().FirstOrDefaultAsync(f => f.Id == id && f.CustomerId == customerId);
         if (form == null) return (false, "Form bulunamadi");
 
         form.Title = dto.Title;
@@ -84,17 +88,17 @@ public class SlnConsentFormFactory : ISlnConsentFormFactory
 
     public async Task<(bool Success, string? Error)> DeleteFormAsync(int id, int customerId)
     {
-        var form = await _db.SlnConsentForms.FirstOrDefaultAsync(f => f.Id == id && f.CustomerId == customerId);
+        var form = await _formEs.GetAllQueryable().FirstOrDefaultAsync(f => f.Id == id && f.CustomerId == customerId);
         if (form == null) return (false, "Form bulunamadi");
 
-        _db.SlnConsentForms.Remove(form);
+        _formEs.Remove(form);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<List<SlnClientConsentDto>> GetSignedConsentsAsync(int customerId, int? formId = null)
     {
-        var query = _db.SlnClientConsents
+        var query = _consentEs.GetAllQueryable()
             .Include(c => c.Form)
             .Include(c => c.SlnClient)
             .Where(c => c.Form != null && c.Form.CustomerId == customerId);
@@ -126,11 +130,11 @@ public class SlnConsentFormFactory : ISlnConsentFormFactory
             SignatureData = dto.SignatureData,
             IpAddress = dto.IpAddress
         };
-        _db.SlnClientConsents.Add(consent);
+        _consentEs.Add(consent);
         await _uow.SaveChangesAsync();
 
-        var form = await _db.SlnConsentForms.FindAsync(dto.FormId);
-        var client = await _db.SlnClients.FindAsync(dto.SlnClientId);
+        var form = await _formEs.GetByIdAsync(dto.FormId);
+        var client = await _clientEs.GetByIdAsync(dto.SlnClientId);
 
         return new SlnClientConsentDto
         {

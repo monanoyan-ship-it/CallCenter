@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using CallCenter.Data;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
-using CallCenter.Shared.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -17,9 +15,9 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "PlatformUser")]
 public class PlatformController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IPlatformFactory _factory;
 
-    public PlatformController(AppDbContext db) => _db = db;
+    public PlatformController(IPlatformFactory factory) => _factory = factory;
 
     // ═══ SALON ÜYELİK ═══
 
@@ -27,69 +25,19 @@ public class PlatformController : ControllerBase
     [HttpGet("salons")]
     public async Task<ActionResult<List<PlatformSalonDto>>> GetMySalons()
     {
-        var userId = GetPlatformUserId();
-        var salons = await _db.PlatformUserSalons
-            .Where(s => s.PlatformUserId == userId && s.IsActive)
-            .Include(s => s.Customer)
-            .Select(s => new PlatformSalonDto
-            {
-                Id = s.Id,
-                CustomerId = s.CustomerId,
-                SalonName = s.Customer.Name,
-                LogoUrl = _db.SlnSalonProfiles.Where(p => p.CustomerId == s.CustomerId).Select(p => p.LogoUrl).FirstOrDefault(),
-                City = _db.SlnSalonProfiles.Where(p => p.CustomerId == s.CustomerId).Select(p => p.City).FirstOrDefault(),
-                District = _db.SlnSalonProfiles.Where(p => p.CustomerId == s.CustomerId).Select(p => p.District).FirstOrDefault(),
-                IsFavorite = s.IsFavorite,
-                JoinedAt = s.JoinedAt
-            })
-            .ToListAsync();
-
-        return Ok(salons);
+        return Ok(await _factory.GetMySalonsAsync(GetPlatformUserId()));
     }
 
     /// <summary>Salona üye ol</summary>
     [HttpPost("salons/join")]
     public async Task<ActionResult> JoinSalon([FromBody] PlatformJoinSalonDto dto)
     {
-        var userId = GetPlatformUserId();
-
-        // Zaten üye mi?
-        var exists = await _db.PlatformUserSalons
-            .AnyAsync(s => s.PlatformUserId == userId && s.CustomerId == dto.CustomerId);
-        if (exists)
-            return BadRequest(new { message = "Bu salona zaten üyesiniz." });
-
-        // Salon var mı?
-        var salon = await _db.Customers.FindAsync(dto.CustomerId);
-        if (salon == null || !salon.IsActive)
-            return BadRequest(new { message = "Salon bulunamadı." });
-
-        // Platform user bilgilerini al
-        var platformUser = await _db.PlatformUsers.FindAsync(userId);
-        if (platformUser == null) return Unauthorized();
-
-        // SlnClient oluştur (salonun kendi müşteri kartı)
-        var slnClient = new SlnClient
+        var (success, error) = await _factory.JoinSalonAsync(GetPlatformUserId(), dto.CustomerId);
+        if (!success)
         {
-            CustomerId = dto.CustomerId,
-            FullName = platformUser.FullName,
-            Phone = platformUser.Phone,
-            Email = platformUser.Email
-        };
-        _db.SlnClients.Add(slnClient);
-        await _db.SaveChangesAsync();
-
-        // Bağlantı oluştur
-        var link = new PlatformUserSalon
-        {
-            PlatformUserId = userId,
-            CustomerId = dto.CustomerId,
-            SlnClientId = slnClient.Id,
-            IsActive = true
-        };
-        _db.PlatformUserSalons.Add(link);
-        await _db.SaveChangesAsync();
-
+            if (error == null) return Unauthorized();
+            return BadRequest(new { message = error });
+        }
         return Ok(new { message = "Salona üye oldunuz." });
     }
 
@@ -97,14 +45,8 @@ public class PlatformController : ControllerBase
     [HttpDelete("salons/{customerId}")]
     public async Task<ActionResult> LeaveSalon(int customerId)
     {
-        var userId = GetPlatformUserId();
-        var link = await _db.PlatformUserSalons
-            .FirstOrDefaultAsync(s => s.PlatformUserId == userId && s.CustomerId == customerId);
-
-        if (link == null) return NotFound();
-        link.IsActive = false;
-        await _db.SaveChangesAsync();
-
+        var (success, error) = await _factory.LeaveSalonAsync(GetPlatformUserId(), customerId);
+        if (!success) return NotFound();
         return Ok(new { message = "Salon üyeliğiniz sonlandırıldı." });
     }
 
@@ -112,15 +54,9 @@ public class PlatformController : ControllerBase
     [HttpPost("salons/{customerId}/favorite")]
     public async Task<ActionResult> ToggleFavorite(int customerId)
     {
-        var userId = GetPlatformUserId();
-        var link = await _db.PlatformUserSalons
-            .FirstOrDefaultAsync(s => s.PlatformUserId == userId && s.CustomerId == customerId);
-
-        if (link == null) return NotFound();
-        link.IsFavorite = !link.IsFavorite;
-        await _db.SaveChangesAsync();
-
-        return Ok(new { isFavorite = link.IsFavorite });
+        var (success, isFavorite) = await _factory.ToggleFavoriteAsync(GetPlatformUserId(), customerId);
+        if (!success) return NotFound();
+        return Ok(new { isFavorite });
     }
 
     // ═══ RANDEVU ═══
@@ -129,114 +65,28 @@ public class PlatformController : ControllerBase
     [HttpGet("appointments")]
     public async Task<ActionResult<List<PlatformAppointmentDto>>> GetMyAppointments([FromQuery] bool past = false)
     {
-        var userId = GetPlatformUserId();
-        var clientIds = await GetMyClientIds(userId);
-
-        var now = DateTime.UtcNow;
-        var baseQuery = _db.SlnAppointments
-            .Include(a => a.Services).ThenInclude(s => s.SlnService)
-            .Include(a => a.Personnel)
-            .Where(a => clientIds.Contains(a.SlnClientId));
-
-        var query = past
-            ? baseQuery.Where(a => a.StartTime < now).OrderByDescending(a => a.StartTime)
-            : baseQuery.Where(a => a.StartTime >= now).OrderBy(a => a.StartTime);
-
-        var appointments = await query.Take(50).ToListAsync();
-
-        var customerIds = appointments.Select(a => a.CustomerId).Distinct().ToList();
-        var salonNames = await _db.Customers
-            .Where(c => customerIds.Contains(c.Id))
-            .ToDictionaryAsync(c => c.Id, c => c.Name);
-        var salonLogos = await _db.SlnSalonProfiles
-            .Where(p => customerIds.Contains(p.CustomerId))
-            .ToDictionaryAsync(p => p.CustomerId, p => p.LogoUrl);
-
-        return Ok(appointments.Select(a => new PlatformAppointmentDto
-        {
-            Id = a.Id,
-            SalonName = salonNames.GetValueOrDefault(a.CustomerId, "-"),
-            SalonLogoUrl = salonLogos.GetValueOrDefault(a.CustomerId),
-            AppointmentDate = a.StartTime.Date,
-            StartTime = a.StartTime.TimeOfDay,
-            EndTime = a.EndTime.TimeOfDay,
-            PersonnelName = a.Personnel?.Title,
-            ServiceNames = a.Services?.Select(s => s.SlnService?.Name ?? "-").ToList() ?? new(),
-            TotalPrice = a.Services?.Sum(s => s.SlnService?.Price ?? 0) ?? 0,
-            StatusId = a.StatusId
-        }).ToList());
+        return Ok(await _factory.GetMyAppointmentsAsync(GetPlatformUserId(), past));
     }
 
     /// <summary>Randevu oluştur</summary>
     [HttpPost("appointments")]
     public async Task<ActionResult> CreateAppointment([FromBody] PlatformCreateAppointmentDto dto)
     {
-        var userId = GetPlatformUserId();
-
-        // Bu salona üye mi?
-        var link = await _db.PlatformUserSalons
-            .FirstOrDefaultAsync(s => s.PlatformUserId == userId && s.CustomerId == dto.CustomerId && s.IsActive);
-        if (link == null || link.SlnClientId == null)
-            return BadRequest(new { message = "Önce bu salona üye olmanız gerekiyor." });
-
-        // Hizmetleri al, toplam süre ve fiyat hesapla
-        var services = await _db.SlnServices
-            .Where(s => dto.ServiceIds.Contains(s.Id) && s.CustomerId == dto.CustomerId)
-            .ToListAsync();
-
-        if (services.Count == 0)
-            return BadRequest(new { message = "En az bir hizmet seçmelisiniz." });
-
-        var totalDuration = services.Sum(s => s.DurationMinutes);
-        var startDateTime = dto.Date.Date.Add(dto.StartTime);
-        var endDateTime = startDateTime.AddMinutes(totalDuration);
-
-        var appointment = new SlnAppointment
-        {
-            CustomerId = dto.CustomerId,
-            SlnClientId = link.SlnClientId.Value,
-            PersonnelId = dto.PersonnelId ?? 0,
-            StartTime = startDateTime,
-            EndTime = endDateTime,
-            StatusId = 1, // Pending
-            Notes = string.IsNullOrWhiteSpace(dto.Notes) ? "Platform" : $"{dto.Notes} [Platform]"
-        };
-
-        _db.SlnAppointments.Add(appointment);
-        await _db.SaveChangesAsync();
-
-        // Hizmetleri ekle
-        var sortOrder = 0;
-        foreach (var svc in services)
-        {
-            _db.SlnAppointmentServices.Add(new SlnAppointmentService
-            {
-                SlnAppointmentId = appointment.Id,
-                SlnServiceId = svc.Id,
-                SortOrder = sortOrder++
-            });
-        }
-        await _db.SaveChangesAsync();
-
-        return Ok(new { appointmentId = appointment.Id, message = "Randevu oluşturuldu." });
+        var (appointmentId, error) = await _factory.CreateAppointmentAsync(GetPlatformUserId(), dto);
+        if (appointmentId == null) return BadRequest(new { message = error });
+        return Ok(new { appointmentId, message = "Randevu oluşturuldu." });
     }
 
     /// <summary>Randevu iptal</summary>
     [HttpDelete("appointments/{id}")]
     public async Task<ActionResult> CancelAppointment(int id)
     {
-        var userId = GetPlatformUserId();
-        var clientIds = await GetMyClientIds(userId);
-
-        var appointment = await _db.SlnAppointments.FirstOrDefaultAsync(a => a.Id == id && clientIds.Contains(a.SlnClientId));
-        if (appointment == null) return NotFound();
-
-        if (appointment.StatusId >= 3) // Completed veya Cancelled
-            return BadRequest(new { message = "Bu randevu iptal edilemez." });
-
-        appointment.StatusId = 5; // Cancelled
-        await _db.SaveChangesAsync();
-
+        var (success, error) = await _factory.CancelAppointmentAsync(GetPlatformUserId(), id);
+        if (!success)
+        {
+            if (error == "Randevu bulunamadı.") return NotFound();
+            return BadRequest(new { message = error });
+        }
         return Ok(new { message = "Randevu iptal edildi." });
     }
 
@@ -246,47 +96,7 @@ public class PlatformController : ControllerBase
     [HttpGet("loyalty")]
     public async Task<ActionResult<List<PlatformLoyaltyDto>>> GetMyLoyalty()
     {
-        var userId = GetPlatformUserId();
-        var links = await _db.PlatformUserSalons
-            .Where(s => s.PlatformUserId == userId && s.IsActive && s.SlnClientId != null)
-            .Include(s => s.Customer)
-            .ToListAsync();
-
-        var result = new List<PlatformLoyaltyDto>();
-
-        foreach (var link in links)
-        {
-            var loyalty = await _db.SlnClientLoyalties
-                .FirstOrDefaultAsync(l => l.SlnClientId == link.SlnClientId && l.CustomerId == link.CustomerId);
-
-            var membership = await _db.SlnClientMemberships
-                .Include(m => m.Plan)
-                .FirstOrDefaultAsync(m => m.SlnClientId == link.SlnClientId && m.CustomerId == link.CustomerId && m.StatusId == 1);
-
-            var giftCards = await _db.SlnGiftCards
-                .Where(g => g.CustomerId == link.CustomerId && g.IsActive && g.RemainingBalance > 0
-                    && g.RecipientPhone == _db.PlatformUsers.Where(u => u.Id == userId).Select(u => u.Phone).FirstOrDefault())
-                .Select(g => new PlatformGiftCardDto
-                {
-                    Code = g.Code,
-                    RemainingBalance = g.RemainingBalance,
-                    OriginalAmount = g.OriginalAmount,
-                    IsActive = g.IsActive
-                })
-                .ToListAsync();
-
-            result.Add(new PlatformLoyaltyDto
-            {
-                SalonName = link.Customer.Name,
-                CurrentPoints = loyalty?.CurrentBalance ?? 0,
-                TotalEarned = loyalty?.TotalEarned ?? 0,
-                MembershipPlanName = membership?.Plan?.Name,
-                MembershipDiscount = membership?.Plan?.DiscountPercent,
-                GiftCards = giftCards
-            });
-        }
-
-        return Ok(result);
+        return Ok(await _factory.GetMyLoyaltyAsync(GetPlatformUserId()));
     }
 
     // ═══ SALON KEŞFET ═══
@@ -296,46 +106,11 @@ public class PlatformController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult> DiscoverSalons([FromQuery] string? city, [FromQuery] string? search, [FromQuery] int page = 1)
     {
-        var query = _db.SlnSalonProfiles
-            .Where(p => p.IsPublished)
-            .Include(p => p.Customer)
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(city))
-            query = query.Where(p => p.City != null && p.City.Contains(city));
-
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Customer!.Name.Contains(search) || (p.Description != null && p.Description.Contains(search)));
-
-        var total = await query.CountAsync();
-        var salons = await query
-            .OrderBy(p => p.Customer!.Name)
-            .Skip((page - 1) * 20)
-            .Take(20)
-            .Select(p => new
-            {
-                customerId = p.CustomerId,
-                name = p.Customer!.Name,
-                slug = p.Slug,
-                logoUrl = p.LogoUrl,
-                coverImageUrl = p.CoverImageUrl,
-                city = p.City,
-                district = p.District,
-                description = p.Description
-            })
-            .ToListAsync();
-
-        return Ok(new { total, page, salons });
+        return Ok(await _factory.DiscoverSalonsAsync(city, search, page));
     }
 
     // ═══ HELPERS ═══
 
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
-
-    private async Task<List<int>> GetMyClientIds(int platformUserId)
-        => await _db.PlatformUserSalons
-            .Where(s => s.PlatformUserId == platformUserId && s.IsActive && s.SlnClientId != null)
-            .Select(s => s.SlnClientId!.Value)
-            .ToListAsync();
 }

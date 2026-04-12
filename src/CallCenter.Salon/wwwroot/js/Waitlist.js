@@ -59,8 +59,9 @@ function WaitlistViewModel() {
     self.apptComplete = function (a) { updateApptStatus(a.id, 3, 'Randevu tamamlandi'); };
     self.apptNoShow = function (a) { updateApptStatus(a.id, 5, 'Gelmedi olarak isaretlendi'); };
     self.apptCancel = function (a) {
-        if (!confirm('Bu randevuyu iptal etmek istediginize emin misiniz?')) return;
-        updateApptStatus(a.id, 4, 'Randevu iptal edildi');
+        confirmModal('Onay', 'Bu randevuyu iptal etmek istediginize emin misiniz?', function() {
+            updateApptStatus(a.id, 4, 'Randevu iptal edildi');
+        });
     };
 
     // ═══════════════════════════════════════════
@@ -178,9 +179,10 @@ function WaitlistViewModel() {
     };
 
     self.removeEntry = function (entry) {
-        if (!confirm('Bu kaydi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-waitlist/' + entry.id, method: 'DELETE' })
-            .done(function () { self.loadWaitlist(); toastr.success('Kayit silindi'); });
+        confirmModal('Onay', 'Bu kaydi silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-waitlist/' + entry.id, method: 'DELETE' })
+                .done(function () { self.loadWaitlist(); toastr.success('Kayit silindi'); });
+        });
     };
 
     // ═══ Init ═══

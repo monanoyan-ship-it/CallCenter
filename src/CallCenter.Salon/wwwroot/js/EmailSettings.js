@@ -180,13 +180,14 @@ function EmailSettingsViewModel() {
     };
 
     self.remove = function (item) {
-        if (!confirm(item.senderEmail + ' hesabini kaldirmak istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-email-integrations/' + item.uid,
-            method: 'DELETE'
-        }).done(function () {
-            toastr.success('Hesap kaldirildi.');
-            self.loadData();
+        confirmModal('Onay', item.senderEmail + ' hesabini kaldirmak istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-email-integrations/' + item.uid,
+                method: 'DELETE'
+            }).done(function () {
+                toastr.success('Hesap kaldirildi.');
+                self.loadData();
+            });
         });
     };
 

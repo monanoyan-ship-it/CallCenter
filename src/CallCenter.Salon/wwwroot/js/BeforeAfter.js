@@ -86,9 +86,10 @@ function BeforeAfterViewModel() {
     };
 
     self.remove = function (photo) {
-        if (!confirm('Bu fotografi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-before-after/' + photo.id, method: 'DELETE' })
-            .done(function () { self.loadData(); toastr.success('Fotograf silindi'); });
+        confirmModal('Onay', 'Bu fotografi silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-before-after/' + photo.id, method: 'DELETE' })
+                .done(function () { self.loadData(); toastr.success('Fotograf silindi'); });
+        });
     };
 
     $(document).ready(function () {

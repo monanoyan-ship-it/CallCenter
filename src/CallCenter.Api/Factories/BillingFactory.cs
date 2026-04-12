@@ -1,7 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -16,8 +15,8 @@ public class BillingFactory : IBillingFactory
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly ICustomerServiceSubscriptionEntityService _subscriptionEs;
     private readonly IServiceBillingItemEntityService _billingItemEs;
+    private readonly ICustomerProductEntityService _customerProductEs;
     private readonly IUnitOfWork _uow;
-    private readonly AppDbContext _db;
 
     public BillingFactory(
         IBillingPeriodEntityService billingEs,
@@ -25,16 +24,16 @@ public class BillingFactory : IBillingFactory
         ICustomerPersonnelEntityService personnelEs,
         ICustomerServiceSubscriptionEntityService subscriptionEs,
         IServiceBillingItemEntityService billingItemEs,
-        IUnitOfWork uow,
-        AppDbContext db)
+        ICustomerProductEntityService customerProductEs,
+        IUnitOfWork uow)
     {
         _billingEs = billingEs;
         _customerEs = customerEs;
         _personnelEs = personnelEs;
         _subscriptionEs = subscriptionEs;
         _billingItemEs = billingItemEs;
+        _customerProductEs = customerProductEs;
         _uow = uow;
-        _db = db;
     }
 
     public async Task<List<BillingPeriodDto>> GetByCustomerAsync(int customerId)
@@ -151,7 +150,7 @@ public class BillingFactory : IBillingFactory
             .ToListAsync();
 
         // Urun bazli fiyatlari topla
-        var productPrices = await _db.CustomerProducts
+        var productPrices = await _customerProductEs.GetAllQueryable()
             .Where(cp => cp.IsActive)
             .GroupBy(cp => cp.CustomerId)
             .Select(g => new { CustomerId = g.Key, TotalMonthlyPrice = g.Sum(cp => cp.MonthlyPrice) })
@@ -325,7 +324,7 @@ public class BillingFactory : IBillingFactory
         }
 
         // Urun bazli fiyatlari topla
-        var totalMonthlyPrice = await _db.CustomerProducts
+        var totalMonthlyPrice = await _customerProductEs.GetAllQueryable()
             .Where(cp => cp.CustomerId == dto.CustomerId && cp.IsActive)
             .SumAsync(cp => cp.MonthlyPrice);
 
@@ -388,7 +387,7 @@ public class BillingFactory : IBillingFactory
         // Urun tipine gore filtrele (CC=1, Salon=2)
         if (productTypeId.HasValue)
         {
-            var customerIds = await _db.CustomerProducts
+            var customerIds = await _customerProductEs.GetAllQueryable()
                 .Where(cp => cp.ProductTypeId == productTypeId.Value && cp.IsActive)
                 .Select(cp => cp.CustomerId)
                 .Distinct()

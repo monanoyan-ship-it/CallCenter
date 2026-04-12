@@ -248,7 +248,9 @@
       "Read(//c/Program Files \\(x86\\)/**)",
       "Read(//c/Program Files/**)",
       "Bash(xxd -l 200 -s 1710 \"C:/Users/Ahmet/source/repos/monanoyan-ship-it/callcenter/src/CallCenter.Salon/wwwroot/js/Invoices.js\")",
-      "Bash(PGPASSWORD='1123Azs+-' psql:*)"
+      "Bash(PGPASSWORD='1123Azs+-' psql:*)",
+      "Bash(project=15 2>&1)",
+      "Bash(git worktree:*)"
     ]
   }
 }

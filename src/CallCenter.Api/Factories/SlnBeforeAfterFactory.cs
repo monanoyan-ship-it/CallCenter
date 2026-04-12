@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,18 @@ namespace CallCenter.Api.Factories;
 
 public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnBeforeAfterPhotoEntityService _photoEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnBeforeAfterFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnBeforeAfterFactory(ISlnBeforeAfterPhotoEntityService photoEs, IUnitOfWork uow)
     {
-        _db = db;
+        _photoEs = photoEs;
         _uow = uow;
     }
 
     public async Task<List<SlnBeforeAfterPhotoDto>> GetPhotosAsync(int customerId)
     {
-        return await _db.SlnBeforeAfterPhotos
+        return await _photoEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId)
             .Include(p => p.SlnClient)
             .Include(p => p.Service)
@@ -32,7 +32,7 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
 
     public async Task<SlnBeforeAfterPhotoDto?> GetPhotoAsync(int id, int customerId)
     {
-        var photo = await _db.SlnBeforeAfterPhotos
+        var photo = await _photoEs.GetAllQueryable()
             .Include(p => p.SlnClient)
             .Include(p => p.Service)
             .Include(p => p.Personnel).ThenInclude(pr => pr!.User)
@@ -53,14 +53,14 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
             PersonnelId = dto.PersonnelId,
             IsPublic = dto.IsPublic
         };
-        _db.SlnBeforeAfterPhotos.Add(photo);
+        _photoEs.Add(photo);
         await _uow.SaveChangesAsync();
         return (await GetPhotoAsync(photo.Id, customerId))!;
     }
 
     public async Task<(bool Success, string? Error)> UpdatePhotoAsync(int id, SlnBeforeAfterPhotoUpdateDto dto, int customerId)
     {
-        var photo = await _db.SlnBeforeAfterPhotos.FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var photo = await _photoEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
         if (photo == null) return (false, "Fotograf bulunamadi");
 
         photo.SlnClientId = dto.SlnClientId;
@@ -76,10 +76,10 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
 
     public async Task<(bool Success, string? Error)> DeletePhotoAsync(int id, int customerId)
     {
-        var photo = await _db.SlnBeforeAfterPhotos.FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var photo = await _photoEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
         if (photo == null) return (false, "Fotograf bulunamadi");
 
-        _db.SlnBeforeAfterPhotos.Remove(photo);
+        _photoEs.Remove(photo);
         await _uow.SaveChangesAsync();
         return (true, null);
     }

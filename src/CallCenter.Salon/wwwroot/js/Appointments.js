@@ -329,34 +329,36 @@ function AppointmentsViewModel() {
     };
 
     self.cancel = function (appt) {
-        if (!confirm('Bu randevuyu iptal etmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-appointments/' + appt.id + '/status',
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ statusId: 4 })
-        }).done(function (res) {
-            self.loadAppointments();
-            if (res && res.penalty > 0) {
-                toastr.warning('Gec iptal — ' + res.message);
-            } else {
-                toastr.success('Randevu iptal edildi');
-            }
+        confirmModal('Onay', 'Bu randevuyu iptal etmek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-appointments/' + appt.id + '/status',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ statusId: 4 })
+            }).done(function (res) {
+                self.loadAppointments();
+                if (res && res.penalty > 0) {
+                    toastr.warning('Gec iptal — ' + res.message);
+                } else {
+                    toastr.success('Randevu iptal edildi');
+                }
+            });
         });
     };
 
     self.markNoShow = function (appt) {
-        if (!confirm('Bu musteriyi gelmedi olarak isaretlemek istiyor musunuz?')) return;
-        $.ajax({
-            url: '/proxy/sln-appointments/' + appt.id + '/status',
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ statusId: 5 })
-        }).done(function (res) {
-            self.loadAppointments();
-            var msg = 'Musteri gelmedi olarak isaretlendi';
-            if (res && res.penalty > 0) msg += ' — ' + res.message;
-            toastr.warning(msg);
+        confirmModal('Onay', 'Bu musteriyi gelmedi olarak isaretlemek istiyor musunuz?', function() {
+            $.ajax({
+                url: '/proxy/sln-appointments/' + appt.id + '/status',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ statusId: 5 })
+            }).done(function (res) {
+                self.loadAppointments();
+                var msg = 'Musteri gelmedi olarak isaretlendi';
+                if (res && res.penalty > 0) msg += ' — ' + res.message;
+                toastr.warning(msg);
+            });
         });
     };
 

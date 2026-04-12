@@ -104,13 +104,14 @@ function ClientDetailViewModel() {
     };
 
     self.removeFormula = function (formula) {
-        if (!confirm('Bu formulu silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-clients/formulas/' + formula.id,
-            method: 'DELETE'
-        }).done(function () {
-            self.loadClient();
-            toastr.success('Formul silindi');
+        confirmModal('Onay', 'Bu formulu silmek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-clients/formulas/' + formula.id,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadClient();
+                toastr.success('Formul silindi');
+            });
         });
     };
 
@@ -149,13 +150,14 @@ function ClientDetailViewModel() {
     };
 
     self.removePhoto = function (photo) {
-        if (!confirm('Bu fotografi silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-clients/' + id + '/photos/' + photo.id,
-            method: 'DELETE'
-        }).done(function () {
-            self.loadClient();
-            toastr.success('Fotograf silindi');
+        confirmModal('Onay', 'Bu fotografi silmek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-clients/' + id + '/photos/' + photo.id,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadClient();
+                toastr.success('Fotograf silindi');
+            });
         });
     };
 

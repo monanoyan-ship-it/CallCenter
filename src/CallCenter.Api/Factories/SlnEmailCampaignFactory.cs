@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,18 @@ namespace CallCenter.Api.Factories;
 
 public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnEmailCampaignEntityService _emailCampaignEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnEmailCampaignFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnEmailCampaignFactory(ISlnEmailCampaignEntityService emailCampaignEs, IUnitOfWork uow)
     {
-        _db = db;
+        _emailCampaignEs = emailCampaignEs;
         _uow = uow;
     }
 
     public async Task<List<SlnEmailCampaignDto>> GetCampaignsAsync(int customerId)
     {
-        return await _db.SlnEmailCampaigns
+        return await _emailCampaignEs.GetAllQueryable()
             .Where(c => c.CustomerId == customerId)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => MapToDto(c))
@@ -29,7 +29,7 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
 
     public async Task<SlnEmailCampaignDto?> GetCampaignAsync(int id, int customerId)
     {
-        var campaign = await _db.SlnEmailCampaigns
+        var campaign = await _emailCampaignEs.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
         return campaign != null ? MapToDto(campaign) : null;
     }
@@ -45,14 +45,14 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
             ScheduledAt = dto.ScheduledAt,
             StatusId = dto.ScheduledAt.HasValue ? 2 : 1
         };
-        _db.SlnEmailCampaigns.Add(campaign);
+        _emailCampaignEs.Add(campaign);
         await _uow.SaveChangesAsync();
         return MapToDto(campaign);
     }
 
     public async Task<(bool Success, string? Error)> UpdateCampaignAsync(int id, SlnEmailCampaignUpdateDto dto, int customerId)
     {
-        var campaign = await _db.SlnEmailCampaigns
+        var campaign = await _emailCampaignEs.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Gonderilmis kampanya duzenlenemez");
@@ -68,11 +68,11 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
 
     public async Task<(bool Success, string? Error)> DeleteCampaignAsync(int id, int customerId)
     {
-        var campaign = await _db.SlnEmailCampaigns
+        var campaign = await _emailCampaignEs.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
         if (campaign == null) return (false, "Kampanya bulunamadi");
 
-        _db.SlnEmailCampaigns.Remove(campaign);
+        _emailCampaignEs.Remove(campaign);
         await _uow.SaveChangesAsync();
         return (true, null);
     }

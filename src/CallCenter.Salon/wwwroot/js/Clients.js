@@ -172,15 +172,16 @@ function ClientsViewModel() {
     };
 
     self.remove = function (client) {
-        if (!confirm('Bu musteriyi silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-clients/' + client.id,
-            method: 'DELETE'
-        }).done(function () {
-            self.loadData();
-            toastr.success('Musteri silindi');
-        }).fail(function () {
-            toastr.error('Silinemedi');
+        confirmModal('Onay', 'Bu musteriyi silmek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-clients/' + client.id,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadData();
+                toastr.success('Musteri silindi');
+            }).fail(function () {
+                toastr.error('Silinemedi');
+            });
         });
     };
 

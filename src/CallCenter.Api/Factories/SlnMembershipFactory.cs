@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,24 +9,35 @@ namespace CallCenter.Api.Factories;
 
 public class SlnMembershipFactory : ISlnMembershipFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnMembershipPlanEntityService _planEs;
+    private readonly ISlnClientMembershipEntityService _membershipEs;
+    private readonly ISlnMembershipPlanServiceEntityService _planServiceEs;
+    private readonly ISlnMembershipUsageEntityService _usageEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnMembershipFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnMembershipFactory(
+        ISlnMembershipPlanEntityService planEs,
+        ISlnClientMembershipEntityService membershipEs,
+        ISlnMembershipPlanServiceEntityService planServiceEs,
+        ISlnMembershipUsageEntityService usageEs,
+        IUnitOfWork uow)
     {
-        _db = db;
+        _planEs = planEs;
+        _membershipEs = membershipEs;
+        _planServiceEs = planServiceEs;
+        _usageEs = usageEs;
         _uow = uow;
     }
 
     public async Task<List<SlnMembershipPlanDto>> GetPlansAsync(int customerId)
     {
-        var plans = await _db.SlnMembershipPlans
+        var plans = await _planEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId)
             .Include(p => p.Services).ThenInclude(s => s.Service)
             .OrderBy(p => p.SortOrder)
             .ToListAsync();
 
-        var memberCounts = await _db.SlnClientMemberships
+        var memberCounts = await _membershipEs.GetAllQueryable()
             .Where(m => m.CustomerId == customerId && m.StatusId == 1)
             .GroupBy(m => m.PlanId)
             .Select(g => new { PlanId = g.Key, Count = g.Count() })
@@ -73,16 +84,16 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             DiscountPercent = dto.DiscountPercent,
             PriorityBooking = dto.PriorityBooking,
             IsActive = dto.IsActive,
-            SortOrder = await _db.SlnMembershipPlans.CountAsync(p => p.CustomerId == customerId) + 1
+            SortOrder = await _planEs.GetAllQueryable().CountAsync(p => p.CustomerId == customerId) + 1
         };
-        _db.SlnMembershipPlans.Add(plan);
+        _planEs.Add(plan);
         await _uow.SaveChangesAsync();
 
         // Hizmet iliskilerini ekle (detayli: freeCount + discount)
         if (dto.ServiceDetails.Count > 0)
         {
             foreach (var sd in dto.ServiceDetails)
-                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService
+                _planServiceEs.Add(new SlnMembershipPlanService
                 {
                     PlanId = plan.Id, ServiceId = sd.ServiceId,
                     FreeCount = sd.FreeCount,
@@ -93,7 +104,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         else if (dto.ServiceIds.Count > 0)
         {
             foreach (var svcId in dto.ServiceIds)
-                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = plan.Id, ServiceId = svcId });
+                _planServiceEs.Add(new SlnMembershipPlanService { PlanId = plan.Id, ServiceId = svcId });
             await _uow.SaveChangesAsync();
         }
 
@@ -102,7 +113,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, SlnMembershipPlanCreateDto dto, int customerId)
     {
-        var plan = await _db.SlnMembershipPlans.FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
         if (plan == null) return (false, "Plan bulunamadi");
 
         plan.Name = dto.Name;
@@ -117,12 +128,12 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         plan.IsActive = dto.IsActive;
 
         // Hizmet iliskilerini guncelle (sil + yeniden ekle)
-        var existingServices = await _db.SlnMembershipPlanServices.Where(s => s.PlanId == id).ToListAsync();
-        _db.SlnMembershipPlanServices.RemoveRange(existingServices);
+        var existingServices = await _planServiceEs.GetAllQueryable().Where(s => s.PlanId == id).ToListAsync();
+        _planServiceEs.RemoveRange(existingServices);
         if (dto.ServiceDetails.Count > 0)
         {
             foreach (var sd in dto.ServiceDetails)
-                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService
+                _planServiceEs.Add(new SlnMembershipPlanService
                 {
                     PlanId = id, ServiceId = sd.ServiceId,
                     FreeCount = sd.FreeCount,
@@ -132,7 +143,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         else
         {
             foreach (var svcId in dto.ServiceIds)
-                _db.SlnMembershipPlanServices.Add(new SlnMembershipPlanService { PlanId = id, ServiceId = svcId });
+                _planServiceEs.Add(new SlnMembershipPlanService { PlanId = id, ServiceId = svcId });
         }
 
         await _uow.SaveChangesAsync();
@@ -141,18 +152,18 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(bool Success, string? Error)> DeletePlanAsync(int id, int customerId)
     {
-        var plan = await _db.SlnMembershipPlans.FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
         if (plan == null) return (false, "Plan bulunamadi");
-        var hasMembers = await _db.SlnClientMemberships.AnyAsync(m => m.PlanId == id && m.StatusId == 1);
+        var hasMembers = await _membershipEs.GetAllQueryable().AnyAsync(m => m.PlanId == id && m.StatusId == 1);
         if (hasMembers) return (false, "Aktif uyesi olan plan silinemez");
-        _db.SlnMembershipPlans.Remove(plan);
+        _planEs.Remove(plan);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<List<SlnClientMembershipDto>> GetMembershipsAsync(int customerId, int? clientId = null)
     {
-        var query = _db.SlnClientMemberships
+        var query = _membershipEs.GetAllQueryable()
             .Where(m => m.CustomerId == customerId)
             .Include(m => m.Plan)
             .Include(m => m.SlnClient)
@@ -179,10 +190,10 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(SlnClientMembershipDto? Membership, string? Error)> CreateMembershipAsync(SlnClientMembershipCreateDto dto, int customerId)
     {
-        var plan = await _db.SlnMembershipPlans.FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == customerId);
+        var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == customerId);
         if (plan == null) return (null, "Plan bulunamadi");
 
-        var existing = await _db.SlnClientMemberships
+        var existing = await _membershipEs.GetAllQueryable()
             .AnyAsync(m => m.SlnClientId == dto.SlnClientId && m.CustomerId == customerId && m.StatusId == 1);
         if (existing) return (null, "Bu musterinin zaten aktif uyeligi var");
 
@@ -199,7 +210,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             PaidAmount = plan.Price,
             StatusId = 1
         };
-        _db.SlnClientMemberships.Add(membership);
+        _membershipEs.Add(membership);
         await _uow.SaveChangesAsync();
 
         var result = (await GetMembershipsAsync(customerId)).First(m => m.Id == membership.Id);
@@ -208,7 +219,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(bool Success, string? Error)> CancelMembershipAsync(int id, int customerId)
     {
-        var m = await _db.SlnClientMemberships.FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId);
+        var m = await _membershipEs.GetAllQueryable().FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId);
         if (m == null) return (false, "Uyelik bulunamadi");
         m.StatusId = 3;
         m.EndDate = DateTime.UtcNow;
@@ -218,7 +229,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(bool Success, string? Error)> FreezeMembershipAsync(int id, int customerId)
     {
-        var m = await _db.SlnClientMemberships.FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 1);
+        var m = await _membershipEs.GetAllQueryable().FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 1);
         if (m == null) return (false, "Aktif uyelik bulunamadi");
         m.StatusId = 2;
         await _uow.SaveChangesAsync();
@@ -227,7 +238,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(bool Success, string? Error)> ReactivateMembershipAsync(int id, int customerId)
     {
-        var m = await _db.SlnClientMemberships.FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 2);
+        var m = await _membershipEs.GetAllQueryable().FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 2);
         if (m == null) return (false, "Dondurulmus uyelik bulunamadi");
         m.StatusId = 1;
         await _uow.SaveChangesAsync();
@@ -237,7 +248,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
     public async Task<List<ServiceMembershipBenefit>> CheckBenefitsAsync(int customerId, int slnClientId, List<int> serviceIds)
     {
         // Musterinin aktif uyeligi
-        var membership = await _db.SlnClientMemberships
+        var membership = await _membershipEs.GetAllQueryable()
             .Include(m => m.Plan).ThenInclude(p => p!.Services).ThenInclude(s => s.Service)
             .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.SlnClientId == slnClientId && m.StatusId == 1);
 
@@ -248,7 +259,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         var periodStart = membership.CurrentPeriodStart;
 
         // Bu donemdeki kullanim kayitlari
-        var usages = await _db.SlnMembershipUsages
+        var usages = await _usageEs.GetAllQueryable()
             .Where(u => u.MembershipId == membership.Id && u.PeriodStart == periodStart)
             .ToListAsync();
 
@@ -286,10 +297,10 @@ public class SlnMembershipFactory : ISlnMembershipFactory
     public async Task RecordUsageAsync(int customerId, int membershipId, int serviceId)
     {
         // Uyeligin mevcut donem baslangicini al
-        var membership = await _db.SlnClientMemberships.FindAsync(membershipId);
+        var membership = await _membershipEs.GetByIdAsync(membershipId);
         var periodStart = membership?.CurrentPeriodStart;
 
-        var usage = await _db.SlnMembershipUsages
+        var usage = await _usageEs.GetAllQueryable()
             .FirstOrDefaultAsync(u => u.MembershipId == membershipId && u.ServiceId == serviceId && u.PeriodStart == periodStart);
 
         if (usage != null)
@@ -299,7 +310,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         }
         else
         {
-            _db.SlnMembershipUsages.Add(new SlnMembershipUsage
+            _usageEs.Add(new SlnMembershipUsage
             {
                 CustomerId = customerId,
                 MembershipId = membershipId,

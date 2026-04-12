@@ -157,42 +157,45 @@ function ExpensesViewModel() {
     };
 
     self.approveExpense = function (expense) {
-        if (!confirm('Bu masrafi onaylamak istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-finance/expenses/' + expense.id,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ statusId: 2 })
-        }).done(function () {
-            self.loadData();
-            toastr.success('Masraf onaylandi');
-        }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Onaylama basarisiz');
+        confirmModal('Onay', 'Bu masrafi onaylamak istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-finance/expenses/' + expense.id,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ statusId: 2 })
+            }).done(function () {
+                self.loadData();
+                toastr.success('Masraf onaylandi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.error || 'Onaylama basarisiz');
+            });
         });
     };
 
     self.rejectExpense = function (expense) {
-        if (!confirm('Bu masrafi reddetmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-finance/expenses/' + expense.id,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ statusId: 3 })
-        }).done(function () {
-            self.loadData();
-            toastr.success('Masraf reddedildi');
-        }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Reddetme basarisiz');
+        confirmModal('Onay', 'Bu masrafi reddetmek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-finance/expenses/' + expense.id,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ statusId: 3 })
+            }).done(function () {
+                self.loadData();
+                toastr.success('Masraf reddedildi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.error || 'Reddetme basarisiz');
+            });
         });
     };
 
     self.remove = function (expense) {
-        if (!confirm('Bu masrafi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-finance/expenses/' + expense.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Masraf silindi');
-        }).fail(function () {
-            toastr.error('Masraf silinemedi');
+        confirmModal('Onay', 'Bu masrafi silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-finance/expenses/' + expense.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Masraf silindi');
+            }).fail(function () {
+                toastr.error('Masraf silinemedi');
+            });
         });
     };
 

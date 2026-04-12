@@ -357,10 +357,11 @@ function InvoicesViewModel() {
     };
 
     self.cancelInvoice = function (invoice) {
-        if (!confirm('Bu adisyonu iptal etmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-finance/invoices/' + invoice.id + '/cancel', method: 'PUT' }).done(function () {
-            self.loadData();
-            toastr.success('Adisyon iptal edildi');
+        confirmModal('Onay', 'Bu adisyonu iptal etmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-finance/invoices/' + invoice.id + '/cancel', method: 'PUT' }).done(function () {
+                self.loadData();
+                toastr.success('Adisyon iptal edildi');
+            });
         });
     };
 

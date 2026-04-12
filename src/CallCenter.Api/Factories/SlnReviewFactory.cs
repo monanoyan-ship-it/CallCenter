@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,18 @@ namespace CallCenter.Api.Factories;
 
 public class SlnReviewFactory : ISlnReviewFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnReviewEntityService _reviewEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnReviewFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnReviewFactory(ISlnReviewEntityService reviewEs, IUnitOfWork uow)
     {
-        _db = db;
+        _reviewEs = reviewEs;
         _uow = uow;
     }
 
     public async Task<List<SlnReviewDto>> GetReviewsAsync(int customerId)
     {
-        return await _db.SlnReviews
+        return await _reviewEs.GetAllQueryable()
             .Where(r => r.CustomerId == customerId)
             .Include(r => r.SlnClient)
             .OrderByDescending(r => r.CreatedAt)
@@ -30,7 +30,7 @@ public class SlnReviewFactory : ISlnReviewFactory
 
     public async Task<SlnReviewDto?> GetReviewAsync(int id, int customerId)
     {
-        var review = await _db.SlnReviews
+        var review = await _reviewEs.GetAllQueryable()
             .Include(r => r.SlnClient)
             .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         return review != null ? MapToDto(review) : null;
@@ -49,14 +49,14 @@ public class SlnReviewFactory : ISlnReviewFactory
             ExternalUrl = dto.ExternalUrl,
             StatusId = 1
         };
-        _db.SlnReviews.Add(review);
+        _reviewEs.Add(review);
         await _uow.SaveChangesAsync();
         return (await GetReviewAsync(review.Id, customerId))!;
     }
 
     public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId)
     {
-        var review = await _db.SlnReviews.FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var review = await _reviewEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         if (review == null) return (false, "Yorum bulunamadi");
 
         review.StatusId = statusId;
@@ -66,17 +66,17 @@ public class SlnReviewFactory : ISlnReviewFactory
 
     public async Task<(bool Success, string? Error)> DeleteReviewAsync(int id, int customerId)
     {
-        var review = await _db.SlnReviews.FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var review = await _reviewEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         if (review == null) return (false, "Yorum bulunamadi");
 
-        _db.SlnReviews.Remove(review);
+        _reviewEs.Remove(review);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<SlnReviewStatsDto> GetStatsAsync(int customerId)
     {
-        var reviews = await _db.SlnReviews.Where(r => r.CustomerId == customerId).ToListAsync();
+        var reviews = await _reviewEs.GetAllQueryable().Where(r => r.CustomerId == customerId).ToListAsync();
         return new SlnReviewStatsDto
         {
             TotalReviews = reviews.Count,

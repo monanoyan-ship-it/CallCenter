@@ -181,10 +181,11 @@ function MembershipsViewModel() {
     };
 
     self.removePlan = function (p) {
-        if (!confirm("'" + p.name + "' planini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-memberships/plans/' + p.id, method: 'DELETE' }).done(function () {
-            self.loadData(); toastr.success('Plan silindi');
-        }).fail(function (x) { toastr.error(x.responseJSON?.error || 'Silinemedi'); });
+        confirmModal('Onay', "'" + p.name + "' planini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-memberships/plans/' + p.id, method: 'DELETE' }).done(function () {
+                self.loadData(); toastr.success('Plan silindi');
+            }).fail(function (x) { toastr.error(x.responseJSON?.error || 'Silinemedi'); });
+        });
     };
 
     // Uye islemleri
@@ -208,8 +209,9 @@ function MembershipsViewModel() {
     };
 
     self.cancelMember = function (m) {
-        if (!confirm('Uyeligi iptal etmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/cancel', method: 'PUT' }).done(function () { self.loadData(); toastr.success('Uyelik iptal edildi'); });
+        confirmModal('Onay', 'Uyeligi iptal etmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/cancel', method: 'PUT' }).done(function () { self.loadData(); toastr.success('Uyelik iptal edildi'); });
+        });
     };
 
     self.reactivateMember = function (m) {

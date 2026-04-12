@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,12 +9,12 @@ namespace CallCenter.Api.Factories;
 
 public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
 {
-    private readonly AppDbContext _db;
+    private readonly IPlatformEmailTemplateEntityService _emailEs;
     private readonly IUnitOfWork _uow;
 
-    public PlatformEmailTemplateFactory(AppDbContext db, IUnitOfWork uow)
+    public PlatformEmailTemplateFactory(IPlatformEmailTemplateEntityService emailEs, IUnitOfWork uow)
     {
-        _db = db;
+        _emailEs = emailEs;
         _uow = uow;
     }
 
@@ -22,8 +22,7 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
 
     public async Task<List<PlatformEmailEventDto>> GetAllEventsAsync()
     {
-        return await _db.PlatformEmailEvents
-            .Include(e => e.Templates)
+        return await _emailEs.GetAllEventsQueryable()
             .OrderBy(e => e.ProductType)
             .ThenBy(e => e.EventKey)
             .Select(e => MapEventToDto(e))
@@ -32,9 +31,7 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
 
     public async Task<PlatformEmailEventDto?> GetEventByIdAsync(int id)
     {
-        var ev = await _db.PlatformEmailEvents
-            .Include(e => e.Templates)
-            .FirstOrDefaultAsync(e => e.Id == id);
+        var ev = await _emailEs.GetEventByIdAsync(id);
         return ev != null ? MapEventToDto(ev) : null;
     }
 
@@ -48,14 +45,14 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
             AvailablePlaceholders = dto.AvailablePlaceholders,
             IsActive = dto.IsActive
         };
-        _db.PlatformEmailEvents.Add(ev);
+        _emailEs.AddEvent(ev);
         await _uow.SaveChangesAsync();
         return MapEventToDto(ev);
     }
 
     public async Task<(bool Success, string? Error)> UpdateEventAsync(int id, PlatformEmailEventUpdateDto dto)
     {
-        var ev = await _db.PlatformEmailEvents.FindAsync(id);
+        var ev = await _emailEs.GetEventByIdAsync(id);
         if (ev == null) return (false, "Olay bulunamadi");
 
         if (dto.ProductType != null) ev.ProductType = dto.ProductType;
@@ -70,12 +67,12 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
 
     public async Task<(bool Success, string? Error)> DeleteEventAsync(int id)
     {
-        var ev = await _db.PlatformEmailEvents
+        var ev = await _emailEs.GetAllEventsQueryable()
             .Include(e => e.Templates)
             .FirstOrDefaultAsync(e => e.Id == id);
         if (ev == null) return (false, "Olay bulunamadi");
 
-        _db.PlatformEmailEvents.Remove(ev); // Cascade delete templates
+        _emailEs.RemoveEvent(ev); // Cascade delete templates
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -92,14 +89,14 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
             HtmlBody = dto.HtmlBody,
             IsActive = dto.IsActive
         };
-        _db.PlatformEmailTemplates.Add(template);
+        _emailEs.AddTemplate(template);
         await _uow.SaveChangesAsync();
         return MapTemplateToDto(template);
     }
 
     public async Task<(bool Success, string? Error)> UpdateTemplateAsync(int templateId, PlatformEmailTemplateUpdateDto dto)
     {
-        var template = await _db.PlatformEmailTemplates.FindAsync(templateId);
+        var template = await _emailEs.GetTemplateByIdAsync(templateId);
         if (template == null) return (false, "Taslak bulunamadi");
 
         if (dto.Subject != null) template.Subject = dto.Subject;
@@ -113,10 +110,10 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
 
     public async Task<(bool Success, string? Error)> DeleteTemplateAsync(int templateId)
     {
-        var template = await _db.PlatformEmailTemplates.FindAsync(templateId);
+        var template = await _emailEs.GetTemplateByIdAsync(templateId);
         if (template == null) return (false, "Taslak bulunamadi");
 
-        _db.PlatformEmailTemplates.Remove(template);
+        _emailEs.RemoveTemplate(template);
         await _uow.SaveChangesAsync();
         return (true, null);
     }

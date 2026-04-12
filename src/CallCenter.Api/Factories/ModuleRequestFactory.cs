@@ -1,6 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
-using CallCenter.Data;
+using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -9,21 +9,21 @@ namespace CallCenter.Api.Factories;
 
 public class ModuleRequestFactory : IModuleRequestFactory
 {
-    private readonly AppDbContext _db;
     private readonly IModuleRequestEntityService _requestEs;
     private readonly IModulePricingEntityService _pricingEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
+    private readonly IUnitOfWork _uow;
 
     public ModuleRequestFactory(
-        AppDbContext db,
         IModuleRequestEntityService requestEs,
         IModulePricingEntityService pricingEs,
-        ICustomerPortalModuleEntityService moduleEs)
+        ICustomerPortalModuleEntityService moduleEs,
+        IUnitOfWork uow)
     {
-        _db = db;
         _requestEs = requestEs;
         _pricingEs = pricingEs;
         _moduleEs = moduleEs;
+        _uow = uow;
     }
 
     public async Task<List<ModuleRequestDto>> GetCustomerRequestsAsync(int customerId)
@@ -77,7 +77,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
         };
 
         _requestEs.Add(request);
-        await _db.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
         var pricings = await _pricingEs.GetAllAsync();
         return MapToDto(request, pricings);
@@ -130,7 +130,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
             }
         }
 
-        await _db.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
         var pricings = await _pricingEs.GetAllAsync();
         return MapToDto(request, pricings);
@@ -149,7 +149,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
         request.ReviewedAt = DateTime.UtcNow;
         request.ReviewedByUserId = reviewerUserId;
 
-        await _db.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
 
         var pricings = await _pricingEs.GetAllAsync();
         return MapToDto(request, pricings);
@@ -167,7 +167,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
             throw new InvalidOperationException("Sadece bekleyen talepler iptal edilebilir.");
 
         request.StatusId = ModuleRequestStatuses.Ids.Cancelled;
-        await _db.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
     }
 
     public async Task<List<ModulePricingDto>> GetAvailableModulesAsync(int customerId)

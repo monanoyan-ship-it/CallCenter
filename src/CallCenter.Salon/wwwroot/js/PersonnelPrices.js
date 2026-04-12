@@ -88,9 +88,10 @@ function PersonnelPricesViewModel() {
     };
 
     self.removePrice = function (price) {
-        if (!confirm('Bu fiyati silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-personnel-prices/' + price.id, method: 'DELETE' })
-            .done(function () { self.loadPrices(); toastr.success('Fiyat silindi'); });
+        confirmModal('Onay', 'Bu fiyati silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-personnel-prices/' + price.id, method: 'DELETE' })
+                .done(function () { self.loadPrices(); toastr.success('Fiyat silindi'); });
+        });
     };
 
     // ═══ Hasilat ═══
@@ -136,9 +137,10 @@ function PersonnelPricesViewModel() {
     };
 
     self.removeRevenue = function (share) {
-        if (!confirm('Bu hasilat paylasimini silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-personnel-prices/revenue-shares/' + share.id, method: 'DELETE' })
-            .done(function () { self.loadRevenueShares(); toastr.success('Hasilat paylasimi silindi'); });
+        confirmModal('Onay', 'Bu hasilat paylasimini silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-personnel-prices/revenue-shares/' + share.id, method: 'DELETE' })
+                .done(function () { self.loadRevenueShares(); toastr.success('Hasilat paylasimi silindi'); });
+        });
     };
 
     $(document).ready(function () {

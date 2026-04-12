@@ -304,4 +304,17 @@ public class SlnClientFactory : ISlnClientFactory
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    public async Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId)
+    {
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+
+        if (client == null) return (false, "Musteri bulunamadi");
+
+        client.IsBlacklisted = false;
+        client.NoShowCount = 0;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
 }

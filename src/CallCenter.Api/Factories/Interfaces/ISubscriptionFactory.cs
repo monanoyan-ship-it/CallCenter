@@ -17,4 +17,7 @@ public interface ISubscriptionFactory
 
     // Tahakkuk
     Task<(int Created, int Skipped)> GenerateBillingForMonthAsync(int year, int month);
+
+    // Musteri kendi abonelik durumu
+    Task<object> GetMySubscriptionAsync(int customerId);
 }

@@ -23,4 +23,5 @@ public interface ICallFactory
     Task<(bool Success, string? Error)> StartCallbackAsync(int callId, int userId);
     Task<(bool Success, string? Error)> CompleteCallbackAsync(int callId, int resultCallId);
     Task<(bool Success, string? Error)> RevertCallbackAsync(int callId);
+    Task<List<CallCenter.Shared.DTOs.PendingCallbackDto>> GetPendingCallbacksAsync(int userId, int customerId);
 }

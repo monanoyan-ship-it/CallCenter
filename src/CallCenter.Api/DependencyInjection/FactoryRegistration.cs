@@ -130,6 +130,22 @@ public static class FactoryRegistration
         // Odeme Gateway Yapilandirma
         services.AddScoped<IPaymentConfigFactory, PaymentConfigFactory>();
 
+        // Salon — Profil + Public
+        services.AddScoped<ISlnProfileFactory, SlnProfileFactory>();
+        services.AddScoped<ISlnPublicFactory, SlnPublicFactory>();
+
+        // Salon — WhatsApp Factory
+        services.AddScoped<ISlnWhatsAppFactory, SlnWhatsAppFactory>();
+
+        // Management (Admin Dashboard + Module Pricing + Module Requests)
+        services.AddScoped<IManagementFactory, ManagementFactory>();
+
+        // Platform (Son kullanici: salon uyelik, randevu, sadakat, kesfet)
+        services.AddScoped<IPlatformFactory, PlatformFactory>();
+
+        // Platform Auth (kayit, giris, profil)
+        services.AddScoped<IPlatformAuthFactory, PlatformAuthFactory>();
+
         return services;
     }
 }

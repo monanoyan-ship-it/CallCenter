@@ -1,7 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,20 +11,23 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 {
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnServiceEntityService _services;
-    private readonly AppDbContext _db;
+    private readonly ISlnClientEntityService _clients;
+    private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnAppointmentFactory> _logger;
 
     public SlnAppointmentFactory(
         ISlnAppointmentEntityService appointments,
         ISlnServiceEntityService services,
-        AppDbContext db,
+        ISlnClientEntityService clients,
+        ISlnNoShowPolicyEntityService noShowPolicies,
         IUnitOfWork uow,
         ILogger<SlnAppointmentFactory> logger)
     {
         _appointments = appointments;
         _services = services;
-        _db = db;
+        _clients = clients;
+        _noShowPolicies = noShowPolicies;
         _uow = uow;
         _logger = logger;
     }
@@ -89,7 +91,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         // Engelli musteri kontrolu
         if (dto.SlnClientId > 0)
         {
-            var client = await _db.SlnClients.FindAsync(dto.SlnClientId);
+            var client = await _clients.GetByIdAsync(dto.SlnClientId);
             if (client?.IsBlacklisted == true)
                 return (null, $"Bu musteri engellenmis ({client.NoShowCount} kez gelmedi). Engeli kaldirmak icin musteri kartini kullanin.");
         }
@@ -177,7 +179,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         if (appointment == null) return (false, "Randevu bulunamadi", 0);
 
-        var policy = await _db.SlnNoShowPolicies
+        var policy = await _noShowPolicies.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.IsActive);
 
         decimal penalty = 0;

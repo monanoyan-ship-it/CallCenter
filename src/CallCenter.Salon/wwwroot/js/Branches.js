@@ -188,15 +188,16 @@ function BranchesViewModel() {
     };
 
     self.remove = function (branch) {
-        if (!confirm(branch.name + ' subesini silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-branches/' + branch.id,
-            method: 'DELETE'
-        }).done(function () {
-            self.loadData();
-            toastr.success('Sube silindi');
-        }).fail(function () {
-            toastr.error('Silinemedi');
+        confirmModal('Onay', branch.name + ' subesini silmek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-branches/' + branch.id,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadData();
+                toastr.success('Sube silindi');
+            }).fail(function () {
+                toastr.error('Silinemedi');
+            });
         });
     };
 

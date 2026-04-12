@@ -1,8 +1,6 @@
 using CallCenter.Api.Factories.Interfaces;
-using CallCenter.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -70,18 +68,7 @@ public class SubscriptionController : ControllerBase
         if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
             return Unauthorized();
 
-        var sub = await _factory.GetCustomerSubscriptionsAsync(customerId);
-        var activeSub = sub.FirstOrDefault();
-
-        // Odenmemis tahakkuklar
-        var unpaidBillings = await HttpContext.RequestServices.GetRequiredService<AppDbContext>()
-            .CustomerBillingPeriods
-            .Where(p => p.CustomerId == customerId && !p.IsPaid && p.StatusId != 3)
-            .OrderByDescending(p => p.PeriodStartDate)
-            .Select(p => new { p.Id, p.Year, p.Month, p.Amount, p.ServiceAmount, total = p.Amount + p.ServiceAmount, p.PeriodStartDate, p.PeriodEndDate, p.StatusId })
-            .ToListAsync();
-
-        return Ok(new { subscription = activeSub, unpaidBillings });
+        return Ok(await _factory.GetMySubscriptionAsync(customerId));
     }
 
     // ═══ TAHAKKUK ═══

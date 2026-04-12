@@ -317,10 +317,10 @@ function SalesViewModel() {
 
         // Ön ödemeli ise direkt tamamla mı sor
         if (appt.isPrepaid && appt.prepaidAmount > 0) {
-            if (confirm('Bu randevu online ödenmiş (' + appt.prepaidAmount + ' TL). Ek işlem yoksa direkt tamamlansın mı?')) {
+            confirmModal('Onay', 'Bu randevu online ödenmiş (' + appt.prepaidAmount + ' TL). Ek işlem yoksa direkt tamamlansın mı?', function() {
                 self.completeWithoutPayment(appt.id);
-                return;
-            }
+            });
+            return;
         }
 
         // Üyelik avantajı kontrolü
@@ -353,10 +353,10 @@ function SalesViewModel() {
                     });
 
                     if (allFree && self.cartItems().length > 0) {
-                        if (confirm('Tüm hizmetler üyelik kapsamında ücretsiz. Ek işlem yoksa direkt tamamlansın mı?')) {
+                        confirmModal('Onay', 'Tüm hizmetler üyelik kapsamında ücretsiz. Ek işlem yoksa direkt tamamlansın mı?', function() {
                             self.completeWithoutPayment(appt.id);
-                            return;
-                        }
+                        });
+                        return;
                     }
 
                     toastr.info('Üyelik avantajları uygulandı. Ek hizmet/ürün ekleyebilirsiniz.');

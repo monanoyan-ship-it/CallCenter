@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using CallCenter.Api.Services;
-using CallCenter.Data;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -13,13 +11,11 @@ namespace CallCenter.Api.Controllers;
 [Authorize]
 public class SlnWhatsAppController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    private readonly IWhatsAppService _whatsApp;
+    private readonly ISlnWhatsAppFactory _factory;
 
-    public SlnWhatsAppController(AppDbContext db, IWhatsAppService whatsApp)
+    public SlnWhatsAppController(ISlnWhatsAppFactory factory)
     {
-        _db = db;
-        _whatsApp = whatsApp;
+        _factory = factory;
     }
 
     [HttpGet("config")]
@@ -27,8 +23,7 @@ public class SlnWhatsAppController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var config = await _db.SlnWhatsAppConfigs.FirstOrDefaultAsync(c => c.CustomerId == cid);
-        return Ok(config ?? new SlnWhatsAppConfig());
+        return Ok(await _factory.GetConfigAsync(cid));
     }
 
     [HttpPost("config")]
@@ -37,24 +32,7 @@ public class SlnWhatsAppController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var config = await _db.SlnWhatsAppConfigs.FirstOrDefaultAsync(c => c.CustomerId == cid);
-        if (config == null)
-        {
-            config = new SlnWhatsAppConfig { CustomerId = cid };
-            _db.SlnWhatsAppConfigs.Add(config);
-        }
-
-        config.BusinessAccountId = dto.BusinessAccountId;
-        config.PhoneNumberId = dto.PhoneNumberId;
-        config.AccessToken = dto.AccessToken;
-        config.WebhookVerifyToken = dto.WebhookVerifyToken;
-        config.IsActive = dto.IsActive;
-        config.SendAppointmentReminder = dto.SendAppointmentReminder;
-        config.SendAppointmentConfirmation = dto.SendAppointmentConfirmation;
-        config.SendBirthdayGreeting = dto.SendBirthdayGreeting;
-        config.ReminderHoursBefore = dto.ReminderHoursBefore;
-
-        await _db.SaveChangesAsync();
+        await _factory.SaveConfigAsync(cid, dto);
         return Ok();
     }
 
@@ -64,18 +42,7 @@ public class SlnWhatsAppController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var messages = await _db.SlnWhatsAppMessages
-            .Where(m => m.CustomerId == cid)
-            .OrderByDescending(m => m.CreatedAt)
-            .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(m => new
-            {
-                m.Id, m.DirectionId, m.PhoneNumber, m.TemplateName, m.MessageBody,
-                m.StatusId, m.ErrorMessage, m.CreatedAt,
-                ClientName = m.SlnClient != null ? m.SlnClient.FullName : null
-            }).ToListAsync();
-
-        return Ok(messages);
+        return Ok(await _factory.GetMessagesAsync(cid, page, pageSize));
     }
 
     [HttpPost("send-test")]
@@ -84,7 +51,7 @@ public class SlnWhatsAppController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var success = await _whatsApp.SendTextMessageAsync(cid, dto.Phone, dto.Message);
+        var success = await _factory.SendTestAsync(cid, dto.Phone, dto.Message);
         return success ? Ok(new { success = true }) : BadRequest("Mesaj gonderilemedi");
     }
 

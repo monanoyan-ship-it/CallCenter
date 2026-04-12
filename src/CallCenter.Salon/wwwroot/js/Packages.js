@@ -95,10 +95,11 @@ function PackagesViewModel() {
     };
 
     self.removeDef = function (def) {
-        if (!confirm("'" + def.name + "' paketini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Paket tanimi silindi');
+        confirmModal('Onay', "'" + def.name + "' paketini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Paket tanimi silindi');
+            });
         });
     };
 
@@ -133,16 +134,17 @@ function PackagesViewModel() {
 
     // Seans Kullan
     self.useSession = function (pkg) {
-        if (!confirm('1 seans kullanilacak. Emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-packages/use', method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ clientPackageId: pkg.id, notes: null })
-        }).done(function () {
-            self.loadData();
-            toastr.success('1 seans kullanildi');
-        }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Hata');
+        confirmModal('Onay', '1 seans kullanilacak. Emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-packages/use', method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ clientPackageId: pkg.id, notes: null })
+            }).done(function () {
+                self.loadData();
+                toastr.success('1 seans kullanildi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.error || 'Hata');
+            });
         });
     };
 

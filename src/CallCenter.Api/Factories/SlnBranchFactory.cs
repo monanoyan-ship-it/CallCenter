@@ -1,7 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,20 +11,32 @@ public class SlnBranchFactory : ISlnBranchFactory
 {
     private readonly ISlnBranchEntityService _branches;
     private readonly ICustomerPersonnelEntityService _personnel;
-    private readonly AppDbContext _db;
+    private readonly ICustomerEntityService _customers;
+    private readonly ISlnAppointmentEntityService _appointments;
+    private readonly ISlnInvoiceEntityService _invoices;
+    private readonly ISlnCashRegisterEntityService _cashRegisters;
+    private readonly ISlnExpenseEntityService _expenses;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnBranchFactory> _logger;
 
     public SlnBranchFactory(
         ISlnBranchEntityService branches,
         ICustomerPersonnelEntityService personnel,
-        AppDbContext db,
+        ICustomerEntityService customers,
+        ISlnAppointmentEntityService appointments,
+        ISlnInvoiceEntityService invoices,
+        ISlnCashRegisterEntityService cashRegisters,
+        ISlnExpenseEntityService expenses,
         IUnitOfWork uow,
         ILogger<SlnBranchFactory> logger)
     {
         _branches = branches;
         _personnel = personnel;
-        _db = db;
+        _customers = customers;
+        _appointments = appointments;
+        _invoices = invoices;
+        _cashRegisters = cashRegisters;
+        _expenses = expenses;
         _uow = uow;
         _logger = logger;
     }
@@ -36,10 +47,8 @@ public class SlnBranchFactory : ISlnBranchFactory
         var hasAny = await _branches.GetAllQueryable().AnyAsync(b => b.CustomerId == customerId);
         if (!hasAny)
         {
-            var customerName = await _db.Customers
-                .Where(c => c.Id == customerId)
-                .Select(c => c.Name)
-                .FirstOrDefaultAsync() ?? "Merkez";
+            var customer = await _customers.GetByIdAsync(customerId);
+            var customerName = customer?.Name ?? "Merkez";
 
             var hq = new SlnBranch
             {
@@ -204,11 +213,11 @@ public class SlnBranchFactory : ISlnBranchFactory
         if (branch.IsHeadquarter) return (false, "Merkez sube silinemez. Yalnizca pasif yapilabilir.");
 
         // Altinda kayit var mi kontrol et
-        var hasRecords = await _db.SlnAppointments.AnyAsync(a => a.BranchId == branchId)
-            || await _db.SlnInvoices.AnyAsync(i => i.BranchId == branchId)
-            || await _db.SlnCashRegisters.AnyAsync(c => c.BranchId == branchId)
-            || await _db.SlnExpenses.AnyAsync(e => e.BranchId == branchId)
-            || await _db.CustomerPersonnel.AnyAsync(p => p.BranchId == branchId);
+        var hasRecords = await _appointments.GetAllQueryable().AnyAsync(a => a.BranchId == branchId)
+            || await _invoices.GetAllQueryable().AnyAsync(i => i.BranchId == branchId)
+            || await _cashRegisters.GetAllQueryable().AnyAsync(c => c.BranchId == branchId)
+            || await _expenses.GetAllQueryable().AnyAsync(e => e.BranchId == branchId)
+            || await _personnel.GetAllQueryable().AnyAsync(p => p.BranchId == branchId);
 
         if (hasRecords) return (false, "Bu subeye ait kayitlar var. Sube silinemez, yalnizca pasif yapilabilir.");
 

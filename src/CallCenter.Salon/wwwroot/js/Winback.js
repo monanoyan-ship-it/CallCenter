@@ -102,10 +102,11 @@ function WinbackViewModel() {
     };
 
     self.remove = function (rule) {
-        if (!confirm('Bu kurali silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-winback/' + rule.id, method: 'DELETE' })
-            .done(function () { self.loadData(); toastr.success('Kural silindi'); })
-            .fail(function () { toastr.error('Silinemedi'); });
+        confirmModal('Onay', 'Bu kurali silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-winback/' + rule.id, method: 'DELETE' })
+                .done(function () { self.loadData(); toastr.success('Kural silindi'); })
+                .fail(function () { toastr.error('Silinemedi'); });
+        });
     };
 
     $(document).ready(function () {

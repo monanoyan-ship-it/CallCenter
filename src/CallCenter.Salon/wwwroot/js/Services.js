@@ -99,12 +99,13 @@ function ServicesViewModel() {
     };
 
     self.removeCategory = function (cat) {
-        if (!confirm("'" + cat.name + "' kategorisini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Kategori silindi');
-        }).fail(function () {
-            toastr.error('Kategori silinemedi');
+        confirmModal('Onay', "'" + cat.name + "' kategorisini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Kategori silindi');
+            }).fail(function () {
+                toastr.error('Kategori silinemedi');
+            });
         });
     };
 
@@ -164,12 +165,13 @@ function ServicesViewModel() {
     };
 
     self.removeService = function (svc) {
-        if (!confirm("'" + svc.name + "' hizmetini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-services/' + svc.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Hizmet silindi');
-        }).fail(function () {
-            toastr.error('Hizmet silinemedi');
+        confirmModal('Onay', "'" + svc.name + "' hizmetini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-services/' + svc.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Hizmet silindi');
+            }).fail(function () {
+                toastr.error('Hizmet silinemedi');
+            });
         });
     };
 

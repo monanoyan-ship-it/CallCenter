@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,18 @@ namespace CallCenter.Api.Factories;
 
 public class SlnWinbackFactory : ISlnWinbackFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnWinbackRuleEntityService _winbackRuleEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnWinbackFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnWinbackFactory(ISlnWinbackRuleEntityService winbackRuleEs, IUnitOfWork uow)
     {
-        _db = db;
+        _winbackRuleEs = winbackRuleEs;
         _uow = uow;
     }
 
     public async Task<List<SlnWinbackRuleDto>> GetRulesAsync(int customerId)
     {
-        return await _db.SlnWinbackRules
+        return await _winbackRuleEs.GetAllQueryable()
             .Where(r => r.CustomerId == customerId)
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => MapToDto(r))
@@ -29,7 +29,7 @@ public class SlnWinbackFactory : ISlnWinbackFactory
 
     public async Task<SlnWinbackRuleDto?> GetRuleAsync(int id, int customerId)
     {
-        var rule = await _db.SlnWinbackRules
+        var rule = await _winbackRuleEs.GetAllQueryable()
             .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         return rule != null ? MapToDto(rule) : null;
     }
@@ -46,14 +46,14 @@ public class SlnWinbackFactory : ISlnWinbackFactory
             DiscountPercent = dto.DiscountPercent,
             IsActive = dto.IsActive
         };
-        _db.SlnWinbackRules.Add(rule);
+        _winbackRuleEs.Add(rule);
         await _uow.SaveChangesAsync();
         return MapToDto(rule);
     }
 
     public async Task<(bool Success, string? Error)> UpdateRuleAsync(int id, SlnWinbackRuleUpdateDto dto, int customerId)
     {
-        var rule = await _db.SlnWinbackRules.FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await _winbackRuleEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         if (rule == null) return (false, "Kural bulunamadi");
 
         rule.Name = dto.Name;
@@ -68,17 +68,17 @@ public class SlnWinbackFactory : ISlnWinbackFactory
 
     public async Task<(bool Success, string? Error)> DeleteRuleAsync(int id, int customerId)
     {
-        var rule = await _db.SlnWinbackRules.FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await _winbackRuleEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         if (rule == null) return (false, "Kural bulunamadi");
 
-        _db.SlnWinbackRules.Remove(rule);
+        _winbackRuleEs.Remove(rule);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> ToggleRuleAsync(int id, int customerId)
     {
-        var rule = await _db.SlnWinbackRules.FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await _winbackRuleEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         if (rule == null) return (false, "Kural bulunamadi");
 
         rule.IsActive = !rule.IsActive;

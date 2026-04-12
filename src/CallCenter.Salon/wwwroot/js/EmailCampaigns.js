@@ -84,10 +84,11 @@ function EmailCampaignsViewModel() {
     };
 
     self.remove = function (campaign) {
-        if (!confirm('Bu kampanyayi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id, method: 'DELETE' })
-            .done(function () { self.loadData(); toastr.success('Kampanya silindi'); })
-            .fail(function () { toastr.error('Silinemedi'); });
+        confirmModal('Onay', 'Bu kampanyayi silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id, method: 'DELETE' })
+                .done(function () { self.loadData(); toastr.success('Kampanya silindi'); })
+                .fail(function () { toastr.error('Silinemedi'); });
+        });
     };
 
     $(document).ready(function () {

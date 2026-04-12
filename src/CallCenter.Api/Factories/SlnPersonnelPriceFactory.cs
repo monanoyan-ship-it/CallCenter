@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,12 +9,14 @@ namespace CallCenter.Api.Factories;
 
 public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnPersonnelServicePriceEntityService _priceEs;
+    private readonly ISlnRevenueShareEntityService _revenueShareEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnPersonnelPriceFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnPersonnelPriceFactory(ISlnPersonnelServicePriceEntityService priceEs, ISlnRevenueShareEntityService revenueShareEs, IUnitOfWork uow)
     {
-        _db = db;
+        _priceEs = priceEs;
+        _revenueShareEs = revenueShareEs;
         _uow = uow;
     }
 
@@ -22,7 +24,7 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 
     public async Task<List<SlnPersonnelServicePriceDto>> GetPricesAsync(int customerId)
     {
-        return await _db.SlnPersonnelServicePrices
+        return await _priceEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId)
             .Include(p => p.Personnel).ThenInclude(pr => pr!.User)
             .Include(p => p.Service)
@@ -42,7 +44,7 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 
     public async Task<SlnPersonnelServicePriceDto> CreateOrUpdatePriceAsync(SlnPersonnelServicePriceCreateDto dto, int customerId)
     {
-        var existing = await _db.SlnPersonnelServicePrices
+        var existing = await _priceEs.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.CustomerId == customerId
                 && p.PersonnelId == dto.PersonnelId
                 && p.ServiceId == dto.ServiceId);
@@ -60,11 +62,11 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
                 ServiceId = dto.ServiceId,
                 Price = dto.Price
             };
-            _db.SlnPersonnelServicePrices.Add(existing);
+            _priceEs.Add(existing);
         }
         await _uow.SaveChangesAsync();
 
-        var result = await _db.SlnPersonnelServicePrices
+        var result = await _priceEs.GetAllQueryable()
             .Include(p => p.Personnel).ThenInclude(pr => pr!.User)
             .Include(p => p.Service)
             .FirstAsync(p => p.Id == existing.Id);
@@ -82,11 +84,11 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 
     public async Task<(bool Success, string? Error)> DeletePriceAsync(int id, int customerId)
     {
-        var price = await _db.SlnPersonnelServicePrices
+        var price = await _priceEs.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
         if (price == null) return (false, "Fiyat kaydı bulunamadi");
 
-        _db.SlnPersonnelServicePrices.Remove(price);
+        _priceEs.Remove(price);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -95,7 +97,7 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 
     public async Task<List<SlnRevenueShareDto>> GetRevenueSharesAsync(int customerId)
     {
-        return await _db.SlnRevenueShares
+        return await _revenueShareEs.GetAllQueryable()
             .Where(r => r.CustomerId == customerId)
             .Include(r => r.Personnel).ThenInclude(pr => pr!.User)
             .OrderBy(r => r.Personnel!.User!.FullName)
@@ -116,7 +118,7 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 
     public async Task<SlnRevenueShareDto> SaveRevenueShareAsync(SlnRevenueShareCreateDto dto, int customerId)
     {
-        var existing = await _db.SlnRevenueShares
+        var existing = await _revenueShareEs.GetAllQueryable()
             .FirstOrDefaultAsync(r => r.CustomerId == customerId && r.PersonnelId == dto.PersonnelId);
 
         if (existing != null)
@@ -139,11 +141,11 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
                 MinimumGuarantee = dto.MinimumGuarantee,
                 IsActive = dto.IsActive
             };
-            _db.SlnRevenueShares.Add(existing);
+            _revenueShareEs.Add(existing);
         }
         await _uow.SaveChangesAsync();
 
-        var result = await _db.SlnRevenueShares
+        var result = await _revenueShareEs.GetAllQueryable()
             .Include(r => r.Personnel).ThenInclude(pr => pr!.User)
             .FirstAsync(r => r.Id == existing.Id);
 
@@ -163,11 +165,11 @@ public class SlnPersonnelPriceFactory : ISlnPersonnelPriceFactory
 
     public async Task<(bool Success, string? Error)> DeleteRevenueShareAsync(int id, int customerId)
     {
-        var share = await _db.SlnRevenueShares
+        var share = await _revenueShareEs.GetAllQueryable()
             .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
         if (share == null) return (false, "Hasilat paylasimi bulunamadi");
 
-        _db.SlnRevenueShares.Remove(share);
+        _revenueShareEs.Remove(share);
         await _uow.SaveChangesAsync();
         return (true, null);
     }

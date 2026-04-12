@@ -158,25 +158,27 @@ function CampaignsViewModel() {
     };
 
     self.sendCampaign = function (campaign) {
-        if (!confirm(campaign.name + ' kampanyasini gondermek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/sln-marketing/campaigns/' + campaign.id + '/send',
-            method: 'POST'
-        }).done(function () {
-            self.loadCampaigns();
-            toastr.success('Kampanya gonderildi');
-        }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Gonderilemedi');
+        confirmModal('Onay', campaign.name + ' kampanyasini gondermek istediginize emin misiniz?', function() {
+            $.ajax({
+                url: '/proxy/sln-marketing/campaigns/' + campaign.id + '/send',
+                method: 'POST'
+            }).done(function () {
+                self.loadCampaigns();
+                toastr.success('Kampanya gonderildi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON || 'Gonderilemedi');
+            });
         });
     };
 
     self.removeCampaign = function (campaign) {
-        if (!confirm('Bu kampanyayi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-marketing/campaigns/' + campaign.id, method: 'DELETE' })
-            .done(function () {
-                self.loadCampaigns();
-                toastr.success('Kampanya silindi');
-            }).fail(function () { toastr.error('Silinemedi'); });
+        confirmModal('Onay', 'Bu kampanyayi silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-marketing/campaigns/' + campaign.id, method: 'DELETE' })
+                .done(function () {
+                    self.loadCampaigns();
+                    toastr.success('Kampanya silindi');
+                }).fail(function () { toastr.error('Silinemedi'); });
+        });
     };
 
     // ═══ Hatirlatma ═══
@@ -266,12 +268,13 @@ function CampaignsViewModel() {
     };
 
     self.removeReminder = function (reminder) {
-        if (!confirm('Bu hatirlatmayi silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-marketing/reminders/' + reminder.id, method: 'DELETE' })
-            .done(function () {
-                self.loadReminders();
-                toastr.success('Hatirlatma silindi');
-            }).fail(function () { toastr.error('Silinemedi'); });
+        confirmModal('Onay', 'Bu hatirlatmayi silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-marketing/reminders/' + reminder.id, method: 'DELETE' })
+                .done(function () {
+                    self.loadReminders();
+                    toastr.success('Hatirlatma silindi');
+                }).fail(function () { toastr.error('Silinemedi'); });
+        });
     };
 
     // Init

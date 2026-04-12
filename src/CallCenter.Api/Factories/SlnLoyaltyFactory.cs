@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,26 @@ namespace CallCenter.Api.Factories;
 
 public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnLoyaltyConfigEntityService _configEs;
+    private readonly ISlnClientLoyaltyEntityService _loyaltyEs;
+    private readonly ISlnLoyaltyTransactionEntityService _transactionEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnLoyaltyFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnLoyaltyFactory(
+        ISlnLoyaltyConfigEntityService configEs,
+        ISlnClientLoyaltyEntityService loyaltyEs,
+        ISlnLoyaltyTransactionEntityService transactionEs,
+        IUnitOfWork uow)
     {
-        _db = db;
+        _configEs = configEs;
+        _loyaltyEs = loyaltyEs;
+        _transactionEs = transactionEs;
         _uow = uow;
     }
 
     public async Task<SlnLoyaltyConfigDto?> GetConfigAsync(int customerId)
     {
-        var config = await _db.SlnLoyaltyConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId);
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId);
         if (config == null) return null;
         return new SlnLoyaltyConfigDto
         {
@@ -34,11 +42,11 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     public async Task<SlnLoyaltyConfigDto> SaveConfigAsync(SlnLoyaltyConfigUpdateDto dto, int customerId)
     {
-        var config = await _db.SlnLoyaltyConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId);
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId);
         if (config == null)
         {
             config = new SlnLoyaltyConfig { CustomerId = customerId };
-            _db.SlnLoyaltyConfigs.Add(config);
+            _configEs.Add(config);
         }
         config.PointsPerTL = dto.PointsPerTL;
         config.PointValue = dto.PointValue;
@@ -51,10 +59,10 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     public async Task<List<SlnClientLoyaltyDto>> GetClientLoyaltiesAsync(int customerId)
     {
-        var config = await _db.SlnLoyaltyConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId);
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId);
         var pointValue = config?.PointValue ?? 0.1m;
 
-        return await _db.SlnClientLoyalties
+        return await _loyaltyEs.GetAllQueryable()
             .Where(l => l.CustomerId == customerId && l.CurrentBalance > 0)
             .Include(l => l.SlnClient)
             .OrderByDescending(l => l.CurrentBalance)
@@ -72,10 +80,10 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     public async Task<SlnClientLoyaltyDto?> GetClientLoyaltyAsync(int slnClientId, int customerId)
     {
-        var config = await _db.SlnLoyaltyConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId);
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId);
         var pointValue = config?.PointValue ?? 0.1m;
 
-        var loyalty = await _db.SlnClientLoyalties
+        var loyalty = await _loyaltyEs.GetAllQueryable()
             .Include(l => l.SlnClient)
             .FirstOrDefaultAsync(l => l.SlnClientId == slnClientId && l.CustomerId == customerId);
 
@@ -95,12 +103,12 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     public async Task<List<SlnLoyaltyTransactionDto>> GetTransactionsAsync(int slnClientId, int customerId)
     {
-        var loyalty = await _db.SlnClientLoyalties
+        var loyalty = await _loyaltyEs.GetAllQueryable()
             .FirstOrDefaultAsync(l => l.SlnClientId == slnClientId && l.CustomerId == customerId);
 
         if (loyalty == null) return [];
 
-        return await _db.SlnLoyaltyTransactions
+        return await _transactionEs.GetAllQueryable()
             .Where(t => t.ClientLoyaltyId == loyalty.Id)
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new SlnLoyaltyTransactionDto
@@ -115,7 +123,7 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     public async Task EarnPointsAsync(int slnClientId, decimal invoiceAmount, int? invoiceId, int customerId)
     {
-        var config = await _db.SlnLoyaltyConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId && c.IsActive);
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId && c.IsActive);
         if (config == null) return;
 
         var points = (int)(invoiceAmount * config.PointsPerTL);
@@ -125,7 +133,7 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
         loyalty.TotalEarned += points;
         loyalty.CurrentBalance += points;
 
-        _db.SlnLoyaltyTransactions.Add(new SlnLoyaltyTransaction
+        _transactionEs.Add(new SlnLoyaltyTransaction
         {
             ClientLoyaltyId = loyalty.Id,
             TransactionTypeId = 1,
@@ -139,11 +147,11 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     public async Task<(bool Success, string? Error)> RedeemPointsAsync(SlnLoyaltyRedeemDto dto, int customerId)
     {
-        var config = await _db.SlnLoyaltyConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId && c.IsActive);
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId && c.IsActive);
         if (config == null) return (false, "Sadakat programi aktif degil");
         if (dto.Points < config.MinRedeemPoints) return (false, $"Minimum {config.MinRedeemPoints} puan gerekli");
 
-        var loyalty = await _db.SlnClientLoyalties
+        var loyalty = await _loyaltyEs.GetAllQueryable()
             .FirstOrDefaultAsync(l => l.SlnClientId == dto.SlnClientId && l.CustomerId == customerId);
 
         if (loyalty == null || loyalty.CurrentBalance < dto.Points)
@@ -153,7 +161,7 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
         loyalty.CurrentBalance -= dto.Points;
 
         var tlValue = dto.Points * config.PointValue;
-        _db.SlnLoyaltyTransactions.Add(new SlnLoyaltyTransaction
+        _transactionEs.Add(new SlnLoyaltyTransaction
         {
             ClientLoyaltyId = loyalty.Id,
             TransactionTypeId = 2,
@@ -168,7 +176,7 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
 
     private async Task<SlnClientLoyalty> GetOrCreateLoyaltyAsync(int slnClientId, int customerId)
     {
-        var loyalty = await _db.SlnClientLoyalties
+        var loyalty = await _loyaltyEs.GetAllQueryable()
             .FirstOrDefaultAsync(l => l.SlnClientId == slnClientId && l.CustomerId == customerId);
 
         if (loyalty == null)
@@ -178,7 +186,7 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
                 CustomerId = customerId,
                 SlnClientId = slnClientId
             };
-            _db.SlnClientLoyalties.Add(loyalty);
+            _loyaltyEs.Add(loyalty);
             await _uow.SaveChangesAsync();
         }
 

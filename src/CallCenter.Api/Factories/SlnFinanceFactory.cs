@@ -1,7 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -17,9 +16,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnExpenseCategoryEntityService _expenseCategories;
     private readonly ISlnExpenseEntityService _expenses;
     private readonly ISlnProductEntityService _products;
+    private readonly ISlnPersonnelCommissionEntityService _personnelCommissions;
+    private readonly ISlnCashClosingEntityService _cashClosings;
+    private readonly ISlnCashOpeningEntityService _cashOpenings;
+    private readonly ISlnClientLedgerEntityService _clientLedgers;
+    private readonly ISlnInvoiceRefundEntityService _invoiceRefunds;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnFinanceFactory> _logger;
-    private readonly AppDbContext _db;
 
     public SlnFinanceFactory(
         ISlnInvoiceEntityService invoices,
@@ -29,9 +32,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnExpenseCategoryEntityService expenseCategories,
         ISlnExpenseEntityService expenses,
         ISlnProductEntityService products,
+        ISlnPersonnelCommissionEntityService personnelCommissions,
+        ISlnCashClosingEntityService cashClosings,
+        ISlnCashOpeningEntityService cashOpenings,
+        ISlnClientLedgerEntityService clientLedgers,
+        ISlnInvoiceRefundEntityService invoiceRefunds,
         IUnitOfWork uow,
-        ILogger<SlnFinanceFactory> logger,
-        AppDbContext db)
+        ILogger<SlnFinanceFactory> logger)
     {
         _invoices = invoices;
         _invoiceItems = invoiceItems;
@@ -40,9 +47,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _expenseCategories = expenseCategories;
         _expenses = expenses;
         _products = products;
+        _personnelCommissions = personnelCommissions;
+        _cashClosings = cashClosings;
+        _cashOpenings = cashOpenings;
+        _clientLedgers = clientLedgers;
+        _invoiceRefunds = invoiceRefunds;
         _uow = uow;
         _logger = logger;
-        _db = db;
     }
 
     // ═══ Adisyon (Invoice) ═══
@@ -449,7 +460,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task<List<SlnCashClosingDto>> GetCashClosingsAsync(int customerId, int? registerId, int? branchId = null)
     {
-        var query = _db.SlnCashClosings
+        var query = _cashClosings.GetAllQueryable()
             .Include(c => c.Register)
             .Include(c => c.ClosedByPersonnel).ThenInclude(p => p!.User)
             .Where(c => c.Register != null && c.Register.CustomerId == customerId);
@@ -513,7 +524,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             ClosedByPersonnelId = userId
         };
 
-        _db.SlnCashClosings.Add(closing);
+        _cashClosings.Add(closing);
         await _uow.SaveChangesAsync();
 
         return (new SlnCashClosingDto
@@ -577,7 +588,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var nextDate = targetDate.AddDays(1);
 
         // Acilis bakiyesi
-        var opening = await _db.SlnCashOpenings
+        var opening = await _cashOpenings.GetAllQueryable()
             .Where(o => o.RegisterId == registerId && o.OpeningDate >= targetDate && o.OpeningDate < nextDate)
             .FirstOrDefaultAsync();
 
@@ -596,12 +607,12 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var totalExpense = transactions.Where(t => t.TransactionTypeId == 2).Sum(t => t.Amount);
 
         // Kapanis
-        var closing = await _db.SlnCashClosings
+        var closing = await _cashClosings.GetAllQueryable()
             .Where(c => c.RegisterId == registerId && c.ClosingDate >= targetDate && c.ClosingDate < nextDate)
             .FirstOrDefaultAsync();
 
         // Gun adisyonlari
-        var invoices = await _db.SlnInvoices
+        var invoices = await _invoices.GetAllQueryable()
             .Where(i => i.CustomerId == customerId && i.InvoiceDate >= targetDate && i.InvoiceDate < nextDate && i.StatusId != 3)
             .ToListAsync();
 
@@ -639,13 +650,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         if (register == null) return (null, "Kasa bulunamadi");
 
         var today = DateTime.UtcNow.Date;
-        var exists = await _db.SlnCashOpenings.AnyAsync(o => o.RegisterId == registerId && o.OpeningDate >= today && o.OpeningDate < today.AddDays(1));
+        var exists = await _cashOpenings.GetAllQueryable().AnyAsync(o => o.RegisterId == registerId && o.OpeningDate >= today && o.OpeningDate < today.AddDays(1));
         if (exists) return (null, "Bugun zaten acilis yapilmis.");
 
         // Onceki kapanistan bakiye tasi
         decimal openingBalance = 0;
         bool isCarried = false;
-        var lastClosing = await _db.SlnCashClosings
+        var lastClosing = await _cashClosings.GetAllQueryable()
             .Where(c => c.RegisterId == registerId)
             .OrderByDescending(c => c.ClosingDate)
             .FirstOrDefaultAsync();
@@ -669,7 +680,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             OpenedByPersonnelId = personnelId
         };
 
-        _db.SlnCashOpenings.Add(opening);
+        _cashOpenings.Add(opening);
         await _uow.SaveChangesAsync();
 
         return (new { opening.Id, opening.OpeningBalance, opening.IsCarriedForward }, null);
@@ -679,7 +690,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task<object> GetClientLedgerAsync(int customerId, int slnClientId)
     {
-        var entries = await _db.SlnClientLedgers
+        var entries = await _clientLedgers.GetAllQueryable()
             .Where(l => l.CustomerId == customerId && l.SlnClientId == slnClientId)
             .OrderByDescending(l => l.TransactionDate)
             .Take(100)
@@ -706,7 +717,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task AddLedgerEntryAsync(int customerId, int slnClientId, int typeId, decimal amount, int? invoiceId, string? description)
     {
-        var lastEntry = await _db.SlnClientLedgers
+        var lastEntry = await _clientLedgers.GetAllQueryable()
             .Where(l => l.CustomerId == customerId && l.SlnClientId == slnClientId)
             .OrderByDescending(l => l.TransactionDate)
             .FirstOrDefaultAsync();
@@ -716,7 +727,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         else if (typeId == 2) runningBalance -= amount;  // Alacak (odeme)
         else if (typeId == 3) runningBalance -= amount;  // Iade
 
-        _db.SlnClientLedgers.Add(new SlnClientLedger
+        _clientLedgers.Add(new SlnClientLedger
         {
             CustomerId = customerId,
             SlnClientId = slnClientId,
@@ -733,7 +744,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId)
     {
-        var invoice = await _db.SlnInvoices
+        var invoice = await _invoices.GetAllQueryable()
             .Include(i => i.Items).ThenInclude(item => item.Product)
             .FirstOrDefaultAsync(i => i.Id == invoiceId && i.CustomerId == customerId);
         if (invoice == null) return (null, "Adisyon bulunamadi.");
@@ -751,7 +762,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             Reason = reason,
             PersonnelId = personnelId
         };
-        _db.SlnInvoiceRefunds.Add(refund);
+        _invoiceRefunds.Add(refund);
 
         // Tam iade ise adisyonu iptal et
         if (refundAmount >= maxRefundable)
@@ -778,7 +789,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task<object> GetStaffRevenueAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null)
     {
-        var query = _db.SlnInvoiceItems
+        var query = _invoiceItems.GetAllQueryable()
             .Include(i => i.Invoice)
             .Include(i => i.Personnel).ThenInclude(p => p!.User)
             .Where(i => i.Invoice!.CustomerId == customerId
@@ -793,7 +804,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var invoiceItems = await query.ToListAsync();
 
         var personnelIds = invoiceItems.Where(i => i.PersonnelId.HasValue).Select(i => i.PersonnelId!.Value).Distinct().ToList();
-        var commissions = await _db.SlnPersonnelCommissions
+        var commissions = await _personnelCommissions.GetAllQueryable()
             .Where(c => personnelIds.Contains(c.PersonnelId))
             .ToListAsync();
 
@@ -839,7 +850,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     public async Task<object> GetIncomeExpenseReportAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null)
     {
         // Gelirler (adisyonlar)
-        var invoiceQuery = _db.SlnInvoices
+        var invoiceQuery = _invoices.GetAllQueryable()
             .Where(i => i.CustomerId == customerId && i.InvoiceDate >= startDate && i.InvoiceDate < endDate && i.StatusId != 3);
 
         if (branchId.HasValue)
@@ -848,7 +859,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var invoices = await invoiceQuery.ToListAsync();
 
         // Giderler (masraflar)
-        var expenseQuery = _db.SlnExpenses
+        var expenseQuery = _expenses.GetAllQueryable()
             .Include(e => e.Category)
             .Where(e => e.CustomerId == customerId && e.ExpenseDate >= startDate && e.ExpenseDate < endDate && e.StatusId != 3);
 
@@ -881,7 +892,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     public async Task<object> GetTaxReportAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null)
     {
-        var taxQuery = _db.SlnInvoiceItems
+        var taxQuery = _invoiceItems.GetAllQueryable()
             .Include(i => i.Invoice)
             .Where(i => i.Invoice!.CustomerId == customerId && i.Invoice.InvoiceDate >= startDate && i.Invoice.InvoiceDate < endDate && i.Invoice.StatusId != 3);
 

@@ -1,6 +1,6 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,18 +9,18 @@ namespace CallCenter.Api.Factories;
 
 public class SlnWaitlistFactory : ISlnWaitlistFactory
 {
-    private readonly AppDbContext _db;
+    private readonly ISlnWaitlistEntryEntityService _waitlistEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnWaitlistFactory(AppDbContext db, IUnitOfWork uow)
+    public SlnWaitlistFactory(ISlnWaitlistEntryEntityService waitlistEs, IUnitOfWork uow)
     {
-        _db = db;
+        _waitlistEs = waitlistEs;
         _uow = uow;
     }
 
     public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null)
     {
-        var query = _db.SlnWaitlistEntries
+        var query = _waitlistEs.GetAllQueryable()
             .Where(w => w.CustomerId == customerId)
             .Include(w => w.SlnClient)
             .Include(w => w.Service)
@@ -38,7 +38,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
     public async Task<SlnWaitlistEntryDto?> GetEntryAsync(int id, int customerId)
     {
-        var entry = await _db.SlnWaitlistEntries
+        var entry = await _waitlistEs.GetAllQueryable()
             .Include(w => w.SlnClient)
             .Include(w => w.Service)
             .Include(w => w.PreferredPersonnel).ThenInclude(p => p!.User)
@@ -59,14 +59,14 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             Notes = dto.Notes,
             StatusId = 1
         };
-        _db.SlnWaitlistEntries.Add(entry);
+        _waitlistEs.Add(entry);
         await _uow.SaveChangesAsync();
         return (await GetEntryAsync(entry.Id, customerId))!;
     }
 
     public async Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId)
     {
-        var entry = await _db.SlnWaitlistEntries.FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
+        var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
 
         entry.SlnClientId = dto.SlnClientId;
@@ -81,7 +81,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
     public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId)
     {
-        var entry = await _db.SlnWaitlistEntries.FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
+        var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
 
         entry.StatusId = statusId;
@@ -92,10 +92,10 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
     public async Task<(bool Success, string? Error)> DeleteEntryAsync(int id, int customerId)
     {
-        var entry = await _db.SlnWaitlistEntries.FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
+        var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
 
-        _db.SlnWaitlistEntries.Remove(entry);
+        _waitlistEs.Remove(entry);
         await _uow.SaveChangesAsync();
         return (true, null);
     }

@@ -185,12 +185,13 @@ function ProductsViewModel() {
     };
 
     self.remove = function (product) {
-        if (!confirm("'" + product.name + "' urununu silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-products/' + product.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Urun silindi');
-        }).fail(function () {
-            toastr.error('Urun silinemedi');
+        confirmModal('Onay', "'" + product.name + "' urununu silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-products/' + product.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Urun silindi');
+            }).fail(function () {
+                toastr.error('Urun silinemedi');
+            });
         });
     };
 

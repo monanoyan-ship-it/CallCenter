@@ -245,10 +245,11 @@ function RecipesViewModel() {
     };
 
     self.remove = function (recipe) {
-        if (!confirm("'" + recipe.name + "' recetesini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-recipes/' + recipe.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Recete silindi');
+        confirmModal('Onay', "'" + recipe.name + "' recetesini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-recipes/' + recipe.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Recete silindi');
+            });
         });
     };
 

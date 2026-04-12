@@ -83,10 +83,11 @@ function ReviewsViewModel() {
     };
 
     self.remove = function (review) {
-        if (!confirm('Bu yorumu silmek istediginize emin misiniz?')) return;
-        $.ajax({ url: '/proxy/sln-reviews/' + review.id, method: 'DELETE' })
-            .done(function () { self.loadData(); toastr.success('Yorum silindi'); })
-            .fail(function () { toastr.error('Silinemedi'); });
+        confirmModal('Onay', 'Bu yorumu silmek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-reviews/' + review.id, method: 'DELETE' })
+                .done(function () { self.loadData(); toastr.success('Yorum silindi'); })
+                .fail(function () { toastr.error('Silinemedi'); });
+        });
     };
 
     $(document).ready(function () {

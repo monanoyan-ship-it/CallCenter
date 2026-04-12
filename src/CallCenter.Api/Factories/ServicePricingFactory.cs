@@ -1,5 +1,5 @@
+using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Infrastructure;
-using CallCenter.Data;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -8,18 +8,26 @@ namespace CallCenter.Api.Factories;
 
 public class ServicePricingFactory
 {
-    private readonly AppDbContext _db;
+    private readonly IServicePricingPeriodEntityService _periodEs;
+    private readonly IServicePricingItemEntityService _itemEs;
+    private readonly IModulePricingEntityService _modulePricingEs;
     private readonly IUnitOfWork _uow;
 
-    public ServicePricingFactory(AppDbContext db, IUnitOfWork uow)
+    public ServicePricingFactory(
+        IServicePricingPeriodEntityService periodEs,
+        IServicePricingItemEntityService itemEs,
+        IModulePricingEntityService modulePricingEs,
+        IUnitOfWork uow)
     {
-        _db = db;
+        _periodEs = periodEs;
+        _itemEs = itemEs;
+        _modulePricingEs = modulePricingEs;
         _uow = uow;
     }
 
     public async Task<List<object>> GetPeriodsAsync()
     {
-        return await _db.ServicePricingPeriods
+        return await _periodEs.GetAllQueryable()
             .OrderByDescending(p => p.StartDate)
             .Select(p => (object)new
             {
@@ -32,7 +40,7 @@ public class ServicePricingFactory
 
     public async Task<object?> GetPeriodDetailAsync(int periodId)
     {
-        var period = await _db.ServicePricingPeriods
+        var period = await _periodEs.GetAllQueryable()
             .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == periodId);
 
@@ -81,11 +89,11 @@ public class ServicePricingFactory
             StatusId = 3 // Taslak
         };
 
-        _db.ServicePricingPeriods.Add(period);
+        _periodEs.Add(period);
         await _uow.SaveChangesAsync();
 
         // Onceki donemi bul
-        var previousPeriod = await _db.ServicePricingPeriods
+        var previousPeriod = await _periodEs.GetAllQueryable()
             .Where(p => p.Id != period.Id)
             .OrderByDescending(p => p.StartDate)
             .Include(p => p.Items)
@@ -140,7 +148,7 @@ public class ServicePricingFactory
 
     public async Task<(bool Success, string? Error)> UpdateItemPriceAsync(int itemId, decimal newPrice)
     {
-        var item = await _db.ServicePricingItems.FindAsync(itemId);
+        var item = await _itemEs.GetByIdAsync(itemId);
         if (item == null) return (false, "Kalem bulunamadı.");
         item.MonthlyPrice = newPrice;
         await _uow.SaveChangesAsync();
@@ -149,7 +157,7 @@ public class ServicePricingFactory
 
     public async Task<(int Updated, string? Error)> BulkAdjustAsync(int periodId, int? productTypeId, string adjustType, decimal value)
     {
-        var items = await _db.ServicePricingItems
+        var items = await _itemEs.GetAllQueryable()
             .Where(i => i.PeriodId == periodId)
             .ToListAsync();
 
@@ -171,18 +179,18 @@ public class ServicePricingFactory
     public async Task<(bool Success, string? Error)> ActivatePeriodAsync(int periodId)
     {
         // Mevcut aktif donemi gecmis yap
-        var currentActive = await _db.ServicePricingPeriods.Where(p => p.StatusId == 1).ToListAsync();
+        var currentActive = await _periodEs.GetAllQueryable().Where(p => p.StatusId == 1).ToListAsync();
         foreach (var p in currentActive) p.StatusId = 2;
 
-        var period = await _db.ServicePricingPeriods.FindAsync(periodId);
+        var period = await _periodEs.GetByIdAsync(periodId);
         if (period == null) return (false, "Dönem bulunamadı.");
         period.StatusId = 1;
 
         // Aktif fiyatlari ModulePricing tablosuna yansit
-        var items = await _db.ServicePricingItems.Where(i => i.PeriodId == periodId && i.ProductTypeId == SalonPortalModules.ProductTypeId).ToListAsync();
+        var items = await _itemEs.GetAllQueryable().Where(i => i.PeriodId == periodId && i.ProductTypeId == SalonPortalModules.ProductTypeId).ToListAsync();
         foreach (var item in items)
         {
-            var pricing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == item.ServiceId);
+            var pricing = await _modulePricingEs.GetByModuleIdAsync(item.ServiceId);
             if (pricing != null)
             {
                 pricing.MonthlyPrice = item.MonthlyPrice;
@@ -190,7 +198,7 @@ public class ServicePricingFactory
             }
             else
             {
-                _db.ModulePricings.Add(new ModulePricing { ModuleId = item.ServiceId, MonthlyPrice = item.MonthlyPrice });
+                _modulePricingEs.Add(new ModulePricing { ModuleId = item.ServiceId, MonthlyPrice = item.MonthlyPrice });
             }
         }
 
@@ -200,10 +208,10 @@ public class ServicePricingFactory
 
     public async Task<(bool Success, string? Error)> DeletePeriodAsync(int periodId)
     {
-        var period = await _db.ServicePricingPeriods.FindAsync(periodId);
+        var period = await _periodEs.GetByIdAsync(periodId);
         if (period == null) return (false, "Dönem bulunamadı.");
         if (period.StatusId == 1) return (false, "Aktif dönem silinemez.");
-        _db.ServicePricingPeriods.Remove(period);
+        _periodEs.Remove(period);
         await _uow.SaveChangesAsync();
         return (true, null);
     }

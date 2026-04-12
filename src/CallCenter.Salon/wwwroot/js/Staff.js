@@ -157,12 +157,13 @@ function StaffViewModel() {
     };
 
     self.remove = function (staff) {
-        if (!confirm("'" + staff.fullName + "' personelini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/portal/personnel/' + staff.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Personel silindi');
-        }).fail(function () {
-            toastr.error('Personel silinemedi');
+        confirmModal('Onay', "'" + staff.fullName + "' personelini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/portal/personnel/' + staff.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Personel silindi');
+            }).fail(function () {
+                toastr.error('Personel silinemedi');
+            });
         });
     };
 

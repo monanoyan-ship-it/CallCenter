@@ -624,6 +624,28 @@ public class CallFactory : ICallFactory
         return (true, null);
     }
 
+    public async Task<List<PendingCallbackDto>> GetPendingCallbacksAsync(int userId, int customerId)
+    {
+        return await _calls.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId &&
+                        (c.CallbackAssignedToId == userId || c.CallbackAssignedToId == null) &&
+                        c.CallbackStatusId != null &&
+                        c.CallbackStatusId != CallbackStatuses.Ids.Completed &&
+                        c.CallbackStatusId != CallbackStatuses.Ids.Cancelled)
+            .OrderByDescending(c => c.StartedAt)
+            .Select(c => new PendingCallbackDto
+            {
+                Id = c.Id,
+                Uid = c.Uid,
+                CallerNumber = c.CallerNumber,
+                CalleeNumber = c.CalleeNumber,
+                StartedAt = c.StartedAt,
+                CallbackStatusId = c.CallbackStatusId ?? 0,
+                CallbackNote = c.CallbackNote
+            })
+            .ToListAsync();
+    }
+
     private static int MapStatusNameToId(string statusName)
     {
         var status = CallStatuses.GetBySystemName(statusName);

@@ -124,12 +124,13 @@ function SuppliersViewModel() {
     };
 
     self.remove = function (supplier) {
-        if (!confirm("'" + supplier.name + "' tedarikcisini silmek istediginize emin misiniz?")) return;
-        $.ajax({ url: '/proxy/sln-products/suppliers/' + supplier.id, method: 'DELETE' }).done(function () {
-            self.loadData();
-            toastr.success('Tedarikci silindi');
-        }).fail(function () {
-            toastr.error('Tedarikci silinemedi');
+        confirmModal('Onay', "'" + supplier.name + "' tedarikcisini silmek istediginize emin misiniz?", function() {
+            $.ajax({ url: '/proxy/sln-products/suppliers/' + supplier.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success('Tedarikci silindi');
+            }).fail(function () {
+                toastr.error('Tedarikci silinemedi');
+            });
         });
     };
 
