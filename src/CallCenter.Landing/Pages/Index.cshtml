@@ -18,6 +18,7 @@
         </a>
         <div class="landing-nav-links">
             <a href="#products"><t key="landing.nav.products">Products</t></a>
+            <a href="#book"><t key="landing.nav.booking">Book a Salon</t></a>
             <a href="@langPrefix/download"><t key="landing.nav.download">Download</t></a>
             <a href="#about"><t key="landing.nav.about">About</t></a>
             <a href="#contact"><t key="landing.nav.contact">Contact</t></a>
@@ -57,7 +58,7 @@
     <section class="stats-section">
         <div class="stats-grid">
             <div class="stat-item">
-                <div class="stat-number">3</div>
+                <div class="stat-number">2</div>
                 <div class="stat-label"><t key="landing.stats.products">Products</t></div>
             </div>
             <div class="stat-item">
@@ -65,8 +66,8 @@
                 <div class="stat-label"><t key="landing.stats.voip">VoIP Ready</t></div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">B2B</div>
-                <div class="stat-label"><t key="landing.stats.trade">Global Trade</t></div>
+                <div class="stat-number"><i class="bi bi-scissors"></i></div>
+                <div class="stat-label"><t key="landing.stats.salon">Online Booking</t></div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">24/7</div>
@@ -79,7 +80,7 @@
     <section class="products-section" id="products">
         <div class="section-header">
             <div class="section-badge"><t key="landing.products.badge">Our Products</t></div>
-            <h2 class="section-title"><t key="landing.products.title">Three Platforms, One Vision</t></h2>
+            <h2 class="section-title"><t key="landing.products.title">Two Platforms, One Vision</t></h2>
             <p class="section-desc"><t key="landing.products.subtitle">Enterprise-grade solutions designed to connect businesses and streamline operations.</t></p>
         </div>
 
@@ -148,7 +149,8 @@
                 </div>
             </div>
 
-            <!-- B2B Trade -->
+            <!-- B2B Trade — gizli, kendi sayfasi var -->
+            <!--
             <div class="product-card product-b2b">
                 <div class="product-icon-wrap">
                     <div class="product-icon b2b">
@@ -175,6 +177,39 @@
                     </a>
                 </div>
             </div>
+            -->
+        </div>
+    </section>
+
+    <!-- Salon Customers CTA -->
+    <section class="salon-cta-section" id="book">
+        <div class="section-header">
+            <div class="section-badge"><t key="landing.booking.badge">Online Booking</t></div>
+            <h2 class="section-title"><t key="landing.booking.title">Book Your Salon Appointment Online</t></h2>
+            <p class="section-desc"><t key="landing.booking.subtitle">Find nearby salons, compare prices, and book appointments instantly. No phone calls needed.</t></p>
+        </div>
+        <div class="booking-features">
+            <div class="booking-feature">
+                <div class="booking-icon"><i class="bi bi-geo-alt-fill"></i></div>
+                <h4><t key="landing.booking.find">Find Nearby Salons</t></h4>
+                <p><t key="landing.booking.find.desc">Discover hair salons, beauty centers, and spas in your area with real-time availability.</t></p>
+            </div>
+            <div class="booking-feature">
+                <div class="booking-icon"><i class="bi bi-calendar-check-fill"></i></div>
+                <h4><t key="landing.booking.book">Book Instantly</t></h4>
+                <p><t key="landing.booking.book.desc">Choose your service, pick a time slot, and confirm your appointment in seconds.</t></p>
+            </div>
+            <div class="booking-feature">
+                <div class="booking-icon"><i class="bi bi-shield-check"></i></div>
+                <h4><t key="landing.booking.safe">Safe & Secure</t></h4>
+                <p><t key="landing.booking.safe.desc">Your personal data is never shared with salons you haven't joined. KVKK compliant.</t></p>
+            </div>
+        </div>
+        <div class="booking-cta">
+            <a href="https://sln.corplynk.com/discover" class="cta-btn cta-primary">
+                <span><t key="landing.booking.cta">Discover Salons</t></span>
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </section>
 

@@ -374,6 +374,31 @@ body {
 }
 
 /* ========================================
+   Salon Booking CTA
+   ======================================== */
+.salon-cta-section {
+    padding: 5rem 2rem; max-width: 900px; margin: 0 auto; text-align: center;
+}
+.booking-features {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin: 3rem 0;
+}
+.booking-feature {
+    text-align: center; padding: 2rem 1rem;
+}
+.booking-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #7b1fa2, #ce93d8);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem; font-size: 1.5rem; color: #fff;
+}
+.booking-feature h4 { color: #fff; margin-bottom: .5rem; font-size: 1rem; }
+.booking-feature p { color: rgba(255,255,255,.6); font-size: .85rem; line-height: 1.5; }
+.booking-cta { margin-top: 1rem; }
+@media (max-width: 768px) {
+    .booking-features { grid-template-columns: 1fr; gap: 1rem; }
+}
+
+/* ========================================
    Tech Stack
    ======================================== */
 .tech-section {
