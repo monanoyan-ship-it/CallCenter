@@ -16,6 +16,7 @@ public class ServerTranslationCache
     public ServerTranslationCache(HttpClient httpClient)
     {
         _http = httpClient;
+        _http.Timeout = TimeSpan.FromSeconds(5);
     }
 
     public async Task<Dictionary<string, string>> GetTranslationsAsync(string languageCode)
