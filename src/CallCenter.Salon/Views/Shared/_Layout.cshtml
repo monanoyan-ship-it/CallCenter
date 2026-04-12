@@ -202,11 +202,15 @@
     <script src="~/js/autocomplete-helper.js" asp-append-version="true"></script>
     <script src="~/js/phone-input.js" asp-append-version="true"></script>
     <script>
-        // AJAX hata yonetimi (401 -> login)
+        // AJAX hata yonetimi (401 -> login, tek seferlik yonlendirme)
+        var _redirecting = false;
         $.ajaxSetup({
             dataType: 'json',
             error: function(xhr) {
-                if (xhr.status === 401) window.location.href = '/Account/Login';
+                if (xhr.status === 401 && !_redirecting) {
+                    _redirecting = true;
+                    window.location.href = '/Account/Login';
+                }
             }
         });
 
