@@ -8,9 +8,30 @@ namespace CallCenter.Salon.Controllers;
 public class PublicSalonController : Controller
 {
     [HttpGet("salon/{slug}")]
-    public IActionResult Profile(string slug)
+    public async Task<IActionResult> Profile(string slug)
     {
         ViewData["Slug"] = slug;
+
+        // SEO: Salon bilgilerini API'den al (meta tag'ler icin)
+        try
+        {
+            var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var client = factory.CreateClient("SalonApi");
+            var response = await client.GetAsync($"api/salon/{slug}");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                ViewData["SalonName"] = root.TryGetProperty("salonName", out var n) ? n.GetString() : null;
+                ViewData["SalonDescription"] = root.TryGetProperty("description", out var d) ? d.GetString() : null;
+                ViewData["SalonCity"] = root.TryGetProperty("city", out var c) ? c.GetString() : null;
+                ViewData["SalonDistrict"] = root.TryGetProperty("district", out var di) ? di.GetString() : null;
+                ViewData["SalonLogo"] = root.TryGetProperty("logoUrl", out var l) ? l.GetString() : null;
+            }
+        }
+        catch { }
+
         return View();
     }
 
