@@ -112,7 +112,17 @@
                         <!-- ko if: !isEditing() -->
                         <div class="col-6">
                             <label class="form-label small">Kullanici Adi *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.userName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.userName, valueUpdate: 'afterkeydown',
+                                css: { 'is-valid': usernameAvailable() === true, 'is-invalid': usernameAvailable() === false }" />
+                            <!-- ko if: usernameChecking() -->
+                            <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Kontrol ediliyor...</small>
+                            <!-- /ko -->
+                            <!-- ko if: usernameAvailable() === false -->
+                            <small class="text-danger">Bu kullanici adi zaten kullaniliyor</small>
+                            <!-- /ko -->
+                            <!-- ko if: usernameAvailable() === true -->
+                            <small class="text-success">Kullanilabilir</small>
+                            <!-- /ko -->
                         </div>
                         <!-- /ko -->
                         <div class="col-6">

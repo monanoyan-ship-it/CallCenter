@@ -10,6 +10,10 @@ function StaffViewModel() {
     self.branchList = ko.observableArray([]);
     self.serviceCategories = ko.observableArray([]);
 
+    self.usernameAvailable = ko.observable(null); // null=kontrol edilmedi, true=musait, false=alinmis
+    self.usernameChecking = ko.observable(false);
+    var usernameCheckTimer = null;
+
     self.form = {
         userName: ko.observable(''),
         fullName: ko.observable(''),
@@ -42,6 +46,19 @@ function StaffViewModel() {
 
     self.activeCount = ko.computed(function () {
         return self.staffList().filter(function (s) { return s.isActive; }).length;
+    });
+
+    self.form.userName.subscribe(function (val) {
+        self.usernameAvailable(null);
+        if (usernameCheckTimer) clearTimeout(usernameCheckTimer);
+        if (!val || val.length < 3 || self.isEditing()) return;
+        self.usernameChecking(true);
+        usernameCheckTimer = setTimeout(function () {
+            $.get('/proxy/portal/personnel/check-username?username=' + encodeURIComponent(val), function (res) {
+                self.usernameAvailable(res.available);
+                self.usernameChecking(false);
+            }).fail(function () { self.usernameChecking(false); });
+        }, 500);
     });
 
     var formModal;
@@ -141,6 +158,7 @@ function StaffViewModel() {
             data.userName = self.form.userName();
             data.password = self.form.password();
             if (!data.userName) { toastr.warning('Kullanici adi zorunludur'); return; }
+            if (self.usernameAvailable() === false) { toastr.warning('Bu kullanici adi zaten kullaniliyor'); return; }
             if (!data.password) { toastr.warning('Sifre zorunludur'); return; }
             if (data.userName.length < 3) { toastr.warning('Kullanici adi en az 3 karakter olmali'); return; }
 

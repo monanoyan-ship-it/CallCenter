@@ -188,6 +188,9 @@ public class PortalFactory : IPortalFactory
 
     public async Task<(bool Success, object Result)> CreatePersonnelAsync(int customerId, PortalPersonnelCreateDto dto, int createdByUserId)
     {
+        if (dto.CustomerRoleId == SalonRoles.Ids.SalonOwner)
+            return (false, "Salon Sahibi rolu atanamaz. Bu rol kayit sirasinda otomatik olusturulur.");
+
         if (await _userEs.ExistsByUsernameAsync(dto.UserName))
             return (false, "Bu kullanici adi zaten kullaniliyor.");
 
@@ -271,6 +274,12 @@ public class PortalFactory : IPortalFactory
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
             return (false, "Personel bulunamadi.");
+
+        // Salon Sahibi rolu degistirilemez
+        if (dto.CustomerRoleId == SalonRoles.Ids.SalonOwner && personnel.CustomerRoleId != SalonRoles.Ids.SalonOwner)
+            return (false, "Salon Sahibi rolu atanamaz.");
+        if (personnel.CustomerRoleId == SalonRoles.Ids.SalonOwner && dto.CustomerRoleId != SalonRoles.Ids.SalonOwner)
+            return (false, "Salon Sahibi rolunden baska bir role degistirilemez.");
 
         // Kullanici adi degisikligi sadece sistem admin tarafindan yapilabilir
         if (!string.IsNullOrWhiteSpace(dto.UserName) && dto.UserName != personnel.User.UserName)

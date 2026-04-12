@@ -115,7 +115,9 @@ public class PortalController : AuditableControllerBase
     [HttpGet("salon-roles")]
     public IActionResult GetSalonRoles()
     {
-        var roles = SalonRoles.All.Select(r => new { r.Id, name = r.SystemName, displayName = r.Description, r.Icon }).ToList();
+        var roles = SalonRoles.All
+            .Where(r => r.Id != SalonRoles.Ids.SalonOwner) // Salon Sahibi atanamazm kayit sirasinda olusturulur
+            .Select(r => new { r.Id, name = r.SystemName, displayName = r.Description, r.Icon }).ToList();
         return Ok(roles);
     }
 
