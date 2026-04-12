@@ -24,6 +24,7 @@
                             <th>Ad Soyad</th>
                             <th>E-posta</th>
                             <th>Unvan</th>
+                            <th>Sube</th>
                             <th>Rol</th>
                             <th>Durum</th>
                             <th style="width: 80px;"></th>
@@ -34,6 +35,7 @@
                             <td class="small fw-semibold" data-bind="text: fullName"></td>
                             <td class="small" data-bind="text: email || '-'"></td>
                             <td class="small" data-bind="text: title || '-'"></td>
+                            <td class="small" data-bind="text: branchName || '-'"></td>
                             <td class="small" data-bind="text: customerRoleName || '-'"></td>
                             <td>
                                 <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
@@ -116,6 +118,11 @@
                             <label class="form-label small">Rol</label>
                             <select class="form-select form-select-sm" data-bind="value: form.customerRoleId,
                                 options: roleList, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Rol seciniz'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sube <span data-bind="visible: branchList().length > 1">*</span></label>
+                            <select class="form-select form-select-sm" data-bind="value: form.branchId,
+                                options: branchList, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Sube seciniz'"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Durum</label>

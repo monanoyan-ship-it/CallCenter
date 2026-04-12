@@ -158,6 +158,8 @@ public class PortalFactory : IPortalFactory
                 OrganizationUnitName = p.OrganizationUnit != null ? p.OrganizationUnit.Name : null,
                 ReportsToPersonnelId = p.ReportsToPersonnelId,
                 ReportsToPersonnelName = p.ReportsToPersonnel != null ? p.ReportsToPersonnel.User.FullName : null,
+                BranchId = p.BranchId,
+                BranchName = p.Branch != null ? p.Branch.Name : null,
                 IsActive = p.IsActive && p.User.IsActive,
                 IsLocked = p.User.LockedUntil.HasValue && p.User.LockedUntil.Value > DateTime.UtcNow
             })
@@ -222,6 +224,7 @@ public class PortalFactory : IPortalFactory
             IsCustomerAdmin = isAdmin,
             OrganizationUnitId = dto.OrganizationUnitId,
             ReportsToPersonnelId = dto.ReportsToPersonnelId,
+            BranchId = dto.BranchId,
             IsActive = true
         };
         _personnelEs.Add(personnelEntity);
@@ -236,6 +239,7 @@ public class PortalFactory : IPortalFactory
             Title = personnelEntity.Title,
             CustomerRoleId = personnelEntity.CustomerRoleId,
             CustomerRoleName = CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
+            BranchId = personnelEntity.BranchId,
             IsActive = true
         });
     }
@@ -309,6 +313,7 @@ public class PortalFactory : IPortalFactory
 
         personnel.OrganizationUnitId = dto.OrganizationUnitId;
         personnel.ReportsToPersonnelId = dto.ReportsToPersonnelId;
+        personnel.BranchId = dto.BranchId;
 
         await _uow.SaveChangesAsync();
         return (true, null);

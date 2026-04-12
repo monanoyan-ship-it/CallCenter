@@ -19,6 +19,8 @@ public class PortalPersonnelListDto
     public string? OrganizationUnitName { get; set; }
     public int? ReportsToPersonnelId { get; set; }
     public string? ReportsToPersonnelName { get; set; }
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
     public bool IsActive { get; set; }
     public bool IsLocked { get; set; }
 }
@@ -49,6 +51,7 @@ public class PortalPersonnelCreateDto
     public int CustomerRoleId { get; set; }
     public int? OrganizationUnitId { get; set; }
     public int? ReportsToPersonnelId { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class PortalPersonnelUpdateDto
@@ -75,6 +78,7 @@ public class PortalPersonnelUpdateDto
     public int CustomerRoleId { get; set; }
     public int? OrganizationUnitId { get; set; }
     public int? ReportsToPersonnelId { get; set; }
+    public int? BranchId { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

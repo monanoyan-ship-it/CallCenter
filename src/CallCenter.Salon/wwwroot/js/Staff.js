@@ -7,6 +7,8 @@ function StaffViewModel() {
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
+    self.branchList = ko.observableArray([]);
+
     self.form = {
         userName: ko.observable(''),
         fullName: ko.observable(''),
@@ -14,6 +16,7 @@ function StaffViewModel() {
         password: ko.observable(''),
         title: ko.observable(''),
         customerRoleId: ko.observable(103),
+        branchId: ko.observable(null),
         isActive: ko.observable('true')
     };
 
@@ -47,6 +50,14 @@ function StaffViewModel() {
         });
     };
 
+    self.loadBranches = function () {
+        $.get('/proxy/sln-branches', function (data) {
+            self.branchList(data || []);
+            // Tek sube varsa otomatik sec
+            if (data && data.length === 1) self.form.branchId(data[0].id);
+        });
+    };
+
     self.resetForm = function () {
         self.form.userName('');
         self.form.fullName('');
@@ -54,6 +65,7 @@ function StaffViewModel() {
         self.form.password('');
         self.form.title('');
         self.form.customerRoleId(103);
+        self.form.branchId(self.branchList().length === 1 ? self.branchList()[0].id : null);
         self.form.isActive('true');
         self.isEditing(false);
         self.editingId(null);
@@ -73,6 +85,7 @@ function StaffViewModel() {
         self.form.password('');
         self.form.title(staff.title || '');
         self.form.customerRoleId(staff.customerRoleId || 103);
+        self.form.branchId(staff.branchId || null);
         self.form.isActive(staff.isActive ? 'true' : 'false');
         formModal.show();
     };
@@ -92,11 +105,17 @@ function StaffViewModel() {
             email: self.form.email(),
             title: self.form.title(),
             customerRoleId: parseInt(self.form.customerRoleId()) || 103,
+            branchId: self.form.branchId() ? parseInt(self.form.branchId()) : null,
             isActive: self.form.isActive() === 'true'
         };
 
         if (!data.fullName || !data.email) {
             toastr.warning('Ad soyad ve e-posta zorunludur');
+            return;
+        }
+
+        if (self.branchList().length > 1 && !data.branchId) {
+            toastr.warning('Sube secimi zorunludur');
             return;
         }
 
@@ -170,6 +189,7 @@ function StaffViewModel() {
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('staffModal'));
         self.loadRoles();
+        self.loadBranches();
         self.loadData();
     });
 }
