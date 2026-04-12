@@ -120,6 +120,15 @@ public class PlatformFactory : IPlatformFactory
 
         if (link == null) return (false, "Üyelik bulunamadı.");
         link.IsActive = false;
+
+        // Salon tarafindaki musteri kaydini da pasif yap — salon personeli artik erisemez
+        if (link.SlnClientId.HasValue)
+        {
+            var client = await _clientEs.GetByIdAsync(link.SlnClientId.Value);
+            if (client != null)
+                client.IsActive = false;
+        }
+
         await _uow.SaveChangesAsync();
 
         return (true, null);

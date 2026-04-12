@@ -41,6 +41,18 @@ public class PublicSalonController : Controller
         return View();
     }
 
+    [HttpGet("gizlilik")]
+    public IActionResult Privacy()
+    {
+        return View();
+    }
+
+    [HttpGet("kullanim-kosullari")]
+    public IActionResult Terms()
+    {
+        return View();
+    }
+
     [HttpGet("uye/panel")]
     public IActionResult Panel()
     {

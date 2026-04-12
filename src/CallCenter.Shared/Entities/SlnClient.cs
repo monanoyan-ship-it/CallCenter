@@ -24,6 +24,7 @@ public class SlnClient
     public string? SkinType { get; set; }
     public string? Notes { get; set; }
     public bool IsFavorite { get; set; }
+    public bool IsActive { get; set; } = true;
     public int NoShowCount { get; set; }
     public bool IsBlacklisted { get; set; }
 

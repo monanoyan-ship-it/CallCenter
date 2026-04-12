@@ -54,6 +54,13 @@
                 <label class="form-label small">Şifre</label>
                 <input type="password" class="form-control" id="password" />
             </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="kvkkConsent" />
+                <label class="form-check-label small" for="kvkkConsent">
+                    <a href="/gizlilik" target="_blank">Gizlilik Politikası ve KVKK Aydınlatma Metni</a>'ni ve
+                    <a href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</a>'nı okudum, kabul ediyorum.
+                </label>
+            </div>
             <div id="error-msg" class="alert alert-danger py-1 small d-none"></div>
             <button class="btn btn-primary w-100" id="regBtn" onclick="doRegister()">
                 <i class="bi bi-person-plus me-1"></i>Kayıt Ol
@@ -75,6 +82,11 @@
         }
 
         async function doRegister() {
+            if (!document.getElementById('kvkkConsent').checked) {
+                document.getElementById('error-msg').textContent = 'Gizlilik Politikası ve Kullanım Koşullarını kabul etmelisiniz.';
+                document.getElementById('error-msg').classList.remove('d-none');
+                return;
+            }
             var btn = document.getElementById('regBtn');
             btn.disabled = true;
             document.getElementById('error-msg').classList.add('d-none');
