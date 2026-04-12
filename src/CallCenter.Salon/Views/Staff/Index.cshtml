@@ -22,17 +22,19 @@
                     <thead class="table-light">
                         <tr>
                             <th>Ad Soyad</th>
+                            <th>Kullanici Adi</th>
                             <th>E-posta</th>
                             <th>Unvan</th>
                             <th>Sube</th>
                             <th>Rol</th>
                             <th>Durum</th>
-                            <th style="width: 80px;"></th>
+                            <th style="width: 110px;"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredStaff">
                         <tr>
                             <td class="small fw-semibold" data-bind="text: fullName"></td>
+                            <td class="small text-muted" data-bind="text: userName || '-'"></td>
                             <td class="small" data-bind="text: email || '-'"></td>
                             <td class="small" data-bind="text: title || '-'"></td>
                             <td class="small" data-bind="text: branchName || '-'"></td>
@@ -44,6 +46,9 @@
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning" title="Sifre Sifirla" data-bind="click: $parent.resetPassword">
+                                        <i class="bi bi-key"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>

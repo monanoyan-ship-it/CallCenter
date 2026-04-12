@@ -175,6 +175,33 @@ function StaffViewModel() {
         });
     };
 
+    self.resetPassword = function (staff) {
+        confirmModal('Sifre Sifirla', staff.fullName + ' icin yeni sifre giriniz:', function (newPassword) {
+            if (!newPassword || newPassword.length < 8) {
+                toastr.warning('Sifre en az 8 karakter olmalidir');
+                return;
+            }
+            $.ajax({
+                url: '/proxy/portal/personnel/' + staff.id,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    fullName: staff.fullName,
+                    email: staff.email,
+                    title: staff.title,
+                    customerRoleId: staff.customerRoleId,
+                    branchId: staff.branchId,
+                    isActive: staff.isActive,
+                    password: newPassword
+                })
+            }).done(function () {
+                toastr.success('Sifre sifirlandi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.message || xhr.responseJSON?.error || 'Sifre sifirlanamadi');
+            });
+        }, { input: true, inputLabel: 'Yeni Sifre' });
+    };
+
     self.remove = function (staff) {
         confirmModal('Onay', "'" + staff.fullName + "' personelini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/portal/personnel/' + staff.id, method: 'DELETE' }).done(function () {
