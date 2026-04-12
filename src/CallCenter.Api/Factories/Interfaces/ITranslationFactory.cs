@@ -4,7 +4,7 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface ITranslationFactory
 {
-    Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode);
+    Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode, string? module = null);
     Task<byte[]> ExportXmlAsync();
     Task<(bool Success, string? Message)> ImportXmlAsync(Stream xmlStream, string? userName);
     Task ReloadCacheAsync();

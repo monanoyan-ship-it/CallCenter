@@ -19,9 +19,9 @@ public class TranslationsController : AuditableControllerBase
 
     [HttpGet("{languageCode}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll(string languageCode)
+    public async Task<IActionResult> GetAll(string languageCode, [FromQuery] string? module = null)
     {
-        return Ok(await _translationFactory.GetAllTranslationsAsync(languageCode));
+        return Ok(await _translationFactory.GetAllTranslationsAsync(languageCode, module));
     }
 
     [HttpGet("export/xml")]

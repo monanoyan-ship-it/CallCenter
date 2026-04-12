@@ -12,12 +12,12 @@ public static class LocalizationExtensions
     /// <summary>
     /// MVC/RazorPages uygulamalari icin lokalizasyon servislerini register eder.
     /// </summary>
-    public static IServiceCollection AddAppLocalization(this IServiceCollection services, string apiBaseUrl)
+    public static IServiceCollection AddAppLocalization(this IServiceCollection services, string apiBaseUrl, string? module = null)
     {
         services.AddSingleton(sp =>
         {
             var http = new HttpClient { BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/") };
-            return new ServerTranslationCache(http);
+            return new ServerTranslationCache(http, module);
         });
 
         services.AddScoped<ScopedTranslationService>();

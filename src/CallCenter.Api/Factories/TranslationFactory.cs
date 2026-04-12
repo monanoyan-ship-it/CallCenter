@@ -22,9 +22,15 @@ public class TranslationFactory : ITranslationFactory
         _uow = uow;
     }
 
-    public async Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode)
+    public async Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode, string? module = null)
     {
-        return await _translationService.GetAllAsync(languageCode);
+        var all = await _translationService.GetAllAsync(languageCode);
+        if (string.IsNullOrEmpty(module)) return all;
+
+        // Module filtresi: sadece ilgili module'un key'lerini don
+        var prefix = module + ".";
+        return all.Where(kv => kv.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
     }
 
     public async Task<byte[]> ExportXmlAsync()

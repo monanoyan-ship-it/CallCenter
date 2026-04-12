@@ -16,7 +16,7 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddDbContext<LandingDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAppLocalization(apiBaseUrl);
+builder.Services.AddAppLocalization(apiBaseUrl, module: "landing");
 
 builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteOptions>(options =>
 {

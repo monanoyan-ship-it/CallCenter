@@ -10,13 +10,15 @@ namespace CallCenter.Shared.Localization;
 public class ServerTranslationCache
 {
     private readonly HttpClient _http;
+    private readonly string? _module;
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
-    public ServerTranslationCache(HttpClient httpClient)
+    public ServerTranslationCache(HttpClient httpClient, string? module = null)
     {
         _http = httpClient;
         _http.Timeout = TimeSpan.FromSeconds(5);
+        _module = module;
     }
 
     public async Task<Dictionary<string, string>> GetTranslationsAsync(string languageCode)
@@ -26,8 +28,9 @@ public class ServerTranslationCache
 
         try
         {
-            var translations = await _http.GetFromJsonAsync<Dictionary<string, string>>(
-                $"api/translations/{languageCode}") ?? new();
+            var url = $"api/translations/{languageCode}";
+            if (!string.IsNullOrEmpty(_module)) url += $"?module={_module}";
+            var translations = await _http.GetFromJsonAsync<Dictionary<string, string>>(url) ?? new();
 
             _cache[languageCode] = new CacheEntry(translations, DateTime.UtcNow);
             return translations;

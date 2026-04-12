@@ -22,7 +22,7 @@ builder.Services.AddHttpClient("SalonApi", client =>
     client.BaseAddress = new Uri(apiBaseUrl);
 });
 
-builder.Services.AddAppLocalization(apiBaseUrl);
+builder.Services.AddAppLocalization(apiBaseUrl, module: "salon");
 
 builder.Services.AddSession(options =>
 {
