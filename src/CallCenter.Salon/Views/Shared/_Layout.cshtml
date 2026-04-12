@@ -180,7 +180,10 @@
         <div class="content-area">
             <div class="topbar">
                 <h5 class="mb-0">@ViewData["Title"]</h5>
-                <small class="text-muted">@Context.Session.GetString("CustomerName")</small>
+                <div class="d-flex align-items-center gap-3">
+                    <div id="branchSelector"></div>
+                    <small class="text-muted">@Context.Session.GetString("CustomerName")</small>
+                </div>
             </div>
             @RenderBody()
         </div>
@@ -214,6 +217,32 @@
             var chevron = btn.querySelector('.chevron');
             items.classList.toggle('show');
             chevron.classList.toggle('open');
+        }
+
+        // Sube secici (birden fazla sube varsa goster)
+        (function() {
+            var roleId = parseInt('@Context.Session.GetString("CustomerRoleId")' || '101');
+            var currentBranch = '@Context.Session.GetString("BranchId")';
+            if (roleId !== 101) return; // Sadece salon sahibi sube degistirebilir
+
+            $.get('/proxy/sln-branches', function(data) {
+                var branches = Array.isArray(data) ? data : (data.items || []);
+                if (branches.length <= 1) return; // Tek sube varsa gosterme
+
+                var html = '<select class="form-select form-select-sm" style="width:auto; min-width:150px;" onchange="switchBranch(this.value)">';
+                html += '<option value="">Tüm Şubeler</option>';
+                branches.forEach(function(b) {
+                    html += '<option value="' + b.id + '"' + (currentBranch == b.id ? ' selected' : '') + '>' + b.name + '</option>';
+                });
+                html += '</select>';
+                document.getElementById('branchSelector').innerHTML = html;
+            });
+        })();
+
+        function switchBranch(branchId) {
+            // Session'a sube kaydet (API uzerinden veya cookie)
+            document.cookie = 'SelectedBranch=' + (branchId || '') + ';path=/;max-age=86400';
+            window.location.reload();
         }
     </script>
     @RenderSection("Scripts", required: false)
