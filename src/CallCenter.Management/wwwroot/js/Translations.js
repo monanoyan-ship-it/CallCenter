@@ -4,6 +4,8 @@ function TranslationsViewModel() {
     self.isLoading = ko.observable(false);
     self.isSaving = ko.observable(false);
     self.searchText = ko.observable('');
+    self.platformFilter = ko.observable('');
+    self.platforms = ko.observableArray([]);
     self.moduleFilter = ko.observable('');
     self.currentPage = ko.observable(1);
     self.totalCount = ko.observable(0);
@@ -31,11 +33,20 @@ function TranslationsViewModel() {
 
     self.onSearchKeyUp = function(d, e) { if (e.keyCode === 13) { self.currentPage(1); self.loadData(); } return true; };
 
+    self.platformFilter.subscribe(function() { self.currentPage(1); self.loadData(); });
+
+    self.loadPlatforms = function() {
+        $.get('/proxy/translations/platforms', function(data) {
+            self.platforms(data || []);
+        });
+    };
+
     self.loadData = function() {
         self.isLoading(true);
         var params = { page: self.currentPage(), pageSize: self.pageSize };
         if (self.searchText()) params.search = self.searchText();
         if (self.moduleFilter()) params.module = self.moduleFilter();
+        if (self.platformFilter()) params.platformId = self.platformFilter();
         $.get('/proxy/translations/keys', params, function(data) {
             var items = Array.isArray(data) ? data : (data.items || data.data || []);
             self.items(items);
@@ -142,6 +153,7 @@ function TranslationsViewModel() {
     };
 
     self.loadData();
+    self.loadPlatforms();
     self.loadModules();
 }
 

@@ -76,9 +76,10 @@ public class TranslationsController : AuditableControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 30,
         [FromQuery] string? search = null,
-        [FromQuery] string? module = null)
+        [FromQuery] string? module = null,
+        [FromQuery] int? platformId = null)
     {
-        return Ok(await _translationFactory.GetKeysAsync(page, pageSize, search, module));
+        return Ok(await _translationFactory.GetKeysAsync(page, pageSize, search, module, platformId));
     }
 
     [HttpPost("keys")]

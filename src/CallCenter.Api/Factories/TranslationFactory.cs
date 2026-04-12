@@ -180,9 +180,12 @@ public class TranslationFactory : ITranslationFactory
         return Task.FromResult(languages);
     }
 
-    public async Task<PagedResult<TranslationKeyListDto>> GetKeysAsync(int page, int pageSize, string? search, string? module)
+    public async Task<PagedResult<TranslationKeyListDto>> GetKeysAsync(int page, int pageSize, string? search, string? module, int? platformId = null)
     {
         var query = _translationEs.GetKeysQueryable().Include(tk => tk.Translations).AsQueryable();
+
+        if (platformId.HasValue)
+            query = query.Where(tk => tk.PlatformId == platformId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
         {

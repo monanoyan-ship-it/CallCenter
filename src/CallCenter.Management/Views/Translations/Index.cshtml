@@ -30,7 +30,10 @@
                                data-bind="value: searchText, valueUpdate: 'afterkeydown', event: { keyup: onSearchKeyUp }" />
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-bind="value: platformFilter, options: platforms, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Tum Platformlar'"></select>
+                </div>
+                <div class="col-md-2">
                     <select class="form-select form-select-sm" data-bind="value: moduleFilter">
                         <option value="">Tum Moduller</option>
                     </select>
