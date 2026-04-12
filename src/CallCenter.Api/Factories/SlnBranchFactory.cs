@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,23 +12,48 @@ public class SlnBranchFactory : ISlnBranchFactory
 {
     private readonly ISlnBranchEntityService _branches;
     private readonly ICustomerPersonnelEntityService _personnel;
+    private readonly AppDbContext _db;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnBranchFactory> _logger;
 
     public SlnBranchFactory(
         ISlnBranchEntityService branches,
         ICustomerPersonnelEntityService personnel,
+        AppDbContext db,
         IUnitOfWork uow,
         ILogger<SlnBranchFactory> logger)
     {
         _branches = branches;
         _personnel = personnel;
+        _db = db;
         _uow = uow;
         _logger = logger;
     }
 
     public async Task<List<SlnBranchDto>> GetBranchesAsync(int customerId)
     {
+        // Sube yoksa otomatik merkez sube olustur
+        var hasAny = await _branches.GetAllQueryable().AnyAsync(b => b.CustomerId == customerId);
+        if (!hasAny)
+        {
+            var customerName = await _db.Customers
+                .Where(c => c.Id == customerId)
+                .Select(c => c.Name)
+                .FirstOrDefaultAsync() ?? "Merkez";
+
+            var hq = new SlnBranch
+            {
+                CustomerId = customerId,
+                Name = "Merkez",
+                IsHeadquarter = true,
+                IsActive = true,
+                CompanyTitle = customerName
+            };
+            _branches.Add(hq);
+            await _uow.SaveChangesAsync();
+            _logger.LogInformation("Otomatik merkez sube olusturuldu: CustomerId={CustomerId}", customerId);
+        }
+
         var branches = await _branches.GetAllQueryable()
             .Where(b => b.CustomerId == customerId)
             .OrderBy(b => b.Name)
