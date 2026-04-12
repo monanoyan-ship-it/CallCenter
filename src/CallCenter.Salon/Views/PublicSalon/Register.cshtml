@@ -59,12 +59,13 @@
                 <i class="bi bi-person-plus me-1"></i>Kayıt Ol
             </button>
             <div class="text-center mt-3">
-                <a href="/uye/giris" class="small">Zaten hesabınız var mı? <strong>Giriş yapın</strong></a>
+                <a href="/uye/giris" id="loginLink" class="small">Zaten hesabınız var mı? <strong>Giriş yapın</strong></a>
             </div>
         </div>
     </div>
     <script>
-        if (localStorage.getItem('platformToken')) window.location.href = '/uye/panel';
+        var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/uye/panel';
+        if (localStorage.getItem('platformToken')) window.location.href = _returnUrl;
 
         function normalizePhoneValue() {
             var code = document.getElementById('phoneCountry').value;
@@ -93,7 +94,7 @@
                 if (!resp.ok) throw new Error(data.message || 'Kayıt başarısız.');
                 localStorage.setItem('platformToken', data.token);
                 localStorage.setItem('platformUser', JSON.stringify(data.user));
-                window.location.href = '/uye/panel';
+                window.location.href = _returnUrl;
             } catch (e) {
                 document.getElementById('error-msg').textContent = e.message;
                 document.getElementById('error-msg').classList.remove('d-none');

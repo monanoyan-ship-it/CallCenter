@@ -51,12 +51,13 @@
                 <i class="bi bi-box-arrow-in-right me-1"></i>Giriş Yap
             </button>
             <div class="text-center mt-3">
-                <a href="/uye/kayit" class="small">Hesabınız yok mu? <strong>Kayıt olun</strong></a>
+                <a href="/uye/kayit" id="registerLink" class="small">Hesabınız yok mu? <strong>Kayıt olun</strong></a>
             </div>
         </div>
     </div>
     <script>
-        if (localStorage.getItem('platformToken')) window.location.href = '/uye/panel';
+        var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/uye/panel';
+        if (localStorage.getItem('platformToken')) window.location.href = _returnUrl;
 
         function normalizePhoneValue() {
             var code = document.getElementById('phoneCountry').value;
@@ -84,7 +85,7 @@
                 if (!resp.ok) throw new Error(data.message || 'Giriş başarısız.');
                 localStorage.setItem('platformToken', data.token);
                 localStorage.setItem('platformUser', JSON.stringify(data.user));
-                window.location.href = '/uye/panel';
+                window.location.href = _returnUrl;
             } catch (e) {
                 document.getElementById('error-msg').textContent = e.message;
                 document.getElementById('error-msg').classList.remove('d-none');
@@ -93,6 +94,10 @@
                 btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>Giriş Yap';
             }
         }
+    
+        // Kayit ol linkine returnUrl aktar
+        var regLink = document.getElementById('registerLink');
+        if (regLink && _returnUrl !== '/uye/panel') regLink.href = '/uye/kayit?returnUrl=' + encodeURIComponent(_returnUrl);
     </script>
 </body>
 </html>

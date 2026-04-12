@@ -147,6 +147,11 @@
     <script>
         var bookSlug = '@slug';
 
+        // Auth kontrolu — yoksa login e yonlendir
+        if (!localStorage.getItem('platformToken')) {
+            window.location.href = '/uye/giris?returnUrl=' + encodeURIComponent(window.location.pathname);
+        }
+
         function BookViewModel() {
             var self = this;
             self.salonName = ko.observable('');
@@ -191,6 +196,15 @@
                 if (step === 3) return !!self.form.fullName() && !!self.form.phone();
                 return true;
             });
+
+            // Giris yapan kullanicinin bilgilerini doldur
+            var platformUser = null;
+            try { platformUser = JSON.parse(localStorage.getItem('platformUser') || 'null'); } catch (e) {}
+            if (platformUser) {
+                self.form.fullName(platformUser.fullName || '');
+                self.form.phone(platformUser.phone || '');
+                self.form.email(platformUser.email || '');
+            }
 
             // Load salon
             fetch('/proxy/salon/' + bookSlug)

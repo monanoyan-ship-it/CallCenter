@@ -265,6 +265,7 @@ public class PortalFactory : IPortalFactory
             CustomerRoleId = personnelEntity.CustomerRoleId,
             CustomerRoleName = CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
             BranchId = personnelEntity.BranchId,
+            SkillServiceIds = dto.SkillServiceIds,
             IsActive = true
         });
     }
