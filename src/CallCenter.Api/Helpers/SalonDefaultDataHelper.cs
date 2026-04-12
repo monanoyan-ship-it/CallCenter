@@ -2,6 +2,7 @@ using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Data;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Helpers;
@@ -17,12 +18,33 @@ public static class SalonDefaultDataHelper
         ISlnServiceEntityService serviceEs,
         ISlnExpenseCategoryEntityService expenseCategoryEs,
         ISlnCashRegisterEntityService cashRegisterEs,
+        ICustomerPortalModuleEntityService portalModuleEs,
         IUnitOfWork uow,
         int customerId)
     {
         // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
         var hasCategories = await serviceCategoryEs.GetAllQueryable().AnyAsync(c => c.CustomerId == customerId);
         if (hasCategories) return;
+
+        // ═══ Default Moduller ═══
+        var existingModuleIds = await portalModuleEs.GetAllQueryable()
+            .Where(m => m.CustomerId == customerId)
+            .Select(m => m.ModuleId)
+            .ToListAsync();
+
+        foreach (var mod in SalonPortalModules.Defaults)
+        {
+            if (!existingModuleIds.Contains(mod.Id))
+            {
+                portalModuleEs.Add(new CustomerPortalModule
+                {
+                    CustomerId = customerId,
+                    ModuleId = mod.Id,
+                    IsActive = true
+                });
+            }
+        }
+        await uow.SaveChangesAsync();
 
         // ═══ Hizmet Kategorileri + Hizmetler ═══
         var categories = GetDefaultCategories();
@@ -96,6 +118,26 @@ public static class SalonDefaultDataHelper
         // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
         var hasCategories = await db.SlnServiceCategories.AnyAsync(c => c.CustomerId == customerId);
         if (hasCategories) return;
+
+        // ═══ Default Moduller ═══
+        var existingModuleIds = await db.CustomerPortalModules
+            .Where(m => m.CustomerId == customerId)
+            .Select(m => m.ModuleId)
+            .ToListAsync();
+
+        foreach (var mod in SalonPortalModules.Defaults)
+        {
+            if (!existingModuleIds.Contains(mod.Id))
+            {
+                db.CustomerPortalModules.Add(new CustomerPortalModule
+                {
+                    CustomerId = customerId,
+                    ModuleId = mod.Id,
+                    IsActive = true
+                });
+            }
+        }
+        await db.SaveChangesAsync();
 
         // ═══ Hizmet Kategorileri + Hizmetler ═══
         var categories = GetDefaultCategories();

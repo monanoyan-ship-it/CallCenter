@@ -646,7 +646,7 @@ public class CustomerFactory : ICustomerFactory
         await _uow.SaveChangesAsync();
 
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
-        await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _uow, customer.Id);
+        await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _uow, customer.Id);
 
         // Otomatik login
         var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest
