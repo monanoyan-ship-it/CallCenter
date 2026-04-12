@@ -17,7 +17,6 @@ public class AppDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerPersonnel> CustomerPersonnel => Set<CustomerPersonnel>();
     public DbSet<CustomerPortalModule> CustomerPortalModules => Set<CustomerPortalModule>();
-    public DbSet<Language> Languages => Set<Language>();
     public DbSet<TranslationKey> TranslationKeys => Set<TranslationKey>();
     public DbSet<Translation> Translations => Set<Translation>();
     public DbSet<CustomerOrganizationUnit> CustomerOrganizationUnits => Set<CustomerOrganizationUnit>();
@@ -659,14 +658,6 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Language
-        modelBuilder.Entity<Language>(e =>
-        {
-            e.HasKey(l => l.Code);
-            e.Property(l => l.Code).HasMaxLength(5);
-            e.Property(l => l.Name).HasMaxLength(50).IsRequired();
-        });
-
         // TranslationKey
         modelBuilder.Entity<TranslationKey>(e =>
         {
@@ -682,9 +673,9 @@ public class AppDbContext : DbContext
         {
             e.HasKey(t => t.Id);
             e.Property(t => t.Value).IsRequired();
+            e.Property(t => t.LanguageCode).HasMaxLength(5).IsRequired();
             e.Property(t => t.UpdatedBy).HasMaxLength(100);
             e.HasOne(t => t.TranslationKey).WithMany(tk => tk.Translations).HasForeignKey(t => t.TranslationKeyId);
-            e.HasOne(t => t.Language).WithMany(l => l.Translations).HasForeignKey(t => t.LanguageCode);
             e.HasIndex(t => new { t.TranslationKeyId, t.LanguageCode }).IsUnique();
         });
 
@@ -1669,12 +1660,6 @@ public class AppDbContext : DbContext
             IsActive = true,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });
-
-        // Varsayılan diller
-        modelBuilder.Entity<Language>().HasData(
-            new Language { Code = "tr", Name = "Türkçe", IsDefault = true, IsActive = true },
-            new Language { Code = "en", Name = "English", IsDefault = false, IsActive = true }
-        );
 
         // Varsayılan çeviri key'leri ve çeviriler
         SeedTranslations(modelBuilder);

@@ -11,5 +11,4 @@ public class Translation
     public TranslationKey TranslationKey { get; set; } = null!;
 
     public string LanguageCode { get; set; } = string.Empty;
-    public Language Language { get; set; } = null!;
 }

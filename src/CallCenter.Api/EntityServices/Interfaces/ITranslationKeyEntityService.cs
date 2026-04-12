@@ -6,7 +6,6 @@ public interface ITranslationKeyEntityService
 {
     IQueryable<TranslationKey> GetKeysQueryable();
     IQueryable<Translation> GetTranslationsQueryable();
-    IQueryable<Language> GetLanguagesQueryable();
     Task<TranslationKey?> GetKeyByIdWithTranslationsAsync(int id);
     Task<bool> ExistsByKeyAsync(string key);
     void AddKey(TranslationKey entity);

@@ -51,7 +51,6 @@ public class TranslationService : ITranslationService
 
         var translations = await db.Translations
             .Include(t => t.TranslationKey)
-            .Where(t => t.Language.IsActive)
             .ToListAsync();
 
         _cache.Clear();

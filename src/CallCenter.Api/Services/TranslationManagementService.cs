@@ -26,7 +26,7 @@ public class TranslationManagementService : ITranslationManagementService
 
     public async Task<byte[]> ExportXmlAsync()
     {
-        var languages = await _db.Languages.Where(l => l.IsActive).ToListAsync();
+        var languages = CallCenter.Shared.Enums.TranslationLanguages.All.ToList();
         var keys = await _db.TranslationKeys
             .Include(tk => tk.Translations)
             .OrderBy(tk => tk.Module)
@@ -37,8 +37,8 @@ public class TranslationManagementService : ITranslationManagementService
             new XAttribute("ExportDate", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")),
             new XElement("Languages",
                 languages.Select(l => new XElement("Language",
-                    new XAttribute("Code", l.Code),
-                    new XAttribute("Name", l.Name),
+                    new XAttribute("Code", l.SystemName),
+                    new XAttribute("Name", l.Description ?? l.SystemName),
                     new XAttribute("IsDefault", l.IsDefault)
                 ))
             ),
@@ -142,20 +142,17 @@ public class TranslationManagementService : ITranslationManagementService
         await _translationService.ReloadCacheAsync();
     }
 
-    public async Task<List<LanguageDto>> GetLanguagesAsync()
+    public Task<List<LanguageDto>> GetLanguagesAsync()
     {
-        return await _db.Languages
-            .Where(l => l.IsActive)
-            .OrderByDescending(l => l.IsDefault)
-            .ThenBy(l => l.Name)
-            .Select(l => new LanguageDto
-            {
-                Code = l.Code,
-                Name = l.Name,
-                IsDefault = l.IsDefault,
-                IsActive = l.IsActive
-            })
-            .ToListAsync();
+        var languages = CallCenter.Shared.Enums.TranslationLanguages.All.Select(l => new LanguageDto
+        {
+            Code = l.SystemName,
+            Name = l.Description ?? l.SystemName,
+            IsDefault = l.IsDefault,
+            IsActive = true
+        }).ToList();
+
+        return Task.FromResult(languages);
     }
 
     public async Task<PagedResult<TranslationKeyListDto>> GetKeysAsync(int page, int pageSize, string? search, string? module)

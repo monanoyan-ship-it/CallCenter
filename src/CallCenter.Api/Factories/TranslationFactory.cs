@@ -4,6 +4,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using CallCenter.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,20 +23,35 @@ public class TranslationFactory : ITranslationFactory
         _uow = uow;
     }
 
-    public async Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode, string? module = null)
+    public async Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode, string? module = null, int? platformId = null)
     {
         var all = await _translationService.GetAllAsync(languageCode);
-        if (string.IsNullOrEmpty(module)) return all;
 
-        // Module filtresi: sadece ilgili module'un key'lerini don
-        var prefix = module + ".";
-        return all.Where(kv => kv.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            .ToDictionary(kv => kv.Key, kv => kv.Value);
+        // Platform filtresi
+        if (platformId.HasValue)
+        {
+            var platformKeys = await _translationEs.GetKeysQueryable()
+                .Where(k => k.PlatformId == platformId.Value)
+                .Select(k => k.Key)
+                .ToListAsync();
+            var keySet = new HashSet<string>(platformKeys, StringComparer.OrdinalIgnoreCase);
+            return all.Where(kv => keySet.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
+        // Module filtresi (geriye uyumluluk)
+        if (!string.IsNullOrEmpty(module))
+        {
+            var prefix = module + ".";
+            return all.Where(kv => kv.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
+        return all;
     }
 
     public async Task<byte[]> ExportXmlAsync()
     {
-        var languages = await _translationEs.GetLanguagesQueryable().Where(l => l.IsActive).ToListAsync();
+        var languages = TranslationLanguages.All.ToList();
         var keys = await _translationEs.GetKeysQueryable()
             .Include(tk => tk.Translations)
             .OrderBy(tk => tk.Module)
@@ -46,8 +62,8 @@ public class TranslationFactory : ITranslationFactory
             new XAttribute("ExportDate", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")),
             new XElement("Languages",
                 languages.Select(l => new XElement("Language",
-                    new XAttribute("Code", l.Code),
-                    new XAttribute("Name", l.Name),
+                    new XAttribute("Code", l.SystemName),
+                    new XAttribute("Name", l.Description ?? l.SystemName),
                     new XAttribute("IsDefault", l.IsDefault)
                 ))
             ),
@@ -151,20 +167,17 @@ public class TranslationFactory : ITranslationFactory
         await _translationService.ReloadCacheAsync();
     }
 
-    public async Task<List<LanguageDto>> GetLanguagesAsync()
+    public Task<List<LanguageDto>> GetLanguagesAsync()
     {
-        return await _translationEs.GetLanguagesQueryable()
-            .Where(l => l.IsActive)
-            .OrderByDescending(l => l.IsDefault)
-            .ThenBy(l => l.Name)
-            .Select(l => new LanguageDto
-            {
-                Code = l.Code,
-                Name = l.Name,
-                IsDefault = l.IsDefault,
-                IsActive = l.IsActive
-            })
-            .ToListAsync();
+        var languages = TranslationLanguages.All.Select(l => new LanguageDto
+        {
+            Code = l.SystemName,
+            Name = l.Description ?? l.SystemName,
+            IsDefault = l.IsDefault,
+            IsActive = true
+        }).ToList();
+
+        return Task.FromResult(languages);
     }
 
     public async Task<PagedResult<TranslationKeyListDto>> GetKeysAsync(int page, int pageSize, string? search, string? module)

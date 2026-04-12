@@ -19,9 +19,9 @@ public class TranslationsController : AuditableControllerBase
 
     [HttpGet("{languageCode}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll(string languageCode, [FromQuery] string? module = null)
+    public async Task<IActionResult> GetAll(string languageCode, [FromQuery] string? module = null, [FromQuery] int? platformId = null)
     {
-        return Ok(await _translationFactory.GetAllTranslationsAsync(languageCode, module));
+        return Ok(await _translationFactory.GetAllTranslationsAsync(languageCode, module, platformId));
     }
 
     [HttpGet("export/xml")]
@@ -54,6 +54,15 @@ public class TranslationsController : AuditableControllerBase
     {
         await _translationFactory.ReloadCacheAsync();
         return Ok(new { message = "Ceviri onbellegi yenilendi." });
+    }
+
+    [HttpGet("platforms")]
+    public IActionResult GetPlatforms()
+    {
+        var platforms = CallCenter.Shared.Enums.TranslationPlatforms.All
+            .Select(p => new { p.Id, name = p.SystemName, displayName = p.Description, p.Icon })
+            .ToList();
+        return Ok(platforms);
     }
 
     [HttpGet("languages")]

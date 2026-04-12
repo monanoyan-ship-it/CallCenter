@@ -17,9 +17,6 @@ public class TranslationKeyEntityService : ITranslationKeyEntityService
     public IQueryable<Translation> GetTranslationsQueryable()
         => _db.Translations.AsQueryable();
 
-    public IQueryable<Language> GetLanguagesQueryable()
-        => _db.Languages.AsQueryable();
-
     public Task<TranslationKey?> GetKeyByIdWithTranslationsAsync(int id)
         => _db.TranslationKeys
             .Include(tk => tk.Translations)
