@@ -2,20 +2,17 @@
     var culture = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
     var currentLabel = LocalizationConstants.Languages.GetValueOrDefault(culture)?.Label ?? culture.ToUpperInvariant();
 }
-<div class="dropdown d-inline-block" style="margin-left:4px;">
-    <a href="#" class="nav-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
-       style="display:inline-flex;align-items:center;gap:4px;">
+<div class="lang-dropdown">
+    <span class="lang-toggle nav-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
         <i class="bi bi-translate"></i> @currentLabel
-    </a>
-    <ul class="dropdown-menu dropdown-menu-end" style="min-width:140px;">
+    </span>
+    <div class="lang-menu">
         @foreach (var lang in LocalizationConstants.Languages.Values)
         {
-            <li>
-                <a class="dropdown-item @(lang.Code == culture ? "active" : "")"
-                   href="javascript:void(0)" onclick="switchLanguage('@lang.Code')">
-                    @lang.Label — @lang.Name
-                </a>
-            </li>
+            <a class="@(lang.Code == culture ? "active" : "")"
+               href="javascript:void(0)" onclick="switchLanguage('@lang.Code')">
+                @lang.Label — @lang.Name
+            </a>
         }
-    </ul>
+    </div>
 </div>
