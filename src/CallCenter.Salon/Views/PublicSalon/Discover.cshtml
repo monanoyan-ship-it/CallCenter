@@ -38,6 +38,20 @@
             <div class="container d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold"><i class="bi bi-scissors me-2"></i>CorpLynk <span style="color:#ce93d8;">Salon</span></h5>
                 <span class="small"><t key="salon.discover.tagline">Discover nearby salons</t></span>
+                <div class="lang-dropdown" style="display:inline-block;position:relative;margin-left:8px;">
+                    <span style="cursor:pointer;color:#ce93d8;" onclick="this.nextElementSibling.classList.toggle('show')">
+                        <i class="bi bi-translate"></i> @CultureInfo.CurrentCulture.TwoLetterISOLanguageName.ToUpper()
+                    </span>
+                    <div class="lang-menu" style="display:none;position:absolute;right:0;top:100%;background:#2d1b3d;border:1px solid #4a1a6b;border-radius:8px;padding:4px 0;min-width:140px;z-index:1000;">
+                        @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
+                        {
+                            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();"
+                               style="display:block;padding:4px 12px;color:#ccc;text-decoration:none;font-size:.85rem;">
+                                @lang.Label — @lang.Name
+                            </a>
+                        }
+                    </div>
+                </div>
             </div>
         </div>
 

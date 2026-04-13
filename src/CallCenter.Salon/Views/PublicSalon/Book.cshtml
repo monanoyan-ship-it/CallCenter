@@ -28,6 +28,20 @@
     </style>
 </head>
 <body>
+    <div style="position:absolute;top:10px;right:10px;">
+        <div style="display:inline-block;position:relative;">
+            <span style="cursor:pointer;color:#7b1fa2;font-size:.85rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+                <i class="bi bi-translate"></i>
+            </span>
+            <div style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px 0;min-width:140px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);">
+                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=tr|uic=tr;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">TR — Türkçe</a>
+                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=en|uic=en;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">EN — English</a>
+                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=de|uic=de;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">DE — Deutsch</a>
+                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ar|uic=ar;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">AR — العربية</a>
+                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ru|uic=ru;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">RU — Русский</a>
+            </div>
+        </div>
+    </div>
     <div class="container py-4" style="max-width: 640px;" id="book-vm">
         <a href="/salon/@slug" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i><t key="salon.book.back">Back to Salon Profile</t></a>
         <h4 class="mt-2 mb-3"><i class="bi bi-calendar-check me-2" style="color:#7b1fa2;"></i><t key="salon.book.title">Online Booking</t></h4>
