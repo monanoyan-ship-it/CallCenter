@@ -138,6 +138,9 @@ public class SlnAppointmentDto
     public DateTime EndTime { get; set; }
     public int StatusId { get; set; }
     public string? Notes { get; set; }
+    public bool IsPrepaid { get; set; }
+    public decimal PrepaidAmount { get; set; }
+    public decimal DepositAmount { get; set; }
 }
 
 public class SlnAppointmentCreateDto

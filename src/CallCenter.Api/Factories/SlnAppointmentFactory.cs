@@ -300,7 +300,10 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             StartTime = a.StartTime,
             EndTime = a.EndTime,
             StatusId = a.StatusId,
-            Notes = a.Notes
+            Notes = a.Notes,
+            IsPrepaid = a.IsPrepaid,
+            PrepaidAmount = a.PrepaidAmount,
+            DepositAmount = a.DepositAmount
         };
     }
 
