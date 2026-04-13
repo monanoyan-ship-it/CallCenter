@@ -138,12 +138,13 @@ function ServicesViewModel() {
     self.saveService = function () {
         var data = {
             name: self.serviceForm.name(),
-            categoryId: self.serviceForm.categoryId() || null,
+            categoryId: parseInt(self.serviceForm.categoryId()) || 0,
             durationMinutes: parseInt(self.serviceForm.durationMinutes()) || 30,
             price: parseFloat(self.serviceForm.price()) || 0,
             isActive: self.serviceForm.isActive() === 'true'
         };
         if (!data.name) { toastr.warning('Hizmet adi zorunludur'); return; }
+        if (!data.categoryId) { toastr.warning('Kategori secimi zorunludur'); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-services';
