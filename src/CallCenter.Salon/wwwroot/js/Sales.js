@@ -175,45 +175,8 @@ function SalesViewModel() {
     };
 
     // ═══ Checkout ═══
-    self.checkout = function () {
-        if (self.cartItems().length === 0) {
-            toastr.warning('Sepet bos');
-            return;
-        }
-
-        // BUG2.1: Personel secilmediyse uyari — onayla devam edebilir
-        if (!self.selectedPersonnelId()) {
-            if (!confirm('Personel seçmediniz. Bu tahsilat personele atanmadan kaydedilecek. Devam edilsin mi?')) {
-                return;
-            }
-        }
-
-        // BUG2.2: Musteri secilmediyse ad/soyad sor, hizli musteri olustur
-        if (!self.clientId()) {
-            var quickName = prompt('Müşteri seçilmedi. Kayıt için ad soyad girin (iptal = işlem iptal):', '');
-            if (quickName === null) return;
-            quickName = quickName.trim();
-            if (!quickName) {
-                toastr.warning('Müşteri adı gerekli.');
-                return;
-            }
-            self.isSaving(true);
-            $.ajax({
-                url: '/proxy/sln-clients',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ fullName: quickName })
-            }).done(function (resp) {
-                self.clientId(resp.id || resp.Id);
-                self.isSaving(false);
-                self.checkout();
-            }).fail(function () {
-                toastr.error('Müşteri oluşturulamadı.');
-                self.isSaving(false);
-            });
-            return;
-        }
-
+    // Asil odeme islemi (personel + musteri kontrolleri gectikten sonra)
+    self._executeCheckout = function () {
         var items = self.cartItems().map(function (item) {
             return {
                 serviceId: item.serviceId,
@@ -265,6 +228,49 @@ function SalesViewModel() {
             toastr.error(xhr.responseJSON?.error || 'Ödeme alınamadı');
             self.isSaving(false);
         });
+    };
+
+    self.checkout = function () {
+        if (self.cartItems().length === 0) {
+            toastr.warning('Sepet bos');
+            return;
+        }
+
+        // BUG2.2: Musteri secilmediyse ad/soyad sor, hizli musteri olustur
+        if (!self.clientId()) {
+            confirmModal('Hızlı Müşteri', 'Müşteri seçilmedi. Tahsilat için ad-soyad girin:', function (name) {
+                name = (name || '').trim();
+                if (!name) { toastr.warning('Müşteri adı gerekli.'); return; }
+                self.isSaving(true);
+                $.ajax({
+                    url: '/proxy/sln-clients',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ fullName: name })
+                }).done(function (resp) {
+                    self.clientId(resp.id || resp.Id);
+                    self.isSaving(false);
+                    self.checkout(); // recurse — personel check icin
+                }).fail(function () {
+                    toastr.error('Müşteri oluşturulamadı.');
+                    self.isSaving(false);
+                });
+            }, { input: true, inputLabel: 'Ad Soyad', confirmText: 'Devam', confirmClass: 'btn-primary' });
+            return;
+        }
+
+        // BUG2.1: Personel secilmediyse uyari
+        if (!self.selectedPersonnelId()) {
+            confirmModal(
+                'Personel Seçilmedi',
+                'Bu tahsilat personele atanmadan kaydedilecek. Devam edilsin mi?',
+                function () { self._executeCheckout(); },
+                { confirmText: 'Devam Et', confirmClass: 'btn-warning' }
+            );
+            return;
+        }
+
+        self._executeCheckout();
     };
 
     // ═══ Randevu Çek ═══
