@@ -211,7 +211,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (customerId == null) return null;
 
         var team = await _personnel.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId.Value && p.IsActive)
+            .Where(p => p.CustomerId == customerId.Value && p.IsActive
+                     && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner)
             .Include(p => p.User)
             .OrderBy(p => p.CustomerRoleId)
             .Select(p => new
