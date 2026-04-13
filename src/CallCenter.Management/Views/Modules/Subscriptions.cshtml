@@ -53,7 +53,7 @@
                         <tbody data-bind="foreach: subscriptions">
                             <tr>
                                 <td class="fw-medium" data-bind="text: customerName"></td>
-                                <td><span class="badge bg-primary" data-bind="text: planName"></span></td>
+                                <td><span class="badge bg-primary" data-bind="text: (planName || 'Plan #' + planId) + ' (' + (intervalMonths || 1) + ' ay)'"></span></td>
                                 <td class="small" data-bind="text: new Date(startDate).toLocaleDateString('tr-TR')"></td>
                                 <td class="fw-bold" data-bind="text: periodPrice.toLocaleString('tr-TR') + ' TL'"></td>
                                 <td class="small" data-bind="text: new Date(nextBillingDate).toLocaleDateString('tr-TR')"></td>
