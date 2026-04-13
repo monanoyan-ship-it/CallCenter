@@ -19,10 +19,27 @@ public class ProxyController : MgmtBaseController
     public async Task<IActionResult> Post(string path)
     {
         using var client = CreateApiClient();
-        using var reader = new StreamReader(Request.Body);
-        var body = await reader.ReadToEndAsync();
-        var response = await client.PostAsync($"api/{path}",
-            new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+        HttpResponseMessage response;
+
+        if (Request.HasFormContentType && Request.Form.Files.Count > 0)
+        {
+            // File upload (multipart/form-data)
+            var content = new MultipartFormDataContent();
+            foreach (var file in Request.Form.Files)
+            {
+                var stream = file.OpenReadStream();
+                content.Add(new StreamContent(stream), file.Name, file.FileName);
+            }
+            response = await client.PostAsync($"api/{path}", content);
+        }
+        else
+        {
+            using var reader = new StreamReader(Request.Body);
+            var body = await reader.ReadToEndAsync();
+            response = await client.PostAsync($"api/{path}",
+                new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+        }
+
         return await ToJsonResult(response);
     }
 
