@@ -137,7 +137,7 @@ body {
     border-radius: var(--radius); padding: .25rem 0; min-width: 160px;
     z-index: 1000; box-shadow: 0 4px 16px rgba(0,0,0,.4);
 }
-.lang-dropdown:hover .lang-menu, .lang-dropdown .lang-menu.show { display: block; }
+.lang-dropdown .lang-menu.show { display: block; }
 .lang-menu a {
     display: block; color: var(--text-secondary); font-size: .85rem;
     padding: .4rem 1rem; text-decoration: none;

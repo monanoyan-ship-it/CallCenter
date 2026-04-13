@@ -3,7 +3,8 @@
     var currentLabel = LocalizationConstants.Languages.GetValueOrDefault(culture)?.Label ?? culture.ToUpperInvariant();
 }
 <div class="lang-dropdown">
-    <span class="lang-toggle nav-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
+    <span class="lang-toggle nav-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
+          onclick="this.nextElementSibling.classList.toggle('show')">
         <i class="bi bi-translate"></i> @currentLabel
     </span>
     <div class="lang-menu">

@@ -63,6 +63,12 @@
             document.cookie = '.AspNetCore.Culture=c=' + lang + '|uic=' + lang + ';path=/;max-age=31536000';
             window.location.href = '/' + lang + '@(pathSuffix.Replace("'", "\\'"))';
         }
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.lang-dropdown')) {
+                var m = document.querySelector('.lang-menu');
+                if (m) m.classList.remove('show');
+            }
+        });
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
