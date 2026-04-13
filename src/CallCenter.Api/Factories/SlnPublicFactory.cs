@@ -217,16 +217,16 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (customerId == null) return null;
 
         var team = await _personnel.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId.Value && p.IsActive
+            .Where(p => p.CustomerId == customerId.Value && p.IsActive && p.PublicVisible
                      && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner)
             .Include(p => p.User)
             .OrderBy(p => p.CustomerRoleId)
             .Select(p => new
             {
-                name = p.User.FullName,
-                title = p.Title,
-                specialty = p.Specialty,
-                photoUrl = p.PhotoUrl,
+                name = p.PublicShowFullName ? p.User.FullName : p.User.FullName.Split(' ')[0],
+                title = p.PublicShowTitle ? p.Title : (string?)null,
+                specialty = p.PublicShowSpecialty ? p.Specialty : (string?)null,
+                photoUrl = p.PublicShowPhoto ? p.PhotoUrl : (string?)null,
                 roleId = p.CustomerRoleId
             })
             .ToListAsync();
@@ -423,7 +423,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             .ToListAsync();
 
         var query = _personnel.GetAllQueryable()
-            .Where(p => p.CustomerId == cid && p.IsActive
+            .Where(p => p.CustomerId == cid && p.IsActive && p.PublicVisible
                      && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
 
         // Skill tanimlanmissa filtrele, yoksa tum aktif personelleri don
@@ -436,10 +436,10 @@ public class SlnPublicFactory : ISlnPublicFactory
             .Select(p => new
             {
                 id = p.Id,
-                name = p.User.FullName,
-                title = p.Title,
-                photoUrl = p.PhotoUrl,
-                specialty = p.Specialty
+                name = p.PublicShowFullName ? p.User.FullName : p.User.FullName.Split(' ')[0],
+                title = p.PublicShowTitle ? p.Title : (string?)null,
+                photoUrl = p.PublicShowPhoto ? p.PhotoUrl : (string?)null,
+                specialty = p.PublicShowSpecialty ? p.Specialty : (string?)null
             })
             .ToListAsync();
     }

@@ -164,7 +164,12 @@ public class PortalFactory : IPortalFactory
                 BranchId = p.BranchId,
                 BranchName = p.Branch != null ? p.Branch.Name : null,
                 IsActive = p.IsActive && p.User.IsActive,
-                IsLocked = p.User.LockedUntil.HasValue && p.User.LockedUntil.Value > DateTime.UtcNow
+                IsLocked = p.User.LockedUntil.HasValue && p.User.LockedUntil.Value > DateTime.UtcNow,
+                PublicVisible = p.PublicVisible,
+                PublicShowFullName = p.PublicShowFullName,
+                PublicShowPhoto = p.PublicShowPhoto,
+                PublicShowTitle = p.PublicShowTitle,
+                PublicShowSpecialty = p.PublicShowSpecialty
             })
             .OrderBy(p => p.FullName)
             .ToListAsync();
@@ -242,7 +247,12 @@ public class PortalFactory : IPortalFactory
             OrganizationUnitId = dto.OrganizationUnitId,
             ReportsToPersonnelId = dto.ReportsToPersonnelId,
             BranchId = dto.BranchId,
-            IsActive = true
+            IsActive = true,
+            PublicVisible = dto.PublicVisible,
+            PublicShowFullName = dto.PublicShowFullName,
+            PublicShowPhoto = dto.PublicShowPhoto,
+            PublicShowTitle = dto.PublicShowTitle,
+            PublicShowSpecialty = dto.PublicShowSpecialty
         };
         _personnelEs.Add(personnelEntity);
         await _uow.SaveChangesAsync();
@@ -346,6 +356,13 @@ public class PortalFactory : IPortalFactory
         personnel.OrganizationUnitId = dto.OrganizationUnitId;
         personnel.ReportsToPersonnelId = dto.ReportsToPersonnelId;
         personnel.BranchId = dto.BranchId;
+
+        // Public gorunurluk
+        personnel.PublicVisible = dto.PublicVisible;
+        personnel.PublicShowFullName = dto.PublicShowFullName;
+        personnel.PublicShowPhoto = dto.PublicShowPhoto;
+        personnel.PublicShowTitle = dto.PublicShowTitle;
+        personnel.PublicShowSpecialty = dto.PublicShowSpecialty;
 
         // Hizmet yetenekleri guncelle
         if (dto.SkillServiceIds != null)

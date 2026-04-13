@@ -23,7 +23,12 @@ function StaffViewModel() {
         customerRoleId: ko.observable(103),
         branchId: ko.observable(null),
         skillServiceIds: ko.observableArray([]),
-        isActive: ko.observable('true')
+        isActive: ko.observable('true'),
+        publicVisible: ko.observable(true),
+        publicShowFullName: ko.observable(true),
+        publicShowPhoto: ko.observable(true),
+        publicShowTitle: ko.observable(true),
+        publicShowSpecialty: ko.observable(true)
     };
 
     self.toggleSkill = function (serviceId) {
@@ -100,6 +105,11 @@ function StaffViewModel() {
         self.form.branchId(self.branchList().length === 1 ? self.branchList()[0].id : null);
         self.form.skillServiceIds([]);
         self.form.isActive('true');
+        self.form.publicVisible(true);
+        self.form.publicShowFullName(true);
+        self.form.publicShowPhoto(true);
+        self.form.publicShowTitle(true);
+        self.form.publicShowSpecialty(true);
         self.isEditing(false);
         self.editingId(null);
     };
@@ -121,6 +131,11 @@ function StaffViewModel() {
         self.form.branchId(staff.branchId || null);
         self.form.skillServiceIds(staff.skillServiceIds || []);
         self.form.isActive(staff.isActive ? 'true' : 'false');
+        self.form.publicVisible(staff.publicVisible !== false);
+        self.form.publicShowFullName(staff.publicShowFullName !== false);
+        self.form.publicShowPhoto(staff.publicShowPhoto !== false);
+        self.form.publicShowTitle(staff.publicShowTitle !== false);
+        self.form.publicShowSpecialty(staff.publicShowSpecialty !== false);
         formModal.show();
     };
 
@@ -141,7 +156,12 @@ function StaffViewModel() {
             customerRoleId: parseInt(self.form.customerRoleId()) || 103,
             branchId: self.form.branchId() ? parseInt(self.form.branchId()) : null,
             skillServiceIds: self.form.skillServiceIds(),
-            isActive: self.form.isActive() === 'true'
+            isActive: self.form.isActive() === 'true',
+            publicVisible: self.form.publicVisible(),
+            publicShowFullName: self.form.publicShowFullName(),
+            publicShowPhoto: self.form.publicShowPhoto(),
+            publicShowTitle: self.form.publicShowTitle(),
+            publicShowSpecialty: self.form.publicShowSpecialty()
         };
 
         if (!data.fullName || !data.email) {

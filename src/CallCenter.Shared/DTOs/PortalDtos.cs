@@ -24,6 +24,13 @@ public class PortalPersonnelListDto
     public bool IsActive { get; set; }
     public bool IsLocked { get; set; }
     public List<int>? SkillServiceIds { get; set; }
+
+    // Public gorunurluk
+    public bool PublicVisible { get; set; }
+    public bool PublicShowFullName { get; set; }
+    public bool PublicShowPhoto { get; set; }
+    public bool PublicShowTitle { get; set; }
+    public bool PublicShowSpecialty { get; set; }
 }
 
 public class PortalPersonnelCreateDto
@@ -54,6 +61,13 @@ public class PortalPersonnelCreateDto
     public int? ReportsToPersonnelId { get; set; }
     public int? BranchId { get; set; }
     public List<int>? SkillServiceIds { get; set; }
+
+    // Public gorunurluk (varsayilan: true)
+    public bool PublicVisible { get; set; } = true;
+    public bool PublicShowFullName { get; set; } = true;
+    public bool PublicShowPhoto { get; set; } = true;
+    public bool PublicShowTitle { get; set; } = true;
+    public bool PublicShowSpecialty { get; set; } = true;
 }
 
 public class PortalPersonnelUpdateDto
@@ -84,6 +98,13 @@ public class PortalPersonnelUpdateDto
     public List<int>? SkillServiceIds { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    // Public gorunurluk
+    public bool PublicVisible { get; set; } = true;
+    public bool PublicShowFullName { get; set; } = true;
+    public bool PublicShowPhoto { get; set; } = true;
+    public bool PublicShowTitle { get; set; } = true;
+    public bool PublicShowSpecialty { get; set; } = true;
 }
 
 // ═══════════════════════════════════════════════════════════════

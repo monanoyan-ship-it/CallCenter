@@ -166,6 +166,38 @@
                             <!-- /ko -->
                         </div>
                         <!-- /ko -->
+
+                        <!-- Public Gorunurluk Ayarlari -->
+                        <div class="col-12 mt-3">
+                            <label class="form-label small fw-semibold">
+                                <i class="bi bi-eye me-1"></i>Site Gorunurluk Ayarlari
+                                <small class="text-muted fw-normal d-block">Bu personelin online randevu ve ekibimiz sayfasinda nasil gorunecegini belirleyin</small>
+                            </label>
+                            <div class="bg-light rounded p-2">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: form.publicVisible" id="chkPublicVisible" />
+                                    <label class="form-check-label small" for="chkPublicVisible">Sitede gorunsun</label>
+                                </div>
+                                <!-- ko if: form.publicVisible() -->
+                                <div class="form-check form-switch mb-1 ms-3">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowFullName" id="chkFullName" />
+                                    <label class="form-check-label small" for="chkFullName">Tam ad soyad gosterilsin <small class="text-muted">(kapaliysa sadece on ad)</small></label>
+                                </div>
+                                <div class="form-check form-switch mb-1 ms-3">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowPhoto" id="chkPhoto" />
+                                    <label class="form-check-label small" for="chkPhoto">Fotograf gosterilsin</label>
+                                </div>
+                                <div class="form-check form-switch mb-1 ms-3">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowTitle" id="chkTitle" />
+                                    <label class="form-check-label small" for="chkTitle">Unvan gosterilsin</label>
+                                </div>
+                                <div class="form-check form-switch ms-3">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowSpecialty" id="chkSpecialty" />
+                                    <label class="form-check-label small" for="chkSpecialty">Uzmanlik alani gosterilsin</label>
+                                </div>
+                                <!-- /ko -->
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

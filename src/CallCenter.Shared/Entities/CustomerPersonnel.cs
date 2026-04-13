@@ -11,6 +11,13 @@ public class CustomerPersonnel
     public string? Specialty { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Public profil gorunurluk ayarlari (randevu sayfasi, ekibimiz vb.)
+    public bool PublicVisible { get; set; } = true;       // Genel: sitede gorunsun mu
+    public bool PublicShowFullName { get; set; } = true;   // false = sadece on ad
+    public bool PublicShowPhoto { get; set; } = true;      // Fotograf gorunsun mu
+    public bool PublicShowTitle { get; set; } = true;      // Unvan gorunsun mu
+    public bool PublicShowSpecialty { get; set; } = true;   // Uzmanlik gorunsun mu
+
     // Her CustomerPersonnel bir User'a bağlı (login için)
     public int UserId { get; set; }
     public User User { get; set; } = null!;
