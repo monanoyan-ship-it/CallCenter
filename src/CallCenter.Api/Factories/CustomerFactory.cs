@@ -21,6 +21,7 @@ public class CustomerFactory : ICustomerFactory
     private readonly ISlnServiceEntityService _serviceEs;
     private readonly ISlnExpenseCategoryEntityService _expenseCategoryEs;
     private readonly ISlnCashRegisterEntityService _cashRegisterEs;
+    private readonly ISlnBranchEntityService _branchEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IAuthFactory _authFactory;
     private readonly IUnitOfWork _uow;
@@ -36,6 +37,7 @@ public class CustomerFactory : ICustomerFactory
         ISlnServiceEntityService serviceEs,
         ISlnExpenseCategoryEntityService expenseCategoryEs,
         ISlnCashRegisterEntityService cashRegisterEs,
+        ISlnBranchEntityService branchEs,
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
         IUnitOfWork uow)
@@ -50,6 +52,7 @@ public class CustomerFactory : ICustomerFactory
         _serviceEs = serviceEs;
         _expenseCategoryEs = expenseCategoryEs;
         _cashRegisterEs = cashRegisterEs;
+        _branchEs = branchEs;
         _passwordPolicy = passwordPolicy;
         _authFactory = authFactory;
         _uow = uow;
@@ -646,7 +649,7 @@ public class CustomerFactory : ICustomerFactory
         await _uow.SaveChangesAsync();
 
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
-        await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _uow, customer.Id);
+        await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _branchEs, _uow, customer.Id);
 
         // Otomatik login
         var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest

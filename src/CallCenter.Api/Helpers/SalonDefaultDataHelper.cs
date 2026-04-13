@@ -19,6 +19,7 @@ public static class SalonDefaultDataHelper
         ISlnExpenseCategoryEntityService expenseCategoryEs,
         ISlnCashRegisterEntityService cashRegisterEs,
         ICustomerPortalModuleEntityService portalModuleEs,
+        ISlnBranchEntityService branchEs,
         IUnitOfWork uow,
         int customerId)
     {
@@ -98,13 +99,17 @@ public static class SalonDefaultDataHelper
         }
         await uow.SaveChangesAsync();
 
-        // ═══ Ana Kasa ═══
+        // ═══ Ana Kasa (merkez subeye bagli) ═══
         var hasRegister = await cashRegisterEs.GetAllQueryable().AnyAsync(r => r.CustomerId == customerId);
         if (!hasRegister)
         {
+            var hqBranch = await branchEs.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+
             cashRegisterEs.Add(new SlnCashRegister
             {
                 CustomerId = customerId,
+                BranchId = hqBranch?.Id,
                 Name = "Ana Kasa",
                 IsActive = true
             });
@@ -191,13 +196,17 @@ public static class SalonDefaultDataHelper
         }
         await db.SaveChangesAsync();
 
-        // ═══ Ana Kasa ═══
+        // ═══ Ana Kasa (merkez subeye bagli) ═══
         var hasRegister = await db.SlnCashRegisters.AnyAsync(r => r.CustomerId == customerId);
         if (!hasRegister)
         {
+            var hqBranch = await db.SlnBranches
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+
             db.SlnCashRegisters.Add(new SlnCashRegister
             {
                 CustomerId = customerId,
+                BranchId = hqBranch?.Id,
                 Name = "Ana Kasa",
                 IsActive = true
             });
