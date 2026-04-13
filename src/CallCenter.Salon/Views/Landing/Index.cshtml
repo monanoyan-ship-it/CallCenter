@@ -172,9 +172,11 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <span>&copy; 2026 CorpLynk. Tum haklari saklidir.</span>
-            <div>
-                <a href="https://corplynk.com@(langPrefix)" style="margin-right:1rem;">CorpLynk</a>
+            <span>&copy; 2026 CorpLynk. @(currentCulture == "tr" ? "Tum haklari saklidir." : "All rights reserved.")</span>
+            <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                <a href="/privacy">@(currentCulture == "tr" ? "Gizlilik Politikasi" : "Privacy Policy")</a>
+                <a href="/terms">@(currentCulture == "tr" ? "Kullanim Kosullari" : "Terms of Use")</a>
+                <a href="/discover">@(currentCulture == "tr" ? "Salon Bul" : "Find a Salon")</a>
                 <a href="mailto:info@corplynk.com">info@corplynk.com</a>
             </div>
         </footer>

@@ -21,7 +21,7 @@ public class ProxyController : SlnBaseController
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PostAsync($"api/{path}",
+        var response = await client.PostAsync($"api/{path}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ToJsonResult(response);
     }
@@ -32,7 +32,7 @@ public class ProxyController : SlnBaseController
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PutAsync($"api/{path}",
+        var response = await client.PutAsync($"api/{path}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ToJsonResult(response);
     }

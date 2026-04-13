@@ -19,6 +19,8 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnClientMembershipEntityService _clientMemberships;
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnAppointmentEntityService _appointments;
+    private readonly ISlnPersonnelSkillEntityService _skills;
+    private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
     private readonly IUnitOfWork _uow;
 
     public SlnPublicFactory(
@@ -32,6 +34,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnClientMembershipEntityService clientMemberships,
         ISlnClientEntityService clients,
         ISlnAppointmentEntityService appointments,
+        ISlnPersonnelSkillEntityService skills,
+        ISlnNoShowPolicyEntityService noShowPolicies,
         IUnitOfWork uow)
     {
         _profiles = profiles;
@@ -44,6 +48,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         _clientMemberships = clientMemberships;
         _clients = clients;
         _appointments = appointments;
+        _skills = skills;
+        _noShowPolicies = noShowPolicies;
         _uow = uow;
     }
 
@@ -400,6 +406,66 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         return slots;
+    }
+
+    /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
+    public async Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId)
+    {
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return null;
+        var cid = customerId.Value;
+
+        // Skill eslesmesi olan personelleri bul
+        var skilledPersonnelIds = await _skills.GetAllQueryable()
+            .Where(s => s.ServiceId == serviceId)
+            .Select(s => s.PersonnelId)
+            .Distinct()
+            .ToListAsync();
+
+        var query = _personnel.GetAllQueryable()
+            .Where(p => p.CustomerId == cid && p.IsActive
+                     && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+
+        // Skill tanimlanmissa filtrele, yoksa tum aktif personelleri don
+        if (skilledPersonnelIds.Count > 0)
+            query = query.Where(p => skilledPersonnelIds.Contains(p.Id));
+
+        return await query
+            .Include(p => p.User)
+            .OrderBy(p => p.User.FullName)
+            .Select(p => new
+            {
+                id = p.Id,
+                name = p.User.FullName,
+                title = p.Title,
+                photoUrl = p.PhotoUrl,
+                specialty = p.Specialty
+            })
+            .ToListAsync();
+    }
+
+    /// <summary>Salonun randevu politikasini getir (depozito, iptal kurallari)</summary>
+    public async Task<object?> GetBookingPolicyAsync(string slug)
+    {
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return null;
+        var cid = customerId.Value;
+
+        var policy = await _noShowPolicies.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == cid);
+
+        if (policy == null)
+            return new { hasPolicy = false };
+
+        return new
+        {
+            hasPolicy = true,
+            requireDeposit = policy.RequireDeposit,
+            depositAmount = policy.DepositAmount,
+            freeCancellationHours = policy.FreeCancellationHours,
+            lateCancellationFee = policy.LateCancellationFee,
+            noShowFee = policy.NoShowFee
+        };
     }
 
     /// <summary>Online randevu olustur (auth gerekmez)</summary>

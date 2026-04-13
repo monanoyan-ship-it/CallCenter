@@ -72,6 +72,22 @@ public class SlnPublicController : ControllerBase
         return success ? Ok(result) : BadRequest(error);
     }
 
+    /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
+    [HttpGet("{slug}/available-staff")]
+    public async Task<ActionResult> GetAvailableStaff(string slug, [FromQuery] int serviceId)
+    {
+        var result = await _publicFactory.GetAvailableStaffForServiceAsync(slug, serviceId);
+        return result != null ? Ok(result) : NotFound();
+    }
+
+    /// <summary>Salonun randevu politikasini getir (depozito, iptal kurallari)</summary>
+    [HttpGet("{slug}/booking-policy")]
+    public async Task<ActionResult> GetBookingPolicy(string slug)
+    {
+        var result = await _publicFactory.GetBookingPolicyAsync(slug);
+        return result != null ? Ok(result) : NotFound();
+    }
+
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
     [HttpGet("{slug}/available-slots")]
     public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date)

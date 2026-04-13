@@ -39,7 +39,7 @@ function PersonnelPricesViewModel() {
     };
 
     self.loadLookups = function () {
-        $.ajax({ url: '/proxy/sln-clients/staff', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staff(data.items || data);
         });
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {

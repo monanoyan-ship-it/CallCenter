@@ -228,7 +228,19 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
         var registers = await query.ToListAsync();
 
-        return registers.Select(r => (object)new { r.Id, r.Name, r.IsActive }).ToList();
+        var result = new List<object>();
+        foreach (var r in registers)
+        {
+            var transactions = await _cashTransactions.GetAllQueryable()
+                .Where(t => t.RegisterId == r.Id)
+                .ToListAsync();
+            var income = transactions.Where(t => t.TransactionTypeId == 1).Sum(t => t.Amount);
+            var expense = transactions.Where(t => t.TransactionTypeId == 2).Sum(t => t.Amount);
+            var balance = income - expense;
+            result.Add(new { r.Id, r.Name, r.IsActive, balance, typeName = r.BranchId.HasValue ? "Sube" : "Merkez" });
+        }
+
+        return result;
     }
 
     public async Task<object> CreateCashRegisterAsync(string name, int customerId, int? branchId = null)

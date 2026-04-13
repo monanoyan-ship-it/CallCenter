@@ -118,7 +118,7 @@ function WaitlistViewModel() {
             });
             self.services(flat.length > 0 ? flat : (data.items || data));
         });
-        $.ajax({ url: '/proxy/sln-clients/staff', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staff(data.items || data);
         });
     };
