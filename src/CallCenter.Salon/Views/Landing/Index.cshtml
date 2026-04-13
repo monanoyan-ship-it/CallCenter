@@ -93,6 +93,9 @@
             <div class="nav-links">
                 <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
                 <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
+                <a href="/discover" class="nav-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);">
+                    <i class="bi bi-geo-alt me-1"></i>@(currentCulture == "tr" ? "Salon Bul" : "Find a Salon")
+                </a>
                 <a href="/Account/Login" class="nav-btn">@(currentCulture == "tr" ? "Giris Yap" : "Sign In")</a>
                 @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
                 {
