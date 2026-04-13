@@ -14,5 +14,5 @@ public interface ISlnPublicFactory
     Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date);
     Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId);
     Task<object?> GetBookingPolicyAsync(string slug);
-    Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto);
+    Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto, string? buyerIp = null);
 }

@@ -101,8 +101,9 @@ public class SlnPublicController : ControllerBase
     [HttpPost("{slug}/book")]
     public async Task<ActionResult> BookAppointment(string slug, [FromBody] SlnOnlineBookingDto dto)
     {
-        var (success, error, result) = await _publicFactory.BookAppointmentAsync(slug, dto);
+        var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var (success, error, result) = await _publicFactory.BookAppointmentAsync(slug, dto, buyerIp);
         if (!success && error == "Salon bulunamadi") return NotFound();
-        return success ? Ok(result) : BadRequest(error);
+        return success ? Ok(result) : BadRequest(new { message = error });
     }
 }

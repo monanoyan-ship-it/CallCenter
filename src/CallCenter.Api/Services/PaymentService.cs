@@ -298,6 +298,33 @@ public class PaymentService
         return gatewayResult;
     }
 
+    /// <summary>Online randevu on odemesi/depozito (musteri kendi karti ile, salon API uzerinden)</summary>
+    public async Task<PaymentResult> ProcessAppointmentDepositAsync(int customerId, decimal amount, PaymentCardInfo card, string? buyerIp = null)
+    {
+        if (amount <= 0) return PaymentResult.Fail("Tutar 0.");
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.RandevuOnOdemesi,
+            CustomerId = customerId,
+            Amount = amount,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            InstallmentCount = card.Installment,
+            CardLastFour = card.CardNumber?.Length >= 4 ? card.CardNumber[^4..] : null
+        };
+
+        var gatewayResult = await ExecutePaymentAsync(tx, card, buyerIp);
+
+        if (gatewayResult.Success)
+        {
+            _logger.LogInformation("Randevu on odemesi basarili: CustomerId={CustomerId}, Amount={Amount}, TxUid={TxUid}",
+                customerId, amount, tx.Uid);
+        }
+
+        await _db.SaveChangesAsync();
+        return gatewayResult;
+    }
+
     /// <summary>Odeme gecmisi</summary>
     public async Task<List<PaymentTransaction>> GetTransactionsAsync(int? customerId = null, int? platformUserId = null, int page = 1, int pageSize = 20)
     {

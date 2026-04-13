@@ -176,8 +176,9 @@ public static class PaymentTypes
     public static readonly TypeItem PlatformAbonelik = new(2, "PlatformAbonelik", "PaymentType.PlatformAbonelik", "Platform Abonelik Odemesi", "bi-box-seam", "bg-primary", 2);
     public static readonly TypeItem UyelikOdemesi = new(3, "UyelikOdemesi", "PaymentType.UyelikOdemesi", "Uyelik Odemesi", "bi-person-check", "bg-success", 3);
     public static readonly TypeItem ModulSatinAlma = new(4, "ModulSatinAlma", "PaymentType.ModulSatinAlma", "Modul Satin Alma", "bi-cart-check", "bg-warning text-dark", 4);
+    public static readonly TypeItem RandevuOnOdemesi = new(5, "RandevuOnOdemesi", "PaymentType.RandevuOnOdemesi", "Randevu On Odemesi/Depozito", "bi-calendar-check", "bg-info", 5);
 
-    public static IEnumerable<TypeItem> All => new[] { SalonAdisyon, PlatformAbonelik, UyelikOdemesi, ModulSatinAlma };
+    public static IEnumerable<TypeItem> All => new[] { SalonAdisyon, PlatformAbonelik, UyelikOdemesi, ModulSatinAlma, RandevuOnOdemesi };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
     public static class Ids
@@ -186,6 +187,7 @@ public static class PaymentTypes
         public const int PlatformAbonelik = 2;
         public const int UyelikOdemesi = 3;
         public const int ModulSatinAlma = 4;
+        public const int RandevuOnOdemesi = 5;
     }
 }
 

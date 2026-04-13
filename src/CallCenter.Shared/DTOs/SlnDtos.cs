@@ -295,6 +295,18 @@ public class SlnOnlineBookingDto
     public int? PersonnelId { get; set; }
     public DateTime StartTime { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>On odeme/depozito icin kart bilgileri (politika gerektiriyorsa zorunlu)</summary>
+    public SlnOnlineBookingCardDto? Card { get; set; }
+}
+
+public class SlnOnlineBookingCardDto
+{
+    public string? CardHolderName { get; set; }
+    public string? CardNumber { get; set; }
+    public string? ExpireMonth { get; set; }
+    public string? ExpireYear { get; set; }
+    public string? Cvc { get; set; }
 }
 
 public class SlnMembershipSignupDto

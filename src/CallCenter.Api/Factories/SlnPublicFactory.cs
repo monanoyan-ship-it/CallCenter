@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnPersonnelSkillEntityService _skills;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
+    private readonly PaymentService _paymentService;
     private readonly IUnitOfWork _uow;
 
     public SlnPublicFactory(
@@ -36,6 +38,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnAppointmentEntityService appointments,
         ISlnPersonnelSkillEntityService skills,
         ISlnNoShowPolicyEntityService noShowPolicies,
+        PaymentService paymentService,
         IUnitOfWork uow)
     {
         _profiles = profiles;
@@ -50,6 +53,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         _appointments = appointments;
         _skills = skills;
         _noShowPolicies = noShowPolicies;
+        _paymentService = paymentService;
         _uow = uow;
     }
 
@@ -475,8 +479,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         };
     }
 
-    /// <summary>Online randevu olustur (auth gerekmez)</summary>
-    public async Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto)
+    /// <summary>Online randevu olustur (auth gerekmez). Salon politikasi depozito gerektiriyorsa karttan tahsil eder.</summary>
+    public async Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto, string? buyerIp = null)
     {
         var customerId = await ResolveCustomerIdAsync(slug);
         if (customerId == null) return (false, "Salon bulunamadi", null);
@@ -485,6 +489,24 @@ public class SlnPublicFactory : ISlnPublicFactory
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
         if (service == null) return (false, "Hizmet bulunamadi", null);
+
+        // Politika kontrolu — depozito zorunlu mu?
+        var policy = await _noShowPolicies.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == cid);
+        var requireDeposit = policy?.IsActive == true && policy.RequireDeposit && policy.DepositAmount > 0;
+        var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
+
+        if (requireDeposit)
+        {
+            if (dto.Card == null
+                || string.IsNullOrWhiteSpace(dto.Card.CardNumber)
+                || string.IsNullOrWhiteSpace(dto.Card.ExpireMonth)
+                || string.IsNullOrWhiteSpace(dto.Card.ExpireYear)
+                || string.IsNullOrWhiteSpace(dto.Card.Cvc))
+            {
+                return (false, $"Bu salonda online randevu icin {depositAmount:N2} TL depozito gereklidir. Kart bilgileri eksik.", null);
+            }
+        }
 
         // Musteri bul veya olustur
         var client = await _clients.GetAllQueryable()
@@ -507,6 +529,25 @@ public class SlnPublicFactory : ISlnPublicFactory
             return (false, "Gecmis randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen salonu arayiniz.", null);
         }
 
+        // Depozito karttan cek (basarisizsa randevu olusturulmaz)
+        Guid? paymentTxUid = null;
+        if (requireDeposit)
+        {
+            var card = new PaymentCardInfo
+            {
+                CardHolderName = dto.Card!.CardHolderName ?? dto.FullName,
+                CardNumber = dto.Card.CardNumber,
+                ExpireMonth = dto.Card.ExpireMonth,
+                ExpireYear = dto.Card.ExpireYear?.Length == 2 ? "20" + dto.Card.ExpireYear : dto.Card.ExpireYear,
+                Cvc = dto.Card.Cvc,
+                Installment = 1
+            };
+            var payRes = await _paymentService.ProcessAppointmentDepositAsync(cid, depositAmount, card, buyerIp);
+            if (!payRes.Success)
+                return (false, "Depozito tahsil edilemedi: " + (payRes.Error ?? "Bilinmeyen hata"), null);
+            paymentTxUid = payRes.TransactionUid;
+        }
+
         // Randevu olustur (StatusId=1: Planlanmis, onay bekliyor)
         // Npgsql timestamptz Utc kind bekler — local/unspecified -> utc kind olarak isaretle (saat degismez)
         var start = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Utc);
@@ -519,7 +560,10 @@ public class SlnPublicFactory : ISlnPublicFactory
             StartTime = start,
             EndTime = start.AddMinutes(service.DurationMinutes),
             StatusId = 1,
-            Notes = dto.Notes
+            Notes = dto.Notes,
+            DepositAmount = depositAmount,
+            IsPrepaid = requireDeposit,
+            PrepaidAmount = requireDeposit ? depositAmount : 0
         };
 
         // PersonnelId 0 ise ilk musait personeli ata
@@ -533,6 +577,16 @@ public class SlnPublicFactory : ISlnPublicFactory
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();
 
-        return (true, null, new { success = true, appointmentId = appointment.Id, message = "Randevunuz alindi. Salon tarafindan onaylanacaktir." });
+        return (true, null, new
+        {
+            success = true,
+            appointmentId = appointment.Id,
+            isPrepaid = requireDeposit,
+            prepaidAmount = depositAmount,
+            paymentTxUid,
+            message = requireDeposit
+                ? $"Randevunuz alindi. {depositAmount:N2} TL depozito tahsil edildi."
+                : "Randevunuz alindi. Salon tarafindan onaylanacaktir."
+        });
     }
 }
