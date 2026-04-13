@@ -46,8 +46,21 @@ public class SubscriptionController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> CreateSubscription([FromBody] CreateSubscriptionRequest request)
     {
-        var (result, error) = await _factory.CreateSubscriptionAsync(request.CustomerId, request.PlanId, request.StartDate, request.MonthlyPrice);
+        var (result, error) = await _factory.CreateSubscriptionAsync(request.CustomerId, request.PlanId, request.StartDate, request.MonthlyPrice, request.BranchId);
         return result != null ? Ok(result) : BadRequest(new { message = error });
+    }
+
+    /// <summary>Aktif abonelik var mi — Salon panel oturumu acilirken cagirir</summary>
+    [HttpGet("status")]
+    [Authorize]
+    public async Task<ActionResult> GetSubscriptionStatus()
+    {
+        var customerIdClaim = User.FindFirst("CustomerId")?.Value;
+        if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            return Unauthorized();
+
+        var hasActive = await _factory.HasActiveSubscriptionAsync(customerId);
+        return Ok(new { hasActive });
     }
 
     [HttpPut("{id}/cancel")]
@@ -69,6 +82,16 @@ public class SubscriptionController : ControllerBase
             return Unauthorized();
 
         return Ok(await _factory.GetMySubscriptionAsync(customerId));
+    }
+
+    // ═══ BRANCHES (abonelik olustururken subeleri listelemek icin) ═══
+
+    [HttpGet("branches/{customerId}")]
+    public async Task<ActionResult> GetCustomerBranches(int customerId, [FromServices] CallCenter.Api.EntityServices.Interfaces.ISlnBranchEntityService branchEs)
+    {
+        var list = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            branchEs.GetAllQueryable().Where(b => b.CustomerId == customerId).OrderByDescending(b => b.IsHeadquarter).ThenBy(b => b.Name));
+        return Ok(list.Select(b => new { b.Id, b.Name, b.IsHeadquarter, b.IsActive }));
     }
 
     // ═══ TAHAKKUK ═══
@@ -96,6 +119,7 @@ public class CreateSubscriptionRequest
     public int PlanId { get; set; }
     public DateTime StartDate { get; set; }
     public decimal MonthlyPrice { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class GenerateBillingRequest

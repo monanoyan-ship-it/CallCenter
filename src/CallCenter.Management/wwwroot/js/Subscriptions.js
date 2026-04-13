@@ -10,7 +10,18 @@ function SubViewModel() {
     self.billingMonth = ko.observable(new Date().getMonth() + 1);
 
     self.planForm = { name: ko.observable(''), intervalMonths: ko.observable(1), discountPercent: ko.observable(0), branchPrice: ko.observable(0) };
-    self.subForm = { customerId: ko.observable(null), planId: ko.observable(null), startDate: ko.observable(''), monthlyPrice: ko.observable(0) };
+    self.subForm = { customerId: ko.observable(null), planId: ko.observable(null), branchId: ko.observable(null), startDate: ko.observable(''), monthlyPrice: ko.observable(0) };
+    self.branches = ko.observableArray([]);
+
+    // Firma degisince o firmanin subelerini yukle
+    self.subForm.customerId.subscribe(function (cid) {
+        self.subForm.branchId(null);
+        self.branches([]);
+        if (!cid) return;
+        $.get('/proxy/subscriptions/branches/' + cid, function (data) {
+            self.branches(data || []);
+        });
+    });
 
     self.computedPeriodPrice = ko.computed(function () {
         var plan = self.plans().find(function (p) { return p.id == self.subForm.planId(); });
@@ -58,15 +69,17 @@ function SubViewModel() {
 
     // Abonelik
     self.openNewSub = function () {
-        self.subForm.customerId(null); self.subForm.planId(null);
+        self.subForm.customerId(null); self.subForm.planId(null); self.subForm.branchId(null);
         self.subForm.startDate(new Date().toISOString().substring(0, 10));
         self.subForm.monthlyPrice(0);
+        self.branches([]);
         subModal.show();
     };
     self.saveSub = function () {
         var d = {
             customerId: parseInt(self.subForm.customerId()),
             planId: parseInt(self.subForm.planId()),
+            branchId: self.subForm.branchId() ? parseInt(self.subForm.branchId()) : null,
             startDate: self.subForm.startDate(),
             monthlyPrice: parseFloat(self.subForm.monthlyPrice()) || 0
         };

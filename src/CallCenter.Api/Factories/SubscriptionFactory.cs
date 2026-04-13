@@ -88,6 +88,7 @@ public class SubscriptionFactory : ISubscriptionFactory
         var query = _subscriptionEs.GetAllQueryable()
             .Include(s => s.Customer)
             .Include(s => s.Plan)
+            .Include(s => s.Branch)
             .AsQueryable();
 
         if (customerId.HasValue)
@@ -102,6 +103,8 @@ public class SubscriptionFactory : ISubscriptionFactory
                 planId = s.PlanId,
                 planName = s.Plan.Name,
                 intervalMonths = s.Plan.IntervalMonths,
+                branchId = s.BranchId,
+                branchName = s.Branch != null ? s.Branch.Name : null,
                 s.StartDate,
                 s.MonthlyPrice,
                 s.PeriodPrice,
@@ -115,7 +118,7 @@ public class SubscriptionFactory : ISubscriptionFactory
             .ToListAsync();
     }
 
-    public async Task<(object? Result, string? Error)> CreateSubscriptionAsync(int customerId, int planId, DateTime startDate, decimal monthlyPrice)
+    public async Task<(object? Result, string? Error)> CreateSubscriptionAsync(int customerId, int planId, DateTime startDate, decimal monthlyPrice, int? branchId = null)
     {
         var customer = await _customerEs.GetByIdAsync(customerId);
         if (customer == null) return (null, "Müşteri bulunamadı.");
@@ -123,9 +126,13 @@ public class SubscriptionFactory : ISubscriptionFactory
         var plan = await _planEs.GetByIdAsync(planId);
         if (plan == null) return (null, "Plan bulunamadı.");
 
-        // Aktif abonelik var mi kontrol
-        var existing = await _subscriptionEs.GetAllQueryable().AnyAsync(s => s.CustomerId == customerId && s.StatusId == 1);
-        if (existing) return (null, "Bu müşterinin zaten aktif aboneliği var.");
+        // Aktif abonelik var mi kontrol (ayni sube bazinda; branchId null = firma genel)
+        var existing = await _subscriptionEs.GetAllQueryable()
+            .AnyAsync(s => s.CustomerId == customerId && s.StatusId == 1 && s.BranchId == branchId);
+        if (existing)
+            return (null, branchId.HasValue
+                ? "Bu şubenin zaten aktif aboneliği var."
+                : "Bu müşterinin zaten aktif firma-geneli aboneliği var.");
 
         var periodPrice = monthlyPrice * plan.IntervalMonths * (1 - plan.DiscountPercent / 100);
 
@@ -133,6 +140,7 @@ public class SubscriptionFactory : ISubscriptionFactory
         {
             CustomerId = customerId,
             PlanId = planId,
+            BranchId = branchId,
             StartDate = DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
             MonthlyPrice = monthlyPrice,
             PeriodPrice = Math.Round(periodPrice, 2),
@@ -196,6 +204,7 @@ public class SubscriptionFactory : ISubscriptionFactory
             var extraBranches = Math.Max(0, branchCount - 1);
             var branchAmount = extraBranches * sub.Plan.BranchPrice * sub.Plan.IntervalMonths;
 
+            var billingTotal = sub.PeriodPrice + branchAmount + moduleAmount;
             var period = new CustomerBillingPeriod
             {
                 CustomerId = sub.CustomerId,
@@ -207,8 +216,10 @@ public class SubscriptionFactory : ISubscriptionFactory
                 UnitPrice = sub.PeriodPrice,
                 Amount = sub.PeriodPrice + branchAmount,
                 ServiceAmount = moduleAmount,
-                StatusId = 1, // Draft
-                IsPaid = false
+                // BUG2.12: 0 TL tahakkuklar otomatik Paid — salon odeme takibi engellemesin
+                StatusId = billingTotal <= 0 ? 3 : 1, // 3=Paid, 1=Draft
+                IsPaid = billingTotal <= 0,
+                PaidAt = billingTotal <= 0 ? DateTime.UtcNow : null
             };
 
             _billingPeriodEs.Add(period);
@@ -223,6 +234,16 @@ public class SubscriptionFactory : ISubscriptionFactory
             await _uow.SaveChangesAsync();
 
         return (created, skipped);
+    }
+
+    public async Task<bool> HasActiveSubscriptionAsync(int customerId)
+    {
+        // Test musterileri icin kontrol devre disi — ucretsiz kullanabilirler
+        var customer = await _customerEs.GetByIdAsync(customerId);
+        if (customer?.IsTest == true) return true;
+
+        return await _subscriptionEs.GetAllQueryable()
+            .AnyAsync(s => s.CustomerId == customerId && s.StatusId == 1);
     }
 
     public async Task<object> GetMySubscriptionAsync(int customerId)

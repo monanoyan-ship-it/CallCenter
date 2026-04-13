@@ -52,7 +52,12 @@
                         </thead>
                         <tbody data-bind="foreach: subscriptions">
                             <tr>
-                                <td class="fw-medium" data-bind="text: customerName"></td>
+                                <td class="fw-medium">
+                                    <span data-bind="text: customerName"></span>
+                                    <!-- ko if: branchName -->
+                                    <br /><small class="text-muted"><i class="bi bi-geo-alt me-1"></i><span data-bind="text: branchName"></span></small>
+                                    <!-- /ko -->
+                                </td>
                                 <td><span class="badge bg-primary" data-bind="text: (planName || 'Plan #' + planId) + ' (' + (intervalMonths || 1) + ' ay)'"></span></td>
                                 <td class="small" data-bind="text: new Date(startDate).toLocaleDateString('tr-TR')"></td>
                                 <td class="fw-bold" data-bind="text: periodPrice.toLocaleString('tr-TR') + ' TL'"></td>
@@ -132,8 +137,12 @@
                 <div class="modal-body">
                     <div class="mb-2"><label class="form-label small">Firma *</label>
                         <select class="form-select form-select-sm" data-bind="value: subForm.customerId, options: customers, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Firma seçiniz'"></select></div>
+                    <!-- ko if: subForm.customerId() -->
+                    <div class="mb-2"><label class="form-label small">Şube (opsiyonel — boş = firma geneli)</label>
+                        <select class="form-select form-select-sm" data-bind="value: subForm.branchId, options: branches, optionsText: function(b){ return b.name + (b.isHeadquarter ? ' (Merkez)' : '') + (!b.isActive ? ' - Pasif' : ''); }, optionsValue: 'id', optionsCaption: 'Firma geneli'"></select></div>
+                    <!-- /ko -->
                     <div class="mb-2"><label class="form-label small">Plan *</label>
-                        <select class="form-select form-select-sm" data-bind="value: subForm.planId, options: plans, optionsText: function(p) { return p.name + ' (' + p.intervalMonths + ' ay' + (p.discountPercent > 0 ? ', %' + p.discountPercent + ' indirim' : '') + ')'; }, optionsValue: 'id', optionsCaption: 'Plan seçiniz'"></select></div>
+                        <select class="form-select form-select-sm" data-bind="value: subForm.planId, options: plans, optionsText: function(p) { return (p.name || 'Plan #' + p.id) + ' (' + p.intervalMonths + ' ay' + (p.discountPercent > 0 ? ', %' + p.discountPercent + ' indirim' : '') + ')'; }, optionsValue: 'id', optionsCaption: 'Plan seçiniz'"></select></div>
                     <div class="mb-2"><label class="form-label small">Başlangıç Tarihi *</label>
                         <input type="date" class="form-control form-control-sm" data-bind="value: subForm.startDate" /></div>
                     <div class="mb-2"><label class="form-label small">Aylık Fiyat (TL) *</label>

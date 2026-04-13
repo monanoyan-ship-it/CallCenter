@@ -14,6 +14,10 @@ public class CustomerSubscription
     public int PlanId { get; set; }
     public SubscriptionPlan Plan { get; set; } = null!;
 
+    /// <summary>Hangi sube icin — null = tum firma (eski davranis)</summary>
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     /// <summary>Abonelik baslangic tarihi (ilk odeme tarihi)</summary>
     public DateTime StartDate { get; set; }
 

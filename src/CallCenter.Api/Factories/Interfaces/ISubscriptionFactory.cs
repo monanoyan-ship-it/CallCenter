@@ -12,7 +12,7 @@ public interface ISubscriptionFactory
 
     // Abonelik
     Task<List<object>> GetCustomerSubscriptionsAsync(int? customerId = null);
-    Task<(object? Result, string? Error)> CreateSubscriptionAsync(int customerId, int planId, DateTime startDate, decimal monthlyPrice);
+    Task<(object? Result, string? Error)> CreateSubscriptionAsync(int customerId, int planId, DateTime startDate, decimal monthlyPrice, int? branchId = null);
     Task<(bool Success, string? Error)> CancelSubscriptionAsync(int subscriptionId);
 
     // Tahakkuk
@@ -20,4 +20,7 @@ public interface ISubscriptionFactory
 
     // Musteri kendi abonelik durumu
     Task<object> GetMySubscriptionAsync(int customerId);
+
+    // BUG2.4: aktif abonelik var mi (null = yok / iptal / askida)
+    Task<bool> HasActiveSubscriptionAsync(int customerId);
 }

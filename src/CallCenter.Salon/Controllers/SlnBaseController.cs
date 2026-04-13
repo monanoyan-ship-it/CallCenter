@@ -68,9 +68,50 @@ public abstract class SlnBaseController : Controller
                     return;
                 }
             }
+
+            // BUG2.4: Abonelik kontrolu — aktif abonelik yoksa banner + kritik sayfalari kilit
+            // SubscriptionRequired controller'ini ve Account'i muaf tut (sonsuz redirect onleme)
+            if (controllerType != typeof(SubscriptionRequiredController)
+                && controllerType != typeof(AccountController))
+            {
+                var subStatus = HttpContext.Session.GetString("SubscriptionActive");
+                if (string.IsNullOrEmpty(subStatus))
+                {
+                    // Cache'de yok — API'den sorgula (session bazli, sadece bir kere)
+                    subStatus = CheckSubscriptionStatus(token).GetAwaiter().GetResult() ? "1" : "0";
+                    HttpContext.Session.SetString("SubscriptionActive", subStatus);
+                }
+                // ViewData uzerinden layout'a banner gosterme sinyali
+                ViewData["SubscriptionActive"] = subStatus == "1";
+
+                // Aktif abonelik yoksa yalnizca Home ve SubscriptionRequired erisilebilir;
+                // diger sayfalar SubscriptionRequired'e yonlendirilir.
+                if (subStatus != "1"
+                    && controllerType != typeof(HomeController))
+                {
+                    context.Result = RedirectToAction("Index", "SubscriptionRequired");
+                    return;
+                }
+            }
         }
 
         base.OnActionExecuting(context);
+    }
+
+    private async Task<bool> CheckSubscriptionStatus(string token)
+    {
+        try
+        {
+            var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var client = factory.CreateClient("SalonApi");
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await client.GetAsync("api/subscriptions/status");
+            if (!response.IsSuccessStatusCode) return true; // Endpoint hatasinda blocklama
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("hasActive", out var prop) && prop.GetBoolean();
+        }
+        catch { return true; } // Network hatasi mode: blocklama
     }
 
     private async Task<bool> TryRefreshToken(string oldToken)

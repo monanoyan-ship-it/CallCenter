@@ -222,7 +222,10 @@ public class BillingFactory : IBillingFactory
             // Bu musterinin aktif ucretli hizmetleri
             var customerSubs = activeSubscriptions.Where(s => s.CustomerId == customer.Id).ToList();
             var serviceAmount = customerSubs.Sum(s => s.MonthlyPrice);
+            var productAmount = userCount * productPrices.GetValueOrDefault(customer.Id, 0m);
+            var totalAmount = productAmount + serviceAmount;
 
+            // BUG2.12 fix: 0 TL tahakkuklar da kayit olustur, otomatik Paid isaretle ki salon panel engellenmesin
             _billingEs.Add(new CustomerBillingPeriod
             {
                 CustomerId = customer.Id,
@@ -232,10 +235,11 @@ public class BillingFactory : IBillingFactory
                 PeriodEndDate = periodEnd,
                 UserCount = userCount,
                 UnitPrice = productPrices.GetValueOrDefault(customer.Id, 0m),
-                Amount = userCount * productPrices.GetValueOrDefault(customer.Id, 0m),
+                Amount = productAmount,
                 ServiceAmount = serviceAmount,
-                StatusId = BillingPeriodStatuses.Ids.Draft,
-                IsPaid = false,
+                StatusId = totalAmount <= 0 ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft,
+                IsPaid = totalAmount <= 0,
+                PaidAt = totalAmount <= 0 ? DateTime.UtcNow : null,
                 CreatedAt = DateTime.UtcNow
             });
 

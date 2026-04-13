@@ -287,10 +287,12 @@ public class AppDbContext : DbContext
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => new { s.CustomerId, s.StatusId });
+            e.HasIndex(s => s.BranchId);
             e.Property(s => s.MonthlyPrice).HasPrecision(18, 2);
             e.Property(s => s.PeriodPrice).HasPrecision(18, 2);
             e.HasOne(s => s.Customer).WithMany(c => c.Subscriptions).HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(s => s.Plan).WithMany().HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.Branch).WithMany().HasForeignKey(s => s.BranchId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // PaymentTransaction

@@ -87,6 +87,13 @@ public class AccountController : SlnBaseController
         return RedirectToAction("Login");
     }
 
+    /// <summary>Abonelik odemesi sonrasi cache'lenmis SubscriptionActive bayragini sifirlar</summary>
+    public IActionResult RefreshSession()
+    {
+        HttpContext.Session.Remove("SubscriptionActive");
+        return RedirectToAction("Index", "Home");
+    }
+
     private void SetSessionFromLoginResponse(string json)
     {
         using var doc = JsonDocument.Parse(json);
