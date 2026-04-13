@@ -54,6 +54,7 @@ public class SlnBranchFactory : ISlnBranchFactory
             {
                 CustomerId = customerId,
                 Name = "Merkez",
+                Slug = GenerateSlug(customerName),
                 IsHeadquarter = true,
                 IsActive = true,
                 ActivatedAt = DateTime.UtcNow,
@@ -114,7 +115,7 @@ public class SlnBranchFactory : ISlnBranchFactory
         {
             CustomerId = customerId,
             Name = dto.Name,
-            Slug = dto.Slug,
+            Slug = !string.IsNullOrWhiteSpace(dto.Slug) ? dto.Slug : GenerateSlug(dto.Name),
             Address = dto.Address,
             City = dto.City,
             District = dto.District,
@@ -226,5 +227,16 @@ public class SlnBranchFactory : ISlnBranchFactory
 
         _logger.LogInformation("Sube silindi: {BranchId}", branchId);
         return (true, null);
+    }
+
+    private static string GenerateSlug(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "";
+        var slug = input.ToLowerInvariant().Trim();
+        slug = slug.Replace("ı", "i").Replace("ğ", "g").Replace("ü", "u")
+                   .Replace("ş", "s").Replace("ö", "o").Replace("ç", "c");
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[\s-]+", "-").Trim('-');
+        return slug;
     }
 }
