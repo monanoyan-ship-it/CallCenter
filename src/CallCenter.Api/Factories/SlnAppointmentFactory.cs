@@ -379,9 +379,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             catch { }
         }
 
-        // Personelin o gundeki mevcut randevulari
-        var dayStart = date.Date;
-        var dayEnd = date.Date.AddDays(1);
+        // Personelin o gundeki mevcut randevulari (UTC)
+        var dayStart = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var dayEnd = dayStart.AddDays(1);
         var existingAppointments = await _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId
                 && a.PersonnelId == personnelId
@@ -392,8 +392,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         // Musait slotlari hesapla (30 dk aralikla)
         var slots = new List<object>();
-        var slotStart = date.Date.AddHours(openHour).AddMinutes(openMin);
-        var dayClose = date.Date.AddHours(closeHour).AddMinutes(closeMin);
+        var slotStart = dayStart.AddHours(openHour).AddMinutes(openMin);
+        var dayClose = dayStart.AddHours(closeHour).AddMinutes(closeMin);
 
         while (slotStart.AddMinutes(durationMinutes) <= dayClose)
         {
