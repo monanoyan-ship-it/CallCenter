@@ -29,16 +29,16 @@
 </head>
 <body>
     <div class="container py-4" style="max-width: 640px;" id="book-vm">
-        <a href="/salon/@slug" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i>Salon Profiline Don</a>
-        <h4 class="mt-2 mb-3"><i class="bi bi-calendar-check me-2" style="color:#7b1fa2;"></i>Online Randevu</h4>
+        <a href="/salon/@slug" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i><t key="salon.book.back">Back to Salon Profile</t></a>
+        <h4 class="mt-2 mb-3"><i class="bi bi-calendar-check me-2" style="color:#7b1fa2;"></i><t key="salon.book.title">Online Booking</t></h4>
         <div class="text-muted small mb-3" data-bind="text: salonName"></div>
 
         <!-- Adimlar -->
         <div class="step-indicator">
-            <div class="step" data-bind="css: { active: currentStep() === 1, done: currentStep() > 1 }">1. Hizmet</div>
-            <div class="step" data-bind="css: { active: currentStep() === 2, done: currentStep() > 2 }">2. Tarih & Saat</div>
-            <div class="step" data-bind="css: { active: currentStep() === 3, done: currentStep() > 3 }">3. Bilgiler</div>
-            <div class="step" data-bind="css: { active: currentStep() === 4 }">4. Onay</div>
+            <div class="step" data-bind="css: { active: currentStep() === 1, done: currentStep() > 1 }">1. <t key="salon.book.step1">Service</t></div>
+            <div class="step" data-bind="css: { active: currentStep() === 2, done: currentStep() > 2 }">2. <t key="salon.book.step2">Date &amp; Time</t></div>
+            <div class="step" data-bind="css: { active: currentStep() === 3, done: currentStep() > 3 }">3. <t key="salon.book.step3">Details</t></div>
+            <div class="step" data-bind="css: { active: currentStep() === 4 }">4. <t key="salon.book.step4">Confirm</t></div>
         </div>
 
         <!-- Adim 1: Hizmet Sec -->
@@ -62,11 +62,11 @@
         <!-- Adim 2: Tarih & Saat -->
         <div data-bind="visible: currentStep() === 2">
             <div class="mb-3">
-                <label class="form-label small fw-semibold">Tarih Seciniz</label>
+                <label class="form-label small fw-semibold"><t key="salon.book.select_date">Select Date</t></label>
                 <input type="date" class="form-control" data-bind="value: selectedDate" />
             </div>
             <div data-bind="visible: slots().length > 0">
-                <label class="form-label small fw-semibold">Musait Saatler</label>
+                <label class="form-label small fw-semibold"><t key="salon.book.available_times">Available Times</t></label>
                 <div class="d-flex flex-wrap gap-2">
                     <!-- ko foreach: slots -->
                     <button class="btn btn-outline-secondary btn-sm slot-btn"
@@ -76,7 +76,7 @@
             </div>
             <div data-bind="visible: slotsLoaded() && slots().length === 0" class="text-center text-muted py-4">
                 <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3;"></i>
-                <p class="mt-2 small">Bu tarihte musait saat bulunamadi</p>
+                <p class="mt-2 small"><t key="salon.book.no_slots">No available times for this date</t></p>
             </div>
         </div>
 
@@ -84,19 +84,19 @@
         <div data-bind="visible: currentStep() === 3">
             <div class="row g-3">
                 <div class="col-12">
-                    <label class="form-label small">Ad Soyad *</label>
+                    <label class="form-label small"><t key="salon.book.fullname">Full Name *</t></label>
                     <input type="text" class="form-control" data-bind="value: form.fullName" />
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Telefon *</label>
+                    <label class="form-label small"><t key="salon.book.phone">Phone *</t></label>
                     <div data-bind="phoneInput: form.phone"></div>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">E-posta</label>
+                    <label class="form-label small"><t key="salon.book.email">Email</t></label>
                     <input type="email" class="form-control" data-bind="value: form.email" />
                 </div>
                 <div class="col-12">
-                    <label class="form-label small">Not (opsiyonel)</label>
+                    <label class="form-label small"><t key="salon.book.notes">Notes (optional)</t></label>
                     <textarea class="form-control" rows="2" data-bind="value: form.notes"></textarea>
                 </div>
             </div>
@@ -107,13 +107,13 @@
             <!-- ko if: !bookingDone() -->
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <h6 class="mb-3">Randevu Ozeti</h6>
+                    <h6 class="mb-3"><t key="salon.book.summary">Appointment Summary</t></h6>
                     <table class="table table-sm table-borderless mb-0">
-                        <tr><td class="text-muted">Hizmet</td><td class="fw-semibold" data-bind="text: selectedServiceName()"></td></tr>
-                        <tr><td class="text-muted">Tarih</td><td data-bind="text: selectedDate()"></td></tr>
-                        <tr><td class="text-muted">Saat</td><td data-bind="text: selectedSlotLabel()"></td></tr>
-                        <tr><td class="text-muted">Ad Soyad</td><td data-bind="text: form.fullName()"></td></tr>
-                        <tr><td class="text-muted">Telefon</td><td data-bind="text: form.phone()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.service">Service</t></td><td class="fw-semibold" data-bind="text: selectedServiceName()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.date">Date</t></td><td data-bind="text: selectedDate()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.time">Time</t></td><td data-bind="text: selectedSlotLabel()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.name">Name</t></td><td data-bind="text: form.fullName()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.phone">Phone</t></td><td data-bind="text: form.phone()"></td></tr>
                     </table>
                 </div>
             </div>
@@ -121,9 +121,9 @@
             <!-- ko if: bookingDone() -->
             <div class="text-center py-4">
                 <i class="bi bi-check-circle-fill text-success" style="font-size:4rem;"></i>
-                <h4 class="mt-3">Randevunuz Alindi!</h4>
-                <p class="text-muted">Salon tarafindan onaylanacaktir. Telefonunuzu kontrol edin.</p>
-                <a href="/salon/@slug" class="btn btn-outline-primary btn-sm mt-2">Salon Profiline Don</a>
+                <h4 class="mt-3"><t key="salon.book.success.title">Your Appointment is Booked!</t></h4>
+                <p class="text-muted"><t key="salon.book.success.desc">It will be confirmed by the salon. Check your phone.</t></p>
+                <a href="/salon/@slug" class="btn btn-outline-primary btn-sm mt-2"><t key="salon.book.back">Back to Salon Profile</t></a>
             </div>
             <!-- /ko -->
         </div>
@@ -131,15 +131,15 @@
         <!-- Navigation -->
         <div class="d-flex justify-content-between mt-4" data-bind="visible: !bookingDone()">
             <button class="btn btn-outline-secondary" data-bind="visible: currentStep() > 1, click: prevStep">
-                <i class="bi bi-arrow-left me-1"></i>Geri
+                <i class="bi bi-arrow-left me-1"></i><t key="salon.book.btn.back">Back</t>
             </button>
             <span data-bind="visible: currentStep() <= 1"></span>
             <button class="btn btn-purple" data-bind="visible: currentStep() < 4, click: nextStep, disable: !canProceed()">
-                Devam<i class="bi bi-arrow-right ms-1"></i>
+                <t key="salon.book.btn.next">Next</t><i class="bi bi-arrow-right ms-1"></i>
             </button>
             <button class="btn btn-purple" data-bind="visible: currentStep() === 4 && !bookingDone(), click: confirmBooking, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                Randevu Olustur
+                <t key="salon.book.btn.confirm">Book Appointment</t>
             </button>
         </div>
     </div>
