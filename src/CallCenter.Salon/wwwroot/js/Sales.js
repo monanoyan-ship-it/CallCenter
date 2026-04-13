@@ -292,8 +292,8 @@ function SalesViewModel() {
                 // Sadece planlanan(1) ve onaylanan(2) randevulari goster
                 return a.statusId === 1 || a.statusId === 2;
             }).map(function (a) {
-                var startTime = new Date(a.startTime);
-                a.startTimeText = startTime.getHours().toString().padStart(2, '0') + ':' + startTime.getMinutes().toString().padStart(2, '0');
+                // BUG2.17: Naive saat — DB Utc kind ile yazar ama saat LOCAL temsilidir
+                a.startTimeText = a.startTime ? a.startTime.substring(11, 16) : '';
                 a.clientName = a.clientName || '-';
                 a.personnelName = a.personnelName || null;
                 a.serviceNamesText = (a.serviceNames || []).join(', ') || (a.serviceName || '-');

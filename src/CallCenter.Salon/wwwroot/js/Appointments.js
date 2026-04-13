@@ -79,10 +79,11 @@ function AppointmentsViewModel() {
 
     self.selectSlot = function (slot) {
         if (!slot.available) return;
-        var dt = new Date(slot.startTime);
-        var str = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0')
-            + 'T' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
-        self.form.startTime(str);
+        // BUG2.17: Cift UTC donusum onleme — slot.startTime UTC kind ISO ("...Z") gelir
+        // ama hour numarasi salon LOCAL saatini temsil eder. new Date() ile parse edersek
+        // tarayici TZ'sine cevirir → +3 kayma. Naive olarak Z'siz string halini sakla.
+        var raw = slot.startTime || '';
+        self.form.startTime(raw.replace(/Z$/i, '').substring(0, 16));
     };
 
     var statusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
@@ -216,11 +217,15 @@ function AppointmentsViewModel() {
                         ? a.serviceNames.join(', ')
                         : (a.serviceName || '-');
                     if (a.startTime) {
-                        var st = new Date(a.startTime);
-                        a.startTimeFormatted = st.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-                        a.dateFormatted = st.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+                        // BUG2.17: Naive saat — DB'de Utc kind ile yazili ama hour LOCAL.
+                        // toLocale ile cevirme +3 kayma yapar. ISO string'den dogrudan parse.
+                        a.startTimeFormatted = a.startTime.substring(11, 16);
+                        var datePart = a.startTime.substring(0, 10).split('-'); // YYYY-MM-DD
+                        var months = ['Oca','Sub','Mar','Nis','May','Haz','Tem','Agu','Eyl','Eki','Kas','Ara'];
+                        a.dateFormatted = parseInt(datePart[2]) + ' ' + months[parseInt(datePart[1]) - 1];
                     }
                     if (a.startTime && a.endTime) {
+                        // Suresi: iki ISO arasi dakika (UTC parse her iki tarafta da konsistan, kayma yok)
                         a.durationMinutes = a.durationMinutes || Math.round((new Date(a.endTime) - new Date(a.startTime)) / 60000);
                     } else {
                         a.durationMinutes = null;

@@ -171,15 +171,21 @@ public class IyzicoGateway : IPaymentGateway
         }
     }
 
-    // ─── Iyzico Auth Header Olusturma ───
-
+    // ─── Iyzico Auth Header Olusturma (IYZWSv2 — HMACSHA256) ───
+    // BUG2.19: Eski v1 SHA1+PKI string hesabi yanlistı (raw JSON kullanarak "Gecersiz imza" 400).
+    // Iyzico v2 spec: signature = HMACSHA256(randomKey + uriPath + jsonBody, secretKey).hex
+    // Authorization header: "IYZWSv2 base64(apiKey:KEY&randomKey:R&signature:S)"
     private HttpRequestMessage CreateRequest(HttpMethod method, string path, string jsonBody)
     {
-        var randomHeaderValue = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{new Random().Next(100000, 999999)}";
-        var pkiString = $"[{path}]{jsonBody}"; // Simplified PKI
-        var hashStr = $"{_credentials.ApiKey}{randomHeaderValue}{_credentials.SecretKey}{pkiString}";
-        var hash = Convert.ToBase64String(SHA1.HashData(Encoding.UTF8.GetBytes(hashStr)));
-        var authorizationHeader = $"IYZWS {_credentials.ApiKey}:{hash}";
+        var randomKey = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{new Random().Next(100000, 999999)}";
+
+        var payload = randomKey + path + jsonBody;
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_credentials.SecretKey));
+        var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+        var signatureHex = Convert.ToHexString(signatureBytes).ToLowerInvariant();
+
+        var authString = $"apiKey:{_credentials.ApiKey}&randomKey:{randomKey}&signature:{signatureHex}";
+        var authorizationHeader = "IYZWSv2 " + Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
 
         var request = new HttpRequestMessage(method, path)
         {
@@ -187,7 +193,7 @@ public class IyzicoGateway : IPaymentGateway
         };
 
         request.Headers.TryAddWithoutValidation("Authorization", authorizationHeader);
-        request.Headers.TryAddWithoutValidation("x-iyzi-rnd", randomHeaderValue);
+        request.Headers.TryAddWithoutValidation("x-iyzi-rnd", randomKey);
 
         return request;
     }

@@ -30,8 +30,8 @@ function WaitlistViewModel() {
                     ? a.serviceNames.join(', ')
                     : (a.serviceName || '-');
                 if (a.startTime) {
-                    var st = new Date(a.startTime);
-                    a.startTimeFormatted = st.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                    // BUG2.17: Naive saat — toLocale yapma, ISO substring ile al
+                    a.startTimeFormatted = a.startTime.substring(11, 16);
                 }
                 if (a.startTime && a.endTime) {
                     a.durationMinutes = Math.round((new Date(a.endTime) - new Date(a.startTime)) / 60000);
