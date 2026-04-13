@@ -179,6 +179,36 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
         _logger.LogInformation("Yeni adisyon olusturuldu: {InvoiceNo} - {NetAmount:C}", invoiceNo, invoice.NetAmount);
 
+        // Kasaya gelir hareketi yaz (BUG2.3 fix) — once subenin kasasi, yoksa merkez kasa
+        if (invoice.NetAmount > 0)
+        {
+            var registerQuery = _cashRegisters.GetAllQueryable()
+                .Where(r => r.CustomerId == customerId && r.IsActive);
+            var register = branchId.HasValue
+                ? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == branchId.Value)
+                  ?? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null)
+                : await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null)
+                  ?? await registerQuery.FirstOrDefaultAsync();
+
+            if (register != null)
+            {
+                _cashTransactions.Add(new SlnCashTransaction
+                {
+                    RegisterId = register.Id,
+                    TransactionTypeId = 1, // Income
+                    Amount = invoice.NetAmount,
+                    PaymentMethodId = dto.PaymentMethodId,
+                    RelatedInvoiceId = invoice.Id,
+                    Description = $"Adisyon: {invoiceNo}"
+                });
+                await _uow.SaveChangesAsync();
+            }
+            else
+            {
+                _logger.LogWarning("Adisyon icin aktif kasa yok: CustomerId={CustomerId}, InvoiceNo={InvoiceNo}", customerId, invoiceNo);
+            }
+        }
+
         // Include'li tekrar cek
         var created = await _invoices.GetAllQueryable()
             .Include(i => i.SlnClient)
