@@ -86,7 +86,7 @@ public class TranslationFactory : ITranslationFactory
         return stream.ToArray();
     }
 
-    public async Task<(bool Success, string? Message)> ImportXmlAsync(Stream xmlStream, string? userName)
+    public async Task<(bool Success, string? Message)> ImportXmlAsync(Stream xmlStream, string? userName, int? platformId = null)
     {
         var doc = await XDocument.LoadAsync(xmlStream, LoadOptions.None, CancellationToken.None);
 
@@ -118,10 +118,16 @@ public class TranslationFactory : ITranslationFactory
                 {
                     Key = keyId,
                     Module = module,
-                    Description = description
+                    Description = description,
+                    PlatformId = platformId ?? 5
                 };
                 _translationEs.AddKey(translationKey);
                 await _uow.SaveChangesAsync();
+                added++;
+            }
+            else if (platformId.HasValue && translationKey.PlatformId != platformId.Value)
+            {
+                translationKey.PlatformId = platformId.Value;
             }
 
             foreach (var valueElement in keyElement.Elements("Value"))

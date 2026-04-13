@@ -32,13 +32,13 @@ public class TranslationsController : AuditableControllerBase
     }
 
     [HttpPost("import/xml")]
-    public async Task<IActionResult> ImportXml(IFormFile file)
+    public async Task<IActionResult> ImportXml(IFormFile file, [FromQuery] int? platformId = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "Dosya secilmedi." });
 
         using var stream = file.OpenReadStream();
-        var (success, message) = await _translationFactory.ImportXmlAsync(stream, User.Identity?.Name);
+        var (success, message) = await _translationFactory.ImportXmlAsync(stream, User.Identity?.Name, platformId);
 
         if (!success)
             return BadRequest(new { message });

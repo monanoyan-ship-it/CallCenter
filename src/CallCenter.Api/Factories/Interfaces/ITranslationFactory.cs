@@ -6,7 +6,7 @@ public interface ITranslationFactory
 {
     Task<Dictionary<string, string>> GetAllTranslationsAsync(string languageCode, string? module = null, int? platformId = null);
     Task<byte[]> ExportXmlAsync();
-    Task<(bool Success, string? Message)> ImportXmlAsync(Stream xmlStream, string? userName);
+    Task<(bool Success, string? Message)> ImportXmlAsync(Stream xmlStream, string? userName, int? platformId = null);
     Task ReloadCacheAsync();
     Task<List<LanguageDto>> GetLanguagesAsync();
     Task<PagedResult<TranslationKeyListDto>> GetKeysAsync(int page, int pageSize, string? search, string? module, int? platformId = null);

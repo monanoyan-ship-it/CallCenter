@@ -145,7 +145,7 @@ function TranslationsViewModel() {
             toastr.info('XML yukleniyor...');
             self.isLoading(true);
             $.ajax({
-                url: '/proxy/translations/import/xml', method: 'POST',
+                url: '/proxy/translations/import/xml' + (self.platformFilter() ? '?platformId=' + self.platformFilter() : ''), method: 'POST',
                 data: formData, processData: false, contentType: false,
                 success: function(data) {
                     toastr.clear();
