@@ -220,8 +220,20 @@
         function toggleGroup(btn) {
             var items = btn.nextElementSibling;
             var chevron = btn.querySelector('.chevron');
-            items.classList.toggle('show');
-            chevron.classList.toggle('open');
+            var isOpen = items.classList.contains('show');
+
+            // Accordion: diger acik gruplari kapat
+            document.querySelectorAll('.nav-group-items.show').forEach(function(el) {
+                el.classList.remove('show');
+                var prev = el.previousElementSibling;
+                if (prev) { var c = prev.querySelector('.chevron'); if (c) c.classList.remove('open'); }
+            });
+
+            // Tiklanani toggle et
+            if (!isOpen) {
+                items.classList.add('show');
+                chevron.classList.add('open');
+            }
         }
 
         // Sube secici (birden fazla sube varsa goster)
