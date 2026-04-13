@@ -142,16 +142,21 @@ function TranslationsViewModel() {
             if (!input.files.length) return;
             var formData = new FormData();
             formData.append('file', input.files[0]);
+            toastr.info('XML yukleniyor...');
+            self.isLoading(true);
             $.ajax({
                 url: '/proxy/translations/import/xml', method: 'POST',
                 data: formData, processData: false, contentType: false,
                 success: function(data) {
+                    toastr.clear();
                     toastr.success(data.message || 'Import basarili.');
                     self.loadData(); self.reloadCache();
                 },
                 error: function(xhr) {
-                    var msg = xhr.responseJSON && xhr.responseJSON.message || 'Import hatasi.';
+                    toastr.clear();
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Import hatasi: ' + xhr.status;
                     toastr.error(msg);
+                    self.isLoading(false);
                 }
             });
             input.value = '';
