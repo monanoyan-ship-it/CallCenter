@@ -12,6 +12,7 @@
     <meta name="robots" content="noindex" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
     <style>
         body { background: #f5f5f5; font-family: 'Segoe UI', system-ui, sans-serif; }
         .step-indicator { display: flex; gap: .5rem; margin-bottom: 2rem; }
@@ -288,8 +289,11 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.min.js"></script>
     <script src="/js/phone-input.js"></script>
+    <script>toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };</script>
     <script>
         var bookSlug = '@slug';
 
@@ -340,10 +344,13 @@
                 cvc: ko.observable('')
             };
 
-            self.formatCardNumber = function () {
-                var v = self.card.cardNumber().replace(/\D/g, '');
-                var f = v.match(/.{1,4}/g);
-                self.card.cardNumber(f ? f.join(' ') : v);
+            // Kart numarasi formatting: blur'da bir kez calisir, input event'inde degil (loop riski)
+            self.formatCardNumber = function (data, event) {
+                if (event && event.type === 'blur') {
+                    var v = (self.card.cardNumber() || '').replace(/\D/g, '');
+                    var f = v.match(/.{1,4}/g);
+                    self.card.cardNumber(f ? f.join(' ') : v);
+                }
                 return true;
             };
 
@@ -492,7 +499,7 @@
                 if (requireDeposit) {
                     var cn = (self.card.cardNumber() || '').replace(/\s/g, '');
                     if (!cn || cn.length < 15 || !self.card.expMonth() || !self.card.expYear() || !self.card.cvc()) {
-                        alert('Depozito icin kart bilgilerini eksiksiz doldurunuz.');
+                        toastr.warning('Depozito için kart bilgilerini eksiksiz doldurunuz.');
                         return;
                     }
                 }
@@ -532,12 +539,12 @@
                     if (res.ok && res.data && res.data.success) {
                         self.bookingDone(true);
                     } else {
-                        var msg = (res.data && (res.data.message || res.data)) || 'Randevu olusturulamadi.';
-                        alert(msg);
+                        var msg = (res.data && (res.data.message || res.data)) || 'Randevu oluşturulamadı.';
+                        toastr.error(typeof msg === 'string' ? msg : 'Randevu oluşturulamadı.');
                     }
                 })
                 .catch(function () {
-                    alert('Bir hata olustu. Lutfen tekrar deneyin.');
+                    toastr.error('Bir hata oluştu. Lütfen tekrar deneyin.');
                     self.isSaving(false);
                 });
             };
