@@ -124,8 +124,9 @@
                     <h6 class="mb-3"><t key="salon.book.summary">Appointment Summary</t></h6>
                     <table class="table table-sm table-borderless mb-0">
                         <tr><td class="text-muted"><t key="salon.book.summary.service">Service</t></td><td class="fw-semibold" data-bind="text: selectedServiceName()"></td></tr>
-                        <tr><td class="text-muted"><t key="salon.book.summary.date">Date</t></td><td data-bind="text: selectedDate()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.date">Date</t></td><td data-bind="text: formattedDate()"></td></tr>
                         <tr><td class="text-muted"><t key="salon.book.summary.time">Time</t></td><td data-bind="text: selectedSlotLabel()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.summary.price">Price</t></td><td class="fw-bold text-primary" data-bind="text: selectedServicePrice()"></td></tr>
                         <tr><td class="text-muted"><t key="salon.book.summary.name">Name</t></td><td data-bind="text: form.fullName()"></td></tr>
                         <tr><td class="text-muted"><t key="salon.book.summary.phone">Phone</t></td><td data-bind="text: form.phone()"></td></tr>
                     </table>
@@ -196,6 +197,23 @@
                     c.services.forEach(function (s) { if (s.id === id) found = s.name; });
                 });
                 return found;
+            });
+
+            self.selectedServicePrice = ko.computed(function () {
+                var id = self.selectedServiceId();
+                if (!id) return '';
+                var price = 0;
+                self.categories().forEach(function (c) {
+                    c.services.forEach(function (s) { if (s.id === id) price = s.price; });
+                });
+                return price > 0 ? price.toLocaleString('tr-TR') + ' TL' : '';
+            });
+
+            self.formattedDate = ko.computed(function () {
+                var d = self.selectedDate();
+                if (!d) return '';
+                var dt = new Date(d + 'T00:00:00');
+                return dt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' });
             });
 
             self.selectedSlotLabel = ko.computed(function () {
