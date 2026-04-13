@@ -181,6 +181,39 @@ function SalesViewModel() {
             return;
         }
 
+        // BUG2.1: Personel secilmediyse uyari — onayla devam edebilir
+        if (!self.selectedPersonnelId()) {
+            if (!confirm('Personel seçmediniz. Bu tahsilat personele atanmadan kaydedilecek. Devam edilsin mi?')) {
+                return;
+            }
+        }
+
+        // BUG2.2: Musteri secilmediyse ad/soyad sor, hizli musteri olustur
+        if (!self.clientId()) {
+            var quickName = prompt('Müşteri seçilmedi. Kayıt için ad soyad girin (iptal = işlem iptal):', '');
+            if (quickName === null) return;
+            quickName = quickName.trim();
+            if (!quickName) {
+                toastr.warning('Müşteri adı gerekli.');
+                return;
+            }
+            self.isSaving(true);
+            $.ajax({
+                url: '/proxy/sln-clients',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ fullName: quickName })
+            }).done(function (resp) {
+                self.clientId(resp.id || resp.Id);
+                self.isSaving(false);
+                self.checkout();
+            }).fail(function () {
+                toastr.error('Müşteri oluşturulamadı.');
+                self.isSaving(false);
+            });
+            return;
+        }
+
         var items = self.cartItems().map(function (item) {
             return {
                 serviceId: item.serviceId,
