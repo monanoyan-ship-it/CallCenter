@@ -376,31 +376,38 @@ public class SlnPublicFactory : ISlnPublicFactory
             catch { }
         }
 
-        // Mevcut randevulari al
-        var dayStart = date.Date;
-        var dayEnd = date.Date.AddDays(1);
+        // Mevcut randevulari al (UTC kind — Npgsql timestamptz icin)
+        var dayStart = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var dayEnd = dayStart.AddDays(1);
         var existingAppointments = await _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == cid && a.StartTime >= dayStart && a.StartTime < dayEnd && a.StatusId != 4)
             .Select(a => new { a.StartTime, a.EndTime })
             .ToListAsync();
 
         // Musait slotlari hesapla (30 dk aralikla)
+        // ISO string olarak Z suffix'siz dondurulur ki JS local time olarak yorumlasin.
         var slots = new List<object>();
         var slotDuration = service.DurationMinutes;
+        var nowUtc = DateTime.UtcNow;
         for (var hour = openHour; hour < closeHour; hour++)
         {
             for (var min = 0; min < 60; min += 30)
             {
-                var slotStart = date.Date.AddHours(hour).AddMinutes(min);
+                var slotStart = dayStart.AddHours(hour).AddMinutes(min);
                 var slotEnd = slotStart.AddMinutes(slotDuration);
 
-                if (slotEnd > date.Date.AddHours(closeHour)) break;
-                if (slotStart < DateTime.UtcNow) continue;
+                if (slotEnd > dayStart.AddHours(closeHour)) break;
+                if (slotStart < nowUtc) continue;
 
                 var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
                 if (!hasConflict)
                 {
-                    slots.Add(new { startTime = slotStart, endTime = slotEnd });
+                    slots.Add(new
+                    {
+                        startTime = slotStart.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        endTime = slotEnd.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        timeText = slotStart.ToString("HH:mm")
+                    });
                 }
             }
         }
@@ -501,14 +508,16 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         // Randevu olustur (StatusId=1: Planlanmis, onay bekliyor)
+        // Npgsql timestamptz Utc kind bekler — local/unspecified -> utc kind olarak isaretle (saat degismez)
+        var start = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Utc);
         var appointment = new SlnAppointment
         {
             CustomerId = cid,
             SlnClientId = client.Id,
             PersonnelId = dto.PersonnelId ?? 0,
             ServiceId = dto.ServiceId,
-            StartTime = dto.StartTime,
-            EndTime = dto.StartTime.AddMinutes(service.DurationMinutes),
+            StartTime = start,
+            EndTime = start.AddMinutes(service.DurationMinutes),
             StatusId = 1,
             Notes = dto.Notes
         };

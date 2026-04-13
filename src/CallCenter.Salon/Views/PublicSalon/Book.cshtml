@@ -418,8 +418,7 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         var items = data.map(function (s) {
-                            var d = new Date(s.startTime);
-                            return { startTime: s.startTime, label: d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) };
+                            return { startTime: s.startTime, label: s.timeText || s.startTime.substring(11, 16) };
                         });
                         self.slots(items);
                         self.slotsLoaded(true);
