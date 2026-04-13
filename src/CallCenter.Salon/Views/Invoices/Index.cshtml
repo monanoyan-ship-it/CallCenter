@@ -184,7 +184,7 @@
                         <div class="mb-1">
                             <small class="text-muted" data-bind="text: name" style="font-size:.7rem;"></small>
                             <div class="d-flex flex-wrap gap-1">
-                                <!-- ko foreach: services -->
+                                <!-- ko foreach: (services || []) -->
                                 <button class="btn btn-sm py-0 px-2" style="font-size:.78rem;"
                                     data-bind="click: function() { $root.addServiceItem($data); },
                                                css: $root.isItemAdded($data.id, 'Service') ? 'btn-primary' : 'btn-outline-secondary'">
