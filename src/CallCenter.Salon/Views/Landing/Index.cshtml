@@ -94,9 +94,9 @@
                 <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
                 <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
                 <a href="/Account/Login" class="nav-btn">@(currentCulture == "tr" ? "Giris Yap" : "Sign In")</a>
-                @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values.Where(l => l.Code != currentCulture).Take(4))
+                @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
                 {
-                    <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();" class="nav-btn" style="margin-left:4px;">@lang.Label</a>
+                    <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();" class="nav-btn" style="margin-left:4px;@(lang.Code == currentCulture ? "background:var(--accent);color:#fff;" : "")">@lang.Label</a>
                 }
             </div>
         </nav>
