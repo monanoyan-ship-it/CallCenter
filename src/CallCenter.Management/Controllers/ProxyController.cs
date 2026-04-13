@@ -30,13 +30,13 @@ public class ProxyController : MgmtBaseController
                 var stream = file.OpenReadStream();
                 content.Add(new StreamContent(stream), file.Name, file.FileName);
             }
-            response = await client.PostAsync($"api/{path}", content);
+            response = await client.PostAsync($"api/{path}{Request.QueryString}", content);
         }
         else
         {
             using var reader = new StreamReader(Request.Body);
             var body = await reader.ReadToEndAsync();
-            response = await client.PostAsync($"api/{path}",
+            response = await client.PostAsync($"api/{path}{Request.QueryString}",
                 new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         }
 
@@ -49,7 +49,7 @@ public class ProxyController : MgmtBaseController
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PutAsync($"api/{path}",
+        var response = await client.PutAsync($"api/{path}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ToJsonResult(response);
     }
