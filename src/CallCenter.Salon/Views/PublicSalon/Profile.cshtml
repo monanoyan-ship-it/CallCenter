@@ -515,8 +515,9 @@
                 return order.map(function (key) { return { key: key }; });
             });
 
-            var dayNames = { mon: 'Pazartesi', tue: 'Sali', wed: 'Carsamba', thu: 'Persembe', fri: 'Cuma', sat: 'Cumartesi', sun: 'Pazar' };
+            var dayNames = { mon: 'Pazartesi', tue: 'Salı', wed: 'Çarşamba', thu: 'Perşembe', fri: 'Cuma', sat: 'Cumartesi', sun: 'Pazar' };
             var dayOrder = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+            var closedText = 'Kapalı';
             var todayIdx = (new Date().getDay() + 6) % 7;
 
             fetch('/proxy/salon/' + salonSlug)
@@ -530,7 +531,8 @@
                             var h = JSON.parse(data.workingHoursJson);
                             var list = [];
                             dayOrder.forEach(function (key, idx) {
-                                list.push({ day: dayNames[key], hours: h[key] || 'Kapali', isToday: idx === todayIdx });
+                                var val = h[key] || 'closed';
+                                list.push({ day: dayNames[key], hours: val === 'closed' ? closedText : val, isToday: idx === todayIdx });
                             });
                             self.workingHours(list);
                         } catch (e) {}
