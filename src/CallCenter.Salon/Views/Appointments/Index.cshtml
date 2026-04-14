@@ -180,7 +180,12 @@
                             <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: statusId !== 3 && statusId !== 4 && statusId !== 5">
+                                    <!-- Planlanmis (1): once Onayla -->
+                                    <button class="btn btn-outline-info" title="Onayla" data-bind="click: $parent.confirm, visible: statusId === 1">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                    <!-- Onaylandi (2): Tamamla -->
+                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: statusId === 2">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">

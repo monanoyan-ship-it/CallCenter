@@ -166,7 +166,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         }
 
         invoice.TotalAmount = totalAmount;
-        invoice.NetAmount = totalAmount - dto.DiscountAmount;
+        // BUG.A2: bahsis opsiyonel olarak NetAmount'a eklenir
+        invoice.NetAmount = totalAmount - dto.DiscountAmount + (dto.IncludeTipInTotal ? dto.TipAmount : 0);
         invoice.StatusId = 2; // Paid
 
         _invoices.Add(invoice);

@@ -13,6 +13,7 @@ function SalesViewModel() {
     self.paymentMethodId = ko.observable('1');
     self.discountAmount = ko.observable(0);
     self.tipAmount = ko.observable(0);
+    self.tipIncludeInTotal = ko.observable(false); // BUG.A2: bahsis toplama dahil mi
     self.linkedAppointmentId = ko.observable(null);
     self.todayAppointments = ko.observableArray([]);
     self.appointmentsLoading = ko.observable(false);
@@ -75,7 +76,8 @@ function SalesViewModel() {
     });
 
     self.grandTotal = ko.computed(function () {
-        return Math.max(0, self.subtotal() - (parseFloat(self.discountAmount()) || 0));
+        var tip = self.tipIncludeInTotal() ? (parseFloat(self.tipAmount()) || 0) : 0;
+        return Math.max(0, self.subtotal() - (parseFloat(self.discountAmount()) || 0) + tip);
     });
 
     // ═══ Data Loading ═══
@@ -193,6 +195,7 @@ function SalesViewModel() {
             paymentMethodId: parseInt(self.paymentMethodId()) || 1,
             discountAmount: parseFloat(self.discountAmount()) || 0,
             tipAmount: parseFloat(self.tipAmount()) || 0,
+            includeTipInTotal: self.tipIncludeInTotal() === true,
             notes: self.isPrepaid() ? 'Ön ödeme: ' + self.prepaidAmount() + ' TL (Online)' : null,
             prepaidAmount: self.prepaidAmount(),
             items: items

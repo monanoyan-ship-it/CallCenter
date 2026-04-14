@@ -179,6 +179,12 @@
                         <span class="input-group-text">TL</span>
                     </div>
                 </div>
+                <!-- ko if: (parseFloat(tipAmount()) || 0) > 0 -->
+                <div class="form-check form-switch mb-2 ms-1">
+                    <input class="form-check-input" type="checkbox" id="tipIncludeChk" data-bind="checked: tipIncludeInTotal" />
+                    <label class="form-check-label small text-muted" for="tipIncludeChk">Bahsisi toplama dahil et</label>
+                </div>
+                <!-- /ko -->
                 <!-- ko if: isPrepaid() -->
                 <div class="alert alert-info py-1 small mb-2">
                     <i class="bi bi-credit-card me-1"></i>Online ön ödeme: <strong data-bind="text: prepaidAmount().toLocaleString('tr-TR') + ' TL'"></strong>

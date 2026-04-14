@@ -378,6 +378,20 @@ function AppointmentsViewModel() {
         });
     };
 
+    // Planlanmis (1) -> Onaylandi (2): musteri rezervasyonu onayla
+    self.confirm = function (appt) {
+        $.ajax({
+            url: '/proxy/sln-appointments/' + appt.id + '/status',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ statusId: 2 })
+        }).done(function () {
+            self.loadAppointments();
+            toastr.success('Randevu onaylandi');
+        });
+    };
+
+    // Onaylandi (2) -> Tamamlandi (3): hizmet bitti
     self.complete = function (appt) {
         $.ajax({
             url: '/proxy/sln-appointments/' + appt.id + '/status',

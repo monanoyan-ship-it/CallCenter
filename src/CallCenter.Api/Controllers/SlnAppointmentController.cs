@@ -21,12 +21,13 @@ public class SlnAppointmentController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<SlnAppointmentDto>>> GetAppointments(
         [FromQuery] DateTime? from, [FromQuery] DateTime? to,
-        [FromQuery] int? personnelId, [FromQuery] int? statusId)
+        [FromQuery] int? personnelId, [FromQuery] int? statusId,
+        [FromQuery] int? slnClientId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, GetBranchId());
+        var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, GetBranchId(), slnClientId);
         return Ok(appointments);
     }
 

@@ -239,6 +239,8 @@ public class SlnInvoiceCreateDto
     public int? PosDeviceId { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal TipAmount { get; set; }
+    /// <summary>true: bahsis NetAmount'a dahil edilir (musteri toplama oder). false: bahsis ayri tutulur (personel hakki).</summary>
+    public bool IncludeTipInTotal { get; set; }
     public string? Notes { get; set; }
     public List<SlnInvoiceItemCreateDto> Items { get; set; } = [];
 }

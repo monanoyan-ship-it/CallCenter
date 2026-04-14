@@ -47,12 +47,15 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         .Include(a => a.Service)
         .Include(a => a.Services).ThenInclude(s => s.SlnService);
 
-    public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null, int? branchId = null)
+    public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null, int? branchId = null, int? slnClientId = null)
     {
         var query = _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId);
 
-        if (branchId.HasValue)
+        // Musteri detay sayfasi: o musterinin tum randevulari (sube filtresi olmadan — musteri farkli subede de randevu almis olabilir)
+        if (slnClientId.HasValue && slnClientId.Value > 0)
+            query = query.Where(a => a.SlnClientId == slnClientId.Value);
+        else if (branchId.HasValue)
             query = query.Where(a => a.BranchId == branchId.Value);
 
         if (from.HasValue)
