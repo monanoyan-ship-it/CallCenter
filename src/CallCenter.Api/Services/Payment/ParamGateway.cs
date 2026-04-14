@@ -175,24 +175,81 @@ public class ParamGateway : IPaymentGateway
 
     public async Task<(bool Success, string? Error)> TestConnectionAsync(CancellationToken ct = default)
     {
+        // 1) Once endpoint erisilebilir mi — WSDL GET
         try
         {
-            // SOAP TP_Islem_Odeme_OnProv_KK ya da basit BIN sorgulama — hafif: asmx'e HEAD/GET vurup 200 bekleriz.
-            // Gercek Param endpoint kimlik dogrulamasi SOAP icinde yapildigi icin, baglanti testi olarak
-            // asmx WSDL sayfasinin acilmasi credentials'tan bagimsiz — yalnizca URL dogrulanir.
-            var req = new HttpRequestMessage(HttpMethod.Get, "?WSDL");
-            var response = await _http.SendAsync(req, ct);
-            if (!response.IsSuccessStatusCode)
-                return (false, $"Param endpoint ulasilamadi (HTTP {(int)response.StatusCode}).");
-
-            var text = await response.Content.ReadAsStringAsync(ct);
-            if (!text.Contains("TP_WMD_UCD", StringComparison.OrdinalIgnoreCase))
-                return (false, "Param endpoint dogrulanamadi (TP_WMD_UCD metodu yok).");
-            return (true, null);
+            var wsdlReq = new HttpRequestMessage(HttpMethod.Get, "?WSDL");
+            var wsdlResp = await _http.SendAsync(wsdlReq, ct);
+            if (!wsdlResp.IsSuccessStatusCode)
+                return (false, $"Param endpoint ulasilamadi (HTTP {(int)wsdlResp.StatusCode}). BaseUrl dogru mu?");
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            return (false, "Param endpoint baglantisi basarisiz: " + ex.Message);
+        }
+
+        // 2) Gercek kimlik dogrulamasi — BIN_SanalPos SOAP cagrisi (credentials gecerli mi?)
+        //    Bu metod sahte BIN numarasiyla sorgu yapar, response Sonuc=1/0 doner.
+        try
+        {
+            var body =
+                "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
+                "<soap:Body>" +
+                $"<BIN_SanalPos xmlns=\"{SoapNs}\">" +
+                "<G>" +
+                $"<CLIENT_CODE>{X(_credentials.ClientCode)}</CLIENT_CODE>" +
+                $"<CLIENT_USERNAME>{X(_credentials.ClientUsername)}</CLIENT_USERNAME>" +
+                $"<CLIENT_PASSWORD>{X(_credentials.ClientPassword)}</CLIENT_PASSWORD>" +
+                "</G>" +
+                $"<GUID>{X(_credentials.Guid)}</GUID>" +
+                "<BIN>454360</BIN>" +
+                "</BIN_SanalPos>" +
+                "</soap:Body></soap:Envelope>";
+
+            var req = new HttpRequestMessage(HttpMethod.Post, "")
+            {
+                Content = new StringContent(body, Encoding.UTF8, "text/xml")
+            };
+            req.Headers.TryAddWithoutValidation("SOAPAction", $"\"{SoapNs}BIN_SanalPos\"");
+
+            var response = await _http.SendAsync(req, ct);
+            var xml = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+                return (false, $"Param BIN_SanalPos HTTP {(int)response.StatusCode}: " + xml.Substring(0, Math.Min(300, xml.Length)));
+
+            // SOAP fault var mi?
+            if (xml.Contains("soap:Fault", StringComparison.OrdinalIgnoreCase)
+             || xml.Contains("faultstring", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var doc = XDocument.Parse(xml);
+                    var fault = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "faultstring");
+                    return (false, "Param SOAP fault: " + (fault?.Value ?? "bilinmiyor"));
+                }
+                catch { return (false, "Param SOAP fault aliniyor."); }
+            }
+
+            try
+            {
+                var doc = XDocument.Parse(xml);
+                string? get(string n) => doc.Descendants().FirstOrDefault(e => e.Name.LocalName == n)?.Value;
+                var sonuc = get("Sonuc");
+                var sonucStr = get("Sonuc_Str");
+
+                // Param: Sonuc=1 basari, diger kodlar credentials/parametre hatasi
+                if (sonuc == "1") return (true, null);
+                return (false, $"Param credentials test basarisiz (Sonuc={sonuc}): {sonucStr ?? "Aciklama yok"}");
+            }
+            catch (Exception px)
+            {
+                return (false, "Param XML parse hatasi: " + px.Message + " | Raw: " + xml.Substring(0, Math.Min(200, xml.Length)));
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, "Param test hatasi: " + ex.Message);
         }
     }
 
