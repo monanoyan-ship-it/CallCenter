@@ -69,6 +69,9 @@ builder.Services
 // SignalR
 builder.Services.AddSignalR();
 
+// Background jobs (PAY.5 trial expiry, abonelik askıya alma)
+builder.Services.AddHostedService<CallCenter.Api.Services.SubscriptionExpiryHostedService>();
+
 // Controllers
 builder.Services.AddControllers();
 
