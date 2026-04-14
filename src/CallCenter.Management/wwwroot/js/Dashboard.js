@@ -21,7 +21,6 @@ function DashboardViewModel() {
     };
 
     self.loadData();
-    // 60sn otomatik yenileme
-    setInterval(self.loadData, 60000);
+    // Ahmet talebi: otomatik yenileme kaldırıldı, kullanıcı sayfayı manuel yenilesin.
 }
 ko.applyBindings(new DashboardViewModel(), document.getElementById('dashboard-vm'));

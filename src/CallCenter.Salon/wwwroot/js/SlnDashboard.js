@@ -46,6 +46,6 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         loadDashboard();
-        setInterval(loadDashboard, 60000); // 60sn yenile
+        // Ahmet talebi: otomatik yenileme kaldırıldı, kullanıcı sayfayı manuel yenilesin.
     });
 })();

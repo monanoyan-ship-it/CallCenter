@@ -159,6 +159,10 @@
                 return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             }
 
+            // Ahmet talebi: kullanici konumuna gore yakin salonlari oncelikli goster (20 km icinde).
+            // Arama yapinca filtre devre disi (kullanici manuel arama yapiyor).
+            var MAX_RADIUS_KM = 20;
+
             self.filteredSalons = ko.computed(function () {
                 var q = (self.searchQuery() || '').toLowerCase();
                 var uLat = self.userLat(), uLng = self.userLng();
@@ -182,6 +186,11 @@
                             || (s.city || '').toLowerCase().indexOf(q) >= 0
                             || (s.district || '').toLowerCase().indexOf(q) >= 0;
                     });
+                } else if (uLat !== null) {
+                    // Arama yoksa ve konum varsa: yariCap disindakileri filtrele
+                    list = list.filter(function (s) {
+                        return s.distanceKm !== null && s.distanceKm <= MAX_RADIUS_KM;
+                    });
                 }
 
                 // Konum varsa: mesafeye gore, koordinatsizlar sona. Yoksa alfabetik.
@@ -203,26 +212,51 @@
             }).addTo(map);
 
             var userMarker = null;
+            var userIcon = L.divIcon({
+                className: '',
+                html: '<div style="background:#4285f4;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3);"></div>',
+                iconSize: [14, 14], iconAnchor: [7, 7]
+            });
+
+            function setUserLocation(lat, lng, zoom) {
+                self.userLat(lat);
+                self.userLng(lng);
+                if (userMarker) {
+                    userMarker.setLatLng([lat, lng]);
+                } else {
+                    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('Konumunuz');
+                }
+                if (zoom) map.setView([lat, lng], zoom);
+            }
 
             // Kullanici konumu al
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (pos) {
-                    var lat = pos.coords.latitude, lng = pos.coords.longitude;
-                    self.userLat(lat);
-                    self.userLng(lng);
-                    map.setView([lat, lng], 14); // Ahmet: kullanici konumuna yakin zoom, yakin salonlari oncelikle goster
-                    userMarker = L.marker([lat, lng], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: '<div style="background:#4285f4;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3);"></div>',
-                            iconSize: [14, 14], iconAnchor: [7, 7]
-                        })
-                    }).addTo(map).bindPopup('Konumunuz');
-                    // openPopup KALDIRILDI — acik popup yakındaki salon marker'larını gizliyordu
+                    setUserLocation(pos.coords.latitude, pos.coords.longitude, 13);
                 }, function () {
                     // Konum izni reddedildi - Turkiye gorunumunde kal
                 }, { timeout: 5000 });
             }
+
+            // Ahmet talebi: kullanici haritaya tiklayarak konumunu degistirebilsin (popup onayi ile).
+            map.on('click', function (e) {
+                var lat = e.latlng.lat, lng = e.latlng.lng;
+                var html = '<div style="min-width:180px;">' +
+                    '<div class="small mb-2">Konumunuzu buraya taşımak ister misiniz?</div>' +
+                    '<button type="button" class="btn btn-sm btn-primary w-100" id="confirmLocBtn">Evet, buraya taşı</button>' +
+                    '</div>';
+                var popup = L.popup({ closeButton: true })
+                    .setLatLng([lat, lng])
+                    .setContent(html)
+                    .openOn(map);
+                setTimeout(function () {
+                    var btn = document.getElementById('confirmLocBtn');
+                    if (btn) btn.addEventListener('click', function () {
+                        setUserLocation(lat, lng, null);
+                        map.closePopup(popup);
+                    });
+                }, 50);
+            });
 
             fetch('/proxy/salon/')
                 .then(function (r) { return r.ok ? r.json() : []; })
