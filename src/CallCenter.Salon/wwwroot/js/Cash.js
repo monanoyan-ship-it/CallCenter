@@ -6,8 +6,10 @@ function CashViewModel() {
     self.isSaving = ko.observable(false);
 
     self.registerForm = {
+        id: ko.observable(null),
         name: ko.observable(''),
-        branchId: ko.observable(null)
+        branchId: ko.observable(null),
+        isActive: ko.observable(true)
     };
     self.branches = ko.observableArray([]);
 
@@ -66,7 +68,9 @@ function CashViewModel() {
 
     // Kasa CRUD
     self.openNewRegister = function () {
+        self.registerForm.id(null);
         self.registerForm.name('');
+        self.registerForm.isActive(true);
         // Varsayilan: tek sube varsa secili, coklu subede kullanici secer
         if (self.branches().length === 1) {
             self.registerForm.branchId(self.branches()[0].id);
@@ -76,26 +80,39 @@ function CashViewModel() {
         registerModal.show();
     };
 
+    self.editRegister = function (r) {
+        self.registerForm.id(r.id);
+        self.registerForm.name(r.name);
+        self.registerForm.branchId(r.branchId || null);
+        self.registerForm.isActive(r.isActive !== false);
+        registerModal.show();
+    };
+
     self.saveRegister = function () {
         var data = {
             name: self.registerForm.name(),
-            branchId: self.registerForm.branchId() ? parseInt(self.registerForm.branchId()) : null
+            branchId: self.registerForm.branchId() ? parseInt(self.registerForm.branchId()) : null,
+            isActive: self.registerForm.isActive() !== false
         };
         if (!data.name) { toastr.warning('Kasa adi zorunludur'); return; }
         if (self.branches().length > 1 && !data.branchId) {
             toastr.warning('Sube seciniz'); return;
         }
 
+        var id = self.registerForm.id();
+        var url = id ? '/proxy/sln-finance/cash-registers/' + id : '/proxy/sln-finance/cash-registers';
+        var method = id ? 'PUT' : 'POST';
+
         self.isSaving(true);
         $.ajax({
-            url: '/proxy/sln-finance/cash-registers',
-            method: 'POST',
+            url: url,
+            method: method,
             contentType: 'application/json',
             data: JSON.stringify(data)
         }).done(function () {
             registerModal.hide();
             self.loadRegisters();
-            toastr.success('Kasa olusturuldu');
+            toastr.success(id ? 'Kasa guncellendi' : 'Kasa olusturuldu');
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || 'Kasa olusturulamadi');

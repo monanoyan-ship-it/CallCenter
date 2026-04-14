@@ -80,10 +80,23 @@ public class AccountController : SlnBaseController
         return Json(new { success = true });
     }
 
+    [HttpGet]
+    [HttpPost]
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
-        Response.Cookies.Delete("RememberToken");
+        // HttpOnly+Secure+SameSite=Lax ile set edilmisti — Delete'te ayni flags aksi halde
+        // bazi tarayicilar cookie yi silmez. Secure false ise http local test'te de silinir.
+        var opts = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        };
+        Response.Cookies.Delete("RememberToken", opts);
+        // Ek guvenlik: subscription cache, customer modules vs.
+        Response.Cookies.Delete("SubscriptionActive", opts);
         return RedirectToAction("Login");
     }
 

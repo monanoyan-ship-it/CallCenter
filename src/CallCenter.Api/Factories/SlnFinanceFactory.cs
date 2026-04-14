@@ -295,6 +295,25 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return result;
     }
 
+    public async Task<(bool Success, string? Error)> UpdateCashRegisterAsync(int registerId, string name, int? branchId, bool isActive, int customerId)
+    {
+        var register = await _cashRegisters.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
+        if (register == null) return (false, "Kasa bulunamadi");
+
+        if (!string.IsNullOrWhiteSpace(name)) register.Name = name.Trim();
+        if (branchId.HasValue)
+        {
+            var branchExists = await _branches.GetAllQueryable()
+                .AnyAsync(b => b.Id == branchId.Value && b.CustomerId == customerId);
+            if (!branchExists) return (false, "Gecersiz sube");
+            register.BranchId = branchId.Value;
+        }
+        register.IsActive = isActive;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     /// <summary>BranchId null olan eski kasalari firmanin merkez subesine tasir</summary>
     public async Task<object> NormalizeCashRegisterBranchesAsync(int customerId)
     {

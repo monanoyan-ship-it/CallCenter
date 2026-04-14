@@ -20,17 +20,24 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
                     <h6 class="mb-0" data-bind="text: name"></h6>
-                    <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                        <i class="bi bi-pencil text-muted" style="cursor:pointer;font-size:.8rem;" title="Duzenle" data-bind="click: $parent.editRegister"></i>
+                    </div>
                 </div>
                 <div class="card-body py-2">
                     <div class="row text-center">
-                        <div class="col-6">
+                        <div class="col-4">
                             <div class="text-muted" style="font-size: .7rem;">Bakiye</div>
                             <div class="fw-bold" data-bind="text: (balance || 0).toLocaleString('tr-TR') + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <div class="text-muted" style="font-size: .7rem;">Tur</div>
                             <div class="small" data-bind="text: typeName"></div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-muted" style="font-size: .7rem;">Sube</div>
+                            <div class="small" data-bind="text: branchName || '-'"></div>
                         </div>
                     </div>
                 </div>
@@ -116,7 +123,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Yeni Kasa</h6>
+                    <h6 class="modal-title" data-bind="text: registerForm.id() ? 'Kasa Duzenle' : 'Yeni Kasa'"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -133,6 +140,14 @@
                                 optionsText: function(b){ return b.name + (b.isHeadquarter ? ' (Merkez)' : ''); },
                                 optionsValue: 'id',
                                 optionsCaption: 'Sube seciniz'"></select>
+                        </div>
+                        <!-- /ko -->
+                        <!-- ko if: registerForm.id() -->
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="regIsActive" data-bind="checked: registerForm.isActive" />
+                                <label class="form-check-label small" for="regIsActive">Aktif</label>
+                            </div>
                         </div>
                         <!-- /ko -->
                     </div>

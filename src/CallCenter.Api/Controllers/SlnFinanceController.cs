@@ -89,6 +89,16 @@ public class SlnFinanceController : ControllerBase
         return Ok(register);
     }
 
+    [HttpPut("cash-registers/{id}")]
+    public async Task<ActionResult> UpdateCashRegister(int id, [FromBody] SlnCashRegisterUpdateRequest req)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _financeFactory.UpdateCashRegisterAsync(id, req.Name, req.BranchId, req.IsActive, customerId);
+        return success ? Ok() : BadRequest(new { message = error });
+    }
+
     /// <summary>BranchId null olan eski kasalari merkez subeye tasir (bir seferlik)</summary>
     [HttpPost("cash-registers/normalize-branch")]
     public async Task<ActionResult> NormalizeCashRegisterBranches()
@@ -303,6 +313,13 @@ public class SlnCashRegisterCreateRequest
 {
     public string Name { get; set; } = string.Empty;
     public int? BranchId { get; set; }
+}
+
+public class SlnCashRegisterUpdateRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
 public class RefundRequest
