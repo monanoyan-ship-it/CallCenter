@@ -217,7 +217,8 @@
                             html: '<div style="background:#4285f4;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.3);"></div>',
                             iconSize: [14, 14], iconAnchor: [7, 7]
                         })
-                    }).addTo(map).bindPopup('Konumunuz').openPopup();
+                    }).addTo(map).bindPopup('Konumunuz');
+                    // openPopup KALDIRILDI — acik popup yakındaki salon marker'larını gizliyordu
                 }, function () {
                     // Konum izni reddedildi - Turkiye gorunumunde kal
                 }, { timeout: 5000 });
