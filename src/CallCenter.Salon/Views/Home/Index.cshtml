@@ -71,8 +71,8 @@
             <div class="card-header bg-white border-0 fw-semibold">
                 <i class="bi bi-calendar-check me-2"></i>Bugunun Randevulari
             </div>
-            <div class="card-body">
-                <p class="text-muted small">Henuz veri yok. API entegrasyonu sonrasi aktif olacak.</p>
+            <div class="card-body" id="todayApptList">
+                <p class="text-muted small mb-0">Yükleniyor...</p>
             </div>
         </div>
     </div>
@@ -81,8 +81,8 @@
             <div class="card-header bg-white border-0 fw-semibold">
                 <i class="bi bi-bell me-2"></i>Hatirlatmalar
             </div>
-            <div class="card-body">
-                <p class="text-muted small">Dogum gunleri, yildonumleri ve odeme hatirlatmalari burada gorunecek.</p>
+            <div class="card-body" id="reminderList">
+                <p class="text-muted small mb-0">Yükleniyor...</p>
             </div>
         </div>
     </div>
@@ -91,4 +91,9 @@
 <style>
     .text-purple { color: #7b1fa2 !important; }
     .bg-purple { background-color: #7b1fa2 !important; }
+    .bg-purple-subtle { background-color: rgba(123,31,162,0.12) !important; }
 </style>
+
+@section Scripts {
+    <script src="~/js/SlnDashboard.js" asp-append-version="true"></script>
+}
