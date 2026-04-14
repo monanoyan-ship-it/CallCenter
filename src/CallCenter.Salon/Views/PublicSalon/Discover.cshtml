@@ -94,8 +94,14 @@
                                 <i class="bi bi-scissors fs-5" style="color:#7b1fa2;"></i>
                                 <!-- /ko -->
                             </div>
-                            <div>
-                                <h6 class="fw-bold mb-1" data-bind="text: salonName"></h6>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="fw-bold mb-1" data-bind="text: salonName"></h6>
+                                    <!-- ko if: distanceText -->
+                                    <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.7rem;white-space:nowrap;"
+                                          data-bind="text: distanceText"></span>
+                                    <!-- /ko -->
+                                </div>
                                 <!-- ko if: description -->
                                 <p class="text-muted small mb-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" data-bind="text: description"></p>
                                 <!-- /ko -->
@@ -124,14 +130,55 @@
             self.isLoading = ko.observable(true);
             var map, markers = [];
 
+            self.userLat = ko.observable(null);
+            self.userLng = ko.observable(null);
+
+            // Haversine: iki coord arasi km mesafe
+            function haversineKm(lat1, lon1, lat2, lon2) {
+                var R = 6371;
+                var toRad = function (x) { return x * Math.PI / 180; };
+                var dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+                var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                      + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+                      * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
+
             self.filteredSalons = ko.computed(function () {
                 var q = (self.searchQuery() || '').toLowerCase();
-                if (!q) return self.salons();
-                return self.salons().filter(function (s) {
-                    return (s.salonName || '').toLowerCase().indexOf(q) >= 0
-                        || (s.city || '').toLowerCase().indexOf(q) >= 0
-                        || (s.district || '').toLowerCase().indexOf(q) >= 0;
+                var uLat = self.userLat(), uLng = self.userLng();
+
+                var list = self.salons().map(function (s) {
+                    var d = null;
+                    if (uLat !== null && s.latitude && s.longitude) {
+                        d = haversineKm(uLat, uLng, s.latitude, s.longitude);
+                    }
+                    return Object.assign({}, s, {
+                        distanceKm: d,
+                        distanceText: d === null ? ''
+                            : d < 1 ? Math.round(d * 1000) + ' m'
+                            : d.toFixed(1) + ' km'
+                    });
                 });
+
+                if (q) {
+                    list = list.filter(function (s) {
+                        return (s.salonName || '').toLowerCase().indexOf(q) >= 0
+                            || (s.city || '').toLowerCase().indexOf(q) >= 0
+                            || (s.district || '').toLowerCase().indexOf(q) >= 0;
+                    });
+                }
+
+                // Konum varsa: mesafeye gore, koordinatsizlar sona. Yoksa alfabetik.
+                if (uLat !== null) {
+                    list.sort(function (a, b) {
+                        if (a.distanceKm === null && b.distanceKm === null) return 0;
+                        if (a.distanceKm === null) return 1;
+                        if (b.distanceKm === null) return -1;
+                        return a.distanceKm - b.distanceKm;
+                    });
+                }
+                return list;
             });
 
             // Harita init - Turkiye merkezi (konum alinamazsa fallback)
@@ -146,6 +193,8 @@
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (pos) {
                     var lat = pos.coords.latitude, lng = pos.coords.longitude;
+                    self.userLat(lat);
+                    self.userLng(lng);
                     map.setView([lat, lng], 12);
                     userMarker = L.marker([lat, lng], {
                         icon: L.divIcon({

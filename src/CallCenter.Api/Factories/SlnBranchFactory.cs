@@ -117,8 +117,8 @@ public class SlnBranchFactory : ISlnBranchFactory
             Name = dto.Name,
             Slug = !string.IsNullOrWhiteSpace(dto.Slug) ? dto.Slug : GenerateSlug(dto.Name),
             Address = dto.Address,
-            City = dto.City,
-            District = dto.District,
+            City = NormalizeTrCity(dto.City),
+            District = NormalizeTrCity(dto.District),
             Phone = dto.Phone,
             Email = dto.Email,
             GoogleMapsUrl = dto.GoogleMapsUrl,
@@ -150,8 +150,8 @@ public class SlnBranchFactory : ISlnBranchFactory
         branch.Name = dto.Name;
         branch.Slug = dto.Slug;
         branch.Address = dto.Address;
-        branch.City = dto.City;
-        branch.District = dto.District;
+        branch.City = NormalizeTrCity(dto.City);
+        branch.District = NormalizeTrCity(dto.District);
         branch.Phone = dto.Phone;
         branch.Email = dto.Email;
         branch.GoogleMapsUrl = dto.GoogleMapsUrl;
@@ -227,6 +227,44 @@ public class SlnBranchFactory : ISlnBranchFactory
 
         _logger.LogInformation("Sube silindi: {BranchId}", branchId);
         return (true, null);
+    }
+
+    public async Task<object> NormalizeAddressesAsync(int customerId)
+    {
+        var branches = await _branches.GetAllQueryable()
+            .Where(b => b.CustomerId == customerId)
+            .ToListAsync();
+        int updated = 0;
+        foreach (var b in branches)
+        {
+            var newCity = NormalizeTrCity(b.City);
+            var newDist = NormalizeTrCity(b.District);
+            if (newCity != b.City || newDist != b.District)
+            {
+                b.City = newCity;
+                b.District = newDist;
+                updated++;
+            }
+        }
+        if (updated > 0) await _uow.SaveChangesAsync();
+        return new { total = branches.Count, updated };
+    }
+
+    // TR-aware: "istanbul  " -> "İstanbul", "KAHRAMANMARAŞ" -> "Kahramanmaraş"
+    private static string? NormalizeTrCity(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        var tr = new System.Globalization.CultureInfo("tr-TR");
+        var s = System.Text.RegularExpressions.Regex.Replace(raw.Trim(), "\\s+", " ");
+        if (s.Length == 0) return s;
+        var lower = s.ToLower(tr);
+        var parts = lower.Split(' ');
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (parts[i].Length > 0)
+                parts[i] = parts[i].Substring(0, 1).ToUpper(tr) + parts[i].Substring(1);
+        }
+        return string.Join(' ', parts);
     }
 
     private static string GenerateSlug(string input)

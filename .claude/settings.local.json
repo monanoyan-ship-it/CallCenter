@@ -256,7 +256,9 @@
       "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/giris\"\\)\\\\]|[HttpGet\\(\"user/login\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
       "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/kayit\"\\)\\\\]|[HttpGet\\(\"user/register\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
       "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/panel\"\\)\\\\]|[HttpGet\\(\"user/panel\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
-      "Bash(sed -i 's|\\\\[HttpGet\\(\"gizlilik\"\\)\\\\]|[HttpGet\\(\"privacy\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)"
+      "Bash(sed -i 's|\\\\[HttpGet\\(\"gizlilik\"\\)\\\\]|[HttpGet\\(\"privacy\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
+      "Read(//c/Users/Ahmet/.claude/**)",
+      "Bash(git restore:*)"
     ]
   }
 }

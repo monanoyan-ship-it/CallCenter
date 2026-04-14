@@ -13,7 +13,27 @@ curl -s http://127.0.0.1:41847/api/projects/15/roadmap/summary
 ```
 Rehberdeki tüm kurallar, hatalar ve tercihler bu oturumda GEÇERLİDİR.
 
-### 2. ClaudeManager'a Yazma ZORUNLU
+### 2. Oturum Koordinasyonu ZORUNLU (Chat ID 8)
+Birden fazla Claude oturumu aynı anda çalışabiliyor. Çakışmayı önlemek için:
+```
+# 1. Okunmamış mesajları oku (role: a=Console, b=Browser)
+curl -s http://127.0.0.1:41847/api/ai-chat/8/unread/a
+
+# 2. Okundu işaretle
+curl -s -X POST http://127.0.0.1:41847/api/ai-chat/8/read/a
+
+# 3. Ne üzerinde çalışacağını CLAIM et
+curl -s -X POST http://127.0.0.1:41847/api/ai-chat/8/message \
+  -H "Content-Type: application/json" \
+  -d '{"role":"a","content":"BUG.XX ve BUG.YY uzerinde calisiyorum. Dosyalar: X.js, Y.cshtml"}'
+```
+**KURALLAR:**
+- Mesaj okumadan KOD YAZMA. Diğer oturum aynı dosyayı değiştiriyor olabilir.
+- Çalışacağın dosyaları chat'e yaz ki diğer oturum dokunmasın.
+- Fix bitince sonucu chat'e yaz.
+- Aynı dosyaya iki oturum ASLA aynı anda dokunmaz.
+
+### 3. ClaudeManager'a Yazma ZORUNLU
 - Yeni kural/hata/tercih öğrenildiğinde → **Pattern** olarak kaydet
 - Yeni hesap/API key/şifre oluşturulduğunda → **Notes'a** hemen yaz
 - Günlük bilgi (kredi, domain, deploy vb.) → **Journal'a** yaz

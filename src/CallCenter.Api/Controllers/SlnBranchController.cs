@@ -68,6 +68,16 @@ public class SlnBranchController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    /// <summary>Firmaya ait tum subelerin city/district alanlarini TR-normalize eder</summary>
+    [HttpPost("normalize-addresses")]
+    public async Task<ActionResult> NormalizeAddresses()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var result = await _branchFactory.NormalizeAddressesAsync(customerId);
+        return Ok(result);
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
 }

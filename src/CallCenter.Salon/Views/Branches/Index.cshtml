@@ -96,11 +96,13 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Il</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.city" />
+                            <input type="text" class="form-control form-control-sm" list="tr-cities-list"
+                                   data-bind="value: form.city, event: { blur: function(d,e){ if (window.normalizeTrCity) form.city(window.normalizeTrCity(e.target.value)); } }" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Ilce</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.district" />
+                            <input type="text" class="form-control form-control-sm"
+                                   data-bind="value: form.district, event: { blur: function(d,e){ if (window.normalizeTrCity) form.district(window.normalizeTrCity(e.target.value)); } }" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small">Telefon</label>
@@ -187,5 +189,21 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/tr-cities.js" asp-append-version="true"></script>
     <script src="~/js/Branches.js" asp-append-version="true"></script>
+    <datalist id="tr-cities-list">
+        <!-- TR_CITIES window globaline bagli, page load'da script tag'i aciklama ekler -->
+    </datalist>
+    <script>
+        (function () {
+            var dl = document.getElementById('tr-cities-list');
+            if (dl && window.TR_CITIES) {
+                window.TR_CITIES.forEach(function (c) {
+                    var opt = document.createElement('option');
+                    opt.value = c;
+                    dl.appendChild(opt);
+                });
+            }
+        })();
+    </script>
 }

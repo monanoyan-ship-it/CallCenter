@@ -107,8 +107,14 @@ public class PaymentConfigFactory : IPaymentConfigFactory
 
         config.ProviderTypeId = dto.ProviderTypeId;
         config.IsSandbox = dto.IsSandbox;
-        config.EncryptedCredentials = EncryptCredentialsFromDto(dto);
-        config.EncryptedBankInfo = EncryptBankInfoFromDto(dto);
+
+        // BUG2.18 fix: Credentials boşsa mevcut olanı koru (edit'te maskeleniyor)
+        if (HasAnyCredential(dto))
+            config.EncryptedCredentials = EncryptCredentialsFromDto(dto);
+
+        var bankInfo = EncryptBankInfoFromDto(dto);
+        if (bankInfo != null)
+            config.EncryptedBankInfo = bankInfo;
         config.UpdatedAt = DateTime.UtcNow;
 
         // Aktif durumu degisiyorsa
@@ -177,6 +183,17 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     }
 
     // ─── Private Helpers ───
+
+    private bool HasAnyCredential(PaymentConfigSaveDto dto)
+    {
+        return dto.ProviderTypeId switch
+        {
+            PaymentProviders.Ids.Iyzico => !string.IsNullOrWhiteSpace(dto.IyzicoApiKey) || !string.IsNullOrWhiteSpace(dto.IyzicoSecretKey),
+            PaymentProviders.Ids.PayTR => !string.IsNullOrWhiteSpace(dto.PayTrMerchantId) || !string.IsNullOrWhiteSpace(dto.PayTrMerchantKey),
+            PaymentProviders.Ids.Param => !string.IsNullOrWhiteSpace(dto.ParamClientCode) || !string.IsNullOrWhiteSpace(dto.ParamClientUsername),
+            _ => false
+        };
+    }
 
     private string EncryptCredentialsFromDto(PaymentConfigSaveDto dto)
     {
