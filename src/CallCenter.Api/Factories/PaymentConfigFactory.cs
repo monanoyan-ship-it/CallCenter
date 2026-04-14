@@ -218,9 +218,9 @@ public class PaymentConfigFactory : IPaymentConfigFactory
                 ClientUsername = dto.ParamClientUsername ?? "",
                 ClientPassword = dto.ParamClientPassword ?? "",
                 Guid = dto.ParamGuid ?? "",
-                BaseUrl = dto.IsSandbox
-                    ? "https://test-dmz.param.com.tr/turkpos.ws/service_turkpos_test.asmx"
-                    : "https://posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx"
+                // NOT: Param'in test-dmz endpoint'i artik 404. Hem test hem prod icin
+                // prod URL kullaniyoruz; ortak sandbox credentials prod'ta da kabul edilir.
+                BaseUrl = "https://posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx"
             },
             _ => throw new NotSupportedException($"Provider {dto.ProviderTypeId} desteklenmiyor.")
         };

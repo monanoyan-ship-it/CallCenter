@@ -32,22 +32,33 @@ public class ParamGateway : IPaymentGateway
         _http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
     }
 
-    /// <summary>Param BaseUrl'i sadece domain ise otomatik SOAP endpoint path'i ekler. Trailing / KOYMAZ.</summary>
+    /// <summary>
+    /// Param BaseUrl'i normalize:
+    /// - Sadece domain ise SOAP endpoint path ekler
+    /// - Eski test-dmz.param.com.tr (404 veriyor) için prod URL'e fallback (Param test
+    ///   ortamı şu an inaktif; ortak sandbox credentials prod'ta da çalışır)
+    /// - Trailing / KOYMAZ
+    /// </summary>
     private static string NormalizeBaseUrl(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        if (string.IsNullOrWhiteSpace(raw))
+            return "https://posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx";
+
         var trimmed = raw.TrimEnd('/');
+
+        // Param test-dmz.param.com.tr endpoint'i 404 veriyor (Param tarafında inaktif).
+        // Prod URL'e cevir — ortak sandbox credentials prod'ta da kabul edilir.
+        if (trimmed.Contains("test-dmz.param.com.tr", StringComparison.OrdinalIgnoreCase))
+            return "https://posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx";
 
         // Zaten .asmx ile bitiyorsa / SOAP path iceriyorsa oldugu gibi
         if (trimmed.EndsWith(".asmx", StringComparison.OrdinalIgnoreCase)
             || trimmed.Contains("/turkpos.ws/", StringComparison.OrdinalIgnoreCase))
             return trimmed;
 
-        // Domain mi? (/ yoksa ya da sadece protokol+host)
+        // Domain mi? (/ yoksa ya da sadece protokol+host) — varsayilan prod (test-dmz inaktif)
         var uri = new Uri(trimmed);
-        var isTest = uri.Host.Contains("test", StringComparison.OrdinalIgnoreCase);
-        var suffix = isTest ? "/turkpos.ws/service_turkpos_test.asmx" : "/turkpos.ws/service_turkpos_prod.asmx";
-        return $"{uri.Scheme}://{uri.Host}{suffix}";
+        return $"{uri.Scheme}://{uri.Host}/turkpos.ws/service_turkpos_prod.asmx";
     }
 
     public async Task<PaymentInitResult> InitiatePaymentAsync(PaymentRequest request, CancellationToken ct = default)

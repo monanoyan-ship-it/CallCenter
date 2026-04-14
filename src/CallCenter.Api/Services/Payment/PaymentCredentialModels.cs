@@ -26,8 +26,8 @@ public class ParamCredentials
     public string ClientUsername { get; set; } = string.Empty;
     public string ClientPassword { get; set; } = string.Empty;
     public string Guid { get; set; } = string.Empty;
-    /// <summary>Test: test-dmz.param.com.tr/turkpos.ws/service_turkpos_test.asmx | Prod: posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx</summary>
-    public string BaseUrl { get; set; } = "https://test-dmz.param.com.tr/turkpos.ws/service_turkpos_test.asmx";
+    /// <summary>Param SOAP endpoint. test-dmz inaktif (404), tek geçerli: posws.param.com.tr prod.</summary>
+    public string BaseUrl { get; set; } = "https://posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx";
 }
 
 /// <summary>Havale/EFT banka hesap bilgileri</summary>
