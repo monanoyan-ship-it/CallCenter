@@ -236,6 +236,7 @@
             fetch('/proxy/salon/branches-map')
                 .then(function (r) { return r.ok ? r.json() : []; })
                 .then(function (branches) {
+                    var bounds = [];
                     branches.forEach(function (b) {
                         if (!b.latitude || !b.longitude) return;
                         var marker = L.marker([b.latitude, b.longitude]).addTo(map);
@@ -246,7 +247,15 @@
                             '<br><a href="/salon/' + b.slug + '">Profili Gor</a>'
                         );
                         markers.push(marker);
+                        bounds.push([b.latitude, b.longitude]);
                     });
+                    // fitBounds: kullanici konumu varsa onu da dahil et, hepsi ekrana sigsin
+                    if (self.userLat() !== null && self.userLng() !== null)
+                        bounds.push([self.userLat(), self.userLng()]);
+                    if (bounds.length > 1)
+                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+                    else if (bounds.length === 1)
+                        map.setView(bounds[0], 13);
                 })
                 .catch(function () { /* harita yine de calisir */ });
         }
