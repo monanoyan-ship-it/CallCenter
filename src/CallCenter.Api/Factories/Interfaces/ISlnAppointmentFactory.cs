@@ -17,4 +17,7 @@ public interface ISlnAppointmentFactory
 
     /// <summary>Personelin belirtilen gundeki musait saat slotlari</summary>
     Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null);
+
+    /// <summary>BranchId NULL olan randevulari merkez subeye bagla (multi-sube gecis oncesi veri temizligi).</summary>
+    Task<object> NormalizeBranchesAsync(int customerId);
 }

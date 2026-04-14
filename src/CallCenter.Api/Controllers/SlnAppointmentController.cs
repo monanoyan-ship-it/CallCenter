@@ -126,6 +126,16 @@ public class SlnAppointmentController : ControllerBase
         return Ok(slots);
     }
 
+    /// <summary>BranchId NULL olan randevulari merkez subeye bagla (veri temizligi).</summary>
+    [HttpPost("normalize-branches")]
+    public async Task<ActionResult> NormalizeBranches()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var result = await _appointmentFactory.NormalizeBranchesAsync(customerId);
+        return Ok(result);
+    }
+
     private int GetUserId()
         => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 

@@ -86,7 +86,11 @@
                             <!-- /ko -->
                         </div>
                     </div>
-                    <div class="mt-2 text-end">
+                    <div class="mt-2 text-end d-flex gap-1 justify-content-end">
+                        <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
+                                title="Sube bilgisi olmayan eski randevulari merkez subeye bagla">
+                            <i class="bi bi-shuffle me-1"></i>Sube Normalize
+                        </button>
                         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
                             <i class="bi bi-plus-lg me-1"></i>Yeni Randevu
                         </button>

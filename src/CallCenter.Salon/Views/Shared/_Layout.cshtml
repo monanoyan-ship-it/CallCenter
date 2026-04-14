@@ -237,18 +237,31 @@
             }
         }
 
-        // Sube secici (birden fazla sube varsa goster)
+        // ═══ Sube Secici — sessionStorage tabanli (cookie yok) ═══
+        // UI secim sessionStorage'da; her API cagrisi proxy/SlnProxyHelper query'sine branchId ekler.
+        // Eski SelectedBranch cookie'si varsa temizle (geri uyumluluk).
+        document.cookie = 'SelectedBranch=;path=/;max-age=0';
+
+        window.slnGetBranch = function() {
+            var v = sessionStorage.getItem('slnBranchId');
+            return v ? v : '';
+        };
         (function() {
             var roleId = parseInt('@(__jwt.CustomerRoleId > 0 ? __jwt.CustomerRoleId : 101)');
-            var currentBranch = '@(__jwt.BranchId?.ToString() ?? "")';
+            var jwtBranch = '@(__jwt.BranchId?.ToString() ?? "")';
+            // JWT'de BranchId varsa (personel) baglantiyi sessionStorage'a senkronla.
+            if (jwtBranch && !sessionStorage.getItem('slnBranchId')) {
+                sessionStorage.setItem('slnBranchId', jwtBranch);
+            }
+            var currentBranch = window.slnGetBranch();
             if (roleId !== 101) return; // Sadece salon sahibi sube degistirebilir
 
-            $.get('/proxy/sln-branches', function(data) {
+            $.get('/proxy/sln-branches?_nb=1', function(data) {
                 var branches = Array.isArray(data) ? data : (data.items || []);
                 if (branches.length <= 1) return; // Tek sube varsa gosterme
 
                 var html = '<select class="form-select form-select-sm" style="width:auto; min-width:150px;" onchange="switchBranch(this.value)">';
-                html += '<option value="">Tüm Şubeler</option>';
+                html += '<option value=""' + (currentBranch === '' ? ' selected' : '') + '>Tüm Şubeler</option>';
                 branches.forEach(function(b) {
                     html += '<option value="' + b.id + '"' + (currentBranch == b.id ? ' selected' : '') + '>' + b.name + '</option>';
                 });
@@ -258,10 +271,22 @@
         })();
 
         function switchBranch(branchId) {
-            // Session'a sube kaydet (API uzerinden veya cookie)
-            document.cookie = 'SelectedBranch=' + (branchId || '') + ';path=/;max-age=86400';
+            if (!branchId) sessionStorage.removeItem('slnBranchId');
+            else sessionStorage.setItem('slnBranchId', branchId);
             window.location.reload();
         }
+
+        // jQuery ajax tum /proxy/ istekleri: sessionStorage'dan branchId query'ye ekle
+        // (_nb=1 query'si olanlar hariç — branch dropdown kendini yuklerken kendine filtre uygulamasin)
+        $(document).ajaxSend(function(e, xhr, opts) {
+            if (!opts.url || opts.url.indexOf('/proxy/') < 0) return;
+            if (opts.url.indexOf('_nb=1') >= 0) return;
+            if (/([?&])branchId=/.test(opts.url)) return; // zaten varsa dokunma
+            var b = window.slnGetBranch();
+            if (!b) return;
+            opts.url += (opts.url.indexOf('?') >= 0 ? '&' : '?') + 'branchId=' + encodeURIComponent(b);
+        });
+        // fetch() icin de ayni: hook yok, kullanan sayfalar manuel eklesin (Discover public, Book public — bunlar zaten slug tabanli)
     </script>
     @RenderSection("Scripts", required: false)
 </body>

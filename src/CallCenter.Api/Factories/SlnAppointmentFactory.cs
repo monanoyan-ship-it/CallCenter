@@ -422,4 +422,25 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         return slots;
     }
+
+    public async Task<object> NormalizeBranchesAsync(int customerId)
+    {
+        var hqBranch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+
+        if (hqBranch == null)
+            return new { updated = 0, error = "Merkez sube bulunamadi. Once bir subeyi merkez olarak isaretleyin." };
+
+        var orphans = await _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == customerId && a.BranchId == null)
+            .ToListAsync();
+
+        foreach (var a in orphans) a.BranchId = hqBranch.Id;
+
+        await _uow.SaveChangesAsync();
+        _logger.LogInformation("NormalizeBranches: {Count} randevu merkez subeye baglandi (CustomerId={CustomerId}, HqBranchId={HqId})",
+            orphans.Count, customerId, hqBranch.Id);
+
+        return new { updated = orphans.Count, hqBranchId = hqBranch.Id, hqBranchName = hqBranch.Name };
+    }
 }

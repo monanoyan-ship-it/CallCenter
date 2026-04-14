@@ -491,6 +491,22 @@ function AppointmentsViewModel() {
         }).always(function () { self.isCreatingClient(false); });
     };
 
+    // ═══ Sube Normalize ═══
+    self.normalizeBranches = function () {
+        confirmModal('Onay', 'Sube bilgisi olmayan randevular merkez subeye baglanacak. Devam?', function () {
+            $.ajax({
+                url: '/proxy/sln-appointments/normalize-branches?_nb=1',
+                method: 'POST'
+            }).done(function (res) {
+                if (res && res.error) { toastr.error(res.error); return; }
+                toastr.success((res.updated || 0) + ' randevu "' + (res.hqBranchName || 'merkez') + '" subeye baglandi');
+                self.loadAppointments();
+            }).fail(function () {
+                toastr.error('Normalize basarisiz');
+            });
+        });
+    };
+
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
         self.loadLookups();
