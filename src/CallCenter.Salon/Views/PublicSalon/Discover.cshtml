@@ -210,7 +210,7 @@
                     var lat = pos.coords.latitude, lng = pos.coords.longitude;
                     self.userLat(lat);
                     self.userLng(lng);
-                    map.setView([lat, lng], 12);
+                    map.setView([lat, lng], 14); // Ahmet: kullanici konumuna yakin zoom, yakin salonlari oncelikle goster
                     userMarker = L.marker([lat, lng], {
                         icon: L.divIcon({
                             className: '',
@@ -236,7 +236,6 @@
             fetch('/proxy/salon/branches-map')
                 .then(function (r) { return r.ok ? r.json() : []; })
                 .then(function (branches) {
-                    var bounds = [];
                     branches.forEach(function (b) {
                         if (!b.latitude || !b.longitude) return;
                         var marker = L.marker([b.latitude, b.longitude]).addTo(map);
@@ -247,15 +246,12 @@
                             '<br><a href="/salon/' + b.slug + '">Profili Gor</a>'
                         );
                         markers.push(marker);
-                        bounds.push([b.latitude, b.longitude]);
                     });
-                    // fitBounds: kullanici konumu varsa onu da dahil et, hepsi ekrana sigsin
-                    if (self.userLat() !== null && self.userLng() !== null)
-                        bounds.push([self.userLat(), self.userLng()]);
-                    if (bounds.length > 1)
-                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
-                    else if (bounds.length === 1)
-                        map.setView(bounds[0], 13);
+                    // fitBounds KULLANMIYORUZ — kullanici konumuna zoom 14 oncelikli (Ahmet talebi).
+                    // Kullanici konumu yoksa ve marker varsa: Turkiye merkezi yerine ilk marker'a setView.
+                    if ((self.userLat() === null || self.userLng() === null) && markers.length > 0) {
+                        map.setView(markers[0].getLatLng(), 12);
+                    }
                 })
                 .catch(function () { /* harita yine de calisir */ });
         }
