@@ -22,12 +22,16 @@ public class SlnAppointmentController : ControllerBase
     public async Task<ActionResult<List<SlnAppointmentDto>>> GetAppointments(
         [FromQuery] DateTime? from, [FromQuery] DateTime? to,
         [FromQuery] int? personnelId, [FromQuery] int? statusId,
-        [FromQuery] int? slnClientId)
+        [FromQuery] int? slnClientId, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, GetBranchId(), slnClientId);
+        // JWT'deki BranchId belirli sube personeli icin kilit (guvenlik).
+        // JWT.BranchId null ise (SalonOwner/merkez) query'den gelen branchId filtreyi uygular.
+        var effectiveBranchId = GetBranchId() ?? branchId;
+
+        var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, effectiveBranchId, slnClientId);
         return Ok(appointments);
     }
 

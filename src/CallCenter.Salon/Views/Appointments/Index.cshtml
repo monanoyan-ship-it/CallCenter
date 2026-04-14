@@ -150,6 +150,7 @@
                             <th>Musteri</th>
                             <th>Hizmetler</th>
                             <th>Personel</th>
+                            <th>Sube</th>
                             <th>Sure</th>
                             <th>On Odeme</th>
                             <th>Durum</th>
@@ -165,6 +166,14 @@
                             </td>
                             <td class="small" data-bind="text: serviceNamesText"></td>
                             <td class="small" data-bind="text: personnelName"></td>
+                            <td class="small">
+                                <!-- ko if: branchName -->
+                                <span class="badge bg-light text-dark border" data-bind="text: branchName"></span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: branchName -->
+                                <span class="text-muted">-</span>
+                                <!-- /ko -->
+                            </td>
                             <td class="small" data-bind="text: durationMinutes ? durationMinutes + ' dk' : '-'"></td>
                             <td class="small">
                                 <!-- ko if: isPrepaid && prepaidAmount > 0 -->

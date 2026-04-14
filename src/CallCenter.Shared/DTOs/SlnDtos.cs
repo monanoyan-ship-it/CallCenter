@@ -131,6 +131,8 @@ public class SlnAppointmentDto
     public string? ClientPhone { get; set; }
     public int PersonnelId { get; set; }
     public string PersonnelName { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
     public List<int> ServiceIds { get; set; } = new();
     public List<string> ServiceNames { get; set; } = new();
     public int DurationMinutes { get; set; }

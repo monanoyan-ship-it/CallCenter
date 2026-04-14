@@ -44,6 +44,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private IQueryable<SlnAppointment> IncludeAll(IQueryable<SlnAppointment> q) => q
         .Include(a => a.SlnClient)
         .Include(a => a.Personnel).ThenInclude(p => p!.User)
+        .Include(a => a.Branch)
         .Include(a => a.Service)
         .Include(a => a.Services).ThenInclude(s => s.SlnService);
 
@@ -297,6 +298,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             ClientPhone = a.SlnClient?.Phone,
             PersonnelId = a.PersonnelId,
             PersonnelName = a.Personnel?.User?.FullName ?? "",
+            BranchId = a.BranchId,
+            BranchName = a.Branch?.Name,
             ServiceIds = serviceIds,
             ServiceNames = serviceNames,
             DurationMinutes = duration,

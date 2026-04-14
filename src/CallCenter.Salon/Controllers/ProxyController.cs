@@ -7,11 +7,28 @@ namespace CallCenter.Salon.Controllers;
 /// </summary>
 public class ProxyController : SlnBaseController
 {
+    /// <summary>
+    /// SelectedBranch cookie'sini query string'e branchId olarak ekler (yoksa).
+    /// Layout'taki sube dropdown'u bu cookie'yi yazar; backend filter uygulamasi icin query'e tasiriz.
+    /// </summary>
+    private string BuildQueryString()
+    {
+        var qs = Request.QueryString.ToString();
+        var branchCookie = Request.Cookies["SelectedBranch"];
+        if (!string.IsNullOrEmpty(branchCookie)
+            && int.TryParse(branchCookie, out var bid) && bid > 0
+            && !Request.Query.ContainsKey("branchId"))
+        {
+            qs = string.IsNullOrEmpty(qs) ? $"?branchId={bid}" : $"{qs}&branchId={bid}";
+        }
+        return qs;
+    }
+
     [HttpGet("proxy/{**path}")]
     public async Task<IActionResult> Get(string path)
     {
         using var client = CreateApiClient();
-        var response = await client.GetAsync($"api/{path}{Request.QueryString}");
+        var response = await client.GetAsync($"api/{path}{BuildQueryString()}");
         return await ToJsonResult(response);
     }
 
