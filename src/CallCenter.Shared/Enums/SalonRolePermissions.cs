@@ -127,6 +127,15 @@ public static class SalonRolePermissions
                 pages.UnionWith(TechnicianPages);
                 break;
 
+            case SalonRoles.Ids.BranchManager: // 107 - Sube Muduru: kendi subesi icin operasyon + finans
+                                                // YONETIM (Branches, Profile, Modules, NoShowPolicy, EmailSettings, PageSettings) YASAK.
+                                                // BranchId JWT claim i API tarafinda query filtrelemesini zorlar.
+                pages.UnionWith(ManagerPages);
+                pages.UnionWith(CashierPages);
+                pages.UnionWith(ReceptionistPages);
+                pages.UnionWith(TechnicianPages);
+                break;
+
             case SalonRoles.Ids.Cashier: // 105 - Satis + finans + musteri + randevu
                 pages.UnionWith(CashierPages);
                 pages.UnionWith(ReceptionistPages);

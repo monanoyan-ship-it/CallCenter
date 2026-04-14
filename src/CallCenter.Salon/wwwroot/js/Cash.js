@@ -6,7 +6,18 @@ function CashViewModel() {
     self.isSaving = ko.observable(false);
 
     self.registerForm = {
-        name: ko.observable('')
+        name: ko.observable(''),
+        branchId: ko.observable(null)
+    };
+    self.branches = ko.observableArray([]);
+
+    // Subeleri yukle (admin ise hepsi; sube muduru ise kendi subesi)
+    self.loadBranches = function () {
+        $.get('/proxy/sln-branches', function (data) {
+            self.branches(data || []);
+            // Tek sube varsa otomatik sec
+            if (data && data.length === 1) self.registerForm.branchId(data[0].id);
+        }).fail(function () { /* subeler modulu yok olabilir */ });
     };
 
     self.transactionForm = {
@@ -56,12 +67,24 @@ function CashViewModel() {
     // Kasa CRUD
     self.openNewRegister = function () {
         self.registerForm.name('');
+        // Varsayilan: tek sube varsa secili, coklu subede kullanici secer
+        if (self.branches().length === 1) {
+            self.registerForm.branchId(self.branches()[0].id);
+        } else {
+            self.registerForm.branchId(null);
+        }
         registerModal.show();
     };
 
     self.saveRegister = function () {
-        var data = { name: self.registerForm.name() };
+        var data = {
+            name: self.registerForm.name(),
+            branchId: self.registerForm.branchId() ? parseInt(self.registerForm.branchId()) : null
+        };
         if (!data.name) { toastr.warning('Kasa adi zorunludur'); return; }
+        if (self.branches().length > 1 && !data.branchId) {
+            toastr.warning('Sube seciniz'); return;
+        }
 
         self.isSaving(true);
         $.ajax({
@@ -256,6 +279,7 @@ function CashViewModel() {
         zReportModal = new bootstrap.Modal(document.getElementById('zReportModal'));
         self.loadRegisters();
         self.loadClosings();
+        self.loadBranches();
     });
 }
 

@@ -21,6 +21,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnCashOpeningEntityService _cashOpenings;
     private readonly ISlnClientLedgerEntityService _clientLedgers;
     private readonly ISlnInvoiceRefundEntityService _invoiceRefunds;
+    private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnFinanceFactory> _logger;
 
@@ -37,6 +38,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnCashOpeningEntityService cashOpenings,
         ISlnClientLedgerEntityService clientLedgers,
         ISlnInvoiceRefundEntityService invoiceRefunds,
+        ISlnBranchEntityService branches,
         IUnitOfWork uow,
         ILogger<SlnFinanceFactory> logger)
     {
@@ -52,6 +54,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _cashOpenings = cashOpenings;
         _clientLedgers = clientLedgers;
         _invoiceRefunds = invoiceRefunds;
+        _branches = branches;
         _uow = uow;
         _logger = logger;
     }
@@ -251,7 +254,9 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     public async Task<List<object>> GetCashRegistersAsync(int customerId, int? branchId = null)
     {
         var query = _cashRegisters.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId);
+            .Where(r => r.CustomerId == customerId)
+            .Include(r => r.Branch)
+            .AsQueryable();
 
         if (branchId.HasValue)
             query = query.Where(r => r.BranchId == branchId.Value);
@@ -267,14 +272,56 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             var income = transactions.Where(t => t.TransactionTypeId == 1).Sum(t => t.Amount);
             var expense = transactions.Where(t => t.TransactionTypeId == 2).Sum(t => t.Amount);
             var balance = income - expense;
-            result.Add(new { r.Id, r.Name, r.IsActive, balance, typeName = r.BranchId.HasValue ? "Sube" : "Merkez" });
+
+            // BUG3.2: Kasa tipi — Branch navigation'dan, HQ ise "Merkez", degilse sube adi, yoksa "Firma geneli"
+            string typeName;
+            if (r.Branch == null) typeName = "Firma geneli";
+            else if (r.Branch.IsHeadquarter) typeName = "Merkez";
+            else typeName = "Sube";
+
+            result.Add(new
+            {
+                r.Id,
+                r.Name,
+                r.IsActive,
+                balance,
+                r.BranchId,
+                branchName = r.Branch?.Name,
+                isHeadquarter = r.Branch?.IsHeadquarter ?? false,
+                typeName
+            });
         }
 
         return result;
     }
 
+    /// <summary>BranchId null olan eski kasalari firmanin merkez subesine tasir</summary>
+    public async Task<object> NormalizeCashRegisterBranchesAsync(int customerId)
+    {
+        var orphan = await _cashRegisters.GetAllQueryable()
+            .Where(r => r.CustomerId == customerId && r.BranchId == null)
+            .ToListAsync();
+        if (orphan.Count == 0) return new { updated = 0, note = "Normalize edilecek kasa yok." };
+
+        var hq = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter && b.IsActive);
+        if (hq == null) return new { updated = 0, note = "Merkez sube bulunamadi — once merkez sube tanimlayin." };
+
+        foreach (var r in orphan) r.BranchId = hq.Id;
+        await _uow.SaveChangesAsync();
+        return new { updated = orphan.Count, hqBranchId = hq.Id, hqName = hq.Name };
+    }
+
     public async Task<object> CreateCashRegisterAsync(string name, int customerId, int? branchId = null)
     {
+        // BranchId bos gelirse merkez subeye ata (eski davranisa duserken "firma geneli" yerine merkeze bagla)
+        if (!branchId.HasValue)
+        {
+            var hq = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter && b.IsActive);
+            branchId = hq?.Id;
+        }
+
         var register = new SlnCashRegister
         {
             CustomerId = customerId,
@@ -285,7 +332,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _cashRegisters.Add(register);
         await _uow.SaveChangesAsync();
 
-        return new { register.Id, register.Name, register.IsActive };
+        return new { register.Id, register.Name, register.IsActive, register.BranchId };
     }
 
     public async Task<List<SlnCashTransactionDto>> GetCashTransactionsAsync(int registerId, int customerId, DateTime? from, DateTime? to, int? branchId = null)

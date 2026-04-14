@@ -12,8 +12,9 @@ public static class SalonRoles
     public static readonly TypeItem Beautician = new(104, "Beautician", "SalonRole.Beautician", "Güzellik Uzmanı", "bi-stars", "bg-pink", 4);
     public static readonly TypeItem Cashier = new(105, "Cashier", "SalonRole.Cashier", "Kasiyer", "bi-cash-stack", "bg-success", 5);
     public static readonly TypeItem Receptionist = new(106, "Receptionist", "SalonRole.Receptionist", "Resepsiyonist", "bi-person-lines-fill", "bg-info", 6);
+    public static readonly TypeItem BranchManager = new(107, "BranchManager", "SalonRole.BranchManager", "Şube Müdürü", "bi-geo-alt-fill", "bg-warning", 7);
 
-    public static IEnumerable<TypeItem> All => new[] { SalonOwner, Manager, Hairdresser, Beautician, Cashier, Receptionist };
+    public static IEnumerable<TypeItem> All => new[] { SalonOwner, Manager, BranchManager, Hairdresser, Beautician, Cashier, Receptionist };
     public static TypeItem Default => All.First(x => x.IsDefault);
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
@@ -25,5 +26,6 @@ public static class SalonRoles
         public const int Beautician = 104;
         public const int Cashier = 105;
         public const int Receptionist = 106;
+        public const int BranchManager = 107;
     }
 }

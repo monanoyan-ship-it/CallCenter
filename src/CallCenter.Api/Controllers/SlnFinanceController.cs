@@ -76,13 +76,27 @@ public class SlnFinanceController : ControllerBase
     }
 
     [HttpPost("cash-registers")]
-    public async Task<ActionResult> CreateCashRegister([FromBody] SlnNameRequest req)
+    public async Task<ActionResult> CreateCashRegister([FromBody] SlnCashRegisterCreateRequest req)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var register = await _financeFactory.CreateCashRegisterAsync(req.Name, customerId, GetBranchId());
+        // Sube Muduru ise JWT deki BranchId override (baskasinin subesinde kasa acmayi engelle)
+        var jwtBranchId = GetBranchId();
+        var effectiveBranchId = jwtBranchId ?? req.BranchId;
+
+        var register = await _financeFactory.CreateCashRegisterAsync(req.Name, customerId, effectiveBranchId);
         return Ok(register);
+    }
+
+    /// <summary>BranchId null olan eski kasalari merkez subeye tasir (bir seferlik)</summary>
+    [HttpPost("cash-registers/normalize-branch")]
+    public async Task<ActionResult> NormalizeCashRegisterBranches()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var result = await _financeFactory.NormalizeCashRegisterBranchesAsync(customerId);
+        return Ok(result);
     }
 
     [HttpGet("cash-registers/{registerId}/transactions")]
@@ -283,6 +297,12 @@ public class SlnFinanceController : ControllerBase
 public class CashOpeningRequest
 {
     public decimal? ManualBalance { get; set; }
+}
+
+public class SlnCashRegisterCreateRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
 }
 
 public class RefundRequest

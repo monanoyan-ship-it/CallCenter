@@ -125,6 +125,16 @@
                             <label class="form-label small">Kasa Adi *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: registerForm.name" />
                         </div>
+                        <!-- ko if: branches().length > 1 -->
+                        <div class="col-12">
+                            <label class="form-label small">Sube *</label>
+                            <select class="form-select form-select-sm" data-bind="value: registerForm.branchId,
+                                options: branches,
+                                optionsText: function(b){ return b.name + (b.isHeadquarter ? ' (Merkez)' : ''); },
+                                optionsValue: 'id',
+                                optionsCaption: 'Sube seciniz'"></select>
+                        </div>
+                        <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">
