@@ -214,9 +214,9 @@
                             </thead>
                             <tbody data-bind="foreach: appointments">
                                 <tr>
-                                    <td class="small" data-bind="text: startTime ? new Date(startTime).toLocaleDateString('tr-TR') : '-'"></td>
-                                    <td class="small" data-bind="text: startTime ? new Date(startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '-'"></td>
-                                    <td class="small fw-semibold" data-bind="text: serviceName"></td>
+                                    <td class="small" data-bind="text: startTime ? (function(s){var p=s.substring(0,10).split('-');var m=['Oca','Sub','Mar','Nis','May','Haz','Tem','Agu','Eyl','Eki','Kas','Ara'];return parseInt(p[2])+' '+m[parseInt(p[1])-1]+' '+p[0];})(startTime) : '-'"></td>
+                                    <td class="small" data-bind="text: startTime ? startTime.substring(11,16) : '-'"></td>
+                                    <td class="small fw-semibold" data-bind="text: (serviceNames && serviceNames.length) ? serviceNames.join(', ') : (serviceName || '-')"></td>
                                     <td class="small" data-bind="text: personnelName"></td>
                                     <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                                 </tr>
