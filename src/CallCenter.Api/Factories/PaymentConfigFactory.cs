@@ -218,7 +218,9 @@ public class PaymentConfigFactory : IPaymentConfigFactory
                 ClientUsername = dto.ParamClientUsername ?? "",
                 ClientPassword = dto.ParamClientPassword ?? "",
                 Guid = dto.ParamGuid ?? "",
-                BaseUrl = dto.IsSandbox ? "https://test-dmz.param.com.tr" : "https://dmz.param.com.tr"
+                BaseUrl = dto.IsSandbox
+                    ? "https://test-dmz.param.com.tr/turkpos.ws/service_turkpos_test.asmx"
+                    : "https://posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx"
             },
             _ => throw new NotSupportedException($"Provider {dto.ProviderTypeId} desteklenmiyor.")
         };

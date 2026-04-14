@@ -26,8 +26,8 @@ public class ParamCredentials
     public string ClientUsername { get; set; } = string.Empty;
     public string ClientPassword { get; set; } = string.Empty;
     public string Guid { get; set; } = string.Empty;
-    /// <summary>Test: https://test-dmz.param.com.tr | Prod: https://dmz.param.com.tr</summary>
-    public string BaseUrl { get; set; } = "https://test-dmz.param.com.tr";
+    /// <summary>Test: test-dmz.param.com.tr/turkpos.ws/service_turkpos_test.asmx | Prod: posws.param.com.tr/turkpos.ws/service_turkpos_prod.asmx</summary>
+    public string BaseUrl { get; set; } = "https://test-dmz.param.com.tr/turkpos.ws/service_turkpos_test.asmx";
 }
 
 /// <summary>Havale/EFT banka hesap bilgileri</summary>

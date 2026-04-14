@@ -26,8 +26,26 @@ public class ParamGateway : IPaymentGateway
     public ParamGateway(ParamCredentials credentials)
     {
         _credentials = credentials;
-        _http = new HttpClient { BaseAddress = new Uri(credentials.BaseUrl) };
+        _http = new HttpClient { BaseAddress = new Uri(NormalizeBaseUrl(credentials.BaseUrl)) };
         _http.Timeout = TimeSpan.FromSeconds(30);
+    }
+
+    /// <summary>Param BaseUrl'i sadece domain ise otomatik SOAP endpoint path'i ekler.</summary>
+    private static string NormalizeBaseUrl(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        var trimmed = raw.TrimEnd('/');
+
+        // Zaten .asmx ile bitiyorsa / SOAP path iceriyorsa oldugu gibi birak
+        if (trimmed.EndsWith(".asmx", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Contains("/turkpos.ws/", StringComparison.OrdinalIgnoreCase))
+            return trimmed + "/"; // HttpClient icin BaseAddress sonunda / lazim (relative path)
+
+        // Domain mi? (/ yoksa ya da sadece protokol+host)
+        var uri = new Uri(trimmed);
+        var isTest = uri.Host.Contains("test", StringComparison.OrdinalIgnoreCase);
+        var suffix = isTest ? "/turkpos.ws/service_turkpos_test.asmx" : "/turkpos.ws/service_turkpos_prod.asmx";
+        return $"{uri.Scheme}://{uri.Host}{suffix}/";
     }
 
     public async Task<PaymentInitResult> InitiatePaymentAsync(PaymentRequest request, CancellationToken ct = default)
