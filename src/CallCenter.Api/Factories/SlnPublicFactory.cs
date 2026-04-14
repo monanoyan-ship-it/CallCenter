@@ -204,6 +204,37 @@ public class SlnPublicFactory : ISlnPublicFactory
         }).ToList();
     }
 
+    /// <summary>Discover harita için tüm yayınlanan salonların aktif şubelerini koordinatlarıyla döner</summary>
+    public async Task<object> GetAllBranchesForMapAsync()
+    {
+        var publishedCustomerIds = await _profiles.GetAllQueryable()
+            .Where(p => p.IsPublished)
+            .Select(p => p.CustomerId)
+            .ToListAsync();
+
+        if (publishedCustomerIds.Count == 0)
+            return new List<object>();
+
+        var branches = await _branches.GetAllQueryable()
+            .Where(b => publishedCustomerIds.Contains(b.CustomerId)
+                     && b.IsActive
+                     && b.Latitude != null && b.Longitude != null)
+            .Include(b => b.Customer)
+            .ToListAsync();
+
+        return branches.Select(b => new
+        {
+            Slug = b.Slug ?? "",
+            SalonName = b.Customer?.Name ?? "",
+            BranchName = b.Name,
+            b.IsHeadquarter,
+            b.City,
+            b.District,
+            b.Latitude,
+            b.Longitude
+        }).ToList();
+    }
+
     /// <summary>Branch slug veya eski profile slug'dan customerId bul</summary>
     private async Task<int?> ResolveCustomerIdAsync(string slug)
     {

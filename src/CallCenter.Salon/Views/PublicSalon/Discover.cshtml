@@ -228,20 +228,26 @@
                 .then(function (data) {
                     self.salons(data);
                     self.isLoading(false);
-
-                    data.forEach(function (s) {
-                        if (s.latitude && s.longitude) {
-                            var marker = L.marker([s.latitude, s.longitude]).addTo(map);
-                            marker.bindPopup(
-                                '<b>' + s.salonName + '</b>' +
-                                (s.city ? '<br><small>' + (s.district ? s.district + ', ' : '') + s.city + '</small>' : '') +
-                                '<br><a href="/salon/' + s.slug + '">Profili Gor</a>'
-                            );
-                            markers.push(marker);
-                        }
-                    });
                 })
                 .catch(function () { self.isLoading(false); });
+
+            // Tum subeleri haritada ayrı marker olarak göster (merkez + ek subeler)
+            fetch('/proxy/salon/branches-map')
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (branches) {
+                    branches.forEach(function (b) {
+                        if (!b.latitude || !b.longitude) return;
+                        var marker = L.marker([b.latitude, b.longitude]).addTo(map);
+                        var titleSuffix = b.isHeadquarter ? ' (Merkez)' : (b.branchName ? ' — ' + b.branchName : '');
+                        marker.bindPopup(
+                            '<b>' + b.salonName + titleSuffix + '</b>' +
+                            (b.city ? '<br><small>' + (b.district ? b.district + ', ' : '') + b.city + '</small>' : '') +
+                            '<br><a href="/salon/' + b.slug + '">Profili Gor</a>'
+                        );
+                        markers.push(marker);
+                    });
+                })
+                .catch(function () { /* harita yine de calisir */ });
         }
 
         ko.applyBindings(new DiscoverViewModel(), document.getElementById('discover-vm'));

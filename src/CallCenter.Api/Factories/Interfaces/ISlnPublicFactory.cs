@@ -6,6 +6,7 @@ public interface ISlnPublicFactory
 {
     Task<SlnSalonProfileDto?> GetBySlugAsync(string slug);
     Task<object> GetAllPublishedAsync();
+    Task<object> GetAllBranchesForMapAsync();
     Task<object?> GetReviewsAsync(string slug);
     Task<object?> GetTeamAsync(string slug);
     Task<object?> GetBranchesAsync(string slug);

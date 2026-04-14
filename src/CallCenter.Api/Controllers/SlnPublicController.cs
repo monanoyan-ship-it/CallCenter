@@ -31,6 +31,14 @@ public class SlnPublicController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Discover harita için: tüm aktif şubeler (her şube ayrı marker)</summary>
+    [HttpGet("branches-map")]
+    public async Task<ActionResult> GetBranchesForMap()
+    {
+        var result = await _publicFactory.GetAllBranchesForMapAsync();
+        return Ok(result);
+    }
+
     /// <summary>Salonun onaylanmis yorumlarini getir</summary>
     [HttpGet("{slug}/reviews")]
     public async Task<ActionResult> GetReviews(string slug)
