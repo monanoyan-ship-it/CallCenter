@@ -18,6 +18,7 @@ public class ParamGateway : IPaymentGateway
 {
     private readonly ParamCredentials _credentials;
     private readonly HttpClient _http;
+    private readonly string _endpoint; // Normalize edilmis .asmx URL, trailing / YOK
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
     private const string SoapNs = "https://turkpos.com.tr/";
 
@@ -26,26 +27,27 @@ public class ParamGateway : IPaymentGateway
     public ParamGateway(ParamCredentials credentials)
     {
         _credentials = credentials;
-        _http = new HttpClient { BaseAddress = new Uri(NormalizeBaseUrl(credentials.BaseUrl)) };
-        _http.Timeout = TimeSpan.FromSeconds(30);
+        _endpoint = NormalizeBaseUrl(credentials.BaseUrl);
+        // BaseAddress kullanmiyoruz — her request absolute URL. Trailing / + ?WSDL asmx te 404 veriyordu.
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
     }
 
-    /// <summary>Param BaseUrl'i sadece domain ise otomatik SOAP endpoint path'i ekler.</summary>
+    /// <summary>Param BaseUrl'i sadece domain ise otomatik SOAP endpoint path'i ekler. Trailing / KOYMAZ.</summary>
     private static string NormalizeBaseUrl(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return raw;
         var trimmed = raw.TrimEnd('/');
 
-        // Zaten .asmx ile bitiyorsa / SOAP path iceriyorsa oldugu gibi birak
+        // Zaten .asmx ile bitiyorsa / SOAP path iceriyorsa oldugu gibi
         if (trimmed.EndsWith(".asmx", StringComparison.OrdinalIgnoreCase)
             || trimmed.Contains("/turkpos.ws/", StringComparison.OrdinalIgnoreCase))
-            return trimmed + "/"; // HttpClient icin BaseAddress sonunda / lazim (relative path)
+            return trimmed;
 
         // Domain mi? (/ yoksa ya da sadece protokol+host)
         var uri = new Uri(trimmed);
         var isTest = uri.Host.Contains("test", StringComparison.OrdinalIgnoreCase);
         var suffix = isTest ? "/turkpos.ws/service_turkpos_test.asmx" : "/turkpos.ws/service_turkpos_prod.asmx";
-        return $"{uri.Scheme}://{uri.Host}{suffix}/";
+        return $"{uri.Scheme}://{uri.Host}{suffix}";
     }
 
     public async Task<PaymentInitResult> InitiatePaymentAsync(PaymentRequest request, CancellationToken ct = default)
@@ -93,7 +95,7 @@ public class ParamGateway : IPaymentGateway
                 "</TP_WMD_UCD>" +
                 "</soap:Body></soap:Envelope>";
 
-            var req = new HttpRequestMessage(HttpMethod.Post, "")
+            var req = new HttpRequestMessage(HttpMethod.Post, _endpoint)
             {
                 Content = new StringContent(body, Encoding.UTF8, "text/xml")
             };
@@ -168,7 +170,7 @@ public class ParamGateway : IPaymentGateway
                 "</TP_Islem_Iptal_Iade_Kismi>" +
                 "</soap:Body></soap:Envelope>";
 
-            var req = new HttpRequestMessage(HttpMethod.Post, "")
+            var req = new HttpRequestMessage(HttpMethod.Post, _endpoint)
             {
                 Content = new StringContent(body, Encoding.UTF8, "text/xml")
             };
@@ -196,7 +198,7 @@ public class ParamGateway : IPaymentGateway
         // 1) Once endpoint erisilebilir mi — WSDL GET
         try
         {
-            var wsdlReq = new HttpRequestMessage(HttpMethod.Get, "?WSDL");
+            var wsdlReq = new HttpRequestMessage(HttpMethod.Get, _endpoint + "?WSDL");
             var wsdlResp = await _http.SendAsync(wsdlReq, ct);
             if (!wsdlResp.IsSuccessStatusCode)
                 return (false, $"Param endpoint ulasilamadi (HTTP {(int)wsdlResp.StatusCode}). BaseUrl dogru mu?");
@@ -224,7 +226,7 @@ public class ParamGateway : IPaymentGateway
                 "</BIN_SanalPos>" +
                 "</soap:Body></soap:Envelope>";
 
-            var req = new HttpRequestMessage(HttpMethod.Post, "")
+            var req = new HttpRequestMessage(HttpMethod.Post, _endpoint)
             {
                 Content = new StringContent(body, Encoding.UTF8, "text/xml")
             };
