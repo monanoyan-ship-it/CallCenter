@@ -270,19 +270,27 @@ public class SlnPublicFactory : ISlnPublicFactory
         return new { reviews, stats };
     }
 
-    /// <summary>Salonun ekibini getir (aktif personel)</summary>
+    /// <summary>Salonun ekibini getir — sadece HIZMET VEREN aktif personel (Kuafor/Uzman vs.)</summary>
     public async Task<object?> GetTeamAsync(string slug)
     {
         var customerId = await ResolveCustomerIdAsync(slug);
         if (customerId == null) return null;
 
+        // Sadece teknik personel (skill atayanlar): Hairdresser, Beautician, Default (Diğer)
+        // Hariç: SalonOwner(101), Manager(102), Cashier(105), Receptionist(106), BranchManager(107)
+        var serviceRoleIds = new[] {
+            Shared.Enums.SalonRoles.Ids.Hairdresser,
+            Shared.Enums.SalonRoles.Ids.Beautician
+        };
+
         var team = await _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == customerId.Value && p.IsActive && p.PublicVisible
-                     && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner)
+                     && serviceRoleIds.Contains(p.CustomerRoleId))
             .Include(p => p.User)
             .OrderBy(p => p.CustomerRoleId)
             .Select(p => new
             {
+                Id = p.Id,
                 name = p.PublicShowFullName ? p.User.FullName : p.User.FullName.Split(' ')[0],
                 title = p.PublicShowTitle ? p.Title : (string?)null,
                 specialty = p.PublicShowSpecialty ? p.Specialty : (string?)null,
@@ -291,7 +299,26 @@ public class SlnPublicFactory : ISlnPublicFactory
             })
             .ToListAsync();
 
-        return team;
+        // Yetenekler — SlnPersonnelSkill üzerinden hizmet adlarını ekle
+        var personnelIds = team.Select(t => t.Id).ToList();
+        var skills = await _skills.GetAllQueryable()
+            .Where(s => personnelIds.Contains(s.PersonnelId))
+            .Include(s => s.Service)
+            .Select(s => new { s.PersonnelId, ServiceName = s.Service != null ? s.Service.Name : "" })
+            .ToListAsync();
+        var skillsByPersonnel = skills
+            .GroupBy(s => s.PersonnelId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.ServiceName).Where(n => !string.IsNullOrEmpty(n)).ToList());
+
+        return team.Select(t => new
+        {
+            t.name,
+            t.title,
+            t.specialty,
+            t.photoUrl,
+            t.roleId,
+            services = skillsByPersonnel.TryGetValue(t.Id, out var svc) ? svc : new List<string>()
+        }).ToList();
     }
 
     /// <summary>Salonun subelerini getir (online randevu icin sube secimi)</summary>
