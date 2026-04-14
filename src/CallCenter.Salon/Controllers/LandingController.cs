@@ -11,6 +11,8 @@ public class LandingController : Controller
 {
     [HttpGet("/")]
     [HttpGet("/{culture:culture}")]
+    [HttpGet("/Landing")]
+    [HttpGet("/Landing/Index")]
     public IActionResult Index()
     {
         if (HttpContext.GetJwtIdentity().IsAuthenticated)
