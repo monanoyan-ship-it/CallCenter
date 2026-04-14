@@ -236,23 +236,43 @@ function SalesViewModel() {
             return;
         }
 
-        // BUG2.2: Musteri secilmediyse ad/soyad sor, hizli musteri olustur
+        // BUG2.2/PAY.4: Musteri secilmediyse ad/soyad sor, hizli musteri olustur
         if (!self.clientId()) {
             confirmModal('Hızlı Müşteri', 'Müşteri seçilmedi. Tahsilat için ad-soyad girin:', function (name) {
                 name = (name || '').trim();
                 if (!name) { toastr.warning('Müşteri adı gerekli.'); return; }
+
+                var body = { fullName: name };
                 self.isSaving(true);
                 $.ajax({
                     url: '/proxy/sln-clients',
                     method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ fullName: name })
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    data: JSON.stringify(body)
                 }).done(function (resp) {
-                    self.clientId(resp.id || resp.Id);
+                    var newId = (resp && (resp.id || resp.Id)) || null;
+                    if (!newId) {
+                        console.error('[hizli musteri] gecerli id yok', resp);
+                        toastr.error('Müşteri oluşturulamadı (kimlik dönmedi).');
+                        self.isSaving(false);
+                        return;
+                    }
+                    self.clientId(newId);
+                    // Autocomplete gorunumunu de senkronize et
+                    if (self.clientAutocomplete) {
+                        self.clientAutocomplete.query(name);
+                        if (typeof self.clientAutocomplete.selectedName === 'function') {
+                            self.clientAutocomplete.selectedName(name);
+                        }
+                    }
                     self.isSaving(false);
-                    self.checkout(); // recurse — personel check icin
-                }).fail(function () {
-                    toastr.error('Müşteri oluşturulamadı.');
+                    self.checkout(); // recurse — personel kontrolu icin
+                }).fail(function (xhr) {
+                    console.error('[hizli musteri] POST failed', xhr.status, xhr.responseText);
+                    var msg = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error))
+                        || ('Müşteri oluşturulamadı (HTTP ' + xhr.status + ').');
+                    toastr.error(msg);
                     self.isSaving(false);
                 });
             }, { input: true, inputLabel: 'Ad Soyad', confirmText: 'Devam', confirmClass: 'btn-primary' });

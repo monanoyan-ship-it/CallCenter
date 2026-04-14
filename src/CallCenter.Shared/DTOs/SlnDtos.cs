@@ -902,6 +902,9 @@ public class SlnBranchCreateDto
     public string? TaxOffice { get; set; }
     public string? TaxNumber { get; set; }
     public string? MersisNo { get; set; }
+    // Konum (manuel girilebilir, yoksa backend Nominatim ile otomatik cozer)
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 }
 
 public class SlnBranchUpdateDto : SlnBranchCreateDto

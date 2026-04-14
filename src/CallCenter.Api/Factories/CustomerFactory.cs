@@ -22,6 +22,8 @@ public class CustomerFactory : ICustomerFactory
     private readonly ISlnExpenseCategoryEntityService _expenseCategoryEs;
     private readonly ISlnCashRegisterEntityService _cashRegisterEs;
     private readonly ISlnBranchEntityService _branchEs;
+    private readonly ISubscriptionPlanEntityService _planEs;
+    private readonly ICustomerSubscriptionEntityService _subscriptionEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IAuthFactory _authFactory;
     private readonly IUnitOfWork _uow;
@@ -38,6 +40,8 @@ public class CustomerFactory : ICustomerFactory
         ISlnExpenseCategoryEntityService expenseCategoryEs,
         ISlnCashRegisterEntityService cashRegisterEs,
         ISlnBranchEntityService branchEs,
+        ISubscriptionPlanEntityService planEs,
+        ICustomerSubscriptionEntityService subscriptionEs,
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
         IUnitOfWork uow)
@@ -53,6 +57,8 @@ public class CustomerFactory : ICustomerFactory
         _expenseCategoryEs = expenseCategoryEs;
         _cashRegisterEs = cashRegisterEs;
         _branchEs = branchEs;
+        _planEs = planEs;
+        _subscriptionEs = subscriptionEs;
         _passwordPolicy = passwordPolicy;
         _authFactory = authFactory;
         _uow = uow;
@@ -650,6 +656,40 @@ public class CustomerFactory : ICustomerFactory
 
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
         await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _branchEs, _uow, customer.Id);
+
+        // PAY.5: 14 gunluk TRIAL abonelik olustur — yoksa salon abonelik kontrolunde blokluyor
+        try
+        {
+            var anyPlan = await _planEs.GetAllQueryable()
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.SortOrder)
+                .FirstOrDefaultAsync();
+            if (anyPlan != null)
+            {
+                var now = DateTime.UtcNow;
+                _subscriptionEs.Add(new CustomerSubscription
+                {
+                    CustomerId = customer.Id,
+                    PlanId = anyPlan.Id,
+                    StartDate = DateTime.SpecifyKind(now, DateTimeKind.Utc),
+                    MonthlyPrice = 0,
+                    PeriodPrice = 0,
+                    BillingDay = now.Day,
+                    NextBillingDate = DateTime.SpecifyKind(now.AddDays(14), DateTimeKind.Utc),
+                    StatusId = 1, // Active (trial)
+                    PaymentGraceDays = 7
+                });
+                await _uow.SaveChangesAsync();
+            }
+            // Plan yoksa: Customer.IsTest=true fallback, kayit sonrasi admin manuel plan atayana kadar muaf kalsin
+            else
+            {
+                customer.IsTest = true;
+                customer.TestNotes = "Auto-trial: aktif abonelik plani yok; admin plan atayana kadar muaf.";
+                await _uow.SaveChangesAsync();
+            }
+        }
+        catch { /* trial olusturulamazsa kayit akisini bozma */ }
 
         // Otomatik login
         var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest

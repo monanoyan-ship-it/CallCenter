@@ -16,6 +16,7 @@ public class SlnBranchFactory : ISlnBranchFactory
     private readonly ISlnInvoiceEntityService _invoices;
     private readonly ISlnCashRegisterEntityService _cashRegisters;
     private readonly ISlnExpenseEntityService _expenses;
+    private readonly IHttpClientFactory _httpFactory;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnBranchFactory> _logger;
 
@@ -27,6 +28,7 @@ public class SlnBranchFactory : ISlnBranchFactory
         ISlnInvoiceEntityService invoices,
         ISlnCashRegisterEntityService cashRegisters,
         ISlnExpenseEntityService expenses,
+        IHttpClientFactory httpFactory,
         IUnitOfWork uow,
         ILogger<SlnBranchFactory> logger)
     {
@@ -37,8 +39,47 @@ public class SlnBranchFactory : ISlnBranchFactory
         _invoices = invoices;
         _cashRegisters = cashRegisters;
         _expenses = expenses;
+        _httpFactory = httpFactory;
         _uow = uow;
         _logger = logger;
+    }
+
+    /// <summary>Nominatim (OSM) ile ucretsiz geocoding — adres → lat/lng. Null dönerse konum yok.</summary>
+    private async Task<(double? Lat, double? Lng)> GeocodeAsync(string? address, string? district, string? city)
+    {
+        if (string.IsNullOrWhiteSpace(city) && string.IsNullOrWhiteSpace(district) && string.IsNullOrWhiteSpace(address))
+            return (null, null);
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(address)) parts.Add(address);
+        if (!string.IsNullOrWhiteSpace(district)) parts.Add(district!);
+        if (!string.IsNullOrWhiteSpace(city)) parts.Add(city!);
+        parts.Add("Türkiye");
+        var query = System.Net.WebUtility.UrlEncode(string.Join(", ", parts));
+
+        try
+        {
+            var client = _httpFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(6);
+            // Nominatim UA zorunlu (kullanim kosulu)
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("CorpLynk-Salon/1.0 (support@corplynk.com)");
+            var url = $"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1&addressdetails=0";
+            var json = await client.GetStringAsync(url);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0)
+                return (null, null);
+            var first = doc.RootElement[0];
+            if (first.TryGetProperty("lat", out var latProp) && first.TryGetProperty("lon", out var lngProp))
+            {
+                if (double.TryParse(latProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lat)
+                 && double.TryParse(lngProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lng))
+                    return (lat, lng);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Geocoding hatasi (address={Address})", string.Join(", ", parts));
+        }
+        return (null, null);
     }
 
     public async Task<List<SlnBranchDto>> GetBranchesAsync(int customerId)
@@ -133,6 +174,22 @@ public class SlnBranchFactory : ISlnBranchFactory
             MersisNo = dto.MersisNo
         };
 
+        // PAY.7: Manuel koordinat yoksa geocode et (Nominatim, best-effort)
+        if (dto.Latitude.HasValue && dto.Longitude.HasValue)
+        {
+            branch.Latitude = dto.Latitude;
+            branch.Longitude = dto.Longitude;
+        }
+        else
+        {
+            var (lat, lng) = await GeocodeAsync(dto.Address, branch.District, branch.City);
+            if (lat.HasValue && lng.HasValue)
+            {
+                branch.Latitude = lat;
+                branch.Longitude = lng;
+            }
+        }
+
         _branches.Add(branch);
         await _uow.SaveChangesAsync();
 
@@ -172,6 +229,22 @@ public class SlnBranchFactory : ISlnBranchFactory
         branch.TaxOffice = dto.TaxOffice;
         branch.TaxNumber = dto.TaxNumber;
         branch.MersisNo = dto.MersisNo;
+
+        // PAY.7: Manuel koordinat gelirse kullan, yoksa (ve mevcut null ise) geocode et
+        if (dto.Latitude.HasValue && dto.Longitude.HasValue)
+        {
+            branch.Latitude = dto.Latitude;
+            branch.Longitude = dto.Longitude;
+        }
+        else if (!branch.Latitude.HasValue || !branch.Longitude.HasValue)
+        {
+            var (lat, lng) = await GeocodeAsync(dto.Address, branch.District, branch.City);
+            if (lat.HasValue && lng.HasValue)
+            {
+                branch.Latitude = lat;
+                branch.Longitude = lng;
+            }
+        }
 
         await _uow.SaveChangesAsync();
         return (true, null);

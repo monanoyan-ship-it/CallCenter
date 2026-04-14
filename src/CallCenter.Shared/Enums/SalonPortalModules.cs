@@ -14,13 +14,13 @@ public static class SalonPortalModules
     public static readonly TypeItem SlnServices = new(204, "SlnServices", "SalonModule.Services", "Hizmet Tanımları", "bi-list-check", "bg-warning text-dark", 4, isDefault: true);
     public static readonly TypeItem SlnProducts = new(205, "SlnProducts", "SalonModule.Products", "Ürün ve Stok", "bi-box-seam", "bg-secondary", 5);
     public static readonly TypeItem SlnInvoices = new(206, "SlnInvoices", "SalonModule.Invoices", "Adisyon ve Satış", "bi-receipt", "bg-danger", 6, isDefault: true);
-    public static readonly TypeItem SlnCash = new(207, "SlnCash", "SalonModule.Cash", "Kasa Yönetimi", "bi-cash-stack", "bg-success", 7);
+    public static readonly TypeItem SlnCash = new(207, "SlnCash", "SalonModule.Cash", "Kasa Yönetimi", "bi-cash-stack", "bg-success", 7, isDefault: true);
     public static readonly TypeItem SlnExpenses = new(208, "SlnExpenses", "SalonModule.Expenses", "Masraf Takibi", "bi-credit-card", "bg-dark", 8);
     public static readonly TypeItem SlnStaff = new(209, "SlnStaff", "SalonModule.Staff", "Personel ve Maaş", "bi-person-badge", "bg-indigo", 9, isDefault: true);
     public static readonly TypeItem SlnSuppliers = new(210, "SlnSuppliers", "SalonModule.Suppliers", "Tedarikçi ve Cari", "bi-truck", "bg-teal", 10);
     public static readonly TypeItem SlnReports = new(211, "SlnReports", "SalonModule.Reports", "Raporlama", "bi-bar-chart-line", "bg-orange", 11);
     public static readonly TypeItem SlnCampaigns = new(212, "SlnCampaigns", "SalonModule.Campaigns", "Pazarlama ve SMS", "bi-megaphone-fill", "bg-pink", 12);
-    public static readonly TypeItem SlnBranches = new(213, "SlnBranches", "SalonModule.Branches", "Şube Yönetimi", "bi-building", "bg-cyan", 13);
+    public static readonly TypeItem SlnBranches = new(213, "SlnBranches", "SalonModule.Branches", "Şube Yönetimi", "bi-building", "bg-cyan", 13, isDefault: true);
 
     // ─── Yeni modüller (Faz A-D) ───
     public static readonly TypeItem SlnSales = new(214, "SlnSales", "SalonModule.Sales", "Hızlı Satış POS", "bi-cart-check-fill", "bg-success", 14, isDefault: true);
