@@ -41,7 +41,7 @@
                             <tbody data-bind="foreach: prices">
                                 <tr>
                                     <td class="fw-semibold small" data-bind="text: personnelName"></td>
-                                    <td class="small" data-bind="text: serviceName"></td>
+                                    <td class="small" data-bind="text: serviceName || ((serviceNames && serviceNames.length) ? serviceNames.join(', ') : '-')"></td>
                                     <td class="small fw-bold text-primary" data-bind="text: price.toLocaleString('tr-TR') + ' TL'"></td>
                                     <td>
                                         <button class="btn btn-outline-danger btn-sm px-1" title="Sil" data-bind="click: $parent.removePrice">

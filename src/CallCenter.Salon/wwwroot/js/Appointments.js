@@ -69,9 +69,17 @@ function AppointmentsViewModel() {
 
         self.slotsLoading(true);
         $.get('/proxy/sln-appointments/available-slots?personnelId=' + personnelId + '&date=' + dateStr + '&durationMinutes=' + totalDuration, function (data) {
-            self.availableSlots(data || []);
+            var slots = data || [];
+            self.availableSlots(slots);
             self.slotsLoading(false);
-        }).fail(function () { self.slotsLoading(false); });
+            // Bos slot listesi: personelin o gun calisma saati yok veya tum slotlar dolu
+            if (slots.length === 0) {
+                toastr.warning('Bu personelin seçili tarihte müsait saati yok. Çalışma saatlerini kontrol edin veya başka tarih/personel deneyin.');
+            }
+        }).fail(function (xhr) {
+            self.slotsLoading(false);
+            toastr.error('Müsait saatler yüklenemedi (HTTP ' + xhr.status + ').');
+        });
     }
 
     self.form.personnelId.subscribe(loadSlots);

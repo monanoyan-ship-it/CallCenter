@@ -23,7 +23,7 @@
                         </thead>
                         <tbody data-bind="foreach: plans">
                             <tr>
-                                <td class="fw-medium" data-bind="text: name"></td>
+                                <td class="fw-medium" data-bind="text: name || ('Plan #' + id)"></td>
                                 <td data-bind="text: intervalMonths + ' ay'"></td>
                                 <td data-bind="text: discountPercent > 0 ? '%' + discountPercent : '-'"></td>
                                 <td data-bind="text: branchPrice > 0 ? branchPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
