@@ -34,8 +34,12 @@
     <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
     <style>
         body { background: #f5f5f5; font-family: 'Segoe UI', system-ui, sans-serif; }
-        .hero { background: linear-gradient(135deg, #2d1b3d 0%, #4a1a6b 100%); color: #fff; padding: 3rem 0; }
-        .hero .logo { width: 80px; height: 80px; background: rgba(255,255,255,.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+        .hero { background: linear-gradient(135deg, #2d1b3d 0%, #4a1a6b 100%); color: #fff; padding: 3rem 0; position:relative; overflow:hidden; }
+        .hero.has-cover { padding: 5rem 0 3rem; }
+        .hero-cover { position:absolute; inset:0; background-size: cover; background-position: center; opacity: .25; z-index:0; }
+        .hero > .container { position:relative; z-index:1; }
+        .hero .logo { width: 80px; height: 80px; background: rgba(255,255,255,.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow:hidden; border: 3px solid rgba(255,255,255,.3); }
+        .hero .logo img { width:100%; height:100%; object-fit: cover; }
         .service-card { transition: .15s; cursor: default; }
         .service-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1) !important; }
         .category-header { border-left: 3px solid #7b1fa2; padding-left: .75rem; }
@@ -58,11 +62,19 @@
         <!-- ko if: loaded() && !notFound() -->
 
         <!-- Hero -->
-        <div class="hero">
+        <div class="hero" data-bind="css: { 'has-cover': !!salon().coverImageUrl }">
+            <!-- ko if: salon().coverImageUrl -->
+            <div class="hero-cover" data-bind="style: { backgroundImage: 'url(' + salon().coverImageUrl + ')' }"></div>
+            <!-- /ko -->
             <div class="container">
                 <div class="d-flex align-items-center gap-4">
                     <div class="logo">
+                        <!-- ko if: salon().logoUrl -->
+                        <img data-bind="attr: { src: salon().logoUrl, alt: salon().salonName }" />
+                        <!-- /ko -->
+                        <!-- ko ifnot: salon().logoUrl -->
                         <i class="bi bi-scissors"></i>
+                        <!-- /ko -->
                     </div>
                     <div>
                         <h1 class="mb-1 fw-bold" data-bind="text: salon().salonName"></h1>
@@ -163,6 +175,27 @@
                     <!-- ko if: key === 'services' && $parent.salon().showServices !== false -->
                     <div class="mb-4" id="section-services">
                         <h4 class="mb-3"><i class="bi bi-list-check me-2"></i>Hizmetlerimiz</h4>
+                        <!-- One Cikan 3 Hizmet (accordion acmadan) -->
+                        <!-- ko if: $parent.featuredServices().length > 0 -->
+                        <div class="row g-2 mb-3">
+                            <!-- ko foreach: $parent.featuredServices -->
+                            <div class="col-sm-6 col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <div class="fw-semibold small" data-bind="text: name"></div>
+                                                <small class="text-muted" data-bind="text: durationMinutes + ' dk'"></small>
+                                            </div>
+                                            <span class="fw-bold text-primary small" data-bind="text: price.toLocaleString('tr-TR') + ' TL'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- /ko -->
+                        </div>
+                        <h6 class="text-muted small mt-3 mb-2">Tüm Hizmetler</h6>
+                        <!-- /ko -->
                         <div class="accordion" id="servicesAccordion" data-bind="foreach: $parent.salon().serviceCategories">
                             <div class="accordion-item border-0 shadow-sm mb-2" style="border-radius:8px;overflow:hidden;">
                                 <h2 class="accordion-header">
@@ -195,13 +228,10 @@
                     </div>
                     <!-- /ko -->
 
-                    <!-- Uyelik Planlari -->
-                    <!-- ko if: key === 'memberships' && $parent.salon().showMemberships !== false -->
+                    <!-- Uyelik Planlari (bossa tum bolum gizlenir) -->
+                    <!-- ko if: key === 'memberships' && $parent.salon().showMemberships !== false && $parent.membershipPlans().length > 0 -->
                     <div class="mb-4" id="section-memberships">
                         <h4 class="mb-3"><i class="bi bi-award me-2"></i>Uyelik Planlari</h4>
-                        <!-- ko if: $parent.membershipPlans().length === 0 -->
-                        <p class="text-muted small">Henuz uyelik plani tanimlanmamis.</p>
-                        <!-- /ko -->
                         <div class="row g-3">
                             <!-- ko foreach: $parent.membershipPlans -->
                             <div class="col-md-6 col-lg-4">
@@ -345,11 +375,16 @@
                     </div>
                     <!-- /ko -->
 
-                    <!-- Adres -->
-                    <!-- ko if: salon().showContact !== false && salon().address -->
+                    <!-- Adres (address yoksa city/district fallback) -->
+                    <!-- ko if: salon().showContact !== false && (salon().address || salon().city) -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-white fw-semibold small"><i class="bi bi-geo-alt me-2"></i>Adres</div>
-                        <div class="card-body small" data-bind="text: salon().address"></div>
+                        <div class="card-body small">
+                            <div data-bind="text: salon().address || ((salon().district ? salon().district + ', ' : '') + (salon().city || ''))"></div>
+                            <!-- ko if: salon().address && salon().city -->
+                            <small class="text-muted d-block mt-1" data-bind="text: (salon().district ? salon().district + ' / ' : '') + salon().city"></small>
+                            <!-- /ko -->
+                        </div>
                     </div>
                     <!-- /ko -->
 
@@ -476,6 +511,17 @@
             self.reviews = ko.observableArray([]);
             self.reviewStats = ko.observable({});
             self.selectedPlanId = ko.observable(null);
+
+            // One cikan ilk 3 hizmet (kategorilerden flatten, fiyati > 0)
+            self.featuredServices = ko.computed(function () {
+                var s = self.salon();
+                if (!s || !s.serviceCategories) return [];
+                var all = [];
+                s.serviceCategories.forEach(function (cat) {
+                    (cat.services || []).forEach(function (sv) { if (sv.price > 0) all.push(sv); });
+                });
+                return all.slice(0, 3);
+            });
 
             // Signup
             self.signupPlanId = ko.observable(null);

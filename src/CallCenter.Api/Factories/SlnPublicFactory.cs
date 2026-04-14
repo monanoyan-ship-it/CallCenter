@@ -162,9 +162,31 @@ public class SlnPublicFactory : ISlnPublicFactory
             .Where(b => customerIds.Contains(b.CustomerId) && b.IsHeadquarter && b.IsActive)
             .ToDictionaryAsync(b => b.CustomerId);
 
+        // Yorumlar — onaylı (StatusId=2) ortalama + sayı
+        var reviewStats = await _reviews.GetAllQueryable()
+            .Where(r => customerIds.Contains(r.CustomerId) && r.StatusId == 2)
+            .GroupBy(r => r.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Avg = g.Average(x => x.Rating), Count = g.Count() })
+            .ToDictionaryAsync(x => x.CustomerId);
+
+        // Fiyat araligi — aktif hizmet min/max (firma bazli)
+        var priceStats = await _services.GetAllQueryable()
+            .Where(s => customerIds.Contains(s.CustomerId) && s.IsActive && s.Price > 0)
+            .GroupBy(s => s.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Min = g.Min(x => x.Price), Max = g.Max(x => x.Price) })
+            .ToDictionaryAsync(x => x.CustomerId);
+
         return profiles.OrderBy(p => p.Customer?.Name).Select(p =>
         {
             hqBranches.TryGetValue(p.CustomerId, out var hq);
+            reviewStats.TryGetValue(p.CustomerId, out var rs);
+            priceStats.TryGetValue(p.CustomerId, out var ps);
+            string? priceRange = null;
+            if (ps != null)
+                priceRange = ps.Min == ps.Max
+                    ? $"{ps.Min:N0} ₺"
+                    : $"{ps.Min:N0} - {ps.Max:N0} ₺";
+
             return new
             {
                 Slug = hq?.Slug ?? p.Slug ?? "",
@@ -174,7 +196,10 @@ public class SlnPublicFactory : ISlnPublicFactory
                 p.LogoUrl,
                 p.Description,
                 Latitude = hq?.Latitude ?? p.Latitude,
-                Longitude = hq?.Longitude ?? p.Longitude
+                Longitude = hq?.Longitude ?? p.Longitude,
+                AverageRating = rs?.Avg ?? 0,
+                ReviewCount = rs?.Count ?? 0,
+                PriceRange = priceRange
             };
         }).ToList();
     }
