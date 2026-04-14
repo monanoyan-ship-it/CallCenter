@@ -88,6 +88,16 @@ public class SlnBranchController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Lat/Lng NULL olan subelere Nominatim ile bulk geocoding (1 sn rate-limit, async).</summary>
+    [HttpPost("normalize-coordinates")]
+    public async Task<ActionResult> NormalizeCoordinates()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var result = await _branchFactory.NormalizeCoordinatesAsync(customerId);
+        return Ok(result);
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
 }

@@ -11,4 +11,5 @@ public interface ISlnBranchFactory
     Task<(bool Success, string? Error)> DeleteBranchAsync(int branchId, int customerId);
     Task<object> NormalizeAddressesAsync(int customerId);
     Task<object> NormalizeWorkingHoursAsync(int customerId);
+    Task<object> NormalizeCoordinatesAsync(int customerId);
 }

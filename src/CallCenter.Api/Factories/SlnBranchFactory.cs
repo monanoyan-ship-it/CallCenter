@@ -307,6 +307,29 @@ public class SlnBranchFactory : ISlnBranchFactory
     private const string DefaultWorkingHoursJson =
         "{\"mon\":\"09:00-19:00\",\"tue\":\"09:00-19:00\",\"wed\":\"09:00-19:00\",\"thu\":\"09:00-19:00\",\"fri\":\"09:00-19:00\",\"sat\":\"09:00-19:00\",\"sun\":\"closed\"}";
 
+    /// <summary>Lat/Lng null olan subelere Nominatim ile geocoding uygula (best-effort, 1 sn rate-limit).</summary>
+    public async Task<object> NormalizeCoordinatesAsync(int customerId)
+    {
+        var orphan = await _branches.GetAllQueryable()
+            .Where(b => b.CustomerId == customerId && (b.Latitude == null || b.Longitude == null))
+            .ToListAsync();
+        int updated = 0, skipped = 0;
+        foreach (var b in orphan)
+        {
+            var (lat, lng) = await GeocodeAsync(b.Address, b.District, b.City);
+            if (lat.HasValue && lng.HasValue)
+            {
+                b.Latitude = lat;
+                b.Longitude = lng;
+                updated++;
+            }
+            else skipped++;
+            await Task.Delay(1100); // Nominatim 1 req/sec policy
+        }
+        if (updated > 0) await _uow.SaveChangesAsync();
+        return new { total = orphan.Count, updated, skipped };
+    }
+
     /// <summary>Eski subelerin WorkingHoursJson null olanlari default ile doldur</summary>
     public async Task<object> NormalizeWorkingHoursAsync(int customerId)
     {
