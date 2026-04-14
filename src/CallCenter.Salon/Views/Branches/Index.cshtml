@@ -44,6 +44,9 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-dark" title="QR Kod" data-bind="click: $parent.showQr">
+                                        <i class="bi bi-qr-code"></i>
+                                    </button>
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -64,6 +67,33 @@
                 <p class="mt-2 small">Henuz sube eklenmemis</p>
             </div>
             <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal fade" id="qrModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-qr-code me-1"></i>Sube QR Kodu</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <h6 class="mb-1" data-bind="text: qrBranchName"></h6>
+                    <div class="text-muted small mb-3">Musteri okuttugunda su sayfa acilir:</div>
+                    <div class="text-break small text-primary mb-3" style="font-family:monospace;" data-bind="text: qrUrl"></div>
+                    <div id="qrCanvas" class="d-inline-block p-3 bg-white border rounded shadow-sm"></div>
+                    <div class="mt-3 small text-muted">
+                        Bu QR kodu yazdirip cama asin. Okutan musteri dogrudan subenizin randevu sayfasina gider.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: downloadQr">
+                        <i class="bi bi-download me-1"></i>PNG indir
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -189,6 +219,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="~/js/tr-cities.js" asp-append-version="true"></script>
     <script src="~/js/Branches.js" asp-append-version="true"></script>
     <datalist id="tr-cities-list">

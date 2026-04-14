@@ -201,8 +201,53 @@ function BranchesViewModel() {
         });
     };
 
+    // ═══ QR Kod ═══
+    var qrModal;
+    var qrInstance = null;
+    self.qrBranchName = ko.observable('');
+    self.qrUrl = ko.observable('');
+    var qrCurrentBranch = null;
+
+    self.showQr = function (branch) {
+        if (!branch.slug) {
+            toastr.warning('Bu subenin URL (slug) tanimlanmamis. Once duzenleyip slug atayin.');
+            return;
+        }
+        qrCurrentBranch = branch;
+        self.qrBranchName(branch.name + (branch.isHeadquarter ? ' (Merkez)' : ''));
+        var url = window.location.origin + '/salon/' + branch.slug + '/book';
+        self.qrUrl(url);
+
+        var container = document.getElementById('qrCanvas');
+        container.innerHTML = '';
+        qrInstance = new QRCode(container, {
+            text: url,
+            width: 256,
+            height: 256,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+
+        qrModal.show();
+    };
+
+    self.downloadQr = function () {
+        var container = document.getElementById('qrCanvas');
+        var img = container.querySelector('img') || container.querySelector('canvas');
+        if (!img) return;
+        var dataUrl = img.tagName === 'IMG' ? img.src : img.toDataURL('image/png');
+        var a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'qr-' + (qrCurrentBranch && qrCurrentBranch.slug ? qrCurrentBranch.slug : 'sube') + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('branchModal'));
+        qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
         self.loadStaff();
         self.loadData();
     });
