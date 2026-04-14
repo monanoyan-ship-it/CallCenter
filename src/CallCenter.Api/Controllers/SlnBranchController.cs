@@ -78,6 +78,16 @@ public class SlnBranchController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>WorkingHoursJson NULL olan subelere default 09:00-19:00 (Pzt-Cmt) seed eder</summary>
+    [HttpPost("normalize-working-hours")]
+    public async Task<ActionResult> NormalizeWorkingHours()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var result = await _branchFactory.NormalizeWorkingHoursAsync(customerId);
+        return Ok(result);
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
 }

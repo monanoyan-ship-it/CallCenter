@@ -163,7 +163,8 @@ public class SlnBranchFactory : ISlnBranchFactory
             Phone = dto.Phone,
             Email = dto.Email,
             GoogleMapsUrl = dto.GoogleMapsUrl,
-            WorkingHoursJson = dto.WorkingHoursJson,
+            // Default calisma saatleri: Pzt-Cmt 09:00-19:00, Pazar kapali (yoksa)
+            WorkingHoursJson = string.IsNullOrWhiteSpace(dto.WorkingHoursJson) ? DefaultWorkingHoursJson : dto.WorkingHoursJson,
             ManagerPersonnelId = dto.ManagerPersonnelId,
             IsHeadquarter = dto.IsHeadquarter,
             IsActive = dto.IsActive,
@@ -300,6 +301,21 @@ public class SlnBranchFactory : ISlnBranchFactory
 
         _logger.LogInformation("Sube silindi: {BranchId}", branchId);
         return (true, null);
+    }
+
+    /// <summary>Default sube calisma saatleri: Pzt-Cmt 09:00-19:00, Pazar kapali</summary>
+    private const string DefaultWorkingHoursJson =
+        "{\"mon\":\"09:00-19:00\",\"tue\":\"09:00-19:00\",\"wed\":\"09:00-19:00\",\"thu\":\"09:00-19:00\",\"fri\":\"09:00-19:00\",\"sat\":\"09:00-19:00\",\"sun\":\"closed\"}";
+
+    /// <summary>Eski subelerin WorkingHoursJson null olanlari default ile doldur</summary>
+    public async Task<object> NormalizeWorkingHoursAsync(int customerId)
+    {
+        var orphan = await _branches.GetAllQueryable()
+            .Where(b => b.CustomerId == customerId && b.WorkingHoursJson == null)
+            .ToListAsync();
+        foreach (var b in orphan) b.WorkingHoursJson = DefaultWorkingHoursJson;
+        if (orphan.Count > 0) await _uow.SaveChangesAsync();
+        return new { updated = orphan.Count };
     }
 
     public async Task<object> NormalizeAddressesAsync(int customerId)
