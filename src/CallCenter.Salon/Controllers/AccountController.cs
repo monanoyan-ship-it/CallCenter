@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using CallCenter.Shared.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Salon.Controllers;
@@ -9,7 +10,7 @@ public class AccountController : SlnBaseController
     [HttpGet]
     public IActionResult Login()
     {
-        if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Token")))
+        if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");
         return View();
     }
@@ -29,27 +30,14 @@ public class AccountController : SlnBaseController
         }
 
         var json = await response.Content.ReadAsStringAsync();
-        SetSessionFromLoginResponse(json);
-
-        // Beni hatirla — token'i persistent cookie'ye yaz
-        if (rememberMe)
-        {
-            Response.Cookies.Append("RememberToken", HttpContext.Session.GetString("Token") ?? "", new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddDays(30)
-            });
-        }
-
+        SetAuthFromLoginResponse(json, rememberMe ? 30 : 1);
         return RedirectToAction("Index", "Home");
     }
 
     [HttpGet]
     public IActionResult Register()
     {
-        if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Token")))
+        if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");
         return View();
     }
@@ -71,10 +59,9 @@ public class AccountController : SlnBaseController
             return Json(new { success = false, error });
         }
 
-        // Kayıt başarılı, session'a token yaz (Login ile aynı claim'ler)
         if (root.TryGetProperty("token", out var token) && token.GetString() is string t && !string.IsNullOrEmpty(t))
         {
-            SetSessionFromLoginResponse(json);
+            SetAuthFromLoginResponse(json, 1);
         }
 
         return Json(new { success = true });
@@ -84,68 +71,19 @@ public class AccountController : SlnBaseController
     [HttpPost]
     public IActionResult Logout()
     {
-        HttpContext.Session.Clear();
-        // HttpOnly+Secure+SameSite=Lax ile set edilmisti — Delete'te ayni flags aksi halde
-        // bazi tarayicilar cookie yi silmez. Secure false ise http local test'te de silinir.
-        var opts = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
-            Path = "/"
-        };
-        Response.Cookies.Delete("RememberToken", opts);
-        // Ek guvenlik: subscription cache, customer modules vs.
-        Response.Cookies.Delete("SubscriptionActive", opts);
+        HttpContext.ClearAuthCookie();
         return RedirectToAction("Login");
     }
 
-    /// <summary>Abonelik odemesi sonrasi cache'lenmis SubscriptionActive bayragini sifirlar</summary>
-    public IActionResult RefreshSession()
-    {
-        HttpContext.Session.Remove("SubscriptionActive");
-        return RedirectToAction("Index", "Home");
-    }
+    /// <summary>Abonelik odemesi sonrasi cache temizleme — JWT akisinda gerek yok ama legacy link.</summary>
+    public IActionResult RefreshSession() => RedirectToAction("Index", "Home");
 
-    private void SetSessionFromLoginResponse(string json)
+    private void SetAuthFromLoginResponse(string json, int days)
     {
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
-
-        HttpContext.Session.SetString("Token", root.GetProperty("token").GetString() ?? "");
-        HttpContext.Session.SetString("UserName", root.GetProperty("fullName").GetString() ?? "");
-        HttpContext.Session.SetString("UserRole", root.GetProperty("role").GetString() ?? "");
-
-        try
-        {
-            var jwtToken = root.GetProperty("token").GetString() ?? "";
-            var jwtParts = jwtToken.Split('.');
-            if (jwtParts.Length == 3)
-            {
-                var jwtPayload = jwtParts[1].Replace('-', '+').Replace('_', '/');
-                switch (jwtPayload.Length % 4)
-                {
-                    case 2: jwtPayload += "=="; break;
-                    case 3: jwtPayload += "="; break;
-                }
-                var payloadBytes = Convert.FromBase64String(jwtPayload);
-                using var claims = JsonDocument.Parse(payloadBytes);
-                var claimRoot = claims.RootElement;
-
-                if (claimRoot.TryGetProperty("CustomerName", out var cn))
-                    HttpContext.Session.SetString("CustomerName", cn.ToString());
-                if (claimRoot.TryGetProperty("CustomerRole", out var cr))
-                    HttpContext.Session.SetString("CustomerRole", cr.ToString());
-                if (claimRoot.TryGetProperty("CustomerRoleId", out var cri))
-                    HttpContext.Session.SetString("CustomerRoleId", cri.ToString());
-                if (claimRoot.TryGetProperty("IsCustomerAdmin", out var ica))
-                    HttpContext.Session.SetString("IsCustomerAdmin", ica.ToString());
-                if (claimRoot.TryGetProperty("CustomerModules", out var cm))
-                    HttpContext.Session.SetString("CustomerModules", cm.ToString());
-                if (claimRoot.TryGetProperty("BranchId", out var bid))
-                    HttpContext.Session.SetString("BranchId", bid.ToString());
-            }
-        }
-        catch { }
+        var token = root.GetProperty("token").GetString() ?? "";
+        if (!string.IsNullOrEmpty(token))
+            HttpContext.SetAuthCookie(token, days);
     }
 }

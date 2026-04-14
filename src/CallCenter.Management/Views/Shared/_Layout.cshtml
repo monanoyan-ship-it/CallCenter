@@ -42,7 +42,8 @@
     @RenderSection("Styles", required: false)
 </head>
 <body>
-    @if (Context.Session.GetString("Token") != null)
+    @{ var __jwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context); }
+    @if (__jwt.IsAuthenticated)
     {
         var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
         var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
@@ -139,7 +140,7 @@
             <div style="position:absolute;bottom:0;width:100%;border-top:1px solid rgba(255,255,255,.1);padding:.8rem 1rem;">
                 <div class="d-flex align-items-center justify-content-between">
                     <small class="text-white-50">
-                        <i class="bi bi-shield-lock me-1"></i>@Context.Session.GetString("UserName")
+                        <i class="bi bi-shield-lock me-1"></i>@__jwt.FullName
                     </small>
                     <a href="/Account/Logout" class="text-white-50" title="Cikis"><i class="bi bi-box-arrow-right"></i></a>
                 </div>

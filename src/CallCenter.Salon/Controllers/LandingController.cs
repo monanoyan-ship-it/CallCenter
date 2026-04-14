@@ -1,3 +1,4 @@
+using CallCenter.Shared.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Salon.Controllers;
@@ -12,10 +13,8 @@ public class LandingController : Controller
     [HttpGet("/{culture:culture}")]
     public IActionResult Index()
     {
-        var token = HttpContext.Session.GetString("Token");
-        if (!string.IsNullOrEmpty(token))
+        if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return Redirect("/Home");
-
         return View();
     }
 }

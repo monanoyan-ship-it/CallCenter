@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using CallCenter.Shared.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Management.Controllers;
@@ -9,7 +10,7 @@ public class AccountController : MgmtBaseController
     [HttpGet]
     public IActionResult Login()
     {
-        if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Token")))
+        if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");
         return View();
     }
@@ -39,27 +40,16 @@ public class AccountController : MgmtBaseController
             return View();
         }
 
-        var tokenStr = root.GetProperty("token").GetString() ?? "";
-        HttpContext.Session.SetString("Token", tokenStr);
-        HttpContext.Session.SetString("UserName", root.GetProperty("fullName").GetString() ?? "");
-        HttpContext.Session.SetString("UserRole", role ?? "");
-
-        if (rememberMe)
-        {
-            Response.Cookies.Append("RememberToken", tokenStr, new CookieOptions
-            {
-                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddDays(30)
-            });
-        }
-
+        var token = root.GetProperty("token").GetString() ?? "";
+        HttpContext.SetAuthCookie(token, rememberMe ? 30 : 1);
         return RedirectToAction("Index", "Home");
     }
 
+    [HttpGet]
+    [HttpPost]
     public IActionResult Logout()
     {
-        HttpContext.Session.Clear();
-        Response.Cookies.Delete("RememberToken");
+        HttpContext.ClearAuthCookie();
         return RedirectToAction("Login");
     }
 }

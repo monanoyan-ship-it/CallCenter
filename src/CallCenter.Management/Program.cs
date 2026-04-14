@@ -23,13 +23,7 @@ builder.Services.AddHttpClient("ManagementApi", client =>
 
 builder.Services.AddAppLocalization(apiBaseUrl);
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromHours(8);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.Name = ".Management.Session";
-});
+// Session kaldirildi — JWT cookie tabanli stateless akis (Shared.Auth.JwtIdentity)
 
 builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteOptions>(options =>
 {
@@ -47,7 +41,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAppLocalization();
 app.UseRouting();
-app.UseSession();
 
 app.MapControllerRoute(
     name: "localized",

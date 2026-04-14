@@ -24,12 +24,7 @@ builder.Services.AddHttpClient("SalonApi", client =>
 
 builder.Services.AddAppLocalization(apiBaseUrl, module: "salon");
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromHours(8);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+// Session kaldirildi — JWT cookie tabanli stateless akis (Shared.Auth.JwtIdentity)
 
 builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteOptions>(options =>
 {
@@ -47,7 +42,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAppLocalization();
 app.UseRouting();
-app.UseSession();
 
 app.MapControllerRoute(
     name: "localized",

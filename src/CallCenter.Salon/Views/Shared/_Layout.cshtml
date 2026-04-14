@@ -38,7 +38,8 @@
     @RenderSection("Styles", required: false)
 </head>
 <body>
-    @if (Context.Session.GetString("Token") != null)
+    @{ var __jwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context); }
+    @if (__jwt.IsAuthenticated)
     {
         <nav class="sidebar d-print-none">
             <div class="brand">
@@ -46,11 +47,11 @@
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-                var roleId = int.TryParse(Context.Session.GetString("CustomerRoleId"), out var rid) ? rid : 101;
+                var roleId = __jwt.CustomerRoleId > 0 ? __jwt.CustomerRoleId : 101;
                 var can = CallCenter.Shared.Enums.SalonRolePermissions.GetAccessiblePages(roleId);
 
                 // Modul filtresi: aktif olmayan modullerin sayfalari sidebar'da gorunmez
-                var modulesCsv = Context.Session.GetString("CustomerModules") ?? "";
+                var modulesCsv = __jwt.CustomerModules;
                 var activeModuleIds = modulesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => int.TryParse(s.Trim(), out var mid) ? mid : 0)
                     .Where(id => id > 0)
@@ -170,7 +171,7 @@
             <div style="position:absolute;bottom:0;width:100%;border-top:1px solid rgba(255,255,255,.1);padding:.8rem 1rem;">
                 <div class="d-flex align-items-center justify-content-between">
                     <small class="text-white-50">
-                        <i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UserName")
+                        <i class="bi bi-person-circle me-1"></i>@__jwt.FullName
                     </small>
                     <a href="/Account/Logout" class="text-white-50" title="Cikis"><i class="bi bi-box-arrow-right"></i></a>
                 </div>
@@ -182,7 +183,7 @@
                 <h5 class="mb-0">@ViewData["Title"]</h5>
                 <div class="d-flex align-items-center gap-3">
                     <div id="branchSelector"></div>
-                    <small class="text-muted">@Context.Session.GetString("CustomerName")</small>
+                    <small class="text-muted">@__jwt.CustomerName</small>
                 </div>
             </div>
             @RenderBody()
@@ -238,8 +239,8 @@
 
         // Sube secici (birden fazla sube varsa goster)
         (function() {
-            var roleId = parseInt('@Context.Session.GetString("CustomerRoleId")' || '101');
-            var currentBranch = '@Context.Session.GetString("BranchId")';
+            var roleId = parseInt('@(__jwt.CustomerRoleId > 0 ? __jwt.CustomerRoleId : 101)');
+            var currentBranch = '@(__jwt.BranchId?.ToString() ?? "")';
             if (roleId !== 101) return; // Sadece salon sahibi sube degistirebilir
 
             $.get('/proxy/sln-branches', function(data) {
