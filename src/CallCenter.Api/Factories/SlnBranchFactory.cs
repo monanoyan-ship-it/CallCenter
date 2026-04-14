@@ -44,25 +44,43 @@ public class SlnBranchFactory : ISlnBranchFactory
         _logger = logger;
     }
 
-    /// <summary>Nominatim (OSM) ile ucretsiz geocoding — adres → lat/lng. Null dönerse konum yok.</summary>
+    /// <summary>Nominatim (OSM) cascading geocoding — full → district+city → city only. Null = bulunamadi.</summary>
     private async Task<(double? Lat, double? Lng)> GeocodeAsync(string? address, string? district, string? city)
     {
         if (string.IsNullOrWhiteSpace(city) && string.IsNullOrWhiteSpace(district) && string.IsNullOrWhiteSpace(address))
             return (null, null);
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(address)) parts.Add(address);
-        if (!string.IsNullOrWhiteSpace(district)) parts.Add(district!);
-        if (!string.IsNullOrWhiteSpace(city)) parts.Add(city!);
-        parts.Add("Türkiye");
-        var query = System.Net.WebUtility.UrlEncode(string.Join(", ", parts));
 
+        // 3 farkli sorgu (ozel→genel) — Nominatim spesifik adresleri tanimazsa il/ilçe merkezi düşer
+        var queries = new List<string>();
+        var full = new List<string>();
+        if (!string.IsNullOrWhiteSpace(address)) full.Add(address);
+        if (!string.IsNullOrWhiteSpace(district)) full.Add(district!);
+        if (!string.IsNullOrWhiteSpace(city)) full.Add(city!);
+        full.Add("Türkiye");
+        if (full.Count > 1) queries.Add(string.Join(", ", full));
+
+        if (!string.IsNullOrWhiteSpace(district) && !string.IsNullOrWhiteSpace(city))
+            queries.Add($"{district}, {city}, Türkiye");
+
+        if (!string.IsNullOrWhiteSpace(city))
+            queries.Add($"{city}, Türkiye");
+
+        foreach (var q in queries.Distinct())
+        {
+            var (lat, lng) = await TryGeocodeOnceAsync(q);
+            if (lat.HasValue && lng.HasValue) return (lat, lng);
+        }
+        return (null, null);
+    }
+
+    private async Task<(double? Lat, double? Lng)> TryGeocodeOnceAsync(string query)
+    {
         try
         {
             var client = _httpFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(6);
-            // Nominatim UA zorunlu (kullanim kosulu)
             client.DefaultRequestHeaders.UserAgent.ParseAdd("CorpLynk-Salon/1.0 (support@corplynk.com)");
-            var url = $"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1&addressdetails=0";
+            var url = $"https://nominatim.openstreetmap.org/search?q={System.Net.WebUtility.UrlEncode(query)}&format=json&limit=1&addressdetails=0&countrycodes=tr";
             var json = await client.GetStringAsync(url);
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0)
@@ -77,7 +95,7 @@ public class SlnBranchFactory : ISlnBranchFactory
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Geocoding hatasi (address={Address})", string.Join(", ", parts));
+            _logger.LogWarning(ex, "Geocoding fail: {Query}", query);
         }
         return (null, null);
     }

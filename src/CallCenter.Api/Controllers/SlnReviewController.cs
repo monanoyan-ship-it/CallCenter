@@ -43,13 +43,13 @@ public class SlnReviewController : ControllerBase
         return review != null ? Ok(review) : NotFound();
     }
 
+    /// <summary>
+    /// Salon admin/personel TARAFINDAN yorum eklenemez (puanı şişirme açığı).
+    /// Bu endpoint kaldırıldı — yorum sadece müşteri (PlatformUser) tarafından
+    /// public flow üzerinden eklenebilir.
+    /// </summary>
     [HttpPost]
-    public async Task<ActionResult<SlnReviewDto>> CreateReview([FromBody] SlnReviewCreateDto dto)
-    {
-        var customerId = GetCustomerId();
-        if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.CreateReviewAsync(dto, customerId));
-    }
+    public ActionResult CreateReview() => Forbid();
 
     [HttpPut("{id}/status/{statusId}")]
     public async Task<ActionResult> UpdateStatus(int id, int statusId)
