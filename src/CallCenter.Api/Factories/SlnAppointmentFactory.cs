@@ -451,36 +451,36 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (hqBranch == null)
             return new { updated = 0, error = "Merkez sube bulunamadi. Once bir subeyi merkez olarak isaretleyin." };
 
-        // Orphan randevu + her birinin personelinin BranchId'sini birlikte getir
-        var orphans = await _appointments.GetAllQueryable()
-            .Where(a => a.CustomerId == customerId && a.BranchId == null)
+        // TUM aktif randevulari getir (orphan + yanlis atanmis dahil)
+        var appointments = await _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == customerId && a.StatusId != 4) // iptal haric
             .Include(a => a.Personnel)
             .ToListAsync();
 
-        int viaPersonnel = 0, viaHq = 0;
-        foreach (var a in orphans)
+        int syncedFromPersonnel = 0, assignedToHq = 0, alreadyCorrect = 0;
+        foreach (var a in appointments)
         {
-            if (a.Personnel?.BranchId != null)
-            {
-                a.BranchId = a.Personnel.BranchId;
-                viaPersonnel++;
-            }
-            else
-            {
-                a.BranchId = hqBranch.Id;
-                viaHq++;
-            }
+            var personnelBranchId = a.Personnel?.BranchId;
+            int? desiredBranchId = personnelBranchId ?? (a.BranchId == null ? hqBranch.Id : a.BranchId);
+
+            if (a.BranchId == desiredBranchId) { alreadyCorrect++; continue; }
+
+            a.BranchId = desiredBranchId;
+            if (personnelBranchId.HasValue) syncedFromPersonnel++;
+            else assignedToHq++;
         }
 
         await _uow.SaveChangesAsync();
-        _logger.LogInformation("NormalizeBranches: {Total} randevu guncellendi (personelden={ViaP}, merkez={ViaH}, CustomerId={CustomerId})",
-            orphans.Count, viaPersonnel, viaHq, customerId);
+        var updated = syncedFromPersonnel + assignedToHq;
+        _logger.LogInformation("NormalizeBranches: {Updated} guncellendi (personelSenkron={P}, merkezAta={H}, dokunulmadi={S}, CustomerId={C})",
+            updated, syncedFromPersonnel, assignedToHq, alreadyCorrect, customerId);
 
         return new
         {
-            updated = orphans.Count,
-            viaPersonnel,
-            viaHq,
+            updated,
+            syncedFromPersonnel,
+            assignedToHq,
+            alreadyCorrect,
             hqBranchId = hqBranch.Id,
             hqBranchName = hqBranch.Name
         };

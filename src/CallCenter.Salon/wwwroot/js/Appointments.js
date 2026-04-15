@@ -493,13 +493,16 @@ function AppointmentsViewModel() {
 
     // ═══ Sube Normalize ═══
     self.normalizeBranches = function () {
-        confirmModal('Onay', 'Sube bilgisi olmayan randevular merkez subeye baglanacak. Devam?', function () {
+        confirmModal('Onay', 'Tum randevular personellerinin subesine gore senkronize edilecek. Personel subesi yoksa merkez atanir. Devam?', function () {
             $.ajax({
                 url: '/proxy/sln-appointments/normalize-branches?_nb=1',
                 method: 'POST'
             }).done(function (res) {
                 if (res && res.error) { toastr.error(res.error); return; }
-                toastr.success((res.updated || 0) + ' randevu "' + (res.hqBranchName || 'merkez') + '" subeye baglandi');
+                var msg = (res.updated || 0) + ' randevu guncellendi';
+                if (res.syncedFromPersonnel > 0) msg += ' (personelden: ' + res.syncedFromPersonnel + ')';
+                if (res.assignedToHq > 0) msg += ' (merkeze: ' + res.assignedToHq + ')';
+                toastr.success(msg);
                 self.loadAppointments();
             }).fail(function () {
                 toastr.error('Normalize basarisiz');
