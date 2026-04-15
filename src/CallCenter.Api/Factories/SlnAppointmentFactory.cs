@@ -113,6 +113,19 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (hasConflict)
             return (null, "Secilen saatte personelin baska bir randevusu var");
 
+        // Sube atamasi: JWT branchId > personelin subesi > merkez sube (zorunlu)
+        if (!branchId.HasValue && dto.PersonnelId > 0)
+        {
+            var personnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PersonnelId);
+            branchId = personnel?.BranchId;
+        }
+        if (!branchId.HasValue)
+        {
+            var hq = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+            branchId = hq?.Id;
+        }
+
         var appointment = new SlnAppointment
         {
             CustomerId = customerId,
@@ -166,6 +179,13 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId, appointmentId);
         if (hasConflict) return (false, "Secilen saatte personelin baska bir randevusu var");
+
+        // Personel degistiyse subeyi de yeni personele gore guncelle
+        if (appointment.PersonnelId != dto.PersonnelId)
+        {
+            var newPersonnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PersonnelId);
+            if (newPersonnel?.BranchId != null) appointment.BranchId = newPersonnel.BranchId;
+        }
 
         appointment.SlnClientId = dto.SlnClientId;
         appointment.PersonnelId = dto.PersonnelId;
