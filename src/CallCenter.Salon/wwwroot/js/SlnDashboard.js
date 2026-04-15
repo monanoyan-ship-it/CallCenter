@@ -44,8 +44,11 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    // DOMContentLoaded zaten geçtiyse direkt çağır, yoksa olay bekle
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    } else {
         loadDashboard();
-        // Ahmet talebi: otomatik yenileme kaldırıldı, kullanıcı sayfayı manuel yenilesin.
-    });
+    }
+    // Ahmet talebi: otomatik yenileme kaldırıldı, kullanıcı sayfayı manuel yenilesin.
 })();

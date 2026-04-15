@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Salon.Controllers;
@@ -5,6 +6,7 @@ namespace CallCenter.Salon.Controllers;
 /// <summary>
 /// Herkese acik salon profil sayfasi (auth gerekmez)
 /// </summary>
+[AllowAnonymous]
 public class PublicSalonController : Controller
 {
     [HttpGet("salon/{slug}")]
