@@ -208,60 +208,52 @@
                     <i class="bi bi-scissors" style="color:#7b1fa2;font-size:1.5rem;"></i>
                     <h3 style="color:#fff;margin:0;">Salon Yönetimi</h3>
                 </div>
-                <p style="color:#aaa;font-size:.82rem;margin-bottom:14px;">Seçilebilir modüller — ihtiyacına göre ekle</p>
+                <p style="color:#aaa;font-size:.82rem;margin-bottom:14px;">Temel Paket zorunlu, diğer modüller isteğe bağlı</p>
 
                 <details class="plk" open>
-                    <summary><span>Temel Paket</span><span class="plk-price">1.700 ₺/ay</span></summary>
+                    <summary><span>Temel Paket <span style="color:#4caf50;font-size:.7rem;margin-left:4px;">ZORUNLU</span></span><span class="plk-price">1.700 ₺/ay</span></summary>
                     <div class="plk-body">
-                        <ul>
-                            <li>Randevu yönetimi (online + QR kod)</li>
-                            <li>Personel yönetimi + fiyatları</li>
-                            <li>Kasa / POS</li>
-                            <li>Müşteri yönetimi</li>
-                            <li>Çoklu şube desteği</li>
-                            <li>Hasılat görüntüleme</li>
-                        </ul>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Randevu Yönetimi</span></summary><div class="plk-body">Online randevu, QR kod ile şube özel link, bekleme listesi kaydı, SMS hatırlatma.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Kasa / POS</span></summary><div class="plk-body">Gelir-gider kaydı, nakit/kart/havale, günlük kapanış raporu.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Müşteri Yönetimi</span></summary><div class="plk-body">Müşteri kartı, geçmiş randevu, notlar, iletişim tercihleri, KVKK onay kaydı.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Personel Yönetimi</span></summary><div class="plk-body">Çalışan listesi, roller, çalışma saatleri, yetkinlikler/yetenekler.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Personel Fiyatları ve Hasılat</span></summary><div class="plk-body">Personel bazlı hizmet fiyatı, komisyon, dönemsel hasılat raporu.</div></details>
+                    </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Stok Tedarik / Finans</span><span class="plk-price">400 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Ürün ve Stok</span></summary><div class="plk-body">Ürün kartı, barkod, stok seviyesi, düşük stok uyarısı.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Tedarikçi ve Cari</span></summary><div class="plk-body">Tedarikçi kartı, cari hesap, açık borç/alacak takibi.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Masraf Takibi</span></summary><div class="plk-body">Kira, fatura, maaş vb. masraf kalemleri; kategori bazlı raporlama.</div></details>
+                    </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Müşteri Sadakati / Pazarlama</span><span class="plk-price">1.500 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Hediye Kartları</span></summary><div class="plk-body">Dijital hediye kartı oluşturma, bakiye kullanımı.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Seans Paketleri</span></summary><div class="plk-body">Çoklu seans satışı, otomatik seans düşme.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Üyelik Planları</span></summary><div class="plk-body">Aylık/yıllık üyelik paketleri, otomatik yenileme.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Sadakat Programı</span></summary><div class="plk-body">Puan toplama, harcamaya göre seviyeler, ödül kuponları.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Pazarlama ve SMS</span></summary><div class="plk-body">Hedef kitle segmentasyonu, SMS kampanyası gönderimi.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>E-posta Kampanyaları</span></summary><div class="plk-body">Şablon tabanlı e-posta kampanya tasarımı ve gönderim raporu.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Yorum Yönetimi</span></summary><div class="plk-body">Randevu sonrası otomatik yorum isteği, onay akışı, halka açık yayın.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Kayıp Müşteri Geri Kazanım</span></summary><div class="plk-body">X gün gelmeyen müşterilere otomatik indirim/hatırlatma kampanyası (winback).</div></details>
                     </div>
                 </details>
                 <details class="plk">
                     <summary><span>Profesyonel</span><span class="plk-price">1.500 ₺/ay</span></summary>
                     <div class="plk-body">
-                        <ul>
-                            <li>Onay Formları CRUD (KVKK, hizmet rızası)</li>
-                            <li>İleri randevu özellikleri</li>
-                            <li>Öncelikli destek</li>
-                        </ul>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Bekleme Listesi</span></summary><div class="plk-body">Müsait saat yoksa müşteri bekleme listesine kaydolur; slot boşalınca bildirim.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>No-Show Politikası</span></summary><div class="plk-body">Gelmeyen müşteri için ceza, depozito iptali, kara liste yönetimi.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Onay Formları</span></summary><div class="plk-body">KVKK, hizmet rıza formları CRUD, dijital imza + arşiv.</div></details>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Önce/Sonra Fotoğrafları</span></summary><div class="plk-body">İşlem öncesi/sonrası görsel arşiv, müşteri karşılaştırma galerisi.</div></details>
                     </div>
                 </details>
                 <details class="plk">
-                    <summary><span>Stok &amp; Finans</span><span class="plk-price">400 ₺/ay</span></summary>
+                    <summary><span>Kurumsal</span><span class="plk-price">200 ₺/ay</span></summary>
                     <div class="plk-body">
-                        <ul>
-                            <li>Ürün stok yönetimi</li>
-                            <li>Tedarikçi + giriş/çıkış</li>
-                            <li>Gider kalemleri</li>
-                        </ul>
-                    </div>
-                </details>
-                <details class="plk">
-                    <summary><span>Sadakat &amp; Pazarlama</span><span class="plk-price">1.500 ₺/ay</span></summary>
-                    <div class="plk-body">
-                        <ul>
-                            <li>Müşteri sadakat puanı</li>
-                            <li>Hediye kartı + üyelik planları</li>
-                            <li>Winback kampanyaları</li>
-                            <li>E-posta kampanyaları</li>
-                        </ul>
-                    </div>
-                </details>
-                <details class="plk">
-                    <summary><span>Raporlama</span><span class="plk-price">200 ₺/ay</span></summary>
-                    <div class="plk-body">
-                        <ul>
-                            <li>Detaylı analitik raporlar</li>
-                            <li>Personel performans karneleri</li>
-                            <li>Hizmet karlılık analizi</li>
-                        </ul>
+                        <details class="plk" style="background:rgba(255,255,255,.02);"><summary><span>Raporlama</span></summary><div class="plk-body">Detaylı analitik raporlar, personel karneleri, hizmet karlılık, trend analizi.</div></details>
                     </div>
                 </details>
 
