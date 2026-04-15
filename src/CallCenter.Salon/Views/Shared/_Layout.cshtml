@@ -277,17 +277,17 @@
             window.location.reload();
         }
 
-        // jQuery ajax tum /proxy/ istekleri: sessionStorage'dan branchId query'ye ekle
-        // (_nb=1 query'si olanlar hariç — branch dropdown kendini yuklerken kendine filtre uygulamasin)
-        $(document).ajaxSend(function(e, xhr, opts) {
+        // jQuery ajaxPrefilter — request gonderilmeden ONCE URL'i degistirir.
+        // (ajaxSend YANLISTI: o sadece event log icin, URL modifikasyonu etkisiz.)
+        $.ajaxPrefilter(function(opts) {
             if (!opts.url || opts.url.indexOf('/proxy/') < 0) return;
             if (opts.url.indexOf('_nb=1') >= 0) return;
-            if (/([?&])branchId=/.test(opts.url)) return; // zaten varsa dokunma
+            if (/([?&])branchId=/.test(opts.url)) return;
             var b = window.slnGetBranch();
             if (!b) return;
             opts.url += (opts.url.indexOf('?') >= 0 ? '&' : '?') + 'branchId=' + encodeURIComponent(b);
         });
-        // fetch() icin de ayni: hook yok, kullanan sayfalar manuel eklesin (Discover public, Book public — bunlar zaten slug tabanli)
+        // fetch() icin de aynisi — kullanan sayfalar manuel eklesin (public Discover/Book slug tabanli)
     </script>
     @RenderSection("Scripts", required: false)
 </body>
