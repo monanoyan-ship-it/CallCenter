@@ -37,7 +37,7 @@ function PricingPeriodsViewModel() {
         var payload = {
             name: self.newPeriod.name(),
             startDate: self.newPeriod.startDate() + 'T00:00:00Z',
-            endDate: self.newPeriod.endDate() + 'T23:59:59Z'
+            endDate: self.newPeriod.endDate() + 'T00:00:00Z'
         };
         if (!payload.name || !self.newPeriod.startDate() || !self.newPeriod.endDate()) {
             toastr.warning('Tüm alanlar zorunlu');

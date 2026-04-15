@@ -110,32 +110,36 @@ public class ServicePricingFactory
 
     public async Task<(object? Result, string? Error)> CreatePeriodAsync(string name, DateTime startDate, DateTime endDate)
     {
-        var period = new ServicePricingPeriod
-        {
-            Name = name,
-            StartDate = DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
-            EndDate = DateTime.SpecifyKind(endDate, DateTimeKind.Utc),
-            StatusId = 3 // Taslak
-        };
+        var utcStart = DateTime.SpecifyKind(startDate, DateTimeKind.Utc);
+        var utcEnd = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
 
-        _periodEs.Add(period);
-        await _uow.SaveChangesAsync();
+        // Duplicate kontrol: ayni isim + ayni baslangic tarihi
+        var existing = await _periodEs.GetAllQueryable()
+            .AnyAsync(p => p.Name == name && p.StartDate == utcStart);
+        if (existing) return (null, "Aynı ad ve başlangıç tarihi ile dönem zaten mevcut.");
 
-        // Onceki donemi bul
+        // Onceki donemi bul (items dolu olanlardan)
         var previousPeriod = await _periodEs.GetAllQueryable()
-            .Where(p => p.Id != period.Id)
+            .Where(p => p.Items.Any())
             .OrderByDescending(p => p.StartDate)
             .Include(p => p.Items)
             .FirstOrDefaultAsync();
 
-        if (previousPeriod != null && previousPeriod.Items.Count > 0)
+        var period = new ServicePricingPeriod
+        {
+            Name = name,
+            StartDate = utcStart,
+            EndDate = utcEnd,
+            StatusId = 3 // Taslak
+        };
+
+        if (previousPeriod != null)
         {
             // Onceki donemin fiyatlarini kopyala (hem modul hem paket kalemleri)
             foreach (var prev in previousPeriod.Items)
             {
                 period.Items.Add(new ServicePricingItem
                 {
-                    PeriodId = period.Id,
                     ProductTypeId = prev.ProductTypeId,
                     ServiceId = prev.ServiceId,
                     PackageGroupId = prev.PackageGroupId,
@@ -152,7 +156,6 @@ public class ServicePricingFactory
             {
                 period.Items.Add(new ServicePricingItem
                 {
-                    PeriodId = period.Id,
                     ProductTypeId = PortalModules.ProductTypeId,
                     ServiceId = svc.Id,
                     ServiceName = svc.Description ?? svc.SystemName,
@@ -163,7 +166,6 @@ public class ServicePricingFactory
             {
                 period.Items.Add(new ServicePricingItem
                 {
-                    PeriodId = period.Id,
                     ProductTypeId = SalonPortalModules.ProductTypeId,
                     ServiceId = mod.Id,
                     ServiceName = mod.Description ?? mod.SystemName,
@@ -173,7 +175,6 @@ public class ServicePricingFactory
             // Salon paketleri — Temel Paket (groupId=0, tum salonlar icin zorunlu) + opsiyonel gruplar
             period.Items.Add(new ServicePricingItem
             {
-                PeriodId = period.Id,
                 ProductTypeId = SalonPortalModules.ProductTypeId,
                 ServiceId = 0,
                 PackageGroupId = 0,
@@ -184,7 +185,6 @@ public class ServicePricingFactory
             {
                 period.Items.Add(new ServicePricingItem
                 {
-                    PeriodId = period.Id,
                     ProductTypeId = SalonPortalModules.ProductTypeId,
                     ServiceId = 0,
                     PackageGroupId = pkg.Id,
@@ -194,7 +194,9 @@ public class ServicePricingFactory
             }
         }
 
-        await _uow.SaveChangesAsync();
+        _periodEs.Add(period);
+        await _uow.SaveChangesAsync(); // period + items tek transaction
+
         return (new { period.Id, period.Name, itemCount = period.Items.Count }, null);
     }
 
