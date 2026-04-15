@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260415085112_AddBranchIdToWaitlistEntry")]
+    [Migration("20260415091311_AddBranchIdToWaitlistEntry")]
     partial class AddBranchIdToWaitlistEntry
     {
         /// <inheritdoc />
@@ -6470,6 +6470,9 @@ namespace CallCenter.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -6501,6 +6504,8 @@ namespace CallCenter.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("CustomerId");
 
@@ -10258,6 +10263,10 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnWaitlistEntry", b =>
                 {
+                    b.HasOne("CallCenter.Shared.Entities.SlnBranch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId");
+
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -10279,6 +10288,8 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("SlnClientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Customer");
 
