@@ -172,14 +172,19 @@
     <!-- /ko -->
 
     <!-- Aylik Toplam -->
-    <!-- ko if: monthlyTotal() > 0 -->
     <div class="card border-0 shadow-sm mt-4 bg-light">
-        <div class="card-body py-3 d-flex justify-content-between align-items-center">
-            <span class="fw-bold">Aylik Modul Tutari</span>
-            <span class="fs-5 fw-bold text-primary" data-bind="text: monthlyTotal().toLocaleString('tr-TR') + ' TL/ay'"></span>
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Aylık Modül Tutarı</span>
+                <span class="fs-5 fw-bold text-primary" data-bind="text: monthlyTotal().toLocaleString('tr-TR') + ' ₺/ay'"></span>
+            </div>
+            <!-- ko if: branchCount() > 1 -->
+            <div class="small text-muted text-end mt-1">
+                <span data-bind="text: branchCount() + ' şube × ' + baseMonthly().toLocaleString('tr-TR') + ' ₺ · ek şubelerde %10 indirim (çarpan: ' + branchMultiplier().toFixed(1) + ')'"></span>
+            </div>
+            <!-- /ko -->
         </div>
     </div>
-    <!-- /ko -->
 </div>
 
 @section Scripts {

@@ -58,6 +58,15 @@
                 });
 
                 document.getElementById('subMonthlyTotal').textContent = fmt(s.monthlyTotal) + ' ₺/ay';
+                var branchInfo = document.getElementById('subBranchInfo');
+                if (branchInfo) {
+                    if (s.branchCount > 1) {
+                        branchInfo.style.display = '';
+                        branchInfo.innerHTML = s.branchCount + ' şube · ek şubelerde %10 indirim · <span class="text-muted">(' + fmt(s.baseMonthly) + ' ₺ × ' + s.branchMultiplier.toFixed(1) + ')</span>';
+                    } else {
+                        branchInfo.style.display = 'none';
+                    }
+                }
                 document.getElementById('subNextBilling').textContent = s.nextBillingDate
                     ? new Date(s.nextBillingDate).toLocaleDateString('tr-TR')
                     : '-';

@@ -36,8 +36,10 @@ function ModulesViewModel() {
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
 
-    // Aylik toplam = Temel Paket (1700 zorunlu) + aktif grup paket fiyatları
-    self.monthlyTotal = ko.computed(function () {
+    self.branchCount = ko.observable(1);
+
+    // Aylik toplam = (Temel Paket 1700 + aktif grup paket fiyatları) × (1 + 0.9*(N-1)) (sube indirimi)
+    self.baseMonthly = ko.computed(function () {
         var total = 1700; // Temel Paket zorunlu
         var activeGroupIds = {};
         self.activeModules().forEach(function (m) {
@@ -48,11 +50,23 @@ function ModulesViewModel() {
         });
         return total;
     });
+    self.branchMultiplier = ko.computed(function () {
+        var n = self.branchCount() || 1;
+        return 1 + 0.9 * (n - 1);
+    });
+    self.monthlyTotal = ko.computed(function () {
+        return Math.round(self.baseMonthly() * self.branchMultiplier() * 100) / 100;
+    });
 
     self.load = function () {
         $.get('/proxy/sln-module-requests', function (data) { self.requests(data || []); });
         $.get('/proxy/sln-module-requests/available', function (data) { self.availableModules(data || []); });
         $.get('/proxy/sln-module-requests/active', function (data) { self.activeModules(data || []); });
+        $.get('/proxy/sln-branches?_nb=1', function (data) {
+            var branches = Array.isArray(data) ? data : (data.items || []);
+            var active = branches.filter(function (b) { return b.isActive !== false; }).length;
+            self.branchCount(active > 0 ? active : 1);
+        });
     };
 
     self.requestDeactivation = function (mod) {

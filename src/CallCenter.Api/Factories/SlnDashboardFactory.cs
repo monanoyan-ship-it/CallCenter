@@ -13,6 +13,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ICustomerSubscriptionEntityService _subscriptions;
     private readonly ICustomerPortalModuleEntityService _portalModules;
+    private readonly ISlnBranchEntityService _branches;
     private readonly ServicePricingFactory _pricingFactory;
 
     public SlnDashboardFactory(
@@ -22,6 +23,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         ICustomerPersonnelEntityService personnel,
         ICustomerSubscriptionEntityService subscriptions,
         ICustomerPortalModuleEntityService portalModules,
+        ISlnBranchEntityService branches,
         ServicePricingFactory pricingFactory)
     {
         _clients = clients;
@@ -30,6 +32,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _personnel = personnel;
         _subscriptions = subscriptions;
         _portalModules = portalModules;
+        _branches = branches;
         _pricingFactory = pricingFactory;
     }
 
@@ -151,7 +154,16 @@ public class SlnDashboardFactory : ISlnDashboardFactory
                 .ToList();
 
             var basicPackagePrice = pkgPrices.TryGetValue(0, out var basic) ? basic : 1700m;
-            var monthlyTotal = basicPackagePrice + activePackages.Sum(p => p.monthlyPrice);
+            var baseMonthly = basicPackagePrice + activePackages.Sum(p => p.monthlyPrice);
+
+            // Ek sube indirimi: ilk sube tam, sonraki her sube %10 indirimle ayni moduller
+            // Toplam = baseMonthly * (1 + 0.9 * (N-1))
+            var branchCount = await _branches.GetAllQueryable()
+                .CountAsync(b => b.CustomerId == customerId && b.IsActive);
+            if (branchCount < 1) branchCount = 1;
+
+            var branchMultiplier = 1m + 0.9m * (branchCount - 1);
+            var monthlyTotal = Math.Round(baseMonthly * branchMultiplier, 2);
 
             var isTrial = subscription.MonthlyPrice == 0;
             int? trialDaysRemaining = null;
@@ -169,6 +181,9 @@ public class SlnDashboardFactory : ISlnDashboardFactory
                 nextBillingDate = subscription.NextBillingDate,
                 basicPackagePrice,
                 activePackages,
+                branchCount,
+                baseMonthly,
+                branchMultiplier,
                 monthlyTotal
             };
         }
