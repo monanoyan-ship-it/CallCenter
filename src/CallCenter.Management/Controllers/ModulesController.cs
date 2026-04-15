@@ -22,6 +22,12 @@ public class ModulesController : MgmtBaseController
         return View();
     }
 
+    public IActionResult PricingPeriods()
+    {
+        ViewData["Title"] = "Fiyat Dönemleri";
+        return View();
+    }
+
     public IActionResult Requests()
     {
         ViewData["Title"] = "Modul Talepleri";
