@@ -135,7 +135,7 @@
                                     <td class="fw-semibold small" data-bind="text: clientName"></td>
                                     <td class="small" data-bind="text: serviceName"></td>
                                     <td class="small" data-bind="text: preferredPersonnelName || '-'"></td>
-                                    <td class="small" data-bind="text: new Date(preferredDate).toLocaleDateString('tr-TR')"></td>
+                                    <td class="small" data-bind="text: $parent.formatDate(preferredDate)"></td>
                                     <td class="small" data-bind="text: preferredTimeSlot || '-'"></td>
                                     <td class="small">
                                         <span class="badge" data-bind="text: $parent.wlStatusText(statusId), css: $parent.wlStatusBadge(statusId)"></span>

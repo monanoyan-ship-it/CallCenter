@@ -89,6 +89,13 @@ function WaitlistViewModel() {
     self.wlStatusText = function (id) { return wlStatusTexts[id] || '?'; };
     self.wlStatusBadge = function (id) { return wlStatusBadges[id] || 'bg-secondary'; };
 
+    self.formatDate = function (iso) {
+        if (!iso) return '-';
+        var s = String(iso).substring(0, 10);
+        var p = s.split('-');
+        return p.length === 3 ? (parseInt(p[2]) + '.' + parseInt(p[1]) + '.' + p[0]) : s;
+    };
+
     self.filteredEntries = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         if (!q) return self.waitlistEntries();
@@ -101,9 +108,11 @@ function WaitlistViewModel() {
     var formModal;
 
     self.loadWaitlist = function () {
-        var today = toDateStr(new Date());
-        $.ajax({ url: '/proxy/sln-waitlist?date=' + today, method: 'GET' }).done(function (data) {
-            self.waitlistEntries(data.items || data);
+        // Tum kayitlari getir (date filter UI tarafinda yapilir, sadece bekleyen + bildirilenleri goster)
+        $.ajax({ url: '/proxy/sln-waitlist', method: 'GET' }).done(function (data) {
+            var items = data.items || data || [];
+            // Aktif olanlar: 1=Bekliyor, 2=Bildirildi (3=Randevu Alindi, 4=Iptal, 5=Gerceklesti gizli)
+            self.waitlistEntries(items.filter(function (e) { return e.statusId === 1 || e.statusId === 2; }));
         });
     };
 
