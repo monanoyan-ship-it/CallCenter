@@ -182,88 +182,163 @@
         </div>
     </section>
 
-    <!-- Kullanım Paketleri — Modül Bazlı -->
+    <!-- Kullanım Paketleri — Modül Bazlı (Accordion) -->
+    <style>
+        details.plk { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.08); border-radius:8px; margin-bottom:8px; overflow:hidden; }
+        details.plk summary { list-style:none; cursor:pointer; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#eee; font-size:.9rem; }
+        details.plk summary::-webkit-details-marker { display:none; }
+        details.plk summary::after { content:'▾'; color:#7b1fa2; transition:transform .2s; }
+        details.plk[open] summary::after { transform:rotate(180deg); }
+        details.plk .plk-body { padding:0 14px 12px; color:#bbb; font-size:.85rem; line-height:1.8; }
+        details.plk .plk-body ul { margin:0; padding-left:18px; }
+        .plk-price { color:#7b1fa2; font-weight:700; }
+        .plk-branch-note { background:rgba(123,31,162,.1); border:1px dashed rgba(123,31,162,.4); color:#ce93d8; padding:10px 14px; border-radius:8px; font-size:.82rem; margin-top:12px; }
+    </style>
     <section class="pricing-section" id="pricing" style="padding:60px 20px;">
         <div class="section-header">
             <div class="section-badge">Paketler</div>
             <h2 class="section-title">Kullanım Paketleri</h2>
-            <p class="section-desc">Modül bazlı fiyatlandırma — sadece ihtiyaç duyduğunuz modüllere ödeme yapın. 14 gün ücretsiz deneme.</p>
+            <p class="section-desc">Modül bazlı fiyatlandırma — başlıklara tıklayarak detayları görüntüleyin. 14 gün ücretsiz deneme.</p>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;max-width:1200px;margin:40px auto 0;">
 
             <!-- SALON -->
-            <div style="background:rgba(123,31,162,.12);border:2px solid #7b1fa2;border-radius:12px;padding:28px;display:flex;flex-direction:column;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="background:rgba(123,31,162,.12);border:2px solid #7b1fa2;border-radius:12px;padding:24px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                     <i class="bi bi-scissors" style="color:#7b1fa2;font-size:1.5rem;"></i>
                     <h3 style="color:#fff;margin:0;">Salon Yönetimi</h3>
                 </div>
-                <p style="color:#aaa;font-size:.85rem;margin-bottom:14px;">Randevu, personel, kasa, müşteri yönetimi</p>
-                <div style="font-size:1.8rem;color:#7b1fa2;font-weight:700;">1.700 ₺<span style="font-size:.85rem;color:#aaa;font-weight:400;"> / ay</span></div>
-                <div style="color:#aaa;font-size:.75rem;margin-bottom:14px;">Temel Paket (KDV dahil)</div>
-                <ul style="color:#ccc;font-size:.88rem;list-style:none;padding:0;line-height:1.9;margin:0;">
-                    <li>✓ Online randevu + QR kod</li>
-                    <li>✓ Personel fiyatları + hasılat</li>
-                    <li>✓ Kasa yönetimi</li>
-                    <li>✓ Müşteri yönetimi</li>
-                    <li>✓ Çoklu şube desteği</li>
-                </ul>
-                <div style="border-top:1px solid rgba(255,255,255,.08);margin:16px 0 10px;padding-top:14px;">
-                    <div style="color:#aaa;font-size:.78rem;margin-bottom:8px;font-weight:600;">Ek Modüller:</div>
-                    <div style="color:#ccc;font-size:.85rem;line-height:1.7;">
-                        <div>+ Profesyonel (Onay Formları + ileri özellikler) — <strong style="color:#7b1fa2;">1.500 ₺/ay</strong></div>
-                        <div>+ Stok &amp; Finans — <strong style="color:#7b1fa2;">400 ₺/ay</strong></div>
-                        <div>+ Müşteri Sadakati &amp; Pazarlama — <strong style="color:#7b1fa2;">1.500 ₺/ay</strong></div>
-                        <div>+ Raporlama — <strong style="color:#7b1fa2;">200 ₺/ay</strong></div>
+                <p style="color:#aaa;font-size:.82rem;margin-bottom:14px;">Seçilebilir modüller — ihtiyacına göre ekle</p>
+
+                <details class="plk" open>
+                    <summary><span>Temel Paket</span><span class="plk-price">1.700 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Randevu yönetimi (online + QR kod)</li>
+                            <li>Personel yönetimi + fiyatları</li>
+                            <li>Kasa / POS</li>
+                            <li>Müşteri yönetimi</li>
+                            <li>Çoklu şube desteği</li>
+                            <li>Hasılat görüntüleme</li>
+                        </ul>
                     </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Profesyonel</span><span class="plk-price">1.500 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Onay Formları CRUD (KVKK, hizmet rızası)</li>
+                            <li>İleri randevu özellikleri</li>
+                            <li>Öncelikli destek</li>
+                        </ul>
+                    </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Stok &amp; Finans</span><span class="plk-price">400 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Ürün stok yönetimi</li>
+                            <li>Tedarikçi + giriş/çıkış</li>
+                            <li>Gider kalemleri</li>
+                        </ul>
+                    </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Sadakat &amp; Pazarlama</span><span class="plk-price">1.500 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Müşteri sadakat puanı</li>
+                            <li>Hediye kartı + üyelik planları</li>
+                            <li>Winback kampanyaları</li>
+                            <li>E-posta kampanyaları</li>
+                        </ul>
+                    </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Raporlama</span><span class="plk-price">200 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Detaylı analitik raporlar</li>
+                            <li>Personel performans karneleri</li>
+                            <li>Hizmet karlılık analizi</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <div class="plk-branch-note">
+                    <i class="bi bi-buildings me-1"></i>Ek şube için <strong>%10 indirim</strong> — her ek şube aynı modülleri %10 düşük fiyatla kullanır.
                 </div>
-                <a href="https://sln.corplynk.com/account/register" style="margin-top:auto;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">14 Gün Ücretsiz Dene</a>
+                <a href="https://sln.corplynk.com/account/register" style="margin-top:14px;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">14 Gün Ücretsiz Dene</a>
             </div>
 
             <!-- CALLCENTER -->
-            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;display:flex;flex-direction:column;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                     <i class="bi bi-headset" style="color:#7b1fa2;font-size:1.5rem;"></i>
                     <h3 style="color:#fff;margin:0;">Call Center</h3>
                 </div>
-                <p style="color:#aaa;font-size:.85rem;margin-bottom:14px;">Bulut çağrı merkezi, kuyruk, kayıt</p>
-                <div style="font-size:1.8rem;color:#7b1fa2;font-weight:700;">700 ₺<span style="font-size:.85rem;color:#aaa;font-weight:400;"> / operatör / ay</span></div>
-                <div style="color:#aaa;font-size:.75rem;margin-bottom:14px;">Operatör başına (KDV dahil)</div>
-                <ul style="color:#ccc;font-size:.88rem;list-style:none;padding:0;line-height:1.9;margin:0;">
-                    <li>✓ SIP tabanlı çağrı altyapısı</li>
-                    <li>✓ Çoklu kuyruk yönetimi</li>
-                    <li>✓ Çağrı kaydı (KVKK uyumlu)</li>
-                    <li>✓ Canlı supervisor paneli</li>
-                    <li>✓ Gerçek zamanlı raporlar</li>
-                </ul>
-                <div style="border-top:1px solid rgba(255,255,255,.08);margin:16px 0 10px;padding-top:14px;">
-                    <div style="color:#aaa;font-size:.78rem;margin-bottom:8px;font-weight:600;">Ek Modüller:</div>
-                    <div style="color:#ccc;font-size:.85rem;line-height:1.7;">
-                        <div>+ Sesli Yanıt Sistemi (IVR) — <strong style="color:#7b1fa2;">30.000 ₺/ay</strong></div>
-                        <div>+ Sesli Yönlendirme Sistemi — <strong style="color:#7b1fa2;">30.000 ₺/ay</strong></div>
+                <p style="color:#aaa;font-size:.82rem;margin-bottom:14px;">Bulut çağrı merkezi — operatör + opsiyonel modüller</p>
+
+                <details class="plk" open>
+                    <summary><span>Operatör (Temel)</span><span class="plk-price">700 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>SIP tabanlı çağrı altyapısı</li>
+                            <li>Çoklu kuyruk yönetimi</li>
+                            <li>Çağrı kaydı (KVKK uyumlu)</li>
+                            <li>Canlı supervisor paneli</li>
+                            <li>Gerçek zamanlı raporlar</li>
+                        </ul>
+                        <p style="margin-top:6px;color:#aaa;font-size:.78rem;">Her operatör için ayrı tahakkuk.</p>
                     </div>
-                </div>
-                <a href="mailto:info@corplynk.com?subject=Call Center Talebi" style="margin-top:auto;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">Teklif İste</a>
+                </details>
+                <details class="plk">
+                    <summary><span>Sesli Yanıt Sistemi (IVR)</span><span class="plk-price">30.000 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Otomatik karşılama ve menü</li>
+                            <li>Metin-seslendirme (TTS)</li>
+                            <li>DTMF yönlendirme</li>
+                        </ul>
+                    </div>
+                </details>
+                <details class="plk">
+                    <summary><span>Sesli Yönlendirme</span><span class="plk-price">30.000 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Akıllı çağrı yönlendirme (skill tabanlı)</li>
+                            <li>Saat/gün bazlı kural motoru</li>
+                            <li>Çağrı kuyruğu optimizasyonu</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <a href="mailto:info@corplynk.com?subject=Call Center Talebi" style="margin-top:14px;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">Teklif İste</a>
             </div>
 
             <!-- CRM -->
-            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;display:flex;flex-direction:column;">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
                     <i class="bi bi-people-fill" style="color:#7b1fa2;font-size:1.5rem;"></i>
                     <h3 style="color:#fff;margin:0;">CRM</h3>
                 </div>
-                <p style="color:#aaa;font-size:.85rem;margin-bottom:14px;">Müşteri ilişkileri, satış süreci</p>
-                <div style="font-size:1.8rem;color:#7b1fa2;font-weight:700;">2.000 ₺<span style="font-size:.85rem;color:#aaa;font-weight:400;"> / ay</span></div>
-                <div style="color:#aaa;font-size:.75rem;margin-bottom:14px;">Temel Paket (KDV dahil)</div>
-                <ul style="color:#ccc;font-size:.88rem;list-style:none;padding:0;line-height:1.9;margin:0;">
-                    <li>✓ Müşteri + kişi yönetimi</li>
-                    <li>✓ Satış fırsatı takibi</li>
-                    <li>✓ Görev + takvim entegrasyonu</li>
-                    <li>✓ E-posta şablonları</li>
-                    <li>✓ Ekip işbirliği</li>
-                </ul>
-                <div style="border-top:1px solid rgba(255,255,255,.08);margin:16px 0 10px;padding-top:14px;">
-                    <div style="color:#aaa;font-size:.78rem;">Ek modüller yakında.</div>
-                </div>
+                <p style="color:#aaa;font-size:.82rem;margin-bottom:14px;">Müşteri ilişkileri ve satış süreci</p>
+
+                <details class="plk" open>
+                    <summary><span>Temel Paket</span><span class="plk-price">2.000 ₺/ay</span></summary>
+                    <div class="plk-body">
+                        <ul>
+                            <li>Müşteri + kişi yönetimi</li>
+                            <li>Satış fırsatı takibi (pipeline)</li>
+                            <li>Görev + takvim entegrasyonu</li>
+                            <li>E-posta şablonları</li>
+                            <li>Ekip işbirliği</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <p style="color:#888;font-size:.8rem;margin-top:10px;text-align:center;"><em>Diğer modüller yakında.</em></p>
+
                 <a href="mailto:info@corplynk.com?subject=CRM Talebi" style="margin-top:auto;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">14 Gün Ücretsiz Dene</a>
             </div>
 
