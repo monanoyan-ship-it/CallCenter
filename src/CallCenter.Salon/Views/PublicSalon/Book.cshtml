@@ -157,6 +157,61 @@
             <div data-bind="visible: slotsLoaded() && slots().length === 0" class="text-center text-muted py-4">
                 <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3;"></i>
                 <p class="mt-2 small"><t key="salon.book.no_slots">Bu tarih için müsait saat bulunamadı</t></p>
+                <button class="btn btn-outline-purple btn-sm mt-2" style="border:1px solid #7b1fa2;color:#7b1fa2;"
+                        data-bind="click: openWaitlist">
+                    <i class="bi bi-bell me-1"></i><t key="salon.book.join_waitlist">Bekleme Listesine Ekle</t>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bekleme Listesi Modal -->
+        <div data-bind="visible: waitlistOpen" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.5);display:none !important;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title"><i class="bi bi-bell me-1" style="color:#7b1fa2;"></i>Bekleme Listesine Ekle</h6>
+                        <button type="button" class="btn-close" data-bind="click: closeWaitlist"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                            Müsait saat bulunamadı. Bekleme listesine adınızı bırakın, slot boşalınca salon sizinle iletişime geçecek.
+                        </p>
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label small">Ad Soyad *</label>
+                                <input type="text" class="form-control form-control-sm" data-bind="value: waitlist.fullName" />
+                            </div>
+                            <div class="col-7">
+                                <label class="form-label small">Telefon *</label>
+                                <input type="tel" class="form-control form-control-sm" data-bind="value: waitlist.phone" placeholder="05xx xxx xx xx" />
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label small">Saat Tercihi</label>
+                                <select class="form-select form-select-sm" data-bind="value: waitlist.timeSlot">
+                                    <option value="Farketmez">Farketmez</option>
+                                    <option value="Sabah">Sabah</option>
+                                    <option value="Ogle">Öğle</option>
+                                    <option value="Aksam">Akşam</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">E-posta (opsiyonel)</label>
+                                <input type="email" class="form-control form-control-sm" data-bind="value: waitlist.email" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">Not</label>
+                                <textarea class="form-control form-control-sm" rows="2" data-bind="value: waitlist.notes"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bind="click: closeWaitlist">Vazgec</button>
+                        <button type="button" class="btn btn-purple btn-sm" data-bind="click: submitWaitlist, disable: waitlistSaving">
+                            <span data-bind="visible: waitlistSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="bi bi-check-lg me-1" data-bind="visible: !waitlistSaving()"></i>Kaydet
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -333,6 +388,69 @@
                 phone: ko.observable(''),
                 email: ko.observable(''),
                 notes: ko.observable('')
+            };
+
+            // ═══ Bekleme Listesi ═══
+            self.waitlistOpen = ko.observable(false);
+            self.waitlistSaving = ko.observable(false);
+            self.waitlist = {
+                fullName: ko.observable(''),
+                phone: ko.observable(''),
+                email: ko.observable(''),
+                timeSlot: ko.observable('Farketmez'),
+                notes: ko.observable('')
+            };
+
+            self.openWaitlist = function () {
+                // form.fullName/phone doluysa onceden doldur
+                self.waitlist.fullName(self.form.fullName() || '');
+                self.waitlist.phone(self.form.phone() || '');
+                self.waitlist.email(self.form.email() || '');
+                self.waitlist.timeSlot('Farketmez');
+                self.waitlist.notes('');
+                self.waitlistOpen(true);
+            };
+
+            self.closeWaitlist = function () { self.waitlistOpen(false); };
+
+            self.submitWaitlist = function () {
+                if (!self.waitlist.fullName() || !self.waitlist.phone()) {
+                    alert('Ad ve telefon zorunlu');
+                    return;
+                }
+                if (!self.selectedServiceId()) {
+                    alert('Once hizmet seciniz');
+                    return;
+                }
+                self.waitlistSaving(true);
+                var payload = {
+                    fullName: self.waitlist.fullName(),
+                    phone: self.waitlist.phone(),
+                    email: self.waitlist.email() || null,
+                    serviceId: self.selectedServiceId(),
+                    personnelId: self.selectedStaffId() || null,
+                    preferredDate: self.selectedDate() + 'T00:00:00Z',
+                    preferredTimeSlot: self.waitlist.timeSlot(),
+                    notes: self.waitlist.notes() || null
+                };
+                fetch('/proxy/salon/' + slug + '/waitlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+                  .then(function (res) {
+                      self.waitlistSaving(false);
+                      if (res.ok) {
+                          alert(res.body.message || 'Bekleme listesine eklendiniz.');
+                          self.closeWaitlist();
+                      } else {
+                          alert(res.body.message || 'Kayit basarisiz');
+                      }
+                  })
+                  .catch(function () {
+                      self.waitlistSaving(false);
+                      alert('Baglanti hatasi');
+                  });
             };
 
             // Card (depozito icin)

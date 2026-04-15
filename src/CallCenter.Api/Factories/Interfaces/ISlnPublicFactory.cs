@@ -16,4 +16,7 @@ public interface ISlnPublicFactory
     Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId);
     Task<object?> GetBookingPolicyAsync(string slug);
     Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto, string? buyerIp = null);
+
+    /// <summary>Public bekleme listesi basvurusu (musait saat yoksa). Telefon ile ayni musteri varsa onu kullanir, yoksa olusturur.</summary>
+    Task<(bool Success, string? Error, object? Result)> JoinWaitlistAsync(string slug, SlnPublicWaitlistDto dto);
 }

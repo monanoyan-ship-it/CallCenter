@@ -114,4 +114,13 @@ public class SlnPublicController : ControllerBase
         if (!success && error == "Salon bulunamadi") return NotFound();
         return success ? Ok(result) : BadRequest(new { message = error });
     }
+
+    /// <summary>Bekleme listesine kaydol (musait saat yoksa - auth gerekmez)</summary>
+    [HttpPost("{slug}/waitlist")]
+    public async Task<ActionResult> JoinWaitlist(string slug, [FromBody] SlnPublicWaitlistDto dto)
+    {
+        var (success, error, result) = await _publicFactory.JoinWaitlistAsync(slug, dto);
+        if (!success && error == "Salon bulunamadi") return NotFound();
+        return success ? Ok(result) : BadRequest(new { message = error });
+    }
 }

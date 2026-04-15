@@ -22,6 +22,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnPersonnelSkillEntityService _skills;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
+    private readonly ISlnWaitlistEntryEntityService _waitlist;
     private readonly PaymentService _paymentService;
     private readonly IUnitOfWork _uow;
 
@@ -38,6 +39,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnAppointmentEntityService appointments,
         ISlnPersonnelSkillEntityService skills,
         ISlnNoShowPolicyEntityService noShowPolicies,
+        ISlnWaitlistEntryEntityService waitlist,
         PaymentService paymentService,
         IUnitOfWork uow)
     {
@@ -53,6 +55,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         _appointments = appointments;
         _skills = skills;
         _noShowPolicies = noShowPolicies;
+        _waitlist = waitlist;
         _paymentService = paymentService;
         _uow = uow;
     }
@@ -670,6 +673,67 @@ public class SlnPublicFactory : ISlnPublicFactory
             message = requireDeposit
                 ? $"Randevunuz alindi. {depositAmount:N2} TL depozito tahsil edildi."
                 : "Randevunuz alindi. Salon tarafindan onaylanacaktir."
+        });
+    }
+
+    public async Task<(bool Success, string? Error, object? Result)> JoinWaitlistAsync(string slug, SlnPublicWaitlistDto dto)
+    {
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return (false, "Salon bulunamadi", null);
+        var cid = customerId.Value;
+
+        if (string.IsNullOrWhiteSpace(dto.FullName) || string.IsNullOrWhiteSpace(dto.Phone))
+            return (false, "Ad ve telefon zorunlu", null);
+
+        var service = await _services.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
+        if (service == null) return (false, "Hizmet bulunamadi", null);
+
+        // Telefonla mevcut musteri var mi? Yoksa hizli olustur (lead).
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
+        if (client == null)
+        {
+            client = new SlnClient
+            {
+                CustomerId = cid,
+                FullName = dto.FullName,
+                Phone = dto.Phone,
+                Email = dto.Email
+            };
+            _clients.Add(client);
+            await _uow.SaveChangesAsync();
+        }
+
+        // Ayni telefon + tarih + hizmet icin acik (StatusId=1) waitlist varsa cogaltma
+        var preferredDate = DateTime.SpecifyKind(dto.PreferredDate.Date, DateTimeKind.Utc);
+        var existing = await _waitlist.GetAllQueryable().AnyAsync(w =>
+            w.CustomerId == cid &&
+            w.SlnClientId == client.Id &&
+            w.ServiceId == dto.ServiceId &&
+            w.PreferredDate == preferredDate &&
+            w.StatusId == 1);
+        if (existing)
+            return (true, null, new { duplicate = true, message = "Bu tarih icin zaten bekleme listesindesiniz." });
+
+        var entry = new SlnWaitlistEntry
+        {
+            CustomerId = cid,
+            SlnClientId = client.Id,
+            ServiceId = dto.ServiceId,
+            PreferredPersonnelId = dto.PersonnelId,
+            PreferredDate = preferredDate,
+            PreferredTimeSlot = string.IsNullOrWhiteSpace(dto.PreferredTimeSlot) ? "Farketmez" : dto.PreferredTimeSlot,
+            Notes = dto.Notes,
+            StatusId = 1
+        };
+        _waitlist.Add(entry);
+        await _uow.SaveChangesAsync();
+
+        return (true, null, new
+        {
+            id = entry.Id,
+            message = "Bekleme listesine eklendiniz. Slot bosaldiginda salon sizinle iletisime gececek."
         });
     }
 }

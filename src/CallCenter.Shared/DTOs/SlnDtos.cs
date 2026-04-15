@@ -313,6 +313,19 @@ public class SlnOnlineBookingCardDto
     public string? Cvc { get; set; }
 }
 
+public class SlnPublicWaitlistDto
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public int ServiceId { get; set; }
+    public int? PersonnelId { get; set; }
+    public DateTime PreferredDate { get; set; }
+    /// <summary>Sabah | Ogle | Aksam | Farketmez (serbest metin de olabilir)</summary>
+    public string? PreferredTimeSlot { get; set; }
+    public string? Notes { get; set; }
+}
+
 public class SlnMembershipSignupDto
 {
     public int PlanId { get; set; }
