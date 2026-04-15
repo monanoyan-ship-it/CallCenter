@@ -451,16 +451,38 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (hqBranch == null)
             return new { updated = 0, error = "Merkez sube bulunamadi. Once bir subeyi merkez olarak isaretleyin." };
 
+        // Orphan randevu + her birinin personelinin BranchId'sini birlikte getir
         var orphans = await _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId && a.BranchId == null)
+            .Include(a => a.Personnel)
             .ToListAsync();
 
-        foreach (var a in orphans) a.BranchId = hqBranch.Id;
+        int viaPersonnel = 0, viaHq = 0;
+        foreach (var a in orphans)
+        {
+            if (a.Personnel?.BranchId != null)
+            {
+                a.BranchId = a.Personnel.BranchId;
+                viaPersonnel++;
+            }
+            else
+            {
+                a.BranchId = hqBranch.Id;
+                viaHq++;
+            }
+        }
 
         await _uow.SaveChangesAsync();
-        _logger.LogInformation("NormalizeBranches: {Count} randevu merkez subeye baglandi (CustomerId={CustomerId}, HqBranchId={HqId})",
-            orphans.Count, customerId, hqBranch.Id);
+        _logger.LogInformation("NormalizeBranches: {Total} randevu guncellendi (personelden={ViaP}, merkez={ViaH}, CustomerId={CustomerId})",
+            orphans.Count, viaPersonnel, viaHq, customerId);
 
-        return new { updated = orphans.Count, hqBranchId = hqBranch.Id, hqBranchName = hqBranch.Name };
+        return new
+        {
+            updated = orphans.Count,
+            viaPersonnel,
+            viaHq,
+            hqBranchId = hqBranch.Id,
+            hqBranchName = hqBranch.Name
+        };
     }
 }
