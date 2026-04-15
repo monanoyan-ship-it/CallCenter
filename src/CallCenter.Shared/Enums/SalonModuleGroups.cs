@@ -49,11 +49,11 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnConsentForms] = Ids.Professional,
         [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.Professional,
         [SalonPortalModules.Ids.SlnWaitlist] = Ids.Professional,
-        [SalonPortalModules.Ids.SlnPersonnelPrices] = Ids.Professional,
+        // SlnPersonnelPrices → Temel paket (IsDefault=true)
 
         // Kurumsal (200 TL)
         [SalonPortalModules.Ids.SlnReports] = Ids.Enterprise,
-        [SalonPortalModules.Ids.SlnBranches] = Ids.Enterprise,
+        // SlnBranches → Temel paket (IsDefault=true)
     };
 
     /// <summary>Modül ID'sine karşılık gelen grup ID'si. null = grupsuz (Temel Pakete ait default modül).</summary>

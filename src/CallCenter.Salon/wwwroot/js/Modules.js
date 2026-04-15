@@ -36,10 +36,15 @@ function ModulesViewModel() {
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
 
+    // Aylik toplam = Temel Paket (1700 zorunlu) + aktif grup paket fiyatları
     self.monthlyTotal = ko.computed(function () {
-        var total = 0;
+        var total = 1700; // Temel Paket zorunlu
+        var activeGroupIds = {};
         self.activeModules().forEach(function (m) {
-            if (!m.isDefault && m.isActive) total += (m.effectivePrice || 0);
+            if (!m.isDefault && m.isActive && m.groupId) activeGroupIds[m.groupId] = true;
+        });
+        Object.keys(activeGroupIds).forEach(function (gId) {
+            total += PACKAGE_PRICES[gId] || 0;
         });
         return total;
     });
@@ -80,6 +85,30 @@ function ModulesViewModel() {
                 });
             }, { input: true, inputLabel: 'Notunuz' });
         });
+    };
+
+    self.cancelPackage = function (pkg) {
+        var name = pkg.groupName;
+        var count = pkg.modules.length;
+        confirmModal('Paket Iptali', name + ' paketini iptal etmek ister misiniz?\n\nIçindeki ' + count + ' modül için toplu iptal talebi oluşturulacak.', function () {
+            var done = 0, errors = 0;
+            pkg.modules.forEach(function (m) {
+                $.ajax({
+                    url: '/proxy/sln-module-requests',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ moduleId: m.id, requestTypeId: 2, notes: 'Paket iptali: ' + name })
+                }).always(function (res, status) {
+                    done++;
+                    if (status === 'error') errors++;
+                    if (done === pkg.modules.length) {
+                        if (errors === 0) toastr.success('Paket iptal talebi olusturuldu (' + done + ' modül).');
+                        else toastr.warning(done - errors + '/' + done + ' modul icin iptal talebi olusturuldu.');
+                        self.load();
+                    }
+                });
+            });
+        }, { confirmClass: 'btn-danger', confirmText: 'Paketi İptal Et' });
     };
 
     self.requestPackage = function (pkg) {

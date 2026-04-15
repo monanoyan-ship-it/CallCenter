@@ -37,7 +37,7 @@ public static class SalonPortalModules
     public static readonly TypeItem SlnConsentForms = new(225, "SlnConsentForms", "SalonModule.ConsentForms", "Onay Formları", "bi-file-earmark-text", "bg-secondary", 25);
     public static readonly TypeItem SlnBeforeAfter = new(226, "SlnBeforeAfter", "SalonModule.BeforeAfter", "Önce/Sonra Fotoğrafları", "bi-images", "bg-pink", 26);
     public static readonly TypeItem SlnWinback = new(227, "SlnWinback", "SalonModule.Winback", "Kayıp Müşteri Geri Kazanım", "bi-arrow-repeat", "bg-orange", 27);
-    public static readonly TypeItem SlnPersonnelPrices = new(228, "SlnPersonnelPrices", "SalonModule.PersonnelPrices", "Personel Fiyatları ve Hasılat", "bi-currency-exchange", "bg-teal", 28);
+    public static readonly TypeItem SlnPersonnelPrices = new(228, "SlnPersonnelPrices", "SalonModule.PersonnelPrices", "Personel Fiyatları ve Hasılat", "bi-currency-exchange", "bg-teal", 28, isDefault: true);
 
     public static IEnumerable<TypeItem> All => new[]
     {

@@ -37,7 +37,19 @@
     <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Ek Modulleriniz</h6>
     <!-- ko foreach: activeGroups -->
     <div class="mb-3">
-        <span class="badge bg-secondary mb-2" data-bind="text: groupName"></span>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <span class="badge bg-success" data-bind="text: groupName"></span>
+                <!-- ko if: packagePrice > 0 -->
+                <span class="badge bg-success-subtle text-success ms-1" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'"></span>
+                <!-- /ko -->
+            </div>
+            <!-- ko if: packagePrice > 0 -->
+            <button class="btn btn-sm btn-outline-danger py-0" data-bind="click: $root.cancelPackage">
+                <i class="bi bi-x-circle me-1"></i>Paketi İptal Et
+            </button>
+            <!-- /ko -->
+        </div>
         <div class="row g-3" data-bind="foreach: modules">
             <div class="col-md-4 col-lg-3">
                 <div class="card border-0 shadow-sm h-100 border-start border-3 border-success">
