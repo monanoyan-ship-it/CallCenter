@@ -5,7 +5,7 @@ namespace CallCenter.Api.Services;
 
 /// <summary>
 /// Periyodik trial/abonelik suresi dolma kontrolu.
-/// PAY.5: 14 gun trial (MonthlyPrice=0) suresi gecmis aktif aboneliklerin StatusId=2 (askıda) yapilir.
+/// PAY.5: 5 gun trial (MonthlyPrice=0) suresi gecmis aktif aboneliklerin StatusId=2 (askıda) yapilir.
 /// Aktif (ucretli) aboneliklerde NextBillingDate + PaymentGraceDays gecmisse + odenmemis tahakkuk varsa askıya alinir.
 /// </summary>
 public class SubscriptionExpiryHostedService : BackgroundService

@@ -657,7 +657,7 @@ public class CustomerFactory : ICustomerFactory
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
         await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _branchEs, _uow, customer.Id);
 
-        // PAY.5: 14 gunluk TRIAL abonelik olustur — yoksa salon abonelik kontrolunde blokluyor
+        // PAY.5: 5 gunluk TRIAL abonelik olustur — yoksa salon abonelik kontrolunde blokluyor
         try
         {
             var anyPlan = await _planEs.GetAllQueryable()
@@ -675,7 +675,7 @@ public class CustomerFactory : ICustomerFactory
                     MonthlyPrice = 0,
                     PeriodPrice = 0,
                     BillingDay = now.Day,
-                    NextBillingDate = DateTime.SpecifyKind(now.AddDays(14), DateTimeKind.Utc),
+                    NextBillingDate = DateTime.SpecifyKind(now.AddDays(5), DateTimeKind.Utc),
                     StatusId = 1, // Active (trial)
                     PaymentGraceDays = 7
                 });
