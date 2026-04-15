@@ -2,6 +2,17 @@
     ViewData["Title"] = "Modul Yonetimi";
 }
 
+<style>
+    details.mdl { background:#fff; border:1px solid #e5e5e5; border-radius:8px; margin-bottom:8px; overflow:hidden; }
+    details.mdl summary { list-style:none; cursor:pointer; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.9rem; }
+    details.mdl summary::-webkit-details-marker { display:none; }
+    details.mdl summary::after { content:'▾'; color:#6f42c1; transition:transform .2s; }
+    details.mdl[open] summary::after { transform:rotate(180deg); }
+    details.mdl .mdl-body { padding:10px 14px 14px; border-top:1px solid #f0f0f0; color:#555; font-size:.85rem; }
+    details.mdl .mdl-price { color:#6f42c1; font-weight:700; white-space:nowrap; }
+    details.mdl .mdl-title { flex:1; display:flex; align-items:center; gap:8px; }
+</style>
+
 <div id="modules-vm">
     <!-- Temel Paket (Default Moduller) -->
     <h6 class="text-muted mb-3"><i class="bi bi-box-seam me-1"></i>Temel Paket</h6>
@@ -64,38 +75,33 @@
             <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modul)'"></span>
         </div>
         <div class="card-body">
-            <div class="row g-3" data-bind="foreach: modules">
-                <div class="col-md-6 col-lg-4">
-                    <div class="card border h-100">
-                        <div class="card-body py-3">
-                            <div class="d-flex align-items-start">
-                                <i class="bi me-2 mt-1" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.3rem;color:#6c757d;"></i>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold small" data-bind="text: description || moduleName"></div>
-                                    <!-- ko if: monthlyPrice > 0 -->
-                                    <div class="text-primary fw-bold mt-1" data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
-                                    <!-- /ko -->
-                                    <!-- ko if: !monthlyPrice || monthlyPrice === 0 -->
-                                    <div class="text-muted small mt-1">Fiyat icin iletisime gecin</div>
-                                    <!-- /ko -->
-                                </div>
-                                <div class="ms-2">
-                                    <!-- ko if: monthlyPrice > 0 -->
-                                    <button class="btn btn-sm btn-primary" data-bind="click: $parents[1].requestModule" title="Talep Et">
-                                        <i class="bi bi-send"></i>
-                                    </button>
-                                    <!-- /ko -->
-                                    <!-- ko if: !monthlyPrice || monthlyPrice === 0 -->
-                                    <button class="btn btn-sm btn-outline-primary" data-bind="click: $parents[1].requestModule" title="Talep Et">
-                                        <i class="bi bi-send"></i>
-                                    </button>
-                                    <!-- /ko -->
-                                </div>
-                            </div>
+            <!-- ko foreach: modules -->
+            <details class="mdl">
+                <summary>
+                    <span class="mdl-title">
+                        <i class="bi" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="color:#6c757d;"></i>
+                        <span data-bind="text: description || moduleName"></span>
+                    </span>
+                    <span class="mdl-price" data-bind="text: monthlyPrice > 0 ? monthlyPrice.toLocaleString('tr-TR') + ' ₺/ay' : 'Teklif'"></span>
+                </summary>
+                <div class="mdl-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <!-- ko if: monthlyPrice > 0 -->
+                            <div>Aylık ücret: <strong data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' ₺'"></strong> (KDV dahil)</div>
+                            <!-- /ko -->
+                            <!-- ko if: !monthlyPrice || monthlyPrice === 0 -->
+                            <div class="text-muted">Fiyat için iletişime geçin.</div>
+                            <!-- /ko -->
+                            <div class="text-muted mt-1" style="font-size:.8rem;">Talep onaylandığında aboneliğe eklenir ve bir sonraki fatura döneminde tahakkuk eder.</div>
                         </div>
+                        <button class="btn btn-sm btn-primary" data-bind="click: $parents[1].requestModule">
+                            <i class="bi bi-send me-1"></i>Talep Et
+                        </button>
                     </div>
                 </div>
-            </div>
+            </details>
+            <!-- /ko -->
         </div>
     </div>
     <!-- /ko -->
