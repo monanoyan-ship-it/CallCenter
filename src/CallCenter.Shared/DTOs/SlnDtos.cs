@@ -956,6 +956,8 @@ public class SlnWaitlistEntryDto
     public int SlnClientId { get; set; }
     public string ClientName { get; set; } = string.Empty;
     public string? ClientPhone { get; set; }
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
     public int ServiceId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public int? PreferredPersonnelId { get; set; }

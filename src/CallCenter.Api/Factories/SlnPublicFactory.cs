@@ -682,6 +682,13 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (customerId == null) return (false, "Salon bulunamadi", null);
         var cid = customerId.Value;
 
+        // Slug branch slug ise o subenin id'si, parent profile slug ise merkez sube
+        var branch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == cid && b.Slug == slug && b.IsActive);
+        var branchId = branch?.Id ?? (await _branches.GetAllQueryable()
+            .Where(b => b.CustomerId == cid && b.IsHeadquarter)
+            .Select(b => (int?)b.Id).FirstOrDefaultAsync());
+
         if (string.IsNullOrWhiteSpace(dto.FullName) || string.IsNullOrWhiteSpace(dto.Phone))
             return (false, "Ad ve telefon zorunlu", null);
 
@@ -719,6 +726,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         var entry = new SlnWaitlistEntry
         {
             CustomerId = cid,
+            BranchId = branchId,
             SlnClientId = client.Id,
             ServiceId = dto.ServiceId,
             PreferredPersonnelId = dto.PersonnelId,

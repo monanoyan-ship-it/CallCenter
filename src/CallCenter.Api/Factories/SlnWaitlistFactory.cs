@@ -18,17 +18,21 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null)
+    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null)
     {
         var query = _waitlistEs.GetAllQueryable()
             .Where(w => w.CustomerId == customerId)
             .Include(w => w.SlnClient)
             .Include(w => w.Service)
+            .Include(w => w.Branch)
             .Include(w => w.PreferredPersonnel).ThenInclude(p => p!.User)
             .AsQueryable();
 
         if (date.HasValue)
             query = query.Where(w => w.PreferredDate.Date == date.Value.Date);
+
+        if (branchId.HasValue)
+            query = query.Where(w => w.BranchId == branchId.Value);
 
         return await query
             .OrderByDescending(w => w.CreatedAt)
@@ -51,6 +55,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         var entry = new SlnWaitlistEntry
         {
             CustomerId = customerId,
+            BranchId = null, // Salon panelinden manuel ekleme — sonradan UpdateEntry ile atanabilir; public tarafta JoinWaitlistAsync slug'tan dolduruyor
             SlnClientId = dto.SlnClientId,
             ServiceId = dto.ServiceId,
             PreferredPersonnelId = dto.PreferredPersonnelId,
@@ -106,6 +111,8 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         SlnClientId = w.SlnClientId,
         ClientName = w.SlnClient?.FullName ?? "",
         ClientPhone = w.SlnClient?.Phone,
+        BranchId = w.BranchId,
+        BranchName = w.Branch?.Name,
         ServiceId = w.ServiceId,
         ServiceName = w.Service?.Name ?? "",
         PreferredPersonnelId = w.PreferredPersonnelId,

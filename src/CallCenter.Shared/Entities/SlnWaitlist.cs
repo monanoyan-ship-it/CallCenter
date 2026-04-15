@@ -6,6 +6,10 @@ public class SlnWaitlistEntry
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
+    /// <summary>Hangi şubeye ait olduğu (null = atanmamış / merkez)</summary>
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     public int SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }
 
