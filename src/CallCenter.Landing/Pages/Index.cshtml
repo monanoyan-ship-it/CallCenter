@@ -182,56 +182,92 @@
         </div>
     </section>
 
-    <!-- Paketler / Ücretsiz Deneme -->
+    <!-- Kullanım Paketleri — Modül Bazlı -->
     <section class="pricing-section" id="pricing" style="padding:60px 20px;">
         <div class="section-header">
             <div class="section-badge">Paketler</div>
             <h2 class="section-title">Kullanım Paketleri</h2>
-            <p class="section-desc">14 gün ücretsiz deneme. Fiyatlandırma işletmenize özel belirlenir — ihtiyaca göre teklif alın.</p>
+            <p class="section-desc">Modül bazlı fiyatlandırma — sadece ihtiyaç duyduğunuz modüllere ödeme yapın. 14 gün ücretsiz deneme.</p>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:1100px;margin:40px auto 0;">
-            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;">
-                <h3 style="color:#fff;margin-bottom:4px;">Başlangıç</h3>
-                <p style="color:#aaa;font-size:.85rem;">Tek şube, küçük işletmeler</p>
-                <div style="font-size:1.2rem;color:#7b1fa2;font-weight:600;margin:16px 0;">Teklif Alın</div>
-                <ul style="color:#ccc;font-size:.9rem;list-style:none;padding:0;line-height:1.9;">
-                    <li>✓ 1 şube, sınırlı personel</li>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;max-width:1200px;margin:40px auto 0;">
+
+            <!-- SALON -->
+            <div style="background:rgba(123,31,162,.12);border:2px solid #7b1fa2;border-radius:12px;padding:28px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <i class="bi bi-scissors" style="color:#7b1fa2;font-size:1.5rem;"></i>
+                    <h3 style="color:#fff;margin:0;">Salon Yönetimi</h3>
+                </div>
+                <p style="color:#aaa;font-size:.85rem;margin-bottom:14px;">Randevu, personel, kasa, müşteri yönetimi</p>
+                <div style="font-size:1.8rem;color:#7b1fa2;font-weight:700;">1.700 ₺<span style="font-size:.85rem;color:#aaa;font-weight:400;"> / ay</span></div>
+                <div style="color:#aaa;font-size:.75rem;margin-bottom:14px;">Temel Paket (KDV dahil)</div>
+                <ul style="color:#ccc;font-size:.88rem;list-style:none;padding:0;line-height:1.9;margin:0;">
                     <li>✓ Online randevu + QR kod</li>
-                    <li>✓ SMS/e-posta hatırlatma</li>
-                    <li>✓ Temel raporlar</li>
-                    <li>✓ 14 gün ücretsiz deneme</li>
+                    <li>✓ Personel fiyatları + hasılat</li>
+                    <li>✓ Kasa yönetimi</li>
+                    <li>✓ Müşteri yönetimi</li>
+                    <li>✓ Çoklu şube desteği</li>
                 </ul>
-                <a href="https://sln.corplynk.com/account/register" style="display:block;margin-top:20px;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">Ücretsiz Başla</a>
+                <div style="border-top:1px solid rgba(255,255,255,.08);margin:16px 0 10px;padding-top:14px;">
+                    <div style="color:#aaa;font-size:.78rem;margin-bottom:8px;font-weight:600;">Ek Modüller:</div>
+                    <div style="color:#ccc;font-size:.85rem;line-height:1.7;">
+                        <div>+ Stok &amp; Finans — <strong style="color:#7b1fa2;">400 ₺/ay</strong></div>
+                        <div>+ Müşteri Sadakati &amp; Pazarlama — <strong style="color:#7b1fa2;">1.500 ₺/ay</strong></div>
+                        <div>+ Raporlama — <strong style="color:#7b1fa2;">200 ₺/ay</strong></div>
+                    </div>
+                </div>
+                <a href="https://sln.corplynk.com/account/register" style="margin-top:auto;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">14 Gün Ücretsiz Dene</a>
             </div>
-            <div style="background:rgba(123,31,162,.12);border:2px solid #7b1fa2;border-radius:12px;padding:28px;position:relative;">
-                <span style="position:absolute;top:-10px;right:16px;background:#7b1fa2;color:#fff;padding:3px 12px;border-radius:20px;font-size:.75rem;">POPÜLER</span>
-                <h3 style="color:#fff;margin-bottom:4px;">Standart</h3>
-                <p style="color:#aaa;font-size:.85rem;">Çoklu şube, büyüyen işletmeler</p>
-                <div style="font-size:1.2rem;color:#7b1fa2;font-weight:600;margin:16px 0;">Teklif Alın</div>
-                <ul style="color:#ccc;font-size:.9rem;list-style:none;padding:0;line-height:1.9;">
-                    <li>✓ Çoklu şube</li>
-                    <li>✓ Bekleme listesi + otomatik bildirim</li>
-                    <li>✓ Ürün + stok yönetimi</li>
-                    <li>✓ Finans, gelir-gider, kasa</li>
-                    <li>✓ Detaylı analitik raporlar</li>
+
+            <!-- CALLCENTER -->
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <i class="bi bi-headset" style="color:#7b1fa2;font-size:1.5rem;"></i>
+                    <h3 style="color:#fff;margin:0;">Call Center</h3>
+                </div>
+                <p style="color:#aaa;font-size:.85rem;margin-bottom:14px;">Bulut çağrı merkezi, kuyruk, kayıt</p>
+                <div style="font-size:1.8rem;color:#7b1fa2;font-weight:700;">700 ₺<span style="font-size:.85rem;color:#aaa;font-weight:400;"> / operatör / ay</span></div>
+                <div style="color:#aaa;font-size:.75rem;margin-bottom:14px;">Operatör başına (KDV dahil)</div>
+                <ul style="color:#ccc;font-size:.88rem;list-style:none;padding:0;line-height:1.9;margin:0;">
+                    <li>✓ SIP tabanlı çağrı altyapısı</li>
+                    <li>✓ Çoklu kuyruk yönetimi</li>
+                    <li>✓ Çağrı kaydı (KVKK uyumlu)</li>
+                    <li>✓ Canlı supervisor paneli</li>
+                    <li>✓ Gerçek zamanlı raporlar</li>
                 </ul>
-                <a href="https://sln.corplynk.com/account/register" style="display:block;margin-top:20px;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">Ücretsiz Başla</a>
+                <div style="border-top:1px solid rgba(255,255,255,.08);margin:16px 0 10px;padding-top:14px;">
+                    <div style="color:#aaa;font-size:.78rem;margin-bottom:8px;font-weight:600;">Ek Modüller:</div>
+                    <div style="color:#ccc;font-size:.85rem;line-height:1.7;">
+                        <div>+ Sesli Yanıt Sistemi (IVR) — <strong style="color:#7b1fa2;">Teklif</strong></div>
+                        <div>+ Sesli Yönlendirme Sistemi — <strong style="color:#7b1fa2;">Teklif</strong></div>
+                    </div>
+                </div>
+                <a href="mailto:info@corplynk.com?subject=Call Center Talebi" style="margin-top:auto;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">Teklif İste</a>
             </div>
-            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;">
-                <h3 style="color:#fff;margin-bottom:4px;">Kurumsal</h3>
-                <p style="color:#aaa;font-size:.85rem;">Sınırsız ölçek, tam paket</p>
-                <div style="font-size:1.2rem;color:#7b1fa2;font-weight:600;margin:16px 0;">Teklif Alın</div>
-                <ul style="color:#ccc;font-size:.9rem;list-style:none;padding:0;line-height:1.9;">
-                    <li>✓ Sınırsız şube + personel</li>
-                    <li>✓ Çağrı merkezi entegrasyonu</li>
-                    <li>✓ B2B ticaret modülü</li>
-                    <li>✓ API erişimi + özel entegrasyon</li>
-                    <li>✓ Öncelikli destek</li>
+
+            <!-- CRM -->
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:28px;display:flex;flex-direction:column;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <i class="bi bi-people-fill" style="color:#7b1fa2;font-size:1.5rem;"></i>
+                    <h3 style="color:#fff;margin:0;">CRM</h3>
+                </div>
+                <p style="color:#aaa;font-size:.85rem;margin-bottom:14px;">Müşteri ilişkileri, satış süreci</p>
+                <div style="font-size:1.8rem;color:#7b1fa2;font-weight:700;">2.000 ₺<span style="font-size:.85rem;color:#aaa;font-weight:400;"> / ay</span></div>
+                <div style="color:#aaa;font-size:.75rem;margin-bottom:14px;">Temel Paket (KDV dahil)</div>
+                <ul style="color:#ccc;font-size:.88rem;list-style:none;padding:0;line-height:1.9;margin:0;">
+                    <li>✓ Müşteri + kişi yönetimi</li>
+                    <li>✓ Satış fırsatı takibi</li>
+                    <li>✓ Görev + takvim entegrasyonu</li>
+                    <li>✓ E-posta şablonları</li>
+                    <li>✓ Ekip işbirliği</li>
                 </ul>
-                <a href="mailto:info@corplynk.com?subject=Kurumsal Plan Teklif Talebi" style="display:block;margin-top:20px;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">Teklif İste</a>
+                <div style="border-top:1px solid rgba(255,255,255,.08);margin:16px 0 10px;padding-top:14px;">
+                    <div style="color:#aaa;font-size:.78rem;">Ek modüller yakında.</div>
+                </div>
+                <a href="mailto:info@corplynk.com?subject=CRM Talebi" style="margin-top:auto;padding:10px;background:#7b1fa2;color:#fff;text-align:center;border-radius:6px;text-decoration:none;font-weight:600;">14 Gün Ücretsiz Dene</a>
             </div>
+
         </div>
-        <p style="text-align:center;color:#888;margin-top:24px;font-size:.85rem;">Ödeme kredi/banka kartı ile <strong>iyzico</strong> altyapısı üzerinden alınır. Tüm fiyatlar KDV dahil olup teklif sonrası netleştirilir.</p>
+        <p style="text-align:center;color:#888;margin-top:24px;font-size:.85rem;">Tüm fiyatlar <strong>KDV dahil</strong>dir. Ödeme kredi/banka kartı ile <strong>iyzico</strong> altyapısı üzerinden alınır.</p>
     </section>
 
     <!-- Salon Customers CTA -->
