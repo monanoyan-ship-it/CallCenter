@@ -240,8 +240,8 @@ public class ServicePricingFactory
         if (period == null) return (false, "Dönem bulunamadı.");
         period.StatusId = 1;
 
-        // Aktif fiyatlari ModulePricing tablosuna yansit
-        var items = await _itemEs.GetAllQueryable().Where(i => i.PeriodId == periodId && i.ProductTypeId == SalonPortalModules.ProductTypeId).ToListAsync();
+        // Aktif fiyatlari ModulePricing tablosuna yansit (sadece modul satirlari; paket satirlari ServiceId=0 olur, senkronize edilmez)
+        var items = await _itemEs.GetAllQueryable().Where(i => i.PeriodId == periodId && i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).ToListAsync();
         foreach (var item in items)
         {
             var pricing = await _modulePricingEs.GetByModuleIdAsync(item.ServiceId);
