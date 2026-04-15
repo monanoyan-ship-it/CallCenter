@@ -8,13 +8,17 @@ function ModulesViewModel() {
         return self.activeModules().filter(function (m) { return m.isDefault; });
     });
 
+    // Paket sabit fiyatları — SalonModuleGroups.cs ile senkron
+    var PACKAGE_PRICES = { 1: 400, 3: 1500, 5: 1500, 6: 200 };
+    var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 5: 'Profesyonel', 6: 'Kurumsal' };
+
     self.activeGroups = ko.computed(function () {
         var nonDefault = self.activeModules().filter(function (m) { return !m.isDefault && m.isActive; });
         var grouped = {};
         nonDefault.forEach(function (m) {
             var gId = m.groupId || 0;
-            var gName = m.groupName || 'Diger';
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, modules: [] };
+            var gName = PACKAGE_NAMES[gId] || m.groupName || 'Diger';
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: PACKAGE_PRICES[gId] || 0, modules: [] };
             grouped[gId].modules.push(m);
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
@@ -25,8 +29,8 @@ function ModulesViewModel() {
         var grouped = {};
         all.forEach(function (m) {
             var gId = m.groupId || 0;
-            var gName = m.groupName || 'Diger';
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, modules: [] };
+            var gName = PACKAGE_NAMES[gId] || m.groupName || 'Diger';
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: PACKAGE_PRICES[gId] || 0, modules: [] };
             grouped[gId].modules.push(m);
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
@@ -75,6 +79,31 @@ function ModulesViewModel() {
                     error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Talep olusturulamadi.'); }
                 });
             }, { input: true, inputLabel: 'Notunuz' });
+        });
+    };
+
+    self.requestPackage = function (pkg) {
+        var name = pkg.groupName;
+        var count = pkg.modules.length;
+        var price = (pkg.packagePrice || 0).toLocaleString('tr-TR');
+        confirmModal('Paket Talebi', name + ' paketini talep etmek ister misiniz?\n\nFiyat: ' + price + ' ₺/ay (KDV dahil)\nIçindeki ' + count + ' modül topluca aktif olacak.', function () {
+            var errors = 0, done = 0;
+            pkg.modules.forEach(function (m) {
+                $.ajax({
+                    url: '/proxy/sln-module-requests',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ moduleId: m.moduleId, notes: 'Paket talebi: ' + name })
+                }).always(function (res, status) {
+                    done++;
+                    if (status === 'error') errors++;
+                    if (done === pkg.modules.length) {
+                        if (errors === 0) toastr.success('Paket talebi olusturuldu (' + done + ' modül).');
+                        else toastr.warning(done - errors + '/' + done + ' modul icin talep olusturuldu.');
+                        self.load();
+                    }
+                });
+            });
         });
     };
 

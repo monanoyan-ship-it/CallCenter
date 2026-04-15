@@ -70,9 +70,19 @@
     <!-- /ko -->
     <!-- ko foreach: availableGroups -->
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white py-2">
-            <strong data-bind="text: groupName"></strong>
-            <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modul)'"></span>
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+            <div>
+                <strong data-bind="text: groupName"></strong>
+                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modul)'"></span>
+            </div>
+            <!-- ko if: packagePrice > 0 -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'" style="font-size:.85rem;"></span>
+                <button class="btn btn-sm btn-success" data-bind="click: $root.requestPackage">
+                    <i class="bi bi-cart-plus me-1"></i>Paketi Al
+                </button>
+            </div>
+            <!-- /ko -->
         </div>
         <div class="card-body">
             <!-- ko foreach: modules -->
