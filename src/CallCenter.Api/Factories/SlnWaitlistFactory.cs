@@ -10,11 +10,19 @@ namespace CallCenter.Api.Factories;
 public class SlnWaitlistFactory : ISlnWaitlistFactory
 {
     private readonly ISlnWaitlistEntryEntityService _waitlistEs;
+    private readonly ISlnBranchEntityService _branches;
+    private readonly ICustomerPersonnelEntityService _personnel;
     private readonly IUnitOfWork _uow;
 
-    public SlnWaitlistFactory(ISlnWaitlistEntryEntityService waitlistEs, IUnitOfWork uow)
+    public SlnWaitlistFactory(
+        ISlnWaitlistEntryEntityService waitlistEs,
+        ISlnBranchEntityService branches,
+        ICustomerPersonnelEntityService personnel,
+        IUnitOfWork uow)
     {
         _waitlistEs = waitlistEs;
+        _branches = branches;
+        _personnel = personnel;
         _uow = uow;
     }
 
@@ -124,4 +132,33 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         NotifiedAt = w.NotifiedAt,
         CreatedAt = w.CreatedAt
     };
+
+    public async Task<object> NormalizeBranchesAsync(int customerId)
+    {
+        var hqBranch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+        if (hqBranch == null)
+            return new { updated = 0, error = "Merkez sube bulunamadi." };
+
+        var orphans = await _waitlistEs.GetAllQueryable()
+            .Where(w => w.CustomerId == customerId && w.BranchId == null)
+            .ToListAsync();
+
+        int viaPersonnel = 0, viaHq = 0;
+        foreach (var w in orphans)
+        {
+            int? targetBranchId = null;
+            if (w.PreferredPersonnelId.HasValue)
+            {
+                targetBranchId = await _personnel.GetAllQueryable()
+                    .Where(p => p.Id == w.PreferredPersonnelId.Value)
+                    .Select(p => p.BranchId).FirstOrDefaultAsync();
+            }
+            if (targetBranchId.HasValue) { w.BranchId = targetBranchId; viaPersonnel++; }
+            else { w.BranchId = hqBranch.Id; viaHq++; }
+        }
+
+        await _uow.SaveChangesAsync();
+        return new { updated = orphans.Count, viaPersonnel, viaHq, hqBranchName = hqBranch.Name };
+    }
 }

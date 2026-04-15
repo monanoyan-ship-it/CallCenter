@@ -194,6 +194,21 @@ function WaitlistViewModel() {
         });
     };
 
+    self.normalizeBranches = function () {
+        confirmModal('Onay', 'Sube bilgisi olmayan bekleme kayitlari personelin (varsa) veya merkez subeye baglanacak. Devam?', function () {
+            $.ajax({ url: '/proxy/sln-waitlist/normalize-branches?_nb=1', method: 'POST' })
+                .done(function (res) {
+                    if (res && res.error) { toastr.error(res.error); return; }
+                    var msg = (res.updated || 0) + ' kayit guncellendi';
+                    if (res.viaPersonnel > 0) msg += ' (personelden: ' + res.viaPersonnel + ')';
+                    if (res.viaHq > 0) msg += ' (merkeze: ' + res.viaHq + ')';
+                    toastr.success(msg);
+                    self.loadWaitlist();
+                })
+                .fail(function () { toastr.error('Normalize basarisiz'); });
+        });
+    };
+
     // ═══ Randevuya Donustur ═══
     var convertModal;
     self.isConverting = ko.observable(false);

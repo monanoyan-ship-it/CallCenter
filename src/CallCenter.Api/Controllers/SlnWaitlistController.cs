@@ -73,6 +73,15 @@ public class SlnWaitlistController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    /// <summary>BranchId NULL olan waitlist kayitlarini personelin/merkez subesine bagla.</summary>
+    [HttpPost("normalize-branches")]
+    public async Task<ActionResult> NormalizeBranches()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _factory.NormalizeBranchesAsync(customerId));
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
 }

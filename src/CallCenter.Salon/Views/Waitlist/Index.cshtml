@@ -110,9 +110,15 @@
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" class="form-control" placeholder="Musteri veya hizmet ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
                 </div>
-                <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-                    <i class="bi bi-plus-lg me-1"></i>Yeni Kayit
-                </button>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
+                            title="Sube bilgisi olmayan eski kayitlari personelin/merkezin subesine bagla">
+                        <i class="bi bi-shuffle me-1"></i>Sube Normalize
+                    </button>
+                    <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+                        <i class="bi bi-plus-lg me-1"></i>Yeni Kayit
+                    </button>
+                </div>
             </div>
 
             <div class="card border-0 shadow-sm">

@@ -10,4 +10,5 @@ public interface ISlnWaitlistFactory
     Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId);
     Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId);
     Task<(bool Success, string? Error)> DeleteEntryAsync(int id, int customerId);
+    Task<object> NormalizeBranchesAsync(int customerId);
 }
