@@ -266,7 +266,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ServicePricingItem>(e =>
         {
             e.HasKey(i => i.Id);
-            e.HasIndex(i => new { i.PeriodId, i.ProductTypeId, i.ServiceId }).IsUnique();
+            e.HasIndex(i => new { i.PeriodId, i.ProductTypeId, i.ServiceId, i.PackageGroupId }).IsUnique();
             e.Property(i => i.MonthlyPrice).HasPrecision(18, 2);
             e.Property(i => i.PreviousPrice).HasPrecision(18, 2);
             e.Property(i => i.ServiceName).HasMaxLength(200);
