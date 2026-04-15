@@ -185,9 +185,80 @@ function WaitlistViewModel() {
         });
     };
 
+    // ═══ Randevuya Donustur ═══
+    var convertModal;
+    self.isConverting = ko.observable(false);
+    self.convertCtx = {
+        entryId: ko.observable(0),
+        clientName: ko.observable(''),
+        serviceName: ko.observable(''),
+        preferredPersonnelName: ko.observable('')
+    };
+    self.convertForm = {
+        date: ko.observable(''),
+        time: ko.observable(''),
+        personnelId: ko.observable(''),
+        notes: ko.observable(''),
+        slnClientId: ko.observable(0),
+        serviceId: ko.observable(0)
+    };
+
+    self.openConvert = function (entry) {
+        self.convertCtx.entryId(entry.id);
+        self.convertCtx.clientName(entry.clientName || '');
+        self.convertCtx.serviceName(entry.serviceName || '');
+        self.convertCtx.preferredPersonnelName(entry.preferredPersonnelName || '');
+        self.convertForm.slnClientId(entry.slnClientId);
+        self.convertForm.serviceId(entry.serviceId);
+        // Tarih: tercih varsa onu, yoksa bugun
+        var d = entry.preferredDate ? entry.preferredDate.substring(0, 10) : toDateStr(new Date());
+        self.convertForm.date(d);
+        // Saat dilimi varsa default oneri (Sabah=10:00, Ogle=13:00, Aksam=16:00)
+        var slotMap = { 'Sabah': '10:00', 'Ogle': '13:00', 'Aksam': '16:00' };
+        self.convertForm.time(slotMap[entry.preferredTimeSlot] || '10:00');
+        self.convertForm.personnelId(entry.preferredPersonnelId || '');
+        self.convertForm.notes(entry.notes || '');
+        convertModal.show();
+    };
+
+    self.submitConvert = function () {
+        if (!self.convertForm.date() || !self.convertForm.time() || !self.convertForm.personnelId()) {
+            toastr.warning('Tarih, saat ve personel zorunlu');
+            return;
+        }
+        self.isConverting(true);
+        var startTime = self.convertForm.date() + 'T' + self.convertForm.time() + ':00Z';
+        var apptPayload = {
+            slnClientId: self.convertForm.slnClientId(),
+            personnelId: parseInt(self.convertForm.personnelId()),
+            serviceIds: [self.convertForm.serviceId()],
+            startTime: startTime,
+            notes: self.convertForm.notes() || null
+        };
+        $.ajax({
+            url: '/proxy/sln-appointments', method: 'POST',
+            contentType: 'application/json', data: JSON.stringify(apptPayload)
+        }).done(function () {
+            // Bekleme kaydini "Randevu Alindi" olarak isaretle
+            $.ajax({ url: '/proxy/sln-waitlist/' + self.convertCtx.entryId() + '/status/3', method: 'PUT' })
+                .always(function () {
+                    self.isConverting(false);
+                    convertModal.hide();
+                    self.loadWaitlist();
+                    self.loadTodayAppointments();
+                    toastr.success('Randevu olusturuldu, bekleme kaydi guncellendi');
+                });
+        }).fail(function (xhr) {
+            self.isConverting(false);
+            var err = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || xhr.responseText || 'Randevu olusturulamadi';
+            toastr.error(err);
+        });
+    };
+
     // ═══ Init ═══
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('waitlistModal'));
+        convertModal = new bootstrap.Modal(document.getElementById('convertModal'));
         self.loadTodayAppointments();
         self.loadWaitlist();
         self.loadLookups();

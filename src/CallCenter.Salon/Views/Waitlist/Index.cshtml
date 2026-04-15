@@ -148,7 +148,10 @@
                                             </button>
                                             <!-- /ko -->
                                             <!-- ko if: statusId <= 2 -->
-                                            <button class="btn btn-outline-success py-0 px-1" title="Randevu Alindi" data-bind="click: $parent.appointmentMade">
+                                            <button class="btn btn-outline-primary py-0 px-1" title="Randevuya Donustur" data-bind="click: $parent.openConvert">
+                                                <i class="bi bi-calendar-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success py-0 px-1" title="Randevu Alindi (Manuel)" data-bind="click: $parent.appointmentMade">
                                                 <i class="bi bi-calendar-check"></i>
                                             </button>
                                             <!-- /ko -->
@@ -174,6 +177,53 @@
                         <p class="mt-2 small">Bekleme listesinde kayit yok</p>
                     </div>
                     <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Randevuya Donustur Modal -->
+    <div class="modal fade" id="convertModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Bekleme Kaydini Randevuya Donustur</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <strong data-bind="text: convertCtx.clientName"></strong> &mdash;
+                        <span data-bind="text: convertCtx.serviceName"></span>
+                        <span class="text-muted" data-bind="visible: convertCtx.preferredPersonnelName">
+                            (Tercih: <span data-bind="text: convertCtx.preferredPersonnelName"></span>)
+                        </span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Tarih *</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: convertForm.date" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Saat *</label>
+                            <input type="time" class="form-control form-control-sm" data-bind="value: convertForm.time" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Personel *</label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: staff, optionsText: 'fullName', optionsValue: 'id', value: convertForm.personnelId, optionsCaption: 'Secin...'"></select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: convertForm.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: submitConvert, disable: isConverting">
+                        <span data-bind="visible: isConverting" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isConverting()"></i>Randevu Olustur
+                    </button>
                 </div>
             </div>
         </div>
