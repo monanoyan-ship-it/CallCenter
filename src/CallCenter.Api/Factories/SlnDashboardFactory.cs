@@ -13,6 +13,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ICustomerSubscriptionEntityService _subscriptions;
     private readonly ICustomerPortalModuleEntityService _portalModules;
+    private readonly ServicePricingFactory _pricingFactory;
 
     public SlnDashboardFactory(
         ISlnClientEntityService clients,
@@ -20,7 +21,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         ISlnInvoiceEntityService invoices,
         ICustomerPersonnelEntityService personnel,
         ICustomerSubscriptionEntityService subscriptions,
-        ICustomerPortalModuleEntityService portalModules)
+        ICustomerPortalModuleEntityService portalModules,
+        ServicePricingFactory pricingFactory)
     {
         _clients = clients;
         _appointments = appointments;
@@ -28,6 +30,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _personnel = personnel;
         _subscriptions = subscriptions;
         _portalModules = portalModules;
+        _pricingFactory = pricingFactory;
     }
 
     public async Task<object> GetDashboardAsync(int customerId, int? branchId = null)
@@ -133,13 +136,21 @@ public class SlnDashboardFactory : ISlnDashboardFactory
                 .Distinct()
                 .ToList();
 
+            // Aktif dönemin paket fiyatlarını oku (yoksa enum fallback)
+            var pkgPrices = await _pricingFactory.GetActiveSalonPackagePricesAsync();
+
             var activePackages = activeGroupIds
                 .Select(gId => SalonModuleGroups.GetById(gId))
                 .Where(p => p != null)
-                .Select(p => new { id = p!.Id, name = p.Description, monthlyPrice = p.MonthlyPrice })
+                .Select(p => new
+                {
+                    id = p!.Id,
+                    name = p.Description,
+                    monthlyPrice = pkgPrices.TryGetValue(p.Id, out var price) ? price : p.MonthlyPrice
+                })
                 .ToList();
 
-            const decimal basicPackagePrice = 1700m;
+            var basicPackagePrice = pkgPrices.TryGetValue(0, out var basic) ? basic : 1700m;
             var monthlyTotal = basicPackagePrice + activePackages.Sum(p => p.monthlyPrice);
 
             var isTrial = subscription.MonthlyPrice == 0;

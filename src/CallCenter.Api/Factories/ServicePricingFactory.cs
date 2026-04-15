@@ -38,6 +38,33 @@ public class ServicePricingFactory
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Aktif dönemin salon paket fiyatlarını döndürür.
+    /// Dict: groupId → MonthlyPrice. 0 = Temel Paket. Dönem/kayıt yoksa enum fallback.
+    /// </summary>
+    public async Task<Dictionary<int, decimal>> GetActiveSalonPackagePricesAsync()
+    {
+        var activePeriod = await _periodEs.GetAllQueryable()
+            .Where(p => p.StatusId == 1)
+            .OrderByDescending(p => p.StartDate)
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync();
+
+        var result = new Dictionary<int, decimal>();
+
+        // Default: enum değerleri
+        result[0] = 1700m; // Temel Paket
+        foreach (var pkg in SalonModuleGroups.All) result[pkg.Id] = pkg.MonthlyPrice;
+
+        if (activePeriod != null)
+        {
+            foreach (var item in activePeriod.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue))
+                result[item.PackageGroupId!.Value] = item.MonthlyPrice;
+        }
+
+        return result;
+    }
+
     public async Task<object?> GetPeriodDetailAsync(int periodId)
     {
         var period = await _periodEs.GetAllQueryable()
@@ -47,7 +74,8 @@ public class ServicePricingFactory
         if (period == null) return null;
 
         var ccItems = period.Items.Where(i => i.ProductTypeId == PortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
-        var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
+        var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).OrderBy(i => i.ServiceId).ToList();
+        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue).OrderBy(i => i.PackageGroupId).ToList();
 
         // Salon modullerini gruplara ayir
         var salonGrouped = slnItems.Select(i =>
@@ -75,6 +103,7 @@ public class ServicePricingFactory
             callCenter = ccItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = ServiceTypes.GetById(i.ServiceId)?.IsDefault ?? false }),
             salon = slnItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = SalonPortalModules.GetById(i.ServiceId)?.IsDefault ?? false }),
             salonGroups = salonGrouped,
+            salonPackages = pkgItems.Select(i => new { i.Id, packageGroupId = i.PackageGroupId!.Value, name = i.ServiceName, i.MonthlyPrice, i.PreviousPrice }),
             operatorUnitPrice = 0m // CC operatör birim fiyatı - TODO
         };
     }
@@ -101,7 +130,7 @@ public class ServicePricingFactory
 
         if (previousPeriod != null && previousPeriod.Items.Count > 0)
         {
-            // Onceki donemin fiyatlarini kopyala
+            // Onceki donemin fiyatlarini kopyala (hem modul hem paket kalemleri)
             foreach (var prev in previousPeriod.Items)
             {
                 period.Items.Add(new ServicePricingItem
@@ -109,6 +138,7 @@ public class ServicePricingFactory
                     PeriodId = period.Id,
                     ProductTypeId = prev.ProductTypeId,
                     ServiceId = prev.ServiceId,
+                    PackageGroupId = prev.PackageGroupId,
                     ServiceName = prev.ServiceName,
                     MonthlyPrice = prev.MonthlyPrice,
                     PreviousPrice = prev.MonthlyPrice
@@ -138,6 +168,28 @@ public class ServicePricingFactory
                     ServiceId = mod.Id,
                     ServiceName = mod.Description ?? mod.SystemName,
                     MonthlyPrice = 0
+                });
+            }
+            // Salon paketleri — Temel Paket (groupId=0, tum salonlar icin zorunlu) + opsiyonel gruplar
+            period.Items.Add(new ServicePricingItem
+            {
+                PeriodId = period.Id,
+                ProductTypeId = SalonPortalModules.ProductTypeId,
+                ServiceId = 0,
+                PackageGroupId = 0,
+                ServiceName = "Temel Paket",
+                MonthlyPrice = 1700m
+            });
+            foreach (var pkg in SalonModuleGroups.All)
+            {
+                period.Items.Add(new ServicePricingItem
+                {
+                    PeriodId = period.Id,
+                    ProductTypeId = SalonPortalModules.ProductTypeId,
+                    ServiceId = 0,
+                    PackageGroupId = pkg.Id,
+                    ServiceName = pkg.Description,
+                    MonthlyPrice = pkg.MonthlyPrice
                 });
             }
         }
