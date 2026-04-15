@@ -352,10 +352,8 @@
     <script>
         var bookSlug = '@slug';
 
-        // Auth kontrolu
-        if (!localStorage.getItem('platformToken')) {
-            window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname);
-        }
+        // Anonim erisim (Ahmet talebi): musteri login OLMADAN da randevu/bekleme listesi olusturabilir.
+        // Backend POST /api/salon/{slug}/book ve /waitlist auth gerektirmez, ad+telefon ile yeni client olusturur.
 
         function BookViewModel() {
             var self = this;
