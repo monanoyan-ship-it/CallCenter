@@ -277,17 +277,35 @@
             window.location.reload();
         }
 
-        // jQuery ajaxPrefilter — request gonderilmeden ONCE URL'i degistirir.
-        // (ajaxSend YANLISTI: o sadece event log icin, URL modifikasyonu etkisiz.)
-        $.ajaxPrefilter(function(opts) {
-            if (!opts.url || opts.url.indexOf('/proxy/') < 0) return;
-            if (opts.url.indexOf('_nb=1') >= 0) return;
-            if (/([?&])branchId=/.test(opts.url)) return;
+        // ═══ Sube branchId enjektoru ═══
+        // jQuery $.ajax HEM ajaxPrefilter HEM de wrapper ile garantilenir
+        // (ajaxPrefilter bazi cagrilarda atlanabiliyor — wrapper kesin ceker)
+        function _injectBranch(url) {
+            if (!url || url.indexOf('/proxy/') < 0) return url;
+            if (url.indexOf('_nb=1') >= 0) return url;
+            if (/([?&])branchId=/.test(url)) return url;
             var b = window.slnGetBranch();
-            if (!b) return;
-            opts.url += (opts.url.indexOf('?') >= 0 ? '&' : '?') + 'branchId=' + encodeURIComponent(b);
+            if (!b) return url;
+            return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'branchId=' + encodeURIComponent(b);
+        }
+        $.ajaxPrefilter(function(opts) {
+            opts.url = _injectBranch(opts.url);
         });
-        // fetch() icin de aynisi — kullanan sayfalar manuel eklesin (public Discover/Book slug tabanli)
+        // Wrap $.ajax (aksi takdirde $.get/$.post path'i bypass edilebiliyor)
+        var _origAjax = $.ajax;
+        $.ajax = function(urlOrOpts, maybeOpts) {
+            var opts = (typeof urlOrOpts === 'string') ? Object.assign({ url: urlOrOpts }, maybeOpts || {}) : (urlOrOpts || {});
+            opts.url = _injectBranch(opts.url);
+            return _origAjax.call(this, opts);
+        };
+        // fetch() icin: kullanan sayfalar manuel eklesin (public Discover/Book slug tabanli)
+        var _origFetch = window.fetch;
+        if (_origFetch) {
+            window.fetch = function(input, init) {
+                if (typeof input === 'string') input = _injectBranch(input);
+                return _origFetch.call(this, input, init);
+            };
+        }
     </script>
     @RenderSection("Scripts", required: false)
 </body>
