@@ -1,5 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -10,17 +11,23 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnInvoiceEntityService _invoices;
     private readonly ICustomerPersonnelEntityService _personnel;
+    private readonly ICustomerSubscriptionEntityService _subscriptions;
+    private readonly ICustomerPortalModuleEntityService _portalModules;
 
     public SlnDashboardFactory(
         ISlnClientEntityService clients,
         ISlnAppointmentEntityService appointments,
         ISlnInvoiceEntityService invoices,
-        ICustomerPersonnelEntityService personnel)
+        ICustomerPersonnelEntityService personnel,
+        ICustomerSubscriptionEntityService subscriptions,
+        ICustomerPortalModuleEntityService portalModules)
     {
         _clients = clients;
         _appointments = appointments;
         _invoices = invoices;
         _personnel = personnel;
+        _subscriptions = subscriptions;
+        _portalModules = portalModules;
     }
 
     public async Task<object> GetDashboardAsync(int customerId, int? branchId = null)
@@ -104,6 +111,57 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             })
             .ToList();
 
+        // ═══ Abonelik bilgileri ═══
+        var subscription = await _subscriptions.GetAllQueryable()
+            .Where(s => s.CustomerId == customerId && s.StatusId != 3) // iptal haric, en son ak'i al
+            .OrderByDescending(s => s.StartDate)
+            .FirstOrDefaultAsync();
+
+        object? subscriptionInfo = null;
+        if (subscription != null)
+        {
+            // Aktif modulleri al, gruplara gore paket fiyatlarini topla
+            var activeModuleIds = await _portalModules.GetAllQueryable()
+                .Where(m => m.CustomerId == customerId && m.IsActive)
+                .Select(m => m.ModuleId)
+                .ToListAsync();
+
+            var activeGroupIds = activeModuleIds
+                .Select(id => SalonModuleGroups.GetGroupId(id))
+                .Where(g => g.HasValue)
+                .Select(g => g!.Value)
+                .Distinct()
+                .ToList();
+
+            var activePackages = activeGroupIds
+                .Select(gId => SalonModuleGroups.GetById(gId))
+                .Where(p => p != null)
+                .Select(p => new { id = p!.Id, name = p.Description, monthlyPrice = p.MonthlyPrice })
+                .ToList();
+
+            const decimal basicPackagePrice = 1700m;
+            var monthlyTotal = basicPackagePrice + activePackages.Sum(p => p.monthlyPrice);
+
+            var isTrial = subscription.MonthlyPrice == 0;
+            int? trialDaysRemaining = null;
+            if (isTrial)
+            {
+                var diff = (subscription.NextBillingDate.Date - DateTime.UtcNow.Date).Days;
+                trialDaysRemaining = diff > 0 ? diff : 0;
+            }
+
+            subscriptionInfo = new
+            {
+                statusId = subscription.StatusId,
+                isTrial,
+                trialDaysRemaining,
+                nextBillingDate = subscription.NextBillingDate,
+                basicPackagePrice,
+                activePackages,
+                monthlyTotal
+            };
+        }
+
         return new
         {
             totalClients,
@@ -111,7 +169,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             todayRevenue,
             activeStaff,
             todayAppointments,
-            reminders = birthdayReminders
+            reminders = birthdayReminders,
+            subscription = subscriptionInfo
         };
     }
 }

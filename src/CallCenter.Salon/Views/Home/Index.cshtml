@@ -77,6 +77,34 @@
         </div>
     </div>
     <div class="col-md-4">
+        <!-- Abonelik kartı -->
+        <div class="card border-0 shadow-sm mb-3" id="subscriptionCard" style="display:none;">
+            <div class="card-header bg-white border-0 fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-credit-card-2-front me-2 text-purple"></i>Aboneliğim</span>
+                <span class="badge" id="subStatusBadge"></span>
+            </div>
+            <div class="card-body">
+                <div id="subTrialAlert" class="alert alert-warning py-2 small mb-2" style="display:none;">
+                    <i class="bi bi-clock me-1"></i><span id="subTrialText"></span>
+                </div>
+                <div class="mb-2 small text-muted">Aktif Paketler:</div>
+                <div id="subPackages" class="d-flex flex-wrap gap-1 mb-2">
+                    <span class="badge bg-secondary-subtle text-dark">Temel Paket</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                    <span class="small text-muted">Aylık Toplam</span>
+                    <span class="fw-bold text-purple" id="subMonthlyTotal">-</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <span class="small text-muted">Sonraki Tahakkuk</span>
+                    <span class="small" id="subNextBilling">-</span>
+                </div>
+                <a href="/Modules" class="btn btn-sm btn-outline-purple w-100 mt-2" style="border-color:#7b1fa2;color:#7b1fa2;">
+                    <i class="bi bi-puzzle me-1"></i>Modülleri Yönet
+                </a>
+            </div>
+        </div>
+
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-0 fw-semibold">
                 <i class="bi bi-bell me-2"></i>Hatirlatmalar

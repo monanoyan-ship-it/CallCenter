@@ -26,6 +26,45 @@
                 }
             }
 
+            // Abonelik kartı
+            var subCard = document.getElementById('subscriptionCard');
+            if (subCard && d.subscription) {
+                var s = d.subscription;
+                subCard.style.display = '';
+
+                var badge = document.getElementById('subStatusBadge');
+                if (s.statusId === 1) { badge.className = 'badge bg-success'; badge.textContent = 'Aktif'; }
+                else if (s.statusId === 2) { badge.className = 'badge bg-warning text-dark'; badge.textContent = 'Askıda'; }
+                else { badge.className = 'badge bg-secondary'; badge.textContent = 'Pasif'; }
+
+                var trialAlert = document.getElementById('subTrialAlert');
+                if (s.isTrial && s.trialDaysRemaining !== null) {
+                    trialAlert.style.display = '';
+                    document.getElementById('subTrialText').textContent =
+                        s.trialDaysRemaining > 0
+                            ? 'Deneme süreniz ' + s.trialDaysRemaining + ' gün içinde bitiyor.'
+                            : 'Deneme süreniz bitti.';
+                } else {
+                    trialAlert.style.display = 'none';
+                }
+
+                var pkgWrap = document.getElementById('subPackages');
+                pkgWrap.innerHTML = '<span class="badge bg-purple text-white">Temel Paket · ' + fmt(s.basicPackagePrice) + ' ₺</span>';
+                (s.activePackages || []).forEach(function (p) {
+                    var el = document.createElement('span');
+                    el.className = 'badge bg-success-subtle text-success';
+                    el.textContent = p.name + ' · ' + fmt(p.monthlyPrice) + ' ₺';
+                    pkgWrap.appendChild(el);
+                });
+
+                document.getElementById('subMonthlyTotal').textContent = fmt(s.monthlyTotal) + ' ₺/ay';
+                document.getElementById('subNextBilling').textContent = s.nextBillingDate
+                    ? new Date(s.nextBillingDate).toLocaleDateString('tr-TR')
+                    : '-';
+            } else if (subCard) {
+                subCard.style.display = 'none';
+            }
+
             // Hatirlatmalar — dogum gunleri
             var remList = document.getElementById('reminderList');
             if (remList) {
