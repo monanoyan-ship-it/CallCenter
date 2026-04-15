@@ -367,6 +367,11 @@
                     <a class="btn btn-book w-100 py-3 mb-3 fs-5" data-bind="attr: { href: '/salon/' + salon().slug + '/book' }">
                         <i class="bi bi-calendar-check me-2"></i>Online Randevu Al
                     </a>
+                    <button class="btn btn-outline-purple w-100 py-2 mb-3"
+                            style="border:1px solid #7b1fa2;color:#7b1fa2;"
+                            data-bind="click: openWaitlist">
+                        <i class="bi bi-bell me-1"></i>Bekleme Listesine Ekle
+                    </button>
                     <!-- /ko -->
 
                     <!-- Calisma Saatleri -->
@@ -436,6 +441,61 @@
             </div>
         </div>
         <!-- /ko -->
+    </div>
+
+    <!-- Bekleme Listesi Modali (anonim) -->
+    <div class="modal fade" id="waitlistModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2" style="background: linear-gradient(135deg, #2d1b3d 0%, #4a1a6b 100%); color: #fff;">
+                    <h6 class="modal-title"><i class="bi bi-bell me-2"></i>Bekleme Listesine Ekle</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Müşteri olmadan da kaydolabilirsiniz. Slot boşalınca salon sizinle iletişime geçer.
+                    </p>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small">Ad Soyad *</label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: waitlist.fullName" />
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label small">Telefon *</label>
+                            <div data-bind="phoneInput: waitlist.phone"></div>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small">Saat Tercihi</label>
+                            <select class="form-select form-select-sm" data-bind="value: waitlist.timeSlot">
+                                <option value="Farketmez">Farketmez</option>
+                                <option value="Sabah">Sabah</option>
+                                <option value="Ogle">Öğle</option>
+                                <option value="Aksam">Akşam</option>
+                            </select>
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label small">Hizmet *</label>
+                            <select class="form-select form-select-sm" data-bind="value: waitlist.serviceId, options: allFlatServices, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Seçiniz...'"></select>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small">Tarih *</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: waitlist.date" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: waitlist.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" class="btn btn-book btn-sm" data-bind="click: submitWaitlist, disable: waitlistSaving">
+                        <span data-bind="visible: waitlistSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !waitlistSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Uyelik Basvuru Modali -->
@@ -647,6 +707,74 @@
                     self.loaded(true);
                 })
                 .catch(function () { self.notFound(true); });
+
+            // ═══ Bekleme Listesi (anonim) ═══
+            var waitlistModal;
+            self.waitlistSaving = ko.observable(false);
+            self.waitlist = {
+                fullName: ko.observable(''),
+                phone: ko.observable(''),
+                serviceId: ko.observable(''),
+                date: ko.observable(new Date().toISOString().substring(0, 10)),
+                timeSlot: ko.observable('Farketmez'),
+                notes: ko.observable('')
+            };
+            self.allFlatServices = ko.computed(function () {
+                var list = [];
+                var s = self.salon();
+                if (s && s.serviceCategories) {
+                    s.serviceCategories.forEach(function (cat) {
+                        (cat.services || []).forEach(function (svc) { list.push({ id: svc.id, name: svc.name }); });
+                    });
+                }
+                return list;
+            });
+
+            self.openWaitlist = function () {
+                self.waitlist.fullName('');
+                self.waitlist.phone('');
+                self.waitlist.serviceId('');
+                self.waitlist.date(new Date().toISOString().substring(0, 10));
+                self.waitlist.timeSlot('Farketmez');
+                self.waitlist.notes('');
+                if (!waitlistModal) waitlistModal = new bootstrap.Modal(document.getElementById('waitlistModal'));
+                waitlistModal.show();
+            };
+
+            self.submitWaitlist = function () {
+                if (!self.waitlist.fullName() || !self.waitlist.phone()) {
+                    alert('Ad ve telefon zorunlu'); return;
+                }
+                if (!self.waitlist.serviceId()) {
+                    alert('Hizmet seçiniz'); return;
+                }
+                self.waitlistSaving(true);
+                var payload = {
+                    fullName: self.waitlist.fullName(),
+                    phone: self.waitlist.phone(),
+                    serviceId: parseInt(self.waitlist.serviceId()),
+                    preferredDate: self.waitlist.date() + 'T00:00:00Z',
+                    preferredTimeSlot: self.waitlist.timeSlot(),
+                    notes: self.waitlist.notes() || null
+                };
+                fetch('/proxy/salon/' + self.salon().slug + '/waitlist', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+                  .then(function (res) {
+                      self.waitlistSaving(false);
+                      if (res.ok) {
+                          alert(res.body.message || 'Bekleme listesine eklendiniz.');
+                          if (waitlistModal) waitlistModal.hide();
+                      } else {
+                          alert((res.body && res.body.message) || 'Kayit basarisiz');
+                      }
+                  })
+                  .catch(function () {
+                      self.waitlistSaving(false);
+                      alert('Baglanti hatasi');
+                  });
+            };
 
             self.openSignup = function (planId, planName) {
                 self.signupPlanId(planId);
