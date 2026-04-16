@@ -434,9 +434,9 @@ public class SlnPublicFactory : ISlnPublicFactory
             .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == cid && s.IsActive);
         if (service == null) return null;
 
-        // Calisma saatleri (branch'ten al)
-        var branch = await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive)
-            ?? await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.CustomerId == cid && b.IsHeadquarter);
+        // Calisma saatleri (branch'ten al) + Customer.TimeZone
+        var branch = await _branches.GetAllQueryable().Include(b => b.Customer).FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive)
+            ?? await _branches.GetAllQueryable().Include(b => b.Customer).FirstOrDefaultAsync(b => b.CustomerId == cid && b.IsHeadquarter);
 
         var dayKey = date.DayOfWeek switch
         {
@@ -478,7 +478,13 @@ public class SlnPublicFactory : ISlnPublicFactory
         // ISO string olarak Z suffix'siz dondurulur ki JS local time olarak yorumlasin.
         var slots = new List<object>();
         var slotDuration = service.DurationMinutes;
-        var nowUtc = DateTime.UtcNow;
+        // Slot'lar salonun yerel saatinde kurulur. "Simdi" de salonun TZ'sine gore hesaplanir.
+        var salonTzId = branch?.Customer?.TimeZone ?? "Europe/Istanbul";
+        TimeZoneInfo salonTz;
+        try { salonTz = TimeZoneInfo.FindSystemTimeZoneById(salonTzId); }
+        catch { salonTz = TimeZoneInfo.Utc; }
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, salonTz);
+        var nowForCompare = DateTime.SpecifyKind(nowLocal, DateTimeKind.Utc);
         for (var hour = openHour; hour < closeHour; hour++)
         {
             for (var min = 0; min < 60; min += 30)
@@ -487,7 +493,7 @@ public class SlnPublicFactory : ISlnPublicFactory
                 var slotEnd = slotStart.AddMinutes(slotDuration);
 
                 if (slotEnd > dayStart.AddHours(closeHour)) break;
-                if (slotStart < nowUtc) continue;
+                if (slotStart < nowForCompare) continue;
 
                 var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
                 if (!hasConflict)

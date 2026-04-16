@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Landing uppercase-style keys: eski text-transform:uppercase CSS kaldirildi. Gorsel vurgu icin TR ve digerleri buyuk harf yazildi. -->
+<!-- Import: Management > Translation > Import XML -->
+<Translations>
+  <Keys>
+    <Key Id="landing.stats.products" Module="landing" Description="Stat label - Products">
+      <Value Lang="tr">ÜRÜN</Value>
+      <Value Lang="en">PRODUCTS</Value>
+      <Value Lang="de">PRODUKTE</Value>
+      <Value Lang="ar">المنتجات</Value>
+      <Value Lang="ru">ПРОДУКТЫ</Value>
+    </Key>
+    <Key Id="landing.stats.voip" Module="landing" Description="Stat label - VoIP Ready">
+      <Value Lang="tr">VOIP HAZIR</Value>
+      <Value Lang="en">VOIP READY</Value>
+      <Value Lang="de">VOIP-FÄHIG</Value>
+      <Value Lang="ar">جاهز لـ VoIP</Value>
+      <Value Lang="ru">VOIP ГОТОВ</Value>
+    </Key>
+    <Key Id="landing.stats.salon" Module="landing" Description="Stat label - Online Booking">
+      <Value Lang="tr">ONLİNE RANDEVU</Value>
+      <Value Lang="en">ONLINE BOOKING</Value>
+      <Value Lang="de">ONLINE-BUCHUNG</Value>
+      <Value Lang="ar">حجز أونلاين</Value>
+      <Value Lang="ru">ОНЛАЙН-ЗАПИСЬ</Value>
+    </Key>
+    <Key Id="landing.stats.cloud" Module="landing" Description="Stat label - Cloud Native">
+      <Value Lang="tr">BULUT TABANLI</Value>
+      <Value Lang="en">CLOUD NATIVE</Value>
+      <Value Lang="de">CLOUD-NATIV</Value>
+      <Value Lang="ar">سحابي أصلي</Value>
+      <Value Lang="ru">ОБЛАЧНЫЙ</Value>
+    </Key>
+    <Key Id="landing.products.badge" Module="landing" Description="Products section badge">
+      <Value Lang="tr">ÜRÜNLERİMİZ</Value>
+      <Value Lang="en">OUR PRODUCTS</Value>
+      <Value Lang="de">UNSERE PRODUKTE</Value>
+      <Value Lang="ar">منتجاتنا</Value>
+      <Value Lang="ru">НАШИ ПРОДУКТЫ</Value>
+    </Key>
+    <Key Id="landing.status.dev" Module="landing" Description="Product status - In Development">
+      <Value Lang="tr">GELİŞTİRİLİYOR</Value>
+      <Value Lang="en">IN DEVELOPMENT</Value>
+      <Value Lang="de">IN ENTWICKLUNG</Value>
+      <Value Lang="ar">قيد التطوير</Value>
+      <Value Lang="ru">В РАЗРАБОТКЕ</Value>
+    </Key>
+  </Keys>
+</Translations>
