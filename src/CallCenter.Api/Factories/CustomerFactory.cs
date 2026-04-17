@@ -439,6 +439,7 @@ public class CustomerFactory : ICustomerFactory
                     CatalogPrice = pricing?.MonthlyPrice ?? 0,
                     CustomerPrice = pm.MonthlyPrice,
                     TrialEndsAt = pm.TrialEndsAt,
+                    IsImplemented = SalonPortalModules.IsImplemented(pm.ModuleId),
                     Permissions = CustomerPermissionTypes.GetByModule(moduleDef.Id).Select(p => new PermissionTypeDto
                     {
                         Id = p.Id,

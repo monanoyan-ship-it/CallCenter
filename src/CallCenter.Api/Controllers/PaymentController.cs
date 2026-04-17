@@ -114,6 +114,71 @@ public class PaymentController : ControllerBase
         return Ok(new { transactionId = result.TransactionUid, message = "Uyelik odemesi basarili." });
     }
 
+    /// <summary>Paket pro-rata on izleme (fiyat hesabi)</summary>
+    [HttpPost("package-preview")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> PackagePreview([FromBody] PackageRequest request)
+    {
+        var customerId = GetCustomerId();
+        var result = await _paymentService.GetPackagePreviewAsync(customerId, request.PackageGroupId);
+        if (result == null) return NotFound(new { error = "Paket bulunamadi." });
+        return Ok(result);
+    }
+
+    /// <summary>Paket satin alma checkout formu (Iyzico)</summary>
+    [HttpPost("package-checkout")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> PackageCheckout([FromBody] PackageRequest request)
+    {
+        var customerId = GetCustomerId();
+        var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/iyzico-callback";
+        var result = await _paymentService.InitPackageCheckoutAsync(customerId, request.PackageGroupId, callbackUrl, buyerIp);
+        if (!result.Success) return BadRequest(new { success = false, error = result.Error });
+        return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
+    }
+
+    /// <summary>Abonelik odeme formu (Iyzico Checkout Form)</summary>
+    [HttpPost("subscription-checkout")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> SubscriptionCheckout()
+    {
+        var customerId = GetCustomerId();
+        var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/iyzico-callback";
+        var result = await _paymentService.InitSubscriptionCheckoutAsync(customerId, callbackUrl, buyerIp);
+        if (!result.Success) return BadRequest(new { success = false, error = result.Error });
+        return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
+    }
+
+    /// <summary>Odeme sonucu sorgula (frontend polling icin)</summary>
+    [HttpPost("package-result")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> PackageResult([FromBody] PackageResultRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Token)) return BadRequest(new { success = false, error = "Token eksik." });
+        var tx = await _paymentService.GetTransactionByTokenAsync(request.Token);
+        if (tx == null) return NotFound(new { success = false, error = "Islem bulunamadi." });
+        if (tx.StatusId == PaymentStatuses.Ids.Beklemede)
+            return Ok(new { success = false, pending = true, error = "Odeme henuz tamamlanmadi." });
+        if (tx.StatusId == PaymentStatuses.Ids.Basarili)
+            return Ok(new { success = true });
+        return Ok(new { success = false, error = tx.ErrorMessage ?? "Odeme basarisiz." });
+    }
+
+    /// <summary>Iyzico checkout form callback (3DS sonrasi)</summary>
+    [HttpPost("iyzico-callback")]
+    [AllowAnonymous]
+    public async Task<ActionResult> IyzicoCallback([FromForm] string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return BadRequest("Token eksik.");
+        var result = await _paymentService.CompleteCheckoutAsync(token);
+        var html = result.Success
+            ? "<html><body><script>window.parent.postMessage({type:'payment-success'},'*');</script><p>Odeme basarili. Sayfa kapanacak...</p></body></html>"
+            : $"<html><body><script>window.parent.postMessage({{type:'payment-failed',error:'{result.Error?.Replace("'", "")}'}},'*');</script><p>Odeme basarisiz: {result.Error}</p></body></html>";
+        return Content(html, "text/html");
+    }
+
     /// <summary>Odeme gecmisi (admin: firma bazli, platform user: kendi odemeleri)</summary>
     [HttpGet("history")]
     public async Task<ActionResult> GetHistory([FromQuery] int? customerId, [FromQuery] int page = 1)
@@ -183,4 +248,14 @@ public class MembershipPaymentRequest
     public int PlanId { get; set; }
     public int SlnClientId { get; set; }
     public PaymentCardInfo Card { get; set; } = new();
+}
+
+public class PackageRequest
+{
+    public int PackageGroupId { get; set; }
+}
+
+public class PackageResultRequest
+{
+    public string? Token { get; set; }
 }

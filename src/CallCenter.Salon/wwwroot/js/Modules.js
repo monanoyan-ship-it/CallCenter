@@ -85,21 +85,8 @@ function ModulesViewModel() {
         }, { confirmClass: 'btn-danger', confirmText: 'Iptal Talep Et' });
     };
 
-    self.requestModule = function (mod) {
-        var name = mod.description || mod.moduleName;
-        confirmModal('Modul Talebi', name + ' modulunu talep etmek istiyor musunuz?', function () {
-            confirmModal('Not Ekle', 'Not eklemek ister misiniz? (Bos birakilabilir)', function (notes) {
-                $.ajax({
-                    url: '/proxy/sln-module-requests',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ moduleId: mod.moduleId, notes: notes || null }),
-                    success: function () { toastr.success('Modul talebi olusturuldu.'); self.load(); },
-                    error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Talep olusturulamadi.'); }
-                });
-            }, { input: true, inputLabel: 'Notunuz' });
-        });
-    };
+    // Eski talep sistemi yerine satin alma akisi
+    self.requestModule = self.purchaseModule;
 
     self.cancelPackage = function (pkg) {
         var name = pkg.groupName;
@@ -125,30 +112,126 @@ function ModulesViewModel() {
         }, { confirmClass: 'btn-danger', confirmText: 'Paketi İptal Et' });
     };
 
-    self.requestPackage = function (pkg) {
-        var name = pkg.groupName;
-        var count = pkg.modules.length;
-        var price = (pkg.packagePrice || 0).toLocaleString('tr-TR');
-        confirmModal('Paket Talebi', name + ' paketini talep etmek ister misiniz?\n\nFiyat: ' + price + ' ₺/ay (KDV dahil)\nIçindeki ' + count + ' modül topluca aktif olacak.', function () {
-            var errors = 0, done = 0;
-            pkg.modules.forEach(function (m) {
-                $.ajax({
-                    url: '/proxy/sln-module-requests',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ moduleId: m.moduleId, notes: 'Paket talebi: ' + name })
-                }).always(function (res, status) {
-                    done++;
-                    if (status === 'error') errors++;
-                    if (done === pkg.modules.length) {
-                        if (errors === 0) toastr.success('Paket talebi olusturuldu (' + done + ' modül).');
-                        else toastr.warning(done - errors + '/' + done + ' modul icin talep olusturuldu.');
-                        self.load();
-                    }
-                });
-            });
+    // === SATIN ALMA AKISI ===
+    self.purchaseStep = ko.observable('preview'); // preview -> checkout -> result
+    self.purchaseLoading = ko.observable(false);
+    self.purchasePreview = ko.observable(null);
+    self.purchaseResult = ko.observable(null);
+    self.purchaseGroupId = ko.observable(null);
+
+    self.purchasePackage = function (pkg) {
+        self.purchaseGroupId(pkg.groupId);
+        self.purchaseStep('preview');
+        self.purchasePreview(null);
+        self.purchaseResult(null);
+        self.purchaseLoading(true);
+
+        var modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+        modal.show();
+
+        $.ajax({
+            url: '/proxy/payments/package-preview',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ packageGroupId: pkg.groupId }),
+            success: function (data) {
+                self.purchasePreview(data);
+                self.purchaseLoading(false);
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Fiyat bilgisi alinamadi.');
+                self.purchaseLoading(false);
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+            }
         });
     };
+
+    self.purchaseModule = function (mod) {
+        // Tek modul icin de ayni akis, groupId yerine moduleId gonder
+        self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
+        self.purchaseStep('preview');
+        self.purchasePreview(null);
+        self.purchaseResult(null);
+        self.purchaseLoading(true);
+
+        var modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+        modal.show();
+
+        $.ajax({
+            url: '/proxy/payments/package-preview',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ packageGroupId: mod.groupId || mod.moduleGroupId }),
+            success: function (data) {
+                self.purchasePreview(data);
+                self.purchaseLoading(false);
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Fiyat bilgisi alinamadi.');
+                self.purchaseLoading(false);
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+            }
+        });
+    };
+
+    self.startCheckout = function () {
+        self.purchaseStep('checkout');
+        self.purchaseLoading(true);
+
+        $.ajax({
+            url: '/proxy/payments/package-checkout',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ packageGroupId: self.purchaseGroupId() }),
+            success: function (data) {
+                self.purchaseLoading(false);
+                if (data.success && (data.htmlContent || data.checkoutFormHtml)) {
+                    document.getElementById('iyzico-checkout-container').innerHTML = data.htmlContent || data.checkoutFormHtml;
+                    // Iyzico JS otomatik olarak form'u renderlar
+                } else {
+                    toastr.error(data.error || 'Odeme formu olusturulamadi.');
+                    self.purchaseStep('preview');
+                }
+            },
+            error: function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Odeme baslatilamadi.');
+                self.purchaseLoading(false);
+                self.purchaseStep('preview');
+            }
+        });
+    };
+
+    // Iyzico callback sonrasi sonuc kontrolu
+    self.checkPaymentResult = function (token) {
+        $.ajax({
+            url: '/proxy/payments/package-result',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ token: token }),
+            success: function (data) {
+                self.purchaseResult(data);
+                self.purchaseStep('result');
+            },
+            error: function () {
+                self.purchaseResult({ success: false, error: 'Odeme sonucu alinamadi.' });
+                self.purchaseStep('result');
+            }
+        });
+    };
+
+    // Iyzico postMessage listener (callback sonrasi)
+    window.addEventListener('message', function (e) {
+        if (e.data === 'payment-success' || (e.data && e.data.type === 'payment-success')) {
+            self.purchaseResult({ success: true });
+            self.purchaseStep('result');
+        } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
+            self.purchaseResult({ success: false, error: e.data.error || 'Odeme basarisiz oldu.' });
+            self.purchaseStep('result');
+        }
+    });
+
+    // Eski talep sistemi (requestPackage) yerine purchasePackage kullaniliyor
+    self.requestPackage = self.purchasePackage;
 
     self.cancelRequest = function (req) {
         confirmModal('Talep Iptali', 'Bu talebi iptal etmek istiyor musunuz?', function () {

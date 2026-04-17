@@ -29,6 +29,7 @@ public class PortalModuleDto
     public decimal? CustomerPrice { get; set; }
     public decimal EffectivePrice => CustomerPrice ?? CatalogPrice;
     public DateTime? TrialEndsAt { get; set; }
+    public bool IsImplemented { get; set; } = true;
     public List<PermissionTypeDto> Permissions { get; set; } = new();
 }
 

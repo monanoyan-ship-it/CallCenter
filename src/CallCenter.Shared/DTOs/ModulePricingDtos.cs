@@ -12,6 +12,7 @@ public class ModulePricingDto
     public string? GroupName { get; set; }
     public decimal MonthlyPrice { get; set; }
     public bool HasPricing { get; set; }
+    public bool IsImplemented { get; set; } = true;
 }
 
 /// <summary>Tek modul fiyat guncelleme</summary>

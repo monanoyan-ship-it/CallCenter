@@ -212,7 +212,83 @@ public class IyzicoGateway : IPaymentGateway
         return parts.Length > 1 ? string.Join(" ", parts[1..]) : ".";
     }
 
-    // ─── Iyzico Response Model ───
+    public async Task<CheckoutFormResult> InitCheckoutFormAsync(CheckoutFormRequest req, CancellationToken ct = default)
+    {
+        var priceTxt = req.Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+
+        var body = new
+        {
+            locale = "tr",
+            conversationId = req.ConversationId,
+            price = priceTxt,
+            paidPrice = priceTxt,
+            currency = req.Currency,
+            basketId = req.ConversationId,
+            paymentGroup = "SUBSCRIPTION",
+            callbackUrl = req.CallbackUrl,
+            enabledInstallments = new[] { 1 },
+            buyer = new
+            {
+                id = req.BuyerId,
+                name = GetFirstName(req.BuyerName),
+                surname = GetLastName(req.BuyerName),
+                email = req.BuyerEmail ?? "noreply@corplynk.com",
+                identityNumber = "11111111111",
+                registrationAddress = "Turkiye",
+                ip = req.BuyerIp ?? "127.0.0.1",
+                city = "Istanbul",
+                country = "Turkey"
+            },
+            shippingAddress = new { contactName = req.BuyerName ?? "Musteri", city = "Istanbul", country = "Turkey", address = "Turkiye" },
+            billingAddress = new { contactName = req.BuyerName ?? "Musteri", city = "Istanbul", country = "Turkey", address = "Turkiye" },
+            basketItems = new[]
+            {
+                new { id = "SUB01", name = req.Description ?? "Abonelik Odemesi", category1 = "Abonelik", itemType = "VIRTUAL", price = priceTxt }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(body);
+        var httpRequest = CreateRequest(HttpMethod.Post, "/payment/iyzipos/checkoutform/initialize/auth/ecom", json);
+
+        try
+        {
+            var response = await _http.SendAsync(httpRequest, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<IyzicoCheckoutResponse>(responseBody, JsonOpts);
+
+            if (result?.Status == "success" && !string.IsNullOrEmpty(result.CheckoutFormContent))
+                return CheckoutFormResult.Ok(result.CheckoutFormContent, result.Token ?? "");
+
+            return CheckoutFormResult.Fail(result?.ErrorMessage ?? "Checkout form olusturulamadi");
+        }
+        catch (Exception ex)
+        {
+            return CheckoutFormResult.Fail($"Iyzico baglanti hatasi: {ex.Message}");
+        }
+    }
+
+    public async Task<PaymentVerifyResult> VerifyCheckoutFormAsync(string token, CancellationToken ct = default)
+    {
+        var json = JsonSerializer.Serialize(new { locale = "tr", token });
+        var httpRequest = CreateRequest(HttpMethod.Post, "/payment/iyzipos/checkoutform/auth/ecom/detail", json);
+
+        try
+        {
+            var response = await _http.SendAsync(httpRequest, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<IyzicoPaymentResponse>(responseBody, JsonOpts);
+
+            return result?.Status == "success"
+                ? PaymentVerifyResult.Ok(result.PaymentId ?? token, result.PaymentId)
+                : PaymentVerifyResult.Fail(result?.ErrorMessage ?? "Checkout dogrulama basarisiz");
+        }
+        catch (Exception ex)
+        {
+            return PaymentVerifyResult.Fail($"Iyzico dogrulama hatasi: {ex.Message}");
+        }
+    }
+
+    // ─── Iyzico Response Models ───
 
     private class IyzicoPaymentResponse
     {
@@ -221,4 +297,37 @@ public class IyzicoGateway : IPaymentGateway
         public string? PaymentId { get; set; }
         public string? ConversationId { get; set; }
     }
+
+    private class IyzicoCheckoutResponse
+    {
+        public string? Status { get; set; }
+        public string? ErrorMessage { get; set; }
+        public string? CheckoutFormContent { get; set; }
+        public string? Token { get; set; }
+        public string? PaymentPageUrl { get; set; }
+    }
+}
+
+public class CheckoutFormRequest
+{
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "TRY";
+    public string ConversationId { get; set; } = string.Empty;
+    public string CallbackUrl { get; set; } = string.Empty;
+    public string? BuyerId { get; set; }
+    public string? BuyerName { get; set; }
+    public string? BuyerEmail { get; set; }
+    public string? BuyerIp { get; set; }
+    public string? Description { get; set; }
+}
+
+public class CheckoutFormResult
+{
+    public bool Success { get; set; }
+    public string? HtmlContent { get; set; }
+    public string? Token { get; set; }
+    public string? Error { get; set; }
+
+    public static CheckoutFormResult Ok(string html, string token) => new() { Success = true, HtmlContent = html, Token = token };
+    public static CheckoutFormResult Fail(string error) => new() { Success = false, Error = error };
 }

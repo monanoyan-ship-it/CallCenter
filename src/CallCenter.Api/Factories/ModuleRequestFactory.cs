@@ -191,7 +191,8 @@ public class ModuleRequestFactory : IModuleRequestFactory
                     GroupId = groupId,
                     GroupName = SalonModuleGroups.GetById(groupId ?? 0)?.Description,
                     MonthlyPrice = pricingMap.TryGetValue(m.Id, out var p) ? p.MonthlyPrice : 0,
-                    HasPricing = pricingMap.ContainsKey(m.Id)
+                    HasPricing = pricingMap.ContainsKey(m.Id),
+                    IsImplemented = SalonPortalModules.IsImplemented(m.Id)
                 };
             })
             .ToList();

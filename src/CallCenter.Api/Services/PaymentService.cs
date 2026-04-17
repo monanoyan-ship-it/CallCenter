@@ -325,6 +325,11 @@ public class PaymentService
         return gatewayResult;
     }
 
+    public async Task<PaymentTransaction?> GetTransactionByTokenAsync(string token)
+    {
+        return await _db.PaymentTransactions.FirstOrDefaultAsync(t => t.ProviderTransactionId == token);
+    }
+
     /// <summary>Odeme gecmisi</summary>
     public async Task<List<PaymentTransaction>> GetTransactionsAsync(int? customerId = null, int? platformUserId = null, int page = 1, int pageSize = 20)
     {
@@ -336,6 +341,276 @@ public class PaymentService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+    }
+
+    public async Task<object?> GetPackagePreviewAsync(int customerId, int packageGroupId)
+    {
+        var group = SalonModuleGroups.GetById(packageGroupId);
+        if (group == null) return null;
+
+        var alreadyActive = await _db.CustomerPortalModules
+            .AnyAsync(m => m.CustomerId == customerId && m.IsActive
+                && SalonModuleGroups.GetModuleIds(packageGroupId).Contains(m.ModuleId));
+        if (alreadyActive) return new { error = "Bu paket zaten aktif." };
+
+        var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
+
+        var subscription = await _db.CustomerSubscriptions
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == 1);
+        var nextBilling = subscription?.NextBillingDate ?? DateTime.UtcNow.AddDays(30);
+
+        var daysUntilBilling = Math.Max(1, (int)Math.Ceiling((nextBilling - DateTime.UtcNow).TotalDays));
+        if (daysUntilBilling > 30) daysUntilBilling = 30;
+        var dailyRate = monthlyPrice / 30m;
+        var proRataAmount = Math.Round(dailyRate * daysUntilBilling, 2);
+
+        return new
+        {
+            packageGroupId = group.Id,
+            packageName = group.Description,
+            monthlyPrice,
+            proRata = new { days = daysUntilBilling, dailyRate = Math.Round(dailyRate, 2), amount = proRataAmount },
+            nextBillingDate = nextBilling.ToString("yyyy-MM-dd"),
+            totalNow = proRataAmount
+        };
+    }
+
+    private async Task<decimal?> GetActivePackagePriceAsync(int packageGroupId)
+    {
+        var activePeriod = await _db.ServicePricingPeriods
+            .Where(p => p.StatusId == 1)
+            .OrderByDescending(p => p.StartDate)
+            .FirstOrDefaultAsync();
+        if (activePeriod == null) return null;
+
+        var item = await _db.ServicePricingItems
+            .FirstOrDefaultAsync(i => i.PeriodId == activePeriod.Id && i.PackageGroupId == packageGroupId);
+        return item?.MonthlyPrice;
+    }
+
+    public async Task<CheckoutFormResult> InitPackageCheckoutAsync(int customerId, int packageGroupId, string callbackUrl, string? buyerIp = null)
+    {
+        var group = SalonModuleGroups.GetById(packageGroupId);
+        if (group == null) return CheckoutFormResult.Fail("Paket bulunamadi.");
+
+        var alreadyActive = await _db.CustomerPortalModules
+            .AnyAsync(m => m.CustomerId == customerId && m.IsActive
+                && SalonModuleGroups.GetModuleIds(packageGroupId).Contains(m.ModuleId));
+        if (alreadyActive) return CheckoutFormResult.Fail("Bu paket zaten aktif.");
+
+        var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
+
+        var subscription = await _db.CustomerSubscriptions
+            .Include(s => s.Customer)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == 1);
+        var nextBilling = subscription?.NextBillingDate ?? DateTime.UtcNow.AddDays(30);
+        var daysUntilBilling = Math.Max(1, (int)Math.Ceiling((nextBilling - DateTime.UtcNow).TotalDays));
+        if (daysUntilBilling > 30) daysUntilBilling = 30;
+        var proRataAmount = Math.Round(monthlyPrice / 30m * daysUntilBilling, 2);
+
+        if (proRataAmount <= 0) return CheckoutFormResult.Fail("Odenecek tutar 0.");
+
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.ModulSatinAlma,
+            CustomerId = customerId,
+            ModuleId = packageGroupId,
+            Amount = proRataAmount,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Provider = PaymentProviders.GetById(config.ProviderTypeId)?.SystemName ?? "Iyzico",
+            Notes = $"PackageGroup:{packageGroupId}|ProRata:{daysUntilBilling}gun"
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var gateway = _gatewayFactory.Create(config);
+            if (gateway is not IyzicoGateway iyzicoGw)
+                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
+
+            var customer = subscription?.Customer ?? await _db.Customers.FindAsync(customerId);
+            var req = new CheckoutFormRequest
+            {
+                Amount = proRataAmount,
+                ConversationId = tx.Uid.ToString("N"),
+                CallbackUrl = callbackUrl,
+                BuyerId = customerId.ToString(),
+                BuyerName = customer?.Name ?? "Musteri",
+                BuyerEmail = customer?.Email ?? "noreply@corplynk.com",
+                BuyerIp = buyerIp,
+                Description = $"{group.Description} - {daysUntilBilling} gunluk kist hesap"
+            };
+
+            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            if (result.Success)
+            {
+                tx.ProviderTransactionId = result.Token;
+                await _db.SaveChangesAsync();
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = ex.Message;
+            await _db.SaveChangesAsync();
+            return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
+        }
+    }
+
+    public async Task<CheckoutFormResult> InitSubscriptionCheckoutAsync(int customerId, string callbackUrl, string? buyerIp = null)
+    {
+        var subscription = await _db.CustomerSubscriptions
+            .Include(s => s.Customer)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == 1);
+        if (subscription == null) return CheckoutFormResult.Fail("Aktif abonelik bulunamadi.");
+
+        var unpaidPeriod = await _db.CustomerBillingPeriods
+            .Where(p => p.CustomerId == customerId && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid)
+            .OrderBy(p => p.Year).ThenBy(p => p.Month)
+            .FirstOrDefaultAsync();
+        if (unpaidPeriod == null) return CheckoutFormResult.Fail("Odenmemis donem bulunamadi.");
+
+        var amount = unpaidPeriod.Amount + unpaidPeriod.ServiceAmount;
+        if (amount <= 0) return CheckoutFormResult.Fail("Odenecek tutar 0.");
+
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.PlatformAbonelik,
+            CustomerId = customerId,
+            BillingPeriodId = unpaidPeriod.Id,
+            Amount = amount,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Provider = PaymentProviders.GetById(config.ProviderTypeId)?.SystemName ?? "Iyzico"
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var gateway = _gatewayFactory.Create(config);
+            if (gateway is not IyzicoGateway iyzicoGw)
+                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
+
+            var customer = subscription.Customer;
+            var req = new CheckoutFormRequest
+            {
+                Amount = amount,
+                ConversationId = tx.Uid.ToString("N"),
+                CallbackUrl = callbackUrl,
+                BuyerId = customerId.ToString(),
+                BuyerName = customer?.Name ?? "Musteri",
+                BuyerEmail = customer?.Email ?? "noreply@corplynk.com",
+                BuyerIp = buyerIp,
+                Description = $"Abonelik {unpaidPeriod.Year}/{unpaidPeriod.Month:D2}"
+            };
+
+            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+
+            if (result.Success)
+            {
+                tx.ProviderTransactionId = result.Token;
+                await _db.SaveChangesAsync();
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = ex.Message;
+            await _db.SaveChangesAsync();
+            return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
+        }
+    }
+
+    public async Task<PaymentResult> CompleteCheckoutAsync(string token)
+    {
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return PaymentResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        var gateway = _gatewayFactory.Create(config);
+        if (gateway is not IyzicoGateway iyzicoGw)
+            return PaymentResult.Fail("Checkout dogrulama sadece Iyzico destekler.");
+
+        var verifyResult = await iyzicoGw.VerifyCheckoutFormAsync(token);
+
+        var tx = await _db.PaymentTransactions
+            .FirstOrDefaultAsync(t => t.ProviderTransactionId == token && t.StatusId == PaymentStatuses.Ids.Beklemede);
+
+        if (tx == null) return PaymentResult.Fail("Bekleyen islem bulunamadi.");
+
+        if (verifyResult.Success)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarili;
+            tx.ProviderPaymentId = verifyResult.ProviderPaymentId;
+            tx.CompletedAt = DateTime.UtcNow;
+
+            if (tx.BillingPeriodId.HasValue)
+            {
+                var period = await _db.CustomerBillingPeriods.FindAsync(tx.BillingPeriodId.Value);
+                if (period != null)
+                {
+                    period.StatusId = BillingPeriodStatuses.Ids.Paid;
+                    period.IsPaid = true;
+                    period.PaidAt = DateTime.UtcNow;
+                    period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
+                }
+            }
+
+            // Paket satin alma ise modulleri aktif et
+            if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.Notes?.StartsWith("PackageGroup:") == true)
+            {
+                var pgId = int.Parse(tx.Notes.Split('|')[0].Split(':')[1]);
+                var moduleIds = SalonModuleGroups.GetModuleIds(pgId);
+                var group = SalonModuleGroups.GetById(pgId);
+                foreach (var moduleId in moduleIds)
+                {
+                    var cpm = await _db.CustomerPortalModules
+                        .FirstOrDefaultAsync(m => m.CustomerId == tx.CustomerId && m.ModuleId == moduleId);
+                    if (cpm != null)
+                    {
+                        cpm.IsActive = true;
+                        cpm.ActivatedAt = DateTime.UtcNow;
+                        cpm.DeactivatedAt = null;
+                        cpm.MonthlyPrice = group?.MonthlyPrice;
+                    }
+                    else
+                    {
+                        _db.CustomerPortalModules.Add(new CustomerPortalModule
+                        {
+                            CustomerId = tx.CustomerId!.Value,
+                            ModuleId = moduleId,
+                            IsActive = true,
+                            ActivatedAt = DateTime.UtcNow,
+                            MonthlyPrice = group?.MonthlyPrice
+                        });
+                    }
+                }
+            }
+
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Checkout odeme basarili: TxUid={TxUid}, PaymentId={PaymentId}", tx.Uid, verifyResult.ProviderPaymentId);
+            return PaymentResult.Ok(tx.Uid, verifyResult.ProviderTransactionId);
+        }
+        else
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = verifyResult.Error;
+            tx.CompletedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Checkout odeme basarisiz: TxUid={TxUid}, Hata={Error}", tx.Uid, verifyResult.Error);
+            return PaymentResult.Fail(verifyResult.Error ?? "Odeme basarisiz");
+        }
     }
 
     // ─── Private: Gateway uzerinden odeme calistir ───

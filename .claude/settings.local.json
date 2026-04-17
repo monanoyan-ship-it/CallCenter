@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Edit",
+      "Write",
+      "Bash",
       "Bash(git clone:*)",
       "Bash(dotnet --version:*)",
       "Bash(dotnet new:*)",
@@ -258,7 +261,23 @@
       "Bash(sed -i 's|\\\\[HttpGet\\(\"uye/panel\"\\)\\\\]|[HttpGet\\(\"user/panel\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
       "Bash(sed -i 's|\\\\[HttpGet\\(\"gizlilik\"\\)\\\\]|[HttpGet\\(\"privacy\"\\)]|' src/CallCenter.Salon/Controllers/PublicSalonController.cs)",
       "Read(//c/Users/Ahmet/.claude/**)",
-      "Bash(git restore:*)"
-    ]
-  }
+      "Bash(git restore:*)",
+      "Bash(awk '$1 > 0 || $2 > 0 {print $0}')",
+      "WebFetch(domain:dev.paytr.com)",
+      "Bash(curl -s \"http://127.0.0.1:41847/api/projects/15/notes\")",
+      "Read(//c/Users/Ahmet/AppData/Local/Temp/**)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__Claude_in_Chrome__find",
+      "mcp__Claude_in_Chrome__form_input",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "mcp__Claude_in_Chrome__read_console_messages",
+      "mcp__Claude_in_Chrome__read_network_requests",
+      "mcp__Claude_in_Chrome__get_page_text"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true
 }

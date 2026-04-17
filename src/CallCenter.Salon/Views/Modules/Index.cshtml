@@ -2,26 +2,15 @@
     ViewData["Title"] = "Modul Yonetimi";
 }
 
-<style>
-    details.mdl { background:#fff; border:1px solid #e5e5e5; border-radius:8px; margin-bottom:8px; overflow:hidden; }
-    details.mdl summary { list-style:none; cursor:pointer; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.9rem; }
-    details.mdl summary::-webkit-details-marker { display:none; }
-    details.mdl summary::after { content:'▾'; color:#6f42c1; transition:transform .2s; }
-    details.mdl[open] summary::after { transform:rotate(180deg); }
-    details.mdl .mdl-body { padding:10px 14px 14px; border-top:1px solid #f0f0f0; color:#555; font-size:.85rem; }
-    details.mdl .mdl-price { color:#6f42c1; font-weight:700; white-space:nowrap; }
-    details.mdl .mdl-title { flex:1; display:flex; align-items:center; gap:8px; }
-</style>
-
 <div id="modules-vm">
-    <!-- Temel Paket (Default Moduller) -->
+    <!-- Temel Paket -->
     <h6 class="text-muted mb-3"><i class="bi bi-box-seam me-1"></i>Temel Paket</h6>
     <div class="row g-3 mb-4" data-bind="foreach: defaultModules">
         <div class="col-md-4 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi me-2" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.5rem;color:#6f42c1;"></i>
+                    <div class="d-flex align-items-center">
+                        <i class="bi me-2" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.3rem;color:#6f42c1;"></i>
                         <div>
                             <div class="fw-bold small" data-bind="text: description || systemName"></div>
                             <span class="badge bg-success" style="font-size:0.6rem;">Dahil</span>
@@ -32,50 +21,40 @@
         </div>
     </div>
 
-    <!-- Aktif Ek Moduller (grup bazli) -->
+    <!-- Aktif Modulleriniz -->
     <!-- ko if: activeGroups().length > 0 -->
-    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Ek Modulleriniz</h6>
+    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Modulleriniz</h6>
     <!-- ko foreach: activeGroups -->
-    <div class="mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="card border-0 shadow-sm mb-3 border-start border-3 border-success">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
             <div>
                 <span class="badge bg-success" data-bind="text: groupName"></span>
-                <!-- ko if: packagePrice > 0 -->
                 <span class="badge bg-success-subtle text-success ms-1" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'"></span>
-                <!-- /ko -->
             </div>
-            <!-- ko if: packagePrice > 0 -->
             <button class="btn btn-sm btn-outline-danger py-0" data-bind="click: $root.cancelPackage">
-                <i class="bi bi-x-circle me-1"></i>Paketi İptal Et
+                <i class="bi bi-x-circle me-1"></i>Iptal Et
             </button>
-            <!-- /ko -->
         </div>
-        <div class="row g-3" data-bind="foreach: modules">
-            <div class="col-md-4 col-lg-3">
-                <div class="card border-0 shadow-sm h-100 border-start border-3 border-success">
-                    <div class="card-body py-3">
-                        <div class="d-flex align-items-center mb-1">
-                            <i class="bi me-2" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.3rem;color:#198754;"></i>
-                            <div class="fw-bold small" data-bind="text: description || systemName"></div>
-                        </div>
-                        <!-- ko if: effectivePrice > 0 -->
-                        <div class="small text-muted" data-bind="text: effectivePrice.toLocaleString('tr-TR') + ' TL/ay'"></div>
+        <div class="card-body py-2">
+            <div class="row g-1">
+                <!-- ko foreach: modules -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="d-flex align-items-center gap-2 py-1">
+                        <i data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }, style: { color: (typeof isImplemented !== 'undefined' && isImplemented === false) ? '#ccc' : '#198754', fontSize: '.9rem' }"></i>
+                        <span class="small" data-bind="text: description || systemName || moduleName, css: { 'text-muted': typeof isImplemented !== 'undefined' && isImplemented === false }"></span>
+                        <!-- ko if: typeof isImplemented !== 'undefined' && isImplemented === false -->
+                        <i class="bi bi-lock text-warning" style="font-size:.7rem;cursor:help;" title="Bu hizmet yakin zamanda aktif edilecektir."></i>
                         <!-- /ko -->
-                        <!-- ko if: trialEndsAt -->
-                        <span class="badge bg-warning text-dark mt-1" style="font-size:0.6rem;">Deneme</span>
-                        <!-- /ko -->
-                        <button class="btn btn-sm btn-outline-danger mt-1 py-0" data-bind="click: $parents[1].requestDeactivation" title="Iptal Talep Et">
-                            <i class="bi bi-dash-circle me-1"></i><span class="small">Iptal Talep Et</span>
-                        </button>
                     </div>
                 </div>
+                <!-- /ko -->
             </div>
         </div>
     </div>
     <!-- /ko -->
     <!-- /ko -->
 
-    <!-- Satin Alinabilir Moduller - Grup Bazli -->
+    <!-- Satin Alinabilir Moduller -->
     <h6 class="text-muted mb-3 mt-4"><i class="bi bi-cart-plus me-1"></i>Satin Alinabilir Moduller</h6>
     <!-- ko if: availableModules().length === 0 -->
     <div class="alert alert-info py-2 small">Tum moduller zaten aktif.</div>
@@ -85,87 +64,25 @@
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
             <div>
                 <strong data-bind="text: groupName"></strong>
-                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' modul)'"></span>
+                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' hizmet)'"></span>
             </div>
-            <!-- ko if: packagePrice > 0 -->
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-success" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'" style="font-size:.85rem;"></span>
-                <button class="btn btn-sm btn-success" data-bind="click: $root.requestPackage">
-                    <i class="bi bi-cart-plus me-1"></i>Paketi Al
+                <span class="badge bg-purple" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'" style="font-size:.85rem;background:#6f42c1;"></span>
+                <button class="btn btn-sm btn-success" data-bind="click: $root.purchasePackage">
+                    <i class="bi bi-cart-plus me-1"></i>Satin Al
                 </button>
             </div>
-            <!-- /ko -->
         </div>
-        <div class="card-body">
-            <!-- ko foreach: modules -->
-            <details class="mdl">
-                <summary>
-                    <span class="mdl-title">
-                        <i class="bi" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="color:#6c757d;"></i>
-                        <span data-bind="text: description || moduleName"></span>
-                    </span>
-                    <span class="mdl-price" data-bind="text: monthlyPrice > 0 ? monthlyPrice.toLocaleString('tr-TR') + ' ₺/ay' : 'Teklif'"></span>
-                </summary>
-                <div class="mdl-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <!-- ko if: monthlyPrice > 0 -->
-                            <div>Aylık ücret: <strong data-bind="text: monthlyPrice.toLocaleString('tr-TR') + ' ₺'"></strong> (KDV dahil)</div>
-                            <!-- /ko -->
-                            <!-- ko if: !monthlyPrice || monthlyPrice === 0 -->
-                            <div class="text-muted">Fiyat için iletişime geçin.</div>
-                            <!-- /ko -->
-                            <div class="text-muted mt-1" style="font-size:.8rem;">Talep onaylandığında aboneliğe eklenir ve bir sonraki fatura döneminde tahakkuk eder.</div>
-                        </div>
-                        <button class="btn btn-sm btn-primary" data-bind="click: $parents[1].requestModule">
-                            <i class="bi bi-send me-1"></i>Talep Et
-                        </button>
+        <div class="card-body py-2">
+            <div class="row g-1">
+                <!-- ko foreach: modules -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="d-flex align-items-center gap-2 py-1">
+                        <i class="bi" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="color:#6c757d;font-size:.9rem;"></i>
+                        <span class="small" data-bind="text: description || moduleName"></span>
                     </div>
                 </div>
-            </details>
-            <!-- /ko -->
-        </div>
-    </div>
-    <!-- /ko -->
-
-    <!-- Taleplerim -->
-    <!-- ko if: requests().length > 0 -->
-    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-clock-history me-1"></i>Taleplerim</h6>
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Modul</th>
-                            <th>Tip</th>
-                            <th>Fiyat</th>
-                            <th>Durum</th>
-                            <th>Tarih</th>
-                            <th>Admin Notu</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody data-bind="foreach: requests">
-                        <tr>
-                            <td class="small"><i class="bi me-1" data-bind="attr: { 'class': 'bi ' + (moduleIcon || 'bi-puzzle') }"></i><span data-bind="text: moduleName"></span></td>
-                            <td><span class="badge" data-bind="text: requestTypeName || 'Aktivasyon', css: requestTypeId === 2 ? 'bg-danger' : 'bg-success'" style="font-size:0.65rem;"></span></td>
-                            <td class="small" data-bind="text: catalogPrice ? catalogPrice.toLocaleString('tr-TR') + ' TL/ay' : '-'"></td>
-                            <td>
-                                <span class="badge" data-bind="text: statusName, css: statusId === 1 ? 'bg-warning text-dark' : statusId === 2 ? 'bg-success' : statusId === 3 ? 'bg-danger' : 'bg-secondary'"></span>
-                            </td>
-                            <td class="small" data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
-                            <td class="small text-muted" data-bind="text: adminNotes || '-'"></td>
-                            <td>
-                                <!-- ko if: statusId === 1 -->
-                                <button class="btn btn-sm btn-outline-danger py-0" data-bind="click: $parent.cancelRequest" title="Iptal Et">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                                <!-- /ko -->
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- /ko -->
             </div>
         </div>
     </div>
@@ -175,14 +92,96 @@
     <div class="card border-0 shadow-sm mt-4 bg-light">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold">Aylık Modül Tutarı</span>
+                <span class="fw-bold">Aylik Modul Tutari</span>
                 <span class="fs-5 fw-bold text-primary" data-bind="text: monthlyTotal().toLocaleString('tr-TR') + ' ₺/ay'"></span>
             </div>
             <!-- ko if: branchCount() > 1 -->
             <div class="small text-muted text-end mt-1">
-                <span data-bind="text: branchCount() + ' şube × ' + baseMonthly().toLocaleString('tr-TR') + ' ₺ · ek şubelerde %10 indirim (çarpan: ' + branchMultiplier().toFixed(1) + ')'"></span>
+                <span data-bind="text: branchCount() + ' sube x ' + baseMonthly().toLocaleString('tr-TR') + ' ₺ · ek subelerde %10 indirim (carpan: ' + branchMultiplier().toFixed(1) + ')'"></span>
             </div>
             <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Satin Alma Modal -->
+    <div class="modal fade" id="purchaseModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-cart-check me-1"></i>Modul Satin Al</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Step 1: Pro-rata Preview -->
+                    <div data-bind="visible: purchaseStep() === 'preview'">
+                        <div class="text-center py-3" data-bind="visible: purchaseLoading()">
+                            <div class="spinner-border text-primary"></div>
+                            <div class="small text-muted mt-2">Fiyat hesaplaniyor...</div>
+                        </div>
+                        <div data-bind="visible: !purchaseLoading() && purchasePreview()">
+                            <div class="alert alert-info py-2 small mb-3">
+                                <i class="bi bi-info-circle me-1"></i>Tahakkuk tarihinize kalan gun icin kist-i hesap ucreti alinacaktir.
+                            </div>
+                            <table class="table table-sm mb-3">
+                                <tr>
+                                    <td class="text-muted">Modul</td>
+                                    <td class="fw-bold text-end" data-bind="text: purchasePreview() ? purchasePreview().packageName : ''"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Aylik Fiyat</td>
+                                    <td class="text-end" data-bind="text: purchasePreview() ? purchasePreview().monthlyPrice.toLocaleString('tr-TR') + ' ₺' : ''"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Sonraki Tahakkuk</td>
+                                    <td class="text-end" data-bind="text: purchasePreview() ? new Date(purchasePreview().nextBillingDate).toLocaleDateString('tr-TR') : ''"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Kist-i Hesap</td>
+                                    <td class="text-end">
+                                        <span data-bind="text: purchasePreview() && purchasePreview().proRata ? purchasePreview().proRata.days + ' gun x ' + purchasePreview().proRata.dailyRate.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺' : ''"></span>
+                                    </td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td class="fw-bold">Simdi Odenecek</td>
+                                    <td class="fw-bold text-end fs-5 text-success" data-bind="text: purchasePreview() ? purchasePreview().totalNow.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺' : ''"></td>
+                                </tr>
+                            </table>
+                            <div class="small text-muted mb-3">
+                                <i class="bi bi-calendar-check me-1"></i>Sonraki tahakkuktan itibaren aylik
+                                <strong data-bind="text: purchasePreview() ? purchasePreview().monthlyPrice.toLocaleString('tr-TR') + ' ₺' : ''"></strong> faturalandirilacaktir.
+                            </div>
+                            <button class="btn btn-success w-100" data-bind="click: startCheckout, disable: purchaseLoading()">
+                                <i class="bi bi-credit-card me-1"></i>Odemeye Gec
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Iyzico Checkout Form -->
+                    <div data-bind="visible: purchaseStep() === 'checkout'">
+                        <div class="text-center py-3" data-bind="visible: purchaseLoading()">
+                            <div class="spinner-border text-primary"></div>
+                            <div class="small text-muted mt-2">Odeme formu hazirlaniyor...</div>
+                        </div>
+                        <div id="iyzico-checkout-container"></div>
+                    </div>
+
+                    <!-- Step 3: Sonuc -->
+                    <div data-bind="visible: purchaseStep() === 'result'">
+                        <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
+                            <h5 class="mt-2 text-success">Odeme Basarili!</h5>
+                            <p class="text-muted small">Modulunuz aktif edildi.</p>
+                            <button class="btn btn-success btn-sm" data-bind="click: function(){ location.reload(); }">Sayfayi Yenile</button>
+                        </div>
+                        <div class="text-center py-4" data-bind="visible: purchaseResult() && !purchaseResult().success">
+                            <i class="bi bi-x-circle-fill text-danger" style="font-size:3rem;"></i>
+                            <h5 class="mt-2 text-danger">Odeme Basarisiz</h5>
+                            <p class="text-muted small" data-bind="text: purchaseResult() ? purchaseResult().error : ''"></p>
+                            <button class="btn btn-outline-primary btn-sm" data-bind="click: function(){ purchaseStep('preview'); }">Tekrar Dene</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
