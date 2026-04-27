@@ -1,3 +1,36 @@
+/**
+ * Iyzico checkoutform HTML'i genelde <script src="..."> icerir.
+ * innerHTML ile enjekte edilen script'ler guvenlik nedeniyle calismaz; odeme formu gorunmez.
+ * Script'leri DOM'a yeniden ekleyerek calistirir.
+ */
+function injectIyzicoCheckoutHtml(container, html) {
+    if (!container) return;
+    container.innerHTML = html;
+    var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
+    for (var i = 0; i < scripts.length; i++) {
+        var old = scripts[i];
+        var s = document.createElement('script');
+        for (var j = 0; j < old.attributes.length; j++) {
+            var a = old.attributes[j];
+            s.setAttribute(a.name, a.value);
+        }
+        if (!old.src && old.textContent) s.textContent = old.textContent;
+        if (old.parentNode) old.parentNode.replaceChild(s, old);
+    }
+}
+
+/** KO: Iyzico HTML (script tag) — html binding script calistirmaz; ozel baglama */
+ko.bindingHandlers.iyzicoCheckoutHtml = {
+    update: function (element, valueAccessor) {
+        var html = ko.unwrap(valueAccessor());
+        if (!html) {
+            element.innerHTML = '';
+            return;
+        }
+        injectIyzicoCheckoutHtml(element, html);
+    }
+};
+
 function ModulesViewModel() {
     var self = this;
     self.activeModules = ko.observableArray([]);
@@ -118,6 +151,12 @@ function ModulesViewModel() {
     self.purchasePreview = ko.observable(null);
     self.purchaseResult = ko.observable(null);
     self.purchaseGroupId = ko.observable(null);
+    /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
+    self.checkoutFormHtml = ko.observable('');
+
+    self.purchaseStep.subscribe(function (step) {
+        if (step !== 'checkout') self.checkoutFormHtml('');
+    });
 
     self.purchasePackage = function (pkg) {
         self.purchaseGroupId(pkg.groupId);
@@ -175,6 +214,7 @@ function ModulesViewModel() {
     };
 
     self.startCheckout = function () {
+        self.checkoutFormHtml('');
         self.purchaseStep('checkout');
         self.purchaseLoading(true);
 
@@ -185,9 +225,9 @@ function ModulesViewModel() {
             data: JSON.stringify({ packageGroupId: self.purchaseGroupId() }),
             success: function (data) {
                 self.purchaseLoading(false);
-                if (data.success && (data.htmlContent || data.checkoutFormHtml)) {
-                    document.getElementById('iyzico-checkout-container').innerHTML = data.htmlContent || data.checkoutFormHtml;
-                    // Iyzico JS otomatik olarak form'u renderlar
+                var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
+                if (data.success && raw) {
+                    self.checkoutFormHtml(raw);
                 } else {
                     toastr.error(data.error || 'Odeme formu olusturulamadi.');
                     self.purchaseStep('preview');
