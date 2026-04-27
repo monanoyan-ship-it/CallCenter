@@ -41,29 +41,46 @@ function ModulesViewModel() {
         return self.activeModules().filter(function (m) { return m.isDefault; });
     });
 
-    // Paket sabit fiyatları — SalonModuleGroups.cs ile senkron
-    var PACKAGE_PRICES = { 1: 400, 3: 1500, 5: 1500, 6: 200 };
+    // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
     var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 5: 'Profesyonel', 6: 'Kurumsal' };
+    /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
+    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
+    self.packagePrices = ko.observable({});
+
+    self.priceForGroup = function (gId) {
+        self.packagePrices();
+        var m = self.packagePrices() || {};
+        var n = gId;
+        if (gId == null || gId === '') n = 0;
+        n = parseInt(n, 10);
+        if (isNaN(n)) n = 0;
+        var v = m[n];
+        if (v == null) v = m[String(n)];
+        if (v != null) return typeof v === 'number' ? v : parseFloat(String(v), 10);
+        return PACKAGE_PRICE_FALLBACK[n] != null ? PACKAGE_PRICE_FALLBACK[n] : 0;
+    };
 
     self.activeGroups = ko.computed(function () {
+        self.packagePrices();
         var nonDefault = self.activeModules().filter(function (m) { return !m.isDefault && m.isActive; });
         var grouped = {};
         nonDefault.forEach(function (m) {
             var gId = m.groupId || 0;
             var gName = PACKAGE_NAMES[gId] || m.groupName || 'Diger';
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: PACKAGE_PRICES[gId] || 0, modules: [] };
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), modules: [] };
             grouped[gId].modules.push(m);
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
 
     self.availableGroups = ko.computed(function () {
+        self.packagePrices();
         var all = self.availableModules();
         var grouped = {};
         all.forEach(function (m) {
             var gId = m.groupId || 0;
             var gName = PACKAGE_NAMES[gId] || m.groupName || 'Diger';
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: PACKAGE_PRICES[gId] || 0, modules: [] };
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), modules: [] };
             grouped[gId].modules.push(m);
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
@@ -71,15 +88,16 @@ function ModulesViewModel() {
 
     self.branchCount = ko.observable(1);
 
-    // Aylik toplam = (Temel Paket 1700 + aktif grup paket fiyatları) × (1 + 0.9*(N-1)) (sube indirimi)
+    // Aylik toplam = (Temel Paket + aktif ek paket gruplari) × (1 + 0.9*(N-1)) — fiyatlar aktif dönemden
     self.baseMonthly = ko.computed(function () {
-        var total = 1700; // Temel Paket zorunlu
+        self.packagePrices();
+        var total = self.priceForGroup(0);
         var activeGroupIds = {};
         self.activeModules().forEach(function (m) {
             if (!m.isDefault && m.isActive && m.groupId) activeGroupIds[m.groupId] = true;
         });
         Object.keys(activeGroupIds).forEach(function (gId) {
-            total += PACKAGE_PRICES[gId] || 0;
+            total += self.priceForGroup(gId);
         });
         return total;
     });
@@ -92,6 +110,12 @@ function ModulesViewModel() {
     });
 
     self.load = function () {
+        $.get('/proxy/sln-module-requests/package-prices', function (data) {
+            self.packagePrices(data && typeof data === 'object' ? data : {});
+        }).fail(function () {
+            toastr.warning('Fiyat listesi yüklenemedi; varsayilan fiyatlar kullaniliyor.');
+            self.packagePrices({});
+        });
         $.get('/proxy/sln-module-requests', function (data) { self.requests(data || []); });
         $.get('/proxy/sln-module-requests/available', function (data) { self.availableModules(data || []); });
         $.get('/proxy/sln-module-requests/active', function (data) { self.activeModules(data || []); });

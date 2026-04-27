@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CallCenter.Api.Factories;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -13,8 +14,24 @@ namespace CallCenter.Api.Controllers;
 public class SlnModuleRequestController : ControllerBase
 {
     private readonly IModuleRequestFactory _factory;
+    private readonly ServicePricingFactory _servicePricingFactory;
 
-    public SlnModuleRequestController(IModuleRequestFactory factory) => _factory = factory;
+    public SlnModuleRequestController(IModuleRequestFactory factory, ServicePricingFactory servicePricingFactory)
+    {
+        _factory = factory;
+        _servicePricingFactory = servicePricingFactory;
+    }
+
+    /// <summary>Aktif fiyat dönemindeki Salon paket fiyatlari (0=Temel Paket, 1,3,5,6=ek paket gruplari). Ödeme/preview ile ayni kaynak.</summary>
+    [HttpGet("package-prices")]
+    public async Task<IActionResult> GetActivePackagePrices()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var map = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
+        return Ok(map);
+    }
 
     /// <summary>Firmanin modul talepleri</summary>
     [HttpGet]
