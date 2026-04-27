@@ -167,6 +167,10 @@
 
                     <!-- Step 3: Sonuc -->
                     <div data-bind="visible: purchaseStep() === 'result'">
+                        <div class="text-center py-4" data-bind="visible: purchaseLoading() && !purchaseResult()">
+                            <div class="spinner-border text-primary"></div>
+                            <div class="small text-muted mt-2">Odeme sonucu dogrulaniyor...</div>
+                        </div>
                         <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success">
                             <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
                             <h5 class="mt-2 text-success">Odeme Basarili!</h5>

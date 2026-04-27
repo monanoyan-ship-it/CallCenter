@@ -241,8 +241,9 @@ function ModulesViewModel() {
         });
     };
 
-    // Iyzico callback sonrasi sonuc kontrolu
-    self.checkPaymentResult = function (token) {
+    // Iyzico callback sonrasi (proxy API /package-result; token ile sunucu durumu)
+    self.checkPaymentResult = function (token, onComplete) {
+        self.purchaseLoading(true);
         $.ajax({
             url: '/proxy/payments/package-result',
             method: 'POST',
@@ -251,10 +252,16 @@ function ModulesViewModel() {
             success: function (data) {
                 self.purchaseResult(data);
                 self.purchaseStep('result');
+                if (data && data.success) self.load();
             },
-            error: function () {
-                self.purchaseResult({ success: false, error: 'Odeme sonucu alinamadi.' });
+            error: function (xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Odeme sonucu alinamadi.';
+                self.purchaseResult({ success: false, error: msg });
                 self.purchaseStep('result');
+            },
+            complete: function () {
+                self.purchaseLoading(false);
+                if (typeof onComplete === 'function') onComplete();
             }
         });
     };
@@ -287,4 +294,32 @@ function ModulesViewModel() {
     self.load();
 }
 
-ko.applyBindings(new ModulesViewModel(), document.getElementById('modules-vm'));
+var modulesVm = new ModulesViewModel();
+ko.applyBindings(modulesVm, document.getElementById('modules-vm'));
+
+/** Iyzico tam sayfa / yonlendirme donusu: API callback -> Salon /Modules?iyzicoToken=... */
+(function iyzicoBrowserReturnFromUrl() {
+    var p = new URLSearchParams(window.location.search);
+    var token = p.get('iyzicoToken');
+    if (!token) return;
+
+    var modalEl = document.getElementById('purchaseModal');
+    if (!modalEl) return;
+
+    modulesVm.checkoutFormHtml('');
+    modulesVm.purchasePreview(null);
+    modulesVm.purchaseResult(null);
+    modulesVm.purchaseStep('result');
+    modulesVm.purchaseLoading(true);
+
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    modulesVm.checkPaymentResult(token, function () {
+        var u = new URL(window.location.href);
+        u.searchParams.delete('iyzicoToken');
+        u.searchParams.delete('iyzicoError');
+        var q = u.searchParams.toString();
+        window.history.replaceState({}, '', u.pathname + (q ? '?' + q : '') + u.hash);
+    });
+})();

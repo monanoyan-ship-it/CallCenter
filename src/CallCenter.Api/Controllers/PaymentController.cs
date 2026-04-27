@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using CallCenter.Api.Services;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -12,8 +14,13 @@ namespace CallCenter.Api.Controllers;
 public class PaymentController : ControllerBase
 {
     private readonly PaymentService _paymentService;
+    private readonly IConfiguration _configuration;
 
-    public PaymentController(PaymentService paymentService) => _paymentService = paymentService;
+    public PaymentController(PaymentService paymentService, IConfiguration configuration)
+    {
+        _paymentService = paymentService;
+        _configuration = configuration;
+    }
 
     /// <summary>Salon adisyon odemesi (platform kullanicisi odiyor)</summary>
     [HttpPost("invoice")]
@@ -173,10 +180,65 @@ public class PaymentController : ControllerBase
     {
         if (string.IsNullOrEmpty(token)) return BadRequest("Token eksik.");
         var result = await _paymentService.CompleteCheckoutAsync(token);
-        var html = result.Success
-            ? "<html><body><script>window.parent.postMessage({type:'payment-success'},'*');</script><p>Odeme basarili. Sayfa kapanacak...</p></body></html>"
-            : $"<html><body><script>window.parent.postMessage({{type:'payment-failed',error:'{result.Error?.Replace("'", "")}'}},'*');</script><p>Odeme basarisiz: {result.Error}</p></body></html>";
-        return Content(html, "text/html");
+        var topLevelReturn = await BuildIyzicoTopLevelReturnUrlAsync(token);
+        var html = BuildIyzicoCallbackHtmlPage(result.Success, result.Error, token, topLevelReturn);
+        return Content(html, "text/html; charset=utf-8");
+    }
+
+    /// <summary>
+    /// Ust pencere / tam ekran donusu: Iyzico POST cevabini gosteren sayfa, Salon(veya Web) uzerine yonlendirir;
+    /// iframe: parent.postMessage. Popup: opener + close, olmazsa ayni URL.
+    /// </summary>
+    private async Task<string> BuildIyzicoTopLevelReturnUrlAsync(string token)
+    {
+        var tx = await _paymentService.GetTransactionByTokenAsync(token);
+        var salon = (_configuration["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
+        var web = (_configuration["WebApp:BaseUrl"] ?? "https://cc.corplynk.com").TrimEnd('/');
+        var t = Uri.EscapeDataString(token);
+        if (tx == null)
+            return $"{salon}/Modules?iyzicoToken={t}";
+
+        return tx.PaymentTypeId switch
+        {
+            PaymentTypes.Ids.ModulSatinAlma => $"{salon}/Modules?iyzicoToken={t}",
+            PaymentTypes.Ids.PlatformAbonelik => $"{web}/?iyzicoToken={t}",
+            _ => $"{salon}/Modules?iyzicoToken={t}"
+        };
+    }
+
+    private static string BuildIyzicoCallbackHtmlPage(bool success, string? error, string token, string topLevelReturnUrl)
+    {
+        var js = new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        var successJson = JsonSerializer.Serialize(success, js);
+        var err = error ?? "Odeme basarisiz";
+        var errJson = JsonSerializer.Serialize(err, js);
+        var returnJson = JsonSerializer.Serialize(topLevelReturnUrl, js);
+        return $@"<!DOCTYPE html><html><head><meta charset=""utf-8""><title>Odeme</title></head><body>
+<script>
+(function() {{
+  var success = {successJson};
+  var err = {errJson};
+  var returnUrl = {returnJson};
+
+  if (window.opener && !window.opener.closed) {{
+    try {{
+      if (success) window.opener.postMessage({{ type: 'payment-success' }}, '*');
+      else window.opener.postMessage({{ type: 'payment-failed', error: err }}, '*');
+    }} catch (e) {{}}
+    window.close();
+    setTimeout(function() {{ if (!document.hidden) window.location.replace(returnUrl); }}, 500);
+    return;
+  }}
+  if (window.parent && window.parent !== window) {{
+    if (success) window.parent.postMessage({{ type: 'payment-success' }}, '*');
+    else window.parent.postMessage({{ type: 'payment-failed', error: err }}, '*');
+    return;
+  }}
+  window.location.replace(returnUrl);
+}})();
+</script>
+<p style=""font-family:system-ui;padding:1rem"">{(success ? "Odeme isleniyor, yonlendiriliyorsunuz." : "Odeme sonucu isleniyor, yonlendiriliyorsunuz.")}</p>
+</body></html>";
     }
 
     /// <summary>Odeme gecmisi (admin: firma bazli, platform user: kendi odemeleri)</summary>
