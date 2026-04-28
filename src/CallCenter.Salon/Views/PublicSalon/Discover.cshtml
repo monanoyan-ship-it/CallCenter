@@ -96,7 +96,7 @@
                             </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <h6 class="fw-bold mb-1" data-bind="text: salonName"></h6>
+                                    <h6 class="fw-bold mb-1" data-bind="text: branchName || salonName"></h6>
                                     <!-- ko if: distanceText -->
                                     <span class="badge bg-primary-subtle text-primary ms-2" style="font-size:.7rem;white-space:nowrap;"
                                           data-bind="text: distanceText"></span>
@@ -182,7 +182,8 @@
 
                 if (q) {
                     list = list.filter(function (s) {
-                        return (s.salonName || '').toLowerCase().indexOf(q) >= 0
+                        return (s.branchName || s.salonName || '').toLowerCase().indexOf(q) >= 0
+                            || (s.salonName || '').toLowerCase().indexOf(q) >= 0
                             || (s.city || '').toLowerCase().indexOf(q) >= 0
                             || (s.district || '').toLowerCase().indexOf(q) >= 0;
                     });
@@ -273,9 +274,10 @@
                     branches.forEach(function (b) {
                         if (!b.latitude || !b.longitude) return;
                         var marker = L.marker([b.latitude, b.longitude]).addTo(map);
-                        var titleSuffix = b.isHeadquarter ? ' (Merkez)' : (b.branchName ? ' — ' + b.branchName : '');
+                        var displayName = b.branchName || b.salonName;
                         marker.bindPopup(
-                            '<b>' + b.salonName + titleSuffix + '</b>' +
+                            '<b>' + displayName + '</b>' +
+                            (!b.isHeadquarter && b.branchName && b.salonName !== b.branchName ? '<br><small class="text-muted">' + b.salonName + '</small>' : '') +
                             (b.city ? '<br><small>' + (b.district ? b.district + ', ' : '') + b.city + '</small>' : '') +
                             '<br><a href="/salon/' + b.slug + '">Profili Gor</a>'
                         );
