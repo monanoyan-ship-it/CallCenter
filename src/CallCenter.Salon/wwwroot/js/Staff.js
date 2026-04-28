@@ -4,6 +4,7 @@ function StaffViewModel() {
     self.roleList = ko.observableArray([]);
     self.searchQuery = ko.observable('');
     self.isEditing = ko.observable(false);
+    self.isOwnerEdit = ko.observable(false); // Salon sahibi editleniyorsa true — sadece temel alanlar gosterilir
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
@@ -111,6 +112,7 @@ function StaffViewModel() {
         self.form.publicShowTitle(true);
         self.form.publicShowSpecialty(true);
         self.isEditing(false);
+        self.isOwnerEdit(false);
         self.editingId(null);
     };
 
@@ -121,6 +123,7 @@ function StaffViewModel() {
 
     self.openEdit = function (staff) {
         self.isEditing(true);
+        self.isOwnerEdit(staff.customerRoleId === 101); // SalonOwner = 101
         self.editingId(staff.id);
         self.form.userName(staff.userName || '');
         self.form.fullName(staff.fullName || '');

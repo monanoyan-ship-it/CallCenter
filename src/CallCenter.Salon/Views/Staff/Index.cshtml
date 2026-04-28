@@ -97,6 +97,15 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
+                        <!-- Salon sahibi icin bilgi notu -->
+                        <!-- ko if: isOwnerEdit() -->
+                        <div class="col-12">
+                            <div class="alert alert-info py-2 small mb-0">
+                                <i class="bi bi-shop me-1"></i><strong>Salon Sahibi</strong> — Ad soyad, e-posta ve sifre guncellenebilir.
+                            </div>
+                        </div>
+                        <!-- /ko -->
+
                         <div class="col-12">
                             <label class="form-label small">Ad Soyad *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
@@ -105,7 +114,7 @@
                             <label class="form-label small">E-posta *</label>
                             <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
-                        <div class="col-6">
+                        <div class="col-6" data-bind="visible: !isOwnerEdit()">
                             <label class="form-label small">Unvan</label>
                             <input type="text" class="form-control form-control-sm" placeholder="Orn: Kuafor, Guzellik Uzmani..." data-bind="value: form.title" />
                         </div>
@@ -129,6 +138,9 @@
                             <label class="form-label small" data-bind="text: isEditing() ? 'Sifre (bos birakilabilir)' : 'Sifre *'"></label>
                             <input type="password" class="form-control form-control-sm" data-bind="value: form.password" />
                         </div>
+
+                        <!-- Salon sahibi icin gizlenen alanlar -->
+                        <!-- ko if: !isOwnerEdit() -->
                         <div class="col-6">
                             <label class="form-label small">Rol</label>
                             <select class="form-select form-select-sm" data-bind="value: form.customerRoleId,
@@ -198,6 +210,7 @@
                                 <!-- /ko -->
                             </div>
                         </div>
+                        <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">
