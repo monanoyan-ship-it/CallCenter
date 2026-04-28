@@ -162,10 +162,17 @@ public class SlnPublicFactory : ISlnPublicFactory
             .Include(p => p.Customer)
             .ToListAsync();
 
+        if (profiles.Count == 0) return new List<object>();
+
         var customerIds = profiles.Select(p => p.CustomerId).ToList();
-        var hqBranches = await _branches.GetAllQueryable()
-            .Where(b => customerIds.Contains(b.CustomerId) && b.IsHeadquarter && b.IsActive)
-            .ToDictionaryAsync(b => b.CustomerId);
+
+        // Tum aktif subeler (her sube ayri kart olarak gosterilecek)
+        var allBranches = await _branches.GetAllQueryable()
+            .Where(b => customerIds.Contains(b.CustomerId) && b.IsActive)
+            .ToListAsync();
+
+        // Profil bilgilerini customerId'ye gore map'le
+        var profileMap = profiles.ToDictionary(p => p.CustomerId);
 
         // Yorumlar — onaylı (StatusId=2) ortalama + sayı
         var reviewStats = await _reviews.GetAllQueryable()
@@ -181,32 +188,37 @@ public class SlnPublicFactory : ISlnPublicFactory
             .Select(g => new { CustomerId = g.Key, Min = g.Min(x => x.Price), Max = g.Max(x => x.Price) })
             .ToDictionaryAsync(x => x.CustomerId);
 
-        return profiles.OrderBy(p => p.Customer?.Name).Select(p =>
-        {
-            hqBranches.TryGetValue(p.CustomerId, out var hq);
-            reviewStats.TryGetValue(p.CustomerId, out var rs);
-            priceStats.TryGetValue(p.CustomerId, out var ps);
-            string? priceRange = null;
-            if (ps != null)
-                priceRange = ps.Min == ps.Max
-                    ? $"{ps.Min:N0} ₺"
-                    : $"{ps.Min:N0} - {ps.Max:N0} ₺";
-
-            return new
+        return allBranches
+            .OrderBy(b => b.IsHeadquarter ? 0 : 1)
+            .ThenBy(b => profileMap.TryGetValue(b.CustomerId, out var pr) ? pr.Customer?.Name : "")
+            .Select(b =>
             {
-                Slug = hq?.Slug ?? p.Slug ?? "",
-                SalonName = p.Customer?.Name ?? "",
-                City = hq?.City ?? p.City,
-                District = hq?.District ?? p.District,
-                p.LogoUrl,
-                p.Description,
-                Latitude = hq?.Latitude ?? p.Latitude,
-                Longitude = hq?.Longitude ?? p.Longitude,
-                AverageRating = rs?.Avg ?? 0,
-                ReviewCount = rs?.Count ?? 0,
-                PriceRange = priceRange
-            };
-        }).ToList();
+                profileMap.TryGetValue(b.CustomerId, out var profile);
+                reviewStats.TryGetValue(b.CustomerId, out var rs);
+                priceStats.TryGetValue(b.CustomerId, out var ps);
+                string? priceRange = null;
+                if (ps != null)
+                    priceRange = ps.Min == ps.Max
+                        ? $"{ps.Min:N0} ₺"
+                        : $"{ps.Min:N0} - {ps.Max:N0} ₺";
+
+                return new
+                {
+                    Slug = b.Slug ?? profile?.Slug ?? "",
+                    SalonName = profile?.Customer?.Name ?? "",
+                    BranchName = b.Name,
+                    b.IsHeadquarter,
+                    b.City,
+                    b.District,
+                    LogoUrl = profile?.LogoUrl,
+                    Description = profile?.Description,
+                    b.Latitude,
+                    b.Longitude,
+                    AverageRating = rs?.Avg ?? 0,
+                    ReviewCount = rs?.Count ?? 0,
+                    PriceRange = priceRange
+                };
+            }).ToList();
     }
 
     /// <summary>Discover harita için tüm yayınlanan salonların aktif şubelerini koordinatlarıyla döner</summary>
