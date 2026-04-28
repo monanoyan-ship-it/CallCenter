@@ -912,11 +912,12 @@ public class SlnPublicFactory : ISlnPublicFactory
                 return (false, "Secilen personel bu saatte baska bir randevuya sahip. Lutfen baska bir saat secin.", null);
         }
 
-        // Politika kontrol
+        // Depozito kontrolü — online randevu her zaman ödeme gerektirir
         var policy = await _noShowPolicies.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.CustomerId == cid);
-        var requireDeposit = policy?.IsActive == true && policy.RequireDeposit && policy.DepositAmount > 0;
-        var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
+        var depositAmount = policy?.DepositAmount ?? 0m;
+        if (depositAmount <= 0)
+            return (false, "Bu salon icin online randevu depozitosu yapilandirilmamistir. Randevu almak icin lutfen salonla dogrudan iletisime gecin.", null);
 
         // Müşteri bul / oluştur
         var client = await _clients.GetAllQueryable()
@@ -936,10 +937,10 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
         else if (client.IsBlacklisted)
         {
-            return (false, "Gecmis randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen salonu arayiniz.", null);
+            return (false, "Daha onceki randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen bu subeden randevu almak icin dogrudan salonla iletisime gecin.", null);
         }
 
-        // Randevu oluştur (depozito varsa StatusId=6: AwaitingPayment)
+        // Randevu oluştur (her zaman StatusId=6: AwaitingPayment — ödeme sonrası 2 olur)
         var appointment = new SlnAppointment
         {
             CustomerId = cid,
@@ -948,24 +949,13 @@ public class SlnPublicFactory : ISlnPublicFactory
             ServiceId = dto.ServiceId,
             StartTime = start,
             EndTime = end,
-            StatusId = requireDeposit ? 6 : 1,
+            StatusId = 6, // AwaitingPayment
             Notes = dto.Notes,
             DepositAmount = depositAmount
         };
 
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();
-
-        if (!requireDeposit)
-        {
-            return (true, null, new
-            {
-                success = true,
-                requireDeposit = false,
-                appointmentId = appointment.Id,
-                message = "Randevunuz alindi. Salon tarafindan onaylanacaktir."
-            });
-        }
 
         // Depozito gerekli → Iyzico checkout form başlat
         var checkoutResult = await _paymentService.InitBookingDepositCheckoutAsync(

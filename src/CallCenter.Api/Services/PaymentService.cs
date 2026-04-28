@@ -598,7 +598,7 @@ public class PaymentService
                 }
             }
 
-            // Randevu depozitosu ise randevuyu aktif et (StatusId 6 = AwaitingPayment → 1 = Planned)
+            // Randevu depozitosu ise randevuyu onayli yap (StatusId 6 = AwaitingPayment → 2 = Confirmed)
             if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
             {
                 var parts = tx.Notes.Split('|');
@@ -607,7 +607,7 @@ public class PaymentService
                     var apt = await _db.SlnAppointments.FindAsync(aptId);
                     if (apt != null && apt.StatusId == 6)
                     {
-                        apt.StatusId = 1;
+                        apt.StatusId = 2; // Confirmed — depozito ödendiyse onay gerekmez
                         apt.IsPrepaid = true;
                         apt.PrepaidAmount = tx.Amount;
                         apt.PaymentTransactionId = tx.Id;

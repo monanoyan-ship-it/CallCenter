@@ -184,6 +184,16 @@
         }
 
         // ═══ Randevularım ═══
+        function apptStatusBadge(s) {
+            if (s === 1) return '<span class="badge bg-secondary ms-1">Bekliyor</span>';
+            if (s === 2) return '<span class="badge bg-success ms-1">Onaylandı</span>';
+            if (s === 3) return '<span class="badge bg-info text-dark ms-1">Tamamlandı</span>';
+            if (s === 4) return '<span class="badge bg-danger ms-1">İptal</span>';
+            if (s === 5) return '<span class="badge bg-warning text-dark ms-1">Gelmedi</span>';
+            if (s === 6) return '<span class="badge bg-warning text-dark ms-1">Ödeme Bekleniyor</span>';
+            return '';
+        }
+
         function loadAppointments(past) {
             api('platform/appointments?past=' + (past || false)).then(function(data) {
                 var el = document.getElementById('appointmentList');
@@ -192,10 +202,12 @@
                 el.innerHTML = data.map(function(a) {
                     var date = new Date(a.appointmentDate).toLocaleDateString('tr-TR');
                     var time = a.startTime ? a.startTime.substring(0, 5) : '';
+                    var canCancel = a.statusId === 1 || a.statusId === 2;
                     return '<div class="card section-card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">' +
-                        '<div><strong>' + a.salonName + '</strong><div class="small text-muted">' + date + ' ' + time + '</div>' +
+                        '<div><strong>' + a.salonName + '</strong>' + apptStatusBadge(a.statusId) +
+                        '<div class="small text-muted">' + date + ' ' + time + '</div>' +
                         '<div class="small">' + (a.serviceNames || []).join(', ') + '</div></div>' +
-                        '<div>' + (a.statusId < 3 ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ')"><i class="bi bi-x-lg"></i></button>' : '') + '</div>' +
+                        '<div>' + (canCancel ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ')"><i class="bi bi-x-lg"></i></button>' : '') + '</div>' +
                         '</div></div>';
                 }).join('');
             });

@@ -341,8 +341,28 @@ public class PlatformFactory : IPlatformFactory
     // ═══ HELPERS ═══
 
     private async Task<List<int>> GetMyClientIds(int platformUserId)
-        => await _userSalonEs.GetAllQueryable()
+    {
+        // 1. Salon üyeliği bağlantısı üzerinden (normal yol)
+        var linked = await _userSalonEs.GetAllQueryable()
             .Where(s => s.PlatformUserId == platformUserId && s.IsActive && s.SlnClientId != null)
             .Select(s => s.SlnClientId!.Value)
             .ToListAsync();
+
+        // 2. Telefon numarası üzerinden eşleştir (salon üyeliği olmadan Book.cshtml ile alınan randevular)
+        var phone = await _platformUserEs.GetAllQueryable()
+            .Where(u => u.Id == platformUserId)
+            .Select(u => u.Phone)
+            .FirstOrDefaultAsync();
+
+        if (!string.IsNullOrEmpty(phone))
+        {
+            var byPhone = await _clientEs.GetAllQueryable()
+                .Where(c => c.Phone == phone)
+                .Select(c => c.Id)
+                .ToListAsync();
+            linked.AddRange(byPhone);
+        }
+
+        return linked.Distinct().ToList();
+    }
 }
