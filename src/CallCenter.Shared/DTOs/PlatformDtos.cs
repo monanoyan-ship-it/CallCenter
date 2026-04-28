@@ -97,6 +97,8 @@ public class PlatformAppointmentDto
     public decimal TotalPrice { get; set; }
     public int StatusId { get; set; }
     public string? StatusName { get; set; }
+    public bool IsPrepaid { get; set; }
+    public decimal PrepaidAmount { get; set; }
 }
 
 public class PlatformCreateAppointmentDto

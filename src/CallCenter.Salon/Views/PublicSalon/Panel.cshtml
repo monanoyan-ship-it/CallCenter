@@ -203,19 +203,36 @@
                     var date = new Date(a.appointmentDate).toLocaleDateString('tr-TR');
                     var time = a.startTime ? a.startTime.substring(0, 5) : '';
                     var canCancel = a.statusId === 1 || a.statusId === 2;
+                    var cancelBtn = canCancel
+                        ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ',' + (a.isPrepaid ? 'true' : 'false') + ',' + (a.prepaidAmount || 0) + ',\'' + new Date(a.appointmentDate + 'T' + (a.startTime || '00:00:00')).toISOString() + '\')"><i class="bi bi-x-lg"></i></button>'
+                        : '';
                     return '<div class="card section-card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">' +
                         '<div><strong>' + a.salonName + '</strong>' + apptStatusBadge(a.statusId) +
                         '<div class="small text-muted">' + date + ' ' + time + '</div>' +
                         '<div class="small">' + (a.serviceNames || []).join(', ') + '</div></div>' +
-                        '<div>' + (canCancel ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ')"><i class="bi bi-x-lg"></i></button>' : '') + '</div>' +
+                        '<div>' + cancelBtn + '</div>' +
                         '</div></div>';
                 }).join('');
             });
         }
 
-        function cancelAppt(id) {
-            if (!confirm('Randevuyu iptal etmek istiyor musunuz?')) return;
-            api('platform/appointments/' + id, { method: 'DELETE' }).then(function() { loadAppointments(false); });
+        function cancelAppt(id, isPrepaid, prepaidAmount, startTime) {
+            var msg = 'Randevuyu iptal etmek istiyor musunuz?';
+            if (isPrepaid && prepaidAmount > 0) {
+                var hoursLeft = (new Date(startTime) - new Date()) / 3600000;
+                if (hoursLeft >= 24) {
+                    msg += '\n\n✅ Ücretsiz iptal penceresindeyiz — depozitonuz iade edilecektir.';
+                } else {
+                    msg += '\n\n⚠️ Ücretsiz iptal süresi geçmiş olabilir — depozitonuz iade edilmeyebilir.';
+                }
+            }
+            if (!confirm(msg)) return;
+            api('platform/appointments/' + id, { method: 'DELETE' })
+                .then(function(data) {
+                    alert(data && data.message ? data.message : 'Randevunuz iptal edildi.');
+                    loadAppointments(false);
+                })
+                .catch(function() { loadAppointments(false); });
         }
 
         // ═══ Sadakat ═══

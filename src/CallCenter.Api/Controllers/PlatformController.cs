@@ -77,17 +77,17 @@ public class PlatformController : ControllerBase
         return Ok(new { appointmentId, message = "Randevu oluşturuldu." });
     }
 
-    /// <summary>Randevu iptal</summary>
+    /// <summary>Randevu iptal (depozito varsa politikaya gore iade/kesinti yapar)</summary>
     [HttpDelete("appointments/{id}")]
     public async Task<ActionResult> CancelAppointment(int id)
     {
-        var (success, error) = await _factory.CancelAppointmentAsync(GetPlatformUserId(), id);
+        var (success, error, message) = await _factory.CancelAppointmentAsync(GetPlatformUserId(), id);
         if (!success)
         {
             if (error == "Randevu bulunamadı.") return NotFound();
             return BadRequest(new { message = error });
         }
-        return Ok(new { message = "Randevu iptal edildi." });
+        return Ok(new { message });
     }
 
     // ═══ SADAKAt ═══

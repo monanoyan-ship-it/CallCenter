@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ public class PlatformFactory : IPlatformFactory
     private readonly ISlnClientMembershipEntityService _membershipEs;
     private readonly ISlnClientLoyaltyEntityService _loyaltyEs;
     private readonly ISlnGiftCardEntityService _giftCardEs;
+    private readonly ISlnNoShowPolicyEntityService _noShowPolicyEs;
+    private readonly PaymentService _paymentService;
     private readonly IUnitOfWork _uow;
 
     public PlatformFactory(
@@ -34,6 +37,8 @@ public class PlatformFactory : IPlatformFactory
         ISlnClientMembershipEntityService membershipEs,
         ISlnClientLoyaltyEntityService loyaltyEs,
         ISlnGiftCardEntityService giftCardEs,
+        ISlnNoShowPolicyEntityService noShowPolicyEs,
+        PaymentService paymentService,
         IUnitOfWork uow)
     {
         _userSalonEs = userSalonEs;
@@ -47,6 +52,8 @@ public class PlatformFactory : IPlatformFactory
         _membershipEs = membershipEs;
         _loyaltyEs = loyaltyEs;
         _giftCardEs = giftCardEs;
+        _noShowPolicyEs = noShowPolicyEs;
+        _paymentService = paymentService;
         _uow = uow;
     }
 
@@ -183,7 +190,9 @@ public class PlatformFactory : IPlatformFactory
             PersonnelName = a.Personnel?.Title,
             ServiceNames = a.Services?.Select(s => s.SlnService?.Name ?? "-").ToList() ?? new(),
             TotalPrice = a.Services?.Sum(s => s.SlnService?.Price ?? 0) ?? 0,
-            StatusId = a.StatusId
+            StatusId = a.StatusId,
+            IsPrepaid = a.IsPrepaid,
+            PrepaidAmount = a.PrepaidAmount
         }).ToList();
     }
 
@@ -237,20 +246,60 @@ public class PlatformFactory : IPlatformFactory
         return (appointment.Id, null);
     }
 
-    public async Task<(bool Success, string? Error)> CancelAppointmentAsync(int platformUserId, int appointmentId)
+    public async Task<(bool Success, string? Error, string? Message)> CancelAppointmentAsync(int platformUserId, int appointmentId)
     {
         var clientIds = await GetMyClientIds(platformUserId);
 
-        var appointment = await _appointmentEs.GetAllQueryable().FirstOrDefaultAsync(a => a.Id == appointmentId && clientIds.Contains(a.SlnClientId));
-        if (appointment == null) return (false, "Randevu bulunamadı.");
+        var appointment = await _appointmentEs.GetAllQueryable()
+            .FirstOrDefaultAsync(a => a.Id == appointmentId && clientIds.Contains(a.SlnClientId));
+        if (appointment == null) return (false, "Randevu bulunamadı.", null);
 
-        if (appointment.StatusId >= 3) // Completed veya Cancelled
-            return (false, "Bu randevu iptal edilemez.");
+        if (appointment.StatusId == 3 || appointment.StatusId == 4)
+            return (false, "Bu randevu zaten tamamlanmış veya iptal edilmiş.", null);
 
-        appointment.StatusId = 5; // Cancelled
+        // NoShow politikasını yükle
+        var policy = await _noShowPolicyEs.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == appointment.CustomerId);
+
+        var now = DateTime.UtcNow;
+        var hoursUntilAppt = (appointment.StartTime - now).TotalHours;
+        var freeCancelHours = policy?.FreeCancellationHours ?? 24;
+        var withinFreeWindow = hoursUntilAppt >= freeCancelHours;
+
+        appointment.StatusId = 4; // Cancelled
+        string resultMessage;
+
+        if (appointment.IsPrepaid && appointment.PrepaidAmount > 0)
+        {
+            if (withinFreeWindow)
+            {
+                // Ücretsiz iptal — depozito iade edilir
+                var (refundOk, refundErr) = await _paymentService.RefundAppointmentDepositAsync(appointmentId);
+                if (refundOk)
+                {
+                    appointment.DepositRefunded = true;
+                    resultMessage = $"Randevunuz iptal edildi. {appointment.PrepaidAmount:N2} TL depozitonuz iade edilecektir.";
+                }
+                else
+                {
+                    resultMessage = $"Randevunuz iptal edildi ancak depozito iadesi yapılamadı: {refundErr}. Lütfen salonla iletişime geçin.";
+                }
+            }
+            else
+            {
+                // Geç iptal — depozito iade edilmez (politikaya göre kesinti)
+                var lateFee = policy?.LateCancellationFee > 0 ? policy.LateCancellationFee : appointment.PrepaidAmount;
+                appointment.PenaltyAmount = lateFee;
+                resultMessage = $"Randevunuz iptal edildi. Ücretsiz iptal süresi ({freeCancelHours} saat) geçtiğinden {lateFee:N2} TL kesinti uygulandı. Depozitonuz iade edilmeyecektir.";
+            }
+        }
+        else
+        {
+            resultMessage = "Randevunuz iptal edildi.";
+        }
+
         await _uow.SaveChangesAsync();
-
-        return (true, null);
+        return (true, null, resultMessage);
     }
 
     // ═══ SADAKAT ═══

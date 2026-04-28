@@ -13,7 +13,7 @@ public interface IPlatformFactory
     // Randevu
     Task<List<PlatformAppointmentDto>> GetMyAppointmentsAsync(int platformUserId, bool past);
     Task<(int? AppointmentId, string? Error)> CreateAppointmentAsync(int platformUserId, PlatformCreateAppointmentDto dto);
-    Task<(bool Success, string? Error)> CancelAppointmentAsync(int platformUserId, int appointmentId);
+    Task<(bool Success, string? Error, string? Message)> CancelAppointmentAsync(int platformUserId, int appointmentId);
 
     // Sadakat
     Task<List<PlatformLoyaltyDto>> GetMyLoyaltyAsync(int platformUserId);

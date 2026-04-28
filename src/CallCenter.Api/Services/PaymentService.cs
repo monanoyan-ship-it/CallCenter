@@ -686,6 +686,56 @@ public class PaymentService
         }
     }
 
+    /// <summary>Randevu depozitosu iadesi. PaymentTransaction.ProviderPaymentId ile Iyzico'ya iade isteği gönderir.</summary>
+    public async Task<(bool Success, string? Error)> RefundAppointmentDepositAsync(int appointmentId)
+    {
+        var apt = await _db.SlnAppointments.FindAsync(appointmentId);
+        if (apt == null) return (false, "Randevu bulunamadi.");
+        if (!apt.IsPrepaid || apt.PrepaidAmount <= 0) return (true, null); // Depozito yok, iade gerekmez
+
+        var tx = apt.PaymentTransactionId.HasValue
+            ? await _db.PaymentTransactions.FindAsync(apt.PaymentTransactionId.Value)
+            : await _db.PaymentTransactions
+                .Where(t => t.Notes != null && t.Notes.StartsWith($"Appointment:{appointmentId}|")
+                         && t.StatusId == PaymentStatuses.Ids.Basarili)
+                .OrderByDescending(t => t.Id)
+                .FirstOrDefaultAsync();
+
+        if (tx == null) return (false, "Odeme kaydi bulunamadi.");
+
+        var providerPaymentId = tx.ProviderPaymentId;
+        if (string.IsNullOrEmpty(providerPaymentId))
+            return (false, "Odeme saglayici referansi eksik, iade yapilamadi.");
+
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return (false, "Aktif odeme yapilandirmasi bulunamadi.");
+
+        var gateway = _gatewayFactory.Create(config);
+        var refundResult = await gateway.RefundAsync(providerPaymentId, apt.PrepaidAmount);
+
+        if (refundResult.Success)
+        {
+            apt.DepositRefunded = true;
+            var refundTx = new PaymentTransaction
+            {
+                PaymentTypeId = PaymentTypes.Ids.RandevuOnOdemesi,
+                CustomerId = apt.CustomerId,
+                Amount = -apt.PrepaidAmount,
+                PaymentMethodId = tx.PaymentMethodId,
+                StatusId = PaymentStatuses.Ids.Basarili,
+                Provider = tx.Provider,
+                ProviderTransactionId = refundResult.RefundId,
+                CompletedAt = DateTime.UtcNow,
+                Notes = $"Refund:Appointment:{appointmentId}"
+            };
+            _db.PaymentTransactions.Add(refundTx);
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Depozito iadesi basarili: AptId={AptId}, Tutar={Amount}", appointmentId, apt.PrepaidAmount);
+        }
+
+        return (refundResult.Success, refundResult.Success ? null : refundResult.Error);
+    }
+
     // ─── Private: Gateway uzerinden odeme calistir ───
 
     private async Task<PaymentResult> ExecutePaymentAsync(PaymentTransaction tx, PaymentCardInfo card, string? buyerIp = null)
