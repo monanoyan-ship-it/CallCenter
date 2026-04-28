@@ -170,7 +170,7 @@
                     <button class="btn btn-outline-secondary btn-sm slot-btn"
                             data-bind="click: $root.selectSlot, css: { selected: $root.selectedSlot() === startTime }">
                         <span data-bind="text: timeText"></span>
-                        <!-- ko if: $root.selectedStaffId() === null -->
+                        <!-- ko if: $root.selectedStaffId() === null && availableStaff && availableStaff.length -->
                         <div class="slot-avatars">
                             <!-- ko foreach: availableStaff -->
                             <!-- ko if: photoUrl -->
@@ -645,9 +645,11 @@
                             self.isDayClosed(data.isClosed);
                             self.slots(data.slots || []);
                         } else {
-                            // Eski format (dizi) fallback
+                            // Eski format (dizi) fallback — availableStaff yoksa bos dizi ekle
                             self.isDayClosed(false);
-                            self.slots(Array.isArray(data) ? data : []);
+                            var items = Array.isArray(data) ? data : [];
+                            items.forEach(function(s) { if (!s.availableStaff) s.availableStaff = []; });
+                            self.slots(items);
                         }
                         self.slotsLoaded(true);
                     })
