@@ -33,6 +33,8 @@ function BranchesViewModel() {
         phone: ko.observable(''),
         email: ko.observable(''),
         googleMapsUrl: ko.observable(''),
+        latitude: ko.observable(''),
+        longitude: ko.observable(''),
         managerPersonnelId: ko.observable(''),
         isActive: ko.observable(true),
         isHeadquarter: ko.observable(false),
@@ -100,6 +102,8 @@ function BranchesViewModel() {
         self.form.phone('');
         self.form.email('');
         self.form.googleMapsUrl('');
+        self.form.latitude('');
+        self.form.longitude('');
         self.form.managerPersonnelId('');
         self.form.isActive(true);
         self.form.isHeadquarter(false);
@@ -115,6 +119,7 @@ function BranchesViewModel() {
     self.openNew = function () {
         self.resetForm();
         formModal.show();
+        initMap();
     };
 
     self.openEdit = function (branch) {
@@ -128,6 +133,8 @@ function BranchesViewModel() {
         self.form.phone(branch.phone || '');
         self.form.email(branch.email || '');
         self.form.googleMapsUrl(branch.googleMapsUrl || '');
+        self.form.latitude(branch.latitude != null ? String(branch.latitude) : '');
+        self.form.longitude(branch.longitude != null ? String(branch.longitude) : '');
         self.form.managerPersonnelId(branch.managerPersonnelId || '');
         self.form.isActive(branch.isActive);
         self.form.isHeadquarter(branch.isHeadquarter || false);
@@ -137,6 +144,7 @@ function BranchesViewModel() {
         self.form.mersisNo(branch.mersisNo || '');
         parseWorkingHours(branch.workingHoursJson);
         formModal.show();
+        initMap();
     };
 
     self.save = function () {
@@ -149,6 +157,8 @@ function BranchesViewModel() {
             phone: self.form.phone(),
             email: self.form.email(),
             googleMapsUrl: self.form.googleMapsUrl(),
+            latitude: self.form.latitude() ? parseFloat(self.form.latitude()) : null,
+            longitude: self.form.longitude() ? parseFloat(self.form.longitude()) : null,
             workingHoursJson: buildWorkingHoursJson(),
             managerPersonnelId: self.form.managerPersonnelId() ? parseInt(self.form.managerPersonnelId()) : null,
             isActive: self.form.isActive(),
@@ -198,6 +208,112 @@ function BranchesViewModel() {
             }).fail(function () {
                 toastr.error('Silinemedi');
             });
+        });
+    };
+
+    // ═══ Harita Picker ═══
+    self.isGeocoding = ko.observable(false);
+    var _map = null;
+    var _marker = null;
+    var _defaultCenter = [39.9, 32.8]; // Turkiye merkezi
+
+    function setMapPin(lat, lng) {
+        var latlng = L.latLng(lat, lng);
+        if (_marker) {
+            _marker.setLatLng(latlng);
+        } else {
+            _marker = L.marker(latlng, { draggable: true }).addTo(_map);
+            _marker.on('dragend', function (e) {
+                var p = e.target.getLatLng();
+                updateFromLatLng(p.lat, p.lng);
+            });
+        }
+        _map.setView(latlng, 16);
+    }
+
+    function updateFromLatLng(lat, lng) {
+        self.form.latitude(lat.toFixed(6));
+        self.form.longitude(lng.toFixed(6));
+        self.form.googleMapsUrl('https://maps.google.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6));
+    }
+
+    function initMap() {
+        if (_map) { _map.remove(); _map = null; _marker = null; }
+        setTimeout(function () {
+            var el = document.getElementById('branch-map-picker');
+            if (!el) return;
+
+            _map = L.map('branch-map-picker').setView(_defaultCenter, 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(_map);
+
+            _map.on('click', function (e) {
+                updateFromLatLng(e.latlng.lat, e.latlng.lng);
+                setMapPin(e.latlng.lat, e.latlng.lng);
+            });
+
+            // Mevcut koordinat varsa direkt pin koy
+            var lat = parseFloat(self.form.latitude());
+            var lng = parseFloat(self.form.longitude());
+            if (lat && lng) {
+                setMapPin(lat, lng);
+                return;
+            }
+
+            // Yoksa tarayicidan konum iste
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (pos) {
+                        _map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+                    },
+                    function () { /* izin verilmedi, Turkiye kalir */ }
+                );
+            }
+        }, 300);
+    }
+
+    self.onLatLonManualChange = function () {
+        var lat = parseFloat(self.form.latitude());
+        var lng = parseFloat(self.form.longitude());
+        if (_map && lat && lng) {
+            setMapPin(lat, lng);
+            self.form.googleMapsUrl('https://maps.google.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6));
+        }
+    };
+
+    self.geocodeAddress = function () {
+        var parts = [
+            self.form.address(),
+            self.form.district(),
+            self.form.city(),
+            'Turkey'
+        ].filter(function (p) { return p && p.trim(); });
+
+        if (parts.length < 2) {
+            toastr.warning('Koordinat bulmak icin en az adres ve sehir giriniz.');
+            return;
+        }
+
+        self.isGeocoding(true);
+        $.ajax({
+            url: 'https://nominatim.openstreetmap.org/search',
+            method: 'GET',
+            data: { q: parts.join(', '), format: 'json', limit: 1 },
+            headers: { 'Accept-Language': 'tr' }
+        }).done(function (results) {
+            if (results && results.length > 0) {
+                var r = results[0];
+                updateFromLatLng(parseFloat(r.lat), parseFloat(r.lon));
+                if (_map) setMapPin(parseFloat(r.lat), parseFloat(r.lon));
+                toastr.success('Konum bulundu. Pini surukleyerek hassasiyeti ayarlayabilirsiniz.');
+            } else {
+                toastr.warning('Adres bulunamadi. Haritada manuel secebilirsiniz.');
+            }
+        }).fail(function () {
+            toastr.error('Konum servisi yanitlamadi.');
+        }).always(function () {
+            self.isGeocoding(false);
         });
     };
 

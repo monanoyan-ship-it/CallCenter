@@ -244,9 +244,9 @@ function InvoicesViewModel() {
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
             self.serviceCategories(data.items || data);
         });
-        $.ajax({ url: '/proxy/sln-products', method: 'GET' }).done(function (data) {
-            self.productList(data.items || data);
-        });
+        $.ajax({ url: '/proxy/sln-products', method: 'GET' })
+            .done(function (data) { self.productList(data.items || data); })
+            .fail(function () { self.productList([]); });
     };
 
     // ═══ Form ═══

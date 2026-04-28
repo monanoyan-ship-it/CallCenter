@@ -198,8 +198,8 @@ function DetailViewModel() {
     };
 
     self.activateAllDefaults = function () {
-        // Default modul ID leri: 201,202,203,204,206,209,214,215,220
-        var defaultIds = [201,202,203,204,206,209,214,215,220];
+        // Core (IsDefault=true) modul ID leri — SalonPortalModules ile eslestirilmeli
+        var defaultIds = [201, 202, 203, 204, 206, 207, 209, 213, 214, 215, 220, 228];
         $.ajax({
             url: '/proxy/customers/' + CUSTOMER_ID + '/modules/assign',
             method: 'POST',

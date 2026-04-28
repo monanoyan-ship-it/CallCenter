@@ -71,11 +71,11 @@ public class PaymentConfigFactory : IPaymentConfigFactory
 
     public async Task<(bool Success, int? Id, string? Error)> CreateAsync(PaymentConfigSaveDto dto)
     {
-        // Ayni provider'dan aktif config varsa uyar
+        // Ayni provider + ayni mod icin zaten varsa uyar (sandbox+production iki ayri kayit olabilir)
         var existing = await _configEs.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.ProviderTypeId == dto.ProviderTypeId);
+            .FirstOrDefaultAsync(c => c.ProviderTypeId == dto.ProviderTypeId && c.IsSandbox == dto.IsSandbox);
         if (existing != null)
-            return (false, null, $"Bu provider icin zaten bir yapilandirma mevcut (ID: {existing.Id}).");
+            return (false, null, $"Bu provider icin zaten bir {(dto.IsSandbox ? "sandbox" : "production")} yapilandirma mevcut (ID: {existing.Id}). Duzenlemek icin edit kullanin.");
 
         var config = new PlatformPaymentConfig
         {
@@ -137,6 +137,22 @@ public class PaymentConfigFactory : IPaymentConfigFactory
         if (config == null) return (false, "Yapilandirma bulunamadi.");
 
         _configEs.Remove(config);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ActivateAsync(int id)
+    {
+        var config = await _configEs.GetByIdAsync(id);
+        if (config == null) return (false, "Yapilandirma bulunamadi.");
+
+        // Diger tum config'leri pasif yap
+        var others = await _configEs.GetAllQueryable().Where(c => c.IsActive && c.Id != id).ToListAsync();
+        foreach (var o in others)
+            o.IsActive = false;
+
+        config.IsActive = true;
+        config.UpdatedAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
         return (true, null);
     }

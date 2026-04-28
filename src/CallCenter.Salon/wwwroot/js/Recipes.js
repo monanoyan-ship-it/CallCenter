@@ -96,9 +96,9 @@ function RecipesViewModel() {
     };
 
     self.loadProducts = function () {
-        $.ajax({ url: '/proxy/sln-products', method: 'GET' }).done(function (data) {
-            self.productList(data.items || data);
-        });
+        $.ajax({ url: '/proxy/sln-products', method: 'GET' })
+            .done(function (data) { self.productList(data.items || data); })
+            .fail(function () { self.productList([]); });
     };
 
     self.loadServices = function () {

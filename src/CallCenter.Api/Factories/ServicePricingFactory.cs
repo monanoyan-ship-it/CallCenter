@@ -52,8 +52,7 @@ public class ServicePricingFactory
 
         var result = new Dictionary<int, decimal>();
 
-        // Default: enum değerleri
-        result[0] = 1700m; // Temel Paket
+        // Default: enum değerleri (Core Id=0 = Temel Paket 1700m dahil)
         foreach (var pkg in SalonModuleGroups.All) result[pkg.Id] = pkg.MonthlyPrice;
 
         if (activePeriod != null)
@@ -172,15 +171,7 @@ public class ServicePricingFactory
                     MonthlyPrice = 0
                 });
             }
-            // Salon paketleri — Temel Paket (groupId=0, tum salonlar icin zorunlu) + opsiyonel gruplar
-            period.Items.Add(new ServicePricingItem
-            {
-                ProductTypeId = SalonPortalModules.ProductTypeId,
-                ServiceId = 0,
-                PackageGroupId = 0,
-                ServiceName = "Temel Paket",
-                MonthlyPrice = 1700m
-            });
+            // Salon paketleri — tüm gruplar (Core=0 Temel Paket dahil)
             foreach (var pkg in SalonModuleGroups.All)
             {
                 period.Items.Add(new ServicePricingItem

@@ -134,7 +134,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
 
             var activeGroupIds = activeModuleIds
                 .Select(id => SalonModuleGroups.GetGroupId(id))
-                .Where(g => g.HasValue)
+                .Where(g => g.HasValue && g.Value != SalonModuleGroups.Ids.Core)
                 .Select(g => g!.Value)
                 .Distinct()
                 .ToList();

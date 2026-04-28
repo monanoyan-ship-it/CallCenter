@@ -7,6 +7,7 @@ using CallCenter.Api.Middleware;
 using CallCenter.Data;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -192,6 +193,17 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
         seedLogger.LogWarning(ex, "Salon default data seed hatasi (kritik degil)");
     }
 }
+
+// Cloud Run / reverse proxy arkasinda X-Forwarded-Proto: https header'ini oku.
+// KnownNetworks ve KnownProxies temizlenmezse sadece loopback proxy'lere guvenir;
+// Cloud Run load balancer IP'si bu listede olmadiginda header yok sayilir.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 // HTTPS redirect — sadece Development ortaminda
 // Docker'da Nginx arkasinda HTTP kullanilir, redirect gereksiz

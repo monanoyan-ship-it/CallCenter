@@ -30,6 +30,7 @@ public class PublicSalonController : Controller
                 ViewData["SalonCity"] = root.TryGetProperty("city", out var c) ? c.GetString() : null;
                 ViewData["SalonDistrict"] = root.TryGetProperty("district", out var di) ? di.GetString() : null;
                 ViewData["SalonLogo"] = root.TryGetProperty("logoUrl", out var l) ? l.GetString() : null;
+                ViewData["SalonFavicon"] = root.TryGetProperty("faviconUrl", out var fav) ? fav.GetString() : null;
             }
         }
         catch { }

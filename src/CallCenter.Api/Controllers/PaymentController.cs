@@ -139,7 +139,7 @@ public class PaymentController : ControllerBase
     {
         var customerId = GetCustomerId();
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/iyzico-callback";
+        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
         var result = await _paymentService.InitPackageCheckoutAsync(customerId, request.PackageGroupId, callbackUrl, buyerIp);
         if (!result.Success) return BadRequest(new { success = false, error = result.Error });
         return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
@@ -152,7 +152,7 @@ public class PaymentController : ControllerBase
     {
         var customerId = GetCustomerId();
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{Request.Scheme}://{Request.Host}/api/payments/iyzico-callback";
+        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
         var result = await _paymentService.InitSubscriptionCheckoutAsync(customerId, callbackUrl, buyerIp);
         if (!result.Success) return BadRequest(new { success = false, error = result.Error });
         return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
@@ -274,6 +274,19 @@ public class PaymentController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirstValue("CustomerId") ?? "0");
+
+    /// <summary>
+    /// Callback URL tabanini dondurur. ApiBaseUrl env var set edilmisse onu kullanir;
+    /// yoksa Request.Scheme + Request.Host'a duser (dev ortami icin yeterli).
+    /// Cloud Run gib proxy arkasinda ApiBaseUrl env var'i https:// ile set edilmeli.
+    /// </summary>
+    private string GetApiBaseUrl()
+    {
+        var configured = _configuration["ApiBaseUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+            return configured.TrimEnd('/');
+        return $"{Request.Scheme}://{Request.Host}";
+    }
 }
 
 public class InvoicePaymentRequest

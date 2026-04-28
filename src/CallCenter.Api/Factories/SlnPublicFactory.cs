@@ -115,6 +115,8 @@ public class SlnPublicFactory : ISlnPublicFactory
             GoogleMapsUrl = branch?.GoogleMapsUrl ?? profile.GoogleMapsUrl,
             LogoUrl = profile.LogoUrl,
             CoverImageUrl = profile.CoverImageUrl,
+            FaviconUrl = profile.FaviconUrl,
+            GalleryImagesJson = profile.GalleryImagesJson,
             WorkingHoursJson = branch?.WorkingHoursJson ?? profile.WorkingHoursJson,
             IsPublished = profile.IsPublished,
             ShowServices = profile.ShowServices,

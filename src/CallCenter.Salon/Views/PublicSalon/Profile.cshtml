@@ -6,7 +6,12 @@
 <html lang="tr">
 <head>
     <meta charset="utf-8" />
+    @{ var salonFavicon = ViewData["SalonFavicon"] as string; }
+    @if (salonFavicon != null) {
+    <link rel="icon" href="@salonFavicon" />
+    } else {
     <link rel="icon" type="image/png" href="/favicon.png" />
+    }
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     @{
         var salonName = ViewData["SalonName"] as string ?? "Salon";

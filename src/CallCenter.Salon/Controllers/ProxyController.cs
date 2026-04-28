@@ -16,9 +16,32 @@ public class ProxyController : SlnBaseController
     }
 
     [HttpPost("proxy/{**path}")]
+    [RequestSizeLimit(10_485_760)] // 10 MB (dosya yuklemeleri icin)
     public async Task<IActionResult> Post(string path)
     {
         using var client = CreateApiClient();
+
+        // Multipart/form-data (dosya yukleme) ise binary olarak ilet
+        if (Request.ContentType?.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var multipart = new MultipartFormDataContent();
+            foreach (var file in Request.Form.Files)
+            {
+                var stream = file.OpenReadStream();
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType =
+                    new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+                multipart.Add(fileContent, file.Name, file.FileName);
+            }
+            // Form alanlarini da ilet
+            foreach (var field in Request.Form)
+            {
+                multipart.Add(new StringContent(field.Value!), field.Key);
+            }
+            var multipartResponse = await client.PostAsync($"api/{path}{Request.QueryString}", multipart);
+            return await ToJsonResult(multipartResponse);
+        }
+
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
         var response = await client.PostAsync($"api/{path}{Request.QueryString}",

@@ -83,6 +83,15 @@ public class PaymentConfigController : ControllerBase
         return Ok(new { message = "Yapilandirma silindi." });
     }
 
+    /// <summary>Hizli aktif yap: bu config aktif olur, diger tum config'ler pasif olur</summary>
+    [HttpPut("{id:int}/activate")]
+    public async Task<ActionResult> Activate(int id)
+    {
+        var (success, error) = await _factory.ActivateAsync(id);
+        if (!success) return BadRequest(new { message = error });
+        return Ok(new { message = "Odeme yapilandirmasi aktif edildi." });
+    }
+
     /// <summary>Baglanti testi</summary>
     [HttpPost("{id:int}/test")]
     public async Task<ActionResult<PaymentConfigTestResultDto>> TestConnection(int id, CancellationToken ct)

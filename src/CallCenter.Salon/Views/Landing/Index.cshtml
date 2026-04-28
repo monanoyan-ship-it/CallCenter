@@ -94,7 +94,7 @@
                 <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
                 <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
                 <a href="/discover" class="nav-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);">
-                    <i class="bi bi-geo-alt me-1"></i>@(currentCulture == "tr" ? "Salon Bul" : "Find a Salon")
+                    <i class="bi bi-calendar-plus me-1"></i>@(currentCulture == "tr" ? "Randevu Al" : "Book Now")
                 </a>
                 <a href="/Account/Login" class="nav-btn">@(currentCulture == "tr" ? "Giris Yap" : "Sign In")</a>
                 @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
@@ -120,13 +120,13 @@
                     : "Appointments, POS, customer loyalty, online booking, staff management, and detailed reports. Everything your salon needs in one platform.")
             </p>
             <div class="hero-cta">
-                <a href="/Account/Login" class="btn-primary-cta">
-                    <span>@(currentCulture == "tr" ? "Uygulamayi Ac" : "Open App")</span>
-                    <i class="bi bi-box-arrow-up-right"></i>
+                <a href="/discover" class="btn-primary-cta">
+                    <i class="bi bi-calendar-plus me-1"></i>
+                    <span>@(currentCulture == "tr" ? "Randevu Al" : "Book Appointment")</span>
                 </a>
-                <a href="/Account/Register" class="btn-outline-cta">
-                    <span>@(currentCulture == "tr" ? "Ucretsiz Baslayın" : "Start Free")</span>
-                    <i class="bi bi-arrow-right"></i>
+                <a href="/Account/Login" class="btn-outline-cta">
+                    <span>@(currentCulture == "tr" ? "Salon Girisi" : "Salon Login")</span>
+                    <i class="bi bi-box-arrow-in-right"></i>
                 </a>
             </div>
         </section>
@@ -179,7 +179,7 @@
             <div style="display:flex; gap:1rem; flex-wrap:wrap;">
                 <a href="/privacy">@(currentCulture == "tr" ? "Gizlilik Politikasi" : "Privacy Policy")</a>
                 <a href="/terms">@(currentCulture == "tr" ? "Kullanim Kosullari" : "Terms of Use")</a>
-                <a href="/discover">@(currentCulture == "tr" ? "Salon Bul" : "Find a Salon")</a>
+                <a href="/discover">@(currentCulture == "tr" ? "Randevu Al" : "Book Appointment")</a>
                 <a href="mailto:info@corplynk.com">info@corplynk.com</a>
             </div>
         </footer>

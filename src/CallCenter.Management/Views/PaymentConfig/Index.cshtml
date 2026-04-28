@@ -68,6 +68,11 @@
                                     <span data-bind="visible: lastTestSuccess == null" class="text-muted small">-</span>
                                 </td>
                                 <td>
+                                    <!-- ko ifnot: isActive -->
+                                    <button class="btn btn-success btn-sm me-1" title="Aktif Yap" data-bind="click: $parent.activateConfig">
+                                        <i class="bi bi-check-circle me-1"></i>Aktif Yap
+                                    </button>
+                                    <!-- /ko -->
                                     <button class="btn btn-outline-info btn-sm me-1" title="Baglanti Testi" data-bind="click: $parent.testConnection">
                                         <i class="bi bi-plug"></i>
                                     </button>

@@ -1,40 +1,57 @@
 namespace CallCenter.Shared.Enums;
 
 /// <summary>
-/// Salon modül paketleri. Her modül bir pakete ait; paket aktif edilince alt modüller topluca aktiftir.
-/// Temel Paket her salon için zorunlu ve sabit fiyat (1.700 TL) — modülleri IsDefault=true olarak işaretli.
+/// Salon modül paketleri. Her modül tam olarak bir gruba aittir — hiçbir modül grupsuz kalmaz.
+/// Id=0 Temel Paket her salon için zorunlu ve sabit fiyat (1.700 TL).
 /// Fiyatlar KDV dahil aylıktır. Ek şubeler için %10 indirim abonelik hesabında uygulanır.
 /// </summary>
 public static class SalonModuleGroups
 {
-    // Not: Grupların id'leri mevcut kayıtlarla uyumlu tutulmalı — mevcut mapping ile geri uyumluluk.
-    // Eski 6 grup yerine 5 grup: Stok+Finans birleştirildi (Id=1), Sadakat+Pazarlama birleştirildi (Id=3).
+    // Id=0 Temel → pricing key 0 ile eşleşir. Diğer gruplar mevcut kayıtlarla uyumlu tutulur.
+    public static readonly ModuleGroup Core = new(0, "Core", "Temel Paket", "bi-house-fill", "bg-success", 1700m, 0);
     public static readonly ModuleGroup StockFinance = new(1, "StockFinance", "Stok Tedarik / Finans", "bi-box-seam", "bg-secondary", 400m, 1);
     public static readonly ModuleGroup LoyaltyMarketing = new(3, "LoyaltyMarketing", "Müşteri Sadakati / Pazarlama", "bi-heart-fill", "bg-danger", 1500m, 2);
     public static readonly ModuleGroup Professional = new(5, "Professional", "Profesyonel", "bi-star-fill", "bg-warning text-dark", 1500m, 3);
     public static readonly ModuleGroup Enterprise = new(6, "Enterprise", "Kurumsal", "bi-building", "bg-primary", 200m, 4);
 
-    public static IEnumerable<ModuleGroup> All => new[] { StockFinance, LoyaltyMarketing, Professional, Enterprise };
+    public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Professional, Enterprise };
     public static ModuleGroup? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
     public static class Ids
     {
+        public const int Core = 0;
         public const int StockFinance = 1;
         public const int LoyaltyMarketing = 3;
         public const int Professional = 5;
         public const int Enterprise = 6;
     }
 
-    /// <summary>Modül ID → Grup ID mapping. Default modüller grupsuz (null, Temel Pakete ait).</summary>
+    /// <summary>
+    /// Modül ID → Grup ID mapping. Her modül tam olarak bir gruba aittir; Temel Paket Id=0.
+    /// IsDefault=true olan modüller burada Core (0) olarak listelenir.
+    /// </summary>
     private static readonly Dictionary<int, int> ModuleGroupMap = new()
     {
-        // Stok Tedarik / Finans (400 TL) — Stok + Finans birleşti
+        // ── Temel Paket (0) — IsDefault=true, her salonda zorunlu ────────────
+        [SalonPortalModules.Ids.SlnDashboard] = Ids.Core,
+        [SalonPortalModules.Ids.SlnClients] = Ids.Core,
+        [SalonPortalModules.Ids.SlnAppointments] = Ids.Core,
+        [SalonPortalModules.Ids.SlnServices] = Ids.Core,
+        [SalonPortalModules.Ids.SlnInvoices] = Ids.Core,
+        [SalonPortalModules.Ids.SlnCash] = Ids.Core,
+        [SalonPortalModules.Ids.SlnStaff] = Ids.Core,
+        [SalonPortalModules.Ids.SlnBranches] = Ids.Core,
+        [SalonPortalModules.Ids.SlnSales] = Ids.Core,
+        [SalonPortalModules.Ids.SlnRecipes] = Ids.Core,
+        [SalonPortalModules.Ids.SlnProfile] = Ids.Core,
+        [SalonPortalModules.Ids.SlnPersonnelPrices] = Ids.Core,
+
+        // ── Stok Tedarik / Finans (1) — 400 TL ─────────────────────────────
         [SalonPortalModules.Ids.SlnProducts] = Ids.StockFinance,
         [SalonPortalModules.Ids.SlnSuppliers] = Ids.StockFinance,
         [SalonPortalModules.Ids.SlnExpenses] = Ids.StockFinance,
-        // Not: SlnCash (Kasa) default modül — Temel pakettedir, buradan hariç.
 
-        // Müşteri Sadakati / Pazarlama (1.500 TL) — Sadakat + Pazarlama birleşti
+        // ── Müşteri Sadakati / Pazarlama (3) — 1.500 TL ────────────────────
         [SalonPortalModules.Ids.SlnGiftCards] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnPackages] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnMemberships] = Ids.LoyaltyMarketing,
@@ -44,19 +61,20 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnWinback] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnReviews] = Ids.LoyaltyMarketing,
 
-        // Profesyonel (1.500 TL)
+        // ── Profesyonel (5) — 1.500 TL ─────────────────────────────────────
         [SalonPortalModules.Ids.SlnNoShowPolicy] = Ids.Professional,
         [SalonPortalModules.Ids.SlnConsentForms] = Ids.Professional,
         [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.Professional,
         [SalonPortalModules.Ids.SlnWaitlist] = Ids.Professional,
-        // SlnPersonnelPrices → Temel paket (IsDefault=true)
 
-        // Kurumsal (200 TL)
+        // ── Kurumsal (6) — 200 TL ───────────────────────────────────────────
         [SalonPortalModules.Ids.SlnReports] = Ids.Enterprise,
-        // SlnBranches → Temel paket (IsDefault=true)
     };
 
-    /// <summary>Modül ID'sine karşılık gelen grup ID'si. null = grupsuz (Temel Pakete ait default modül).</summary>
+    /// <summary>
+    /// Modül ID'sine karşılık gelen grup ID'si.
+    /// Bilinmeyen ID için null döner (katalogda tanımsız modül).
+    /// </summary>
     public static int? GetGroupId(int moduleId) =>
         ModuleGroupMap.TryGetValue(moduleId, out var groupId) ? groupId : null;
 

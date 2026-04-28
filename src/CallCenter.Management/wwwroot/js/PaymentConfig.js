@@ -121,6 +121,22 @@ function PaymentConfigViewModel() {
         }).always(function() { self.isSaving(false); });
     };
 
+    self.activateConfig = function(item) {
+        confirmModal('Aktif Yap', '"' + item.providerName + ' (' + (item.isSandbox ? 'Sandbox' : 'Production') + ')" yapilandirmasini aktif etmek istiyor musunuz? Diger tum yapilandirmalar pasife alinacak.', function () {
+            $.ajax({
+                url: '/proxy/payment-config/' + item.id + '/activate', method: 'PUT',
+                success: function() {
+                    toastr.success(item.providerName + ' ' + (item.isSandbox ? '(Sandbox)' : '(Production)') + ' aktif edildi.');
+                    self.loadData();
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Aktivasyon hatasi.';
+                    toastr.error(msg);
+                }
+            });
+        }, { confirmText: 'Aktif Et', confirmClass: 'btn-success' });
+    };
+
     self.testConnection = function(item) {
         toastr.info('Baglanti testi baslatildi...');
         $.ajax({
