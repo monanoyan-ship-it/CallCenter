@@ -598,6 +598,23 @@ public class PaymentService
                 }
             }
 
+            // Randevu depozitosu ise randevuyu aktif et (StatusId 6 = AwaitingPayment → 1 = Planned)
+            if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
+            {
+                var parts = tx.Notes.Split('|');
+                if (parts.Length > 0 && int.TryParse(parts[0].Replace("Appointment:", ""), out var aptId))
+                {
+                    var apt = await _db.SlnAppointments.FindAsync(aptId);
+                    if (apt != null && apt.StatusId == 6)
+                    {
+                        apt.StatusId = 1;
+                        apt.IsPrepaid = true;
+                        apt.PrepaidAmount = tx.Amount;
+                        apt.PaymentTransactionId = tx.Id;
+                    }
+                }
+            }
+
             await _db.SaveChangesAsync();
             _logger.LogInformation("Checkout odeme basarili: TxUid={TxUid}, PaymentId={PaymentId}", tx.Uid, verifyResult.ProviderPaymentId);
             return PaymentResult.Ok(tx.Uid, verifyResult.ProviderTransactionId);
@@ -610,6 +627,62 @@ public class PaymentService
             await _db.SaveChangesAsync();
             _logger.LogWarning("Checkout odeme basarisiz: TxUid={TxUid}, Hata={Error}", tx.Uid, verifyResult.Error);
             return PaymentResult.Fail(verifyResult.Error ?? "Odeme basarisiz");
+        }
+    }
+
+    /// <summary>Online randevu depozitosu icin Iyzico Checkout Form baslatir (3DS).</summary>
+    public async Task<CheckoutFormResult> InitBookingDepositCheckoutAsync(
+        int customerId, int appointmentId, string slug, decimal amount,
+        string buyerFullName, string buyerEmail, string callbackUrl, string? buyerIp = null)
+    {
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.RandevuOnOdemesi,
+            CustomerId = customerId,
+            Amount = amount,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Provider = PaymentProviders.GetById(config.ProviderTypeId)?.SystemName ?? "Iyzico",
+            Notes = $"Appointment:{appointmentId}|Slug:{slug}"
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var gateway = _gatewayFactory.Create(config);
+            if (gateway is not IyzicoGateway iyzicoGw)
+                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
+
+            var req = new CheckoutFormRequest
+            {
+                Amount = amount,
+                ConversationId = tx.Uid.ToString("N"),
+                CallbackUrl = callbackUrl,
+                BuyerId = $"apt-{appointmentId}",
+                BuyerName = string.IsNullOrWhiteSpace(buyerFullName) ? "Musteri" : buyerFullName,
+                BuyerEmail = string.IsNullOrWhiteSpace(buyerEmail) ? "noreply@corplynk.com" : buyerEmail,
+                BuyerIp = buyerIp,
+                Description = $"Randevu Depozitosu - {amount:N2} TL"
+            };
+
+            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            if (result.Success)
+            {
+                tx.ProviderTransactionId = result.Token;
+                await _db.SaveChangesAsync();
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = ex.Message;
+            await _db.SaveChangesAsync();
+            return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
         }
     }
 

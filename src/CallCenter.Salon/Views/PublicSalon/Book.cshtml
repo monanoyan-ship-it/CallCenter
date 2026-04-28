@@ -316,38 +316,23 @@
             </div>
             <!-- /ko -->
 
-            <!-- Depozito Karti — politika gerektiriyorsa -->
+            <!-- Depozito bilgisi — 3DS ödeme akışı -->
             <!-- ko if: bookingPolicy() && bookingPolicy().requireDeposit && bookingPolicy().depositAmount > 0 -->
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-body">
-                    <h6 class="mb-2"><i class="bi bi-credit-card me-1"></i><t key="salon.book.payment.title">Depozito Ödemesi</t></h6>
-                    <div class="alert alert-info py-1 small mb-2">
-                        <i class="bi bi-info-circle me-1"></i>
+                    <h6 class="mb-2"><i class="bi bi-shield-lock me-1 text-success"></i>Güvenli Ödeme</h6>
+                    <div class="alert alert-info py-2 small mb-0">
+                        <i class="bi bi-lock-fill me-1"></i>
                         <strong data-bind="text: bookingPolicy().depositAmount.toLocaleString('tr-TR') + ' TL'"></strong>
-                        <span><t key="salon.book.payment.charged">tutarinda depozito kartinizdan tahsil edilecektir.</t></span>
-                    </div>
-                    <div class="mb-2">
-                        <input type="text" class="form-control form-control-sm" placeholder="Kart Üzerindeki İsim" data-bind="value: card.cardName" />
-                    </div>
-                    <div class="mb-2">
-                        <input type="text" class="form-control form-control-sm" placeholder="Kart Numarası" maxlength="19"
-                               data-bind="value: card.cardNumber, event: { input: formatCardNumber }" />
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-4">
-                            <input type="text" class="form-control form-control-sm" placeholder="AA" maxlength="2" data-bind="value: card.expMonth" />
-                        </div>
-                        <div class="col-4">
-                            <input type="text" class="form-control form-control-sm" placeholder="YY" maxlength="2" data-bind="value: card.expYear" />
-                        </div>
-                        <div class="col-4">
-                            <input type="text" class="form-control form-control-sm" placeholder="CVC" maxlength="4" data-bind="value: card.cvc" />
-                        </div>
+                        tutarındaki depozito için 3D Secure güvenli ödeme sayfasına yönlendirileceksiniz.
                     </div>
                 </div>
             </div>
             <!-- /ko -->
             <!-- /ko -->
+
+            <!-- Iyzico Checkout Form (ödeme başlatıldıktan sonra) -->
+            <div id="iyzico-checkout-container" style="display:none" class="mt-3"></div>
 
             <!-- ko if: bookingDone() -->
             <div class="text-center py-4">
@@ -369,7 +354,7 @@
             <button class="btn btn-purple" data-bind="visible: currentStep() < 5, click: nextStep, disable: !canProceed()">
                 <t key="salon.book.btn.next">İleri</t><i class="bi bi-arrow-right ms-1"></i>
             </button>
-            <button class="btn btn-purple" data-bind="visible: currentStep() === 5 && !bookingDone(), click: confirmBooking, disable: isSaving">
+            <button class="btn btn-purple" data-bind="visible: currentStep() === 5 && !bookingDone() && !checkoutActive(), click: confirmBooking, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                 <t key="salon.book.btn.confirm">Randevu Al</t>
             </button>
@@ -489,24 +474,8 @@
                   });
             };
 
-            // Card (depozito icin)
-            self.card = {
-                cardName: ko.observable(''),
-                cardNumber: ko.observable(''),
-                expMonth: ko.observable(''),
-                expYear: ko.observable(''),
-                cvc: ko.observable('')
-            };
-
-            // Kart numarasi formatting: blur'da bir kez calisir, input event'inde degil (loop riski)
-            self.formatCardNumber = function (data, event) {
-                if (event && event.type === 'blur') {
-                    var v = (self.card.cardNumber() || '').replace(/\D/g, '');
-                    var f = v.match(/.{1,4}/g);
-                    self.card.cardNumber(f ? f.join(' ') : v);
-                }
-                return true;
-            };
+            // Checkout aktif mi (Iyzico form gösteriliyor)
+            self.checkoutActive = ko.observable(false);
 
             // Computed
             self.selectedServiceName = ko.computed(function () {
@@ -679,17 +648,6 @@
             self.prevStep = function () { self.currentStep(self.currentStep() - 1); };
 
             self.confirmBooking = function () {
-                // Depozito politikasi varsa kart bilgisi zorunlu
-                var policy = self.bookingPolicy();
-                var requireDeposit = policy && policy.requireDeposit && policy.depositAmount > 0;
-                if (requireDeposit) {
-                    var cn = (self.card.cardNumber() || '').replace(/\s/g, '');
-                    if (!cn || cn.length < 15 || !self.card.expMonth() || !self.card.expYear() || !self.card.cvc()) {
-                        toastr.warning('Depozito için kart bilgilerini eksiksiz doldurunuz.');
-                        return;
-                    }
-                }
-
                 self.isSaving(true);
                 var payload = {
                     fullName: self.form.fullName(),
@@ -699,23 +657,13 @@
                     startTime: self.selectedSlot(),
                     notes: self.form.notes()
                 };
-                // Personel seçildiyse onu gönder; fark etmez modunda ama slot'tan oto-atandıysa onu gönder
                 if (self.selectedStaffId() !== null) {
                     payload.personnelId = self.selectedStaffId();
                 } else if (self.autoAssignedStaffId()) {
                     payload.personnelId = self.autoAssignedStaffId();
                 }
-                if (requireDeposit) {
-                    payload.card = {
-                        cardHolderName: self.card.cardName() || self.form.fullName(),
-                        cardNumber: self.card.cardNumber().replace(/\s/g, ''),
-                        expireMonth: self.card.expMonth(),
-                        expireYear: self.card.expYear(),
-                        cvc: self.card.cvc()
-                    };
-                }
 
-                fetch('/proxy/salon/' + bookSlug + '/book', {
+                fetch('/proxy/salon/' + bookSlug + '/book-checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -726,7 +674,15 @@
                 .then(function (res) {
                     self.isSaving(false);
                     if (res.ok && res.data && res.data.success) {
-                        self.bookingDone(true);
+                        if (res.data.requireDeposit && res.data.htmlContent) {
+                            // 3DS ödeme formu göster
+                            self.checkoutActive(true);
+                            var container = document.getElementById('iyzico-checkout-container');
+                            container.style.display = '';
+                            $(container).html(res.data.htmlContent);
+                        } else {
+                            self.bookingDone(true);
+                        }
                     } else {
                         var msg = (res.data && (res.data.message || res.data)) || 'Randevu oluşturulamadı.';
                         toastr.error(typeof msg === 'string' ? msg : 'Randevu oluşturulamadı.');
@@ -737,9 +693,48 @@
                     self.isSaving(false);
                 });
             };
+
+            // Iyzico postMessage listener (iframe callback sonrasi)
+            window.addEventListener('message', function (e) {
+                if (e.data === 'payment-success' || (e.data && e.data.type === 'payment-success')) {
+                    self.checkoutActive(false);
+                    document.getElementById('iyzico-checkout-container').style.display = 'none';
+                    self.bookingDone(true);
+                } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
+                    self.checkoutActive(false);
+                    document.getElementById('iyzico-checkout-container').style.display = 'none';
+                    toastr.error((e.data && e.data.error) || 'Ödeme başarısız oldu. Lütfen tekrar deneyin.');
+                }
+            });
         }
 
-        ko.applyBindings(new BookViewModel(), document.getElementById('book-vm'));
+        var bookVm = new BookViewModel();
+        ko.applyBindings(bookVm, document.getElementById('book-vm'));
+
+        // Iyzico 3DS tam-sayfa yönlendirme dönüşü: /salon/{slug}/book?iyzicoToken=...&paid=true/false
+        (function handleIyzicoReturn() {
+            var p = new URLSearchParams(window.location.search);
+            var token = p.get('iyzicoToken');
+            if (!token) return;
+
+            var paid = p.get('paid') === 'true';
+            var payerr = p.get('payerr');
+
+            // URL'i temizle
+            var u = new URL(window.location.href);
+            u.searchParams.delete('iyzicoToken');
+            u.searchParams.delete('paid');
+            u.searchParams.delete('payerr');
+            var q = u.searchParams.toString();
+            window.history.replaceState({}, '', u.pathname + (q ? '?' + q : '') + u.hash);
+
+            if (paid) {
+                bookVm.currentStep(5);
+                bookVm.bookingDone(true);
+            } else {
+                toastr.error(payerr ? decodeURIComponent(payerr) : 'Ödeme tamamlanamadı. Lütfen tekrar deneyin.');
+            }
+        })();
     </script>
 </body>
 </html>

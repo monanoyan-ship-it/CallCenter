@@ -1,5 +1,6 @@
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Api.Controllers;
@@ -12,8 +13,13 @@ namespace CallCenter.Api.Controllers;
 public class SlnPublicController : ControllerBase
 {
     private readonly ISlnPublicFactory _publicFactory;
+    private readonly IConfiguration _configuration;
 
-    public SlnPublicController(ISlnPublicFactory publicFactory) => _publicFactory = publicFactory;
+    public SlnPublicController(ISlnPublicFactory publicFactory, IConfiguration configuration)
+    {
+        _publicFactory = publicFactory;
+        _configuration = configuration;
+    }
 
     /// <summary>Slug ile salon profili getir (branch slug veya eski profile slug)</summary>
     [HttpGet("{slug}")]
@@ -115,6 +121,18 @@ public class SlnPublicController : ControllerBase
         return success ? Ok(result) : BadRequest(new { message = error });
     }
 
+    /// <summary>3DS checkout ile online randevu olustur (depozito varsa Iyzico form HTML doner)</summary>
+    [HttpPost("{slug}/book-checkout")]
+    [AllowAnonymous]
+    public async Task<ActionResult> BookCheckout(string slug, [FromBody] SlnOnlineBookingDto dto)
+    {
+        var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var (success, error, result) = await _publicFactory.BookCheckoutAsync(slug, dto, callbackUrl, buyerIp);
+        if (!success && error == "Salon bulunamadi") return NotFound();
+        return success ? Ok(result) : BadRequest(new { message = error });
+    }
+
     /// <summary>Bekleme listesine kaydol (musait saat yoksa - auth gerekmez)</summary>
     [HttpPost("{slug}/waitlist")]
     public async Task<ActionResult> JoinWaitlist(string slug, [FromBody] SlnPublicWaitlistDto dto)
@@ -122,5 +140,13 @@ public class SlnPublicController : ControllerBase
         var (success, error, result) = await _publicFactory.JoinWaitlistAsync(slug, dto);
         if (!success && error == "Salon bulunamadi") return NotFound();
         return success ? Ok(result) : BadRequest(new { message = error });
+    }
+
+    private string GetApiBaseUrl()
+    {
+        var configured = _configuration["ApiBaseUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+            return configured.TrimEnd('/');
+        return $"{Request.Scheme}://{Request.Host}";
     }
 }

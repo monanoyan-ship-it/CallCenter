@@ -830,6 +830,167 @@ public class SlnPublicFactory : ISlnPublicFactory
         });
     }
 
+    public async Task<(bool Success, string? Error, object? Result)> BookCheckoutAsync(string slug, SlnOnlineBookingDto dto, string callbackUrl, string? buyerIp = null)
+    {
+        var customerId = await ResolveCustomerIdAsync(slug);
+        if (customerId == null) return (false, "Salon bulunamadi", null);
+        var cid = customerId.Value;
+
+        var service = await _services.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
+        if (service == null) return (false, "Hizmet bulunamadi", null);
+
+        var start = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Utc);
+        var end = start.AddMinutes(service.DurationMinutes);
+
+        // Kapalı gün kontrolü
+        var bookBranch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive)
+            ?? await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == cid && b.IsHeadquarter);
+
+        if (!string.IsNullOrEmpty(bookBranch?.WorkingHoursJson))
+        {
+            try
+            {
+                var bookDayKey = start.DayOfWeek switch
+                {
+                    DayOfWeek.Monday => "mon", DayOfWeek.Tuesday => "tue", DayOfWeek.Wednesday => "wed",
+                    DayOfWeek.Thursday => "thu", DayOfWeek.Friday => "fri", DayOfWeek.Saturday => "sat",
+                    _ => "sun"
+                };
+                var wh = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(bookBranch.WorkingHoursJson);
+                if (wh != null && wh.TryGetValue(bookDayKey, out var whVal) && whVal == "closed")
+                    return (false, "Salon bu gun kapalidir. Lutfen baska bir tarih secin.", null);
+            }
+            catch { }
+        }
+
+        // Personel belirle + overlap kontrolü
+        var resolvedPersonnelId = dto.PersonnelId ?? 0;
+        if (resolvedPersonnelId == 0)
+        {
+            var skilledForBook = await _skills.GetAllQueryable()
+                .Where(s => s.ServiceId == dto.ServiceId)
+                .Select(s => s.PersonnelId)
+                .Distinct()
+                .ToListAsync();
+
+            var bookStaffQuery = _personnel.GetAllQueryable()
+                .Where(p => p.CustomerId == cid && p.IsActive
+                         && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+
+            if (skilledForBook.Count > 0)
+                bookStaffQuery = bookStaffQuery.Where(p => skilledForBook.Contains(p.Id));
+
+            var busyPersonnelIds = await _appointments.GetAllQueryable()
+                .Where(a => a.CustomerId == cid
+                         && a.StatusId != 4
+                         && a.StartTime < end && a.EndTime > start)
+                .Select(a => a.PersonnelId)
+                .ToListAsync();
+
+            var freePersonnel = await bookStaffQuery
+                .Where(p => !busyPersonnelIds.Contains(p.Id))
+                .FirstOrDefaultAsync();
+
+            if (freePersonnel == null)
+                return (false, "Secilen saatte musait personel bulunamamadi. Lutfen baska bir saat secin.", null);
+
+            resolvedPersonnelId = freePersonnel.Id;
+        }
+        else
+        {
+            var hasOverlap = await _appointments.GetAllQueryable()
+                .AnyAsync(a => a.PersonnelId == resolvedPersonnelId
+                            && a.CustomerId == cid
+                            && a.StatusId != 4
+                            && a.StartTime < end
+                            && a.EndTime > start);
+
+            if (hasOverlap)
+                return (false, "Secilen personel bu saatte baska bir randevuya sahip. Lutfen baska bir saat secin.", null);
+        }
+
+        // Politika kontrol
+        var policy = await _noShowPolicies.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == cid);
+        var requireDeposit = policy?.IsActive == true && policy.RequireDeposit && policy.DepositAmount > 0;
+        var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
+
+        // Müşteri bul / oluştur
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
+
+        if (client == null)
+        {
+            client = new SlnClient
+            {
+                CustomerId = cid,
+                FullName = dto.FullName,
+                Phone = dto.Phone,
+                Email = dto.Email
+            };
+            _clients.Add(client);
+            await _uow.SaveChangesAsync();
+        }
+        else if (client.IsBlacklisted)
+        {
+            return (false, "Gecmis randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen salonu arayiniz.", null);
+        }
+
+        // Randevu oluştur (depozito varsa StatusId=6: AwaitingPayment)
+        var appointment = new SlnAppointment
+        {
+            CustomerId = cid,
+            SlnClientId = client.Id,
+            PersonnelId = resolvedPersonnelId,
+            ServiceId = dto.ServiceId,
+            StartTime = start,
+            EndTime = end,
+            StatusId = requireDeposit ? 6 : 1,
+            Notes = dto.Notes,
+            DepositAmount = depositAmount
+        };
+
+        _appointments.Add(appointment);
+        await _uow.SaveChangesAsync();
+
+        if (!requireDeposit)
+        {
+            return (true, null, new
+            {
+                success = true,
+                requireDeposit = false,
+                appointmentId = appointment.Id,
+                message = "Randevunuz alindi. Salon tarafindan onaylanacaktir."
+            });
+        }
+
+        // Depozito gerekli → Iyzico checkout form başlat
+        var checkoutResult = await _paymentService.InitBookingDepositCheckoutAsync(
+            cid, appointment.Id, slug, depositAmount,
+            dto.FullName, dto.Email ?? "noreply@corplynk.com", callbackUrl, buyerIp);
+
+        if (!checkoutResult.Success)
+        {
+            appointment.StatusId = 4; // Cancelled
+            await _uow.SaveChangesAsync();
+            return (false, "Odeme formu olusturulamadi: " + checkoutResult.Error, null);
+        }
+
+        return (true, null, new
+        {
+            success = true,
+            requireDeposit = true,
+            appointmentId = appointment.Id,
+            depositAmount,
+            htmlContent = checkoutResult.HtmlContent,
+            token = checkoutResult.Token,
+            message = $"Randevunuz olusturuldu. {depositAmount:N2} TL depozito icin lutfen odeme formunu doldurun."
+        });
+    }
+
     public async Task<(bool Success, string? Error, object? Result)> JoinWaitlistAsync(string slug, SlnPublicWaitlistDto dto)
     {
         var customerId = await ResolveCustomerIdAsync(slug);

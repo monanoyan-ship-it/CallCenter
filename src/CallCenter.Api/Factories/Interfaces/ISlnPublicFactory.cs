@@ -17,6 +17,9 @@ public interface ISlnPublicFactory
     Task<object?> GetBookingPolicyAsync(string slug);
     Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto, string? buyerIp = null);
 
+    /// <summary>3DS checkout ile randevu olusturur. Depozito varsa Iyzico form HTML doner; yoksa direkt randevu olusturur.</summary>
+    Task<(bool Success, string? Error, object? Result)> BookCheckoutAsync(string slug, SlnOnlineBookingDto dto, string callbackUrl, string? buyerIp = null);
+
     /// <summary>Public bekleme listesi basvurusu (musait saat yoksa). Telefon ile ayni musteri varsa onu kullanir, yoksa olusturur.</summary>
     Task<(bool Success, string? Error, object? Result)> JoinWaitlistAsync(string slug, SlnPublicWaitlistDto dto);
 }

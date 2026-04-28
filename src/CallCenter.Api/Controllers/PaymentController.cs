@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using CallCenter.Api.Services;
+using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -180,7 +181,7 @@ public class PaymentController : ControllerBase
     {
         if (string.IsNullOrEmpty(token)) return BadRequest("Token eksik.");
         var result = await _paymentService.CompleteCheckoutAsync(token);
-        var topLevelReturn = await BuildIyzicoTopLevelReturnUrlAsync(token);
+        var topLevelReturn = await BuildIyzicoTopLevelReturnUrlAsync(token, result.Success, result.Error);
         var html = BuildIyzicoCallbackHtmlPage(result.Success, result.Error, token, topLevelReturn);
         return Content(html, "text/html; charset=utf-8");
     }
@@ -189,7 +190,7 @@ public class PaymentController : ControllerBase
     /// Ust pencere / tam ekran donusu: Iyzico POST cevabini gosteren sayfa, Salon(veya Web) uzerine yonlendirir;
     /// iframe: parent.postMessage. Popup: opener + close, olmazsa ayni URL.
     /// </summary>
-    private async Task<string> BuildIyzicoTopLevelReturnUrlAsync(string token)
+    private async Task<string> BuildIyzicoTopLevelReturnUrlAsync(string token, bool paymentSuccess = false, string? error = null)
     {
         var tx = await _paymentService.GetTransactionByTokenAsync(token);
         var salon = (_configuration["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
@@ -198,12 +199,31 @@ public class PaymentController : ControllerBase
         if (tx == null)
             return $"{salon}/Modules?iyzicoToken={t}";
 
+        if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
+            return BuildBookingReturnUrl(tx, salon, t, paymentSuccess, error);
+
         return tx.PaymentTypeId switch
         {
             PaymentTypes.Ids.ModulSatinAlma => $"{salon}/Modules?iyzicoToken={t}",
             PaymentTypes.Ids.PlatformAbonelik => $"{web}/?iyzicoToken={t}",
             _ => $"{salon}/Modules?iyzicoToken={t}"
         };
+    }
+
+    private static string BuildBookingReturnUrl(PaymentTransaction tx, string salonBase, string t, bool success, string? error)
+    {
+        var slug = "";
+        var parts = tx.Notes?.Split('|') ?? Array.Empty<string>();
+        foreach (var part in parts)
+            if (part.StartsWith("Slug:")) slug = part.Replace("Slug:", "");
+
+        if (string.IsNullOrEmpty(slug))
+            return $"{salonBase}/Modules?iyzicoToken={t}";
+
+        var url = $"{salonBase}/salon/{slug}/book?iyzicoToken={t}&paid={success.ToString().ToLower()}";
+        if (!success && !string.IsNullOrEmpty(error))
+            url += $"&payerr={Uri.EscapeDataString(error)}";
+        return url;
     }
 
     private static string BuildIyzicoCallbackHtmlPage(bool success, string? error, string token, string topLevelReturnUrl)
