@@ -645,7 +645,9 @@ public class PaymentService
                 Cvc = card.Cvc,
                 Installment = card.Installment,
                 ConversationId = tx.Uid.ToString("N"),
-                BuyerName = card.CardHolderName,
+                BuyerName = card.BuyerFullName ?? card.CardHolderName,
+                BuyerEmail = card.BuyerEmail,
+                BuyerPhone = card.BuyerPhone,
                 BuyerIp = buyerIp,
                 Description = $"Odeme #{tx.Uid:N}"
             };
@@ -688,6 +690,10 @@ public class PaymentCardInfo
     public string? ExpireYear { get; set; }
     public string? Cvc { get; set; }
     public int Installment { get; set; }
+    // Iyzico fraud kontrolu icin alici bilgileri
+    public string? BuyerFullName { get; set; }
+    public string? BuyerEmail { get; set; }
+    public string? BuyerPhone { get; set; }
 }
 
 public class PaymentResult
