@@ -98,9 +98,9 @@ public class SlnPublicController : ControllerBase
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
     [HttpGet("{slug}/available-slots")]
-    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date)
+    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date, [FromQuery] int? personnelId = null)
     {
-        var result = await _publicFactory.GetAvailableSlotsAsync(slug, serviceId, date);
+        var result = await _publicFactory.GetAvailableSlotsAsync(slug, serviceId, date, personnelId);
         if (result == null) return BadRequest("Hizmet bulunamadi");
         return Ok(result);
     }

@@ -426,7 +426,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     }
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
-    public async Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date)
+    public async Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date, int? personnelId = null)
     {
         var customerId = await ResolveCustomerIdAsync(slug);
         if (customerId == null) return null;
@@ -447,7 +447,9 @@ public class SlnPublicFactory : ISlnPublicFactory
             _ => "sun"
         };
 
+        // Calisma saatlerini coz
         var openHour = 9; var closeHour = 19;
+        bool isClosed = false;
         var workingHoursJson = branch?.WorkingHoursJson;
         if (!string.IsNullOrEmpty(workingHoursJson))
         {
@@ -456,37 +458,79 @@ public class SlnPublicFactory : ISlnPublicFactory
                 var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(workingHoursJson);
                 if (hours != null && hours.TryGetValue(dayKey, out var val))
                 {
-                    if (val == "closed") return new List<object>();
-                    var parts = val.Split('-');
-                    if (parts.Length == 2)
+                    if (val == "closed")
+                        isClosed = true;
+                    else
                     {
-                        openHour = int.Parse(parts[0].Split(':')[0]);
-                        closeHour = int.Parse(parts[1].Split(':')[0]);
+                        var parts = val.Split('-');
+                        if (parts.Length == 2)
+                        {
+                            openHour = int.Parse(parts[0].Split(':')[0]);
+                            closeHour = int.Parse(parts[1].Split(':')[0]);
+                        }
                     }
                 }
             }
-            catch { }
+            catch { isClosed = true; } // parse hatasi = kapalı say
         }
 
-        // Mevcut randevulari al (UTC kind — Npgsql timestamptz icin)
-        var dayStart = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
-        var dayEnd = dayStart.AddDays(1);
-        var existingAppointments = await _appointments.GetAllQueryable()
-            .Where(a => a.CustomerId == cid && a.StartTime >= dayStart && a.StartTime < dayEnd && a.StatusId != 4)
-            .Select(a => new { a.StartTime, a.EndTime })
+        if (isClosed)
+            return new { isClosed = true, slots = new List<object>() };
+
+        // Hizmet icin yetenekli personelleri bul
+        var skilledIds = await _skills.GetAllQueryable()
+            .Where(s => s.ServiceId == serviceId)
+            .Select(s => s.PersonnelId)
+            .Distinct()
             .ToListAsync();
 
-        // Musait slotlari hesapla (30 dk aralikla)
-        // ISO string olarak Z suffix'siz dondurulur ki JS local time olarak yorumlasin.
-        var slots = new List<object>();
-        var slotDuration = service.DurationMinutes;
-        // Slot'lar salonun yerel saatinde kurulur. "Simdi" de salonun TZ'sine gore hesaplanir.
+        var staffQuery = _personnel.GetAllQueryable()
+            .Where(p => p.CustomerId == cid && p.IsActive
+                     && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+
+        if (skilledIds.Count > 0)
+            staffQuery = staffQuery.Where(p => skilledIds.Contains(p.Id));
+
+        // Belirli personel istendiyse sadece onu al
+        if (personnelId.HasValue)
+            staffQuery = staffQuery.Where(p => p.Id == personnelId.Value);
+
+        var allStaff = await staffQuery
+            .Include(p => p.User)
+            .OrderBy(p => p.User.FullName)
+            .Select(p => new
+            {
+                p.Id,
+                Name = p.PublicShowFullName ? p.User.FullName : p.User.FullName.Split(' ')[0],
+                p.PhotoUrl
+            })
+            .ToListAsync();
+
+        if (allStaff.Count == 0)
+            return new { isClosed = false, slots = new List<object>() };
+
+        // Gunun randevularini personel bazinda yukle
+        var dayStart = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var dayEnd = dayStart.AddDays(1);
+        var staffIds = allStaff.Select(s => s.Id).ToList();
+        var existingAppointments = await _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == cid
+                     && staffIds.Contains(a.PersonnelId)
+                     && a.StartTime >= dayStart && a.StartTime < dayEnd
+                     && a.StatusId != 4)
+            .Select(a => new { a.PersonnelId, a.StartTime, a.EndTime })
+            .ToListAsync();
+
+        // Zaman dilimi
         var salonTzId = branch?.Customer?.TimeZone ?? "Europe/Istanbul";
         TimeZoneInfo salonTz;
         try { salonTz = TimeZoneInfo.FindSystemTimeZoneById(salonTzId); }
         catch { salonTz = TimeZoneInfo.Utc; }
-        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, salonTz);
-        var nowForCompare = DateTime.SpecifyKind(nowLocal, DateTimeKind.Utc);
+        var nowForCompare = DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, salonTz), DateTimeKind.Utc);
+
+        var slots = new List<object>();
+        var slotDuration = service.DurationMinutes;
+
         for (var hour = openHour; hour < closeHour; hour++)
         {
             for (var min = 0; min < 60; min += 30)
@@ -497,20 +541,41 @@ public class SlnPublicFactory : ISlnPublicFactory
                 if (slotEnd > dayStart.AddHours(closeHour)) break;
                 if (slotStart < nowForCompare) continue;
 
-                var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
-                if (!hasConflict)
-                {
-                    slots.Add(new
+                // Bu slotta hangi personeller musait?
+                var freeStaff = allStaff.Where(s =>
+                    !existingAppointments.Any(a =>
+                        a.PersonnelId == s.Id &&
+                        slotStart < a.EndTime && slotEnd > a.StartTime))
+                    .Select(s => new
                     {
-                        startTime = slotStart.ToString("yyyy-MM-ddTHH:mm:ss"),
-                        endTime = slotEnd.ToString("yyyy-MM-ddTHH:mm:ss"),
-                        timeText = slotStart.ToString("HH:mm")
-                    });
-                }
+                        id = s.Id,
+                        name = s.Name,
+                        initials = BuildInitials(s.Name),
+                        photoUrl = s.PhotoUrl
+                    })
+                    .ToList();
+
+                if (freeStaff.Count == 0) continue; // hic musait personel yok
+
+                slots.Add(new
+                {
+                    startTime = slotStart.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    endTime = slotEnd.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    timeText = slotStart.ToString("HH:mm"),
+                    availableStaff = freeStaff
+                });
             }
         }
 
-        return slots;
+        return new { isClosed = false, slots };
+    }
+
+    private static string BuildInitials(string name)
+    {
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
     }
 
     /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
@@ -645,28 +710,96 @@ public class SlnPublicFactory : ISlnPublicFactory
         // Randevu olustur (StatusId=1: Planlanmis, onay bekliyor)
         // Npgsql timestamptz Utc kind bekler — local/unspecified -> utc kind olarak isaretle (saat degismez)
         var start = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Utc);
+        var end = start.AddMinutes(service.DurationMinutes);
+
+        // Kapalı gün kontrolü
+        var bookBranch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive)
+            ?? await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == cid && b.IsHeadquarter);
+
+        if (!string.IsNullOrEmpty(bookBranch?.WorkingHoursJson))
+        {
+            try
+            {
+                var bookDayKey = start.DayOfWeek switch
+                {
+                    DayOfWeek.Monday => "mon", DayOfWeek.Tuesday => "tue", DayOfWeek.Wednesday => "wed",
+                    DayOfWeek.Thursday => "thu", DayOfWeek.Friday => "fri", DayOfWeek.Saturday => "sat",
+                    _ => "sun"
+                };
+                var wh = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(bookBranch.WorkingHoursJson);
+                if (wh != null && wh.TryGetValue(bookDayKey, out var whVal) && whVal == "closed")
+                    return (false, "Salon bu gun kapalidir. Lutfen baska bir tarih secin.", null);
+            }
+            catch { }
+        }
+
+        // Personel belirle (0 ise musait birini sec)
+        var resolvedPersonnelId = dto.PersonnelId ?? 0;
+        if (resolvedPersonnelId == 0)
+        {
+            // Hizmeti yapabilecek ve bu saatte musait olan ilk personeli bul
+            var skilledForBook = await _skills.GetAllQueryable()
+                .Where(s => s.ServiceId == dto.ServiceId)
+                .Select(s => s.PersonnelId)
+                .Distinct()
+                .ToListAsync();
+
+            var bookStaffQuery = _personnel.GetAllQueryable()
+                .Where(p => p.CustomerId == cid && p.IsActive
+                         && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+
+            if (skilledForBook.Count > 0)
+                bookStaffQuery = bookStaffQuery.Where(p => skilledForBook.Contains(p.Id));
+
+            var dayStartForBook = DateTime.SpecifyKind(start.Date, DateTimeKind.Utc);
+            var dayEndForBook = dayStartForBook.AddDays(1);
+
+            var busyPersonnelIds = await _appointments.GetAllQueryable()
+                .Where(a => a.CustomerId == cid
+                         && a.StatusId != 4
+                         && a.StartTime < end && a.EndTime > start)
+                .Select(a => a.PersonnelId)
+                .ToListAsync();
+
+            var freePersonnel = await bookStaffQuery
+                .Where(p => !busyPersonnelIds.Contains(p.Id))
+                .FirstOrDefaultAsync();
+
+            if (freePersonnel == null)
+                return (false, "Secilen saatte musait personel bulunamamadi. Lutfen baska bir saat secin.", null);
+
+            resolvedPersonnelId = freePersonnel.Id;
+        }
+        else
+        {
+            // Belirtilen personelin o saatte baska randevusu var mi?
+            var hasOverlap = await _appointments.GetAllQueryable()
+                .AnyAsync(a => a.PersonnelId == resolvedPersonnelId
+                            && a.CustomerId == cid
+                            && a.StatusId != 4
+                            && a.StartTime < end
+                            && a.EndTime > start);
+
+            if (hasOverlap)
+                return (false, "Secilen personel bu saatte baska bir randevuya sahip. Lutfen baska bir saat secin.", null);
+        }
+
         var appointment = new SlnAppointment
         {
             CustomerId = cid,
             SlnClientId = client.Id,
-            PersonnelId = dto.PersonnelId ?? 0,
+            PersonnelId = resolvedPersonnelId,
             ServiceId = dto.ServiceId,
             StartTime = start,
-            EndTime = start.AddMinutes(service.DurationMinutes),
+            EndTime = end,
             StatusId = 1,
             Notes = dto.Notes,
             DepositAmount = depositAmount,
             IsPrepaid = requireDeposit,
             PrepaidAmount = requireDeposit ? depositAmount : 0
         };
-
-        // PersonnelId 0 ise ilk musait personeli ata
-        if (appointment.PersonnelId == 0)
-        {
-            var firstPersonnel = await _personnel.GetAllQueryable()
-                .FirstOrDefaultAsync(p => p.CustomerId == cid && p.IsActive);
-            appointment.PersonnelId = firstPersonnel?.Id ?? 0;
-        }
 
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();

@@ -29,8 +29,13 @@
         .staff-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .category-header { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; padding: .5rem .75rem; border-radius: 8px; background: #f8f9fa; }
         .category-header:hover { background: #ede7f6; }
-        .slot-btn { min-width: 80px; }
+        .slot-btn { min-width: 80px; position: relative; }
         .slot-btn.selected { background: #7b1fa2 !important; color: #fff !important; border-color: #7b1fa2 !important; }
+        .slot-avatars { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+        .slot-avatar { width: 20px; height: 20px; border-radius: 50%; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: #7b1fa2; color: #fff; border: 1.5px solid #fff; overflow: hidden; }
+        .slot-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .slot-btn.selected .slot-avatar { border-color: rgba(255,255,255,.6); }
+        .day-closed-alert { background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px; padding: .75rem 1rem; }
         .btn-purple { background: #7b1fa2; border: none; color: #fff; }
         .btn-purple:hover { background: #6a1b9a; color: #fff; }
         .policy-info { background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px; }
@@ -145,16 +150,43 @@
                 <label class="form-label small fw-semibold"><t key="salon.book.select_date">Tarih Seçin</t></label>
                 <input type="date" class="form-control" data-bind="value: selectedDate" />
             </div>
-            <div data-bind="visible: slots().length > 0">
+
+            <!-- Salon kapalı uyarısı -->
+            <div data-bind="visible: slotsLoaded() && isDayClosed()" class="day-closed-alert mb-3">
+                <i class="bi bi-shop-window me-2" style="color:#ff9800;"></i>
+                <strong>Salon bu gün kapalı.</strong> Lütfen başka bir tarih seçin.
+            </div>
+
+            <!-- Personel seçilmemiş bilgi bandı -->
+            <div data-bind="visible: !isDayClosed() && selectedStaffId() === null && slots().length > 0" class="alert alert-info py-2 small mb-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Her saatin yanında o saatte müsait personeller gösterilmektedir. Saati seçtiğinizde otomatik atanır.
+            </div>
+
+            <div data-bind="visible: !isDayClosed() && slots().length > 0">
                 <label class="form-label small fw-semibold"><t key="salon.book.available_times">Müsait Saatler</t></label>
                 <div class="d-flex flex-wrap gap-2">
                     <!-- ko foreach: slots -->
                     <button class="btn btn-outline-secondary btn-sm slot-btn"
-                            data-bind="text: label, click: $root.selectSlot, css: { selected: $root.selectedSlot() === startTime }"></button>
+                            data-bind="click: $root.selectSlot, css: { selected: $root.selectedSlot() === startTime }">
+                        <span data-bind="text: timeText"></span>
+                        <!-- ko if: $root.selectedStaffId() === null -->
+                        <div class="slot-avatars">
+                            <!-- ko foreach: availableStaff -->
+                            <!-- ko if: photoUrl -->
+                            <div class="slot-avatar" data-bind="attr: { title: name }"><img data-bind="attr: { src: photoUrl }" /></div>
+                            <!-- /ko -->
+                            <!-- ko ifnot: photoUrl -->
+                            <div class="slot-avatar" data-bind="text: initials, attr: { title: name }"></div>
+                            <!-- /ko -->
+                            <!-- /ko -->
+                        </div>
+                        <!-- /ko -->
+                    </button>
                     <!-- /ko -->
                 </div>
             </div>
-            <div data-bind="visible: slotsLoaded() && slots().length === 0" class="text-center text-muted py-4">
+            <div data-bind="visible: slotsLoaded() && !isDayClosed() && slots().length === 0" class="text-center text-muted py-4">
                 <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3;"></i>
                 <p class="mt-2 small"><t key="salon.book.no_slots">Bu tarih için müsait saat bulunamadı</t></p>
                 <button class="btn btn-outline-purple btn-sm mt-2" style="border:1px solid #7b1fa2;color:#7b1fa2;"
@@ -245,7 +277,7 @@
                     <h6 class="mb-3"><t key="salon.book.summary">Randevu Özeti</t></h6>
                     <table class="table table-sm table-borderless mb-0">
                         <tr><td class="text-muted"><t key="salon.book.summary.service">Hizmet</t></td><td class="fw-semibold" data-bind="text: selectedServiceName()"></td></tr>
-                        <tr><td class="text-muted"><t key="salon.book.sum.staff">Personel</t></td><td data-bind="text: selectedStaffName()"></td></tr>
+                        <tr><td class="text-muted"><t key="salon.book.sum.staff">Personel</t></td><td data-bind="text: confirmedStaffName()"></td></tr>
                         <tr><td class="text-muted"><t key="salon.book.summary.date">Tarih</t></td><td data-bind="text: formattedDate()"></td></tr>
                         <tr><td class="text-muted"><t key="salon.book.summary.time">Saat</t></td><td data-bind="text: selectedSlotLabel()"></td></tr>
                         <tr><td class="text-muted"><t key="salon.book.sum.price">Fiyat</t></td><td class="fw-bold text-primary" data-bind="text: selectedServicePrice()"></td></tr>
@@ -374,6 +406,10 @@
             self.slots = ko.observableArray([]);
             self.slotsLoaded = ko.observable(false);
             self.selectedSlot = ko.observable(null);
+            self.isDayClosed = ko.observable(false);
+            // Slot seçildiğinde hangi personel atandı (fark etmez modunda)
+            self.autoAssignedStaffId = ko.observable(null);
+            self.autoAssignedStaffName = ko.observable(null);
 
             // Step
             self.currentStep = ko.observable(1);
@@ -500,6 +536,12 @@
                 return staff ? staff.name : '';
             });
 
+            // Onay sayfasında gösterilecek personel: "fark etmez" modunda slot'tan otomatik atananı göster
+            self.confirmedStaffName = ko.computed(function () {
+                if (self.selectedStaffId() !== null) return self.selectedStaffName();
+                return self.autoAssignedStaffName() ? self.autoAssignedStaffName() + ' (otomatik)' : 'Fark etmez';
+            });
+
             self.formattedDate = ko.computed(function () {
                 var d = self.selectedDate();
                 if (!d) return '';
@@ -511,7 +553,7 @@
                 var st = self.selectedSlot();
                 if (!st) return '';
                 var s = self.slots().find(function (x) { return x.startTime === st; });
-                return s ? s.label : '';
+                return s ? s.timeText : '';
             });
 
             self.canProceed = ko.computed(function () {
@@ -586,19 +628,43 @@
                 if (!sid || !date) return;
                 self.slotsLoaded(false);
                 self.selectedSlot(null);
+                self.isDayClosed(false);
+                self.autoAssignedStaffId(null);
+                self.autoAssignedStaffName(null);
 
-                fetch('/proxy/salon/' + bookSlug + '/available-slots?serviceId=' + sid + '&date=' + date)
+                var url = '/proxy/salon/' + bookSlug + '/available-slots?serviceId=' + sid + '&date=' + date;
+                if (self.selectedStaffId() !== null) {
+                    url += '&personnelId=' + self.selectedStaffId();
+                }
+
+                fetch(url)
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
-                        var items = data.map(function (s) {
-                            return { startTime: s.startTime, label: s.timeText || s.startTime.substring(11, 16) };
-                        });
-                        self.slots(items);
+                        // API yeni format: { isClosed, slots }
+                        if (data && typeof data.isClosed !== 'undefined') {
+                            self.isDayClosed(data.isClosed);
+                            self.slots(data.slots || []);
+                        } else {
+                            // Eski format (dizi) fallback
+                            self.isDayClosed(false);
+                            self.slots(Array.isArray(data) ? data : []);
+                        }
                         self.slotsLoaded(true);
-                    });
+                    })
+                    .catch(function () { self.slotsLoaded(true); });
             };
 
-            self.selectSlot = function (slot) { self.selectedSlot(slot.startTime); };
+            self.selectSlot = function (slot) {
+                self.selectedSlot(slot.startTime);
+                // Fark etmez modunda: slottaki ilk müsait personeli otomatik ata (sadece onay ekranı için)
+                if (self.selectedStaffId() === null && slot.availableStaff && slot.availableStaff.length > 0) {
+                    self.autoAssignedStaffId(slot.availableStaff[0].id);
+                    self.autoAssignedStaffName(slot.availableStaff[0].name);
+                } else {
+                    self.autoAssignedStaffId(null);
+                    self.autoAssignedStaffName(null);
+                }
+            };
 
             self.nextStep = function () {
                 if (!self.canProceed()) return;
@@ -631,8 +697,11 @@
                     startTime: self.selectedSlot(),
                     notes: self.form.notes()
                 };
+                // Personel seçildiyse onu gönder; fark etmez modunda ama slot'tan oto-atandıysa onu gönder
                 if (self.selectedStaffId() !== null) {
                     payload.personnelId = self.selectedStaffId();
+                } else if (self.autoAssignedStaffId()) {
+                    payload.personnelId = self.autoAssignedStaffId();
                 }
                 if (requireDeposit) {
                     payload.card = {
