@@ -106,6 +106,30 @@
                         </div>
                         <!-- /ko -->
 
+                        <!-- Fotograf (sadece edit modunda) -->
+                        <!-- ko if: isEditing() -->
+                        <div class="col-12">
+                            <label class="form-label small">Profil Fotografı</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <!-- ko if: form.photoUrl() -->
+                                <img data-bind="attr: { src: form.photoUrl }" class="rounded-circle" style="width:60px;height:60px;object-fit:cover;border:2px solid #dee2e6;" />
+                                <!-- /ko -->
+                                <!-- ko ifnot: form.photoUrl() -->
+                                <div class="rounded-circle d-flex align-items-center justify-content-center bg-light" style="width:60px;height:60px;border:2px solid #dee2e6;">
+                                    <i class="bi bi-person fs-3 text-muted"></i>
+                                </div>
+                                <!-- /ko -->
+                                <label class="btn btn-outline-secondary btn-sm mb-0" data-bind="css: { disabled: isUploadingPhoto() }">
+                                    <span data-bind="visible: isUploadingPhoto()" class="spinner-border spinner-border-sm me-1"></span>
+                                    <i class="bi bi-upload me-1" data-bind="visible: !isUploadingPhoto()"></i>
+                                    <span data-bind="text: isUploadingPhoto() ? 'Yukleniyor...' : 'Fotograf Sec'"></span>
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: uploadPhoto }, disable: isUploadingPhoto" />
+                                </label>
+                                <small class="text-muted">Max 3 MB, JPEG/PNG/WebP</small>
+                            </div>
+                        </div>
+                        <!-- /ko -->
+
                         <div class="col-12">
                             <label class="form-label small">Ad Soyad *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -15,12 +16,14 @@ public class PortalController : AuditableControllerBase
     private readonly IPortalFactory _portalFactory;
     private readonly IOrganizationFactory _orgFactory;
     private readonly ICustomerFactory _customerFactory;
+    private readonly GcsUploadService _gcs;
 
-    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory, IOrganizationFactory orgFactory, ICustomerFactory customerFactory) : base(auditFactory)
+    public PortalController(IAuditFactory auditFactory, IPortalFactory portalFactory, IOrganizationFactory orgFactory, ICustomerFactory customerFactory, GcsUploadService gcs) : base(auditFactory)
     {
         _portalFactory = portalFactory;
         _orgFactory = orgFactory;
         _customerFactory = customerFactory;
+        _gcs = gcs;
     }
 
     // ... (Helpers buraya gelecek)
@@ -180,6 +183,37 @@ public class PortalController : AuditableControllerBase
             $"Personel guncellendi: ID={id}", customerId: cid);
 
         return NoContent();
+    }
+
+    /// <summary>Personel profil fotografi yukle (max 3 MB, JPEG/PNG/WebP)</summary>
+    [HttpPost("personnel/{id}/upload-photo")]
+    [RequestSizeLimit(3_145_728)]
+    public async Task<IActionResult> UploadPersonnelPhoto(int id, IFormFile file, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
+        if (file.Length > 3_145_728) return BadRequest("Dosya 3 MB'dan buyuk olamaz.");
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
+
+        var ext = file.ContentType switch { "image/png" => ".png", "image/webp" => ".webp", _ => ".jpg" };
+        var path = $"personnel/{cid.Value}/{id}-{Guid.NewGuid():N}{ext}";
+
+        using var stream = file.OpenReadStream();
+        var (url, error) = await _gcs.UploadAsync(stream, path, file.ContentType);
+        if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
+
+        var (ok, err) = await _portalFactory.UpdatePersonnelPhotoAsync(cid.Value, id, url);
+        if (!ok) return BadRequest(err ?? "Foto guncellenemedi.");
+
+        return Ok(new { url, path });
     }
 
     [HttpPatch("personnel/{id}/reports-to")]

@@ -165,6 +165,7 @@ public class PortalFactory : IPortalFactory
                 BranchName = p.Branch != null ? p.Branch.Name : null,
                 IsActive = p.IsActive && p.User.IsActive,
                 IsLocked = p.User.LockedUntil.HasValue && p.User.LockedUntil.Value > DateTime.UtcNow,
+                PhotoUrl = p.PhotoUrl,
                 PublicVisible = p.PublicVisible,
                 PublicShowFullName = p.PublicShowFullName,
                 PublicShowPhoto = p.PublicShowPhoto,
@@ -357,6 +358,9 @@ public class PortalFactory : IPortalFactory
         personnel.ReportsToPersonnelId = dto.ReportsToPersonnelId;
         personnel.BranchId = dto.BranchId;
 
+        if (dto.PhotoUrl != null)
+            personnel.PhotoUrl = dto.PhotoUrl;
+
         // Public gorunurluk
         personnel.PublicVisible = dto.PublicVisible;
         personnel.PublicShowFullName = dto.PublicShowFullName;
@@ -376,6 +380,15 @@ public class PortalFactory : IPortalFactory
                 _skillEs.Add(new SlnPersonnelSkill { PersonnelId = id, ServiceId = serviceId });
         }
 
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdatePersonnelPhotoAsync(int customerId, int id, string photoUrl)
+    {
+        var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        personnel.PhotoUrl = photoUrl;
         await _uow.SaveChangesAsync();
         return (true, null);
     }

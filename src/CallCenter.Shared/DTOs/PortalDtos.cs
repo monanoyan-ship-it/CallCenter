@@ -25,6 +25,8 @@ public class PortalPersonnelListDto
     public bool IsLocked { get; set; }
     public List<int>? SkillServiceIds { get; set; }
 
+    public string? PhotoUrl { get; set; }
+
     // Public gorunurluk
     public bool PublicVisible { get; set; }
     public bool PublicShowFullName { get; set; }
@@ -98,6 +100,7 @@ public class PortalPersonnelUpdateDto
     public List<int>? SkillServiceIds { get; set; }
 
     public bool IsActive { get; set; } = true;
+    public string? PhotoUrl { get; set; }
 
     // Public gorunurluk
     public bool PublicVisible { get; set; } = true;

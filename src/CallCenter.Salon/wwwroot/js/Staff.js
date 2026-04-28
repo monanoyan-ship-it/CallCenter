@@ -25,11 +25,43 @@ function StaffViewModel() {
         branchId: ko.observable(null),
         skillServiceIds: ko.observableArray([]),
         isActive: ko.observable('true'),
+        photoUrl: ko.observable(''),
         publicVisible: ko.observable(true),
         publicShowFullName: ko.observable(true),
         publicShowPhoto: ko.observable(true),
         publicShowTitle: ko.observable(true),
         publicShowSpecialty: ko.observable(true)
+    };
+
+    self.isUploadingPhoto = ko.observable(false);
+
+    self.uploadPhoto = function (data, event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) { toastr.warning('Dosya 3 MB den buyuk olamaz.'); return; }
+
+        var staffId = self.editingId();
+        if (!staffId) { toastr.warning('Once personeli kaydedin, sonra fotograf yukleyin.'); return; }
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        self.isUploadingPhoto(true);
+        $.ajax({
+            url: '/proxy/portal/personnel/' + staffId + '/upload-photo',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function (result) {
+            self.form.photoUrl(result.url);
+            toastr.success('Fotograf yuklendi.');
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.message || 'Yukleme hatasi.');
+        }).always(function () {
+            self.isUploadingPhoto(false);
+            event.target.value = '';
+        });
     };
 
     self.toggleSkill = function (serviceId) {
@@ -106,6 +138,7 @@ function StaffViewModel() {
         self.form.branchId(self.branchList().length === 1 ? self.branchList()[0].id : null);
         self.form.skillServiceIds([]);
         self.form.isActive('true');
+        self.form.photoUrl('');
         self.form.publicVisible(true);
         self.form.publicShowFullName(true);
         self.form.publicShowPhoto(true);
@@ -134,6 +167,7 @@ function StaffViewModel() {
         self.form.branchId(staff.branchId || null);
         self.form.skillServiceIds(staff.skillServiceIds || []);
         self.form.isActive(staff.isActive ? 'true' : 'false');
+        self.form.photoUrl(staff.photoUrl || '');
         self.form.publicVisible(staff.publicVisible !== false);
         self.form.publicShowFullName(staff.publicShowFullName !== false);
         self.form.publicShowPhoto(staff.publicShowPhoto !== false);
