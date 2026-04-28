@@ -71,8 +71,9 @@
                 </div>
             </div>
 
-            <div class="text-center py-3" data-bind="visible: isLoading">
+            <div class="text-center py-3" data-bind="visible: isLoading() || locationPending()">
                 <div class="spinner-border text-primary"></div>
+                <p class="small text-muted mt-2" data-bind="visible: locationPending() && !isLoading()">Konumunuz belirleniyor...</p>
             </div>
 
             <!-- ko if: !isLoading() && filteredSalons().length === 0 -->
@@ -152,6 +153,7 @@
 
             self.userLat = ko.observable(null);
             self.userLng = ko.observable(null);
+            self.locationPending = ko.observable(true); // geolocation cekilene kadar true
 
             // Haversine: iki coord arasi km mesafe
             function haversineKm(lat1, lon1, lat2, lon2) {
@@ -171,6 +173,8 @@
             self.filteredSalons = ko.computed(function () {
                 var q = (self.searchQuery() || '').toLowerCase();
                 var uLat = self.userLat(), uLng = self.userLng();
+                // Konum hala bekleniyor — filtre uygulama (ani sayı değişimini önle)
+                if (self.locationPending()) return [];
 
                 var list = self.salons().map(function (s) {
                     var d = null;
@@ -256,29 +260,32 @@
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (pos) {
                     setUserLocation(pos.coords.latitude, pos.coords.longitude, 13);
+                    self.locationPending(false);
                 }, function () {
-                    // Konum izni reddedildi - Turkiye gorunumunde kal
+                    // Konum izni reddedildi veya hata — tum salonlari goster
+                    self.locationPending(false);
                 }, { timeout: 5000 });
+            } else {
+                self.locationPending(false);
             }
 
-            // Ahmet talebi: kullanici haritaya tiklayarak konumunu degistirebilsin (popup onayi ile).
+            // Kullanici haritaya tiklayarak konumunu degistirebilsin (popup onayi ile).
+            window._discoverConfirmLoc = null;
             map.on('click', function (e) {
                 var lat = e.latlng.lat, lng = e.latlng.lng;
+                window._discoverConfirmLoc = function () {
+                    setUserLocation(lat, lng, 13);
+                    map.closePopup();
+                };
                 var html = '<div style="min-width:180px;">' +
                     '<div class="small mb-2">Konumunuzu buraya taşımak ister misiniz?</div>' +
-                    '<button type="button" class="btn btn-sm btn-primary w-100" id="confirmLocBtn">Evet, buraya taşı</button>' +
+                    '<button type="button" class="btn btn-sm btn-primary w-100" ' +
+                    'onclick="window._discoverConfirmLoc()">Evet, buraya taşı</button>' +
                     '</div>';
-                var popup = L.popup({ closeButton: true })
+                L.popup({ closeButton: true })
                     .setLatLng([lat, lng])
                     .setContent(html)
                     .openOn(map);
-                setTimeout(function () {
-                    var btn = document.getElementById('confirmLocBtn');
-                    if (btn) btn.addEventListener('click', function () {
-                        setUserLocation(lat, lng, null);
-                        map.closePopup(popup);
-                    });
-                }, 50);
             });
 
             fetch('/proxy/salon/')
