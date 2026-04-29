@@ -55,6 +55,16 @@ public class PlatformAuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Sifre degistir</summary>
+    [HttpPut("me/password")]
+    [Authorize(Roles = "PlatformUser")]
+    public async Task<ActionResult> ChangePassword([FromBody] PlatformChangePasswordDto dto)
+    {
+        var (ok, err) = await _factory.ChangePasswordAsync(GetPlatformUserId(), dto);
+        if (!ok) return BadRequest(new { message = err });
+        return Ok(new { message = "Şifreniz güncellendi." });
+    }
+
     /// <summary>Fatura bilgilerini guncelle</summary>
     [HttpPut("billing-info")]
     [Authorize(Roles = "PlatformUser")]

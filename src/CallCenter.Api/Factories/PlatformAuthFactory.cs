@@ -108,6 +108,26 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         return MapToDto(user);
     }
 
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(int platformUserId, PlatformChangePasswordDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+            return (false, "Mevcut ve yeni şifre zorunludur.");
+
+        if (dto.NewPassword.Length < 6)
+            return (false, "Yeni şifre en az 6 karakter olmalıdır.");
+
+        var user = await _userEs.GetByIdAsync(platformUserId);
+        if (user == null)
+            return (false, "Kullanıcı bulunamadı.");
+
+        if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            return (false, "Mevcut şifre hatalı.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<PlatformUserDto?> UpdateBillingInfoAsync(int platformUserId, PlatformBillingUpdateDto dto)
     {
         var user = await _userEs.GetByIdAsync(platformUserId);

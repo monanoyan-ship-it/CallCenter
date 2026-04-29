@@ -283,10 +283,21 @@ public class PaymentController : ControllerBase
             t.CardLastFour,
             t.InstallmentCount,
             t.ModuleId,
+            CustomerName = t.Customer?.Name,
             t.CreatedAt,
             t.CompletedAt,
             t.ErrorMessage
         }));
+    }
+
+    /// <summary>Platform kullanicisi odeme dekontu (HTML; yazdir veya PDF olarak kaydet)</summary>
+    [HttpGet("my-receipt/{uid:guid}")]
+    [Authorize(Roles = "PlatformUser")]
+    public async Task<IActionResult> DownloadMyReceipt(Guid uid)
+    {
+        var (bytes, fileName, error) = await _paymentService.GetPlatformUserReceiptHtmlAsync(uid, GetPlatformUserId());
+        if (error != null) return NotFound(new { message = error });
+        return File(bytes!, "text/html; charset=utf-8", fileName);
     }
 
     private int GetPlatformUserId()

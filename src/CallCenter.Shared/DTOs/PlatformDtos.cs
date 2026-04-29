@@ -50,6 +50,12 @@ public class PlatformUserUpdateDto
     public string? AvatarUrl { get; set; }
 }
 
+public class PlatformChangePasswordDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 public class PlatformBillingUpdateDto
 {
     public int BillingType { get; set; } = 1;

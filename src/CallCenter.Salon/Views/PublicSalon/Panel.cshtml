@@ -60,6 +60,25 @@
                 <div class="text-center text-muted py-4" id="noAppts" style="display:none;">Randevu bulunamadı.</div>
             </div>
 
+            <!-- İptal Onay Modalı -->
+            <div class="modal fade" id="cancelModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header py-2" style="background:linear-gradient(135deg,#2d1b3d 0%,#4a1a6b 100%);color:#fff;">
+                            <h6 class="modal-title"><i class="bi bi-x-circle me-2"></i>Randevu İptali</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="cancelModalMsg" class="mb-0"></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Vazgeç</button>
+                            <button type="button" class="btn btn-danger btn-sm" id="cancelModalConfirmBtn"><i class="bi bi-x-lg me-1"></i>İptal Et</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sadakat -->
             <div class="tab-pane fade" id="tabLoyalty">
                 <div id="loyaltyList"></div>
@@ -79,6 +98,24 @@
                             <input type="email" class="form-control" id="profEmail" />
                         </div>
                         <button class="btn btn-primary btn-sm" onclick="saveProfile()"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+                    </div>
+                </div>
+                <div class="card section-card mt-3">
+                    <div class="card-body">
+                        <h6 class="text-muted small mb-3"><i class="bi bi-key me-1"></i>Şifre değiştir</h6>
+                        <div class="mb-2">
+                            <label class="form-label small">Mevcut şifre</label>
+                            <input type="password" class="form-control form-control-sm" id="pwdCurrent" autocomplete="current-password" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Yeni şifre</label>
+                            <input type="password" class="form-control form-control-sm" id="pwdNew" autocomplete="new-password" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Yeni şifre (tekrar)</label>
+                            <input type="password" class="form-control form-control-sm" id="pwdNew2" autocomplete="new-password" />
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="changePassword()"><i class="bi bi-shield-lock me-1"></i>Şifreyi güncelle</button>
                     </div>
                 </div>
             </div>
@@ -134,10 +171,27 @@
                         <button class="btn btn-primary btn-sm" onclick="saveBilling()"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
                     </div>
                 </div>
+                <div class="card section-card mt-3">
+                    <div class="card-body">
+                        <h6 class="text-muted small mb-2"><i class="bi bi-receipt-cutoff me-1"></i>Ödeme geçmişi ve dekontlar</h6>
+                        <p class="small text-muted mb-3">Tamamlanan veya iade edilen ödemeler için dekontu indirebilirsiniz. HTML dosyasını açıp tarayıcıdan <strong>Yazdır</strong> ile PDF olarak kaydedebilirsiniz.</p>
+                        <div id="paymentHistoryList"></div>
+                        <div class="text-center text-muted py-3" id="noPayments" style="display:none;">Henüz ödeme kaydı yok.</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        <div id="appToast" class="toast align-items-center border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body fw-semibold" id="appToastMsg"></div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         var TOKEN = localStorage.getItem('platformToken');
@@ -200,11 +254,13 @@
                 if (!data || data.length === 0) { el.innerHTML = ''; document.getElementById('noAppts').style.display = ''; return; }
                 document.getElementById('noAppts').style.display = 'none';
                 el.innerHTML = data.map(function(a) {
-                    var date = new Date(a.appointmentDate).toLocaleDateString('tr-TR');
+                    var dateOnly = a.appointmentDate ? a.appointmentDate.substring(0, 10) : '';
+                    var date = dateOnly ? new Date(dateOnly).toLocaleDateString('tr-TR') : '';
                     var time = a.startTime ? a.startTime.substring(0, 5) : '';
                     var canCancel = a.statusId === 1 || a.statusId === 2;
-                    var cancelBtn = canCancel
-                        ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ',' + (a.isPrepaid ? 'true' : 'false') + ',' + (a.prepaidAmount || 0) + ',\'' + new Date(a.appointmentDate + 'T' + (a.startTime || '00:00:00')).toISOString() + '\')"><i class="bi bi-x-lg"></i></button>'
+                    var apptIso = dateOnly ? new Date(dateOnly + 'T' + (a.startTime || '00:00:00')).toISOString() : '';
+                    var cancelBtn = canCancel && apptIso
+                        ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ',' + (a.isPrepaid ? 'true' : 'false') + ',' + (a.prepaidAmount || 0) + ',\'' + apptIso + '\')"><i class="bi bi-x-lg"></i></button>'
                         : '';
                     return '<div class="card section-card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">' +
                         '<div><strong>' + a.salonName + '</strong>' + apptStatusBadge(a.statusId) +
@@ -216,23 +272,39 @@
             });
         }
 
+        var _cancelModal, _cancelToast;
+
+        function showToast(msg, success) {
+            var el = document.getElementById('appToast');
+            el.className = 'toast align-items-center border-0 text-bg-' + (success === false ? 'danger' : 'success');
+            document.getElementById('appToastMsg').textContent = msg;
+            if (!_cancelToast) _cancelToast = new bootstrap.Toast(el, { delay: 4000 });
+            _cancelToast.show();
+        }
+
         function cancelAppt(id, isPrepaid, prepaidAmount, startTime) {
-            var msg = 'Randevuyu iptal etmek istiyor musunuz?';
+            var msg = 'Randevunuzu iptal etmek istediğinize emin misiniz?';
             if (isPrepaid && prepaidAmount > 0) {
                 var hoursLeft = (new Date(startTime) - new Date()) / 3600000;
                 if (hoursLeft >= 24) {
-                    msg += '\n\n✅ Ücretsiz iptal penceresindeyiz — depozitonuz iade edilecektir.';
+                    msg += '<br><br><span class="text-success fw-semibold">✅ Ücretsiz iptal penceresindeyiz — depozitonuz iade edilecektir.</span>';
                 } else {
-                    msg += '\n\n⚠️ Ücretsiz iptal süresi geçmiş olabilir — depozitonuz iade edilmeyebilir.';
+                    msg += '<br><br><span class="text-danger fw-semibold">⚠️ Ücretsiz iptal süresi geçmiş olabilir — depozitonuz iade edilmeyebilir.</span>';
                 }
             }
-            if (!confirm(msg)) return;
-            api('platform/appointments/' + id, { method: 'DELETE' })
-                .then(function(data) {
-                    alert(data && data.message ? data.message : 'Randevunuz iptal edildi.');
-                    loadAppointments(false);
-                })
-                .catch(function() { loadAppointments(false); });
+            document.getElementById('cancelModalMsg').innerHTML = msg;
+            if (!_cancelModal) _cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+            var btn = document.getElementById('cancelModalConfirmBtn');
+            btn.onclick = function() {
+                _cancelModal.hide();
+                api('platform/appointments/' + id, { method: 'DELETE' })
+                    .then(function(data) {
+                        showToast(data && data.message ? data.message : 'Randevunuz iptal edildi.', true);
+                        loadAppointments(false);
+                    })
+                    .catch(function() { loadAppointments(false); });
+            };
+            _cancelModal.show();
         }
 
         // ═══ Sadakat ═══
@@ -274,7 +346,33 @@
                     fullName: document.getElementById('profName').value,
                     email: document.getElementById('profEmail').value || null
                 })
-            }).then(function() { alert('Profil güncellendi.'); });
+            }).then(function() { showToast('Profil güncellendi.', true); });
+        }
+
+        function changePassword() {
+            var cur = document.getElementById('pwdCurrent').value;
+            var nw = document.getElementById('pwdNew').value;
+            var nw2 = document.getElementById('pwdNew2').value;
+            if (!cur || !nw || !nw2) { showToast('Tüm şifre alanlarını doldurun.', false); return; }
+            if (nw !== nw2) { showToast('Yeni şifreler eşleşmiyor.', false); return; }
+            if (nw.length < 6) { showToast('Yeni şifre en az 6 karakter olmalıdır.', false); return; }
+            fetch('/public-proxy/platform/me/password', {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword: cur, newPassword: nw })
+            }).then(function(r) {
+                return r.json().then(function(j) { return { ok: r.ok, status: r.status, j: j }; }, function() { return { ok: r.ok, status: r.status, j: null }; });
+            }).then(function(x) {
+                if (x.status === 401) { logout(); return; }
+                if (x.ok) {
+                    showToast((x.j && x.j.message) ? x.j.message : 'Şifreniz güncellendi.', true);
+                    document.getElementById('pwdCurrent').value = '';
+                    document.getElementById('pwdNew').value = '';
+                    document.getElementById('pwdNew2').value = '';
+                } else {
+                    showToast((x.j && x.j.message) ? x.j.message : 'Şifre değiştirilemedi.', false);
+                }
+            }).catch(function() { showToast('İstek başarısız.', false); });
         }
 
         // Init
@@ -283,6 +381,7 @@
         loadLoyalty();
         loadProfile();
         loadBilling();
+        loadPaymentHistory();
 
         // ═══ Fatura Bilgileri ═══
         function toggleBillingType() {
@@ -320,7 +419,68 @@
                     billingDistrict: document.getElementById('billingDistrict').value || null,
                     billingPostalCode: document.getElementById('billingPostalCode').value || null
                 })
-            }).then(function() { alert('Fatura bilgileri güncellendi.'); });
+            }).then(function() { showToast('Fatura bilgileri güncellendi.', true); });
+        }
+
+        function loadPaymentHistory() {
+            api('payments/history?page=1').then(function(data) {
+                var el = document.getElementById('paymentHistoryList');
+                var empty = document.getElementById('noPayments');
+                if (!data || !data.length) {
+                    if (el) el.innerHTML = '';
+                    if (empty) empty.style.display = '';
+                    return;
+                }
+                if (empty) empty.style.display = 'none';
+                if (!el) return;
+                el.innerHTML = '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light"><tr><th>Tarih</th><th>Tür</th><th>İşletme</th><th class="text-end">Tutar</th><th>Durum</th><th></th></tr></thead><tbody>' +
+                    data.map(function(p) {
+                        var dt = p.completedAt || p.createdAt;
+                        var dateStr = dt ? new Date(dt).toLocaleString('tr-TR') : '—';
+                        var canDl = p.statusId === 2 || p.statusId === 4;
+                        var uid = p.uid || '';
+                        var dl = canDl && uid
+                            ? '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="downloadReceipt(\'' + uid + '\')"><i class="bi bi-download me-1"></i>İndir</button>'
+                            : '<span class="text-muted small">—</span>';
+                        var biz = p.customerName || '—';
+                        var amt = p.amount != null ? Number(p.amount).toFixed(2) + ' ' + (p.currency || 'TRY') : '—';
+                        return '<tr><td class="text-nowrap">' + dateStr + '</td><td>' + (p.paymentType || '') + '</td><td>' + biz + '</td><td class="text-end">' + amt + '</td><td><span class="small">' + (p.status || '') + '</span></td><td class="text-end">' + dl + '</td></tr>';
+                    }).join('') + '</tbody></table></div>';
+            });
+        }
+
+        function downloadReceipt(uid) {
+            fetch('/public-proxy/payments/my-receipt/' + uid, { headers: { 'Authorization': 'Bearer ' + TOKEN } })
+                .then(function(r) {
+                    if (r.status === 401) { logout(); return Promise.reject(); }
+                    if (!r.ok) {
+                        return r.json().then(function(j) {
+                            showToast((j && j.message) ? j.message : 'Dekont alınamadı.', false);
+                        }, function() { showToast('Dekont alınamadı.', false); });
+                    }
+                    var fname = 'corpLynk-dekont.html';
+                    var disp = r.headers.get('Content-Disposition');
+                    if (disp) {
+                        var utf8name = /filename\*=UTF-8''([^;\n]+)/i.exec(disp);
+                        var quoted = /filename="([^"]+)"/i.exec(disp);
+                        var simple = /filename=([^;\n]+)/i.exec(disp);
+                        if (utf8name && utf8name[1]) fname = decodeURIComponent(utf8name[1].trim());
+                        else if (quoted && quoted[1]) fname = quoted[1].trim();
+                        else if (simple && simple[1]) fname = simple[1].replace(/"/g, '').trim();
+                    }
+                    return r.blob().then(function(blob) {
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = fname;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                        showToast('Dekont indirildi.', true);
+                    });
+                })
+                .catch(function() { });
         }
     </script>
 </body>

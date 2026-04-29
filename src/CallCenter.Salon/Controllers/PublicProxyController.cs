@@ -47,7 +47,7 @@ public class PublicProxyController : Controller
     {
         var client = CreatePlatformClient();
         var response = await client.GetAsync($"api/{path}{Request.QueryString}");
-        return await ToResult(response);
+        return await ToResult(response, HttpContext);
     }
 
     [HttpPost("public-proxy/{**path}")]
@@ -58,7 +58,7 @@ public class PublicProxyController : Controller
         var body = await reader.ReadToEndAsync();
         var response = await client.PostAsync($"api/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        return await ToResult(response);
+        return await ToResult(response, HttpContext);
     }
 
     [HttpPut("public-proxy/{**path}")]
@@ -69,7 +69,7 @@ public class PublicProxyController : Controller
         var body = await reader.ReadToEndAsync();
         var response = await client.PutAsync($"api/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        return await ToResult(response);
+        return await ToResult(response, HttpContext);
     }
 
     [HttpDelete("public-proxy/{**path}")]
@@ -77,7 +77,7 @@ public class PublicProxyController : Controller
     {
         var client = CreatePlatformClient();
         var response = await client.DeleteAsync($"api/{path}");
-        return await ToResult(response);
+        return await ToResult(response, HttpContext);
     }
 
     private HttpClient CreatePlatformClient()
@@ -91,15 +91,24 @@ public class PublicProxyController : Controller
         return client;
     }
 
-    private static async Task<IActionResult> ToResult(HttpResponseMessage response)
+    private static async Task<IActionResult> ToResult(HttpResponseMessage response, HttpContext httpContext)
     {
         var statusCode = (int)response.StatusCode;
         if (statusCode == 204) return new StatusCodeResult(204);
         var content = await response.Content.ReadAsStringAsync();
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json; charset=utf-8";
+
+        if (response.Content.Headers.TryGetValues("Content-Disposition", out var cdVals))
+        {
+            var cd = cdVals.FirstOrDefault();
+            if (!string.IsNullOrEmpty(cd))
+                httpContext.Response.Headers.Append("Content-Disposition", cd);
+        }
+
         return new ContentResult
         {
             Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
-            ContentType = "application/json; charset=utf-8",
+            ContentType = contentType,
             StatusCode = statusCode
         };
     }

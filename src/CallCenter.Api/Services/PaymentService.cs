@@ -2,8 +2,11 @@ using CallCenter.Api.Services.Payment;
 using CallCenter.Data;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
+using CallCenter.Shared.Helpers;
 using CallCenter.Shared.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using System.Text.Encodings.Web;
 
 namespace CallCenter.Api.Services;
 
@@ -337,10 +340,84 @@ public class PaymentService
         if (customerId.HasValue) query = query.Where(t => t.CustomerId == customerId);
         if (platformUserId.HasValue) query = query.Where(t => t.PlatformUserId == platformUserId);
         return await query
+            .Include(t => t.Customer)
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+    }
+
+    /// <summary>Platform kullanicisi icin odeme dekontu (HTML).</summary>
+    public async Task<(byte[]? Bytes, string? FileName, string? Error)> GetPlatformUserReceiptHtmlAsync(Guid transactionUid, int platformUserId)
+    {
+        var tx = await _db.PaymentTransactions
+            .Include(t => t.Customer)
+            .Include(t => t.PlatformUser)
+            .FirstOrDefaultAsync(t => t.Uid == transactionUid);
+
+        if (tx == null) return (null, null, "İşlem bulunamadı.");
+        if (tx.PlatformUserId != platformUserId) return (null, null, "Bu dekont için yetkiniz yok.");
+        if (tx.StatusId != PaymentStatuses.Ids.Basarili && tx.StatusId != PaymentStatuses.Ids.Iade)
+            return (null, null, "Yalnızca tamamlanan veya iade edilmiş işlemler için dekont indirilebilir.");
+
+        var pu = tx.PlatformUser;
+        var encoder = HtmlEncoder.Default;
+        string E(string? s) => encoder.Encode(s ?? string.Empty);
+
+        var typeLabel = PaymentTypes.GetById(tx.PaymentTypeId)?.Description ?? "Ödeme";
+        var statusLabel = PaymentStatuses.GetById(tx.StatusId)?.Description ?? string.Empty;
+        var when = (tx.CompletedAt ?? tx.CreatedAt).ToUniversalTime().ToString("yyyy-MM-dd HH:mm") + " UTC";
+        var salonLine = tx.Customer != null
+            ? $"<tr><th>İşletme</th><td>{E(tx.Customer.Name)}</td></tr>"
+            : string.Empty;
+        var cardLine = !string.IsNullOrEmpty(tx.CardLastFour)
+            ? $"<tr><th>Kart</th><td>**** **** **** {E(tx.CardLastFour)}</td></tr>"
+            : string.Empty;
+        var refLine = !string.IsNullOrEmpty(tx.ProviderTransactionId)
+            ? $"<tr><th>Referans</th><td>{E(tx.ProviderTransactionId)}</td></tr>"
+            : string.Empty;
+
+        var html = $@"<!DOCTYPE html>
+<html lang=""tr"">
+<head>
+<meta charset=""utf-8""/>
+<meta name=""viewport"" content=""width=device-width, initial-scale=1""/>
+<title>Ödeme Dekontu</title>
+<style>
+body {{ font-family: system-ui, Segoe UI, sans-serif; margin: 2rem; color: #222; }}
+h1 {{ font-size: 1.25rem; margin-bottom: 0.25rem; }}
+.sub {{ color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }}
+table {{ border-collapse: collapse; width: 100%; max-width: 520px; }}
+th, td {{ text-align: left; padding: 0.5rem 0; border-bottom: 1px solid #eee; }}
+th {{ width: 40%; color: #555; font-weight: 600; }}
+.amount {{ font-size: 1.35rem; font-weight: 700; }}
+footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
+@@media print {{ body {{ margin: 1cm; }} }}
+</style>
+</head>
+<body>
+<p><strong>CorpLynk Salon</strong></p>
+<h1>Ödeme dekontu</h1>
+<p class=""sub"">Bu belge bilgilendirme amaçlıdır; mali mevzuata uygun fatura yerine geçmez. Yazdır &gt; PDF olarak kaydedebilirsiniz.</p>
+<table>
+<tr><th>İşlem no</th><td>{tx.Uid}</td></tr>
+<tr><th>Tarih</th><td>{when}</td></tr>
+<tr><th>Ödeme türü</th><td>{E(typeLabel)}</td></tr>
+{salonLine}
+<tr><th>Ödeyen</th><td>{E(pu?.FullName)} — {E(pu?.Phone)}</td></tr>
+<tr><th>Durum</th><td>{E(statusLabel)}</td></tr>
+<tr><th>Tutar</th><td class=""amount"">{tx.Amount.ToString("N2")} {E(tx.Currency)}</td></tr>
+{cardLine}
+<tr><th>Ödeme altyapısı</th><td>{E(tx.Provider)}</td></tr>
+{refLine}
+</table>
+<footer>© CorpLynk</footer>
+</body>
+</html>";
+
+        var bytes = Encoding.UTF8.GetBytes(html);
+        var fileName = $"corpLynk-dekont-{tx.Uid:N}.html";
+        return (bytes, fileName, null);
     }
 
     public async Task<object?> GetPackagePreviewAsync(int customerId, int packageGroupId)
@@ -604,13 +681,25 @@ public class PaymentService
                 var parts = tx.Notes.Split('|');
                 if (parts.Length > 0 && int.TryParse(parts[0].Replace("Appointment:", ""), out var aptId))
                 {
-                    var apt = await _db.SlnAppointments.FindAsync(aptId);
+                    var apt = await _db.SlnAppointments
+                        .Include(a => a.SlnClient)
+                        .FirstOrDefaultAsync(a => a.Id == aptId);
                     if (apt != null && apt.StatusId == 6)
                     {
                         apt.StatusId = 2; // Confirmed — depozito ödendiyse onay gerekmez
                         apt.IsPrepaid = true;
                         apt.PrepaidAmount = tx.Amount;
                         apt.PaymentTransactionId = tx.Id;
+                    }
+
+                    if (tx.PlatformUserId == null && apt?.SlnClient?.Phone != null)
+                    {
+                        var norm = PhoneHelper.Normalize(apt.SlnClient.Phone);
+                        if (!string.IsNullOrEmpty(norm))
+                        {
+                            var pu = await _db.PlatformUsers.FirstOrDefaultAsync(u => u.Phone == norm);
+                            if (pu != null) tx.PlatformUserId = pu.Id;
+                        }
                     }
                 }
             }
