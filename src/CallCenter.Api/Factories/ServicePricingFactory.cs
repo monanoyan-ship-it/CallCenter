@@ -58,7 +58,10 @@ public class ServicePricingFactory
         if (activePeriod != null)
         {
             foreach (var item in activePeriod.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue))
-                result[item.PackageGroupId!.Value] = item.MonthlyPrice;
+            {
+                if (SalonModuleGroups.GetById(item.PackageGroupId!.Value) == null) continue;
+                result[item.PackageGroupId.Value] = item.MonthlyPrice;
+            }
         }
 
         return result;
@@ -74,7 +77,9 @@ public class ServicePricingFactory
 
         var ccItems = period.Items.Where(i => i.ProductTypeId == PortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
         var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).OrderBy(i => i.ServiceId).ToList();
-        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue).OrderBy(i => i.PackageGroupId).ToList();
+        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue
+                && SalonModuleGroups.GetById(i.PackageGroupId!.Value) != null)
+            .OrderBy(i => i.PackageGroupId).ToList();
 
         // Salon modullerini gruplara ayir
         var salonGrouped = slnItems.Select(i =>
@@ -137,6 +142,8 @@ public class ServicePricingFactory
             // Onceki donemin fiyatlarini kopyala (hem modul hem paket kalemleri)
             foreach (var prev in previousPeriod.Items)
             {
+                if (prev.PackageGroupId.HasValue && SalonModuleGroups.GetById(prev.PackageGroupId.Value) == null)
+                    continue;
                 period.Items.Add(new ServicePricingItem
                 {
                     ProductTypeId = prev.ProductTypeId,

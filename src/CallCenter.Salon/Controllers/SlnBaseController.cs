@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CallCenter.Shared.Auth;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -7,8 +8,9 @@ namespace CallCenter.Salon.Controllers;
 
 public abstract class SlnBaseController : Controller
 {
-    /// <summary>HttpContext.Items'da SubscriptionActive flag'i (request bazli, signed cookie cache).</summary>
-    private const string SubActiveCookie = "SubActive";
+    /// <summary>api/subscriptions/status yaniti cache (5 dk): panel erisimi / sadece aktif abonelik.</summary>
+    private const string CookiePanelAccess = "SlnPanelOk";
+    private const string CookieStrictSubscription = "SlnSubStrict";
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
@@ -54,29 +56,36 @@ public abstract class SlnBaseController : Controller
                 }
             }
 
-            // BUG2.4: Abonelik kontrolu (cookie cache 5dk TTL)
+            // Abonelik + 5 gun tahakkuk gecikmesi: panel kilidi canAccessPanel ile
             if (controllerType != typeof(SubscriptionRequiredController)
                 && controllerType != typeof(AccountController))
             {
-                var subCookie = HttpContext.Request.Cookies[SubActiveCookie];
-                bool? hasActive = subCookie switch { "1" => true, "0" => false, _ => (bool?)null };
+                var panelC = HttpContext.Request.Cookies[CookiePanelAccess];
+                var strictC = HttpContext.Request.Cookies[CookieStrictSubscription];
+                bool? canAccessPanel = panelC switch { "1" => true, "0" => false, _ => null };
+                bool? hasActiveStrict = strictC switch { "1" => true, "0" => false, _ => null };
 
-                if (!hasActive.HasValue)
+                if (!canAccessPanel.HasValue || !hasActiveStrict.HasValue)
                 {
-                    hasActive = CheckSubscriptionStatus(jwt.Token!).GetAwaiter().GetResult();
-                    HttpContext.Response.Cookies.Append(SubActiveCookie, hasActive.Value ? "1" : "0", new CookieOptions
+                    var access = CheckPanelAccessAsync(jwt.Token!).GetAwaiter().GetResult();
+                    canAccessPanel = access.CanAccessPanel;
+                    hasActiveStrict = access.HasActiveSubscription;
+                    var opt = new CookieOptions
                     {
                         HttpOnly = true,
                         Secure = HttpContext.Request.IsHttps,
                         SameSite = SameSiteMode.Lax,
                         Path = "/",
                         Expires = DateTimeOffset.UtcNow.AddMinutes(5)
-                    });
+                    };
+                    HttpContext.Response.Cookies.Append(CookiePanelAccess, canAccessPanel.Value ? "1" : "0", opt);
+                    HttpContext.Response.Cookies.Append(CookieStrictSubscription, hasActiveStrict.Value ? "1" : "0", opt);
                 }
 
-                ViewData["SubscriptionActive"] = hasActive.Value;
+                ViewData["SubscriptionActive"] = hasActiveStrict!.Value;
+                ViewData["CanAccessPanel"] = canAccessPanel!.Value;
 
-                if (!hasActive.Value && controllerType != typeof(HomeController))
+                if (!canAccessPanel.Value && controllerType != typeof(HomeController))
                 {
                     context.Result = RedirectToAction("Index", "SubscriptionRequired");
                     return;
@@ -87,7 +96,7 @@ public abstract class SlnBaseController : Controller
         base.OnActionExecuting(context);
     }
 
-    private async Task<bool> CheckSubscriptionStatus(string token)
+    private async Task<(bool CanAccessPanel, bool HasActiveSubscription)> CheckPanelAccessAsync(string token)
     {
         try
         {
@@ -95,12 +104,29 @@ public abstract class SlnBaseController : Controller
             var client = factory.CreateClient("SalonApi");
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await client.GetAsync("api/subscriptions/status");
-            if (!response.IsSuccessStatusCode) return true;
+            if (!response.IsSuccessStatusCode) return (true, true);
+
             var json = await response.Content.ReadAsStringAsync();
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            return doc.RootElement.TryGetProperty("hasActive", out var prop) && prop.GetBoolean();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            bool canAccess = true;
+            if (root.TryGetProperty("canAccessPanel", out var cap))
+                canAccess = cap.GetBoolean();
+            else if (root.TryGetProperty("hasActive", out var haLegacy))
+                canAccess = haLegacy.GetBoolean();
+
+            bool hasActiveStrict = false;
+            if (root.TryGetProperty("hasActiveSubscription", out var has))
+                hasActiveStrict = has.GetBoolean();
+            else if (root.TryGetProperty("hasActive", out var ha2))
+                hasActiveStrict = ha2.GetBoolean();
+            else
+                hasActiveStrict = canAccess;
+
+            return (canAccess, hasActiveStrict);
         }
-        catch { return true; }
+        catch { return (true, true); }
     }
 
     protected HttpClient CreateApiClient()

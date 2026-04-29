@@ -35,6 +35,7 @@ public class AppDbContext : DbContext
 
     // ─── Billing ───
     public DbSet<CustomerBillingPeriod> CustomerBillingPeriods => Set<CustomerBillingPeriod>();
+    public DbSet<CustomerBillingPeriodModuleLine> CustomerBillingPeriodModuleLines => Set<CustomerBillingPeriodModuleLine>();
 
     // ─── Recording Access Log ───
     public DbSet<RecordingAccessLog> RecordingAccessLogs => Set<RecordingAccessLog>();
@@ -1002,6 +1003,24 @@ public class AppDbContext : DbContext
              .WithMany(c => c.BillingPeriods)
              .HasForeignKey(b => b.CustomerId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CustomerBillingPeriodModuleLine>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ModuleDisplayName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.MonthlyUnitPrice).HasPrecision(18, 2);
+            e.Property(x => x.LineAmount).HasPrecision(18, 2);
+            e.HasIndex(x => x.CustomerBillingPeriodId);
+            e.HasIndex(x => x.PackageGroupId);
+            e.HasOne(x => x.CustomerBillingPeriod)
+                .WithMany(b => b.ModuleLines)
+                .HasForeignKey(x => x.CustomerBillingPeriodId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CustomerPortalModule)
+                .WithMany()
+                .HasForeignKey(x => x.CustomerPortalModuleId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ═══════════════════════════════════════════════════════════════

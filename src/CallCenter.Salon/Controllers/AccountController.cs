@@ -10,6 +10,9 @@ public class AccountController : SlnBaseController
     [HttpGet]
     public IActionResult Login()
     {
+        if (string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal))
+            HttpContext.ClearAuthCookie();
+
         if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");
         return View();
@@ -72,11 +75,20 @@ public class AccountController : SlnBaseController
     public IActionResult Logout()
     {
         HttpContext.ClearAuthCookie();
-        return RedirectToAction("Login");
+        var opt = new CookieOptions { Path = "/" };
+        Response.Cookies.Delete("SlnPanelOk", opt);
+        Response.Cookies.Delete("SlnSubStrict", opt);
+        return RedirectToAction("Login", "Account", new { loggedOut = 1 });
     }
 
-    /// <summary>Abonelik odemesi sonrasi cache temizleme — JWT akisinda gerek yok ama legacy link.</summary>
-    public IActionResult RefreshSession() => RedirectToAction("Index", "Home");
+    /// <summary>Abonelik odemesi sonrasi panel cache temizligi.</summary>
+    public IActionResult RefreshSession()
+    {
+        var opt = new CookieOptions { Path = "/" };
+        Response.Cookies.Delete("SlnPanelOk", opt);
+        Response.Cookies.Delete("SlnSubStrict", opt);
+        return RedirectToAction("Index", "Home");
+    }
 
     private void SetAuthFromLoginResponse(string json, int days)
     {

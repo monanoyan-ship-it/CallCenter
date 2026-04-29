@@ -11,10 +11,9 @@ public static class SalonModuleGroups
     public static readonly ModuleGroup Core = new(0, "Core", "Temel Paket", "bi-house-fill", "bg-success", 1700m, 0);
     public static readonly ModuleGroup StockFinance = new(1, "StockFinance", "Stok Tedarik / Finans", "bi-box-seam", "bg-secondary", 400m, 1);
     public static readonly ModuleGroup LoyaltyMarketing = new(3, "LoyaltyMarketing", "Müşteri Sadakati / Pazarlama", "bi-heart-fill", "bg-danger", 1500m, 2);
-    public static readonly ModuleGroup Professional = new(5, "Professional", "Profesyonel", "bi-star-fill", "bg-warning text-dark", 1500m, 3);
     public static readonly ModuleGroup Enterprise = new(6, "Enterprise", "Kurumsal", "bi-building", "bg-primary", 200m, 4);
 
-    public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Professional, Enterprise };
+    public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Enterprise };
     public static ModuleGroup? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
     public static class Ids
@@ -22,7 +21,8 @@ public static class SalonModuleGroups
         public const int Core = 0;
         public const int StockFinance = 1;
         public const int LoyaltyMarketing = 3;
-        public const int Professional = 5;
+        /// <summary>Eski paket (Profesyonel). Artık <see cref="All"/> içinde yok; DB kalıntıları için.</summary>
+        public const int LegacyProfessional = 5;
         public const int Enterprise = 6;
     }
 
@@ -45,6 +45,9 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnRecipes] = Ids.Core,
         [SalonPortalModules.Ids.SlnProfile] = Ids.Core,
         [SalonPortalModules.Ids.SlnPersonnelPrices] = Ids.Core,
+        [SalonPortalModules.Ids.SlnWaitlist] = Ids.Core,
+        [SalonPortalModules.Ids.SlnNoShowPolicy] = Ids.Core,
+        [SalonPortalModules.Ids.SlnConsentForms] = Ids.Core,
 
         // ── Stok Tedarik / Finans (1) — 400 TL ─────────────────────────────
         [SalonPortalModules.Ids.SlnProducts] = Ids.StockFinance,
@@ -60,14 +63,9 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnEmailCampaigns] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnWinback] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnReviews] = Ids.LoyaltyMarketing,
+        [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.LoyaltyMarketing,
 
-        // ── Profesyonel (5) — 1.500 TL ─────────────────────────────────────
-        [SalonPortalModules.Ids.SlnNoShowPolicy] = Ids.Professional,
-        [SalonPortalModules.Ids.SlnConsentForms] = Ids.Professional,
-        [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.Professional,
-        [SalonPortalModules.Ids.SlnWaitlist] = Ids.Professional,
-
-        // ── Kurumsal (6) — 200 TL ───────────────────────────────────────────
+        // ── Kurumsal (6) — 200 TL ─────────────────────────────────────────
         [SalonPortalModules.Ids.SlnReports] = Ids.Enterprise,
     };
 

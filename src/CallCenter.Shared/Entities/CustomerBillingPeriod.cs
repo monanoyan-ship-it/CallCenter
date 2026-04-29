@@ -20,4 +20,7 @@ public class CustomerBillingPeriod
     public int? PaymentMethodId { get; set; } // BillingPaymentMethods
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Salon portal modulleri — tahakkuk anindaki kalemler.</summary>
+    public ICollection<CustomerBillingPeriodModuleLine> ModuleLines { get; set; } = [];
 }

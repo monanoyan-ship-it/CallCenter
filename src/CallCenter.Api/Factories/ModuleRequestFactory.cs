@@ -12,17 +12,20 @@ public class ModuleRequestFactory : IModuleRequestFactory
     private readonly IModuleRequestEntityService _requestEs;
     private readonly IModulePricingEntityService _pricingEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
+    private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly IUnitOfWork _uow;
 
     public ModuleRequestFactory(
         IModuleRequestEntityService requestEs,
         IModulePricingEntityService pricingEs,
         ICustomerPortalModuleEntityService moduleEs,
+        ISubscriptionFactory subscriptionFactory,
         IUnitOfWork uow)
     {
         _requestEs = requestEs;
         _pricingEs = pricingEs;
         _moduleEs = moduleEs;
+        _subscriptionFactory = subscriptionFactory;
         _uow = uow;
     }
 
@@ -130,6 +133,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
             }
         }
 
+        await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(request.CustomerId, saveChanges: false);
         await _uow.SaveChangesAsync();
 
         var pricings = await _pricingEs.GetAllAsync();

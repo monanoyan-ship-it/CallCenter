@@ -14,8 +14,11 @@ public class BillingFactory : IBillingFactory
     private readonly ICustomerEntityService _customerEs;
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly ICustomerServiceSubscriptionEntityService _subscriptionEs;
+    private readonly ICustomerSubscriptionEntityService _planSubscriptionEs;
     private readonly IServiceBillingItemEntityService _billingItemEs;
     private readonly ICustomerProductEntityService _customerProductEs;
+    private readonly ICustomerBillingPeriodModuleLineEntityService _billingPeriodModuleLineEs;
+    private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly IUnitOfWork _uow;
 
     public BillingFactory(
@@ -23,16 +26,22 @@ public class BillingFactory : IBillingFactory
         ICustomerEntityService customerEs,
         ICustomerPersonnelEntityService personnelEs,
         ICustomerServiceSubscriptionEntityService subscriptionEs,
+        ICustomerSubscriptionEntityService planSubscriptionEs,
         IServiceBillingItemEntityService billingItemEs,
         ICustomerProductEntityService customerProductEs,
+        ICustomerBillingPeriodModuleLineEntityService billingPeriodModuleLineEs,
+        ISubscriptionFactory subscriptionFactory,
         IUnitOfWork uow)
     {
         _billingEs = billingEs;
         _customerEs = customerEs;
         _personnelEs = personnelEs;
         _subscriptionEs = subscriptionEs;
+        _planSubscriptionEs = planSubscriptionEs;
         _billingItemEs = billingItemEs;
         _customerProductEs = customerProductEs;
+        _billingPeriodModuleLineEs = billingPeriodModuleLineEs;
+        _subscriptionFactory = subscriptionFactory;
         _uow = uow;
     }
 
@@ -65,9 +74,30 @@ public class BillingFactory : IBillingFactory
         foreach (var p in periods)
             p.StatusName = BillingPeriodStatuses.GetById(p.StatusId)?.Description ?? "?";
 
-        // Her donem icin hizmet kalemlerini yukle
         if (periods.Count > 0)
         {
+            var periodIds = periods.Select(p => p.Id).ToList();
+            var salonLines = await _billingPeriodModuleLineEs.GetAllQueryable()
+                .Where(l => periodIds.Contains(l.CustomerBillingPeriodId))
+                .ToListAsync();
+
+            foreach (var period in periods)
+            {
+                period.SalonModuleLines = salonLines
+                    .Where(l => l.CustomerBillingPeriodId == period.Id)
+                    .OrderBy(l => l.PackageGroupId ?? int.MaxValue)
+                    .ThenBy(l => l.ModuleId ?? int.MaxValue)
+                    .Select(l => new BillingPeriodModuleLineDto
+                    {
+                        PackageGroupId = l.PackageGroupId,
+                        ModuleId = l.ModuleId,
+                        ModuleDisplayName = l.ModuleDisplayName,
+                        MonthlyUnitPrice = l.MonthlyUnitPrice,
+                        LineAmount = l.LineAmount
+                    })
+                    .ToList();
+            }
+
             var billingItems = await _billingItemEs.GetAllQueryable()
                 .Include(bi => bi.CustomerServiceSubscription)
                 .Where(bi => bi.CustomerId == customerId)
@@ -137,17 +167,24 @@ public class BillingFactory : IBillingFactory
         return (true, null);
     }
 
-    public async Task<(int Created, int Skipped, int SkippedNoAnchor, string? Error)> GenerateBulkAsync(int year, int month)
+    public async Task<(int Created, int Skipped, int SkippedNoAnchor, int SkippedSalonPlatform, int PlatformTahakkukCreated, int PlatformTahakkukSkipped, string? Error)> GenerateBulkAsync(int year, int month)
     {
         if (month < 1 || month > 12)
-            return (0, 0, 0, "Gecersiz ay degeri.");
+            return (0, 0, 0, 0, 0, 0, "Gecersiz ay degeri.");
         if (year < 2020 || year > 2100)
-            return (0, 0, 0, "Gecersiz yil degeri.");
+            return (0, 0, 0, 0, 0, 0, "Gecersiz yil degeri.");
 
         var activeCustomers = await _customerEs.GetAllQueryable()
             .Where(c => c.IsActive && !c.IsTest) // Test musterileri atla
             .Select(c => new { c.Id, c.BillingAnchorDay, c.MaxUsers })
             .ToListAsync();
+
+        var salonPlatformCustomerIds = await _customerProductEs.GetAllQueryable()
+            .Where(cp => cp.IsActive && cp.ProductTypeId == ProductTypes.Ids.Salon)
+            .Select(cp => cp.CustomerId)
+            .Distinct()
+            .ToListAsync();
+        var salonPlatformSet = salonPlatformCustomerIds.ToHashSet();
 
         // Urun bazli fiyatlari topla
         var productPrices = await _customerProductEs.GetAllQueryable()
@@ -173,9 +210,17 @@ public class BillingFactory : IBillingFactory
             .ToListAsync();
         var existingBillingSet = new HashSet<int>(existingBillingItemKeys);
 
+        // Salon kayit vb.: trial abonelik BillingDay ile gelir ama BillingAnchorDay bos kalabiliyordu
+        var planAnchorByCustomer = await _planSubscriptionEs.GetAllQueryable()
+            .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active)
+            .GroupBy(s => s.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Day = g.Min(x => x.BillingDay) })
+            .ToDictionaryAsync(x => x.CustomerId, x => x.Day);
+
         var created = 0;
         var skipped = 0;
         var skippedNoAnchor = 0;
+        var skippedSalonPlatform = 0;
 
         foreach (var customer in activeCustomers)
         {
@@ -185,14 +230,21 @@ public class BillingFactory : IBillingFactory
                 continue;
             }
 
-            // BillingAnchorDay null ise atla
-            if (!customer.BillingAnchorDay.HasValue)
+            if (salonPlatformSet.Contains(customer.Id))
+            {
+                skippedSalonPlatform++;
+                continue;
+            }
+
+            var anchorDay = customer.BillingAnchorDay
+                ?? (planAnchorByCustomer.TryGetValue(customer.Id, out var d) ? d : (int?)null);
+            if (!anchorDay.HasValue)
             {
                 skippedNoAnchor++;
                 continue;
             }
 
-            var startDay = customer.BillingAnchorDay.Value;
+            var startDay = anchorDay.Value;
             var daysInMonth = DateTime.DaysInMonth(year, month);
             if (startDay > daysInMonth) startDay = daysInMonth;
 
@@ -266,14 +318,17 @@ public class BillingFactory : IBillingFactory
         if (created > 0)
             await _uow.SaveChangesAsync();
 
-        return (created, skipped, skippedNoAnchor, null);
+        var (platformCreated, platformSkipped) = await _subscriptionFactory.GenerateBillingForMonthAsync(year, month);
+
+        return (created, skipped, skippedNoAnchor, skippedSalonPlatform, platformCreated, platformSkipped, null);
     }
 
     public async Task<(bool IsBlocked, string? Reason)> IsCustomerBlockedByBillingAsync(int customerId)
     {
         var now = DateTime.UtcNow;
         var unpaidPeriods = await _billingEs.GetAllQueryable()
-            .Where(b => b.CustomerId == customerId && b.StatusId != BillingPeriodStatuses.Ids.Paid)
+            .Where(b => b.CustomerId == customerId && b.StatusId != BillingPeriodStatuses.Ids.Paid
+                && b.Amount + b.ServiceAmount > 0m)
             .Select(b => new { b.PeriodEndDate, b.Year, b.Month })
             .ToListAsync();
 
@@ -427,5 +482,71 @@ public class BillingFactory : IBillingFactory
         }
 
         return periods;
+    }
+
+    public async Task<BillingTahakkukDetailDto?> GetBillingTahakkukDetailAsync(int periodId)
+    {
+        var period = await _billingEs.GetAllQueryable()
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b => b.Id == periodId);
+
+        if (period == null) return null;
+
+        var customerId = period.CustomerId;
+        var products = await _customerProductEs.GetAllQueryable()
+            .Where(cp => cp.CustomerId == customerId && cp.IsActive)
+            .OrderBy(cp => cp.ProductTypeId)
+            .ThenBy(cp => cp.Id)
+            .ToListAsync();
+
+        var productLines = products.Select(cp =>
+        {
+            var label = ProductTypes.GetById(cp.ProductTypeId)?.Description ?? $"Urun #{cp.ProductTypeId}";
+            var lineAmt = Math.Round(period.UserCount * cp.MonthlyPrice, 2, MidpointRounding.AwayFromZero);
+            return new BillingTahakkukProductLineDto
+            {
+                CustomerProductId = cp.Id,
+                ProductTypeId = cp.ProductTypeId,
+                ProductLabel = label,
+                MonthlyUnitPrice = cp.MonthlyPrice,
+                LineAmount = lineAmt
+            };
+        }).ToList();
+
+        var items = await _billingItemEs.GetAllQueryable()
+            .Include(bi => bi.CustomerServiceSubscription)
+            .Where(bi => bi.CustomerId == customerId && bi.Year == period.Year && bi.Month == period.Month)
+            .OrderBy(bi => bi.CustomerServiceSubscription.ServiceTypeId)
+            .ToListAsync();
+
+        var serviceLines = items.Select(bi =>
+        {
+            var svc = ServiceTypes.GetById(bi.CustomerServiceSubscription.ServiceTypeId);
+            return new BillingServiceLineDto
+            {
+                ServiceName = svc?.Description ?? "?",
+                ServiceCode = svc?.SystemName ?? "?",
+                MonthlyPrice = bi.Amount
+            };
+        }).ToList();
+
+        var unitSum = products.Sum(p => p.MonthlyPrice);
+
+        return new BillingTahakkukDetailDto
+        {
+            PeriodId = period.Id,
+            CustomerId = customerId,
+            CustomerName = period.Customer.Name,
+            Year = period.Year,
+            Month = period.Month,
+            PeriodStartDate = period.PeriodStartDate,
+            PeriodEndDate = period.PeriodEndDate,
+            UserCount = period.UserCount,
+            UnitPriceSum = unitSum,
+            OperatorAmount = period.Amount,
+            ServiceAmount = period.ServiceAmount,
+            ProductLines = productLines,
+            ServiceLines = serviceLines
+        };
     }
 }

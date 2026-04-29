@@ -41,6 +41,7 @@ public static class EntityServiceRegistration
 
         // Billing
         services.AddScoped<IBillingPeriodEntityService, BillingPeriodEntityService>();
+        services.AddScoped<ICustomerBillingPeriodModuleLineEntityService, CustomerBillingPeriodModuleLineEntityService>();
 
         // Recording Access Log
         services.AddScoped<IRecordingAccessLogEntityService, RecordingAccessLogEntityService>();

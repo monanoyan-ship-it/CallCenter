@@ -1,3 +1,4 @@
+using CallCenter.Shared.Auth;
 using CallCenter.Shared.Localization;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -23,6 +24,8 @@ builder.Services.AddHttpClient("SalonApi", client =>
 });
 
 builder.Services.AddAppLocalization(apiBaseUrl, module: "salon");
+
+builder.Services.Configure<JwtAuthCookieOptions>(o => o.CookieName = "CorpLynk.Salon.Auth");
 
 // Session kaldirildi — JWT cookie tabanli stateless akis (Shared.Auth.JwtIdentity)
 

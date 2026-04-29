@@ -96,6 +96,16 @@ public static class SubscriptionStatuses
     }
 }
 
+/// <summary>Platform tahakkuku ile salon panel erisimi — tek gecikme politikasi (gun).</summary>
+public static class PlatformBillingAccessPolicy
+{
+    /// <summary>Tahakkuk kesiminden (PeriodStartDate) sonra odeme icin panel acik kalir; sonrasinda kilit.</summary>
+    public const int UnpaidGraceDaysAfterPeriodStart = 5;
+
+    /// <summary>Deneme bitiminden sonra askiya alma (abonelik hala aktifken ek stire).</summary>
+    public const int TrialSuspensionGraceDays = 5;
+}
+
 public static class BillingPeriodStatuses
 {
     public static readonly TypeItem Draft = new(1, "Draft", "BillingPeriodStatus.Draft", "Tahakkuk", "bi-pencil-fill", "bg-warning text-dark", 1, isDefault: true);

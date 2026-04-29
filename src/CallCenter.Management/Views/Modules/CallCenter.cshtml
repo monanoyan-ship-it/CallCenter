@@ -104,7 +104,7 @@
                                 <th class="text-end">Toplam</th>
                                 <th>Durum</th>
                                 <th>Odeme</th>
-                                <th style="width:100px;">Islem</th>
+                                <th style="width:150px;">Islem</th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: items">
@@ -127,7 +127,11 @@
                                     </span>
                                     <span class="text-muted small" data-bind="if: !paymentMethodName">-</span>
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Tahakkuk detayi"
+                                        data-bind="click: function() { $parent.showTahakkukDetail(periodId); }">
+                                        <i class="bi bi-list-ul"></i>
+                                    </button>
                                     <!-- Tahakkuk -> Fatura Kes -->
                                     <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Fatura Kes"
                                         data-bind="visible: statusId === 1, click: function() { $parent.singleInvoice(periodId); }">
@@ -153,6 +157,105 @@
                         Toplam: <span data-bind="text: items().length"></span> kayit |
                         Toplam tutar: <span data-bind="text: summary().totalAmount + ' TL'"></span>
                     </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tahakkuk detayi (firmaya uygulanan kalemler) -->
+    <div class="modal fade" id="ccTahakkukDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title mb-0">Tahakkuk detayi</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-4" data-bind="visible: tahakkukDetailLoading">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
+                    <div class="alert alert-danger py-2 small mb-0" data-bind="visible: tahakkukDetailError, text: tahakkukDetailError"></div>
+                    <div data-bind="with: tahakkukDetail">
+                        <div class="small text-muted mb-2">
+                            <strong data-bind="text: customerName"></strong>
+                            <span class="mx-1">·</span>
+                            <span data-bind="text: 'Donem: ' + (month || '-') + '/' + (year || '-')"></span>
+                        </div>
+                        <div class="row g-2 small mb-3">
+                            <div class="col-md-4">
+                                <div class="border rounded p-2 bg-light">
+                                    <div class="text-muted">Kullanici ( Operator )</div>
+                                    <div class="fw-semibold" data-bind="text: userCount"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-2 bg-light">
+                                    <div class="text-muted">Urun aylik toplam birim</div>
+                                    <div class="fw-semibold" data-bind="text: (unitPriceSum != null ? Number(unitPriceSum) : 0).toFixed(2) + ' TL'"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-2 bg-light">
+                                    <div class="text-muted">Toplam tahakkuk</div>
+                                    <div class="fw-semibold" data-bind="text: ((operatorAmount || 0) + (serviceAmount || 0)).toFixed(2) + ' TL'"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="small text-uppercase text-muted mb-2">Urun / lisans ( Operator sutunu )</h6>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Urun</th>
+                                        <th class="text-end" style="width:100px;">Aylik birim</th>
+                                        <th class="text-end" style="width:110px;">Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-bind="foreach: productLines">
+                                    <tr>
+                                        <td data-bind="text: productLabel"></td>
+                                        <td class="text-end font-monospace" data-bind="text: (monthlyUnitPrice != null ? Number(monthlyUnitPrice) : 0).toFixed(2)"></td>
+                                        <td class="text-end font-monospace" data-bind="text: (lineAmount != null ? Number(lineAmount) : 0).toFixed(2)"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small" data-bind="visible: !productLines || productLines.length === 0">Urun kalemi yok.</p>
+                        <div class="d-flex justify-content-end small mb-3">
+                            <span class="text-muted me-2">Operator toplami:</span>
+                            <strong class="font-monospace" data-bind="text: (operatorAmount != null ? Number(operatorAmount) : 0).toFixed(2) + ' TL'"></strong>
+                        </div>
+
+                        <h6 class="small text-uppercase text-muted mb-2">Hizmet abonelikleri ( Hizmet sutunu )</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Hizmet</th>
+                                        <th class="text-end" style="width:110px;">Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-bind="foreach: serviceLines">
+                                    <tr>
+                                        <td>
+                                            <span data-bind="text: serviceName"></span>
+                                            <span class="text-muted small" data-bind="visible: serviceCode"> (<span data-bind="text: serviceCode"></span>)</span>
+                                        </td>
+                                        <td class="text-end font-monospace" data-bind="text: (monthlyPrice != null ? Number(monthlyPrice) : 0).toFixed(2)"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small" data-bind="visible: !serviceLines || serviceLines.length === 0">Hizmet kalemi yok.</p>
+                        <div class="d-flex justify-content-end small">
+                            <span class="text-muted me-2">Hizmet toplami:</span>
+                            <strong class="font-monospace" data-bind="text: (serviceAmount != null ? Number(serviceAmount) : 0).toFixed(2) + ' TL'"></strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Kapat</button>
                 </div>
             </div>
         </div>

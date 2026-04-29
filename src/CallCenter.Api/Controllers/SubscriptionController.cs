@@ -6,7 +6,7 @@ namespace CallCenter.Api.Controllers;
 
 [ApiController]
 [Route("api/subscriptions")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class SubscriptionController : ControllerBase
 {
     private readonly ISubscriptionFactory _factory;
@@ -16,14 +16,17 @@ public class SubscriptionController : ControllerBase
     // ═══ PLAN ═══
 
     [HttpGet("plans")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GetPlans()
         => Ok(await _factory.GetPlansAsync());
 
     [HttpPost("plans")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> CreatePlan([FromBody] PlanRequest request)
         => Ok(await _factory.CreatePlanAsync(request.Name, request.IntervalMonths, request.DiscountPercent, request.BranchPrice));
 
     [HttpPut("plans/{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> UpdatePlan(int id, [FromBody] PlanRequest request)
     {
         var (s, e) = await _factory.UpdatePlanAsync(id, request.Name, request.IntervalMonths, request.DiscountPercent, request.BranchPrice, request.IsActive);
@@ -31,6 +34,7 @@ public class SubscriptionController : ControllerBase
     }
 
     [HttpDelete("plans/{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> DeletePlan(int id)
     {
         var (s, e) = await _factory.DeletePlanAsync(id);
@@ -40,30 +44,31 @@ public class SubscriptionController : ControllerBase
     // ═══ ABONELİK ═══
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GetSubscriptions([FromQuery] int? customerId)
         => Ok(await _factory.GetCustomerSubscriptionsAsync(customerId));
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> CreateSubscription([FromBody] CreateSubscriptionRequest request)
     {
         var (result, error) = await _factory.CreateSubscriptionAsync(request.CustomerId, request.PlanId, request.StartDate, request.MonthlyPrice, request.BranchId);
         return result != null ? Ok(result) : BadRequest(new { message = error });
     }
 
-    /// <summary>Aktif abonelik var mi — Salon panel oturumu acilirken cagirir</summary>
+    /// <summary>Salon oturumu: panel kilidi canAccessPanel ile; hasActive yalnizca Status=1.</summary>
     [HttpGet("status")]
-    [Authorize]
     public async Task<ActionResult> GetSubscriptionStatus()
     {
         var customerIdClaim = User.FindFirst("CustomerId")?.Value;
         if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
             return Unauthorized();
 
-        var hasActive = await _factory.HasActiveSubscriptionAsync(customerId);
-        return Ok(new { hasActive });
+        return Ok(await _factory.GetSalonPanelAccessAsync(customerId));
     }
 
     [HttpPut("{id}/cancel")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> CancelSubscription(int id)
     {
         var (s, e) = await _factory.CancelSubscriptionAsync(id);
@@ -74,7 +79,6 @@ public class SubscriptionController : ControllerBase
 
     /// <summary>Musteri kendi abonelik ve odeme durumunu gorur</summary>
     [HttpGet("my")]
-    [Authorize] // Admin + CustomerUser
     public async Task<ActionResult> GetMySubscription()
     {
         var customerIdClaim = User.FindFirst("CustomerId")?.Value;
@@ -84,9 +88,21 @@ public class SubscriptionController : ControllerBase
         return Ok(await _factory.GetMySubscriptionAsync(customerId));
     }
 
+    /// <summary>Salon layout üst bildirimi: ödenmemiş/gecikmiş tahakkuk</summary>
+    [HttpGet("banner")]
+    public async Task<ActionResult> GetSalonBanner()
+    {
+        var customerIdClaim = User.FindFirst("CustomerId")?.Value;
+        if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
+            return Unauthorized();
+
+        return Ok(await _factory.GetSalonBannerAsync(customerId));
+    }
+
     // ═══ BRANCHES (abonelik olustururken subeleri listelemek icin) ═══
 
     [HttpGet("branches/{customerId}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GetCustomerBranches(int customerId, [FromServices] CallCenter.Api.EntityServices.Interfaces.ISlnBranchEntityService branchEs)
     {
         var list = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
@@ -97,6 +113,7 @@ public class SubscriptionController : ControllerBase
     // ═══ TAHAKKUK ═══
 
     [HttpPost("generate-billing")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GenerateBilling([FromBody] GenerateBillingRequest request)
     {
         var (created, skipped) = await _factory.GenerateBillingForMonthAsync(request.Year, request.Month);

@@ -37,17 +37,6 @@
                 else if (s.statusId === 2) { badge.className = 'badge bg-warning text-dark'; badge.textContent = 'Askıda'; }
                 else { badge.className = 'badge bg-secondary'; badge.textContent = 'Pasif'; }
 
-                var trialAlert = document.getElementById('subTrialAlert');
-                if (s.isTrial && s.trialDaysRemaining !== null) {
-                    trialAlert.style.display = '';
-                    document.getElementById('subTrialText').textContent =
-                        s.trialDaysRemaining > 0
-                            ? 'Deneme süreniz ' + s.trialDaysRemaining + ' gün içinde bitiyor.'
-                            : 'Deneme süreniz bitti.';
-                } else {
-                    trialAlert.style.display = 'none';
-                }
-
                 var pkgWrap = document.getElementById('subPackages');
                 pkgWrap.innerHTML = '<span class="badge bg-purple text-white">Temel Paket · ' + fmt(s.basicPackagePrice) + ' ₺</span>';
                 (s.activePackages || []).forEach(function (p) {

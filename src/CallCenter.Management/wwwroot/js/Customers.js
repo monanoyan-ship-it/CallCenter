@@ -198,7 +198,17 @@ function CustomersViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({ year: parseInt(self.billingYear()), month: parseInt(self.billingMonth()) }),
             success: function (data) {
-                var msg = (data.created || 0) + ' donem olusturuldu, ' + (data.skipped || 0) + ' atlandi.';
+                var na = data.skippedNoAnchor != null ? data.skippedNoAnchor : 0;
+                var msg = (data.created || 0) + ' CC dönem oluşturuldu, ' + (data.skipped || 0) + ' atlandı (zaten vardı).';
+                var sp = data.skippedSalonPlatform != null ? data.skippedSalonPlatform : 0;
+                if (sp > 0)
+                    msg += ' Salon müşteri: ' + sp + ' (platform tahakkuku ayrı işlendi).';
+                var pc = data.platformTahakkukCreated != null ? data.platformTahakkukCreated : 0;
+                var ps = data.platformTahakkukSkipped != null ? data.platformTahakkukSkipped : 0;
+                if (pc > 0 || ps > 0)
+                    msg += ' Platform tahakkuk: ' + pc + ' oluşturuldu, ' + ps + ' atlandı.';
+                if (na > 0)
+                    msg += ' Tahakkuk günü yok: ' + na + ' müşteri (abonelik/plan günü atanmamış).';
                 toastr.success(msg);
                 bootstrap.Modal.getInstance(document.getElementById('billingModal')).hide();
             },

@@ -1,12 +1,13 @@
 using CallCenter.Data;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Services;
 
 /// <summary>
 /// Periyodik trial/abonelik suresi dolma kontrolu.
-/// PAY.5: 5 gun trial (MonthlyPrice=0) suresi gecmis aktif aboneliklerin StatusId=2 (askıda) yapilir.
-/// Aktif (ucretli) aboneliklerde NextBillingDate + PaymentGraceDays gecmisse + odenmemis tahakkuk varsa askıya alinir.
+/// Trial: NextBillingDate + TrialSuspensionGraceDays (5) sonrasi askiya.
+/// Ucretli: odenmemis en eski tahakkugun PeriodStartDate + UnpaidGraceDays (5) sonrasi askiya.
 /// </summary>
 public class SubscriptionExpiryHostedService : BackgroundService
 {
@@ -40,31 +41,32 @@ public class SubscriptionExpiryHostedService : BackgroundService
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var now = DateTime.UtcNow;
 
-        // 1) Trial expiry (MonthlyPrice=0, StatusId=1, NextBillingDate < now)
+        // 1) Trial: deneme bitiminden sonra ek N gun (Policy), sonra askiya
+        var trialGrace = PlatformBillingAccessPolicy.TrialSuspensionGraceDays;
         var expiredTrials = await db.CustomerSubscriptions
-            .Where(s => s.StatusId == 1 && s.MonthlyPrice == 0 && s.NextBillingDate < now)
+            .Where(s => s.StatusId == 1 && s.MonthlyPrice == 0 && s.NextBillingDate.AddDays(trialGrace) < now)
             .ToListAsync(ct);
         foreach (var sub in expiredTrials) sub.StatusId = 2;
         if (expiredTrials.Count > 0)
-            _logger.LogInformation("Trial subscription expired: {Count}", expiredTrials.Count);
+            _logger.LogInformation("Trial subscription expired (grace {Grace}d): {Count}", trialGrace, expiredTrials.Count);
 
-        // 2) Ucretli aboneliklerde grace period asilmis + odenmemis tahakkuk
+        // 2) Ucretli: odenmemis tahakkukda PeriodStartDate + Policy gun asildiysa askiya
         var activePaid = await db.CustomerSubscriptions
             .Where(s => s.StatusId == 1 && s.MonthlyPrice > 0)
             .ToListAsync(ct);
         int suspendedPaid = 0;
         foreach (var sub in activePaid)
         {
-            var overdueLimit = sub.NextBillingDate.AddDays(sub.PaymentGraceDays);
+            var oldestUnpaid = await db.CustomerBillingPeriods
+                .Where(p => p.CustomerId == sub.CustomerId && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
+                    && p.Amount + p.ServiceAmount > 0m)
+                .OrderBy(p => p.Year).ThenBy(p => p.Month)
+                .FirstOrDefaultAsync(ct);
+            if (oldestUnpaid == null) continue;
+            var overdueLimit = oldestUnpaid.PeriodStartDate.AddDays(PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart);
             if (overdueLimit >= now) continue;
-            // Bekleyen tahakkuk var mi
-            var hasUnpaid = await db.CustomerBillingPeriods
-                .AnyAsync(p => p.CustomerId == sub.CustomerId && !p.IsPaid && p.StatusId != 3, ct);
-            if (hasUnpaid)
-            {
-                sub.StatusId = 2;
-                suspendedPaid++;
-            }
+            sub.StatusId = 2;
+            suspendedPaid++;
         }
         if (suspendedPaid > 0)
             _logger.LogInformation("Paid subscription suspended (grace + unpaid): {Count}", suspendedPaid);

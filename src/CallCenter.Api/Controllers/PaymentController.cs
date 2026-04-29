@@ -205,7 +205,7 @@ public class PaymentController : ControllerBase
         return tx.PaymentTypeId switch
         {
             PaymentTypes.Ids.ModulSatinAlma => $"{salon}/Modules?iyzicoToken={t}",
-            PaymentTypes.Ids.PlatformAbonelik => $"{web}/?iyzicoToken={t}",
+            PaymentTypes.Ids.PlatformAbonelik => $"{salon}/Modules?iyzicoToken={t}&flow=sub",
             _ => $"{salon}/Modules?iyzicoToken={t}"
         };
     }

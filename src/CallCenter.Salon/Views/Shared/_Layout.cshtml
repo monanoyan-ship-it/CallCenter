@@ -33,7 +33,8 @@
         .sidebar .nav-group-items { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
         .sidebar .nav-group-items.show { max-height: 500px; }
         .content-area { margin-left: var(--sidebar-width); padding: 1.5rem; min-height: 100vh; }
-        .topbar { background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+        .sln-banner-stack { margin: -1.5rem -1.5rem 0 -1.5rem; }
+        .topbar { background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem; margin: 0 -1.5rem 1.5rem -1.5rem; display: flex; align-items: center; justify-content: space-between; }
     </style>
     @RenderSection("Styles", required: false)
 </head>
@@ -179,6 +180,7 @@
         </nav>
 
         <div class="content-area">
+            <div id="slnBillingBanners" class="sln-banner-stack d-print-none" aria-live="polite"></div>
             <div class="topbar">
                 <h5 class="mb-0">@ViewData["Title"]</h5>
                 <div class="d-flex align-items-center gap-3">
@@ -308,6 +310,7 @@
             };
         }
     </script>
+    <script src="~/js/layout-banners.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

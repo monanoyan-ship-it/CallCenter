@@ -8,28 +8,37 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center p-5">
                     <i class="bi bi-lock-fill text-warning" style="font-size:3rem;"></i>
-                    <h4 class="mt-3">Aktif Abonelik Gerekli</h4>
-                    <p class="text-muted mb-4">
-                        Salon panelini kullanabilmek için aktif bir aboneliğiniz olması gerekiyor.
-                        Lütfen yönetim ekibi ile iletişime geçiniz veya mevcut faturalarınızı ödeyiniz.
+                    <h4 class="mt-3">Salon erişimi kısıtlandı</h4>
+                    <p class="text-muted mb-3 text-start small">
+                        Platform aboneliğiniz veya ödenmemiş tahakkuklarınız nedeniyle panele erişim kapalı olabilir.
+                        <strong>Gecikmiş borç</strong> için önce <strong>Modüller</strong> üzerinden kart ödemesi gerekir (listedeki dönem tahakkuku oluşmuş olmalıdır).
+                    </p>
+                    <p class="text-muted mb-3 text-start small">
+                        <strong>Yeni kayıt:</strong> İlk platform faturası genelde deneme süresi sonunda oluşur; bu aşamada Modüller’de
+                        “ödeme” adımı görünmeyebilir — bu normaldir. Birkaç dakika sonra
+                        <a href="/Account/RefreshSession">oturumu yenileyin</a>; sorun sürerse destek ile iletişime geçin.
+                    </p>
+                    <p class="text-muted mb-4 text-start small">
+                        <strong>Salon adisyonları</strong> (müşteri faturaları) panel açıldığında <strong>Adisyonlar</strong> menüsündedir;
+                        bunlar platform tahakkukundan farklıdır.
                     </p>
                     <div class="d-grid gap-2">
-                        <a href="/Invoices" class="btn btn-primary">
-                            <i class="bi bi-receipt me-1"></i>Faturalarımı Gör
+                        <a href="/Modules" class="btn btn-primary">
+                            <i class="bi bi-puzzle me-1"></i>Modüller (tahakkuk / paketler)
                         </a>
                         <a href="/Home/Index" class="btn btn-outline-secondary">
-                            <i class="bi bi-house me-1"></i>Ana Sayfa
+                            <i class="bi bi-house me-1"></i>Ana sayfa
                         </a>
                         <form method="post" action="/Account/Logout" class="d-inline">
-                            <button type="submit" class="btn btn-link text-muted">Çıkış Yap</button>
+                            <button type="submit" class="btn btn-link text-muted">Çıkış yap</button>
                         </form>
                     </div>
                 </div>
             </div>
             <div class="text-center mt-3">
                 <small class="text-muted">
-                    Abonelik sorununu çözdüyseniz oturumu yenilemek için
-                    <a href="/Account/RefreshSession">tıklayın</a>.
+                    Ödeme veya abonelik güncellendiyse
+                    <a href="/Account/RefreshSession">oturumu yenileyin</a>.
                 </small>
             </div>
         </div>

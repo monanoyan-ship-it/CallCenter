@@ -26,6 +26,7 @@ public class CustomerFactory : ICustomerFactory
     private readonly ICustomerSubscriptionEntityService _subscriptionEs;
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IAuthFactory _authFactory;
+    private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly IUnitOfWork _uow;
 
     public CustomerFactory(
@@ -44,6 +45,7 @@ public class CustomerFactory : ICustomerFactory
         ICustomerSubscriptionEntityService subscriptionEs,
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
+        ISubscriptionFactory subscriptionFactory,
         IUnitOfWork uow)
     {
         _customerEs = customerEs;
@@ -61,6 +63,7 @@ public class CustomerFactory : ICustomerFactory
         _subscriptionEs = subscriptionEs;
         _passwordPolicy = passwordPolicy;
         _authFactory = authFactory;
+        _subscriptionFactory = subscriptionFactory;
         _uow = uow;
     }
 
@@ -586,6 +589,8 @@ public class CustomerFactory : ICustomerFactory
         if (await _userEs.ExistsByUsernameAsync(userName))
             return new SlnRegisterResponse { Error = "Bu kullanici adi zaten kullaniliyor." };
 
+        var registeredAt = DateTime.UtcNow;
+
         // Customer (Salon)
         var customer = new Customer
         {
@@ -594,7 +599,8 @@ public class CustomerFactory : ICustomerFactory
             Email = request.Email,
             MaxUsers = 5,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = registeredAt,
+            BillingAnchorDay = registeredAt.Day
         };
         _customerEs.Add(customer);
         await _uow.SaveChangesAsync();
@@ -658,7 +664,8 @@ public class CustomerFactory : ICustomerFactory
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
         await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _branchEs, _uow, customer.Id);
 
-        // PAY.5: 5 gunluk TRIAL abonelik olustur — yoksa salon abonelik kontrolunde blokluyor
+        // PAY / trial: ucretsiz donem (MonthlyPrice=0); ilk tahakkuk kayit aninda CreateInitialBillingPeriod ile,
+        // NextBillingDate o donemin bitisine gore (plan araligi) ilerletilir — modul kisti sonraki tahakkuka kadar gun hesabi ile uyumlu.
         try
         {
             var anyPlan = await _planEs.GetAllQueryable()
@@ -667,28 +674,30 @@ public class CustomerFactory : ICustomerFactory
                 .FirstOrDefaultAsync();
             if (anyPlan != null)
             {
-                var now = DateTime.UtcNow;
+                var reg = DateTime.SpecifyKind(registeredAt, DateTimeKind.Utc);
                 _subscriptionEs.Add(new CustomerSubscription
                 {
                     CustomerId = customer.Id,
                     PlanId = anyPlan.Id,
-                    StartDate = DateTime.SpecifyKind(now, DateTimeKind.Utc),
+                    StartDate = reg,
                     MonthlyPrice = 0,
                     PeriodPrice = 0,
-                    BillingDay = now.Day,
-                    NextBillingDate = DateTime.SpecifyKind(now.AddDays(5), DateTimeKind.Utc),
+                    BillingDay = registeredAt.Day,
+                    NextBillingDate = reg,
                     StatusId = 1, // Active (trial)
-                    PaymentGraceDays = 7
+                    PaymentGraceDays = 5
                 });
                 await _uow.SaveChangesAsync();
+                try
+                {
+                    await _subscriptionFactory.CreateInitialBillingPeriodForCustomerAsync(customer.Id);
+                }
+                catch
+                {
+                    /* Ilk tahakkuk olusmazsa kayit akisi yine tamamlanir */
+                }
             }
-            // Plan yoksa: Customer.IsTest=true fallback, kayit sonrasi admin manuel plan atayana kadar muaf kalsin
-            else
-            {
-                customer.IsTest = true;
-                customer.TestNotes = "Auto-trial: aktif abonelik plani yok; admin plan atayana kadar muaf.";
-                await _uow.SaveChangesAsync();
-            }
+            // Plan yoksa: IsTest dokunulmaz (false). Test muafiyeti sadece admin firma detayinda isaretlenir.
         }
         catch { /* trial olusturulamazsa kayit akisini bozma */ }
 

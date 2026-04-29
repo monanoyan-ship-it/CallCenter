@@ -9,6 +9,10 @@ function CcBillingViewModel() {
     self.selectAll = ko.observable(false);
     self.summary = ko.observable({});
 
+    self.tahakkukDetailLoading = ko.observable(false);
+    self.tahakkukDetailError = ko.observable(null);
+    self.tahakkukDetail = ko.observable(null);
+
     self.selectAll.subscribe(function(val) {
         self.selectedIds(val ? self.items().map(function(i) { return i.periodId; }) : []);
     });
@@ -44,6 +48,27 @@ function CcBillingViewModel() {
             self.items(list);
             self.computeSummary();
         }).always(function() { self.isLoading(false); });
+    };
+
+    self.showTahakkukDetail = function(periodId) {
+        self.tahakkukDetailLoading(true);
+        self.tahakkukDetailError(null);
+        self.tahakkukDetail(null);
+        $.get('/proxy/billing/periods/' + periodId + '/detail')
+            .done(function(d) {
+                self.tahakkukDetail(d);
+                new bootstrap.Modal(document.getElementById('ccTahakkukDetailModal')).show();
+            })
+            .fail(function(xhr) {
+                var msg = 'Detay yuklenemedi.';
+                try {
+                    var j = xhr.responseJSON || (xhr.responseText && JSON.parse(xhr.responseText));
+                    if (j && j.message) msg = j.message;
+                } catch (err) { /* ignore */ }
+                self.tahakkukDetailError(msg);
+                new bootstrap.Modal(document.getElementById('ccTahakkukDetailModal')).show();
+            })
+            .always(function() { self.tahakkukDetailLoading(false); });
     };
 
     self.updatePeriod = function(periodId, payload) {

@@ -30,11 +30,11 @@ public static class SalonPortalModules
     public static readonly TypeItem SlnMemberships = new(218, "SlnMemberships", "SalonModule.Memberships", "Üyelik Planları", "bi-award", "bg-primary", 18);
     public static readonly TypeItem SlnLoyalty = new(219, "SlnLoyalty", "SalonModule.Loyalty", "Sadakat Programı", "bi-star", "bg-warning", 19);
     public static readonly TypeItem SlnProfile = new(220, "SlnProfile", "SalonModule.Profile", "Salon Profili", "bi-shop", "bg-dark", 20, isDefault: true);
-    public static readonly TypeItem SlnWaitlist = new(221, "SlnWaitlist", "SalonModule.Waitlist", "Bekleme Listesi", "bi-clock-history", "bg-secondary", 21);
+    public static readonly TypeItem SlnWaitlist = new(221, "SlnWaitlist", "SalonModule.Waitlist", "Bekleme Listesi", "bi-clock-history", "bg-secondary", 21, isDefault: true);
     public static readonly TypeItem SlnEmailCampaigns = new(222, "SlnEmailCampaigns", "SalonModule.EmailCampaigns", "E-posta Kampanyaları", "bi-envelope", "bg-info", 22);
     public static readonly TypeItem SlnReviews = new(223, "SlnReviews", "SalonModule.Reviews", "Yorum Yönetimi", "bi-chat-square-text", "bg-success", 23);
-    public static readonly TypeItem SlnNoShowPolicy = new(224, "SlnNoShowPolicy", "SalonModule.NoShowPolicy", "No-Show Politikası", "bi-shield-exclamation", "bg-danger", 24);
-    public static readonly TypeItem SlnConsentForms = new(225, "SlnConsentForms", "SalonModule.ConsentForms", "Onay Formları", "bi-file-earmark-text", "bg-secondary", 25);
+    public static readonly TypeItem SlnNoShowPolicy = new(224, "SlnNoShowPolicy", "SalonModule.NoShowPolicy", "No-Show Politikası", "bi-shield-exclamation", "bg-danger", 24, isDefault: true);
+    public static readonly TypeItem SlnConsentForms = new(225, "SlnConsentForms", "SalonModule.ConsentForms", "Onay Formları", "bi-file-earmark-text", "bg-secondary", 25, isDefault: true);
     public static readonly TypeItem SlnBeforeAfter = new(226, "SlnBeforeAfter", "SalonModule.BeforeAfter", "Önce/Sonra Fotoğrafları", "bi-images", "bg-pink", 26);
     public static readonly TypeItem SlnWinback = new(227, "SlnWinback", "SalonModule.Winback", "Kayıp Müşteri Geri Kazanım", "bi-arrow-repeat", "bg-orange", 27);
     public static readonly TypeItem SlnPersonnelPrices = new(228, "SlnPersonnelPrices", "SalonModule.PersonnelPrices", "Personel Fiyatları ve Hasılat", "bi-currency-exchange", "bg-teal", 28, isDefault: true);

@@ -165,19 +165,9 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             var branchMultiplier = 1m + 0.9m * (branchCount - 1);
             var monthlyTotal = Math.Round(baseMonthly * branchMultiplier, 2);
 
-            var isTrial = subscription.MonthlyPrice == 0;
-            int? trialDaysRemaining = null;
-            if (isTrial)
-            {
-                var diff = (subscription.NextBillingDate.Date - DateTime.UtcNow.Date).Days;
-                trialDaysRemaining = diff > 0 ? diff : 0;
-            }
-
             subscriptionInfo = new
             {
                 statusId = subscription.StatusId,
-                isTrial,
-                trialDaysRemaining,
                 nextBillingDate = subscription.NextBillingDate,
                 basicPackagePrice,
                 activePackages,

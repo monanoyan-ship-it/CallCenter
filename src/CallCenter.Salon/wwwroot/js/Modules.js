@@ -36,15 +36,16 @@ function ModulesViewModel() {
     self.activeModules = ko.observableArray([]);
     self.availableModules = ko.observableArray([]);
     self.requests = ko.observableArray([]);
+    self.unpaidBillings = ko.observableArray([]);
 
     self.defaultModules = ko.computed(function () {
         return self.activeModules().filter(function (m) { return m.isDefault; });
     });
 
     // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
-    var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 5: 'Profesyonel', 6: 'Kurumsal' };
+    var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 6: 'Kurumsal' };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
-    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
+    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 6: 200 };
     self.packagePrices = ko.observable({});
 
     self.priceForGroup = function (gId) {
@@ -119,6 +120,15 @@ function ModulesViewModel() {
         $.get('/proxy/sln-module-requests', function (data) { self.requests(data || []); });
         $.get('/proxy/sln-module-requests/available', function (data) { self.availableModules(data || []); });
         $.get('/proxy/sln-module-requests/active', function (data) { self.activeModules(data || []); });
+        $.get('/proxy/subscriptions/my', function (data) {
+            var u = (data && data.unpaidBillings) ? data.unpaidBillings : [];
+            u = u.slice().sort(function (a, b) {
+                var y = (a.year || 0) - (b.year || 0);
+                if (y !== 0) return y;
+                return (a.month || 0) - (b.month || 0);
+            });
+            self.unpaidBillings(u);
+        }).fail(function () { self.unpaidBillings([]); });
         $.get('/proxy/sln-branches?_nb=1', function (data) {
             var branches = Array.isArray(data) ? data : (data.items || []);
             var active = branches.filter(function (b) { return b.isActive !== false; }).length;
@@ -175,6 +185,10 @@ function ModulesViewModel() {
     self.purchasePreview = ko.observable(null);
     self.purchaseResult = ko.observable(null);
     self.purchaseGroupId = ko.observable(null);
+    /** 'package' | 'subscription' — Iyzico donus mesaji ve tekrar dene adimi */
+    self.checkoutMode = ko.observable('package');
+    /** Odenecek tahakkuk satiri (ajax onizleme yok; /subscriptions/my'den gelir) */
+    self.invoicePayContext = ko.observable(null);
     /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
     self.checkoutFormHtml = ko.observable('');
 
@@ -182,7 +196,50 @@ function ModulesViewModel() {
         if (step !== 'checkout') self.checkoutFormHtml('');
     });
 
+    self.retryPaymentStep = function () {
+        self.purchaseStep(self.checkoutMode() === 'subscription' ? 'invoice-preview' : 'preview');
+    };
+
+    self.payUnpaidBilling = function (inv) {
+        self.checkoutMode('subscription');
+        self.invoicePayContext(inv);
+        self.purchaseStep('invoice-preview');
+        self.purchaseResult(null);
+        self.purchaseLoading(false);
+        self.checkoutFormHtml('');
+        var modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+        modal.show();
+    };
+
+    self.startSubscriptionCheckout = function () {
+        self.checkoutFormHtml('');
+        self.purchaseStep('checkout');
+        self.purchaseLoading(true);
+        $.ajax({
+            url: '/proxy/payments/subscription-checkout',
+            method: 'POST',
+            contentType: 'application/json',
+            data: '{}',
+            success: function (data) {
+                self.purchaseLoading(false);
+                var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
+                if (data.success && raw) {
+                    self.checkoutFormHtml(raw);
+                } else {
+                    toastr.error(data.error || 'Odeme formu olusturulamadi.');
+                    self.purchaseStep('invoice-preview');
+                }
+            },
+            error: function (xhr) {
+                toastr.error((xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || 'Odeme baslatilamadi.');
+                self.purchaseLoading(false);
+                self.purchaseStep('invoice-preview');
+            }
+        });
+    };
+
     self.purchasePackage = function (pkg) {
+        self.checkoutMode('package');
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -210,6 +267,7 @@ function ModulesViewModel() {
     };
 
     self.purchaseModule = function (mod) {
+        self.checkoutMode('package');
         // Tek modul icin de ayni akis, groupId yerine moduleId gonder
         self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
         self.purchaseStep('preview');
@@ -327,6 +385,10 @@ ko.applyBindings(modulesVm, document.getElementById('modules-vm'));
     var token = p.get('iyzicoToken');
     if (!token) return;
 
+    var flow = p.get('flow');
+    if (flow === 'sub') modulesVm.checkoutMode('subscription');
+    else modulesVm.checkoutMode('package');
+
     var modalEl = document.getElementById('purchaseModal');
     if (!modalEl) return;
 
@@ -343,6 +405,7 @@ ko.applyBindings(modulesVm, document.getElementById('modules-vm'));
         var u = new URL(window.location.href);
         u.searchParams.delete('iyzicoToken');
         u.searchParams.delete('iyzicoError');
+        u.searchParams.delete('flow');
         var q = u.searchParams.toString();
         window.history.replaceState({}, '', u.pathname + (q ? '?' + q : '') + u.hash);
     });

@@ -711,6 +711,22 @@ public class BillingPeriodDto
     public DateTime? PaidAt { get; set; }
     public string? Notes { get; set; }
     public List<BillingServiceLineDto> ServiceLines { get; set; } = new();
+
+    /// <summary>Salon abonelik tahakkugunda portal modul kalemleri (subscription generate-billing).</summary>
+    public List<BillingPeriodModuleLineDto> SalonModuleLines { get; set; } = new();
+}
+
+public class BillingPeriodModuleLineDto
+{
+    /// <summary>SalonModuleGroups.Id — dolu ise paket satiri.</summary>
+    public int? PackageGroupId { get; set; }
+
+    /// <summary>Eski satirlar / tek modul kalemi.</summary>
+    public int? ModuleId { get; set; }
+
+    public string ModuleDisplayName { get; set; } = string.Empty;
+    public decimal MonthlyUnitPrice { get; set; }
+    public decimal LineAmount { get; set; }
 }
 
 public class BillingServiceLineDto
@@ -755,6 +771,35 @@ public class BillingReportDto
     public string? PaymentMethodName { get; set; }
     public bool IsPaid { get; set; }
     public DateTime? PaidAt { get; set; }
+}
+
+/// <summary>CC tahakkuk detayi — urun (operator) + hizmet kalemleri.</summary>
+public class BillingTahakkukDetailDto
+{
+    public int PeriodId { get; set; }
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public DateTime PeriodStartDate { get; set; }
+    public DateTime PeriodEndDate { get; set; }
+    public int UserCount { get; set; }
+    /// <summary>Aylik toplam urun birim fiyati (tum aktif urunler).</summary>
+    public decimal UnitPriceSum { get; set; }
+    public decimal OperatorAmount { get; set; }
+    public decimal ServiceAmount { get; set; }
+    public List<BillingTahakkukProductLineDto> ProductLines { get; set; } = new();
+    public List<BillingServiceLineDto> ServiceLines { get; set; } = new();
+}
+
+public class BillingTahakkukProductLineDto
+{
+    public int CustomerProductId { get; set; }
+    public int ProductTypeId { get; set; }
+    public string ProductLabel { get; set; } = string.Empty;
+    public decimal MonthlyUnitPrice { get; set; }
+    /// <summary>Tahakkuk donemindeki tutar: UserCount x MonthlyUnitPrice</summary>
+    public decimal LineAmount { get; set; }
 }
 
 public class BulkBillingGenerateDto

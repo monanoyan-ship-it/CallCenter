@@ -60,16 +60,15 @@ function DetailViewModel() {
         return prod ? prod.monthlyPrice : ko.observable(0);
     };
 
-    self.loadProductTypes = function () {
+    self.loadProductTypes = function (onDone) {
         $.get('/proxy/management/product-types', function (d) {
             var types = Array.isArray(d) ? d : [];
             self.productTypes(types);
-            // Urunleri olustur (henuz customer yuklenmediyse bos basla)
-            if (self.edit.products().length === 0) {
-                self.edit.products(types.map(function(t) {
-                    return { productTypeId: t.id, active: ko.observable(false), monthlyPrice: ko.observable(0) };
-                }));
-            }
+            if (typeof onDone === 'function') onDone();
+        }).fail(function () {
+            self.productTypes([]);
+            toastr.warning('Urun tipleri yuklenemedi.');
+            if (typeof onDone === 'function') onDone();
         });
     };
 
@@ -261,9 +260,11 @@ function DetailViewModel() {
         }, { confirmText: 'Devam Et', confirmClass: 'btn-danger' });
     };
 
-    self.loadProductTypes();
-    self.loadCustomer();
-    self.loadTabs();
+    // Urun tipleri olmadan musteri satirlari olusturulamaz; yoksa Salon/ CC tiklari bos kalir (yaris kosulu).
+    self.loadProductTypes(function () {
+        self.loadCustomer();
+        self.loadTabs();
+    });
 }
 
 ko.applyBindings(new DetailViewModel(), document.getElementById('detail-vm'));

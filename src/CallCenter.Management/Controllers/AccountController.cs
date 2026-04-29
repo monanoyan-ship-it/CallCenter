@@ -10,6 +10,9 @@ public class AccountController : MgmtBaseController
     [HttpGet]
     public IActionResult Login()
     {
+        if (string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal))
+            HttpContext.ClearAuthCookie();
+
         if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");
         return View();
@@ -50,6 +53,6 @@ public class AccountController : MgmtBaseController
     public IActionResult Logout()
     {
         HttpContext.ClearAuthCookie();
-        return RedirectToAction("Login");
+        return RedirectToAction("Login", "Account", new { loggedOut = 1 });
     }
 }

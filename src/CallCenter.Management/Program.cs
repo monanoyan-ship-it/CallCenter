@@ -1,3 +1,4 @@
+using CallCenter.Shared.Auth;
 using CallCenter.Shared.Localization;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -22,6 +23,9 @@ builder.Services.AddHttpClient("ManagementApi", client =>
 });
 
 builder.Services.AddAppLocalization(apiBaseUrl);
+
+// localhost: Management ile Salon ayni hostta farkli port — ayri JWT cookie adi zorunlu
+builder.Services.Configure<JwtAuthCookieOptions>(o => o.CookieName = "CorpLynk.Mgmt.Auth");
 
 // Session kaldirildi — JWT cookie tabanli stateless akis (Shared.Auth.JwtIdentity)
 

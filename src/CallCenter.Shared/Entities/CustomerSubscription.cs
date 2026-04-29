@@ -36,8 +36,8 @@ public class CustomerSubscription
     /// <summary>1=Aktif, 2=Askiya Alinmis, 3=Iptal</summary>
     public int StatusId { get; set; } = 1;
 
-    /// <summary>Odeme icin son gun (tahakkuk + 7 gun)</summary>
-    public int PaymentGraceDays { get; set; } = 7;
+    /// <summary>Odeme icin ek gunler — ucretli suspend mantigi PeriodStartDate ile hizali kullanilir; varsayilan 5.</summary>
+    public int PaymentGraceDays { get; set; } = 5;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CancelledAt { get; set; }

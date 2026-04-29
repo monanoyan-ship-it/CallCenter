@@ -179,7 +179,14 @@ public class CustomersController : AuditableControllerBase
         return Ok(new { removed = removedCount });
     }
 
-    // BILLING
+    /// <summary>Musteri tahakkuk kalemleri (CC rapor / odeme takibi detay modali).</summary>
+    [HttpGet("~/api/billing/periods/{periodId}/detail")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<BillingTahakkukDetailDto>> GetBillingPeriodDetail(int periodId)
+    {
+        var d = await _billingFactory.GetBillingTahakkukDetailAsync(periodId);
+        return d != null ? Ok(d) : NotFound(new { message = "Tahakkuk bulunamadi." });
+    }
 
     /// <summary>Musteri faturalama donemleri listesi</summary>
     [HttpGet("{id}/billing")]
@@ -235,13 +242,13 @@ public class CustomersController : AuditableControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GenerateBulkBilling(BulkBillingGenerateDto dto)
     {
-        var (created, skipped, skippedNoAnchor, error) = await _billingFactory.GenerateBulkAsync(dto.Year, dto.Month);
+        var (created, skipped, skippedNoAnchor, skippedSalon, platformCreated, platformSkipped, error) = await _billingFactory.GenerateBulkAsync(dto.Year, dto.Month);
         if (error != null) return BadRequest(new { message = error });
 
         await AuditCrudAsync("BulkGenerate", "BillingPeriod", null,
-            $"Toplu faturalama: {dto.Year}/{dto.Month}, olusturulan={created}, atlanan={skipped}, tahakkukyok={skippedNoAnchor}");
+            $"Toplu faturalama: {dto.Year}/{dto.Month}, ccOlusturulan={created}, atlanan={skipped}, tahakkukyok={skippedNoAnchor}, salonPlatformAtlanan={skippedSalon}, platformTahakkuk={platformCreated}/{platformSkipped}");
 
-        return Ok(new { created, skipped, skippedNoAnchor });
+        return Ok(new { created, skipped, skippedNoAnchor, skippedSalonPlatform = skippedSalon, platformTahakkukCreated = platformCreated, platformTahakkukSkipped = platformSkipped });
     }
 
     /// <summary>Muhasebeci raporu: tum musteriler icin faturalama donemleri</summary>
