@@ -194,7 +194,6 @@ public class PaymentController : ControllerBase
     {
         var tx = await _paymentService.GetTransactionByTokenAsync(token);
         var salon = (_configuration["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
-        var web = (_configuration["WebApp:BaseUrl"] ?? "https://cc.corplynk.com").TrimEnd('/');
         var t = Uri.EscapeDataString(token);
         if (tx == null)
             return $"{salon}/Modules?iyzicoToken={t}";
@@ -205,7 +204,8 @@ public class PaymentController : ControllerBase
         return tx.PaymentTypeId switch
         {
             PaymentTypes.Ids.ModulSatinAlma => $"{salon}/Modules?iyzicoToken={t}",
-            PaymentTypes.Ids.PlatformAbonelik => $"{salon}/Modules?iyzicoToken={t}&flow=sub",
+            // Platform tahakkuku Salon yöneticisi KK ile öder; Web köküne göndermek çift kilit / yanlış uygulama yaratıyordu
+            PaymentTypes.Ids.PlatformAbonelik => $"{salon}/Modules?iyzicoToken={t}",
             _ => $"{salon}/Modules?iyzicoToken={t}"
         };
     }

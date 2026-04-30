@@ -14,7 +14,6 @@ public class BillingFactory : IBillingFactory
     private readonly ICustomerEntityService _customerEs;
     private readonly ICustomerPersonnelEntityService _personnelEs;
     private readonly ICustomerServiceSubscriptionEntityService _subscriptionEs;
-    private readonly ICustomerSubscriptionEntityService _planSubscriptionEs;
     private readonly IServiceBillingItemEntityService _billingItemEs;
     private readonly ICustomerProductEntityService _customerProductEs;
     private readonly ICustomerBillingPeriodModuleLineEntityService _billingPeriodModuleLineEs;
@@ -26,7 +25,6 @@ public class BillingFactory : IBillingFactory
         ICustomerEntityService customerEs,
         ICustomerPersonnelEntityService personnelEs,
         ICustomerServiceSubscriptionEntityService subscriptionEs,
-        ICustomerSubscriptionEntityService planSubscriptionEs,
         IServiceBillingItemEntityService billingItemEs,
         ICustomerProductEntityService customerProductEs,
         ICustomerBillingPeriodModuleLineEntityService billingPeriodModuleLineEs,
@@ -37,7 +35,6 @@ public class BillingFactory : IBillingFactory
         _customerEs = customerEs;
         _personnelEs = personnelEs;
         _subscriptionEs = subscriptionEs;
-        _planSubscriptionEs = planSubscriptionEs;
         _billingItemEs = billingItemEs;
         _customerProductEs = customerProductEs;
         _billingPeriodModuleLineEs = billingPeriodModuleLineEs;
@@ -49,12 +46,13 @@ public class BillingFactory : IBillingFactory
     {
         var periods = await _billingEs.GetAllQueryable()
             .Where(b => b.CustomerId == customerId)
-            .OrderByDescending(b => b.Year).ThenByDescending(b => b.Month)
+            .OrderByDescending(b => b.Year).ThenByDescending(b => b.Month).ThenBy(b => b.BillingKindId)
             .Select(b => new BillingPeriodDto
             {
                 Id = b.Id,
                 CustomerId = b.CustomerId,
                 CustomerName = b.Customer.Name,
+                BillingKindId = b.BillingKindId,
                 Year = b.Year,
                 Month = b.Month,
                 PeriodStartDate = b.PeriodStartDate,
@@ -72,7 +70,10 @@ public class BillingFactory : IBillingFactory
 
         // StatusName map
         foreach (var p in periods)
+        {
             p.StatusName = BillingPeriodStatuses.GetById(p.StatusId)?.Description ?? "?";
+            p.BillingKindName = CustomerBillingKinds.GetDescription(p.BillingKindId);
+        }
 
         if (periods.Count > 0)
         {
@@ -105,6 +106,9 @@ public class BillingFactory : IBillingFactory
 
             foreach (var period in periods)
             {
+                if (period.BillingKindId != CustomerBillingKinds.CallCenter)
+                    continue;
+
                 var items = billingItems
                     .Where(bi => bi.Year == period.Year && bi.Month == period.Month)
                     .ToList();
@@ -167,24 +171,17 @@ public class BillingFactory : IBillingFactory
         return (true, null);
     }
 
-    public async Task<(int Created, int Skipped, int SkippedNoAnchor, int SkippedSalonPlatform, int PlatformTahakkukCreated, int PlatformTahakkukSkipped, string? Error)> GenerateBulkAsync(int year, int month)
+    public async Task<(int Created, int Skipped, int SkippedNoAnchor, string? Error)> GenerateBulkAsync(int year, int month)
     {
         if (month < 1 || month > 12)
-            return (0, 0, 0, 0, 0, 0, "Gecersiz ay degeri.");
+            return (0, 0, 0, "Gecersiz ay degeri.");
         if (year < 2020 || year > 2100)
-            return (0, 0, 0, 0, 0, 0, "Gecersiz yil degeri.");
+            return (0, 0, 0, "Gecersiz yil degeri.");
 
         var activeCustomers = await _customerEs.GetAllQueryable()
             .Where(c => c.IsActive && !c.IsTest) // Test musterileri atla
             .Select(c => new { c.Id, c.BillingAnchorDay, c.MaxUsers })
             .ToListAsync();
-
-        var salonPlatformCustomerIds = await _customerProductEs.GetAllQueryable()
-            .Where(cp => cp.IsActive && cp.ProductTypeId == ProductTypes.Ids.Salon)
-            .Select(cp => cp.CustomerId)
-            .Distinct()
-            .ToListAsync();
-        var salonPlatformSet = salonPlatformCustomerIds.ToHashSet();
 
         // Urun bazli fiyatlari topla
         var productPrices = await _customerProductEs.GetAllQueryable()
@@ -194,7 +191,7 @@ public class BillingFactory : IBillingFactory
             .ToDictionaryAsync(x => x.CustomerId, x => x.TotalMonthlyPrice);
 
         var existingCustomerIds = await _billingEs.GetAllQueryable()
-            .Where(b => b.Year == year && b.Month == month)
+            .Where(b => b.Year == year && b.Month == month && b.BillingKindId == CustomerBillingKinds.CallCenter)
             .Select(b => b.CustomerId)
             .ToListAsync();
 
@@ -203,6 +200,17 @@ public class BillingFactory : IBillingFactory
             .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active && s.MonthlyPrice > 0)
             .ToListAsync();
 
+        // CC donemi yalnizca CC urunu veya ucretli hizmet aboneligi olanlara:
+        // Saf salon musterilerinde 0 TL CallCenter satiri + SalonPlatform tahakkuku ikili satir olusmasin.
+        var customerIdsWithCcProduct = await _customerProductEs.GetAllQueryable()
+            .Where(cp => cp.IsActive && cp.ProductTypeId == ProductTypes.Ids.CallCenter)
+            .Select(cp => cp.CustomerId)
+            .Distinct()
+            .ToListAsync();
+        var needsCallCenterBulk = new HashSet<int>(customerIdsWithCcProduct);
+        foreach (var s in activeSubscriptions)
+            needsCallCenterBulk.Add(s.CustomerId);
+
         // Bu donem icin zaten olusturulmus hizmet faturalari
         var existingBillingItemKeys = await _billingItemEs.GetAllQueryable()
             .Where(b => b.Year == year && b.Month == month)
@@ -210,43 +218,27 @@ public class BillingFactory : IBillingFactory
             .ToListAsync();
         var existingBillingSet = new HashSet<int>(existingBillingItemKeys);
 
-        // Salon kayit vb.: trial abonelik BillingDay ile gelir ama BillingAnchorDay bos kalabiliyordu
-        var planAnchorByCustomer = await _planSubscriptionEs.GetAllQueryable()
-            .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active)
-            .GroupBy(s => s.CustomerId)
-            .Select(g => new { CustomerId = g.Key, Day = g.Min(x => x.BillingDay) })
-            .ToDictionaryAsync(x => x.CustomerId, x => x.Day);
-
         var created = 0;
         var skipped = 0;
-        var skippedNoAnchor = 0;
-        var skippedSalonPlatform = 0;
 
         foreach (var customer in activeCustomers)
         {
+            if (!needsCallCenterBulk.Contains(customer.Id))
+                continue;
+
             if (existingCustomerIds.Contains(customer.Id))
             {
                 skipped++;
                 continue;
             }
 
-            if (salonPlatformSet.Contains(customer.Id))
+            var startDay = BillingAnchorDayResolver.ResolvePeriodStartDay(year, month, customer.BillingAnchorDay);
+            if (!customer.BillingAnchorDay.HasValue)
             {
-                skippedSalonPlatform++;
-                continue;
+                var cust = await _customerEs.GetByIdAsync(customer.Id);
+                if (cust != null && !cust.IsTest)
+                    cust.BillingAnchorDay = startDay;
             }
-
-            var anchorDay = customer.BillingAnchorDay
-                ?? (planAnchorByCustomer.TryGetValue(customer.Id, out var d) ? d : (int?)null);
-            if (!anchorDay.HasValue)
-            {
-                skippedNoAnchor++;
-                continue;
-            }
-
-            var startDay = anchorDay.Value;
-            var daysInMonth = DateTime.DaysInMonth(year, month);
-            if (startDay > daysInMonth) startDay = daysInMonth;
 
             var periodStart = new DateTime(year, month, startDay, 0, 0, 0, DateTimeKind.Utc);
 
@@ -281,6 +273,7 @@ public class BillingFactory : IBillingFactory
             _billingEs.Add(new CustomerBillingPeriod
             {
                 CustomerId = customer.Id,
+                BillingKindId = CustomerBillingKinds.CallCenter,
                 Year = year,
                 Month = month,
                 PeriodStartDate = periodStart,
@@ -318,17 +311,17 @@ public class BillingFactory : IBillingFactory
         if (created > 0)
             await _uow.SaveChangesAsync();
 
-        var (platformCreated, platformSkipped) = await _subscriptionFactory.GenerateBillingForMonthAsync(year, month);
-
-        return (created, skipped, skippedNoAnchor, skippedSalonPlatform, platformCreated, platformSkipped, null);
+        // Eskiden "anchor yok" sayacı; artık ilk tahakkukta gün otomatik atanır.
+        return (created, skipped, 0, null);
     }
 
     public async Task<(bool IsBlocked, string? Reason)> IsCustomerBlockedByBillingAsync(int customerId)
     {
         var now = DateTime.UtcNow;
         var unpaidPeriods = await _billingEs.GetAllQueryable()
-            .Where(b => b.CustomerId == customerId && b.StatusId != BillingPeriodStatuses.Ids.Paid
-                && b.Amount + b.ServiceAmount > 0m)
+            .Where(b => b.CustomerId == customerId
+                && b.BillingKindId == CustomerBillingKinds.CallCenter
+                && b.StatusId != BillingPeriodStatuses.Ids.Paid)
             .Select(b => new { b.PeriodEndDate, b.Year, b.Month })
             .ToListAsync();
 
@@ -349,13 +342,23 @@ public class BillingFactory : IBillingFactory
         var customer = await _customerEs.GetByIdAsync(dto.CustomerId);
         if (customer == null) return (false, "Musteri bulunamadi.");
 
+        var hasCcProduct = await _customerProductEs.GetAllQueryable()
+            .AnyAsync(cp => cp.CustomerId == dto.CustomerId && cp.ProductTypeId == ProductTypes.Ids.CallCenter && cp.IsActive);
+        var hasSalonProduct = await _customerProductEs.GetAllQueryable()
+            .AnyAsync(cp => cp.CustomerId == dto.CustomerId && cp.ProductTypeId == ProductTypes.Ids.Salon && cp.IsActive);
+
+        // Saf salon musterisi: CC turu manuel tahakkuk operatör x ürün ile 0 TL + yanlis "odendi" üretir
+        if (hasSalonProduct && !hasCcProduct)
+            return await _subscriptionFactory.CreateManualSalonPlatformPeriodAsync(dto.CustomerId, dto.PeriodStartDate, dto.Notes);
+
         var startDate = dto.PeriodStartDate;
         var year = startDate.Year;
         var month = startDate.Month;
 
         // Bu donem zaten var mi?
         var exists = await _billingEs.GetAllQueryable()
-            .AnyAsync(b => b.CustomerId == dto.CustomerId && b.Year == year && b.Month == month);
+            .AnyAsync(b => b.CustomerId == dto.CustomerId && b.Year == year && b.Month == month
+                && b.BillingKindId == CustomerBillingKinds.CallCenter);
         if (exists) return (false, $"{month:00}/{year} donemi zaten mevcut.");
 
         // BillingAnchorDay kaydet
@@ -396,6 +399,7 @@ public class BillingFactory : IBillingFactory
         var period = new CustomerBillingPeriod
         {
             CustomerId = dto.CustomerId,
+            BillingKindId = CustomerBillingKinds.CallCenter,
             Year = year,
             Month = month,
             PeriodStartDate = new DateTime(year, month, startDate.Day, 0, 0, 0, DateTimeKind.Utc),
@@ -443,15 +447,40 @@ public class BillingFactory : IBillingFactory
         if (statusId.HasValue)
             query = query.Where(b => b.StatusId == statusId.Value);
 
-        // Urun tipine gore filtrele (CC=1, Salon=2)
+        HashSet<int> salonOnlyCustomerIds = new();
+
+        // Urun tipine gore filtrele (CC=1, Salon=2) + tahakkuk turu.
+        // Salon: BKind=SalonPlatform; ayrica migration oncesi/Modul satiri olmayan satirlarda kalan
+        // CallCenter (1) turu — saf salon musterisinde CC urunu yoksa bu satirlar da salon tahakkuku sayilir.
+        // Modul kalemi varsa tur yanlis etiketlense bile salon raporunda goster.
         if (productTypeId.HasValue)
         {
-            var customerIds = await _customerProductEs.GetAllQueryable()
+            var customerIdsList = await _customerProductEs.GetAllQueryable()
                 .Where(cp => cp.ProductTypeId == productTypeId.Value && cp.IsActive)
                 .Select(cp => cp.CustomerId)
                 .Distinct()
                 .ToListAsync();
-            query = query.Where(b => customerIds.Contains(b.CustomerId));
+            query = query.Where(b => customerIdsList.Contains(b.CustomerId));
+
+            if (productTypeId.Value == ProductTypes.Ids.CallCenter)
+            {
+                query = query.Where(b => b.BillingKindId == CustomerBillingKinds.CallCenter);
+            }
+            else if (productTypeId.Value == ProductTypes.Ids.Salon)
+            {
+                var ccCustomerIds = await _customerProductEs.GetAllQueryable()
+                    .Where(cp => cp.ProductTypeId == ProductTypes.Ids.CallCenter && cp.IsActive)
+                    .Select(cp => cp.CustomerId)
+                    .Distinct()
+                    .ToListAsync();
+                var hasCc = ccCustomerIds.ToHashSet();
+                salonOnlyCustomerIds = customerIdsList.Where(id => !hasCc.Contains(id)).ToHashSet();
+
+                query = query.Where(b =>
+                    b.BillingKindId == CustomerBillingKinds.SalonPlatform
+                    || b.ModuleLines.Any()
+                    || (b.BillingKindId == CustomerBillingKinds.CallCenter && salonOnlyCustomerIds.Contains(b.CustomerId)));
+            }
         }
 
         var periods = await query
@@ -461,6 +490,7 @@ public class BillingFactory : IBillingFactory
                 PeriodId = b.Id,
                 CustomerId = b.CustomerId,
                 CustomerName = b.Customer.Name,
+                BillingKindId = b.BillingKindId,
                 Year = b.Year,
                 Month = b.Month,
                 PeriodStartDate = b.PeriodStartDate,
@@ -474,9 +504,37 @@ public class BillingFactory : IBillingFactory
             })
             .ToListAsync();
 
+        // Saf salon musterilerinde CC turu satirlar toplu faturalama ile operatör x ürün hesaplanir;
+        // operatör 0 iken tutarlar 0 kalir. Raporda salon platform kırılımını göster.
+        if (productTypeId == ProductTypes.Ids.Salon && salonOnlyCustomerIds.Count > 0)
+        {
+            var idsForBreakdown = periods
+                .Where(p => p.BillingKindId == CustomerBillingKinds.CallCenter
+                    && salonOnlyCustomerIds.Contains(p.CustomerId))
+                .Select(p => p.CustomerId)
+                .Distinct()
+                .ToList();
+            var breakdownByCustomer = new Dictionary<int, (decimal PlatformAmount, decimal ModuleAmount)?>();
+            foreach (var cid in idsForBreakdown)
+                breakdownByCustomer[cid] = await _subscriptionFactory.GetSalonBillingBreakdownForCustomerAsync(cid);
+
+            foreach (var p in periods)
+            {
+                if (p.BillingKindId != CustomerBillingKinds.CallCenter
+                    || !salonOnlyCustomerIds.Contains(p.CustomerId))
+                    continue;
+                if (breakdownByCustomer.TryGetValue(p.CustomerId, out var br) && br.HasValue)
+                {
+                    p.Amount = br.Value.PlatformAmount;
+                    p.ServiceAmount = br.Value.ModuleAmount;
+                }
+            }
+        }
+
         foreach (var p in periods)
         {
             p.StatusName = BillingPeriodStatuses.GetById(p.StatusId)?.Description ?? "?";
+            p.BillingKindName = CustomerBillingKinds.GetDescription(p.BillingKindId);
             if (p.PaymentMethodId.HasValue)
                 p.PaymentMethodName = BillingPaymentMethods.GetById(p.PaymentMethodId.Value)?.Description;
         }
@@ -488,11 +546,52 @@ public class BillingFactory : IBillingFactory
     {
         var period = await _billingEs.GetAllQueryable()
             .Include(b => b.Customer)
+            .Include(b => b.ModuleLines)
             .FirstOrDefaultAsync(b => b.Id == periodId);
 
         if (period == null) return null;
 
         var customerId = period.CustomerId;
+
+        var hasCcProduct = await _customerProductEs.GetAllQueryable()
+            .AnyAsync(cp => cp.CustomerId == customerId && cp.ProductTypeId == ProductTypes.Ids.CallCenter && cp.IsActive);
+
+        // Salon tahakkuk ekrani: tur yanlis (1) kalmis veya sadece modul satirlari olan kayitlar
+        var useSalonTahakkukLayout = period.BillingKindId == CustomerBillingKinds.SalonPlatform
+            || period.ModuleLines.Count > 0
+            || (!hasCcProduct && period.BillingKindId == CustomerBillingKinds.CallCenter);
+
+        if (useSalonTahakkukLayout)
+        {
+            return new BillingTahakkukDetailDto
+            {
+                PeriodId = period.Id,
+                CustomerId = customerId,
+                CustomerName = period.Customer.Name,
+                BillingKindId = period.BillingKindId,
+                Year = period.Year,
+                Month = period.Month,
+                PeriodStartDate = period.PeriodStartDate,
+                PeriodEndDate = period.PeriodEndDate,
+                UserCount = period.UserCount,
+                UnitPriceSum = 0,
+                OperatorAmount = period.Amount,
+                ServiceAmount = period.ServiceAmount,
+                SalonModuleLines = period.ModuleLines
+                    .OrderBy(l => l.PackageGroupId ?? int.MaxValue)
+                    .ThenBy(l => l.ModuleId ?? int.MaxValue)
+                    .Select(l => new BillingPeriodModuleLineDto
+                    {
+                        PackageGroupId = l.PackageGroupId,
+                        ModuleId = l.ModuleId,
+                        ModuleDisplayName = l.ModuleDisplayName,
+                        MonthlyUnitPrice = l.MonthlyUnitPrice,
+                        LineAmount = l.LineAmount
+                    })
+                    .ToList()
+            };
+        }
+
         var products = await _customerProductEs.GetAllQueryable()
             .Where(cp => cp.CustomerId == customerId && cp.IsActive)
             .OrderBy(cp => cp.ProductTypeId)
@@ -537,6 +636,7 @@ public class BillingFactory : IBillingFactory
             PeriodId = period.Id,
             CustomerId = customerId,
             CustomerName = period.Customer.Name,
+            BillingKindId = period.BillingKindId,
             Year = period.Year,
             Month = period.Month,
             PeriodStartDate = period.PeriodStartDate,

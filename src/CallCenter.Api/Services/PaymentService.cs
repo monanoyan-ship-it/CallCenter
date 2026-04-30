@@ -1,10 +1,10 @@
 using CallCenter.Api.Services.Payment;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Data;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using CallCenter.Shared.Helpers;
 using CallCenter.Shared.Interfaces;
-using CallCenter.Api.Factories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -22,7 +22,11 @@ public class PaymentService
     private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly ILogger<PaymentService> _logger;
 
-    public PaymentService(AppDbContext db, PaymentGatewayFactory gatewayFactory, ISubscriptionFactory subscriptionFactory, ILogger<PaymentService> logger)
+    public PaymentService(
+        AppDbContext db,
+        PaymentGatewayFactory gatewayFactory,
+        ISubscriptionFactory subscriptionFactory,
+        ILogger<PaymentService> logger)
     {
         _db = db;
         _gatewayFactory = gatewayFactory;
@@ -30,15 +34,17 @@ public class PaymentService
         _logger = logger;
     }
 
-    /// <summary>Aktif (1) veya askida (2) abonelik; iptal (3) haric. Oncelik aktif.</summary>
-    private Task<CustomerSubscription?> GetCustomerBillableSubscriptionAsync(int customerId)
-        => _db.CustomerSubscriptions
-            .Include(s => s.Customer)
-            .Include(s => s.Plan)
-            .Where(s => s.CustomerId == customerId && (s.StatusId == 1 || s.StatusId == 2))
-            .OrderBy(s => s.StatusId)
-            .ThenByDescending(s => s.CreatedAt)
-            .FirstOrDefaultAsync();
+    private async Task RefreshSalonSubscriptionDisplayMonthlySafeAsync(int customerId)
+    {
+        try
+        {
+            await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(customerId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Salon abonelik ozet ayligi guncellenemedi: CustomerId={CustomerId}", customerId);
+        }
+    }
 
     /// <summary>Salon adisyon odemesi baslatir (PlatformUser odiyor)</summary>
     public async Task<PaymentResult> ProcessInvoicePaymentAsync(int customerId, int invoiceId, int platformUserId, PaymentCardInfo card)
@@ -89,7 +95,15 @@ public class PaymentService
         if (period.IsPaid) return PaymentResult.Fail("Bu donem zaten odenmis.");
 
         var amount = period.Amount + period.ServiceAmount;
-        if (amount <= 0) return PaymentResult.Fail("Odenecek tutar 0.");
+        if (amount <= 0m && (period.BillingKindId == CustomerBillingKinds.SalonPlatform
+            || period.BillingKindId == CustomerBillingKinds.CallCenter))
+        {
+            var br = await _subscriptionFactory.GetSalonBillingBreakdownForCustomerAsync(period.CustomerId);
+            amount = (br?.PlatformAmount ?? 0m) + (br?.ModuleAmount ?? 0m);
+        }
+
+        if (amount <= 0m)
+            return PaymentResult.Fail("Odenecek tutar sifir veya hesaplanamadi; tahakkuk tutarlari kontrol edin.");
 
         var tx = new PaymentTransaction
         {
@@ -171,14 +185,13 @@ public class PaymentService
 
             _logger.LogInformation("Modul satin alma basarili: CustomerId={CustomerId}, ModuleId={ModuleId}, Amount={Amount}",
                 customerId, moduleId, pricing.MonthlyPrice);
-            await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(customerId, saveChanges: false);
         }
 
         await _db.SaveChangesAsync();
+        if (gatewayResult.Success)
+            await RefreshSalonSubscriptionDisplayMonthlySafeAsync(customerId);
         return gatewayResult;
     }
-
-    /// <summary>Havale ile modul talebi (beklemede kayit olusturur)</summary>
     public async Task<PaymentResult> CreateHavaleRequestAsync(int customerId, int moduleId)
     {
         var pricing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == moduleId);
@@ -238,11 +251,12 @@ public class PaymentService
                     MonthlyPrice = pricing?.MonthlyPrice
                 });
             }
-
-            await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(tx.CustomerId.Value, saveChanges: false);
         }
 
         await _db.SaveChangesAsync();
+
+        if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.CustomerId.HasValue)
+            await RefreshSalonSubscriptionDisplayMonthlySafeAsync(tx.CustomerId.Value);
 
         _logger.LogInformation("Havale onaylandi: TxUid={TxUid}", txUid);
         return PaymentResult.Ok(tx.Uid, null);
@@ -449,8 +463,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
 
-        var subscription = await GetCustomerBillableSubscriptionAsync(customerId);
-        var nextBilling = subscription?.NextBillingDate ?? DateTime.UtcNow.AddDays(30);
+        var nextBilling = await _subscriptionFactory.GetNextSalonAccrualUtcAsync(customerId) ?? DateTime.UtcNow.AddDays(30);
 
         var daysUntilBilling = Math.Max(1, (int)Math.Ceiling((nextBilling - DateTime.UtcNow).TotalDays));
         if (daysUntilBilling > 30) daysUntilBilling = 30;
@@ -493,8 +506,10 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
 
-        var subscription = await GetCustomerBillableSubscriptionAsync(customerId);
-        var nextBilling = subscription?.NextBillingDate ?? DateTime.UtcNow.AddDays(30);
+        var subscription = await _db.CustomerSubscriptions
+            .Include(s => s.Customer)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == 1);
+        var nextBilling = await _subscriptionFactory.GetNextSalonAccrualUtcAsync(customerId) ?? DateTime.UtcNow.AddDays(30);
         var daysUntilBilling = Math.Max(1, (int)Math.Ceiling((nextBilling - DateTime.UtcNow).TotalDays));
         if (daysUntilBilling > 30) daysUntilBilling = 30;
         var proRataAmount = Math.Round(monthlyPrice / 30m * daysUntilBilling, 2);
@@ -556,18 +571,17 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
     public async Task<CheckoutFormResult> InitSubscriptionCheckoutAsync(int customerId, string callbackUrl, string? buyerIp = null)
     {
-        var subscription = await GetCustomerBillableSubscriptionAsync(customerId);
-        if (subscription == null) return CheckoutFormResult.Fail("Abonelik bulunamadi (iptal disi kayit yok).");
+        var resolved = await _subscriptionFactory.TryResolveSalonSubscriptionPaymentAsync(customerId);
+        if (resolved == null) return CheckoutFormResult.Fail("Odenmemis donem bulunamadi.");
 
-        var unpaidPeriod = await _db.CustomerBillingPeriods
-            .Where(p => p.CustomerId == customerId && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
-                && p.Amount + p.ServiceAmount > 0m)
-            .OrderBy(p => p.Year).ThenBy(p => p.Month)
-            .FirstOrDefaultAsync();
-        if (unpaidPeriod == null) return CheckoutFormResult.Fail("Odenmemis donem bulunamadi.");
+        var subscription = await _db.CustomerSubscriptions
+            .Include(s => s.Customer)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == 1);
+        var customer = subscription?.Customer ?? await _db.Customers.FindAsync(customerId);
+        if (customer == null) return CheckoutFormResult.Fail("Musteri bulunamadi.");
 
-        var amount = unpaidPeriod.Amount + unpaidPeriod.ServiceAmount;
-        if (amount <= 0) return CheckoutFormResult.Fail("Odenecek tutar 0.");
+        var unpaidPeriod = resolved.Value.Period;
+        var amount = resolved.Value.PayAmount;
 
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
@@ -591,7 +605,6 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             if (gateway is not IyzicoGateway iyzicoGw)
                 return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
 
-            var customer = subscription.Customer;
             var req = new CheckoutFormRequest
             {
                 Amount = amount,
@@ -645,40 +658,15 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             tx.ProviderPaymentId = verifyResult.ProviderPaymentId;
             tx.CompletedAt = DateTime.UtcNow;
 
-            CustomerBillingPeriod? paidBillingPeriod = null;
             if (tx.BillingPeriodId.HasValue)
             {
-                paidBillingPeriod = await _db.CustomerBillingPeriods.FindAsync(tx.BillingPeriodId.Value);
-                if (paidBillingPeriod != null)
+                var period = await _db.CustomerBillingPeriods.FindAsync(tx.BillingPeriodId.Value);
+                if (period != null)
                 {
-                    paidBillingPeriod.StatusId = BillingPeriodStatuses.Ids.Paid;
-                    paidBillingPeriod.IsPaid = true;
-                    paidBillingPeriod.PaidAt = DateTime.UtcNow;
-                    paidBillingPeriod.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
-                }
-            }
-
-            if (tx.PaymentTypeId == PaymentTypes.Ids.PlatformAbonelik && tx.CustomerId.HasValue)
-            {
-                var suspended = await _db.CustomerSubscriptions
-                    .Include(s => s.Plan)
-                    .Where(s => s.CustomerId == tx.CustomerId.Value && s.StatusId == 2)
-                    .ToListAsync();
-
-                var now = DateTime.UtcNow;
-                foreach (var s in suspended)
-                {
-                    s.StatusId = 1;
-                    if (paidBillingPeriod != null)
-                    {
-                        var next = paidBillingPeriod.PeriodEndDate;
-                        if (next <= now)
-                            next = now.AddMonths(Math.Max(1, s.Plan?.IntervalMonths ?? 1));
-                        if (s.MonthlyPrice == 0 && next <= now)
-                            next = now.AddDays(5);
-                        if (s.NextBillingDate < next)
-                            s.NextBillingDate = next;
-                    }
+                    period.StatusId = BillingPeriodStatuses.Ids.Paid;
+                    period.IsPaid = true;
+                    period.PaidAt = DateTime.UtcNow;
+                    period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
                 }
             }
 
@@ -711,9 +699,6 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                         });
                     }
                 }
-
-                if (tx.CustomerId.HasValue)
-                    await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(tx.CustomerId.Value, saveChanges: false);
             }
 
             // Randevu depozitosu ise randevuyu onayli yap (StatusId 6 = AwaitingPayment → 2 = Confirmed)
@@ -746,6 +731,8 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             }
 
             await _db.SaveChangesAsync();
+            if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.CustomerId.HasValue)
+                await RefreshSalonSubscriptionDisplayMonthlySafeAsync(tx.CustomerId.Value);
             _logger.LogInformation("Checkout odeme basarili: TxUid={TxUid}, PaymentId={PaymentId}", tx.Uid, verifyResult.ProviderPaymentId);
             return PaymentResult.Ok(tx.Uid, verifyResult.ProviderTransactionId);
         }

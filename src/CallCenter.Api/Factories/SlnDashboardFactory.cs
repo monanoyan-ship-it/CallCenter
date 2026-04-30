@@ -15,6 +15,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ICustomerPortalModuleEntityService _portalModules;
     private readonly ISlnBranchEntityService _branches;
     private readonly ServicePricingFactory _pricingFactory;
+    private readonly ISubscriptionFactory _subscriptionFactory;
 
     public SlnDashboardFactory(
         ISlnClientEntityService clients,
@@ -24,7 +25,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         ICustomerSubscriptionEntityService subscriptions,
         ICustomerPortalModuleEntityService portalModules,
         ISlnBranchEntityService branches,
-        ServicePricingFactory pricingFactory)
+        ServicePricingFactory pricingFactory,
+        ISubscriptionFactory subscriptionFactory)
     {
         _clients = clients;
         _appointments = appointments;
@@ -34,6 +36,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _portalModules = portalModules;
         _branches = branches;
         _pricingFactory = pricingFactory;
+        _subscriptionFactory = subscriptionFactory;
     }
 
     public async Task<object> GetDashboardAsync(int customerId, int? branchId = null)
@@ -119,12 +122,13 @@ public class SlnDashboardFactory : ISlnDashboardFactory
 
         // ═══ Abonelik bilgileri ═══
         var subscription = await _subscriptions.GetAllQueryable()
+            .Include(s => s.Plan)
             .Where(s => s.CustomerId == customerId && s.StatusId != 3) // iptal haric, en son ak'i al
             .OrderByDescending(s => s.StartDate)
             .FirstOrDefaultAsync();
 
         object? subscriptionInfo = null;
-        if (subscription != null)
+        if (subscription != null && subscription.Plan != null)
         {
             // Aktif modulleri al, gruplara gore paket fiyatlarini topla
             var activeModuleIds = await _portalModules.GetAllQueryable()
@@ -154,26 +158,48 @@ public class SlnDashboardFactory : ISlnDashboardFactory
                 .ToList();
 
             var basicPackagePrice = pkgPrices.TryGetValue(0, out var basic) ? basic : 1700m;
-            var baseMonthly = basicPackagePrice + activePackages.Sum(p => p.monthlyPrice);
+            var addonsMonthly = activePackages.Sum(p => p.monthlyPrice);
 
-            // Ek sube indirimi: ilk sube tam, sonraki her sube %10 indirimle ayni moduller
-            // Toplam = baseMonthly * (1 + 0.9 * (N-1))
             var branchCount = await _branches.GetAllQueryable()
                 .CountAsync(b => b.CustomerId == customerId && b.IsActive);
             if (branchCount < 1) branchCount = 1;
 
-            var branchMultiplier = 1m + 0.9m * (branchCount - 1);
-            var monthlyTotal = Math.Round(baseMonthly * branchMultiplier, 2);
+            // Çoklu şubede Temel Paket yalnız şube satırında (N × liste − eşik); tabanda tekrarlanmaz.
+            var baseMonthly = (branchCount > 1 ? 0m : basicPackagePrice) + addonsMonthly;
+
+            decimal grossBranchMonthly = 0m;
+            decimal netBranchMonthly = 0m;
+            var branchDiscountPercent = 0m;
+            if (branchCount > 1)
+            {
+                grossBranchMonthly = branchCount * basicPackagePrice;
+                branchDiscountPercent = await _pricingFactory.GetActiveBranchDiscountPercentForTotalBranchesAsync(branchCount);
+                netBranchMonthly = Math.Round(grossBranchMonthly * (1 - branchDiscountPercent / 100), 2, MidpointRounding.AwayFromZero);
+            }
+            var monthlyTotal = Math.Round(baseMonthly + netBranchMonthly, 2, MidpointRounding.AwayFromZero);
+
+            var isTrial = subscription.PeriodPrice == 0;
+            var nextBillingDate = await _subscriptionFactory.GetNextSalonAccrualUtcAsync(customerId);
+            int? trialDaysRemaining = null;
+            if (isTrial && nextBillingDate.HasValue)
+            {
+                var diff = (nextBillingDate.Value.Date - DateTime.UtcNow.Date).Days;
+                trialDaysRemaining = diff > 0 ? diff : 0;
+            }
 
             subscriptionInfo = new
             {
                 statusId = subscription.StatusId,
-                nextBillingDate = subscription.NextBillingDate,
+                isTrial,
+                trialDaysRemaining,
+                nextBillingDate,
                 basicPackagePrice,
                 activePackages,
                 branchCount,
                 baseMonthly,
-                branchMultiplier,
+                branchDiscountPercent,
+                grossBranchMonthly,
+                netBranchMonthly,
                 monthlyTotal
             };
         }

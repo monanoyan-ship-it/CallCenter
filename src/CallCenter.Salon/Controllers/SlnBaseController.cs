@@ -107,6 +107,8 @@ public abstract class SlnBaseController : Controller
             if (!response.IsSuccessStatusCode) return (true, true);
 
             var json = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json))
+                return (true, true);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 

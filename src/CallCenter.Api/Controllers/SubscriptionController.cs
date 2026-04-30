@@ -23,13 +23,13 @@ public class SubscriptionController : ControllerBase
     [HttpPost("plans")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> CreatePlan([FromBody] PlanRequest request)
-        => Ok(await _factory.CreatePlanAsync(request.Name, request.IntervalMonths, request.DiscountPercent, request.BranchPrice));
+        => Ok(await _factory.CreatePlanAsync(request.Name, request.IntervalMonths, request.DiscountPercent));
 
     [HttpPut("plans/{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> UpdatePlan(int id, [FromBody] PlanRequest request)
     {
-        var (s, e) = await _factory.UpdatePlanAsync(id, request.Name, request.IntervalMonths, request.DiscountPercent, request.BranchPrice, request.IsActive);
+        var (s, e) = await _factory.UpdatePlanAsync(id, request.Name, request.IntervalMonths, request.DiscountPercent, request.IsActive);
         return s ? Ok() : BadRequest(new { message = e });
     }
 
@@ -52,11 +52,11 @@ public class SubscriptionController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> CreateSubscription([FromBody] CreateSubscriptionRequest request)
     {
-        var (result, error) = await _factory.CreateSubscriptionAsync(request.CustomerId, request.PlanId, request.StartDate, request.MonthlyPrice, request.BranchId);
+        var (result, error) = await _factory.CreateSubscriptionAsync(request.CustomerId, request.PlanId, request.StartDate, request.MonthlyPrice, request.BranchId, request.DiscountPercentOverride);
         return result != null ? Ok(result) : BadRequest(new { message = error });
     }
 
-    /// <summary>Salon oturumu: panel kilidi canAccessPanel ile; hasActive yalnizca Status=1.</summary>
+    /// <summary>Salon oturumu: canAccessPanel grace ile (banner ile uyumlu). hasActiveSubscription yalnızca Status=1.</summary>
     [HttpGet("status")]
     public async Task<ActionResult> GetSubscriptionStatus()
     {
@@ -116,8 +116,8 @@ public class SubscriptionController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GenerateBilling([FromBody] GenerateBillingRequest request)
     {
-        var (created, skipped) = await _factory.GenerateBillingForMonthAsync(request.Year, request.Month);
-        return Ok(new { created, skipped });
+        var (created, skipped, eligible) = await _factory.GenerateBillingForMonthAsync(request.Year, request.Month);
+        return Ok(new { created, skipped, eligible });
     }
 }
 
@@ -126,7 +126,6 @@ public class PlanRequest
     public string Name { get; set; } = string.Empty;
     public int IntervalMonths { get; set; }
     public decimal DiscountPercent { get; set; }
-    public decimal BranchPrice { get; set; }
     public bool IsActive { get; set; } = true;
 }
 
@@ -137,6 +136,8 @@ public class CreateSubscriptionRequest
     public DateTime StartDate { get; set; }
     public decimal MonthlyPrice { get; set; }
     public int? BranchId { get; set; }
+    /// <summary>Plandaki indirim yerine; null = plan.</summary>
+    public decimal? DiscountPercentOverride { get; set; }
 }
 
 public class GenerateBillingRequest

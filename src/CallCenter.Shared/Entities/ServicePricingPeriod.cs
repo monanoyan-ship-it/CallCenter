@@ -15,9 +15,14 @@ public class ServicePricingPeriod
     /// <summary>1=Aktif, 2=Gecmis, 3=Taslak</summary>
     public int StatusId { get; set; } = 3;
 
+    /// <summary>Şube satırı artık dönem Temel Paket fiyatından hesaplanır; kolon veritabanında kalır, uygulama kullanmaz.</summary>
+    public decimal ExtraBranchMonthlyPrice { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<ServicePricingItem> Items { get; set; } = [];
+
+    public ICollection<ServicePricingBranchDiscountTier> BranchDiscountTiers { get; set; } = [];
 }
 
 /// <summary>

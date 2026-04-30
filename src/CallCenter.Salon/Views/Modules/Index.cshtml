@@ -3,35 +3,20 @@
 }
 
 <div id="modules-vm">
-    <!-- ko if: unpaidBillings().length === 0 -->
-    <div class="alert alert-info border-0 shadow-sm mb-4 py-3 small">
-        <i class="bi bi-info-circle me-1"></i>
-        <strong>Platform tahakkuku:</strong> Şu an ödenmesi gereken dönem kaydı yoksa aşağıda kartla platform ödemesi başlamaz — bu, yeni hesaplarda deneme süresi devam ederken normaldir.
-        Ek modül satın alımı yine bu sayfadan yapılabilir.
-    </div>
-    <!-- /ko -->
-
-    <!-- Odenmemis platform tahakkuku -->
-    <!-- ko if: unpaidBillings().length > 0 -->
-    <div class="alert alert-warning border-0 shadow-sm mb-4 py-3">
-        <h6 class="alert-heading mb-2"><i class="bi bi-receipt-cutoff me-1"></i>Ödenmemiş platform tahakkuku</h6>
-        <p class="small mb-2 text-muted">Abonelik döneminize ait borç ödenene kadar hesabınız askıda kalabilir.</p>
-        <!-- ko foreach: unpaidBillings -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-top border-warning-subtle pt-2 mt-2">
-            <div class="small">
-                <strong data-bind="text: month + '/' + year + ' donemi'"></strong>
-                <span class="text-muted ms-2" data-bind="text: (total != null ? total : (amount + serviceAmount)).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺'"></span>
-                <!-- ko if: $index() > 0 -->
-                <span class="d-block text-muted mt-1" style="font-size:0.75rem;">Once yukaridaki donemin tamamlanmasi gerekir</span>
-                <!-- /ko -->
-            </div>
-            <!-- ko if: $index() === 0 -->
-            <button type="button" class="btn btn-sm btn-warning" data-bind="click: $root.payUnpaidBilling">
-                <i class="bi bi-credit-card me-1"></i>Öde
+    <!-- ko if: platformUnpaid().length > 0 -->
+    <div class="alert alert-warning border-warning mb-3 py-2 small">
+        <div class="fw-semibold mb-1"><i class="bi bi-receipt-cutoff me-1"></i>Ödenmemiş platform dönemi</div>
+        <ul class="mb-2 ps-3" data-bind="foreach: platformUnpaid">
+            <li><span data-bind="text: (month || '-') + '/' + (year || '-')"></span> —
+                <strong data-bind="text: (total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺'"></strong></li>
+        </ul>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="button" class="btn btn-sm btn-success" data-bind="click: startPlatformAccrualPayment, disable: platformPayLoading">
+                <span data-bind="visible: platformPayLoading" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-credit-card me-1"></i>Kredi kartı ile tahakkuk ödemesi
             </button>
-            <!-- /ko -->
+            <span class="text-muted">İyzico güvenli ödeme; modül satın alma ile aynı kart altyapısı.</span>
         </div>
-        <!-- /ko -->
     </div>
     <!-- /ko -->
 
@@ -125,12 +110,10 @@
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
                 <span class="fw-bold">Aylik Modul Tutari</span>
-                <span class="fs-5 fw-bold text-primary" data-bind="text: monthlyTotal().toLocaleString('tr-TR') + ' ₺/ay'"></span>
+                <span class="fs-5 fw-bold text-primary" data-bind="text: displayMonthlyTotal().toLocaleString('tr-TR') + ' ₺/ay'"></span>
             </div>
-            <!-- ko if: branchCount() > 1 -->
-            <div class="small text-muted text-end mt-1">
-                <span data-bind="text: branchCount() + ' sube x ' + baseMonthly().toLocaleString('tr-TR') + ' ₺ · ek subelerde %10 indirim (carpan: ' + branchMultiplier().toFixed(1) + ')'"></span>
-            </div>
+            <!-- ko if: branchSummaryText().length > 0 -->
+            <div class="small text-muted text-end mt-1" data-bind="text: branchSummaryText"></div>
             <!-- /ko -->
         </div>
     </div>
@@ -140,37 +123,10 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <!-- ko if: checkoutMode() === 'package' -->
-                    <h6 class="modal-title"><i class="bi bi-cart-check me-1"></i>Modul satin al</h6>
-                    <!-- /ko -->
-                    <!-- ko if: checkoutMode() === 'subscription' -->
-                    <h6 class="modal-title"><i class="bi bi-receipt me-1"></i>Platform tahakkuku odemesi</h6>
-                    <!-- /ko -->
+                    <h6 class="modal-title"><i class="bi bi-cart-check me-1"></i>Modul Satin Al</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Tahakkuk on izleme -->
-                    <div data-bind="visible: purchaseStep() === 'invoice-preview'">
-                        <div data-bind="with: invoicePayContext">
-                            <div class="alert alert-warning py-2 small mb-3">
-                                <i class="bi bi-info-circle me-1"></i>Odeme <strong>Iyzico</strong> guvenli odeme sayfasinda tamamlanir.
-                            </div>
-                            <table class="table table-sm mb-3">
-                                <tr>
-                                    <td class="text-muted">Donem</td>
-                                    <td class="fw-bold text-end" data-bind="text: month + '/' + year"></td>
-                                </tr>
-                                <tr>
-                                    <td class="text-muted">Platform + modul tutari</td>
-                                    <td class="text-end" data-bind="text: (total != null ? total : (amount + serviceAmount)).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺'"></td>
-                                </tr>
-                            </table>
-                            <button class="btn btn-success w-100" data-bind="click: $root.startSubscriptionCheckout, attr: { disabled: $root.purchaseLoading() }">
-                                <i class="bi bi-credit-card me-1"></i>Odemeye gec
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Step 1: Pro-rata Preview -->
                     <div data-bind="visible: purchaseStep() === 'preview'">
                         <div class="text-center py-3" data-bind="visible: purchaseLoading()">
@@ -230,35 +186,23 @@
                             <div class="spinner-border text-primary"></div>
                             <div class="small text-muted mt-2">Odeme sonucu dogrulaniyor...</div>
                         </div>
-                        <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success && checkoutMode() === 'package'">
+                        <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success">
                             <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
-                            <h5 class="mt-2 text-success">Odeme basarili!</h5>
+                            <h5 class="mt-2 text-success">Odeme Basarili!</h5>
                             <p class="text-muted small mb-1">Modulunuz aktif edildi.</p>
                             <div class="alert alert-warning py-2 small mt-3 text-start">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 <strong>Yeni modulu kullanabilmek icin sistemden cikis yapip tekrar giris yapmaniz gerekmektedir.</strong>
                             </div>
                             <a href="/Account/Logout" class="btn btn-primary btn-sm mt-1">
-                                <i class="bi bi-box-arrow-right me-1"></i>Cikis yap ve tekrar giris yap
-                            </a>
-                        </div>
-                        <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success && checkoutMode() === 'subscription'">
-                            <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
-                            <h5 class="mt-2 text-success">Odeme basarili!</h5>
-                            <p class="text-muted small mb-1">Tahakkugunuz odendi; abonelik askidan kalktiysa kisa sure icinde tam erisim acilir.</p>
-                            <div class="alert alert-warning py-2 small mt-3 text-start">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong>Yetkiler guncellenmediyse cikis yapip tekrar giris yapin.</strong>
-                            </div>
-                            <a href="/Account/Logout" class="btn btn-primary btn-sm mt-1">
-                                <i class="bi bi-box-arrow-right me-1"></i>Cikis yap ve tekrar giris yap
+                                <i class="bi bi-box-arrow-right me-1"></i>Cikis Yap ve Tekrar Giris Yap
                             </a>
                         </div>
                         <div class="text-center py-4" data-bind="visible: purchaseResult() && !purchaseResult().success">
                             <i class="bi bi-x-circle-fill text-danger" style="font-size:3rem;"></i>
                             <h5 class="mt-2 text-danger">Odeme Basarisiz</h5>
                             <p class="text-muted small" data-bind="text: purchaseResult() ? purchaseResult().error : ''"></p>
-                            <button class="btn btn-outline-primary btn-sm" data-bind="click: retryPaymentStep">Tekrar dene</button>
+                            <button class="btn btn-outline-primary btn-sm" data-bind="click: function(){ purchaseStep('preview'); }">Tekrar Dene</button>
                         </div>
                     </div>
                 </div>

@@ -13,11 +13,17 @@ public class CustomersController : AuditableControllerBase
 {
     private readonly ICustomerFactory _customerFactory;
     private readonly IBillingFactory _billingFactory;
+    private readonly ISubscriptionFactory _subscriptionFactory;
 
-    public CustomersController(IAuditFactory auditFactory, ICustomerFactory customerFactory, IBillingFactory billingFactory) : base(auditFactory)
+    public CustomersController(
+        IAuditFactory auditFactory,
+        ICustomerFactory customerFactory,
+        IBillingFactory billingFactory,
+        ISubscriptionFactory subscriptionFactory) : base(auditFactory)
     {
         _customerFactory = customerFactory;
         _billingFactory = billingFactory;
+        _subscriptionFactory = subscriptionFactory;
     }
 
     /// <summary>Sayfalamali musteri listesi</summary>
@@ -237,18 +243,32 @@ public class CustomersController : AuditableControllerBase
         return NoContent();
     }
 
-    /// <summary>Toplu faturalama donemi olustur (tum aktif musteriler)</summary>
+    /// <summary>
+    /// Toplu faturalama: önce salon platformu — yalnızca <b>aktif aboneliği olmayan</b> Salon müşterileri
+    /// (<see cref="CustomerBillingKinds.SalonPlatform"/>, liste fiyatı, anchor günü); abonelikli tahakkuk için Modüller → Abonelikler.
+    /// Ardından Call Center dönemi (<see cref="CustomerBillingKinds.CallCenter"/>).
+    /// </summary>
     [HttpPost("billing/generate")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> GenerateBulkBilling(BulkBillingGenerateDto dto)
     {
-        var (created, skipped, skippedNoAnchor, skippedSalon, platformCreated, platformSkipped, error) = await _billingFactory.GenerateBulkAsync(dto.Year, dto.Month);
+        var (platformCreated, platformSkipped, platformEligible) =
+            await _subscriptionFactory.GenerateSalonPlatformBillingForMonthWithoutSubscriptionAsync(dto.Year, dto.Month);
+        var (created, skipped, skippedNoAnchor, error) = await _billingFactory.GenerateBulkAsync(dto.Year, dto.Month);
         if (error != null) return BadRequest(new { message = error });
 
         await AuditCrudAsync("BulkGenerate", "BillingPeriod", null,
-            $"Toplu faturalama: {dto.Year}/{dto.Month}, ccOlusturulan={created}, atlanan={skipped}, tahakkukyok={skippedNoAnchor}, salonPlatformAtlanan={skippedSalon}, platformTahakkuk={platformCreated}/{platformSkipped}");
+            $"Toplu faturalama: {dto.Year}/{dto.Month}, platformAboneliksiz={platformCreated}/{platformSkipped}, cc={created}/{skipped}, tahakkukYok={skippedNoAnchor}");
 
-        return Ok(new { created, skipped, skippedNoAnchor, skippedSalonPlatform = skippedSalon, platformTahakkukCreated = platformCreated, platformTahakkukSkipped = platformSkipped });
+        return Ok(new
+        {
+            created,
+            skipped,
+            skippedNoAnchor,
+            platformTahakkukCreated = platformCreated,
+            platformTahakkukSkipped = platformSkipped,
+            platformEligibleWithoutSubscription = platformEligible
+        });
     }
 
     /// <summary>Muhasebeci raporu: tum musteriler icin faturalama donemleri</summary>

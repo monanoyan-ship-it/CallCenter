@@ -1,5 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -57,29 +58,56 @@ public class ServicePricingFactory
 
         if (activePeriod != null)
         {
+            // Sifir DB degeri enum varsayilanini ezmesin (taslak/bos kalemler tahakkuku 0 yapmasin)
             foreach (var item in activePeriod.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue))
             {
-                if (SalonModuleGroups.GetById(item.PackageGroupId!.Value) == null) continue;
-                result[item.PackageGroupId.Value] = item.MonthlyPrice;
+                if (item.MonthlyPrice > 0m)
+                    result[item.PackageGroupId!.Value] = item.MonthlyPrice;
             }
         }
 
         return result;
     }
 
+    /// <summary>
+    /// Aktif dönemdeki toplam aktif şube sayısına göre <b>şube satırı</b> (tüm şubeler × Temel Paket brüt) üzerine uygulanacak indirim yüzdesi.
+    /// Eşik yoksa veya eşleşme yoksa 0.
+    /// </summary>
+    public async Task<decimal> GetActiveBranchDiscountPercentForTotalBranchesAsync(int totalActiveBranches)
+    {
+        if (totalActiveBranches < 2) return 0m;
+
+        var activePeriod = await _periodEs.GetAllQueryable()
+            .AsNoTracking()
+            .Where(p => p.StatusId == 1)
+            .OrderByDescending(p => p.StartDate)
+            .Include(p => p.BranchDiscountTiers)
+            .FirstOrDefaultAsync();
+
+        if (activePeriod == null || activePeriod.BranchDiscountTiers.Count == 0)
+            return 0m;
+
+        foreach (var tier in activePeriod.BranchDiscountTiers.OrderBy(t => t.SortOrder).ThenBy(t => t.MinBranches))
+        {
+            if (totalActiveBranches >= tier.MinBranches && totalActiveBranches <= tier.MaxBranches)
+                return tier.DiscountPercent;
+        }
+
+        return 0m;
+    }
+
     public async Task<object?> GetPeriodDetailAsync(int periodId)
     {
         var period = await _periodEs.GetAllQueryable()
             .Include(p => p.Items)
+            .Include(p => p.BranchDiscountTiers)
             .FirstOrDefaultAsync(p => p.Id == periodId);
 
         if (period == null) return null;
 
         var ccItems = period.Items.Where(i => i.ProductTypeId == PortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
         var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).OrderBy(i => i.ServiceId).ToList();
-        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue
-                && SalonModuleGroups.GetById(i.PackageGroupId!.Value) != null)
-            .OrderBy(i => i.PackageGroupId).ToList();
+        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue).OrderBy(i => i.PackageGroupId).ToList();
 
         // Salon modullerini gruplara ayir
         var salonGrouped = slnItems.Select(i =>
@@ -108,6 +136,11 @@ public class ServicePricingFactory
             salon = slnItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = SalonPortalModules.GetById(i.ServiceId)?.IsDefault ?? false }),
             salonGroups = salonGrouped,
             salonPackages = pkgItems.Select(i => new { i.Id, packageGroupId = i.PackageGroupId!.Value, name = i.ServiceName, i.MonthlyPrice, i.PreviousPrice }),
+            branchDiscountTiers = period.BranchDiscountTiers
+                .OrderBy(t => t.SortOrder)
+                .ThenBy(t => t.MinBranches)
+                .Select(t => new { t.Id, t.MinBranches, t.MaxBranches, t.DiscountPercent, t.SortOrder })
+                .ToList(),
             operatorUnitPrice = 0m // CC operatör birim fiyatı - TODO
         };
     }
@@ -127,6 +160,7 @@ public class ServicePricingFactory
             .Where(p => p.Items.Any())
             .OrderByDescending(p => p.StartDate)
             .Include(p => p.Items)
+            .Include(p => p.BranchDiscountTiers)
             .FirstOrDefaultAsync();
 
         var period = new ServicePricingPeriod
@@ -139,11 +173,10 @@ public class ServicePricingFactory
 
         if (previousPeriod != null)
         {
+
             // Onceki donemin fiyatlarini kopyala (hem modul hem paket kalemleri)
             foreach (var prev in previousPeriod.Items)
             {
-                if (prev.PackageGroupId.HasValue && SalonModuleGroups.GetById(prev.PackageGroupId.Value) == null)
-                    continue;
                 period.Items.Add(new ServicePricingItem
                 {
                     ProductTypeId = prev.ProductTypeId,
@@ -152,6 +185,17 @@ public class ServicePricingFactory
                     ServiceName = prev.ServiceName,
                     MonthlyPrice = prev.MonthlyPrice,
                     PreviousPrice = prev.MonthlyPrice
+                });
+            }
+
+            foreach (var t in previousPeriod.BranchDiscountTiers.OrderBy(t => t.SortOrder))
+            {
+                period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
+                {
+                    MinBranches = t.MinBranches,
+                    MaxBranches = t.MaxBranches,
+                    DiscountPercent = t.DiscountPercent,
+                    SortOrder = t.SortOrder
                 });
             }
         }
@@ -192,10 +236,53 @@ public class ServicePricingFactory
             }
         }
 
+        if (period.BranchDiscountTiers.Count == 0)
+            SeedDefaultBranchDiscountTiers(period);
+
         _periodEs.Add(period);
         await _uow.SaveChangesAsync(); // period + items tek transaction
 
         return (new { period.Id, period.Name, itemCount = period.Items.Count }, null);
+    }
+
+    /// <summary>Yönetim: dönem şube indirim eşiklerini tamamen değiştirir (boş liste = indirim yok).</summary>
+    public async Task<(bool Success, string? Error)> ReplaceBranchDiscountTiersAsync(int periodId, IReadOnlyList<BranchDiscountTierInput> tiers)
+    {
+        var period = await _periodEs.GetAllQueryable()
+            .Include(p => p.BranchDiscountTiers)
+            .FirstOrDefaultAsync(p => p.Id == periodId);
+        if (period == null) return (false, "Dönem bulunamadı.");
+
+        period.BranchDiscountTiers.Clear();
+        var order = 1;
+        foreach (var t in tiers.OrderBy(x => x.SortOrder).ThenBy(x => x.MinBranches))
+        {
+            if (t.MaxBranches < t.MinBranches)
+                return (false, "Her satırda MaxBranches, MinBranches değerinden küçük olamaz.");
+            if (t.DiscountPercent < 0 || t.DiscountPercent > 100)
+                return (false, "İndirim yüzdesi 0–100 arasında olmalıdır.");
+            period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
+            {
+                MinBranches = t.MinBranches,
+                MaxBranches = t.MaxBranches,
+                DiscountPercent = Math.Round(t.DiscountPercent, 2, MidpointRounding.AwayFromZero),
+                SortOrder = t.SortOrder > 0 ? t.SortOrder : order
+            });
+            order++;
+        }
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    private static void SeedDefaultBranchDiscountTiers(ServicePricingPeriod period)
+    {
+        period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
+            { MinBranches = 2, MaxBranches = 10, DiscountPercent = 10, SortOrder = 1 });
+        period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
+            { MinBranches = 11, MaxBranches = 20, DiscountPercent = 15, SortOrder = 2 });
+        period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
+            { MinBranches = 21, MaxBranches = 999, DiscountPercent = 20, SortOrder = 3 });
     }
 
     public async Task<(bool Success, string? Error)> UpdateItemPriceAsync(int itemId, decimal newPrice)

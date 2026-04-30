@@ -1,4 +1,5 @@
 using CallCenter.Api.Factories;
+using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,6 +50,13 @@ public class ServicePricingController : ControllerBase
     public async Task<ActionResult> ActivatePeriod(int periodId)
     {
         var (s, e) = await _factory.ActivatePeriodAsync(periodId);
+        return s ? Ok() : BadRequest(new { message = e });
+    }
+
+    [HttpPut("periods/{periodId}/branch-discount-tiers")]
+    public async Task<ActionResult> ReplaceBranchDiscountTiers(int periodId, [FromBody] ReplaceBranchDiscountTiersRequest request)
+    {
+        var (s, e) = await _factory.ReplaceBranchDiscountTiersAsync(periodId, request.Tiers ?? []);
         return s ? Ok() : BadRequest(new { message = e });
     }
 

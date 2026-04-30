@@ -51,7 +51,11 @@
                 if (branchInfo) {
                     if (s.branchCount > 1) {
                         branchInfo.style.display = '';
-                        branchInfo.innerHTML = s.branchCount + ' şube · ek şubelerde %10 indirim · <span class="text-muted">(' + fmt(s.baseMonthly) + ' ₺ × ' + s.branchMultiplier.toFixed(1) + ')</span>';
+                        var pct = typeof s.branchDiscountPercent === 'number' ? s.branchDiscountPercent : 0;
+                        var gross = typeof s.grossBranchMonthly === 'number' ? s.grossBranchMonthly : 0;
+                        var net = typeof s.netBranchMonthly === 'number' ? s.netBranchMonthly : 0;
+                        branchInfo.innerHTML = s.branchCount + ' şube · şube eşik indirimi %' + pct +
+                            ' · brüt ' + fmt(gross) + ' ₺ → net ' + fmt(net) + ' ₺/ay <span class="text-muted">(paket+temel: ' + fmt(s.baseMonthly) + ' ₺)</span>';
                     } else {
                         branchInfo.style.display = 'none';
                     }

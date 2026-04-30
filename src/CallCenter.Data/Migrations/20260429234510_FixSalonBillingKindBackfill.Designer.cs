@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260429234510_FixSalonBillingKindBackfill")]
+    partial class FixSalonBillingKindBackfill
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2210,13 +2213,12 @@ namespace CallCenter.Data.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("DiscountPercentOverride")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
                     b.Property<decimal>("MonthlyPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("NextBillingDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("PaymentGraceDays")
                         .HasColumnType("integer");
@@ -3792,37 +3794,6 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("ServiceBillingItems");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingBranchDiscountTier", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("DiscountPercent")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<int>("MaxBranches")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MinBranches")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PeriodId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PeriodId", "SortOrder");
-
-                    b.ToTable("ServicePricingBranchDiscountTiers");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingItem", b =>
                 {
                     b.Property<int>("Id")
@@ -3877,10 +3848,6 @@ namespace CallCenter.Data.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("ExtraBranchMonthlyPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -6749,6 +6716,10 @@ namespace CallCenter.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("BranchPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -9282,17 +9253,6 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("CustomerServiceSubscription");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingBranchDiscountTier", b =>
-                {
-                    b.HasOne("CallCenter.Shared.Entities.ServicePricingPeriod", "Period")
-                        .WithMany("BranchDiscountTiers")
-                        .HasForeignKey("PeriodId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Period");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingItem", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.ServicePricingPeriod", "Period")
@@ -10646,8 +10606,6 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.ServicePricingPeriod", b =>
                 {
-                    b.Navigation("BranchDiscountTiers");
-
                     b.Navigation("Items");
                 });
 

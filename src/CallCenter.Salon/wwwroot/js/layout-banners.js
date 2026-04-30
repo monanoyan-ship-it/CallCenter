@@ -9,8 +9,15 @@
         return d.innerHTML;
     }
 
-    $.get('/proxy/subscriptions/banner')
-        .done(function (data) {
+    $.ajax({ url: '/proxy/subscriptions/banner', dataType: 'text' })
+        .done(function (text) {
+            if (text == null || !String(text).trim()) return;
+            var data;
+            try {
+                data = JSON.parse(String(text).trim());
+            } catch (e) {
+                return;
+            }
             if (!data) return;
             var parts = [];
 

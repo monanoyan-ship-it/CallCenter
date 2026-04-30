@@ -1,3 +1,4 @@
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Data;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +7,8 @@ namespace CallCenter.Api.Services;
 
 /// <summary>
 /// Periyodik trial/abonelik suresi dolma kontrolu.
-/// Trial: NextBillingDate + TrialSuspensionGraceDays (5) sonrasi askiya.
-/// Ucretli: odenmemis en eski tahakkugun PeriodStartDate + UnpaidGraceDays (5) sonrasi askiya.
+/// Trial: <see cref="CallCenter.Shared.Entities.CustomerSubscription.PeriodPrice"/> == 0; sonraki tahakkuk tarihi + TrialSuspensionGraceDays sonrasi askiya.
+/// Ucretli: PeriodPrice &gt; 0; odenmemis en eski tahakkugun PeriodStartDate + UnpaidGraceDays sonrasi askiya.
 /// </summary>
 public class SubscriptionExpiryHostedService : BackgroundService
 {
@@ -39,26 +40,47 @@ public class SubscriptionExpiryHostedService : BackgroundService
     {
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var subFactory = scope.ServiceProvider.GetRequiredService<ISubscriptionFactory>();
         var now = DateTime.UtcNow;
 
-        // 1) Trial: deneme bitiminden sonra ek N gun (Policy), sonra askiya
+        // 1) Trial: sonraki tahakkuk tarihi + grace sonrasi askiya
         var trialGrace = PlatformBillingAccessPolicy.TrialSuspensionGraceDays;
-        var expiredTrials = await db.CustomerSubscriptions
-            .Where(s => s.StatusId == 1 && s.MonthlyPrice == 0 && s.NextBillingDate.AddDays(trialGrace) < now)
+        var trialCandidates = await db.CustomerSubscriptions
+            .Where(s => s.StatusId == 1 && s.PeriodPrice == 0)
+            .Select(s => s.CustomerId)
+            .Distinct()
             .ToListAsync(ct);
-        foreach (var sub in expiredTrials) sub.StatusId = 2;
-        if (expiredTrials.Count > 0)
-            _logger.LogInformation("Trial subscription expired (grace {Grace}d): {Count}", trialGrace, expiredTrials.Count);
+
+        var expiredTrialCount = 0;
+        foreach (var customerId in trialCandidates)
+        {
+            var next = await subFactory.GetNextSalonAccrualUtcAsync(customerId);
+            if (!next.HasValue) continue;
+            if (next.Value.AddDays(trialGrace) >= now) continue;
+
+            var rows = await db.CustomerSubscriptions
+                .Where(s => s.CustomerId == customerId && s.StatusId == 1 && s.PeriodPrice == 0)
+                .ToListAsync(ct);
+            foreach (var sub in rows)
+            {
+                sub.StatusId = 2;
+                expiredTrialCount++;
+            }
+        }
+
+        if (expiredTrialCount > 0)
+            _logger.LogInformation("Trial subscription expired (grace {Grace}d): {Count}", trialGrace, expiredTrialCount);
 
         // 2) Ucretli: odenmemis tahakkukda PeriodStartDate + Policy gun asildiysa askiya
         var activePaid = await db.CustomerSubscriptions
-            .Where(s => s.StatusId == 1 && s.MonthlyPrice > 0)
+            .Where(s => s.StatusId == 1 && s.PeriodPrice > 0)
             .ToListAsync(ct);
-        int suspendedPaid = 0;
+        var suspendedPaid = 0;
         foreach (var sub in activePaid)
         {
             var oldestUnpaid = await db.CustomerBillingPeriods
-                .Where(p => p.CustomerId == sub.CustomerId && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
+                .Where(p => p.CustomerId == sub.CustomerId && p.BillingKindId == CustomerBillingKinds.SalonPlatform
+                    && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
                     && p.Amount + p.ServiceAmount > 0m)
                 .OrderBy(p => p.Year).ThenBy(p => p.Month)
                 .FirstOrDefaultAsync(ct);
@@ -71,7 +93,7 @@ public class SubscriptionExpiryHostedService : BackgroundService
         if (suspendedPaid > 0)
             _logger.LogInformation("Paid subscription suspended (grace + unpaid): {Count}", suspendedPaid);
 
-        if (expiredTrials.Count > 0 || suspendedPaid > 0)
+        if (expiredTrialCount > 0 || suspendedPaid > 0)
             await db.SaveChangesAsync(ct);
     }
 }

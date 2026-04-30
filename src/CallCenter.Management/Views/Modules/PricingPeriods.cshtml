@@ -106,6 +106,47 @@
                 </div>
             </div>
 
+            <!-- Şube indirim eşikleri (dönem bazlı) -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span><i class="bi bi-buildings me-1 text-purple"></i>Şube indirim eşikleri</span>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveBranchTiers, disable: isSavingTiers">
+                        <span data-bind="visible: isSavingTiers" class="spinner-border spinner-border-sm me-1"></span>Kaydet
+                    </button>
+                </div>
+                <div class="card-body py-2">
+                    <p class="small text-muted mb-2">
+                        <strong>2 ve üzeri aktif şubede</strong> brüt şube tutarı <strong>şube sayısı × Temel Paket (dönem)</strong> ile hesaplanır;
+                        bu aralığa göre belirlenen yüzde bu brüt tutara uygulanır. Tek şubede şube satırı yoktur (Temel Paket üst satırda).
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width:100px;">Min şube</th>
+                                    <th style="min-width:100px;">Max şube</th>
+                                    <th style="min-width:100px;">İndirim %</th>
+                                    <th style="min-width:72px;">Sıra</th>
+                                    <th style="width:48px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: branchTierRows">
+                                <tr>
+                                    <td><input type="number" class="form-control form-control-sm" min="1" data-bind="value: minBranches" /></td>
+                                    <td><input type="number" class="form-control form-control-sm" min="1" data-bind="value: maxBranches" /></td>
+                                    <td><input type="number" class="form-control form-control-sm" min="0" max="100" step="0.01" data-bind="value: discountPercent" /></td>
+                                    <td><input type="number" class="form-control form-control-sm" min="0" data-bind="value: sortOrder" /></td>
+                                    <td><button type="button" class="btn btn-outline-danger btn-sm py-0" data-bind="click: $parent.removeBranchTierRow" title="Satırı sil">&times;</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-bind="click: addBranchTierRow">
+                        <i class="bi bi-plus-lg me-1"></i>Satır ekle
+                    </button>
+                </div>
+            </div>
+
             <!-- Salon Modülleri (grup bazlı) -->
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white fw-semibold">

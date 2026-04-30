@@ -19,14 +19,13 @@
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Plan</th><th>Aralık</th><th>İndirim</th><th>Şube Fiyat</th><th>Durum</th><th></th></tr>
+                            <tr><th>Plan</th><th>Aralık</th><th>İndirim</th><th>Durum</th><th></th></tr>
                         </thead>
                         <tbody data-bind="foreach: plans">
                             <tr>
                                 <td class="fw-medium" data-bind="text: name || ('Plan #' + id)"></td>
                                 <td data-bind="text: intervalMonths + ' ay'"></td>
                                 <td data-bind="text: discountPercent > 0 ? '%' + discountPercent : '-'"></td>
-                                <td data-bind="text: branchPrice > 0 ? branchPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                                 <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span></td>
                                 <td>
                                     <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: $parent.editPlan"><i class="bi bi-pencil"></i></button>
@@ -80,7 +79,7 @@
         <div class="tab-pane fade" id="tabBilling">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <p class="text-muted small">Belirtilen ay için aktif aboneliklerin tahakkuklarını oluşturur. Sadece o ayda tahakkuk tarihi olan abonelikler için kayıt oluşturulur.</p>
+                    <p class="text-muted small">Belirtilen ay için, <strong>hesaplanan sonraki kesim tarihi</strong> o aya düşen aktif abonelikler için salon platform tahakkuku oluşturulur (son tahakkuk + plan aralığı).</p>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label small">Yıl</label>
@@ -119,7 +118,6 @@
                     <div class="mb-2"><label class="form-label small">Plan Adı *</label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
                     <div class="mb-2"><label class="form-label small">Aralık (Ay) *</label><input type="number" class="form-control form-control-sm" min="1" data-bind="value: planForm.intervalMonths" /></div>
                     <div class="mb-2"><label class="form-label small">İndirim %</label><input type="number" class="form-control form-control-sm" min="0" max="100" step="0.01" data-bind="value: planForm.discountPercent" /></div>
-                    <div class="mb-2"><label class="form-label small">Ek Şube Ücreti (TL/ay)</label><input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: planForm.branchPrice" /></div>
                 </div>
                 <div class="modal-footer py-1">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
@@ -145,8 +143,10 @@
                         <select class="form-select form-select-sm" data-bind="value: subForm.planId, options: plans, optionsText: function(p) { return (p.name || 'Plan #' + p.id) + ' (' + p.intervalMonths + ' ay' + (p.discountPercent > 0 ? ', %' + p.discountPercent + ' indirim' : '') + ')'; }, optionsValue: 'id', optionsCaption: 'Plan seçiniz'"></select></div>
                     <div class="mb-2"><label class="form-label small">Başlangıç Tarihi *</label>
                         <input type="date" class="form-control form-control-sm" data-bind="value: subForm.startDate" /></div>
-                    <div class="mb-2"><label class="form-label small">Aylık Fiyat (TL) *</label>
+                    <div class="mb-2"><label class="form-label small">Aylık fiyat (TL) — 0 = dönem listesi + indirim</label>
                         <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: subForm.monthlyPrice" /></div>
+                    <div class="mb-2"><label class="form-label small">Özel indirim % (yalnızca aylık 0 iken; boş = plan)</label>
+                        <input type="number" class="form-control form-control-sm" min="0" max="100" step="0.01" placeholder="Plan" data-bind="value: subForm.discountOverride" /></div>
                     <!-- ko if: subForm.planId() -->
                     <div class="alert alert-light py-1 small">
                         <strong>Dönem Fiyatı:</strong> <span data-bind="text: computedPeriodPrice() + ' TL'"></span>

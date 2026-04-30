@@ -1,3 +1,5 @@
+using CallCenter.Shared.Enums;
+
 namespace CallCenter.Shared.Entities;
 
 public class CustomerBillingPeriod
@@ -5,6 +7,10 @@ public class CustomerBillingPeriod
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
+
+    /// <summary><see cref="CustomerBillingKinds"/> — CC, salon platform, CRM vb.</summary>
+    public int BillingKindId { get; set; } = CustomerBillingKinds.CallCenter;
+
     public int Year { get; set; }
     public int Month { get; set; }
     public DateTime PeriodStartDate { get; set; }

@@ -5,17 +5,22 @@
  */
 function injectIyzicoCheckoutHtml(container, html) {
     if (!container) return;
-    container.innerHTML = html;
-    var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
-    for (var i = 0; i < scripts.length; i++) {
-        var old = scripts[i];
-        var s = document.createElement('script');
-        for (var j = 0; j < old.attributes.length; j++) {
-            var a = old.attributes[j];
-            s.setAttribute(a.name, a.value);
+    try {
+        container.innerHTML = html || '';
+        var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
+        for (var i = 0; i < scripts.length; i++) {
+            var old = scripts[i];
+            var s = document.createElement('script');
+            for (var j = 0; j < old.attributes.length; j++) {
+                var a = old.attributes[j];
+                s.setAttribute(a.name, a.value);
+            }
+            if (!old.src && old.textContent) s.textContent = old.textContent;
+            if (old.parentNode) old.parentNode.replaceChild(s, old);
         }
-        if (!old.src && old.textContent) s.textContent = old.textContent;
-        if (old.parentNode) old.parentNode.replaceChild(s, old);
+    } catch (e) {
+        console.error('iyzico form inject', e);
+        container.innerHTML = '<p class="text-danger small mb-0">Ödeme formu yüklenirken hata oluştu. Sayfayı yenileyip tekrar deneyin.</p>';
     }
 }
 
@@ -36,16 +41,15 @@ function ModulesViewModel() {
     self.activeModules = ko.observableArray([]);
     self.availableModules = ko.observableArray([]);
     self.requests = ko.observableArray([]);
-    self.unpaidBillings = ko.observableArray([]);
 
     self.defaultModules = ko.computed(function () {
         return self.activeModules().filter(function (m) { return m.isDefault; });
     });
 
     // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
-    var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 6: 'Kurumsal' };
+    var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 5: 'Profesyonel', 6: 'Kurumsal' };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
-    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 6: 200 };
+    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
     self.packagePrices = ko.observable({});
 
     self.priceForGroup = function (gId) {
@@ -88,11 +92,17 @@ function ModulesViewModel() {
     });
 
     self.branchCount = ko.observable(1);
+    self.dashboardSub = ko.observable(null);
+    /** api/subscriptions/my → unpaidBillings (bilgi amaçlı) */
+    self.platformUnpaid = ko.observableArray([]);
+    /** Platform tahakkuku KK (subscription-checkout) */
+    self.platformPayLoading = ko.observable(false);
 
-    // Aylik toplam = (Temel Paket + aktif ek paket gruplari) × (1 + 0.9*(N-1)) — fiyatlar aktif dönemden
+    // Paket + temel (çoklu şubede Temel Paket yalnız şube satırında) — şube tutarı API'de
     self.baseMonthly = ko.computed(function () {
         self.packagePrices();
-        var total = self.priceForGroup(0);
+        var multi = self.branchCount() > 1;
+        var total = multi ? 0 : self.priceForGroup(0);
         var activeGroupIds = {};
         self.activeModules().forEach(function (m) {
             if (!m.isDefault && m.isActive && m.groupId) activeGroupIds[m.groupId] = true;
@@ -102,38 +112,96 @@ function ModulesViewModel() {
         });
         return total;
     });
-    self.branchMultiplier = ko.computed(function () {
-        var n = self.branchCount() || 1;
-        return 1 + 0.9 * (n - 1);
-    });
-    self.monthlyTotal = ko.computed(function () {
-        return Math.round(self.baseMonthly() * self.branchMultiplier() * 100) / 100;
+
+    // Dashboard ile aynı tahmin (plan şube fiyatı + dönem eşikleri)
+    self.displayMonthlyTotal = ko.computed(function () {
+        var s = self.dashboardSub();
+        if (s && typeof s.monthlyTotal === 'number') return s.monthlyTotal;
+        return self.baseMonthly();
     });
 
+    self.branchSummaryText = ko.computed(function () {
+        var s = self.dashboardSub();
+        if (!s || !s.branchCount || s.branchCount <= 1) return '';
+        var br = typeof s.branchDiscountPercent === 'number' ? s.branchDiscountPercent : 0;
+        var net = typeof s.netBranchMonthly === 'number' ? s.netBranchMonthly : 0;
+        return s.branchCount + ' şube · şube eşik indirimi %' + br + ' · şube satırı ' + net.toLocaleString('tr-TR') + ' ₺/ay (tüm şubeler × Temel Paket brüt, sonra eşik)';
+    });
+
+    /**
+     * dataType: 'json' kullanma: boş gövde / HTML hata sayfası jQuery'de JSON.parse → SyntaxError üretir.
+     * Metin alıp burada güvenli parse et.
+     */
+    function parseAjaxBody(text, xhr) {
+        if (xhr && (xhr.status === 204 || xhr.status === 205)) return null;
+        if (text == null) return null;
+        var t = String(text).trim();
+        if (!t) return null;
+        try {
+            return JSON.parse(t);
+        } catch (e) {
+            return null;
+        }
+    }
+
     self.load = function () {
-        $.get('/proxy/sln-module-requests/package-prices', function (data) {
-            self.packagePrices(data && typeof data === 'object' ? data : {});
-        }).fail(function () {
-            toastr.warning('Fiyat listesi yüklenemedi; varsayilan fiyatlar kullaniliyor.');
-            self.packagePrices({});
-        });
-        $.get('/proxy/sln-module-requests', function (data) { self.requests(data || []); });
-        $.get('/proxy/sln-module-requests/available', function (data) { self.availableModules(data || []); });
-        $.get('/proxy/sln-module-requests/active', function (data) { self.activeModules(data || []); });
-        $.get('/proxy/subscriptions/my', function (data) {
-            var u = (data && data.unpaidBillings) ? data.unpaidBillings : [];
-            u = u.slice().sort(function (a, b) {
-                var y = (a.year || 0) - (b.year || 0);
-                if (y !== 0) return y;
-                return (a.month || 0) - (b.month || 0);
+        $.ajax({ url: '/proxy/sln-module-requests/package-prices', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.packagePrices(d && typeof d === 'object' && !Array.isArray(d) ? d : {});
+            })
+            .fail(function () {
+                toastr.warning('Fiyat listesi yüklenemedi; varsayilan fiyatlar kullaniliyor.');
+                self.packagePrices({});
             });
-            self.unpaidBillings(u);
-        }).fail(function () { self.unpaidBillings([]); });
-        $.get('/proxy/sln-branches?_nb=1', function (data) {
-            var branches = Array.isArray(data) ? data : (data.items || []);
-            var active = branches.filter(function (b) { return b.isActive !== false; }).length;
-            self.branchCount(active > 0 ? active : 1);
-        });
+
+        $.ajax({ url: '/proxy/sln-module-requests', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.requests(Array.isArray(d) ? d : []);
+            })
+            .fail(function () { self.requests([]); });
+
+        $.ajax({ url: '/proxy/sln-module-requests/available', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.availableModules(Array.isArray(d) ? d : []);
+            })
+            .fail(function () { self.availableModules([]); });
+
+        $.ajax({ url: '/proxy/sln-module-requests/active', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.activeModules(Array.isArray(d) ? d : []);
+            })
+            .fail(function () { self.activeModules([]); });
+
+        $.ajax({ url: '/proxy/sln-dashboard', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.dashboardSub(d && d.subscription ? d.subscription : null);
+            })
+            .fail(function () { self.dashboardSub(null); });
+
+        $.ajax({ url: '/proxy/subscriptions/my', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                var u = d && Array.isArray(d.unpaidBillings) ? d.unpaidBillings : [];
+                self.platformUnpaid(u.filter(function (x) {
+                    var t = Number(x && x.total);
+                    return !isNaN(t) && t > 0;
+                }));
+            })
+            .fail(function () { self.platformUnpaid([]); });
+
+        $.ajax({ url: '/proxy/sln-branches?_nb=1', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                var branches = Array.isArray(d) ? d : (d && Array.isArray(d.items) ? d.items : []);
+                var active = branches.filter(function (b) { return b.isActive !== false; }).length;
+                self.branchCount(active > 0 ? active : 1);
+            })
+            .fail(function () { self.branchCount(1); });
     };
 
     self.requestDeactivation = function (mod) {
@@ -146,7 +214,7 @@ function ModulesViewModel() {
                     contentType: 'application/json',
                     data: JSON.stringify({ moduleId: mod.id, requestTypeId: 2, notes: notes || null }),
                     success: function () { toastr.success('Iptal talebi olusturuldu.'); self.load(); },
-                    error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Talep olusturulamadi.'); }
+                    error: function (xhr) { toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Talep olusturulamadi.'); }
                 });
             }, { input: true, inputLabel: 'Iptal sebebi' });
         }, { confirmClass: 'btn-danger', confirmText: 'Iptal Talep Et' });
@@ -185,10 +253,6 @@ function ModulesViewModel() {
     self.purchasePreview = ko.observable(null);
     self.purchaseResult = ko.observable(null);
     self.purchaseGroupId = ko.observable(null);
-    /** 'package' | 'subscription' — Iyzico donus mesaji ve tekrar dene adimi */
-    self.checkoutMode = ko.observable('package');
-    /** Odenecek tahakkuk satiri (ajax onizleme yok; /subscriptions/my'den gelir) */
-    self.invoicePayContext = ko.observable(null);
     /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
     self.checkoutFormHtml = ko.observable('');
 
@@ -196,50 +260,7 @@ function ModulesViewModel() {
         if (step !== 'checkout') self.checkoutFormHtml('');
     });
 
-    self.retryPaymentStep = function () {
-        self.purchaseStep(self.checkoutMode() === 'subscription' ? 'invoice-preview' : 'preview');
-    };
-
-    self.payUnpaidBilling = function (inv) {
-        self.checkoutMode('subscription');
-        self.invoicePayContext(inv);
-        self.purchaseStep('invoice-preview');
-        self.purchaseResult(null);
-        self.purchaseLoading(false);
-        self.checkoutFormHtml('');
-        var modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
-        modal.show();
-    };
-
-    self.startSubscriptionCheckout = function () {
-        self.checkoutFormHtml('');
-        self.purchaseStep('checkout');
-        self.purchaseLoading(true);
-        $.ajax({
-            url: '/proxy/payments/subscription-checkout',
-            method: 'POST',
-            contentType: 'application/json',
-            data: '{}',
-            success: function (data) {
-                self.purchaseLoading(false);
-                var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
-                if (data.success && raw) {
-                    self.checkoutFormHtml(raw);
-                } else {
-                    toastr.error(data.error || 'Odeme formu olusturulamadi.');
-                    self.purchaseStep('invoice-preview');
-                }
-            },
-            error: function (xhr) {
-                toastr.error((xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || 'Odeme baslatilamadi.');
-                self.purchaseLoading(false);
-                self.purchaseStep('invoice-preview');
-            }
-        });
-    };
-
     self.purchasePackage = function (pkg) {
-        self.checkoutMode('package');
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -253,21 +274,25 @@ function ModulesViewModel() {
             url: '/proxy/payments/package-preview',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ packageGroupId: pkg.groupId }),
-            success: function (data) {
-                self.purchasePreview(data);
-                self.purchaseLoading(false);
-            },
-            error: function (xhr) {
-                toastr.error(xhr.responseJSON?.message || 'Fiyat bilgisi alinamadi.');
-                self.purchaseLoading(false);
+            dataType: 'text',
+            data: JSON.stringify({ packageGroupId: pkg.groupId })
+        }).done(function (text, st, xhr) {
+            var data = parseAjaxBody(text, xhr);
+            self.purchasePreview(data && typeof data === 'object' ? data : null);
+            self.purchaseLoading(false);
+            if (!data || typeof data !== 'object') {
+                toastr.error('Fiyat yaniti gecersiz.');
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
+        }).fail(function (xhr) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Fiyat bilgisi alinamadi.';
+            toastr.error(msg);
+            self.purchaseLoading(false);
+            bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
         });
     };
 
     self.purchaseModule = function (mod) {
-        self.checkoutMode('package');
         // Tek modul icin de ayni akis, groupId yerine moduleId gonder
         self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
         self.purchaseStep('preview');
@@ -282,16 +307,21 @@ function ModulesViewModel() {
             url: '/proxy/payments/package-preview',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ packageGroupId: mod.groupId || mod.moduleGroupId }),
-            success: function (data) {
-                self.purchasePreview(data);
-                self.purchaseLoading(false);
-            },
-            error: function (xhr) {
-                toastr.error(xhr.responseJSON?.message || 'Fiyat bilgisi alinamadi.');
-                self.purchaseLoading(false);
+            dataType: 'text',
+            data: JSON.stringify({ packageGroupId: mod.groupId || mod.moduleGroupId })
+        }).done(function (text, st, xhr) {
+            var data = parseAjaxBody(text, xhr);
+            self.purchasePreview(data && typeof data === 'object' ? data : null);
+            self.purchaseLoading(false);
+            if (!data || typeof data !== 'object') {
+                toastr.error('Fiyat yaniti gecersiz.');
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
+        }).fail(function (xhr) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Fiyat bilgisi alinamadi.';
+            toastr.error(msg);
+            self.purchaseLoading(false);
+            bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
         });
     };
 
@@ -304,22 +334,75 @@ function ModulesViewModel() {
             url: '/proxy/payments/package-checkout',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ packageGroupId: self.purchaseGroupId() }),
-            success: function (data) {
-                self.purchaseLoading(false);
-                var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
-                if (data.success && raw) {
-                    self.checkoutFormHtml(raw);
-                } else {
-                    toastr.error(data.error || 'Odeme formu olusturulamadi.');
-                    self.purchaseStep('preview');
-                }
-            },
-            error: function (xhr) {
-                toastr.error(xhr.responseJSON?.message || 'Odeme baslatilamadi.');
-                self.purchaseLoading(false);
+            dataType: 'text',
+            data: JSON.stringify({ packageGroupId: self.purchaseGroupId() })
+        }).done(function (text, st, xhr) {
+            self.purchaseLoading(false);
+            var data = parseAjaxBody(text, xhr);
+            if (!data || typeof data !== 'object') {
+                toastr.error('Odeme yaniti gecersiz.');
+                self.purchaseStep('preview');
+                return;
+            }
+            var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
+            if (data.success && raw) {
+                self.checkoutFormHtml(raw);
+            } else {
+                toastr.error(data.error || 'Odeme formu olusturulamadi.');
                 self.purchaseStep('preview');
             }
+        }).fail(function (xhr) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Odeme baslatilamadi.';
+            toastr.error(msg);
+            self.purchaseLoading(false);
+            self.purchaseStep('preview');
+        });
+    };
+
+    /** Açık platform tahakkuku: api/payments/subscription-checkout (ücretli abonelik veya aboneliksiz salon platform borcu) */
+    self.startPlatformAccrualPayment = function () {
+        self.purchasePreview(null);
+        self.purchaseResult(null);
+        self.purchaseGroupId(null);
+        self.checkoutFormHtml('');
+        self.purchaseStep('checkout');
+        self.purchaseLoading(true);
+        self.platformPayLoading(true);
+
+        var modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+        modal.show();
+
+        $.ajax({
+            url: '/proxy/payments/subscription-checkout',
+            method: 'POST',
+            contentType: 'application/json',
+            dataType: 'text',
+            data: '{}'
+        }).done(function (text, st, xhr) {
+            self.purchaseLoading(false);
+            self.platformPayLoading(false);
+            var data = parseAjaxBody(text, xhr);
+            if (!data || typeof data !== 'object') {
+                toastr.error('Odeme yaniti gecersiz.');
+                self.purchaseStep('preview');
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+                return;
+            }
+            var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
+            if (data.success && raw) {
+                self.checkoutFormHtml(raw);
+            } else {
+                toastr.error(data.error || 'Odeme formu olusturulamadi.');
+                self.purchaseStep('preview');
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+            }
+        }).fail(function (xhr) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Odeme baslatilamadi.';
+            toastr.error(msg);
+            self.purchaseLoading(false);
+            self.platformPayLoading(false);
+            self.purchaseStep('preview');
+            bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
         });
     };
 
@@ -330,21 +413,20 @@ function ModulesViewModel() {
             url: '/proxy/payments/package-result',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ token: token }),
-            success: function (data) {
-                self.purchaseResult(data);
-                self.purchaseStep('result');
-                if (data && data.success) self.load();
-            },
-            error: function (xhr) {
-                var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Odeme sonucu alinamadi.';
-                self.purchaseResult({ success: false, error: msg });
-                self.purchaseStep('result');
-            },
-            complete: function () {
-                self.purchaseLoading(false);
-                if (typeof onComplete === 'function') onComplete();
-            }
+            dataType: 'text',
+            data: JSON.stringify({ token: token })
+        }).done(function (text, st, xhr) {
+            var data = parseAjaxBody(text, xhr);
+            self.purchaseResult(data && typeof data === 'object' ? data : { success: false, error: 'Gecersiz yanit' });
+            self.purchaseStep('result');
+            if (data && data.success) self.load();
+        }).fail(function (xhr) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Odeme sonucu alinamadi.';
+            self.purchaseResult({ success: false, error: msg });
+            self.purchaseStep('result');
+        }).always(function () {
+            self.purchaseLoading(false);
+            if (typeof onComplete === 'function') onComplete();
         });
     };
 
@@ -368,7 +450,7 @@ function ModulesViewModel() {
                 url: '/proxy/sln-module-requests/' + req.id,
                 method: 'DELETE',
                 success: function () { toastr.success('Talep iptal edildi.'); self.load(); },
-                error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Iptal edilemedi.'); }
+                error: function (xhr) { toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Iptal edilemedi.'); }
             });
         }, { confirmClass: 'btn-danger', confirmText: 'Iptal Et' });
     };
@@ -384,10 +466,6 @@ ko.applyBindings(modulesVm, document.getElementById('modules-vm'));
     var p = new URLSearchParams(window.location.search);
     var token = p.get('iyzicoToken');
     if (!token) return;
-
-    var flow = p.get('flow');
-    if (flow === 'sub') modulesVm.checkoutMode('subscription');
-    else modulesVm.checkoutMode('package');
 
     var modalEl = document.getElementById('purchaseModal');
     if (!modalEl) return;
@@ -405,7 +483,6 @@ ko.applyBindings(modulesVm, document.getElementById('modules-vm'));
         var u = new URL(window.location.href);
         u.searchParams.delete('iyzicoToken');
         u.searchParams.delete('iyzicoError');
-        u.searchParams.delete('flow');
         var q = u.searchParams.toString();
         window.history.replaceState({}, '', u.pathname + (q ? '?' + q : '') + u.hash);
     });

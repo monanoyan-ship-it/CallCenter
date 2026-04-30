@@ -152,7 +152,7 @@ public class CustomerFactory : ICustomerFactory
             .Where(cp => cp.CustomerId == c.Id && cp.IsActive)
             .ToListAsync();
 
-        return new CustomerDetailDto
+        var dto = new CustomerDetailDto
         {
             Id = c.Id,
             Name = c.Name,
@@ -187,6 +187,19 @@ public class CustomerFactory : ICustomerFactory
             }).ToList(),
             AdminInfo = adminInfo
         };
+
+        if (products.Any(p => p.ProductTypeId == ProductTypes.Ids.Salon))
+        {
+            var activeSub = await _subscriptionEs.GetAllQueryable()
+                .FirstOrDefaultAsync(s => s.CustomerId == c.Id && s.StatusId == SubscriptionStatuses.Ids.Active);
+            if (activeSub != null)
+            {
+                dto.SalonSubscriptionDisplayMonthly = activeSub.MonthlyPrice;
+                dto.SalonSubscriptionIsTrialOrUncontracted = activeSub.PeriodPrice == 0m;
+            }
+        }
+
+        return dto;
     }
 
     public async Task<Customer?> GetRawByIdAsync(int id)
@@ -491,6 +504,7 @@ public class CustomerFactory : ICustomerFactory
         }
 
         await _uow.SaveChangesAsync();
+        await TryRefreshSalonDisplayMonthlyAsync(customerId);
         return (true, null);
     }
 
@@ -502,6 +516,7 @@ public class CustomerFactory : ICustomerFactory
         module.IsActive = false;
         module.DeactivatedAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
+        await TryRefreshSalonDisplayMonthlyAsync(customerId);
 
         return (true, null);
     }
@@ -544,9 +559,24 @@ public class CustomerFactory : ICustomerFactory
         }
 
         if (addedCount > 0)
+        {
             await _uow.SaveChangesAsync();
+            await TryRefreshSalonDisplayMonthlyAsync(customerId);
+        }
 
         return (true, addedCount, null);
+    }
+
+    private async Task TryRefreshSalonDisplayMonthlyAsync(int customerId)
+    {
+        try
+        {
+            await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(customerId);
+        }
+        catch
+        {
+            /* Modul ataması başarılı kalsın; özet alanı gecikmeli güncellenebilir */
+        }
     }
 
     public async Task<(bool Success, int RemovedCount, string? Error)> CleanupModulesAsync(int customerId, string keep)
@@ -664,8 +694,8 @@ public class CustomerFactory : ICustomerFactory
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
         await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _branchEs, _uow, customer.Id);
 
-        // PAY / trial: ucretsiz donem (MonthlyPrice=0); ilk tahakkuk kayit aninda CreateInitialBillingPeriod ile,
-        // NextBillingDate o donemin bitisine gore (plan araligi) ilerletilir — modul kisti sonraki tahakkuka kadar gun hesabi ile uyumlu.
+        // Deneme: PeriodPrice=0 (MonthlyPrice yalnizca yonetim ozeti — donem fiyatlari + moduller ile Refresh ile dolar).
+        // Ilk tahakkuk CreateInitialBillingPeriod ile; sonraki kesimler tahakkuk satirlarindan turetilir.
         try
         {
             var anyPlan = await _planEs.GetAllQueryable()
@@ -683,11 +713,19 @@ public class CustomerFactory : ICustomerFactory
                     MonthlyPrice = 0,
                     PeriodPrice = 0,
                     BillingDay = registeredAt.Day,
-                    NextBillingDate = reg,
                     StatusId = 1, // Active (trial)
                     PaymentGraceDays = 5
                 });
                 await _uow.SaveChangesAsync();
+                try
+                {
+                    await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(customer.Id);
+                }
+                catch
+                {
+                    /* Ozet tutari guncellenmezse kayit akisi surer */
+                }
+
                 try
                 {
                     await _subscriptionFactory.CreateInitialBillingPeriodForCustomerAsync(customer.Id);

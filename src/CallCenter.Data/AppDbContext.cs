@@ -169,6 +169,7 @@ public class AppDbContext : DbContext
     // ─── Service Pricing Periods ───
     public DbSet<ServicePricingPeriod> ServicePricingPeriods => Set<ServicePricingPeriod>();
     public DbSet<ServicePricingItem> ServicePricingItems => Set<ServicePricingItem>();
+    public DbSet<ServicePricingBranchDiscountTier> ServicePricingBranchDiscountTiers => Set<ServicePricingBranchDiscountTier>();
 
     // ─── Subscription ───
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
@@ -263,6 +264,7 @@ public class AppDbContext : DbContext
         {
             e.HasKey(p => p.Id);
             e.Property(p => p.Name).HasMaxLength(200);
+            e.Property(p => p.ExtraBranchMonthlyPrice).HasPrecision(18, 2);
         });
         modelBuilder.Entity<ServicePricingItem>(e =>
         {
@@ -273,6 +275,16 @@ public class AppDbContext : DbContext
             e.Property(i => i.ServiceName).HasMaxLength(200);
             e.HasOne(i => i.Period).WithMany(p => p.Items).HasForeignKey(i => i.PeriodId).OnDelete(DeleteBehavior.Cascade);
         });
+        modelBuilder.Entity<ServicePricingBranchDiscountTier>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.DiscountPercent).HasPrecision(5, 2);
+            e.HasIndex(t => new { t.PeriodId, t.SortOrder });
+            e.HasOne(t => t.Period)
+                .WithMany(p => p.BranchDiscountTiers)
+                .HasForeignKey(t => t.PeriodId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         // SubscriptionPlan
         modelBuilder.Entity<SubscriptionPlan>(e =>
@@ -280,7 +292,6 @@ public class AppDbContext : DbContext
             e.HasKey(p => p.Id);
             e.Property(p => p.Name).HasMaxLength(100);
             e.Property(p => p.DiscountPercent).HasPrecision(5, 2);
-            e.Property(p => p.BranchPrice).HasPrecision(18, 2);
         });
 
         // CustomerSubscription
@@ -291,6 +302,7 @@ public class AppDbContext : DbContext
             e.HasIndex(s => s.BranchId);
             e.Property(s => s.MonthlyPrice).HasPrecision(18, 2);
             e.Property(s => s.PeriodPrice).HasPrecision(18, 2);
+            e.Property(s => s.DiscountPercentOverride).HasPrecision(5, 2);
             e.HasOne(s => s.Customer).WithMany(c => c.Subscriptions).HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(s => s.Plan).WithMany().HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(s => s.Branch).WithMany().HasForeignKey(s => s.BranchId).OnDelete(DeleteBehavior.SetNull);
@@ -994,7 +1006,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<CustomerBillingPeriod>(e =>
         {
             e.HasKey(b => b.Id);
-            e.HasIndex(b => new { b.CustomerId, b.Year, b.Month }).IsUnique();
+            e.HasIndex(b => new { b.CustomerId, b.Year, b.Month, b.BillingKindId }).IsUnique();
             e.Property(b => b.UnitPrice).HasPrecision(18, 2);
             e.Property(b => b.Amount).HasPrecision(18, 2);
             e.Property(b => b.ServiceAmount).HasPrecision(18, 2);

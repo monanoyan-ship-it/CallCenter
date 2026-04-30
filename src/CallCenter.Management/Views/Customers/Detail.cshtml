@@ -107,11 +107,21 @@
                             <button class="btn btn-outline-warning btn-sm w-100" data-bind="click: resetAdminPassword">
                                 <i class="bi bi-arrow-repeat me-1"></i>Sifre Sifirla
                             </button>
-                            <div class="alert alert-info py-2 mt-2 small" data-bind="visible: newPassword">
-                                Yeni sifre: <strong data-bind="text: newPassword"></strong>
-                            </div>
-                        </div>
+                    <div class="alert alert-info py-2 mt-2 small" data-bind="visible: newPassword">
+                        Yeni sifre: <strong data-bind="text: newPassword"></strong>
                     </div>
+                    <!-- ko if: typeof customer().salonSubscriptionDisplayMonthly === 'number' -->
+                    <div class="border rounded p-2 mt-3 bg-light">
+                        <div class="small fw-semibold text-muted mb-1">Salon abonelik özeti</div>
+                        <p class="small text-muted mb-2 mb-0">
+                            Bu aylık tutar yalnızca bilgilendirme içindir; aktif fiyat dönemi ve açık modüllere göre hesaplanır. Tahakkuk bu değere bağlı değildir.
+                        </p>
+                        <div class="fw-bold mt-1" data-bind="text: customer().salonSubscriptionDisplayMonthly.toLocaleString('tr-TR') + ' TL / ay'"></div>
+                        <span class="badge bg-secondary-subtle text-secondary small mt-2" data-bind="visible: customer().salonSubscriptionIsTrialOrUncontracted">Deneme veya sözleşmesiz dönem</span>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
                 </div>
             </div>
         </div>
@@ -197,14 +207,15 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Donem</th><th>Operator Tutar</th><th>Hizmet Tutar</th><th>Toplam</th><th>Durum</th></tr>
+                                <tr><th>Tür</th><th>Dönem</th><th>Operatör tutar</th><th>Hizmet tutar</th><th>Toplam</th><th>Durum</th></tr>
                             </thead>
                             <tbody data-bind="foreach: billing">
                                 <tr>
+                                    <td class="small text-muted" data-bind="text: billingKindName || '—'"></td>
                                     <td data-bind="text: periodLabel || (month + '/' + year)"></td>
-                                    <td data-bind="text: (operatorAmount || 0).toFixed(2) + ' TL'"></td>
-                                    <td data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>
-                                    <td class="fw-semibold" data-bind="text: (totalAmount || 0).toFixed(2) + ' TL'"></td>
+                                    <td data-bind="text: (amount != null ? amount : 0).toFixed(2) + ' TL'"></td>
+                                    <td data-bind="text: (serviceAmount != null ? serviceAmount : 0).toFixed(2) + ' TL'"></td>
+                                    <td class="fw-semibold" data-bind="text: (totalAmount != null ? totalAmount : ((amount || 0) + (serviceAmount || 0))).toFixed(2) + ' TL'"></td>
                                     <td><span class="badge bg-secondary" data-bind="text: statusName || 'Tahakkuk'"></span></td>
                                 </tr>
                             </tbody>

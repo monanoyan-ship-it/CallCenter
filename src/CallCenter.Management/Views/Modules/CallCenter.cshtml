@@ -104,7 +104,7 @@
                                 <th class="text-end">Toplam</th>
                                 <th>Durum</th>
                                 <th>Odeme</th>
-                                <th style="width:150px;">Islem</th>
+                                <th style="width:200px;">Islem</th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: items">
@@ -128,9 +128,9 @@
                                     <span class="text-muted small" data-bind="if: !paymentMethodName">-</span>
                                 </td>
                                 <td class="text-nowrap">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Tahakkuk detayi"
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Bu firmaya kesilen tahakkukun urun ve hizmet kalemleri"
                                         data-bind="click: function() { $parent.showTahakkukDetail(periodId); }">
-                                        <i class="bi bi-list-ul"></i>
+                                        <i class="bi bi-list-ul me-1"></i>Detay
                                     </button>
                                     <!-- Tahakkuk -> Fatura Kes -->
                                     <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Fatura Kes"
@@ -167,7 +167,7 @@
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header py-2">
-                    <h6 class="modal-title mb-0">Tahakkuk detayi</h6>
+                    <h6 class="modal-title mb-0">Tahakkuk kalemleri <span class="fw-normal text-muted small">(firmaya uygulanan)</span></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

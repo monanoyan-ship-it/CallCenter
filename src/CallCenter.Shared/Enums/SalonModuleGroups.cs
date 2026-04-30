@@ -3,7 +3,7 @@ namespace CallCenter.Shared.Enums;
 /// <summary>
 /// Salon modül paketleri. Her modül tam olarak bir gruba aittir — hiçbir modül grupsuz kalmaz.
 /// Id=0 Temel Paket her salon için zorunlu ve sabit fiyat (1.700 TL).
-/// Fiyatlar KDV dahil aylıktır. Ek şubeler için %10 indirim abonelik hesabında uygulanır.
+/// Fiyatlar KDV dahil aylıktır. Çoklu şubede şube satırı: tüm aktif şubeler × Temel Paket list fiyatı, sonra dönem şube eşik indirimi.
 /// </summary>
 public static class SalonModuleGroups
 {
@@ -11,9 +11,10 @@ public static class SalonModuleGroups
     public static readonly ModuleGroup Core = new(0, "Core", "Temel Paket", "bi-house-fill", "bg-success", 1700m, 0);
     public static readonly ModuleGroup StockFinance = new(1, "StockFinance", "Stok Tedarik / Finans", "bi-box-seam", "bg-secondary", 400m, 1);
     public static readonly ModuleGroup LoyaltyMarketing = new(3, "LoyaltyMarketing", "Müşteri Sadakati / Pazarlama", "bi-heart-fill", "bg-danger", 1500m, 2);
+    public static readonly ModuleGroup Professional = new(5, "Professional", "Profesyonel", "bi-star-fill", "bg-warning text-dark", 1500m, 3);
     public static readonly ModuleGroup Enterprise = new(6, "Enterprise", "Kurumsal", "bi-building", "bg-primary", 200m, 4);
 
-    public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Enterprise };
+    public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Professional, Enterprise };
     public static ModuleGroup? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
     public static class Ids
@@ -21,8 +22,7 @@ public static class SalonModuleGroups
         public const int Core = 0;
         public const int StockFinance = 1;
         public const int LoyaltyMarketing = 3;
-        /// <summary>Eski paket (Profesyonel). Artık <see cref="All"/> içinde yok; DB kalıntıları için.</summary>
-        public const int LegacyProfessional = 5;
+        public const int Professional = 5;
         public const int Enterprise = 6;
     }
 
@@ -65,7 +65,7 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnReviews] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.LoyaltyMarketing,
 
-        // ── Kurumsal (6) — 200 TL ─────────────────────────────────────────
+        // ── Profesyonel (5) — 1.500 TL (su an bu grupta modul yok; fiyat donemi ile tutulur) ──
         [SalonPortalModules.Ids.SlnReports] = Ids.Enterprise,
     };
 

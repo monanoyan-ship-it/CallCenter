@@ -244,9 +244,6 @@ function BranchesViewModel() {
             if (!el) return;
 
             _map = L.map('branch-map-picker').setView(_defaultCenter, 6);
-            // Modal icinde: tiklama/pan sonrasi olay asagidaki sidebar linklerine sizmasin (tam sayfa navigasyon/yenileme hissi)
-            L.DomEvent.disableClickPropagation(el);
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap'
             }).addTo(_map);
@@ -254,10 +251,6 @@ function BranchesViewModel() {
             _map.on('click', function (e) {
                 updateFromLatLng(e.latlng.lat, e.latlng.lng);
                 setMapPin(e.latlng.lat, e.latlng.lng);
-            });
-
-            _map.whenReady(function () {
-                _map.invalidateSize();
             });
 
             // Mevcut koordinat varsa direkt pin koy
@@ -273,7 +266,6 @@ function BranchesViewModel() {
                 navigator.geolocation.getCurrentPosition(
                     function (pos) {
                         _map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-                        if (_map) _map.invalidateSize();
                     },
                     function () { /* izin verilmedi, Turkiye kalir */ }
                 );
@@ -370,21 +362,8 @@ function BranchesViewModel() {
     };
 
     $(document).ready(function () {
-        var branchModalEl = document.getElementById('branchModal');
-        formModal = new bootstrap.Modal(branchModalEl);
+        formModal = new bootstrap.Modal(document.getElementById('branchModal'));
         qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
-
-        // Modal tam acildiktan sonra harita boyutu guncellenmeli; aksi halde yanlis hit-test + sizan tiklar
-        if (branchModalEl) {
-            branchModalEl.addEventListener('shown.bs.modal', function () {
-                if (_map) {
-                    _map.invalidateSize();
-                    var el = document.getElementById('branch-map-picker');
-                    if (el) L.DomEvent.disableClickPropagation(el);
-                }
-            });
-        }
-
         self.loadStaff();
         self.loadData();
     });

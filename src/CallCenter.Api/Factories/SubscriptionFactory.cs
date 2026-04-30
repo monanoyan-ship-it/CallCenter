@@ -15,9 +15,119 @@ public class SubscriptionFactory : ISubscriptionFactory
     private readonly IBillingPeriodEntityService _billingPeriodEs;
     private readonly ISlnBranchEntityService _branchEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
-    private readonly ICustomerProductEntityService _customerProductEs;
     private readonly ServicePricingFactory _servicePricingFactory;
     private readonly IUnitOfWork _uow;
+
+    /// <summary>Plan indirimi uygulanmadan temel paket dönem tutarı (tahakkuk sıfırlanmasın).</summary>
+    private async Task<decimal> ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(int intervalMonths)
+    {
+        var prices = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
+        var coreMonthly = prices.TryGetValue(SalonModuleGroups.Ids.Core, out var m) ? m : SalonModuleGroups.Core.MonthlyPrice;
+        if (coreMonthly <= 0m)
+            coreMonthly = SalonModuleGroups.Core.MonthlyPrice;
+        return Math.Round(coreMonthly * intervalMonths, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private Task<decimal> ComputeSalonPlatformListBasePeriodAmountAsync(CustomerSubscription sub) =>
+        ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(GetEffectiveBillingIntervalMonths(sub.Plan));
+
+    /// <summary>
+    /// Ücretli plan (PeriodPrice &gt; 0) iken hesaplanan toplam 0 ise — ör. plan indirimi %100 —
+    /// temel paketi liste fiyatıyla doldurur; otomatik "ödendi" ve 0 TL hayalet satır oluşmasın.
+    /// </summary>
+    private async Task<(decimal Base, decimal Branch, decimal Module)> ApplyPaidPlanNonZeroFloorAsync(
+        CustomerSubscription sub,
+        decimal basePeriodAmount,
+        decimal branchAmount,
+        decimal moduleAmount)
+    {
+        if (sub.PeriodPrice <= 0m)
+            return (basePeriodAmount, branchAmount, moduleAmount);
+
+        var total = basePeriodAmount + branchAmount + moduleAmount;
+        if (total > 0m)
+            return (basePeriodAmount, branchAmount, moduleAmount);
+
+        var listBase = await ComputeSalonPlatformListBasePeriodAmountAsync(sub);
+        return (listBase, branchAmount, moduleAmount);
+    }
+
+    /// <summary>
+    /// Ücretli planda veya manuel tahakkukda liste fiyatıyla dönem tutarı hâlâ 0 kalmasın (otomatik "ödendi" hayalet satır).
+    /// </summary>
+    private static (decimal Base, decimal Branch, decimal Module, decimal Total) CoerceSalonTotalsWithListBaseIfZero(
+        decimal basePeriodAmount,
+        decimal branchAmount,
+        decimal moduleAmount,
+        decimal listBaseNoDiscount)
+    {
+        var billingTotal = basePeriodAmount + branchAmount + moduleAmount;
+        if (billingTotal > 0m || listBaseNoDiscount <= 0m)
+            return (basePeriodAmount, branchAmount, moduleAmount, billingTotal);
+        basePeriodAmount = listBaseNoDiscount;
+        billingTotal = basePeriodAmount + branchAmount + moduleAmount;
+        return (basePeriodAmount, branchAmount, moduleAmount, billingTotal);
+    }
+
+    /// <summary>
+    /// Ücretli sözleşmede (<see cref="CustomerSubscription.PeriodPrice"/>) dönem toplamı bu tutarın altına düşmesin.
+    /// Liste/fiyat dönemi hesabı 0 veya eksik çıksa bile tahakkuk satırı oluşsun; eksik kısım temel paket satırına eklenir.
+    /// </summary>
+    private static void ApplyPaidContractPeriodFloor(
+        CustomerSubscription sub,
+        ref decimal basePeriodAmount,
+        ref decimal branchAmount,
+        ref decimal moduleAmount)
+    {
+        if (sub.PeriodPrice <= 0m) return;
+        var total = basePeriodAmount + branchAmount + moduleAmount;
+        if (total >= sub.PeriodPrice) return;
+        basePeriodAmount += sub.PeriodPrice - total;
+    }
+
+    /// <summary>Plan kaydı bozuksa (0 ay) tahakkuk sıfır ve otomatik "ödendi" oluşmasın diye en az 1 ay.</summary>
+    private static int GetEffectiveBillingIntervalMonths(SubscriptionPlan plan)
+    {
+        var n = plan?.IntervalMonths ?? 0;
+        return n > 0 ? n : 1;
+    }
+
+    private static decimal GetEffectiveDiscountPercent(CustomerSubscription sub) =>
+        sub.DiscountPercentOverride ?? sub.Plan.DiscountPercent;
+
+    /// <summary>
+    /// Liste fiyatı / deneme (<see cref="CustomerSubscription.PeriodPrice"/>=0) modunda 2+ şubede Temel Paket tutarı
+    /// yalnız şube satırında (N × Core brüt − eşik) hesaplanır; taban satırda Core tekrar eklenmez.
+    /// Ücretli sözleşmede (PeriodPrice&gt;0 ve MonthlyPrice&gt;0) taban anlaşılmış tutar korunur.
+    /// </summary>
+    private static void ExcludeListCoreFromBaseWhenMultipleBranches(CustomerSubscription sub, int branchCount, ref decimal basePeriodAmount)
+    {
+        if (branchCount <= 1) return;
+        if (sub.PeriodPrice > 0m && sub.MonthlyPrice > 0m) return;
+        basePeriodAmount = 0m;
+    }
+
+    private static DateTime ResolveNextSalonAccrualStartUtc(CustomerSubscription sub, IReadOnlyDictionary<int, DateTime> lastSalonPeriodStartByCustomer)
+    {
+        var interval = GetEffectiveBillingIntervalMonths(sub.Plan);
+        if (!lastSalonPeriodStartByCustomer.TryGetValue(sub.CustomerId, out var lastStart))
+            return sub.StartDate;
+        return lastStart.AddMonths(interval);
+    }
+
+    private async Task<Dictionary<int, DateTime>> BuildLastSalonPeriodStartMapAsync(IReadOnlyCollection<int> customerIds)
+    {
+        if (customerIds.Count == 0) return new Dictionary<int, DateTime>();
+
+        var rows = await _billingPeriodEs.GetAllQueryable()
+            .Where(p => customerIds.Contains(p.CustomerId) && p.BillingKindId == CustomerBillingKinds.SalonPlatform)
+            .Select(p => new { p.CustomerId, p.PeriodStartDate })
+            .ToListAsync();
+
+        return rows
+            .GroupBy(x => x.CustomerId)
+            .ToDictionary(g => g.Key, g => g.Max(x => x.PeriodStartDate));
+    }
 
     public SubscriptionFactory(
         ISubscriptionPlanEntityService planEs,
@@ -26,7 +136,6 @@ public class SubscriptionFactory : ISubscriptionFactory
         IBillingPeriodEntityService billingPeriodEs,
         ISlnBranchEntityService branchEs,
         ICustomerPortalModuleEntityService moduleEs,
-        ICustomerProductEntityService customerProductEs,
         ServicePricingFactory servicePricingFactory,
         IUnitOfWork uow)
     {
@@ -36,7 +145,6 @@ public class SubscriptionFactory : ISubscriptionFactory
         _billingPeriodEs = billingPeriodEs;
         _branchEs = branchEs;
         _moduleEs = moduleEs;
-        _customerProductEs = customerProductEs;
         _servicePricingFactory = servicePricingFactory;
         _uow = uow;
     }
@@ -46,14 +154,13 @@ public class SubscriptionFactory : ISubscriptionFactory
     public async Task<List<SubscriptionPlan>> GetPlansAsync()
         => await _planEs.GetAllQueryable().OrderBy(p => p.SortOrder).ToListAsync();
 
-    public async Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent, decimal branchPrice)
+    public async Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent)
     {
         var plan = new SubscriptionPlan
         {
             Name = name,
             IntervalMonths = intervalMonths,
             DiscountPercent = discountPercent,
-            BranchPrice = branchPrice,
             SortOrder = await _planEs.GetAllQueryable().CountAsync() + 1
         };
         _planEs.Add(plan);
@@ -61,14 +168,13 @@ public class SubscriptionFactory : ISubscriptionFactory
         return plan;
     }
 
-    public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, string name, int intervalMonths, decimal discountPercent, decimal branchPrice, bool isActive)
+    public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, string name, int intervalMonths, decimal discountPercent, bool isActive)
     {
         var plan = await _planEs.GetByIdAsync(id);
         if (plan == null) return (false, "Plan bulunamadı.");
         plan.Name = name;
         plan.IntervalMonths = intervalMonths;
         plan.DiscountPercent = discountPercent;
-        plan.BranchPrice = branchPrice;
         plan.IsActive = isActive;
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -98,8 +204,14 @@ public class SubscriptionFactory : ISubscriptionFactory
         if (customerId.HasValue)
             query = query.Where(s => s.CustomerId == customerId.Value);
 
-        return await query.OrderByDescending(s => s.CreatedAt)
-            .Select(s => (object)new
+        var list = await query.OrderByDescending(s => s.CreatedAt).ToListAsync();
+        var custIds = list.Select(s => s.CustomerId).Distinct().ToList();
+        var lastMap = await BuildLastSalonPeriodStartMapAsync(custIds);
+
+        return list.ConvertAll(s =>
+        {
+            var nextAccrual = ResolveNextSalonAccrualStartUtc(s, lastMap);
+            return (object)new
             {
                 s.Id,
                 s.CustomerId,
@@ -112,17 +224,18 @@ public class SubscriptionFactory : ISubscriptionFactory
                 s.StartDate,
                 s.MonthlyPrice,
                 s.PeriodPrice,
+                discountPercentOverride = s.DiscountPercentOverride,
                 s.BillingDay,
-                s.NextBillingDate,
+                nextBillingDate = nextAccrual,
                 s.StatusId,
                 statusName = s.StatusId == 1 ? "Aktif" : s.StatusId == 2 ? "Askıda" : "İptal",
                 s.PaymentGraceDays,
                 s.CreatedAt
-            })
-            .ToListAsync();
+            };
+        });
     }
 
-    public async Task<(object? Result, string? Error)> CreateSubscriptionAsync(int customerId, int planId, DateTime startDate, decimal monthlyPrice, int? branchId = null)
+    public async Task<(object? Result, string? Error)> CreateSubscriptionAsync(int customerId, int planId, DateTime startDate, decimal monthlyPrice, int? branchId = null, decimal? discountPercentOverride = null)
     {
         var customer = await _customerEs.GetByIdAsync(customerId);
         if (customer == null) return (null, "Müşteri bulunamadı.");
@@ -138,7 +251,11 @@ public class SubscriptionFactory : ISubscriptionFactory
                 ? "Bu şubenin zaten aktif aboneliği var."
                 : "Bu müşterinin zaten aktif firma-geneli aboneliği var.");
 
-        var periodPrice = monthlyPrice * plan.IntervalMonths * (1 - plan.DiscountPercent / 100);
+        decimal periodPrice;
+        if (monthlyPrice > 0m)
+            periodPrice = Math.Round(monthlyPrice * plan.IntervalMonths, 2, MidpointRounding.AwayFromZero);
+        else
+            periodPrice = 0m;
 
         var sub = new CustomerSubscription
         {
@@ -148,8 +265,8 @@ public class SubscriptionFactory : ISubscriptionFactory
             StartDate = DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
             MonthlyPrice = monthlyPrice,
             PeriodPrice = Math.Round(periodPrice, 2),
+            DiscountPercentOverride = discountPercentOverride,
             BillingDay = startDate.Day,
-            NextBillingDate = DateTime.SpecifyKind(startDate, DateTimeKind.Utc),
             StatusId = 1
         };
 
@@ -159,7 +276,11 @@ public class SubscriptionFactory : ISubscriptionFactory
         customer.BillingAnchorDay = startDate.Day;
 
         await _uow.SaveChangesAsync();
-        return (new { sub.Id, sub.NextBillingDate, sub.PeriodPrice }, null);
+        sub.Plan = plan;
+        var lastMap = await BuildLastSalonPeriodStartMapAsync([customerId]);
+        var nextAccrual = ResolveNextSalonAccrualStartUtc(sub, lastMap);
+        await RefreshSubscriptionDisplayMonthlyPriceAsync(customerId, saveChanges: true);
+        return (new { sub.Id, nextBillingDate = nextAccrual, sub.PeriodPrice }, null);
     }
 
     public async Task<(bool Success, string? Error)> CancelSubscriptionAsync(int subscriptionId)
@@ -175,56 +296,65 @@ public class SubscriptionFactory : ISubscriptionFactory
     // ═══ TAHAKKUK OLUŞTURMA ═══
 
     /// <summary>
-    /// Secilen takvim ayi (yil/ay) ve abonelik <see cref="CustomerSubscription.BillingDay"/> ile platform tahakkuku keser.
-    /// Tutar: <see cref="ResolveCorePlatformPeriodAmountAsync"/> (PeriodPrice yoksa aktif urun aylikleri x donem).
-    /// Aktif veya askidaki <see cref="CustomerSubscription"/> (plan) — odeme gecikince hosted servis askiya alir; toplu kesim yine de
-    /// yeni donem uretebilmeli (iptal edilmemis musteriler). CC hizmet aboneligi degil.
-    /// Mevcut donem: yalnizca gercekten odenmis (+tutarli) kayit korunur; CC Draft / sahte Paid silinip yeniden kesilir.
+    /// Belirtilen ay icin tum aktif aboneliklerin tahakkuklarini olusturur.
+    /// Sonraki kesim tarihi, son SalonPlatform tahakkukunun PeriodStartDate + plan araligi ile hesaplanir.
     /// </summary>
-    public async Task<(int Created, int Skipped)> GenerateBillingForMonthAsync(int year, int month)
+    public async Task<(int Created, int Skipped, int EligibleSubscriptions)> GenerateBillingForMonthAsync(int year, int month)
     {
-        if (month is < 1 or > 12 || year is < 2000 or > 2100)
-            return (0, 0);
+        var monthStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var monthEnd = monthStart.AddMonths(1);
 
-        var rawSubs = await _subscriptionEs.GetAllQueryable()
-            .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active || s.StatusId == SubscriptionStatuses.Ids.Suspended)
+        var activeSubscriptions = await _subscriptionEs.GetAllQueryable()
+            .Where(s => s.StatusId == 1 && !s.Customer.IsTest)
             .Include(s => s.Customer)
             .Include(s => s.Plan)
             .ToListAsync();
 
-        var subs = rawSubs
-            .Where(s => s is { Customer: not null, Customer.IsTest: false, Plan: not null })
-            .GroupBy(s => s.CustomerId)
-            .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
-            .ToList();
+        var custIds = activeSubscriptions.Select(s => s.CustomerId).Distinct().ToList();
+        var lastMap = await BuildLastSalonPeriodStartMapAsync(custIds);
 
+        var eligible = 0;
+        int created = 0, skipped = 0;
+
+        foreach (var sub in activeSubscriptions)
+        {
+            var next = ResolveNextSalonAccrualStartUtc(sub, lastMap);
+            if (next < monthStart || next >= monthEnd) continue;
+
+            eligible++;
+            if (await TryCreateSalonBillingPeriodIfMissingAsync(sub, year, month, next)) created++;
+            else skipped++;
+        }
+
+        if (created > 0)
+            await _uow.SaveChangesAsync();
+
+        return (created, skipped, eligible);
+    }
+
+    /// <summary>
+    /// Müşteriler — toplu faturalama: aktif <see cref="CustomerSubscription"/> olmayan Salon müşterileri için
+    /// seçilen yıl/ay + <see cref="Customer.BillingAnchorDay"/> (yoksa otomatik belirlenen gün, kayda yazılır) ile liste fiyatından aylık platform tahakkuku.
+    /// </summary>
+    public async Task<(int Created, int Skipped, int EligibleWithoutSubscription)> GenerateSalonPlatformBillingForMonthWithoutSubscriptionAsync(int year, int month)
+    {
+        if (month is < 1 or > 12) return (0, 0, 0);
+        if (year is < 2020 or > 2100) return (0, 0, 0);
+
+        var customers = await _customerEs.GetAllQueryable()
+            .Where(c => c.IsActive && !c.IsTest)
+            .Where(c => c.Products.Any(p => p.ProductTypeId == ProductTypes.Ids.Salon && p.IsActive))
+            .Where(c => !c.Subscriptions.Any(s => s.StatusId == SubscriptionStatuses.Ids.Active))
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        var eligible = customers.Count;
         var created = 0;
         var skipped = 0;
 
-        foreach (var sub in subs)
+        foreach (var customerId in customers)
         {
-            var daysInMonth = DateTime.DaysInMonth(year, month);
-            var day = Math.Clamp(sub.BillingDay, 1, daysInMonth);
-            var periodStart = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
-
-            var existing = await _billingPeriodEs.GetAllQueryable()
-                .FirstOrDefaultAsync(p => p.CustomerId == sub.CustomerId && p.Year == year && p.Month == month);
-
-            if (existing != null)
-            {
-                var tot = existing.Amount + existing.ServiceAmount;
-                // Gercekten kapanmis fatura — dokunma
-                if (existing.IsPaid && tot > 0m)
-                {
-                    skipped++;
-                    continue;
-                }
-
-                _billingPeriodEs.Remove(existing);
-                await _uow.SaveChangesAsync();
-            }
-
-            if (await TryAppendBillingPeriodForSubscriptionAsync(sub, periodStart))
+            if (await TryCreateSalonBillingPeriodForNonSubscriberAsync(customerId, year, month))
                 created++;
             else
                 skipped++;
@@ -233,98 +363,186 @@ public class SubscriptionFactory : ISubscriptionFactory
         if (created > 0)
             await _uow.SaveChangesAsync();
 
-        return (created, skipped);
+        return (created, skipped, eligible);
     }
 
-    /// <inheritdoc />
     public async Task CreateInitialBillingPeriodForCustomerAsync(int customerId)
     {
-        var customer = await _customerEs.GetByIdAsync(customerId);
-        if (customer?.IsTest == true) return;
-
-        var hasPeriod = await _billingPeriodEs.GetAllQueryable()
-            .AnyAsync(p => p.CustomerId == customerId);
-        if (hasPeriod) return;
-
         var sub = await _subscriptionEs.GetAllQueryable()
+            .Include(s => s.Customer)
             .Include(s => s.Plan)
-            .Where(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active)
-            .OrderByDescending(s => s.CreatedAt)
-            .FirstOrDefaultAsync();
-        if (sub?.Plan == null) return;
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        if (sub == null || sub.Customer.IsTest) return;
 
-        if (!await TryAppendBillingPeriodForSubscriptionAsync(sub))
-            return;
+        var lastMap = await BuildLastSalonPeriodStartMapAsync([customerId]);
+        var next = ResolveNextSalonAccrualStartUtc(sub, lastMap);
+        if (!await TryCreateSalonBillingPeriodIfMissingAsync(sub, next.Year, next.Month, next)) return;
 
         await _uow.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Platform donemi ana tutari: <see cref="CustomerSubscription.PeriodPrice"/> sozlesme (varsa). 0 ise salon CC kesiminden
-    /// muaf oldugu icin aktif <see cref="CustomerProduct.MonthlyPrice"/> toplaminin donem karsiligi kullanilir.
-    /// </summary>
-    private async Task<decimal> ResolveCorePlatformPeriodAmountAsync(CustomerSubscription sub)
+    /// <inheritdoc />
+    public async Task<(bool Success, string? Error)> CreateManualSalonPlatformPeriodAsync(int customerId, DateTime periodStartDate,
+        string? notes)
     {
-        if (sub.Plan == null) return 0m;
-        if (sub.PeriodPrice > 0m) return sub.PeriodPrice;
-        var im = Math.Max(1, sub.Plan.IntervalMonths);
-        var productMonthlySum = await _customerProductEs.GetAllQueryable()
-            .Where(cp => cp.CustomerId == sub.CustomerId && cp.IsActive)
-            .SumAsync(cp => cp.MonthlyPrice);
-        return productMonthlySum * im;
-    }
+        var customer = await _customerEs.GetByIdAsync(customerId);
+        if (customer == null) return (false, "Müşteri bulunamadı.");
+        if (customer.IsTest) return (false, "Test müşterisi için salon platform tahakkuku oluşturulmaz.");
 
-    /// <summary>Aylik job ve salon ilk kayit icin ortak: tek donem ekler, abonelik NextBillingDate ilerletilir.</summary>
-    /// <param name="explicitPeriodStartUtc">Doluysa tahakkuk baslangici (ve donem yil/ay); Manager takvim ayi kesimi. Bos ise <see cref="CustomerSubscription.NextBillingDate"/>.</param>
-    private async Task<bool> TryAppendBillingPeriodForSubscriptionAsync(CustomerSubscription sub, DateTime? explicitPeriodStartUtc = null)
-    {
-        if (sub.Plan == null) return false;
-
-        var start = explicitPeriodStartUtc.HasValue
-            ? DateTime.SpecifyKind(explicitPeriodStartUtc.Value.Date, DateTimeKind.Utc)
-            : DateTime.SpecifyKind(sub.NextBillingDate.Date, DateTimeKind.Utc);
+        var start = DateTime.SpecifyKind(periodStartDate.Date, DateTimeKind.Utc);
         var year = start.Year;
         var month = start.Month;
 
-        var alreadyExists = await _billingPeriodEs.GetAllQueryable()
-            .AnyAsync(p => p.CustomerId == sub.CustomerId && p.Year == year && p.Month == month);
-        if (alreadyExists) return false;
+        var sub = await _subscriptionEs.GetAllQueryable()
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        if (sub == null) return (false, "Aktif abonelik yok.");
+        var intervalMonths = GetEffectiveBillingIntervalMonths(sub.Plan);
 
-        var (packageLines, moduleAmount) = await BuildSalonPackageLinesAsync(sub.CustomerId, sub.Plan.IntervalMonths);
+        var salonExists = await _billingPeriodEs.GetAllQueryable()
+            .AnyAsync(p => p.CustomerId == customerId && p.Year == year && p.Month == month
+                && p.BillingKindId == CustomerBillingKinds.SalonPlatform);
+        if (salonExists) return (false, $"{month:00}/{year} için salon platform tahakkuku zaten var.");
 
-        var branchCount = await _branchEs.GetAllQueryable().CountAsync(b => b.CustomerId == sub.CustomerId && b.IsActive);
-        var extraBranches = Math.Max(0, branchCount - 1);
-        var branchAmount = extraBranches * sub.Plan.BranchPrice * sub.Plan.IntervalMonths;
+        customer.BillingAnchorDay = start.Day;
 
-        var corePlatformPeriodAmount = await ResolveCorePlatformPeriodAmountAsync(sub);
+        var misTaggedCallCenterRow = await _billingPeriodEs.GetAllQueryable()
+            .Include(p => p.ModuleLines)
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.Year == year && p.Month == month
+                && p.BillingKindId == CustomerBillingKinds.CallCenter);
 
-        var billingTotal = corePlatformPeriodAmount + branchAmount + moduleAmount;
-        // 0 TL: CC bulk ile uyumlu (otomatik kapali). Pozitif tutar her zaman Tahakkuk.
-        var autoWaive = billingTotal <= 0m;
+        if (misTaggedCallCenterRow != null && !await HasActiveCallCenterProductAsync(customerId))
+        {
+            misTaggedCallCenterRow.BillingKindId = CustomerBillingKinds.SalonPlatform;
+            await ApplySalonBillingPeriodTotalsAsync(misTaggedCallCenterRow, sub);
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                misTaggedCallCenterRow.Notes = string.IsNullOrWhiteSpace(misTaggedCallCenterRow.Notes)
+                    ? notes
+                    : misTaggedCallCenterRow.Notes + " | " + notes;
+            }
+
+            await _uow.SaveChangesAsync();
+            return (true, null);
+        }
+
+        var (basePeriodAmount, branchAmount, moduleAmount, packageLines, branchCount) =
+            await ComputeSalonBillingPeriodComponentsAsync(sub);
+        (basePeriodAmount, branchAmount, moduleAmount) =
+            await ApplyPaidPlanNonZeroFloorAsync(sub, basePeriodAmount, branchAmount, moduleAmount);
+
+        // Yönetimden manuel tahakkuk: PeriodPrice henüz 0 kayıtlı kalsa bile liste fiyatıyla 0 TL + "ödendi" oluşmasın.
+        var listBase = await ComputeSalonPlatformListBasePeriodAmountAsync(sub);
+        var coerced = CoerceSalonTotalsWithListBaseIfZero(basePeriodAmount, branchAmount, moduleAmount, listBase);
+        basePeriodAmount = coerced.Base;
+        branchAmount = coerced.Branch;
+        moduleAmount = coerced.Module;
+        ApplyPaidContractPeriodFloor(sub, ref basePeriodAmount, ref branchAmount, ref moduleAmount);
+        var billingTotal = basePeriodAmount + branchAmount + moduleAmount;
+
+        if (sub.PeriodPrice > 0m && billingTotal <= 0m)
+            return (false, "Platform tutarı 0 TL; PeriodPrice veya fiyat dönemini kontrol edin.");
+
         var period = new CustomerBillingPeriod
         {
-            CustomerId = sub.CustomerId,
+            CustomerId = customerId,
+            BillingKindId = CustomerBillingKinds.SalonPlatform,
             Year = year,
             Month = month,
             PeriodStartDate = start,
-            PeriodEndDate = start.AddMonths(sub.Plan.IntervalMonths),
+            PeriodEndDate = start.AddMonths(intervalMonths),
             UserCount = branchCount,
-            UnitPrice = corePlatformPeriodAmount,
-            Amount = corePlatformPeriodAmount + branchAmount,
+            UnitPrice = basePeriodAmount,
+            Amount = basePeriodAmount + branchAmount,
             ServiceAmount = moduleAmount,
-            StatusId = autoWaive ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft,
-            IsPaid = autoWaive,
-            PaidAt = autoWaive ? DateTime.UtcNow : null
+            StatusId = sub.PeriodPrice <= 0m && billingTotal <= 0m
+                ? BillingPeriodStatuses.Ids.Paid
+                : BillingPeriodStatuses.Ids.Draft,
+            IsPaid = sub.PeriodPrice <= 0m && billingTotal <= 0m,
+            PaidAt = sub.PeriodPrice <= 0m && billingTotal <= 0m ? DateTime.UtcNow : null,
+            Notes = notes,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _billingPeriodEs.Add(period);
+        foreach (var line in packageLines)
+            period.ModuleLines.Add(line);
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Tahakkuk satiri yoksa olusturur. Sonraki kesim <paramref name="accrualStartUtc"/> ile verilir (persist edilen PeriodStartDate).
+    /// Kayit persiste etmez — cagiran SaveChanges cagirmalidir.
+    /// </summary>
+    private async Task<bool> TryCreateSalonBillingPeriodIfMissingAsync(CustomerSubscription sub, int year, int month,
+        DateTime accrualStartUtc)
+    {
+        accrualStartUtc = DateTime.SpecifyKind(accrualStartUtc, DateTimeKind.Utc);
+        if (accrualStartUtc.Year != year || accrualStartUtc.Month != month) return false;
+
+        var intervalMonths = GetEffectiveBillingIntervalMonths(sub.Plan);
+
+        var alreadyExists = await _billingPeriodEs.GetAllQueryable()
+            .AnyAsync(p => p.CustomerId == sub.CustomerId && p.Year == year && p.Month == month
+                && p.BillingKindId == CustomerBillingKinds.SalonPlatform);
+
+        if (alreadyExists) return false;
+
+        var misTaggedCallCenterRow = await _billingPeriodEs.GetAllQueryable()
+            .Include(p => p.ModuleLines)
+            .FirstOrDefaultAsync(p => p.CustomerId == sub.CustomerId && p.Year == year && p.Month == month
+                && p.BillingKindId == CustomerBillingKinds.CallCenter);
+
+        if (misTaggedCallCenterRow != null && !await HasActiveCallCenterProductAsync(sub.CustomerId))
+        {
+            misTaggedCallCenterRow.BillingKindId = CustomerBillingKinds.SalonPlatform;
+            await ApplySalonBillingPeriodTotalsAsync(misTaggedCallCenterRow, sub);
+            await EnsureCustomerBillingAnchorDayFromAccrualAsync(sub.CustomerId, accrualStartUtc.Day);
+            await _uow.SaveChangesAsync();
+            return false;
+        }
+
+        await EnsureCustomerBillingAnchorDayFromAccrualAsync(sub.CustomerId, accrualStartUtc.Day);
+
+        var (basePeriodAmount, branchAmount, moduleAmount, packageLines, branchCount) =
+            await ComputeSalonBillingPeriodComponentsAsync(sub);
+        (basePeriodAmount, branchAmount, moduleAmount) =
+            await ApplyPaidPlanNonZeroFloorAsync(sub, basePeriodAmount, branchAmount, moduleAmount);
+
+        var listBaseAuto = await ComputeSalonPlatformListBasePeriodAmountAsync(sub);
+        var coercedAuto = CoerceSalonTotalsWithListBaseIfZero(basePeriodAmount, branchAmount, moduleAmount, listBaseAuto);
+        basePeriodAmount = coercedAuto.Base;
+        branchAmount = coercedAuto.Branch;
+        moduleAmount = coercedAuto.Module;
+        ApplyPaidContractPeriodFloor(sub, ref basePeriodAmount, ref branchAmount, ref moduleAmount);
+        var billingTotal = basePeriodAmount + branchAmount + moduleAmount;
+
+        // Deneme / PeriodPrice=0: gerçek borç yoksa otomatik kapat; ücretli planda hep taslak (gerçek tahsilat).
+        var markSettled = sub.PeriodPrice <= 0m && billingTotal <= 0m;
+
+        var period = new CustomerBillingPeriod
+        {
+            CustomerId = sub.CustomerId,
+            BillingKindId = CustomerBillingKinds.SalonPlatform,
+            Year = year,
+            Month = month,
+            PeriodStartDate = accrualStartUtc,
+            PeriodEndDate = accrualStartUtc.AddMonths(intervalMonths),
+            UserCount = branchCount,
+            UnitPrice = basePeriodAmount,
+            Amount = basePeriodAmount + branchAmount,
+            ServiceAmount = moduleAmount,
+            StatusId = markSettled ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft,
+            IsPaid = markSettled,
+            PaidAt = markSettled ? DateTime.UtcNow : null
         };
 
         _billingPeriodEs.Add(period);
 
         foreach (var line in packageLines)
             period.ModuleLines.Add(line);
-
-        sub.NextBillingDate = start.AddMonths(sub.Plan.IntervalMonths);
-
-        await RefreshSubscriptionDisplayMonthlyPriceAsync(sub.CustomerId, saveChanges: false);
 
         return true;
     }
@@ -339,99 +557,72 @@ public class SubscriptionFactory : ISubscriptionFactory
             .AnyAsync(s => s.CustomerId == customerId && s.StatusId == 1);
     }
 
-    /// <inheritdoc />
-    public async Task RefreshSubscriptionDisplayMonthlyPriceAsync(int customerId, bool saveChanges = true)
-    {
-        var sub = await _subscriptionEs.GetAllQueryable()
-            .Include(s => s.Plan)
-            .Where(s => s.CustomerId == customerId
-                     && (s.StatusId == SubscriptionStatuses.Ids.Active || s.StatusId == SubscriptionStatuses.Ids.Suspended))
-            .OrderBy(s => s.StatusId)
-            .ThenByDescending(s => s.CreatedAt)
-            .FirstOrDefaultAsync();
-
-        if (sub?.Plan == null) return;
-
-        var (_, moduleAmount) = await BuildSalonPackageLinesAsync(customerId, sub.Plan.IntervalMonths);
-        var branchCount = await _branchEs.GetAllQueryable()
-            .CountAsync(b => b.CustomerId == customerId && b.IsActive);
-        var extraBranches = Math.Max(0, branchCount - 1);
-        var branchAmount = extraBranches * sub.Plan.BranchPrice * sub.Plan.IntervalMonths;
-        var core = await ResolveCorePlatformPeriodAmountAsync(sub);
-        var full = core + branchAmount + moduleAmount;
-        var im = Math.Max(1, sub.Plan.IntervalMonths);
-        sub.MonthlyPrice = Math.Round(full / im, 2, MidpointRounding.AwayFromZero);
-
-        if (saveChanges)
-            await _uow.SaveChangesAsync();
-    }
-
     /// <summary>
-    /// Salon paneli erisimi: aktif abonelik veya odenmemis tahakkukda PeriodStartDate + 5 gun stiresinde.
+    /// Ödenmemiş platform borcu: önce SalonPlatform satırı; yoksa yalnızca Salon müşterisinde
+    /// yanlış türde kalmış CallCenter tahakkuku — tutar 0 olsa bile güncel kırılımla borç varsa dikkate alınır.
     /// </summary>
-    public async Task<object> GetSalonPanelAccessAsync(int customerId)
+    private async Task<CustomerBillingPeriod?> GetOldestUnpaidSalonDebtPeriodAsync(int customerId)
     {
-        var customer = await _customerEs.GetByIdAsync(customerId);
-        if (customer?.IsTest == true)
-            return PanelAccessDto(true, true, false, null);
-
-        var now = DateTime.UtcNow;
-        var g = PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart;
-
-        var hasActiveSubscription = await _subscriptionEs.GetAllQueryable()
-            .AnyAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
-        if (hasActiveSubscription)
-            return PanelAccessDto(true, true, false, null);
-
-        var oldestUnpaid = await _billingPeriodEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
+        var oldestSln = await _billingPeriodEs.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId && p.BillingKindId == CustomerBillingKinds.SalonPlatform
+                && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
                 && p.Amount + p.ServiceAmount > 0m)
             .OrderBy(p => p.Year).ThenBy(p => p.Month)
             .FirstOrDefaultAsync();
+        if (oldestSln != null) return oldestSln;
 
-        if (oldestUnpaid != null)
-        {
-            var graceEndsAt = oldestUnpaid.PeriodStartDate.AddDays(g);
-            if (now <= graceEndsAt)
-                return PanelAccessDto(false, true, true, graceEndsAt);
-        }
+        var br = await GetSalonBillingBreakdownForCustomerAsync(customerId);
+        var effBr = (br?.PlatformAmount ?? 0m) + (br?.ModuleAmount ?? 0m);
 
-        var suspendedSub = await _subscriptionEs.GetAllQueryable()
-            .Where(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Suspended)
-            .OrderByDescending(s => s.CreatedAt)
+        var oldestSlnZero = await _billingPeriodEs.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId && p.BillingKindId == CustomerBillingKinds.SalonPlatform
+                && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
+                && p.Amount + p.ServiceAmount <= 0m)
+            .OrderBy(p => p.Year).ThenBy(p => p.Month)
             .FirstOrDefaultAsync();
+        if (oldestSlnZero != null && effBr > 0m)
+            return oldestSlnZero;
 
-        if (suspendedSub != null && oldestUnpaid == null)
-        {
-            var graceEndsAt = suspendedSub.NextBillingDate.AddDays(g);
-            if (now <= graceEndsAt)
-                return PanelAccessDto(false, true, true, graceEndsAt);
-        }
+        if (await HasActiveCallCenterProductAsync(customerId)) return null;
 
-        // Yeni kayit / henuz tahakkuk kesilmedi: Salon urunu var, borc yoksa kilit yok (odeme yapilacak fatura da yoktur)
-        if (oldestUnpaid == null)
+        var oldestCc = await _billingPeriodEs.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId && p.BillingKindId == CustomerBillingKinds.CallCenter
+                && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid)
+            .OrderBy(p => p.Year).ThenBy(p => p.Month)
+            .FirstOrDefaultAsync();
+        if (oldestCc == null) return null;
+
+        if (effBr <= 0m) return null;
+
+        return oldestCc;
+    }
+
+    /// <inheritdoc />
+    public async Task<(CustomerBillingPeriod Period, decimal PayAmount)?> TryResolveSalonSubscriptionPaymentAsync(int customerId)
+    {
+        var sub = await _subscriptionEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        // Deneme: platform KK ödemesi yok
+        if (sub != null && sub.PeriodPrice <= 0m) return null;
+
+        var period = await GetOldestUnpaidSalonDebtPeriodAsync(customerId);
+        if (period == null) return null;
+
+        var pay = period.Amount + period.ServiceAmount;
+        if (pay <= 0m)
         {
-            var suspendedPastGrace = suspendedSub != null && now > suspendedSub.NextBillingDate.AddDays(g);
-            if (!suspendedPastGrace)
+            var br = await GetSalonBillingBreakdownForCustomerAsync(customerId);
+            if (br.HasValue)
+                pay = br.Value.PlatformAmount + br.Value.ModuleAmount;
+            else
             {
-                var hasSalonProduct = await _customerProductEs.GetAllQueryable()
-                    .AnyAsync(cp => cp.CustomerId == customerId && cp.IsActive && cp.ProductTypeId == ProductTypes.Ids.Salon);
-                if (hasSalonProduct)
-                    return PanelAccessDto(false, true, false, null);
+                var (b, brAmt, mod, _, _) = await ComputeSalonBillingPeriodComponentsForNonSubscriberAsync(customerId);
+                pay = b + brAmt + mod;
             }
         }
 
-        return PanelAccessDto(false, false, false, null);
-
-        static object PanelAccessDto(bool hasActiveSub, bool canAccess, bool inGrace, DateTime? graceEndsAt)
-            => new
-            {
-                hasActiveSubscription = hasActiveSub,
-                canAccessPanel = canAccess,
-                inGracePeriod = inGrace,
-                graceEndsAt,
-                hasActive = hasActiveSub
-            };
+        if (pay <= 0m) return null;
+        return (period, pay);
     }
 
     public async Task<object> GetMySubscriptionAsync(int customerId)
@@ -439,92 +630,280 @@ public class SubscriptionFactory : ISubscriptionFactory
         var sub = await GetCustomerSubscriptionsAsync(customerId);
         var activeSub = sub.FirstOrDefault();
 
-        // Odenmemis tahakkuklar
+        var activeEntity = await _subscriptionEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        if (activeEntity != null && activeEntity.PeriodPrice <= 0m)
+            return new { subscription = activeSub, unpaidBillings = Array.Empty<object>() };
+
+        var salonOnly = !await HasActiveCallCenterProductAsync(customerId);
+        var breakdown = await GetSalonBillingBreakdownForCustomerAsync(customerId);
+
         var unpaidRaw = await _billingPeriodEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId && !p.IsPaid && p.StatusId != 3
-                && p.Amount + p.ServiceAmount > 0m)
+            .Where(p => p.CustomerId == customerId
+                && !p.IsPaid && p.StatusId != BillingPeriodStatuses.Ids.Paid
+                && (
+                    p.BillingKindId == CustomerBillingKinds.SalonPlatform
+                    || (salonOnly && p.BillingKindId == CustomerBillingKinds.CallCenter)
+                ))
             .Include(p => p.ModuleLines)
             .OrderByDescending(p => p.PeriodStartDate)
             .ToListAsync();
 
-        var unpaidBillings = unpaidRaw.Select(p => new
-        {
-            p.Id,
-            p.Year,
-            p.Month,
-            p.Amount,
-            p.ServiceAmount,
-            total = p.Amount + p.ServiceAmount,
-            p.PeriodStartDate,
-            p.PeriodEndDate,
-            p.StatusId,
-            salonModuleLines = p.ModuleLines
-                .OrderBy(l => l.PackageGroupId ?? int.MaxValue)
-                .ThenBy(l => l.ModuleId ?? int.MaxValue)
-                .Select(l => new { l.PackageGroupId, l.ModuleId, l.ModuleDisplayName, l.MonthlyUnitPrice, l.LineAmount })
-                .ToList()
-        }).ToList();
+        var unpaidBillings = unpaidRaw
+            .Select(p =>
+            {
+                var amt = p.Amount;
+                var svc = p.ServiceAmount;
+                if (amt + svc <= 0m && breakdown.HasValue)
+                {
+                    amt = breakdown.Value.PlatformAmount;
+                    svc = breakdown.Value.ModuleAmount;
+                }
+
+                return new
+                {
+                    p.Id,
+                    p.Year,
+                    p.Month,
+                    Amount = amt,
+                    ServiceAmount = svc,
+                    total = amt + svc,
+                    p.PeriodStartDate,
+                    p.PeriodEndDate,
+                    p.StatusId,
+                    salonModuleLines = p.ModuleLines
+                        .OrderBy(l => l.PackageGroupId ?? int.MaxValue)
+                        .ThenBy(l => l.ModuleId ?? int.MaxValue)
+                        .Select(l => new { l.PackageGroupId, l.ModuleId, l.ModuleDisplayName, l.MonthlyUnitPrice, l.LineAmount })
+                        .ToList()
+                };
+            })
+            .Where(x => x.total > 0m)
+            .ToList();
 
         return new { subscription = activeSub, unpaidBillings };
     }
 
     public async Task<object> GetSalonBannerAsync(int customerId)
     {
-        var customer = await _customerEs.GetByIdAsync(customerId);
-        if (customer?.IsTest == true)
-            return new { trial = (object?)null, overdue = (object?)null, info = (object?)null };
+        var activeSub = await _subscriptionEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        if (activeSub != null && activeSub.PeriodPrice <= 0m)
+            return new { overdue = (object?)null, info = (object?)null };
 
         var now = DateTime.UtcNow;
+        var oldestUnpaid = await GetOldestUnpaidSalonDebtPeriodAsync(customerId);
 
         object? overdue = null;
-        var graceDaysBanner = PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart;
-        var unpaidPeriods = await _billingPeriodEs.GetAllQueryable()
-            .Where(b => b.CustomerId == customerId && !b.IsPaid && b.StatusId != BillingPeriodStatuses.Ids.Paid)
-            .Select(b => new { b.Id, b.PeriodStartDate, b.Year, b.Month, b.Amount, b.ServiceAmount })
-            .ToListAsync();
-
-        var payableUnpaid = unpaidPeriods
-            .Where(p => p.Amount + p.ServiceAmount > 0m)
-            .ToList();
-
-        foreach (var period in payableUnpaid
-                     .OrderBy(p => p.Year)
-                     .ThenBy(p => p.Month))
-        {
-            var graceEnd = period.PeriodStartDate.AddDays(graceDaysBanner);
-            if (now <= graceEnd) continue;
-
-            overdue = new
-            {
-                periodId = period.Id,
-                period.Month,
-                period.Year,
-                deadline = graceEnd,
-                message = $"Ödenmemiş dönem: {period.Month:00}/{period.Year}. {graceDaysBanner} gün ödeme süresi ({graceEnd:dd.MM.yyyy}) doldu. Tahakkuku Modüller üzerinden ödeyebilirsiniz."
-            };
-            break;
-        }
-
         object? info = null;
-        if (overdue == null && payableUnpaid.Count > 0)
+
+        if (oldestUnpaid != null)
         {
-            var oldestPayable = payableUnpaid
-                .OrderBy(p => p.Year)
-                .ThenBy(p => p.Month)
-                .First();
-            var graceEnd = oldestPayable.PeriodStartDate.AddDays(graceDaysBanner);
-            if (now <= graceEnd)
+            var graceEnd = oldestUnpaid.PeriodStartDate.AddDays(PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart);
+            if (graceEnd < now)
             {
-                var total = oldestPayable.Amount + oldestPayable.ServiceAmount;
-                var daysLeft = Math.Max(0, (graceEnd.Date - now.Date).Days);
+                overdue = new
+                {
+                    message = $"Ödenmemiş platform tahakkukunuz bulunmaktadır ({oldestUnpaid.Year}/{oldestUnpaid.Month:D2}). Lütfen ödeme yapın."
+                };
+            }
+            else
+            {
+                var daysLeft = (graceEnd.Date - now.Date).Days;
                 info = new
                 {
-                    message = $"Ödenmemiş platform tahakkukunuz: {oldestPayable.Month:00}/{oldestPayable.Year} — {total:N2} TL. Ödeme süresi {graceEnd:dd.MM.yyyy} tarihine kadar ({daysLeft} gün). Modüller sayfasından ödeyebilirsiniz."
+                    message = $"Ödenmemiş tahakkukunuz var. Son ödeme tarihi: {graceEnd:yyyy-MM-dd} ({Math.Max(0, daysLeft)} gün kaldı)."
                 };
             }
         }
 
-        return new { trial = (object?)null, overdue, info };
+        return new { overdue, info };
+    }
+
+    public async Task<object> GetSalonPanelAccessAsync(int customerId)
+    {
+        var customer = await _customerEs.GetByIdAsync(customerId);
+        if (customer?.IsTest == true)
+            return new { canAccessPanel = true, hasActiveSubscription = true };
+
+        var sub = await _subscriptionEs.GetAllQueryable()
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+
+        if (sub == null)
+        {
+            // Aktif abonelik kaydı yok; platform borcu + grace (banner ile aynı kural)
+            var oldestUnpaid = await GetOldestUnpaidSalonDebtPeriodAsync(customerId);
+            if (oldestUnpaid == null)
+                return new { canAccessPanel = false, hasActiveSubscription = false };
+
+            var graceEndNs = oldestUnpaid.PeriodStartDate.AddDays(PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart);
+            var canNs = graceEndNs >= DateTime.UtcNow;
+            return new { canAccessPanel = canNs, hasActiveSubscription = false };
+        }
+
+        var now = DateTime.UtcNow;
+        bool canAccess;
+        if (sub.PeriodPrice == 0m)
+        {
+            var lastMap = await BuildLastSalonPeriodStartMapAsync([customerId]);
+            var next = ResolveNextSalonAccrualStartUtc(sub, lastMap);
+            canAccess = next.AddDays(PlatformBillingAccessPolicy.TrialSuspensionGraceDays) >= now;
+        }
+        else
+        {
+            var oldestUnpaid = await GetOldestUnpaidSalonDebtPeriodAsync(customerId);
+
+            if (oldestUnpaid == null)
+                canAccess = true;
+            else
+            {
+                var graceEnd = oldestUnpaid.PeriodStartDate.AddDays(PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart);
+                canAccess = graceEnd >= now;
+            }
+        }
+
+        return new { canAccessPanel = canAccess, hasActiveSubscription = true };
+    }
+
+    public async Task RefreshSubscriptionDisplayMonthlyPriceAsync(int customerId, bool saveChanges = true)
+    {
+        var subs = await _subscriptionEs.GetAllQueryable()
+            .Include(s => s.Plan)
+            .Where(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active)
+            .ToListAsync();
+
+        var changed = false;
+        foreach (var sub in subs)
+        {
+            var interval = GetEffectiveBillingIntervalMonths(sub.Plan);
+
+            var basePeriodAmount = await ComputeSalonPlatformBasePeriodAmountAsync(sub);
+            var branchCount = await _branchEs.GetAllQueryable().CountAsync(b => b.CustomerId == customerId && b.IsActive);
+            var branchAmount = await ComputeSalonBranchPeriodAmountAsync(sub, branchCount);
+            ExcludeListCoreFromBaseWhenMultipleBranches(sub, branchCount, ref basePeriodAmount);
+            var (_, moduleAmount) = await BuildSalonPackageLinesAsync(customerId, interval);
+
+            var periodTotal = basePeriodAmount + branchAmount + moduleAmount;
+            var displayMonthly = Math.Round(periodTotal / interval, 2, MidpointRounding.AwayFromZero);
+
+            if (sub.MonthlyPrice != displayMonthly)
+            {
+                sub.MonthlyPrice = displayMonthly;
+                changed = true;
+            }
+        }
+
+        if (changed && saveChanges)
+            await _uow.SaveChangesAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<(decimal PlatformAmount, decimal ModuleAmount)?> GetSalonBillingBreakdownForCustomerAsync(int customerId)
+    {
+        var sub = await _subscriptionEs.GetAllQueryable()
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        if (sub == null) return null;
+
+        var (basePeriodAmount, branchAmount, moduleAmount, _, _) =
+            await ComputeSalonBillingPeriodComponentsAsync(sub);
+        (basePeriodAmount, branchAmount, moduleAmount) =
+            await ApplyPaidPlanNonZeroFloorAsync(sub, basePeriodAmount, branchAmount, moduleAmount);
+
+        var listBase = await ComputeSalonPlatformListBasePeriodAmountAsync(sub);
+        var coerced = CoerceSalonTotalsWithListBaseIfZero(basePeriodAmount, branchAmount, moduleAmount, listBase);
+        basePeriodAmount = coerced.Base;
+        branchAmount = coerced.Branch;
+        moduleAmount = coerced.Module;
+        ApplyPaidContractPeriodFloor(sub, ref basePeriodAmount, ref branchAmount, ref moduleAmount);
+
+        return (basePeriodAmount + branchAmount, moduleAmount);
+    }
+
+    /// <summary>
+    /// Temel paket (Core) dönem tutarı.
+    /// <see cref="CustomerSubscription.PeriodPrice"/>&gt;0 ve <see cref="CustomerSubscription.MonthlyPrice"/>&gt;0 ise anlaşılmış aylık×interval (yönetim sözleşmesi).
+    /// Aksi halde aktif dönem Core × interval × (1 − plan indirimi). Not: PeriodPrice=0 iken MonthlyPrice yalnızca özettir (Refresh); tahakkükte dikkate alınmaz.
+    /// </summary>
+    private async Task<decimal> ComputeSalonPlatformBasePeriodAmountAsync(CustomerSubscription sub)
+    {
+        var prices = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
+        var coreMonthlyList = prices.TryGetValue(SalonModuleGroups.Ids.Core, out var m) ? m : SalonModuleGroups.Core.MonthlyPrice;
+        if (coreMonthlyList <= 0m)
+            coreMonthlyList = SalonModuleGroups.Core.MonthlyPrice;
+
+        var interval = GetEffectiveBillingIntervalMonths(sub.Plan);
+
+        if (sub.PeriodPrice > 0m && sub.MonthlyPrice > 0m)
+            return Math.Round(sub.MonthlyPrice * interval, 2, MidpointRounding.AwayFromZero);
+
+        var disc = GetEffectiveDiscountPercent(sub);
+        return Math.Round(coreMonthlyList * interval * (1 - disc / 100), 2,
+            MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// Çoklu şube: tüm aktif şubeler × aktif dönem Temel Paket (Core) aylık × interval brüt, sonra eşik indirimi.
+    /// Tek şubede 0 (Temel Paket taban satırında). Liste fiyatında çoklu şubede Core yalnız burada — tabanda Core yok.
+    /// </summary>
+    private async Task<decimal> ComputeSalonBranchPeriodAmountForIntervalAsync(int branchCount, int intervalMonths)
+    {
+        if (branchCount <= 1) return 0m;
+
+        var prices = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
+        var coreMonthly = prices.TryGetValue(SalonModuleGroups.Ids.Core, out var m) ? m : SalonModuleGroups.Core.MonthlyPrice;
+        if (coreMonthly <= 0m)
+            coreMonthly = SalonModuleGroups.Core.MonthlyPrice;
+
+        var gross = branchCount * coreMonthly * intervalMonths;
+        var disc = await _servicePricingFactory.GetActiveBranchDiscountPercentForTotalBranchesAsync(branchCount);
+        return Math.Round(gross * (1 - disc / 100), 2, MidpointRounding.AwayFromZero);
+    }
+
+    private Task<decimal> ComputeSalonBranchPeriodAmountAsync(CustomerSubscription sub, int branchCount) =>
+        ComputeSalonBranchPeriodAmountForIntervalAsync(branchCount, GetEffectiveBillingIntervalMonths(sub.Plan));
+
+    private async Task<(decimal BasePeriodAmount, decimal BranchAmount, decimal ModuleAmount, List<CustomerBillingPeriodModuleLine> Lines, int BranchCount)>
+        ComputeSalonBillingPeriodComponentsAsync(CustomerSubscription sub)
+    {
+        var basePeriodAmount = await ComputeSalonPlatformBasePeriodAmountAsync(sub);
+        var interval = GetEffectiveBillingIntervalMonths(sub.Plan);
+        var (lines, moduleAmount) = await BuildSalonPackageLinesAsync(sub.CustomerId, interval);
+        var branchCount = await _branchEs.GetAllQueryable().CountAsync(b => b.CustomerId == sub.CustomerId && b.IsActive);
+        var branchAmount = await ComputeSalonBranchPeriodAmountAsync(sub, branchCount);
+        ExcludeListCoreFromBaseWhenMultipleBranches(sub, branchCount, ref basePeriodAmount);
+        return (basePeriodAmount, branchAmount, moduleAmount, lines, branchCount);
+    }
+
+    private async Task ApplySalonBillingPeriodTotalsAsync(CustomerBillingPeriod period, CustomerSubscription sub)
+    {
+        period.ModuleLines.Clear();
+        var (basePeriodAmount, branchAmount, moduleAmount, lines, branchCount) =
+            await ComputeSalonBillingPeriodComponentsAsync(sub);
+        (basePeriodAmount, branchAmount, moduleAmount) =
+            await ApplyPaidPlanNonZeroFloorAsync(sub, basePeriodAmount, branchAmount, moduleAmount);
+
+        var listBaseApply = await ComputeSalonPlatformListBasePeriodAmountAsync(sub);
+        var coercedApply = CoerceSalonTotalsWithListBaseIfZero(basePeriodAmount, branchAmount, moduleAmount, listBaseApply);
+        basePeriodAmount = coercedApply.Base;
+        branchAmount = coercedApply.Branch;
+        moduleAmount = coercedApply.Module;
+        ApplyPaidContractPeriodFloor(sub, ref basePeriodAmount, ref branchAmount, ref moduleAmount);
+        var billingTotalApply = basePeriodAmount + branchAmount + moduleAmount;
+
+        // Ücretli planda satırı otomatik "ödendi" yapma; DB tutarı 0 kalsa taslak kalsın.
+        var markSettledApply = sub.PeriodPrice <= 0m && billingTotalApply <= 0m;
+
+        period.UserCount = branchCount;
+        period.UnitPrice = basePeriodAmount;
+        period.Amount = basePeriodAmount + branchAmount;
+        period.ServiceAmount = moduleAmount;
+        period.StatusId = markSettledApply ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft;
+        period.IsPaid = markSettledApply;
+        period.PaidAt = markSettledApply ? DateTime.UtcNow : null;
+        foreach (var line in lines)
+            period.ModuleLines.Add(line);
     }
 
     /// <summary>
@@ -573,5 +952,134 @@ public class SubscriptionFactory : ISubscriptionFactory
 
         var total = lines.Sum(l => l.LineAmount);
         return (lines, total);
+    }
+
+    private async Task<(decimal BasePeriodAmount, decimal BranchAmount, decimal ModuleAmount, List<CustomerBillingPeriodModuleLine> Lines, int BranchCount)>
+        ComputeSalonBillingPeriodComponentsForNonSubscriberAsync(int customerId)
+    {
+        const int intervalMonths = 1;
+        var basePeriodAmount = await ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(intervalMonths);
+        var (lines, moduleAmount) = await BuildSalonPackageLinesAsync(customerId, intervalMonths);
+        var branchCount = await _branchEs.GetAllQueryable().CountAsync(b => b.CustomerId == customerId && b.IsActive);
+        var branchAmount = await ComputeSalonBranchPeriodAmountForIntervalAsync(branchCount, intervalMonths);
+        if (branchCount > 1)
+            basePeriodAmount = 0m;
+        return (basePeriodAmount, branchAmount, moduleAmount, lines, branchCount);
+    }
+
+    private async Task ApplySalonBillingPeriodTotalsForNonSubscriberAsync(CustomerBillingPeriod period, int customerId)
+    {
+        period.ModuleLines.Clear();
+        var (basePeriodAmount, branchAmount, moduleAmount, lines, branchCount) =
+            await ComputeSalonBillingPeriodComponentsForNonSubscriberAsync(customerId);
+        var listBase = await ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(1);
+        var coerced = CoerceSalonTotalsWithListBaseIfZero(basePeriodAmount, branchAmount, moduleAmount, listBase);
+        basePeriodAmount = coerced.Base;
+        branchAmount = coerced.Branch;
+        moduleAmount = coerced.Module;
+        var billingTotal = basePeriodAmount + branchAmount + moduleAmount;
+        var markSettled = billingTotal <= 0m;
+
+        period.UserCount = branchCount;
+        period.UnitPrice = basePeriodAmount;
+        period.Amount = basePeriodAmount + branchAmount;
+        period.ServiceAmount = moduleAmount;
+        period.StatusId = markSettled ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft;
+        period.IsPaid = markSettled;
+        period.PaidAt = markSettled ? DateTime.UtcNow : null;
+        foreach (var line in lines)
+            period.ModuleLines.Add(line);
+    }
+
+    private async Task EnsureCustomerBillingAnchorDayFromAccrualAsync(int customerId, int accrualDay)
+    {
+        var customer = await _customerEs.GetByIdAsync(customerId);
+        if (customer == null || customer.IsTest || customer.BillingAnchorDay.HasValue) return;
+        customer.BillingAnchorDay = accrualDay;
+    }
+
+    /// <returns><c>true</c> yeni <see cref="CustomerBillingKinds.SalonPlatform"/> satırı eklendi.</returns>
+    private async Task<bool> TryCreateSalonBillingPeriodForNonSubscriberAsync(int customerId, int year, int month)
+    {
+        var customer = await _customerEs.GetByIdAsync(customerId);
+        if (customer == null || customer.IsTest) return false;
+
+        var alreadyExists = await _billingPeriodEs.GetAllQueryable()
+            .AnyAsync(p => p.CustomerId == customerId && p.Year == year && p.Month == month
+                && p.BillingKindId == CustomerBillingKinds.SalonPlatform);
+        if (alreadyExists) return false;
+
+        var startDay = BillingAnchorDayResolver.ResolvePeriodStartDay(year, month, customer.BillingAnchorDay);
+        var periodStart = new DateTime(year, month, startDay, 0, 0, 0, DateTimeKind.Utc);
+        const int intervalMonths = 1;
+
+        var misTaggedCallCenterRow = await _billingPeriodEs.GetAllQueryable()
+            .Include(p => p.ModuleLines)
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.Year == year && p.Month == month
+                && p.BillingKindId == CustomerBillingKinds.CallCenter);
+
+        if (misTaggedCallCenterRow != null && !await HasActiveCallCenterProductAsync(customerId))
+        {
+            misTaggedCallCenterRow.BillingKindId = CustomerBillingKinds.SalonPlatform;
+            misTaggedCallCenterRow.PeriodStartDate = periodStart;
+            misTaggedCallCenterRow.PeriodEndDate = periodStart.AddMonths(intervalMonths);
+            await ApplySalonBillingPeriodTotalsForNonSubscriberAsync(misTaggedCallCenterRow, customerId);
+            if (!customer.BillingAnchorDay.HasValue)
+                customer.BillingAnchorDay = startDay;
+            await _uow.SaveChangesAsync();
+            return false;
+        }
+
+        var (basePeriodAmount, branchAmount, moduleAmount, packageLines, branchCount) =
+            await ComputeSalonBillingPeriodComponentsForNonSubscriberAsync(customerId);
+        var listBase = await ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(1);
+        var coerced = CoerceSalonTotalsWithListBaseIfZero(basePeriodAmount, branchAmount, moduleAmount, listBase);
+        basePeriodAmount = coerced.Base;
+        branchAmount = coerced.Branch;
+        moduleAmount = coerced.Module;
+        var billingTotal = basePeriodAmount + branchAmount + moduleAmount;
+        var markSettled = billingTotal <= 0m;
+
+        if (!customer.BillingAnchorDay.HasValue)
+            customer.BillingAnchorDay = startDay;
+
+        var period = new CustomerBillingPeriod
+        {
+            CustomerId = customerId,
+            BillingKindId = CustomerBillingKinds.SalonPlatform,
+            Year = year,
+            Month = month,
+            PeriodStartDate = periodStart,
+            PeriodEndDate = periodStart.AddMonths(intervalMonths),
+            UserCount = branchCount,
+            UnitPrice = basePeriodAmount,
+            Amount = basePeriodAmount + branchAmount,
+            ServiceAmount = moduleAmount,
+            StatusId = markSettled ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft,
+            IsPaid = markSettled,
+            PaidAt = markSettled ? DateTime.UtcNow : null
+        };
+
+        _billingPeriodEs.Add(period);
+        foreach (var line in packageLines)
+            period.ModuleLines.Add(line);
+
+        return true;
+    }
+
+    private async Task<bool> HasActiveCallCenterProductAsync(int customerId) =>
+        await _customerEs.GetAllQueryable()
+            .Where(c => c.Id == customerId)
+            .AnyAsync(c => c.Products.Any(p =>
+                p.ProductTypeId == ProductTypes.Ids.CallCenter && p.IsActive));
+
+    public async Task<DateTime?> GetNextSalonAccrualUtcAsync(int customerId)
+    {
+        var sub = await _subscriptionEs.GetAllQueryable()
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+        if (sub == null) return null;
+        var map = await BuildLastSalonPeriodStartMapAsync([customerId]);
+        return ResolveNextSalonAccrualStartUtc(sub, map);
     }
 }

@@ -60,7 +60,8 @@
                                     <input type="checkbox" class="form-check-input" data-bind="checked: selectAll" />
                                 </th>
                                 <th>Firma</th>
-                                <th>Donem</th>
+                                <th>Tür</th>
+                                <th>Dönem</th>
                                 <th class="text-end">Operator</th>
                                 <th class="text-end">Hizmet</th>
                                 <th class="text-end">Toplam</th>
@@ -73,6 +74,7 @@
                                     <input type="checkbox" class="form-check-input" data-bind="checkedValue: periodId, checked: $parent.selectedIds" />
                                 </td>
                                 <td class="fw-medium" data-bind="text: customerName || '-'"></td>
+                                <td class="small text-muted" data-bind="text: billingKindName || '—'"></td>
                                 <td data-bind="text: (month || '-') + '/' + (year || '-')"></td>
                                 <td class="text-end" data-bind="text: (amount || 0).toFixed(2) + ' TL'"></td>
                                 <td class="text-end" data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>

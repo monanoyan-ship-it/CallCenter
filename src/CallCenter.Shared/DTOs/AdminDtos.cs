@@ -243,6 +243,12 @@ public class CustomerDetailDto
 
     // Admin kullanici bilgileri
     public CustomerAdminInfoDto? AdminInfo { get; set; }
+
+    /// <summary>Aktif salon platform aboneligi varsa: tahmini aylik ozet (bilgi amacli).</summary>
+    public decimal? SalonSubscriptionDisplayMonthly { get; set; }
+
+    /// <summary>PeriodPrice=0: deneme / ucretli sozlesme yok (gosterim tutari yine listelenir).</summary>
+    public bool SalonSubscriptionIsTrialOrUncontracted { get; set; }
 }
 
 /// <summary>Musteri admin kullanicisinin ozet bilgileri</summary>
@@ -696,6 +702,9 @@ public class BillingPeriodDto
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public string? CustomerName { get; set; }
+    /// <summary><see cref="CustomerBillingKinds"/></summary>
+    public int BillingKindId { get; set; }
+    public string BillingKindName { get; set; } = string.Empty;
     public int Year { get; set; }
     public int Month { get; set; }
     public DateTime PeriodStartDate { get; set; }
@@ -758,6 +767,8 @@ public class BillingReportDto
     public int PeriodId { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public int BillingKindId { get; set; }
+    public string BillingKindName { get; set; } = string.Empty;
     public int Year { get; set; }
     public int Month { get; set; }
     public DateTime PeriodStartDate { get; set; }
@@ -773,12 +784,13 @@ public class BillingReportDto
     public DateTime? PaidAt { get; set; }
 }
 
-/// <summary>CC tahakkuk detayi — urun (operator) + hizmet kalemleri.</summary>
+/// <summary>Tahakkuk detay — CC için ürün + hizmet; salon için modül kalemleri.</summary>
 public class BillingTahakkukDetailDto
 {
     public int PeriodId { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public int BillingKindId { get; set; }
     public int Year { get; set; }
     public int Month { get; set; }
     public DateTime PeriodStartDate { get; set; }
@@ -790,6 +802,8 @@ public class BillingTahakkukDetailDto
     public decimal ServiceAmount { get; set; }
     public List<BillingTahakkukProductLineDto> ProductLines { get; set; } = new();
     public List<BillingServiceLineDto> ServiceLines { get; set; } = new();
+    /// <summary>Salon platform tahakkukunda paket / modül satırları.</summary>
+    public List<BillingPeriodModuleLineDto> SalonModuleLines { get; set; } = new();
 }
 
 public class BillingTahakkukProductLineDto
@@ -825,4 +839,18 @@ public class AppVersionCheckDto
 {
     public string AppName { get; set; } = string.Empty;
     public string CurrentVersion { get; set; } = string.Empty;
+}
+
+/// <summary>Fiyat dönemi şube indirim eşikleri (yükümlü toplam aktif şube aralığı).</summary>
+public class BranchDiscountTierInput
+{
+    public int MinBranches { get; set; }
+    public int MaxBranches { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class ReplaceBranchDiscountTiersRequest
+{
+    public List<BranchDiscountTierInput> Tiers { get; set; } = new();
 }

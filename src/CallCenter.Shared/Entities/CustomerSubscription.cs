@@ -1,8 +1,8 @@
 namespace CallCenter.Shared.Entities;
 
 /// <summary>
-/// Musteri aboneligi. Hangi plan ile ne zaman baslamis, sonraki tahakkuk ne zaman.
-/// Tahakkuk olusturulurken bu kayda bakilir.
+/// Müşteri–plan bağlantısı: faturalama aralığı, sözleşme tabanı (<see cref="PeriodPrice"/>), isteğe bağlı indirim üst yazımı.
+/// Sonraki tahakkuk tarihi tutulmaz; son <see cref="CustomerBillingPeriod"/> (SalonPlatform) + plan aralığından türetilir.
 /// </summary>
 public class CustomerSubscription
 {
@@ -21,17 +21,23 @@ public class CustomerSubscription
     /// <summary>Abonelik baslangic tarihi (ilk odeme tarihi)</summary>
     public DateTime StartDate { get; set; }
 
-    /// <summary>Aylik birim fiyat (modullerin toplam fiyati + urun fiyati)</summary>
+    /// <summary>
+    /// Müşteri–plan bağlantısında anlaşılmış temel paket aylığı (&gt;0 = liste indirimi uygulanmaz, doğrudan × interval).
+    /// 0 = aktif dönem listesi + <see cref="DiscountPercentOverride"/> / <see cref="SubscriptionPlan.DiscountPercent"/>.
+    /// Tahakkuk özeti için senkronize tutulur.
+    /// </summary>
     public decimal MonthlyPrice { get; set; }
 
-    /// <summary>Donem fiyati (MonthlyPrice x IntervalMonths x (1 - DiscountPercent/100))</summary>
+    /// <summary>
+    /// Sozlesme donem tutari (yonetim abonelik formu). 0 = ucretli sozlesme yok / deneme (salon kayit).
+    /// </summary>
     public decimal PeriodPrice { get; set; }
+
+    /// <summary>Plandaki indirim yerine geçer; null ise <see cref="SubscriptionPlan.DiscountPercent"/>.</summary>
+    public decimal? DiscountPercentOverride { get; set; }
 
     /// <summary>Tahakkuk gunu (ayin kaci). StartDate'in gunu.</summary>
     public int BillingDay { get; set; }
-
-    /// <summary>Sonraki tahakkuk tarihi</summary>
-    public DateTime NextBillingDate { get; set; }
 
     /// <summary>1=Aktif, 2=Askiya Alinmis, 3=Iptal</summary>
     public int StatusId { get; set; } = 1;
