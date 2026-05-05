@@ -4,6 +4,11 @@ function EmailCampaignsViewModel() {
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
+    self.segmentPresets = ko.observableArray([]);
+    self.segmentPreviewCount = ko.observable(0);
+    self.segmentEmailReachableCount = ko.observable(0);
+    self.segmentMissingEmailCount = ko.observable(0);
+    self.segmentExcludedCount = ko.observable(0);
 
     self.form = {
         subject: ko.observable(''),
@@ -26,6 +31,14 @@ function EmailCampaignsViewModel() {
         });
     };
 
+    self.loadSegmentPresets = function () {
+        $.ajax({ url: '/proxy/sln-email-campaigns/segment-presets', method: 'GET' }).done(function (data) {
+            self.segmentPresets(data || []);
+        }).fail(function () {
+            toastr.error('Hazir segmentler yuklenemedi');
+        });
+    };
+
     self.resetForm = function () {
         self.form.subject('');
         self.form.htmlBody('');
@@ -33,6 +46,7 @@ function EmailCampaignsViewModel() {
         self.form.scheduledAt('');
         self.isEditing(false);
         self.editingId(null);
+        setSegmentPreview({});
     };
 
     self.openNew = function () {
@@ -47,8 +61,36 @@ function EmailCampaignsViewModel() {
         self.form.htmlBody(campaign.htmlBody);
         self.form.segmentFilter(campaign.segmentFilter || '');
         self.form.scheduledAt(campaign.scheduledAt ? campaign.scheduledAt.substring(0, 16) : '');
+        setSegmentPreview({ matchingClients: campaign.totalRecipients, emailReachableClients: campaign.totalRecipients });
         formModal.show();
     };
+
+    self.applySegmentPreset = function (preset) {
+        self.form.segmentFilter(preset.filterJson || '');
+        setSegmentPreview(preset);
+    };
+
+    self.previewSegment = function () {
+        var filter = self.form.segmentFilter() || null;
+        $.ajax({
+            url: '/proxy/sln-email-campaigns/segment-preview',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(filter)
+        }).done(function (data) {
+            setSegmentPreview(data);
+        }).fail(function () {
+            toastr.error('Segment onizlemesi alinamadi');
+        });
+    };
+
+    function setSegmentPreview(data) {
+        data = data || {};
+        self.segmentPreviewCount(data.matchingClients || 0);
+        self.segmentEmailReachableCount(data.emailReachableClients || 0);
+        self.segmentMissingEmailCount(data.missingEmailCount || 0);
+        self.segmentExcludedCount(data.excludedByOptOutCount || 0);
+    }
 
     self.save = function () {
         var data = {
@@ -91,9 +133,23 @@ function EmailCampaignsViewModel() {
         });
     };
 
+    self.send = function (campaign) {
+        confirmModal('Onay', campaign.subject + ' e-posta kampanyasini gondermek istediginize emin misiniz?', function() {
+            $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id + '/send', method: 'POST' })
+                .done(function () {
+                    self.loadData();
+                    toastr.success('E-posta kampanyasi gonderildi');
+                })
+                .fail(function (xhr) {
+                    toastr.error(xhr.responseJSON || 'Gonderilemedi');
+                });
+        });
+    };
+
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('emailCampaignModal'));
         self.loadData();
+        self.loadSegmentPresets();
     });
 }
 

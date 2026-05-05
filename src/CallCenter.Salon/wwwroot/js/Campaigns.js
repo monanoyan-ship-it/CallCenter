@@ -7,6 +7,12 @@ function CampaignsViewModel() {
     self.editingCampaignId = ko.observable(null);
     self.isSaving = ko.observable(false);
     self.segmentPreviewCount = ko.observable(0);
+    self.segmentSmsReachableCount = ko.observable(0);
+    self.segmentEmailReachableCount = ko.observable(0);
+    self.segmentExcludedCount = ko.observable(0);
+    self.segmentMissingPhoneCount = ko.observable(0);
+    self.segmentEstimatedSmsCost = ko.observable(0);
+    self.segmentPresets = ko.observableArray([]);
 
     self.campaignForm = {
         name: ko.observable(''),
@@ -18,7 +24,11 @@ function CampaignsViewModel() {
             maxAge: ko.observable(''),
             city: ko.observable(''),
             lastVisitDays: ko.observable(''),
-            minSpent: ko.observable('')
+            inactiveDays: ko.observable(''),
+            birthdayInDays: ko.observable(''),
+            minSpent: ko.observable(''),
+            hasActiveMembership: ko.observable(''),
+            hasActivePackage: ko.observable('')
         }
     };
 
@@ -53,6 +63,14 @@ function CampaignsViewModel() {
         });
     };
 
+    self.loadSegmentPresets = function () {
+        $.ajax({ url: '/proxy/sln-marketing/campaigns/segment-presets', method: 'GET' }).done(function (data) {
+            self.segmentPresets(data || []);
+        }).fail(function () {
+            toastr.error('Hazir segmentler yuklenemedi');
+        });
+    };
+
     self.buildSegmentFilter = function () {
         var f = {};
         var gid = self.campaignForm.filter.genderId();
@@ -65,10 +83,24 @@ function CampaignsViewModel() {
         if (city) f.city = city;
         var lvd = self.campaignForm.filter.lastVisitDays();
         if (lvd) f.lastVisitDays = parseInt(lvd);
+        var inactiveDays = self.campaignForm.filter.inactiveDays();
+        if (inactiveDays) f.inactiveDays = parseInt(inactiveDays);
+        var birthdayInDays = self.campaignForm.filter.birthdayInDays();
+        if (birthdayInDays) f.birthdayInDays = parseInt(birthdayInDays);
         var ms = self.campaignForm.filter.minSpent();
         if (ms) f.minSpent = parseFloat(ms);
+        var hasMembership = parseNullableBool(self.campaignForm.filter.hasActiveMembership());
+        if (hasMembership !== null) f.hasActiveMembership = hasMembership;
+        var hasPackage = parseNullableBool(self.campaignForm.filter.hasActivePackage());
+        if (hasPackage !== null) f.hasActivePackage = hasPackage;
         return Object.keys(f).length > 0 ? JSON.stringify(f) : null;
     };
+
+    function parseNullableBool(value) {
+        if (value === true || value === 'true') return true;
+        if (value === false || value === 'false') return false;
+        return null;
+    }
 
     self.resetCampaignForm = function () {
         self.campaignForm.name('');
@@ -79,10 +111,14 @@ function CampaignsViewModel() {
         self.campaignForm.filter.maxAge('');
         self.campaignForm.filter.city('');
         self.campaignForm.filter.lastVisitDays('');
+        self.campaignForm.filter.inactiveDays('');
+        self.campaignForm.filter.birthdayInDays('');
         self.campaignForm.filter.minSpent('');
+        self.campaignForm.filter.hasActiveMembership('');
+        self.campaignForm.filter.hasActivePackage('');
         self.isEditingCampaign(false);
         self.editingCampaignId(null);
-        self.segmentPreviewCount(0);
+        setSegmentPreview({});
     };
 
     self.openNewCampaign = function () {
@@ -96,7 +132,7 @@ function CampaignsViewModel() {
         self.campaignForm.name(campaign.name);
         self.campaignForm.messageTemplate(campaign.messageTemplate);
         self.campaignForm.scheduledAt(campaign.scheduledAt ? campaign.scheduledAt.substring(0, 16) : '');
-        self.segmentPreviewCount(campaign.totalRecipients);
+        setSegmentPreview({ matchingClients: campaign.totalRecipients, smsReachableClients: campaign.totalRecipients });
 
         if (campaign.segmentFilter) {
             try {
@@ -106,10 +142,61 @@ function CampaignsViewModel() {
                 self.campaignForm.filter.maxAge(f.maxAge || '');
                 self.campaignForm.filter.city(f.city || '');
                 self.campaignForm.filter.lastVisitDays(f.lastVisitDays || '');
+                self.campaignForm.filter.inactiveDays(f.inactiveDays || '');
+                self.campaignForm.filter.birthdayInDays(f.birthdayInDays || '');
                 self.campaignForm.filter.minSpent(f.minSpent || '');
+                self.campaignForm.filter.hasActiveMembership(f.hasActiveMembership === true ? 'true' : (f.hasActiveMembership === false ? 'false' : ''));
+                self.campaignForm.filter.hasActivePackage(f.hasActivePackage === true ? 'true' : (f.hasActivePackage === false ? 'false' : ''));
             } catch (e) { }
         }
         campaignModal.show();
+    };
+
+    self.applySegmentPreset = function (preset) {
+        self.campaignForm.filter.genderId('');
+        self.campaignForm.filter.minAge('');
+        self.campaignForm.filter.maxAge('');
+        self.campaignForm.filter.city('');
+        self.campaignForm.filter.lastVisitDays('');
+        self.campaignForm.filter.inactiveDays('');
+        self.campaignForm.filter.birthdayInDays('');
+        self.campaignForm.filter.minSpent('');
+        self.campaignForm.filter.hasActiveMembership('');
+        self.campaignForm.filter.hasActivePackage('');
+
+        if (preset.filterJson) {
+            try {
+                var f = JSON.parse(preset.filterJson);
+                self.campaignForm.filter.genderId(f.genderId ? f.genderId.toString() : '');
+                self.campaignForm.filter.minAge(f.minAge || '');
+                self.campaignForm.filter.maxAge(f.maxAge || '');
+                self.campaignForm.filter.city(f.city || '');
+                self.campaignForm.filter.lastVisitDays(f.lastVisitDays || '');
+                self.campaignForm.filter.inactiveDays(f.inactiveDays || '');
+                self.campaignForm.filter.birthdayInDays(f.birthdayInDays || '');
+                self.campaignForm.filter.minSpent(f.minSpent || '');
+                self.campaignForm.filter.hasActiveMembership(f.hasActiveMembership === true ? 'true' : (f.hasActiveMembership === false ? 'false' : ''));
+                self.campaignForm.filter.hasActivePackage(f.hasActivePackage === true ? 'true' : (f.hasActivePackage === false ? 'false' : ''));
+            } catch (e) {
+                toastr.error('Segment filtresi okunamadi');
+            }
+        }
+
+        setSegmentPreview(preset);
+    };
+
+    function setSegmentPreview(data) {
+        data = data || {};
+        self.segmentPreviewCount(data.matchingClients || 0);
+        self.segmentSmsReachableCount(data.smsReachableClients || 0);
+        self.segmentEmailReachableCount(data.emailReachableClients || 0);
+        self.segmentExcludedCount(data.excludedByOptOutCount || 0);
+        self.segmentMissingPhoneCount(data.missingPhoneCount || 0);
+        self.segmentEstimatedSmsCost(data.estimatedSmsCost || 0);
+    }
+
+    self.formatMoney = function (value) {
+        return (parseFloat(value) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
     };
 
     self.previewSegment = function () {
@@ -120,7 +207,7 @@ function CampaignsViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(filter)
         }).done(function (data) {
-            self.segmentPreviewCount(data.matchingClients || 0);
+            setSegmentPreview(data);
         });
     };
 
@@ -282,6 +369,7 @@ function CampaignsViewModel() {
         campaignModal = new bootstrap.Modal(document.getElementById('campaignModal'));
         reminderModal = new bootstrap.Modal(document.getElementById('reminderModal'));
         self.loadCampaigns();
+        self.loadSegmentPresets();
         self.loadReminders();
     });
 }

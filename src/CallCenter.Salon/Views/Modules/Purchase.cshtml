@@ -36,14 +36,14 @@
                     <div class="card-body text-center py-4">
                         <div data-bind="visible: paymentResult() && paymentResult().success">
                             <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
-                            <h5 class="text-success">Odeme Basarili!</h5>
-                            <p class="text-muted small mb-2">Modulunuz aktif edildi.</p>
-                            <div class="alert alert-warning py-2 small text-start">
+                            <h5 class="text-success" data-bind="text: paymentResult() && paymentResult().message ? 'Talep Alindi' : 'Odeme Basarili!'"></h5>
+                            <p class="text-muted small mb-2" data-bind="text: paymentResult() && paymentResult().message ? paymentResult().message : 'Modulunuz aktif edildi.'"></p>
+                            <div class="alert alert-warning py-2 small text-start" data-bind="visible: paymentResult() && !paymentResult().message">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong>Yeni modulu kullanabilmek icin sistemden cikis yapip tekrar giris yapmaniz gerekmektedir.</strong>
+                                <strong>Yeni modulu menude gormek icin oturumu yenileyin.</strong>
                             </div>
-                            <a href="/Account/Logout" class="btn btn-primary btn-sm mt-1">
-                                <i class="bi bi-box-arrow-right me-1"></i>Cikis Yap ve Tekrar Giris Yap
+                            <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: paymentResult() && !paymentResult().message">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Oturumu Yenile
                             </a>
                         </div>
                         <div data-bind="visible: paymentResult() && !paymentResult().success">
@@ -141,9 +141,22 @@
                                         <tr data-bind="visible: bankInfo() && bankInfo().description"><th class="bg-light">Aciklama</th><td data-bind="text: bankInfo() ? bankInfo().description : ''"></td></tr>
                                     </table>
                                 </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Havale aciklamasi / referans no</label>
+                                    <input class="form-control form-control-sm" maxlength="120" placeholder="Dekont no, banka referansi veya aciklama" data-bind="value: havale.referenceNote" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">Dekont yukle</label>
+                                    <input type="file" class="form-control form-control-sm" accept=".pdf,image/png,image/jpeg,image/webp" data-bind="event: { change: onReceiptSelected }" />
+                                    <div class="form-text small">
+                                        PDF/JPG/PNG/WEBP, en fazla 5 MB.
+                                        <span data-bind="visible: havale.receiptFileName">Secilen: <span data-bind="text: havale.receiptFileName"></span></span>
+                                    </div>
+                                </div>
                                 <button class="btn btn-primary w-100" data-bind="click: submitHavale, disable: isProcessing">
                                     <span data-bind="visible: isProcessing" class="spinner-border spinner-border-sm me-1"></span>
-                                    <i class="bi bi-check-lg me-1" data-bind="visible: !isProcessing()"></i>Havale Yaptim
+                                    <span data-bind="visible: havale.isReadingReceipt" class="spinner-border spinner-border-sm me-1"></span>
+                                    <i class="bi bi-check-lg me-1" data-bind="visible: !isProcessing() && !havale.isReadingReceipt()"></i>Havale Yaptim
                                 </button>
                             </div>
                             <div class="text-center text-muted py-4" data-bind="visible: !bankInfo()">

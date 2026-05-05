@@ -97,6 +97,21 @@ function ModulesViewModel() {
     self.platformUnpaid = ko.observableArray([]);
     /** Platform tahakkuku KK (subscription-checkout) */
     self.platformPayLoading = ko.observable(false);
+    self.paymentHistory = ko.observableArray([]);
+    self.paymentHistoryLoading = ko.observable(false);
+    self.hasUpcomingPlatformBilling = ko.computed(function () {
+        return self.platformUnpaid().some(function (x) { return x && x.isUpcoming; });
+    });
+    self.platformBillingTitle = ko.computed(function () {
+        return self.hasUpcomingPlatformBilling()
+            ? 'Demo / abonelik aktivasyonu'
+            : 'Odenmemis platform donemi';
+    });
+    self.platformBillingHint = ko.computed(function () {
+        return self.hasUpcomingPlatformBilling()
+            ? 'Demo bitisindeki ilk abonelik donemini simdiden kartla odeyebilirsiniz.'
+            : 'Iyzico guvenli odeme; modul satin alma ile ayni kart altyapisi.';
+    });
 
     // Paket + temel (çoklu şubede Temel Paket yalnız şube satırında) — şube tutarı API'de
     self.baseMonthly = ko.computed(function () {
@@ -141,6 +156,150 @@ function ModulesViewModel() {
             return JSON.parse(t);
         } catch (e) {
             return null;
+        }
+    }
+
+    function ajaxErrorMessage(xhr, fallback) {
+        if (xhr && xhr.responseJSON) {
+            return xhr.responseJSON.error || xhr.responseJSON.message || fallback;
+        }
+        var body = parseAjaxBody(xhr && xhr.responseText, xhr);
+        return (body && (body.error || body.message)) || fallback;
+    }
+
+    function fileNameFromDisposition(disposition, fallback) {
+        if (!disposition) return fallback;
+        var utf8name = /filename\*=UTF-8''([^;\n]+)/i.exec(disposition);
+        var quoted = /filename="([^"]+)"/i.exec(disposition);
+        var simple = /filename=([^;\n]+)/i.exec(disposition);
+        if (utf8name && utf8name[1]) return decodeURIComponent(utf8name[1].trim());
+        if (quoted && quoted[1]) return quoted[1].trim();
+        if (simple && simple[1]) return simple[1].replace(/"/g, '').trim();
+        return fallback;
+    }
+
+    self.paymentStatusClass = function (payment) {
+        if (!payment) return 'text-muted';
+        if (payment.statusId === 2) return 'text-success';
+        if (payment.statusId === 3) return 'text-danger';
+        if (payment.statusId === 4) return 'text-warning';
+        if (payment.statusId === 5) return 'text-muted';
+        return 'text-muted';
+    };
+
+    self.paymentDateText = function (payment) {
+        var dt = payment && (payment.completedAt || payment.createdAt);
+        return dt ? new Date(dt).toLocaleString('tr-TR') : '-';
+    };
+
+    self.paymentAmountText = function (payment) {
+        if (!payment || payment.amount == null) return '-';
+        return Number(payment.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ' + (payment.currency || 'TRY');
+    };
+
+    self.loadPaymentHistory = function () {
+        self.paymentHistoryLoading(true);
+        $.ajax({ url: '/proxy/payments/history?page=1', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.paymentHistory(Array.isArray(d) ? d : []);
+            })
+            .fail(function () {
+                self.paymentHistory([]);
+            })
+            .always(function () {
+                self.paymentHistoryLoading(false);
+            });
+    };
+
+    self.downloadReceipt = function (payment) {
+        if (!payment || !payment.uid) return;
+        fetch('/proxy/payments/receipt/' + payment.uid, { credentials: 'same-origin' })
+            .then(function (response) {
+                if (!response.ok) {
+                    return response.json().then(function (body) {
+                        toastr.error((body && body.message) || 'Dekont indirilemedi.');
+                    }, function () {
+                        toastr.error('Dekont indirilemedi.');
+                    });
+                }
+
+                var fileName = fileNameFromDisposition(response.headers.get('Content-Disposition'), 'corplynk-dekont.html');
+                return response.blob().then(function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    toastr.success('Dekont indirildi.');
+                });
+            })
+            .catch(function () {
+                toastr.error('Dekont indirilemedi.');
+            });
+    };
+
+    self.downloadHavaleReceipt = function (payment) {
+        if (!payment || !payment.uid) return;
+        fetch('/proxy/payments/havale-receipt/' + payment.uid, { credentials: 'same-origin' })
+            .then(function (response) {
+                if (!response.ok) {
+                    return response.json().then(function (body) {
+                        toastr.error((body && body.message) || 'Havale dekontu indirilemedi.');
+                    }, function () {
+                        toastr.error('Havale dekontu indirilemedi.');
+                    });
+                }
+
+                var fileName = fileNameFromDisposition(response.headers.get('Content-Disposition'), 'havale-dekont');
+                return response.blob().then(function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    toastr.success('Havale dekontu indirildi.');
+                });
+            })
+            .catch(function () {
+                toastr.error('Havale dekontu indirilemedi.');
+            });
+    };
+
+    self.retryPayment = function (payment) {
+        if (!payment) return;
+        if (payment.paymentTypeId === 2) {
+            self.startPlatformAccrualPayment();
+            return;
+        }
+        if (payment.paymentTypeId === 4 && payment.packageGroupId) {
+            self.purchasePackage({ groupId: payment.packageGroupId, groupName: payment.paymentType || 'Paket' });
+            return;
+        }
+        toastr.warning('Bu odeme icin tekrar deneme akisi bulunamadi.');
+    };
+
+    var initialPlatformPayRequested = false;
+    try {
+        initialPlatformPayRequested = new URLSearchParams(window.location.search).get('pay') === 'subscription';
+    } catch (e) {
+        initialPlatformPayRequested = false;
+    }
+    var initialPlatformPayHandled = false;
+
+    function maybeOpenInitialPlatformPayment() {
+        if (!initialPlatformPayRequested || initialPlatformPayHandled) return;
+        initialPlatformPayHandled = true;
+        if (self.platformUnpaid().length > 0) {
+            self.startPlatformAccrualPayment();
+        } else {
+            self.startPlatformAccrualPayment();
         }
     }
 
@@ -191,8 +350,17 @@ function ModulesViewModel() {
                     var t = Number(x && x.total);
                     return !isNaN(t) && t > 0;
                 }));
+                maybeOpenInitialPlatformPayment();
             })
-            .fail(function () { self.platformUnpaid([]); });
+            .fail(function () {
+                self.platformUnpaid([]);
+                if (initialPlatformPayRequested && !initialPlatformPayHandled) {
+                    initialPlatformPayHandled = true;
+                    toastr.error('Odeme durumu alinamadi.');
+                }
+            });
+
+        self.loadPaymentHistory();
 
         $.ajax({ url: '/proxy/sln-branches?_nb=1', dataType: 'text', cache: false })
             .done(function (text, st, xhr) {
@@ -253,14 +421,33 @@ function ModulesViewModel() {
     self.purchasePreview = ko.observable(null);
     self.purchaseResult = ko.observable(null);
     self.purchaseGroupId = ko.observable(null);
+    self.purchaseModalTitle = ko.observable('Modul Satin Al');
     /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
     self.checkoutFormHtml = ko.observable('');
+
+    self.purchaseResultTitle = ko.computed(function () {
+        var r = self.purchaseResult();
+        return r && r.success ? 'Odeme Basarili!' : 'Odeme Basarisiz';
+    });
+
+    self.purchaseResultMessage = ko.computed(function () {
+        var r = self.purchaseResult();
+        if (!r) return '';
+        if (r.success) return r.message || 'Modulunuz aktif edildi.';
+        return r.error || 'Odeme basarisiz oldu.';
+    });
+
+    self.purchaseResultRequiresSessionRefresh = ko.computed(function () {
+        var r = self.purchaseResult();
+        return !!(r && r.success && r.requiresSessionRefresh !== false);
+    });
 
     self.purchaseStep.subscribe(function (step) {
         if (step !== 'checkout') self.checkoutFormHtml('');
     });
 
     self.purchasePackage = function (pkg) {
+        self.purchaseModalTitle('Modul Satin Al');
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -280,12 +467,17 @@ function ModulesViewModel() {
             var data = parseAjaxBody(text, xhr);
             self.purchasePreview(data && typeof data === 'object' ? data : null);
             self.purchaseLoading(false);
+            if (data && data.error) {
+                toastr.error(data.error);
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+                return;
+            }
             if (!data || typeof data !== 'object') {
                 toastr.error('Fiyat yaniti gecersiz.');
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
         }).fail(function (xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Fiyat bilgisi alinamadi.';
+            var msg = ajaxErrorMessage(xhr, 'Fiyat bilgisi alinamadi.');
             toastr.error(msg);
             self.purchaseLoading(false);
             bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
@@ -294,6 +486,7 @@ function ModulesViewModel() {
 
     self.purchaseModule = function (mod) {
         // Tek modul icin de ayni akis, groupId yerine moduleId gonder
+        self.purchaseModalTitle('Modul Satin Al');
         self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -313,12 +506,17 @@ function ModulesViewModel() {
             var data = parseAjaxBody(text, xhr);
             self.purchasePreview(data && typeof data === 'object' ? data : null);
             self.purchaseLoading(false);
+            if (data && data.error) {
+                toastr.error(data.error);
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+                return;
+            }
             if (!data || typeof data !== 'object') {
                 toastr.error('Fiyat yaniti gecersiz.');
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
         }).fail(function (xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Fiyat bilgisi alinamadi.';
+            var msg = ajaxErrorMessage(xhr, 'Fiyat bilgisi alinamadi.');
             toastr.error(msg);
             self.purchaseLoading(false);
             bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
@@ -352,7 +550,7 @@ function ModulesViewModel() {
                 self.purchaseStep('preview');
             }
         }).fail(function (xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Odeme baslatilamadi.';
+            var msg = ajaxErrorMessage(xhr, 'Odeme baslatilamadi.');
             toastr.error(msg);
             self.purchaseLoading(false);
             self.purchaseStep('preview');
@@ -361,6 +559,7 @@ function ModulesViewModel() {
 
     /** Açık platform tahakkuku: api/payments/subscription-checkout (ücretli abonelik veya aboneliksiz salon platform borcu) */
     self.startPlatformAccrualPayment = function () {
+        self.purchaseModalTitle('Abonelik Odemesi');
         self.purchasePreview(null);
         self.purchaseResult(null);
         self.purchaseGroupId(null);
@@ -397,7 +596,7 @@ function ModulesViewModel() {
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
         }).fail(function (xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Odeme baslatilamadi.';
+            var msg = ajaxErrorMessage(xhr, 'Odeme baslatilamadi.');
             toastr.error(msg);
             self.purchaseLoading(false);
             self.platformPayLoading(false);
@@ -421,7 +620,7 @@ function ModulesViewModel() {
             self.purchaseStep('result');
             if (data && data.success) self.load();
         }).fail(function (xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Odeme sonucu alinamadi.';
+            var msg = ajaxErrorMessage(xhr, 'Odeme sonucu alinamadi.');
             self.purchaseResult({ success: false, error: msg });
             self.purchaseStep('result');
         }).always(function () {

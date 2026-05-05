@@ -5,6 +5,7 @@ using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 
 namespace CallCenter.Api.Factories;
@@ -154,6 +155,48 @@ public class AuthFactory : IAuthFactory
         await _passwordPolicy.RecordPasswordAsync(userId, newHash);
 
         return (true, null);
+    }
+
+    public async Task<(bool Success, LoginResponse? Response, string? Error)> RefreshCurrentSessionAsync(int userId)
+    {
+        var user = await _users.GetAllQueryable()
+            .Include(u => u.CustomerPersonnel)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return (false, null, "Kullanici bulunamadi.");
+
+        if (!user.IsActive)
+            return (false, null, "Kullanici hesabi aktif degil.");
+
+        if (user.CustomerPersonnel != null)
+        {
+            var customer = await _customers.GetByIdAsync(user.CustomerPersonnel.CustomerId);
+            if (customer == null || !customer.IsActive)
+                return (false, null, "Musteri hesabi aktif degil.");
+
+            var (isBlocked, reason) = await _billingFactory.IsCustomerBlockedByBillingAsync(user.CustomerPersonnel.CustomerId);
+            if (isBlocked)
+                return (false, null, reason ?? "Odenmemis fatura nedeniyle erisim engellendi.");
+        }
+
+        List<int>? moduleIds = null;
+        if (user.CustomerPersonnel != null)
+            moduleIds = await _portalModules.GetActiveModuleIdsAsync(user.CustomerPersonnel.CustomerId);
+
+        var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, moduleIds);
+        var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
+        var roleName = UserRoles.GetById(user.RoleId)?.SystemName ?? "Agent";
+
+        return (true, new LoginResponse
+        {
+            Token = token,
+            FullName = user.FullName,
+            Role = roleName,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes),
+            MustChangePassword = user.MustChangePassword,
+            PreferredLanguage = user.PreferredLanguage
+        }, null);
     }
 
     public async Task<(bool Success, RefreshTokenResponse? Response, string? Error)> RefreshAsync(string refreshToken)

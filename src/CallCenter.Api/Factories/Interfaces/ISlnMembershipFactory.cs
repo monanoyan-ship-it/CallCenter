@@ -24,6 +24,7 @@ public interface ISlnMembershipFactory
 /// <summary>Bir hizmet icin uyelik avantaji bilgisi</summary>
 public class ServiceMembershipBenefit
 {
+    public int? MembershipId { get; set; }
     public int ServiceId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public bool HasFreeBenefit { get; set; }

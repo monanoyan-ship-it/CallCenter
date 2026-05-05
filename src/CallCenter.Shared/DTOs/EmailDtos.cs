@@ -63,6 +63,14 @@ public class EmailSendRequest
     public string HtmlBody { get; set; } = string.Empty;
     public string? PlainTextBody { get; set; }
     public string? ReplyTo { get; set; }
+    public List<EmailAttachmentDto> Attachments { get; set; } = new();
+}
+
+public class EmailAttachmentDto
+{
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/octet-stream";
+    public byte[] Content { get; set; } = Array.Empty<byte>();
 }
 
 public class EmailSendResult

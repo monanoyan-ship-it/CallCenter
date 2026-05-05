@@ -8,6 +8,7 @@ function PackagesViewModel() {
     self.editingDefId = ko.observable(null);
     self.sellingDef = ko.observable(null);
     self.sellClientId = ko.observable(null);
+    self.sellPaymentMethodId = ko.observable('1');
     self.isSaving = ko.observable(false);
 
     self.defForm = {
@@ -22,6 +23,10 @@ function PackagesViewModel() {
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.sellClientId);
 
     var defModal, sellModal;
+    function readError(xhr) {
+        if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || 'Hata';
+    }
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
@@ -89,7 +94,7 @@ function PackagesViewModel() {
             toastr.success('Paket tanimi kaydedildi');
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Hata');
+            toastr.error(readError(xhr));
             self.isSaving(false);
         });
     };
@@ -107,14 +112,21 @@ function PackagesViewModel() {
     self.openSell = function (def) {
         self.sellingDef(def);
         self.sellClientId(null);
+        self.sellPaymentMethodId('1');
         self.clientAutocomplete.clear();
         sellModal.show();
     };
 
     self.confirmSell = function () {
+        if (!self.sellClientId()) {
+            toastr.warning('Paket satisi icin musteri secilmelidir');
+            return;
+        }
+
         var data = {
             packageDefinitionId: self.sellingDef().id,
-            slnClientId: self.sellClientId() ? parseInt(self.sellClientId()) : null
+            slnClientId: parseInt(self.sellClientId()),
+            paymentMethodId: parseInt(self.sellPaymentMethodId()) || 1
         };
 
         self.isSaving(true);
@@ -124,10 +136,10 @@ function PackagesViewModel() {
         }).done(function () {
             sellModal.hide();
             self.loadData();
-            toastr.success('Paket satildi');
+            toastr.success('Paket satildi ve tahsilat kaydedildi');
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Hata');
+            toastr.error(readError(xhr));
             self.isSaving(false);
         });
     };
@@ -138,12 +150,12 @@ function PackagesViewModel() {
             $.ajax({
                 url: '/proxy/sln-packages/use', method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ clientPackageId: pkg.id, notes: null })
+                data: JSON.stringify({ clientPackageId: pkg.id, notes: 'Manuel paket kullanim' })
             }).done(function () {
                 self.loadData();
                 toastr.success('1 seans kullanildi');
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.error || 'Hata');
+                toastr.error(readError(xhr));
             });
         });
     };

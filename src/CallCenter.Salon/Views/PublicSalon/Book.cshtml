@@ -436,11 +436,11 @@
 
             self.submitWaitlist = function () {
                 if (!self.waitlist.fullName() || !self.waitlist.phone()) {
-                    alert('Ad ve telefon zorunlu');
+                    toastr.warning('Ad ve telefon zorunlu');
                     return;
                 }
                 if (!self.selectedServiceId()) {
-                    alert('Once hizmet seciniz');
+                    toastr.warning('Once hizmet seciniz');
                     return;
                 }
                 self.waitlistSaving(true);
@@ -454,7 +454,7 @@
                     preferredTimeSlot: self.waitlist.timeSlot(),
                     notes: self.waitlist.notes() || null
                 };
-                fetch('/proxy/salon/' + slug + '/waitlist', {
+                fetch('/proxy/salon/' + bookSlug + '/waitlist', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -462,15 +462,15 @@
                   .then(function (res) {
                       self.waitlistSaving(false);
                       if (res.ok) {
-                          alert(res.body.message || 'Bekleme listesine eklendiniz.');
+                          toastr.success(res.body.message || 'Bekleme listesine eklendiniz.');
                           self.closeWaitlist();
                       } else {
-                          alert(res.body.message || 'Kayit basarisiz');
+                          toastr.error(res.body.message || 'Kayit basarisiz');
                       }
                   })
                   .catch(function () {
                       self.waitlistSaving(false);
-                      alert('Baglanti hatasi');
+                      toastr.error('Baglanti hatasi');
                   });
             };
 

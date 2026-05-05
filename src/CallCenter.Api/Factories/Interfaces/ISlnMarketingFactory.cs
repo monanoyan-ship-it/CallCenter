@@ -11,6 +11,7 @@ public interface ISlnMarketingFactory
     Task<(bool Success, string? Error)> UpdateCampaignAsync(int campaignId, SlnCampaignUpdateDto dto, int customerId);
     Task<(bool Success, string? Error)> DeleteCampaignAsync(int campaignId, int customerId);
     Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId);
+    Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId);
     Task<(bool Success, string? Error)> SendCampaignAsync(int campaignId, int customerId);
 
     // Oto-Hatirlatma

@@ -56,7 +56,8 @@ public class MailKitEmailSendService : IEmailSendService
             var message = BuildMessage(
                 integration.SenderEmail, integration.SenderName,
                 request.ToAddress, request.ToName,
-                request.Subject, request.HtmlBody, request.PlainTextBody, request.ReplyTo);
+                request.Subject, request.HtmlBody, request.PlainTextBody, request.ReplyTo,
+                request.Attachments);
 
             var result = await SendViaProviderAsync(integration.ProviderTypeId, creds,
                 integration.SenderEmail, message, integration, ct);
@@ -81,7 +82,7 @@ public class MailKitEmailSendService : IEmailSendService
     {
         try
         {
-            var message = BuildMessage(senderEmail, senderName, toAddress, null, subject, htmlBody, null, null);
+            var message = BuildMessage(senderEmail, senderName, toAddress, null, subject, htmlBody, null, null, null);
             return await SendViaProviderAsync(providerTypeId, credentials, senderEmail, message, null, ct);
         }
         catch (Exception ex)
@@ -218,7 +219,8 @@ public class MailKitEmailSendService : IEmailSendService
     private static MimeMessage BuildMessage(
         string fromEmail, string? fromName,
         string toEmail, string? toName,
-        string subject, string htmlBody, string? plainTextBody, string? replyTo)
+        string subject, string htmlBody, string? plainTextBody, string? replyTo,
+        IReadOnlyList<EmailAttachmentDto>? attachments)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(fromName ?? fromEmail, fromEmail));
@@ -231,6 +233,12 @@ public class MailKitEmailSendService : IEmailSendService
         var builder = new BodyBuilder { HtmlBody = htmlBody };
         if (!string.IsNullOrEmpty(plainTextBody))
             builder.TextBody = plainTextBody;
+
+        if (attachments != null)
+        {
+            foreach (var attachment in attachments.Where(a => a.Content.Length > 0 && !string.IsNullOrWhiteSpace(a.FileName)))
+                builder.Attachments.Add(attachment.FileName, attachment.Content, ContentType.Parse(attachment.ContentType));
+        }
 
         message.Body = builder.ToMessageBody();
         return message;

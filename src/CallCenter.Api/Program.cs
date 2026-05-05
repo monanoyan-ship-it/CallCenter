@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Helpers;
@@ -96,13 +97,25 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            // Development: sadece bilinen origin'ler
-            var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+            // Development: yapilandirilmis origin'ler + Flutter Web / Vite vb. (localhost herhangi bir port)
+            var configured = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
                 ?? new[] { "https://localhost:7242", "http://localhost:5123" };
-            policy.WithOrigins(origins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            policy.SetIsOriginAllowed(origin =>
+                {
+                    if (string.IsNullOrEmpty(origin)) return false;
+                    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+                    if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                        return false;
+                    // Flutter Web / Chrome: Origin bazen 127.0.0.1, ::1 veya ::ffff:127.0.0.1 olabilir
+                    if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    if (IPAddress.TryParse(uri.Host, out var ip) && IPAddress.IsLoopback(ip))
+                        return true;
+                    return configured.Contains(origin);
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
         }
     });
 });
@@ -205,13 +218,15 @@ forwardedOptions.KnownNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
+// CORS, redirect/auth'dan once (OPTIONS ve tarayıcı istekleri için tutarlı sıra)
+app.UseCors("AllowBlazor");
+
 // HTTPS redirect — sadece Development ortaminda
 // Docker'da Nginx arkasinda HTTP kullanilir, redirect gereksiz
 if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseCors("AllowBlazor");
 app.UseAuthentication();
 app.UseApiKeyAuth(); // Dis sistem API key dogrulamasi (/api/integration/v1/*)
 app.UseAuthorization();

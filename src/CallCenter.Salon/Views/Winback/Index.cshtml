@@ -21,7 +21,7 @@
                             <th>Kanal</th>
                             <th>Indirim</th>
                             <th>Durum</th>
-                            <th style="width:120px;"></th>
+                            <th style="width:190px;"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: rules">
@@ -39,6 +39,12 @@
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-primary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" title="Onizle" data-bind="click: $parent.openPreview">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success" title="Kampanya Olustur" data-bind="click: $parent.createCampaign, enable: isActive">
+                                        <i class="bi bi-megaphone"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
@@ -107,6 +113,46 @@
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onizleme Modal -->
+    <div class="modal fade" id="winbackPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-eye me-2"></i>Winback Onizleme</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-3" data-bind="visible: isPreviewLoading">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
+                    <!-- ko if: preview -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">Uygun Musteri</div><div class="fw-bold" data-bind="text: preview().eligibleClients"></div></div></div>
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">SMS Uygun</div><div class="fw-bold" data-bind="text: preview().smsReachableClients"></div></div></div>
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">E-posta Uygun</div><div class="fw-bold" data-bind="text: preview().emailReachableClients"></div></div></div>
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">Iletisim Eksik</div><div class="fw-bold" data-bind="text: preview().missingContactCount"></div></div></div>
+                    </div>
+                    <div class="alert alert-light border small" data-bind="text: preview().messagePreview"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Musteri</th><th>Telefon</th><th>E-posta</th><th>Pasif Gun</th><th>Son Ziyaret</th></tr></thead>
+                            <tbody data-bind="foreach: preview().candidates">
+                                <tr>
+                                    <td data-bind="text: clientName"></td>
+                                    <td data-bind="text: phone || '-'"></td>
+                                    <td data-bind="text: email || '-'"></td>
+                                    <td data-bind="text: inactiveDays"></td>
+                                    <td data-bind="text: lastVisitAt ? new Date(lastVisitAt).toLocaleDateString('tr-TR') : '-'"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- /ko -->
                 </div>
             </div>
         </div>

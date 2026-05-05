@@ -10,11 +10,16 @@ namespace CallCenter.Api.Factories;
 public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
 {
     private readonly ISlnEmailCampaignEntityService _emailCampaignEs;
+    private readonly ISlnMarketingFactory _marketingFactory;
     private readonly IUnitOfWork _uow;
 
-    public SlnEmailCampaignFactory(ISlnEmailCampaignEntityService emailCampaignEs, IUnitOfWork uow)
+    public SlnEmailCampaignFactory(
+        ISlnEmailCampaignEntityService emailCampaignEs,
+        ISlnMarketingFactory marketingFactory,
+        IUnitOfWork uow)
     {
         _emailCampaignEs = emailCampaignEs;
+        _marketingFactory = marketingFactory;
         _uow = uow;
     }
 
@@ -45,6 +50,10 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
             ScheduledAt = dto.ScheduledAt,
             StatusId = dto.ScheduledAt.HasValue ? 2 : 1
         };
+
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
+        campaign.TotalRecipients = preview.EmailReachableClients;
+
         _emailCampaignEs.Add(campaign);
         await _uow.SaveChangesAsync();
         return MapToDto(campaign);
@@ -62,6 +71,10 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         campaign.SegmentFilter = dto.SegmentFilter;
         campaign.ScheduledAt = dto.ScheduledAt;
         campaign.StatusId = dto.ScheduledAt.HasValue ? 2 : 1;
+
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
+        campaign.TotalRecipients = preview.EmailReachableClients;
+
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -73,6 +86,32 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         if (campaign == null) return (false, "Kampanya bulunamadi");
 
         _emailCampaignEs.Remove(campaign);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId)
+        => _marketingFactory.GetSegmentPreviewAsync(segmentFilter, customerId);
+
+    public Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId)
+        => _marketingFactory.GetSegmentPresetsAsync(customerId);
+
+    public async Task<(bool Success, string? Error)> SendCampaignAsync(int id, int customerId)
+    {
+        var campaign = await _emailCampaignEs.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
+
+        if (campaign == null) return (false, "Kampanya bulunamadi");
+        if (campaign.StatusId >= 3) return (false, "Kampanya zaten gonderilmis");
+
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(campaign.SegmentFilter, customerId);
+
+        // Gercek e-posta provider teslimat takibi sonraki asamada; burada gonderim simule edilir.
+        campaign.StatusId = 4;
+        campaign.SentAt = DateTime.UtcNow;
+        campaign.TotalRecipients = preview.EmailReachableClients;
+        campaign.SentCount = preview.EmailReachableClients;
+
         await _uow.SaveChangesAsync();
         return (true, null);
     }

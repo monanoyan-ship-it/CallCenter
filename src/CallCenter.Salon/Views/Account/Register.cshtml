@@ -12,11 +12,22 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
         body { background: linear-gradient(135deg, #2d1b3d 0%, #1a1028 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .register-card { background: #fff; border-radius: 12px; padding: 2.5rem; width: 100%; max-width: 480px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+        .register-card { background: #fff; border-radius: 12px; padding: 2.5rem; width: 100%; max-width: 760px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
         .brand { color: #2d1b3d; font-weight: 700; font-size: 1.5rem; }
         .brand span { color: #ce93d8; }
         .btn-salon { background: #7b1fa2; border: none; color: #fff; }
         .btn-salon:hover { background: #6a1b9a; color: #fff; }
+        .subscription-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+        .subscription-option { border: 1px solid #e5d7ec; border-radius: 8px; padding: .85rem; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; min-height: 116px; }
+        .subscription-option.active { border-color: #7b1fa2; background: #faf5ff; box-shadow: 0 0 0 3px rgba(123,31,162,.12); }
+        .subscription-title { font-weight: 700; color: #2d1b3d; }
+        .subscription-price { font-size: 1.05rem; font-weight: 700; color: #7b1fa2; }
+        .subscription-meta { font-size: .78rem; color: #6c757d; }
+        @@media (max-width: 576px) {
+            body { align-items: flex-start; padding: 1rem; }
+            .register-card { padding: 1.5rem; }
+            .subscription-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -69,6 +80,18 @@
                     </div>
                 </div>
             </div>
+            <div class="mb-3">
+                <label class="form-label small">Platform Aboneligi *</label>
+                <div id="planLoading" class="border rounded-3 p-3 small text-muted">
+                    <span class="spinner-border spinner-border-sm me-1"></span>Planlar yukleniyor...
+                </div>
+                <div id="planList" class="subscription-grid d-none"></div>
+                <input type="hidden" name="subscriptionPlanId" id="subscriptionPlanId" />
+                <div id="trialInfo" class="alert alert-light border py-2 small mt-2 mb-0 d-none">
+                    <div><strong>Demo:</strong> <span id="trialText"></span></div>
+                    <div><strong>Ilk tahsilat:</strong> <span id="firstBillingText"></span></div>
+                </div>
+            </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label small">Kullanici Adi</label>
@@ -97,6 +120,127 @@
             return code + raw;
         }
 
+        var registerOptions = {
+            trialDays: 5,
+            coreMonthlyPrice: 1700,
+            plans: []
+        };
+
+        function formatMoney(value) {
+            return (Number(value) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' TL';
+        }
+
+        function addDays(date, days) {
+            var next = new Date(date.getTime());
+            next.setDate(next.getDate() + days);
+            return next;
+        }
+
+        function normalizeOptionKeys(data) {
+            return {
+                trialDays: data.trialDays || data.TrialDays || 5,
+                coreMonthlyPrice: data.coreMonthlyPrice || data.CoreMonthlyPrice || 1700,
+                plans: data.plans || data.Plans || []
+            };
+        }
+
+        function planValue(plan, key) {
+            var pascal = key.charAt(0).toUpperCase() + key.slice(1);
+            return plan[key] != null ? plan[key] : plan[pascal];
+        }
+
+        function renderPlans(options) {
+            registerOptions = normalizeOptionKeys(options || {});
+            var plans = registerOptions.plans;
+            var loading = document.getElementById('planLoading');
+            var list = document.getElementById('planList');
+
+            if (!plans.length) {
+                loading.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Abonelik planlari yuklenemedi. Kayit sirasinda varsayilan aylik plan secilecek.';
+                return;
+            }
+
+            list.innerHTML = plans.map(function (plan) {
+                var id = planValue(plan, 'id');
+                var idAttr = id == null ? '' : String(id);
+                var name = planValue(plan, 'name') || ('Plan #' + id);
+                var interval = Number(planValue(plan, 'intervalMonths')) || 1;
+                var discount = Number(planValue(plan, 'discountPercent')) || 0;
+                var periodPrice = Number(planValue(plan, 'periodPrice')) || 0;
+                var monthlyEquivalent = Number(planValue(plan, 'monthlyEquivalent')) || 0;
+                var discountText = discount > 0 ? '%' + discount.toLocaleString('tr-TR') + ' indirim' : 'Indirimsiz';
+
+                return '<button type="button" class="subscription-option text-start bg-white" data-plan-id="' + idAttr + '">' +
+                    '<div class="d-flex justify-content-between align-items-start gap-2">' +
+                    '<div class="subscription-title">' + name + '</div>' +
+                    '<span class="badge bg-light text-dark border">' + interval + ' ay</span>' +
+                    '</div>' +
+                    '<div class="subscription-price mt-2">' + formatMoney(periodPrice) + '</div>' +
+                    '<div class="subscription-meta">Donem tahsilati</div>' +
+                    '<div class="subscription-meta mt-1">' + formatMoney(monthlyEquivalent) + ' / ay esdegeri - ' + discountText + '</div>' +
+                    '</button>';
+            }).join('');
+
+            loading.classList.add('d-none');
+            list.classList.remove('d-none');
+
+            list.querySelectorAll('[data-plan-id]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    selectPlan(this.getAttribute('data-plan-id'));
+                });
+            });
+
+            var defaultPlan = plans.find(function (p) { return planValue(p, 'isDefault') === true; }) || plans[0];
+            selectPlan(planValue(defaultPlan, 'id'));
+        }
+
+        function selectPlan(planId) {
+            var idText = planId == null ? '' : String(planId);
+            var selected = registerOptions.plans.find(function (p) {
+                var id = planValue(p, 'id');
+                return (id == null ? '' : String(id)) === idText;
+            });
+            if (!selected) return;
+
+            document.getElementById('subscriptionPlanId').value = idText;
+            document.querySelectorAll('.subscription-option').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-plan-id') === idText);
+            });
+
+            var trialDays = Number(registerOptions.trialDays) || 5;
+            var firstPaymentDate = addDays(new Date(), trialDays);
+            var interval = Number(planValue(selected, 'intervalMonths')) || 1;
+            var periodPrice = Number(planValue(selected, 'periodPrice')) || 0;
+
+            document.getElementById('trialText').textContent = 'Kayit tarihinden itibaren ' + trialDays + ' gun ucretsiz kullanim.';
+            document.getElementById('firstBillingText').textContent =
+                firstPaymentDate.toLocaleDateString('tr-TR') + ' tarihinde ' + formatMoney(periodPrice) +
+                ' tahsilat; sonraki tahakkuk ' + interval + ' ayda bir.';
+            document.getElementById('trialInfo').classList.remove('d-none');
+        }
+
+        async function loadRegisterOptions() {
+            try {
+                var resp = await fetch('/Account/RegisterOptions');
+                if (!resp.ok) throw new Error('Planlar yuklenemedi');
+                renderPlans(await resp.json());
+            } catch (ex) {
+                renderPlans({
+                    trialDays: 5,
+                    coreMonthlyPrice: 1700,
+                    plans: [{
+                        id: null,
+                        name: '1 Aylik Abonelik',
+                        intervalMonths: 1,
+                        discountPercent: 0,
+                        periodPrice: 1700,
+                        monthlyEquivalent: 1700,
+                        isDefault: true
+                    }]
+                });
+            }
+        }
+
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             var btn = document.getElementById('btnRegister');
@@ -112,8 +256,19 @@
                 email: fd.get('email'),
                 phone: normalizePhoneValue(),
                 userName: fd.get('userName'),
-                password: fd.get('password')
+                password: fd.get('password'),
+                subscriptionPlanId: document.getElementById('subscriptionPlanId').value
+                    ? parseInt(document.getElementById('subscriptionPlanId').value)
+                    : null
             };
+
+            if (!body.subscriptionPlanId && registerOptions.plans.length > 1) {
+                errDiv.textContent = 'Lutfen abonelik planinizi secin.';
+                errDiv.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>Kayit Ol';
+                return;
+            }
 
             try {
                 var resp = await fetch('/Account/DoRegister', {
@@ -135,6 +290,8 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>Kayit Ol';
         });
+
+        loadRegisterOptions();
     </script>
 </body>
 </html>

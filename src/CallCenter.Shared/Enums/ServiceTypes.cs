@@ -99,11 +99,14 @@ public static class SubscriptionStatuses
 /// <summary>Platform tahakkuku ile salon panel erisimi — tek gecikme politikasi (gun).</summary>
 public static class PlatformBillingAccessPolicy
 {
+    /// <summary>Yeni salon kaydindan itibaren ucretsiz demo suresi.</summary>
+    public const int RegistrationTrialDays = 5;
+
     /// <summary>Tahakkuk kesiminden (PeriodStartDate) sonra odeme icin panel acik kalir; sonrasinda kilit.</summary>
     public const int UnpaidGraceDaysAfterPeriodStart = 5;
 
-    /// <summary>Deneme bitiminden sonra askiya alma (abonelik hala aktifken ek stire).</summary>
-    public const int TrialSuspensionGraceDays = 5;
+    /// <summary>Demo bitince ek grace verilmez; odeme grace'i yalniz tahakkuklu ucretli donemler icindir.</summary>
+    public const int TrialSuspensionGraceDays = 0;
 }
 
 public static class BillingPeriodStatuses
@@ -207,8 +210,9 @@ public static class PaymentStatuses
     public static readonly TypeItem Basarili = new(2, "Basarili", "PaymentStatus.Basarili", "Basarili", "bi-check-circle-fill", "bg-success", 2);
     public static readonly TypeItem Basarisiz = new(3, "Basarisiz", "PaymentStatus.Basarisiz", "Basarisiz", "bi-x-circle-fill", "bg-danger", 3);
     public static readonly TypeItem Iade = new(4, "Iade", "PaymentStatus.Iade", "Iade Edildi", "bi-arrow-counterclockwise", "bg-warning text-dark", 4);
+    public static readonly TypeItem Iptal = new(5, "Iptal", "PaymentStatus.Iptal", "Iptal Edildi", "bi-slash-circle", "bg-secondary", 5);
 
-    public static IEnumerable<TypeItem> All => new[] { Beklemede, Basarili, Basarisiz, Iade };
+    public static IEnumerable<TypeItem> All => new[] { Beklemede, Basarili, Basarisiz, Iade, Iptal };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
 
     public static class Ids
@@ -217,5 +221,6 @@ public static class PaymentStatuses
         public const int Basarili = 2;
         public const int Basarisiz = 3;
         public const int Iade = 4;
+        public const int Iptal = 5;
     }
 }

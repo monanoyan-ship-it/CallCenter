@@ -16,14 +16,19 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnExpenseCategoryEntityService _expenseCategories;
     private readonly ISlnExpenseEntityService _expenses;
     private readonly ISlnProductEntityService _products;
+    private readonly ISlnStockMovementEntityService _stockMovements;
     private readonly ISlnPersonnelCommissionEntityService _personnelCommissions;
     private readonly ISlnCashClosingEntityService _cashClosings;
     private readonly ISlnCashOpeningEntityService _cashOpenings;
     private readonly ISlnClientLedgerEntityService _clientLedgers;
     private readonly ISlnInvoiceRefundEntityService _invoiceRefunds;
     private readonly ISlnBranchEntityService _branches;
+    private readonly ISlnMembershipFactory _memberships;
+    private readonly ISlnPackageFactory _packages;
+    private readonly ISlnGiftCardFactory _giftCards;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnFinanceFactory> _logger;
+    private const int GiftCardPaymentMethodId = 5;
 
     public SlnFinanceFactory(
         ISlnInvoiceEntityService invoices,
@@ -33,12 +38,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnExpenseCategoryEntityService expenseCategories,
         ISlnExpenseEntityService expenses,
         ISlnProductEntityService products,
+        ISlnStockMovementEntityService stockMovements,
         ISlnPersonnelCommissionEntityService personnelCommissions,
         ISlnCashClosingEntityService cashClosings,
         ISlnCashOpeningEntityService cashOpenings,
         ISlnClientLedgerEntityService clientLedgers,
         ISlnInvoiceRefundEntityService invoiceRefunds,
         ISlnBranchEntityService branches,
+        ISlnMembershipFactory memberships,
+        ISlnPackageFactory packages,
+        ISlnGiftCardFactory giftCards,
         IUnitOfWork uow,
         ILogger<SlnFinanceFactory> logger)
     {
@@ -49,12 +58,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _expenseCategories = expenseCategories;
         _expenses = expenses;
         _products = products;
+        _stockMovements = stockMovements;
         _personnelCommissions = personnelCommissions;
         _cashClosings = cashClosings;
         _cashOpenings = cashOpenings;
         _clientLedgers = clientLedgers;
         _invoiceRefunds = invoiceRefunds;
         _branches = branches;
+        _memberships = memberships;
+        _packages = packages;
+        _giftCards = giftCards;
         _uow = uow;
         _logger = logger;
     }
@@ -139,10 +152,147 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
         decimal totalAmount = 0;
         var items = new List<SlnInvoiceItem>();
+        var membershipUsageRecords = new List<(int MembershipId, int ServiceId)>();
+        var packageUsageRecords = new List<(int ClientPackageId, int ServiceId)>();
+        var membershipBenefitLookup = new Dictionary<int, ServiceMembershipBenefit>();
+        var packageBenefitLookup = new Dictionary<int, SlnPackageBenefitDto>();
+
+        if (dto.Items.Any(i => i.UseMembershipBenefit && i.UsePackageSession))
+            return (null, "Ayni kalemde uyelik hakki ve paket seansi birlikte kullanilamaz");
+
+        var membershipBenefitItems = dto.Items
+            .Where(i => i.UseMembershipBenefit)
+            .ToList();
+        var packageSessionItems = dto.Items
+            .Where(i => i.UsePackageSession)
+            .ToList();
+
+        if (packageSessionItems.Count > 0)
+        {
+            if (!dto.SlnClientId.HasValue)
+                return (null, "Paket seansi kullanimi icin musteri secilmelidir");
+
+            if (packageSessionItems.Any(i => !i.ServiceId.HasValue || i.ProductId.HasValue || !i.ClientPackageId.HasValue))
+                return (null, "Paket seansi sadece paketle eslesen hizmet kalemlerinde kullanilabilir");
+
+            var packageServiceIds = packageSessionItems
+                .Select(i => i.ServiceId!.Value)
+                .Distinct()
+                .ToList();
+
+            var benefits = await _packages.GetUsablePackagesAsync(customerId, dto.SlnClientId.Value, packageServiceIds);
+            packageBenefitLookup = benefits.ToDictionary(b => b.ClientPackageId);
+
+            foreach (var group in packageSessionItems.GroupBy(i => new { ClientPackageId = i.ClientPackageId!.Value, ServiceId = i.ServiceId!.Value }))
+            {
+                if (!packageBenefitLookup.TryGetValue(group.Key.ClientPackageId, out var benefit)
+                    || benefit.ServiceId != group.Key.ServiceId
+                    || benefit.RemainingSessions <= 0)
+                {
+                    return (null, "Kullanilabilir paket seansi bulunamadi veya tukenmis");
+                }
+
+                var requestedQuantity = group.Sum(i => i.Quantity);
+                var requestedCount = (int)requestedQuantity;
+                if (requestedQuantity != requestedCount || requestedCount <= 0)
+                    return (null, "Paket seansi kullaniminda miktar tam sayi olmali");
+
+                if (requestedCount > benefit.RemainingSessions)
+                    return (null, $"Paket seansi yetersiz. Kalan: {benefit.RemainingSessions}");
+            }
+        }
+
+        if (membershipBenefitItems.Count > 0)
+        {
+            if (!dto.SlnClientId.HasValue)
+                return (null, "Uyelik hakki kullanimi icin musteri secilmelidir");
+
+            if (membershipBenefitItems.Any(i => !i.ServiceId.HasValue || i.ProductId.HasValue))
+                return (null, "Uyelik hakki sadece hizmet kalemlerinde kullanilabilir");
+
+            var membershipServiceIds = membershipBenefitItems
+                .Select(i => i.ServiceId!.Value)
+                .Distinct()
+                .ToList();
+
+            var benefits = await _memberships.CheckBenefitsAsync(customerId, dto.SlnClientId.Value, membershipServiceIds);
+            membershipBenefitLookup = benefits.ToDictionary(b => b.ServiceId);
+
+            foreach (var group in membershipBenefitItems.GroupBy(i => i.ServiceId!.Value))
+            {
+                if (!membershipBenefitLookup.TryGetValue(group.Key, out var benefit)
+                    || !benefit.HasFreeBenefit
+                    || benefit.RemainingFree <= 0)
+                {
+                    return (null, "Uyelik ucretsiz hakki bulunamadi veya tukenmis");
+                }
+
+                var requestedQuantity = group.Sum(i => i.Quantity);
+                var requestedCount = (int)requestedQuantity;
+                if (requestedQuantity != requestedCount || requestedCount <= 0)
+                    return (null, "Uyelik ucretsiz hak kullaniminda miktar tam sayi olmali");
+
+                if (requestedCount > benefit.RemainingFree)
+                    return (null, $"Uyelik ucretsiz hakki yetersiz. Kalan: {benefit.RemainingFree}");
+            }
+        }
 
         foreach (var itemDto in dto.Items)
         {
-            var lineTotal = (itemDto.Quantity * itemDto.UnitPrice) - itemDto.DiscountAmount;
+            if (itemDto.Quantity <= 0)
+                return (null, "Kalem miktari 0'dan buyuk olmali");
+
+            var unitPrice = itemDto.UnitPrice;
+            if (itemDto.UsePackageSession)
+            {
+                if (!itemDto.ServiceId.HasValue || !itemDto.ClientPackageId.HasValue)
+                    return (null, "Paket seansi icin hizmet ve paket bilgisi zorunludur");
+
+                if (!packageBenefitLookup.TryGetValue(itemDto.ClientPackageId.Value, out var packageBenefit)
+                    || packageBenefit.ServiceId != itemDto.ServiceId.Value
+                    || packageBenefit.RemainingSessions <= 0)
+                {
+                    return (null, "Kullanilabilir paket seansi bulunamadi veya tukenmis");
+                }
+
+                var usageCount = (int)itemDto.Quantity;
+                if (itemDto.Quantity != usageCount || usageCount <= 0)
+                    return (null, "Paket seansi kullaniminda miktar tam sayi olmali");
+
+                if (usageCount > packageBenefit.RemainingSessions)
+                    return (null, $"Paket seansi yetersiz. Kalan: {packageBenefit.RemainingSessions}");
+
+                unitPrice = 0;
+                for (var i = 0; i < usageCount; i++)
+                    packageUsageRecords.Add((itemDto.ClientPackageId.Value, itemDto.ServiceId.Value));
+            }
+            else if (itemDto.UseMembershipBenefit)
+            {
+                if (!itemDto.ServiceId.HasValue || !itemDto.MembershipId.HasValue)
+                    return (null, "Uyelik hakki icin hizmet ve uyelik bilgisi zorunludur");
+
+                if (!membershipBenefitLookup.TryGetValue(itemDto.ServiceId.Value, out var benefit)
+                    || benefit.MembershipId != itemDto.MembershipId
+                    || !benefit.HasFreeBenefit
+                    || benefit.RemainingFree <= 0)
+                {
+                    return (null, "Uyelik ucretsiz hakki bulunamadi veya tukenmis");
+                }
+
+                var usageCount = (int)itemDto.Quantity;
+                if (itemDto.Quantity != usageCount || usageCount <= 0)
+                    return (null, "Uyelik ucretsiz hak kullaniminda miktar tam sayi olmali");
+
+                if (usageCount > benefit.RemainingFree)
+                    return (null, $"Uyelik ucretsiz hakki yetersiz. Kalan: {benefit.RemainingFree}");
+
+                unitPrice = 0;
+                for (var i = 0; i < usageCount; i++)
+                    membershipUsageRecords.Add((itemDto.MembershipId.Value, itemDto.ServiceId.Value));
+            }
+
+            var lineDiscount = unitPrice == 0 ? 0 : itemDto.DiscountAmount;
+            var lineTotal = Math.Max(0, (itemDto.Quantity * unitPrice) - lineDiscount);
             totalAmount += lineTotal;
 
             items.Add(new SlnInvoiceItem
@@ -151,17 +301,35 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 ProductId = itemDto.ProductId,
                 PersonnelId = itemDto.PersonnelId,
                 Quantity = itemDto.Quantity,
-                UnitPrice = itemDto.UnitPrice,
-                DiscountAmount = itemDto.DiscountAmount,
+                UnitPrice = unitPrice,
+                DiscountAmount = lineDiscount,
                 LineTotal = lineTotal
             });
 
             // Urun satisinda stok dusur
             if (itemDto.ProductId.HasValue)
             {
-                var product = await _products.GetByIdAsync(itemDto.ProductId.Value);
-                if (product != null)
-                    product.StockQuantity -= itemDto.Quantity;
+                var product = await _products.GetAllQueryable()
+                    .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId.Value && p.CustomerId == customerId);
+
+                if (product == null)
+                    return (null, "Urun bulunamadi");
+
+                if (product.StockQuantity < itemDto.Quantity)
+                    return (null, $"Yetersiz stok: {product.Name} (Mevcut: {product.StockQuantity:0.##} {product.Unit})");
+
+                product.StockQuantity -= itemDto.Quantity;
+                _stockMovements.Add(new SlnStockMovement
+                {
+                    CustomerId = customerId,
+                    BranchId = branchId,
+                    ProductId = product.Id,
+                    MovementTypeId = 2,
+                    Quantity = itemDto.Quantity,
+                    UnitPrice = itemDto.UnitPrice,
+                    Notes = $"Adisyon: {invoiceNo}",
+                    CreatedByPersonnelId = userId > 0 ? userId : null
+                });
             }
         }
 
@@ -169,6 +337,22 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         // BUG.A2: bahsis opsiyonel olarak NetAmount'a eklenir
         invoice.NetAmount = totalAmount - dto.DiscountAmount + (dto.IncludeTipInTotal ? dto.TipAmount : 0);
         invoice.StatusId = 2; // Paid
+
+        SlnGiftCardDto? giftCardPayment = null;
+        if (dto.PaymentMethodId == GiftCardPaymentMethodId && invoice.NetAmount > 0)
+        {
+            var giftCardCode = (dto.GiftCardCode ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(giftCardCode))
+                return (null, "Hediye karti ile odeme icin kart kodu girilmelidir");
+
+            giftCardPayment = await _giftCards.GetGiftCardByCodeAsync(giftCardCode, customerId);
+            if (giftCardPayment == null)
+                return (null, "Hediye karti bulunamadi veya aktif degil");
+            if (giftCardPayment.ExpiresAt.HasValue && giftCardPayment.ExpiresAt.Value < DateTime.UtcNow)
+                return (null, "Hediye kartinin suresi dolmus");
+            if (giftCardPayment.RemainingBalance < invoice.NetAmount)
+                return (null, $"Hediye karti bakiyesi yetersiz. Kalan: {giftCardPayment.RemainingBalance:N2} TL");
+        }
 
         _invoices.Add(invoice);
         await _uow.SaveChangesAsync();
@@ -181,10 +365,36 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         }
         await _uow.SaveChangesAsync();
 
+        foreach (var usage in membershipUsageRecords)
+            await _memberships.RecordUsageAsync(customerId, usage.MembershipId, usage.ServiceId);
+
+        foreach (var usage in packageUsageRecords)
+        {
+            var notes = $"Invoice:{invoice.Id}|InvoiceNo:{invoiceNo}|Service:{usage.ServiceId}";
+            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes);
+            if (!success)
+            {
+                _logger.LogWarning("Paket seansi kaydedilemedi: InvoiceId={InvoiceId}, ClientPackageId={ClientPackageId}, Error={Error}", invoice.Id, usage.ClientPackageId, error);
+                return (null, error ?? "Paket seansi kaydedilemedi");
+            }
+        }
+
+        if (giftCardPayment != null)
+        {
+            var (success, error) = await _giftCards.RedeemGiftCardAsync(new SlnGiftCardRedeemDto
+            {
+                Code = giftCardPayment.Code,
+                Amount = invoice.NetAmount,
+                InvoiceId = invoice.Id
+            }, customerId);
+            if (!success)
+                return (null, error ?? "Hediye karti odemesi kaydedilemedi");
+        }
+
         _logger.LogInformation("Yeni adisyon olusturuldu: {InvoiceNo} - {NetAmount:C}", invoiceNo, invoice.NetAmount);
 
         // Kasaya gelir hareketi yaz (BUG2.3 fix) — once subenin kasasi, yoksa merkez kasa
-        if (invoice.NetAmount > 0)
+        if (invoice.NetAmount > 0 && invoice.PaymentMethodId != GiftCardPaymentMethodId)
         {
             var registerQuery = _cashRegisters.GetAllQueryable()
                 .Where(r => r.CustomerId == customerId && r.IsActive);
@@ -234,14 +444,40 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         if (invoice == null) return (false, "Adisyon bulunamadi");
         if (invoice.StatusId == 3) return (false, "Adisyon zaten iptal edilmis");
 
+        var (packageSaleCancelled, packageSaleError) = await _packages.CancelPackageSaleFromInvoiceAsync(customerId, invoice.Notes);
+        if (!packageSaleCancelled) return (false, packageSaleError);
+
+        var (packageUsagesReversed, packageUsageError) = await _packages.ReverseInvoiceUsagesAsync(customerId, invoice.Id);
+        if (!packageUsagesReversed) return (false, packageUsageError);
+
+        var (giftCardSaleCancelled, giftCardSaleError) = await _giftCards.CancelGiftCardSaleFromInvoiceAsync(customerId, invoice.Notes);
+        if (!giftCardSaleCancelled) return (false, giftCardSaleError);
+
+        var (giftCardRedemptionsReversed, giftCardRedemptionError) = await _giftCards.ReverseInvoiceRedemptionsAsync(customerId, invoice.Id);
+        if (!giftCardRedemptionsReversed) return (false, giftCardRedemptionError);
+
         invoice.StatusId = 3; // Cancelled
 
         // Urun satislarinda stogu geri ekle
         foreach (var item in invoice.Items.Where(it => it.ProductId.HasValue))
         {
-            var product = await _products.GetByIdAsync(item.ProductId!.Value);
+            var product = await _products.GetAllQueryable()
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId!.Value && p.CustomerId == customerId);
             if (product != null)
+            {
                 product.StockQuantity += item.Quantity;
+                _stockMovements.Add(new SlnStockMovement
+                {
+                    CustomerId = customerId,
+                    BranchId = invoice.BranchId,
+                    ProductId = product.Id,
+                    MovementTypeId = 5,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Notes = $"Adisyon iptal: {invoice.InvoiceNo}",
+                    CreatedByPersonnelId = invoice.PersonnelId
+                });
+            }
         }
 
         await _uow.SaveChangesAsync();
@@ -711,7 +947,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var cashExpense = transactions.Where(t => t.TransactionTypeId == 2 && t.PaymentMethodId == 1).Sum(t => t.Amount);
         var ccIncome = transactions.Where(t => t.TransactionTypeId == 1 && t.PaymentMethodId == 2).Sum(t => t.Amount);
         var ccExpense = transactions.Where(t => t.TransactionTypeId == 2 && t.PaymentMethodId == 2).Sum(t => t.Amount);
-        var transferIncome = transactions.Where(t => t.TransactionTypeId == 1 && t.PaymentMethodId == 3).Sum(t => t.Amount);
+        var transferIncome = transactions.Where(t => t.TransactionTypeId == 1 && t.PaymentMethodId == 4).Sum(t => t.Amount);
         var totalIncome = transactions.Where(t => t.TransactionTypeId == 1).Sum(t => t.Amount);
         var totalExpense = transactions.Where(t => t.TransactionTypeId == 2).Sum(t => t.Amount);
 
@@ -861,6 +1097,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
         var maxRefundable = invoice.GrandTotal > 0 ? invoice.GrandTotal : invoice.NetAmount;
         if (refundAmount > maxRefundable) return (null, "Iade tutari adisyon tutarini asamaz.");
+        var isFullRefund = refundAmount >= maxRefundable;
+
+        if (HasPackageSaleNote(invoice.Notes) && !isFullRefund)
+            return (null, "Paket satisinda kismi iade desteklenmiyor. Paket hic kullanilmadiysa tam iade/iptal yapin.");
+
+        if (HasGiftCardSaleNote(invoice.Notes) && !isFullRefund)
+            return (null, "Hediye karti satisinda kismi iade desteklenmiyor. Kart kullanilmadiysa tam iade/iptal yapin.");
+
+        if (!isFullRefund && await _giftCards.HasRedemptionForInvoiceAsync(customerId, invoiceId))
+            return (null, "Hediye karti ile odenen adisyonda kismi iade desteklenmiyor. Tam iade yapin.");
 
         // Iade kaydi
         var refund = new SlnInvoiceRefund
@@ -874,13 +1120,38 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _invoiceRefunds.Add(refund);
 
         // Tam iade ise adisyonu iptal et
-        if (refundAmount >= maxRefundable)
+        if (isFullRefund)
         {
+            var (packageSaleCancelled, packageSaleError) = await _packages.CancelPackageSaleFromInvoiceAsync(customerId, invoice.Notes);
+            if (!packageSaleCancelled) return (null, packageSaleError);
+
+            var (packageUsagesReversed, packageUsageError) = await _packages.ReverseInvoiceUsagesAsync(customerId, invoice.Id);
+            if (!packageUsagesReversed) return (null, packageUsageError);
+
+            var (giftCardSaleCancelled, giftCardSaleError) = await _giftCards.CancelGiftCardSaleFromInvoiceAsync(customerId, invoice.Notes);
+            if (!giftCardSaleCancelled) return (null, giftCardSaleError);
+
+            var (giftCardRedemptionsReversed, giftCardRedemptionError) = await _giftCards.ReverseInvoiceRedemptionsAsync(customerId, invoice.Id);
+            if (!giftCardRedemptionsReversed) return (null, giftCardRedemptionError);
+
             invoice.StatusId = 3; // Cancelled
 
             // Urun stok geri yukle
             foreach (var item in invoice.Items.Where(i => i.ProductId != null && i.Product != null))
+            {
                 item.Product!.StockQuantity += item.Quantity;
+                _stockMovements.Add(new SlnStockMovement
+                {
+                    CustomerId = customerId,
+                    BranchId = invoice.BranchId,
+                    ProductId = item.Product!.Id,
+                    MovementTypeId = 5,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Notes = $"Adisyon iade: {invoice.InvoiceNo}",
+                    CreatedByPersonnelId = personnelId
+                });
+            }
         }
 
         // Cari hesaba iade kaydi
@@ -1031,4 +1302,12 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             byRate
         };
     }
+
+    private static bool HasPackageSaleNote(string? notes)
+        => !string.IsNullOrWhiteSpace(notes)
+            && notes.Contains("PackageSale:", StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasGiftCardSaleNote(string? notes)
+        => !string.IsNullOrWhiteSpace(notes)
+            && notes.Contains("GiftCardSale:", StringComparison.OrdinalIgnoreCase);
 }

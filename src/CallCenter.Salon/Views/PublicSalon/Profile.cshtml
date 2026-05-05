@@ -36,6 +36,7 @@
     <link rel="canonical" href="https://sln.corplynk.com/salon/@slug" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
     <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
     <style>
         body { background: #f5f5f5; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -233,10 +234,11 @@
                     </div>
                     <!-- /ko -->
 
-                    <!-- Uyelik Planlari (bossa tum bolum gizlenir) -->
+                    <!-- Uyelik Planlari (salonun kendi musteri uyelikleri) -->
                     <!-- ko if: key === 'memberships' && $parent.salon().showMemberships !== false && $parent.membershipPlans().length > 0 -->
                     <div class="mb-4" id="section-memberships">
-                        <h4 class="mb-3"><i class="bi bi-award me-2"></i>Uyelik Planlari</h4>
+                        <h4 class="mb-1"><i class="bi bi-award me-2"></i>Musteri Uyelikleri</h4>
+                        <p class="text-muted small mb-3">Bu planlar salonun kendi musterilerine sundugu uyeliklerdir; CorpLynk platform aboneligi degildir.</p>
                         <div class="row g-3">
                             <!-- ko foreach: $parent.membershipPlans -->
                             <div class="col-md-6 col-lg-4">
@@ -248,15 +250,16 @@
                                         <p class="text-muted small mb-3" data-bind="text: description"></p>
                                         <!-- /ko -->
                                         <div class="mb-3">
-                                            <span class="fs-3 fw-bold" data-bind="text: monthlyPrice.toLocaleString('tr-TR')"></span>
-                                            <span class="text-muted">TL/ay</span>
+                                            <span class="fs-3 fw-bold" data-bind="text: Number(monthlyPrice || price || 0).toLocaleString('tr-TR')"></span>
+                                            <span class="text-muted">TL</span>
+                                            <div class="small text-muted" data-bind="text: durationType === 1 ? durationDays + ' gun gecerlidir' : 'Kullanimlik paket'"></div>
                                         </div>
                                         <div class="d-flex flex-column gap-1">
                                             <!-- ko if: discountPercent > 0 -->
                                             <span class="plan-badge badge bg-success-subtle text-success">%<span data-bind="text: discountPercent"></span> indirim</span>
                                             <!-- /ko -->
-                                            <!-- ko if: freeSessionsPerMonth > 0 -->
-                                            <span class="plan-badge badge bg-info-subtle text-info"><span data-bind="text: freeSessionsPerMonth"></span> ucretsiz seans/ay</span>
+                                            <!-- ko if: serviceDetails && serviceDetails.length > 0 -->
+                                            <span class="plan-badge badge bg-info-subtle text-info">Hizmet avantajlari dahil</span>
                                             <!-- /ko -->
                                             <!-- ko if: priorityBooking -->
                                             <span class="plan-badge badge bg-warning-subtle text-warning">Oncelikli randevu</span>
@@ -527,37 +530,21 @@
                         <label class="form-label small">E-posta</label>
                         <input type="email" class="form-control form-control-sm" data-bind="value: signupForm.email" />
                     </div>
-                    <!-- Ucretli plan ise odeme formu -->
-                    <!-- ko if: signupPlanPrice() > 0 -->
+                    <!-- Ucretli plan ise checkout bilgisi -->
+                    <!-- ko if: signupPlanPrice() > 0 && !membershipCheckoutActive() -->
                     <div class="border rounded p-2 mb-3 bg-light">
                         <div class="small fw-bold mb-2"><i class="bi bi-credit-card me-1"></i>Ödeme Bilgileri</div>
                         <div class="alert alert-info py-1 small mb-2">
-                            <i class="bi bi-info-circle me-1"></i>Aylık <strong data-bind="text: signupPlanPrice().toLocaleString('tr-TR') + ' TL'"></strong> ödeme alınacaktır.
-                        </div>
-                        <div class="mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Kart Üzerindeki İsim" data-bind="value: signupForm.cardName" />
-                        </div>
-                        <div class="mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Kart Numarası" maxlength="19" data-bind="value: signupForm.cardNumber, event: { input: formatCardNumber }" />
-                        </div>
-                        <div class="row g-2">
-                            <div class="col-4">
-                                <input type="text" class="form-control form-control-sm" placeholder="AA" maxlength="2" data-bind="value: signupForm.expMonth" />
-                            </div>
-                            <div class="col-4">
-                                <input type="text" class="form-control form-control-sm" placeholder="YY" maxlength="2" data-bind="value: signupForm.expYear" />
-                            </div>
-                            <div class="col-4">
-                                <input type="text" class="form-control form-control-sm" placeholder="CVC" maxlength="4" data-bind="value: signupForm.cvc" />
-                            </div>
+                            <i class="bi bi-info-circle me-1"></i><strong data-bind="text: signupPlanPrice().toLocaleString('tr-TR') + ' TL'"></strong> tutarinda salon musteri uyeligi odemesi alinacaktir. Kart bilgileri guvenli odeme formunda girilir.
                         </div>
                     </div>
                     <!-- /ko -->
-                    <button class="btn btn-book w-100" data-bind="click: submitSignup, disable: isSubmitting">
+                    <div id="membership-checkout-container" class="mt-3" style="display:none;" data-bind="visible: membershipCheckoutActive"></div>
+                    <button class="btn btn-book w-100" data-bind="visible: !membershipCheckoutActive(), click: submitSignup, disable: isSubmitting">
                         <span data-bind="visible: isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSubmitting()"></i>
                         <!-- ko if: signupPlanPrice() > 0 -->
-                        <span>Öde ve Üye Ol</span>
+                        <span>Odeme Formunu Ac</span>
                         <!-- /ko -->
                         <!-- ko if: signupPlanPrice() <= 0 -->
                         <span>Başvuruyu Gönder</span>
@@ -569,9 +556,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="/js/confirm-modal.js"></script>
+    <script src="/js/iyzico-checkout.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.min.js"></script>
     <script src="/js/phone-input.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };</script>
     <script>
         var salonSlug = '@slug';
 
@@ -604,6 +595,7 @@
             self.signupPlanName = ko.observable('');
             self.signupPlanPrice = ko.observable(0);
             self.isSubmitting = ko.observable(false);
+            self.membershipCheckoutActive = ko.observable(false);
             self.signupForm = {
                 fullName: ko.observable(''),
                 phone: ko.observable(''),
@@ -613,6 +605,12 @@
                 expMonth: ko.observable(''),
                 expYear: ko.observable(''),
                 cvc: ko.observable('')
+            };
+
+            self.getPlanPrice = function (plan) {
+                if (!plan) return 0;
+                var value = plan.monthlyPrice != null ? plan.monthlyPrice : plan.price;
+                return Number(value || 0);
             };
 
             self.formatCardNumber = function (data, event) {
@@ -748,10 +746,10 @@
 
             self.submitWaitlist = function () {
                 if (!self.waitlist.fullName() || !self.waitlist.phone()) {
-                    alert('Ad ve telefon zorunlu'); return;
+                    toastr.warning('Ad ve telefon zorunlu'); return;
                 }
                 if (!self.waitlist.serviceId()) {
-                    alert('Hizmet seçiniz'); return;
+                    toastr.warning('Hizmet seciniz'); return;
                 }
                 self.waitlistSaving(true);
                 var payload = {
@@ -769,15 +767,15 @@
                   .then(function (res) {
                       self.waitlistSaving(false);
                       if (res.ok) {
-                          alert(res.body.message || 'Bekleme listesine eklendiniz.');
+                          toastr.success(res.body.message || 'Bekleme listesine eklendiniz.');
                           if (waitlistModal) waitlistModal.hide();
                       } else {
-                          alert((res.body && res.body.message) || 'Kayit basarisiz');
+                          toastr.error((res.body && res.body.message) || 'Kayit basarisiz');
                       }
                   })
                   .catch(function () {
                       self.waitlistSaving(false);
-                      alert('Baglanti hatasi');
+                      toastr.error('Baglanti hatasi');
                   });
             };
 
@@ -786,7 +784,8 @@
                 self.signupPlanName(planName);
                 // Plan fiyatini bul
                 var plan = self.membershipPlans().find(function (p) { return p.id === planId; });
-                self.signupPlanPrice(plan ? plan.monthlyPrice : 0);
+                self.signupPlanPrice(self.getPlanPrice(plan));
+                self.membershipCheckoutActive(false);
                 self.signupForm.fullName('');
                 self.signupForm.phone('');
                 self.signupForm.email('');
@@ -795,6 +794,11 @@
                 self.signupForm.expMonth('');
                 self.signupForm.expYear('');
                 self.signupForm.cvc('');
+                var checkoutContainer = document.getElementById('membership-checkout-container');
+                if (checkoutContainer) {
+                    checkoutContainer.style.display = 'none';
+                    checkoutContainer.innerHTML = '';
+                }
                 if (!signupModal) signupModal = new bootstrap.Modal(document.getElementById('signupModal'));
                 signupModal.show();
             };
@@ -802,13 +806,16 @@
             self.submitSignup = function () {
                 var name = self.signupForm.fullName();
                 var phone = self.signupForm.phone();
-                if (!name || !phone) { alert('Ad ve telefon zorunludur.'); return; }
+                if (!name || !phone) { toastr.warning('Ad ve telefon zorunludur.'); return; }
 
                 var price = self.signupPlanPrice();
                 if (price > 0) {
-                    var cn = self.signupForm.cardNumber().replace(/\s/g, '');
-                    if (!cn || cn.length < 15 || !self.signupForm.expMonth() || !self.signupForm.expYear() || !self.signupForm.cvc()) {
-                        alert('Kart bilgilerini eksiksiz doldurunuz.'); return;
+                    var token = localStorage.getItem('platformToken');
+                    if (!token) {
+                        toastr.warning('Ucretli salon uyeligi icin musteri girisi gereklidir.');
+                        var returnUrl = window.location.pathname + window.location.search + '#section-memberships';
+                        window.location.href = '/user/login?returnUrl=' + encodeURIComponent(returnUrl);
+                        return;
                     }
                 }
 
@@ -829,51 +836,76 @@
                 .then(function (res) {
                     if (!res.ok || !res.data.success) {
                         self.isSubmitting(false);
-                        alert(res.data.message || res.data || 'Bir hata oluştu.');
+                        toastr.error(res.data.message || res.data || 'Bir hata olustu.');
                         return;
                     }
 
-                    // Ucretli plan ise odeme yap
+                    // Ucretli plan ise guvenli checkout formunu baslat
                     if (price > 0 && res.data.slnClientId) {
                         var token = localStorage.getItem('platformToken');
-                        fetch('/public-proxy/payments/membership', {
+                        fetch('/public-proxy/payments/membership-checkout', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' },
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                             body: JSON.stringify({
                                 planId: self.signupPlanId(),
                                 slnClientId: res.data.slnClientId,
-                                card: {
-                                    cardHolderName: self.signupForm.cardName(),
-                                    cardNumber: self.signupForm.cardNumber().replace(/\s/g, ''),
-                                    expireMonth: self.signupForm.expMonth(),
-                                    expireYear: '20' + self.signupForm.expYear(),
-                                    cvc: self.signupForm.cvc(),
-                                    installment: 0
-                                }
+                                slug: salonSlug
                             })
                         })
                         .then(function (r2) { return r2.json().then(function (d2) { return { ok: r2.ok, data: d2 }; }); })
                         .then(function (payRes) {
                             self.isSubmitting(false);
-                            signupModal.hide();
-                            if (payRes.ok) {
-                                alert('Ödeme başarılı! Üyeliğiniz aktif edildi.');
+                            if (payRes.ok && payRes.data.success) {
+                                var container = document.getElementById('membership-checkout-container');
+                                self.membershipCheckoutActive(true);
+                                if (container) {
+                                    container.style.display = '';
+                                    renderIyzicoCheckoutHtml(container, payRes.data.htmlContent || payRes.data.checkoutFormHtml || '');
+                                }
+                                toastr.info('Guvenli odeme formu acildi. Odeme tamamlaninca uyeliginiz aktif edilir.');
                             } else {
-                                alert('Üyelik oluşturuldu ama ödeme başarısız: ' + (payRes.data.message || 'Bilinmeyen hata'));
+                                var payError = payRes.data ? (payRes.data.error || payRes.data.message) : null;
+                                toastr.error('Odeme formu baslatilamadi: ' + (payError || 'Bilinmeyen hata'));
                             }
                         })
-                        .catch(function () { self.isSubmitting(false); alert('Ödeme bağlantı hatası.'); });
+                        .catch(function () { self.isSubmitting(false); toastr.error('Odeme baglanti hatasi.'); });
                     } else {
                         self.isSubmitting(false);
                         signupModal.hide();
-                        alert(res.data.message || 'Üyelik başvurunuz alındı!');
+                        toastr.success(res.data.message || 'Uyelik basvurunuz alindi!');
                     }
                 })
-                .catch(function () { self.isSubmitting(false); alert('Bağlantı hatası.'); });
+                .catch(function () { self.isSubmitting(false); toastr.error('Baglanti hatasi.'); });
             };
+
+            window.addEventListener('message', function (event) {
+                if (!event.data || !self.membershipCheckoutActive()) return;
+                if (event.data.type === 'payment-success') {
+                    self.membershipCheckoutActive(false);
+                    self.isSubmitting(false);
+                    if (signupModal) signupModal.hide();
+                    toastr.success('Odeme basarili. Salon uyeliginiz aktif edildi.');
+                }
+                if (event.data.type === 'payment-failed') {
+                    self.isSubmitting(false);
+                    toastr.error(event.data.error || 'Odeme basarisiz.');
+                }
+            });
         }
 
         ko.applyBindings(new PublicSalonViewModel(), document.getElementById('public-salon-vm'));
+
+        function setJoinAreaDisplay(id, value) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = value;
+        }
+
+        (function () {
+            var qs = new URLSearchParams(window.location.search);
+            if (qs.get('paid') === 'true') toastr.success('Odeme basarili. Salon uyeliginiz aktif edildi.');
+            var payerr = qs.get('payerr');
+            if (payerr) toastr.error(payerr);
+        })();
 
         // ═══ Platform User: Salon Müşterisi Ol ═══
         (function () {
@@ -881,7 +913,7 @@
             var salonSlug = '@slug';
 
             if (!token) {
-                document.getElementById('btnLoginToJoin').style.display = '';
+                setJoinAreaDisplay('btnLoginToJoin', '');
                 return;
             }
 
@@ -895,19 +927,19 @@
 
                     if (!customerId) {
                         // customerId'yi DOM'dan alamadıysak slug ile proxy'den alalım
-                        document.getElementById('btnJoinSalon').style.display = '';
+                        setJoinAreaDisplay('btnJoinSalon', '');
                         return;
                     }
 
                     var isMember = salons.some(function (s) { return s.customerId === customerId; });
                     if (isMember) {
-                        document.getElementById('alreadyMember').style.display = '';
+                        setJoinAreaDisplay('alreadyMember', '');
                     } else {
-                        document.getElementById('btnJoinSalon').style.display = '';
+                        setJoinAreaDisplay('btnJoinSalon', '');
                     }
                 })
                 .catch(function () {
-                    document.getElementById('btnJoinSalon').style.display = '';
+                    setJoinAreaDisplay('btnJoinSalon', '');
                 });
         })();
 
@@ -915,30 +947,35 @@
             var token = localStorage.getItem('platformToken');
             if (!token) { window.location.href = '/user/login'; return; }
 
-            if (!confirm('Bu salonun müşterisi olarak kaydolmak ve bilgilerinizi paylaşmak istiyor musunuz?')) return;
+            confirmModal(
+                'Salona Katil',
+                'Bu salonun musterisi olarak kaydolmak ve bilgilerinizi paylasmak istiyor musunuz?',
+                function () {
+                    // customerId'yi salon verisinden al
+                    var vm = ko.dataFor(document.getElementById('public-salon-vm'));
+                    var customerId = vm?.salon()?.customerId;
 
-            // customerId'yi salon verisinden al
-            var vm = ko.dataFor(document.getElementById('public-salon-vm'));
-            var customerId = vm?.salon()?.customerId;
+                    if (!customerId) { toastr.error('Salon bilgisi alinamadi.'); return; }
 
-            if (!customerId) { alert('Salon bilgisi alınamadı.'); return; }
-
-            fetch('/public-proxy/platform/salons/join', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ customerId: customerId })
-            })
-            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-            .then(function (res) {
-                if (res.ok) {
-                    alert('Salona üye oldunuz!');
-                    document.getElementById('btnJoinSalon').style.display = 'none';
-                    document.getElementById('alreadyMember').style.display = '';
-                } else {
-                    alert(res.data.message || 'İşlem başarısız.');
-                }
-            })
-            .catch(function () { alert('Bağlantı hatası.'); });
+                    fetch('/public-proxy/platform/salons/join', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ customerId: customerId })
+                    })
+                    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                    .then(function (res) {
+                        if (res.ok) {
+                            toastr.success('Salona uye oldunuz!');
+                            setJoinAreaDisplay('btnJoinSalon', 'none');
+                            setJoinAreaDisplay('alreadyMember', '');
+                        } else {
+                            toastr.error(res.data.message || 'Islem basarisiz.');
+                        }
+                    })
+                    .catch(function () { toastr.error('Baglanti hatasi.'); });
+                },
+                { confirmText: 'Katil', confirmClass: 'btn-book' }
+            );
         }
     </script>
 </body>

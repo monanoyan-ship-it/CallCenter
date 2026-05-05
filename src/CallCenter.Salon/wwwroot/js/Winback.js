@@ -4,6 +4,8 @@ function WinbackViewModel() {
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
+    self.preview = ko.observable(null);
+    self.isPreviewLoading = ko.observable(false);
 
     self.form = {
         name: ko.observable(''),
@@ -18,6 +20,11 @@ function WinbackViewModel() {
     self.channelText = function (id) { return channelTexts[id] || 'Bilinmiyor'; };
 
     var formModal;
+    var previewModal;
+    function readError(xhr) {
+        if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || 'Bir hata olustu';
+    }
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-winback', method: 'GET' }).done(function (data) {
@@ -86,7 +93,7 @@ function WinbackViewModel() {
                 toastr.success(self.isEditing() ? 'Kural guncellendi' : 'Kural olusturuldu');
                 self.isSaving(false);
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || 'Bir hata olustu');
+                toastr.error(readError(xhr));
                 self.isSaving(false);
             });
     };
@@ -109,8 +116,27 @@ function WinbackViewModel() {
         });
     };
 
+    self.openPreview = function (rule) {
+        self.preview(null);
+        self.isPreviewLoading(true);
+        previewModal.show();
+        $.ajax({ url: '/proxy/sln-winback/' + rule.id + '/preview', method: 'GET' })
+            .done(function (data) { self.preview(data); })
+            .fail(function (xhr) { toastr.error(readError(xhr)); })
+            .always(function () { self.isPreviewLoading(false); });
+    };
+
+    self.createCampaign = function (rule) {
+        confirmModal('Onay', "'" + rule.name + "' kuralindan kampanya olusturulsun mu?", function () {
+            $.ajax({ url: '/proxy/sln-winback/' + rule.id + '/create-campaign', method: 'POST' })
+                .done(function () { toastr.success('Winback kampanyasi olusturuldu'); })
+                .fail(function (xhr) { toastr.error(readError(xhr)); });
+        });
+    };
+
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('winbackModal'));
+        previewModal = new bootstrap.Modal(document.getElementById('winbackPreviewModal'));
         self.loadData();
     });
 }

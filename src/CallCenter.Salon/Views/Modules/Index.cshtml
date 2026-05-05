@@ -5,7 +5,7 @@
 <div id="modules-vm">
     <!-- ko if: platformUnpaid().length > 0 -->
     <div class="alert alert-warning border-warning mb-3 py-2 small">
-        <div class="fw-semibold mb-1"><i class="bi bi-receipt-cutoff me-1"></i>Ödenmemiş platform dönemi</div>
+        <div class="fw-semibold mb-1"><i class="bi bi-receipt-cutoff me-1"></i><span data-bind="text: platformBillingTitle"></span></div>
         <ul class="mb-2 ps-3" data-bind="foreach: platformUnpaid">
             <li><span data-bind="text: (month || '-') + '/' + (year || '-')"></span> —
                 <strong data-bind="text: (total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺'"></strong></li>
@@ -15,7 +15,7 @@
                 <span data-bind="visible: platformPayLoading" class="spinner-border spinner-border-sm me-1"></span>
                 <i class="bi bi-credit-card me-1"></i>Kredi kartı ile tahakkuk ödemesi
             </button>
-            <span class="text-muted">İyzico güvenli ödeme; modül satın alma ile aynı kart altyapısı.</span>
+            <span class="text-muted" data-bind="text: platformBillingHint"></span>
         </div>
     </div>
     <!-- /ko -->
@@ -118,12 +118,71 @@
         </div>
     </div>
 
+    <!-- Odeme gecmisi -->
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i>Odeme Gecmisi</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: loadPaymentHistory, disable: paymentHistoryLoading">
+                <span class="spinner-border spinner-border-sm me-1" data-bind="visible: paymentHistoryLoading"></span>
+                <i class="bi bi-arrow-clockwise" data-bind="visible: !paymentHistoryLoading()"></i>
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="text-center py-4" data-bind="visible: paymentHistoryLoading">
+                <div class="spinner-border text-primary"></div>
+            </div>
+            <div class="text-center text-muted py-4" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length === 0">
+                Henuz odeme kaydi yok.
+            </div>
+            <div class="table-responsive" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length > 0">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Tur</th>
+                            <th>Yontem</th>
+                            <th class="text-end">Tutar</th>
+                            <th>Durum</th>
+                            <th class="text-end"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: paymentHistory">
+                        <tr>
+                            <td class="small text-nowrap" data-bind="text: $root.paymentDateText($data)"></td>
+                            <td class="small" data-bind="text: paymentType || '-'"></td>
+                            <td class="small" data-bind="text: paymentMethod || provider || '-'"></td>
+                            <td class="small text-end fw-semibold" data-bind="text: $root.paymentAmountText($data)"></td>
+                            <td>
+                                <span class="small fw-semibold" data-bind="css: $root.paymentStatusClass($data), text: status || '-'"></span>
+                                <div class="small text-danger" data-bind="visible: errorMessage, text: errorMessage"></div>
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 me-1"
+                                        data-bind="visible: canDownloadReceipt, click: $root.downloadReceipt">
+                                    <i class="bi bi-download me-1"></i>Dekont
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 me-1"
+                                        data-bind="visible: canDownloadHavaleReceipt, click: $root.downloadHavaleReceipt">
+                                    <i class="bi bi-paperclip me-1"></i>Havale
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                        data-bind="visible: canRetry, click: $root.retryPayment">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Tekrar Dene
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Satin Alma Modal -->
     <div class="modal fade" id="purchaseModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-cart-check me-1"></i>Modul Satin Al</h6>
+                    <h6 class="modal-title"><i class="bi bi-cart-check me-1"></i><span data-bind="text: purchaseModalTitle"></span></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -135,7 +194,7 @@
                         </div>
                         <div data-bind="visible: !purchaseLoading() && purchasePreview()">
                             <div class="alert alert-info py-2 small mb-3">
-                                <i class="bi bi-info-circle me-1"></i>Tahakkuk tarihinize kalan gun icin kist-i hesap ucreti alinacaktir.
+                                <i class="bi bi-info-circle me-1"></i>Bugun yalniz sonraki tahakkuk tarihine kadar olan kist donem tahsil edilir; fiyatlar KDV dahildir.
                             </div>
                             <table class="table table-sm mb-3">
                                 <tr>
@@ -143,7 +202,7 @@
                                     <td class="fw-bold text-end" data-bind="text: purchasePreview() ? purchasePreview().packageName : ''"></td>
                                 </tr>
                                 <tr>
-                                    <td class="text-muted">Aylik Fiyat</td>
+                                    <td class="text-muted">Aylik Paket Fiyati</td>
                                     <td class="text-end" data-bind="text: purchasePreview() ? purchasePreview().monthlyPrice.toLocaleString('tr-TR') + ' ₺' : ''"></td>
                                 </tr>
                                 <tr>
@@ -160,10 +219,14 @@
                                     <td class="fw-bold">Simdi Odenecek</td>
                                     <td class="fw-bold text-end fs-5 text-success" data-bind="text: purchasePreview() ? purchasePreview().totalNow.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺' : ''"></td>
                                 </tr>
+                                <tr>
+                                    <td class="text-muted">Sonraki Donemlerden Itibaren</td>
+                                    <td class="text-end" data-bind="text: purchasePreview() ? (purchasePreview().recurringMonthlyAmount || purchasePreview().monthlyPrice).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺/ay (KDV dahil)' : ''"></td>
+                                </tr>
                             </table>
                             <div class="small text-muted mb-3">
-                                <i class="bi bi-calendar-check me-1"></i>Sonraki tahakkuktan itibaren aylik
-                                <strong data-bind="text: purchasePreview() ? purchasePreview().monthlyPrice.toLocaleString('tr-TR') + ' ₺' : ''"></strong> faturalandirilacaktir.
+                                <i class="bi bi-calendar-check me-1"></i>
+                                <span data-bind="text: purchasePreview() && purchasePreview().billingNote ? purchasePreview().billingNote : 'Sonraki tahakkuktan itibaren paket aylik olarak faturalandirilacaktir.'"></span>
                             </div>
                             <button class="btn btn-success w-100" data-bind="click: startCheckout, disable: purchaseLoading()">
                                 <i class="bi bi-credit-card me-1"></i>Odemeye Gec
@@ -188,14 +251,14 @@
                         </div>
                         <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success">
                             <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
-                            <h5 class="mt-2 text-success">Odeme Basarili!</h5>
-                            <p class="text-muted small mb-1">Modulunuz aktif edildi.</p>
-                            <div class="alert alert-warning py-2 small mt-3 text-start">
+                            <h5 class="mt-2 text-success" data-bind="text: purchaseResultTitle"></h5>
+                            <p class="text-muted small mb-1" data-bind="text: purchaseResultMessage"></p>
+                            <div class="alert alert-warning py-2 small mt-3 text-start" data-bind="visible: purchaseResultRequiresSessionRefresh">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong>Yeni modulu kullanabilmek icin sistemden cikis yapip tekrar giris yapmaniz gerekmektedir.</strong>
+                                <strong>Yeni modulu menude gormek icin oturumu yenileyin.</strong>
                             </div>
-                            <a href="/Account/Logout" class="btn btn-primary btn-sm mt-1">
-                                <i class="bi bi-box-arrow-right me-1"></i>Cikis Yap ve Tekrar Giris Yap
+                            <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: purchaseResultRequiresSessionRefresh">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Oturumu Yenile
                             </a>
                         </div>
                         <div class="text-center py-4" data-bind="visible: purchaseResult() && !purchaseResult().success">

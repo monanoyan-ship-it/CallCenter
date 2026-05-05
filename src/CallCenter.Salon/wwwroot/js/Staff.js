@@ -101,6 +101,12 @@ function StaffViewModel() {
 
     var formModal;
 
+    function read(obj, camel, pascal) {
+        if (!obj) return undefined;
+        if (obj[camel] !== undefined && obj[camel] !== null) return obj[camel];
+        return obj[pascal];
+    }
+
     self.loadData = function () {
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
@@ -155,24 +161,25 @@ function StaffViewModel() {
     };
 
     self.openEdit = function (staff) {
+        var roleId = Number(read(staff, 'customerRoleId', 'CustomerRoleId') || 103);
         self.isEditing(true);
-        self.isOwnerEdit(staff.customerRoleId === 101); // SalonOwner = 101
-        self.editingId(staff.id);
-        self.form.userName(staff.userName || '');
-        self.form.fullName(staff.fullName || '');
-        self.form.email(staff.email || '');
+        self.isOwnerEdit(roleId === 101); // SalonOwner = 101
+        self.editingId(read(staff, 'id', 'Id'));
+        self.form.userName(read(staff, 'userName', 'UserName') || '');
+        self.form.fullName(read(staff, 'fullName', 'FullName') || '');
+        self.form.email(read(staff, 'email', 'Email') || '');
         self.form.password('');
-        self.form.title(staff.title || '');
-        self.form.customerRoleId(staff.customerRoleId || 103);
-        self.form.branchId(staff.branchId || null);
-        self.form.skillServiceIds(staff.skillServiceIds || []);
-        self.form.isActive(staff.isActive ? 'true' : 'false');
-        self.form.photoUrl(staff.photoUrl || '');
-        self.form.publicVisible(staff.publicVisible !== false);
-        self.form.publicShowFullName(staff.publicShowFullName !== false);
-        self.form.publicShowPhoto(staff.publicShowPhoto !== false);
-        self.form.publicShowTitle(staff.publicShowTitle !== false);
-        self.form.publicShowSpecialty(staff.publicShowSpecialty !== false);
+        self.form.title(read(staff, 'title', 'Title') || '');
+        self.form.customerRoleId(roleId);
+        self.form.branchId(read(staff, 'branchId', 'BranchId') || null);
+        self.form.skillServiceIds(read(staff, 'skillServiceIds', 'SkillServiceIds') || []);
+        self.form.isActive(read(staff, 'isActive', 'IsActive') ? 'true' : 'false');
+        self.form.photoUrl(read(staff, 'photoUrl', 'PhotoUrl') || '');
+        self.form.publicVisible(read(staff, 'publicVisible', 'PublicVisible') !== false);
+        self.form.publicShowFullName(read(staff, 'publicShowFullName', 'PublicShowFullName') !== false);
+        self.form.publicShowPhoto(read(staff, 'publicShowPhoto', 'PublicShowPhoto') !== false);
+        self.form.publicShowTitle(read(staff, 'publicShowTitle', 'PublicShowTitle') !== false);
+        self.form.publicShowSpecialty(read(staff, 'publicShowSpecialty', 'PublicShowSpecialty') !== false);
         formModal.show();
     };
 
@@ -285,6 +292,12 @@ function StaffViewModel() {
                     customerRoleId: staff.customerRoleId,
                     branchId: staff.branchId,
                     isActive: staff.isActive,
+                    publicVisible: staff.publicVisible !== false,
+                    publicShowFullName: staff.publicShowFullName !== false,
+                    publicShowPhoto: staff.publicShowPhoto !== false,
+                    publicShowTitle: staff.publicShowTitle !== false,
+                    publicShowSpecialty: staff.publicShowSpecialty !== false,
+                    skillServiceIds: staff.skillServiceIds || [],
                     password: newPassword
                 })
             }).done(function () {

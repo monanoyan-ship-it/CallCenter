@@ -1,12 +1,90 @@
 // Salon Dashboard — istatistik kartlari + bugun randevulari + dogum gunu hatirlatmalari
 (function () {
     function fmt(n) { return (n || 0).toLocaleString('tr-TR'); }
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function updateSubscriptionPaymentCta(subscription) {
+        var btn = document.getElementById('subPaymentBtn');
+        var info = document.getElementById('subPaymentInfo');
+        if (!btn && !info) return;
+
+        if (btn) {
+            btn.style.display = 'none';
+            btn.classList.add('disabled');
+            btn.setAttribute('aria-disabled', 'true');
+            btn.href = '/Modules?pay=subscription';
+        }
+        if (info) {
+            info.style.display = '';
+            info.textContent = 'Odeme durumu kontrol ediliyor...';
+        }
+
+        $.get('/proxy/subscriptions/my', function (d) {
+            var unpaid = d && Array.isArray(d.unpaidBillings) ? d.unpaidBillings : [];
+            var hasDebt = unpaid.some(function (b) {
+                var total = Number(b && b.total);
+                return !isNaN(total) && total > 0;
+            });
+
+            if (hasDebt) {
+                if (btn) {
+                    btn.style.display = '';
+                    btn.classList.remove('disabled');
+                    btn.removeAttribute('aria-disabled');
+                }
+                if (info) info.style.display = 'none';
+                return;
+            }
+
+            if (info) {
+                info.style.display = '';
+                info.textContent = subscription && subscription.isTrial
+                    ? 'Demo surecindesiniz; su anda odenecek tahakkuk yok.'
+                    : 'Odenecek tahakkuk yok.';
+            }
+        }).fail(function () {
+            if (info) {
+                info.style.display = '';
+                info.textContent = 'Odeme durumu alinamadi.';
+            }
+        });
+    }
+
     function loadDashboard() {
         $.get('/proxy/sln-dashboard', function (d) {
             document.getElementById('totalClients').textContent = fmt(d.totalClients);
             document.getElementById('todayAppointments').textContent = fmt(d.todayAppointmentsCount);
             document.getElementById('todayRevenue').textContent = fmt(d.todayRevenue) + ' ₺';
             document.getElementById('activeStaff').textContent = fmt(d.activeStaff);
+
+            // Kritik stok uyarilari
+            var lowStockBadge = document.getElementById('lowStockCount');
+            if (lowStockBadge) lowStockBadge.textContent = fmt(d.lowStockCount);
+
+            var lowStockList = document.getElementById('lowStockList');
+            if (lowStockList) {
+                if (!d.lowStockAlerts || d.lowStockAlerts.length === 0) {
+                    lowStockList.innerHTML = '<p class="text-muted small mb-0">Kritik stok yok.</p>';
+                } else {
+                    lowStockList.innerHTML = d.lowStockAlerts.map(function (p) {
+                        var unit = escapeHtml(p.unit || '');
+                        return '<a href="/Products" class="d-block text-decoration-none text-dark border-bottom py-2">' +
+                            '<div class="d-flex align-items-start justify-content-between gap-2">' +
+                            '<div><div class="small fw-semibold">' + escapeHtml(p.productName) + '</div>' +
+                            '<div class="text-muted" style="font-size:.75rem;">Stok: ' + fmt(p.stockQuantity) + ' / ' + fmt(p.minStockLevel) + ' ' + unit + '</div></div>' +
+                            '<span class="badge bg-danger-subtle text-danger">Kritik</span></div>' +
+                            '<div class="small text-success mt-1"><i class="bi bi-cart-plus me-1"></i>Siparis onerisi: ' + fmt(p.reorderQuantity) + ' ' + unit + '</div>' +
+                            '</a>';
+                    }).join('');
+                }
+            }
 
             // Bugunun randevulari
             var apptList = document.getElementById('todayApptList');
@@ -63,6 +141,7 @@
                 document.getElementById('subNextBilling').textContent = s.nextBillingDate
                     ? new Date(s.nextBillingDate).toLocaleDateString('tr-TR')
                     : '-';
+                updateSubscriptionPaymentCta(s);
             } else if (subCard) {
                 subCard.style.display = 'none';
             }

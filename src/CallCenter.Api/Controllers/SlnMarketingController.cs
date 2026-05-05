@@ -30,7 +30,7 @@ public class SlnMarketingController : ControllerBase
         return Ok(campaigns);
     }
 
-    [HttpGet("campaigns/{id}")]
+    [HttpGet("campaigns/{id:int}")]
     public async Task<ActionResult<SlnCampaignDto>> GetCampaign(int id)
     {
         var customerId = GetCustomerId();
@@ -50,7 +50,7 @@ public class SlnMarketingController : ControllerBase
         return Ok(campaign);
     }
 
-    [HttpPut("campaigns/{id}")]
+    [HttpPut("campaigns/{id:int}")]
     public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnCampaignUpdateDto dto)
     {
         var customerId = GetCustomerId();
@@ -60,7 +60,7 @@ public class SlnMarketingController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
-    [HttpDelete("campaigns/{id}")]
+    [HttpDelete("campaigns/{id:int}")]
     public async Task<ActionResult> DeleteCampaign(int id)
     {
         var customerId = GetCustomerId();
@@ -80,7 +80,17 @@ public class SlnMarketingController : ControllerBase
         return Ok(preview);
     }
 
-    [HttpPost("campaigns/{id}/send")]
+    [HttpGet("campaigns/segment-presets")]
+    public async Task<ActionResult<List<SlnSegmentPresetDto>>> GetSegmentPresets()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var presets = await _marketingFactory.GetSegmentPresetsAsync(customerId);
+        return Ok(presets);
+    }
+
+    [HttpPost("campaigns/{id:int}/send")]
     public async Task<ActionResult> SendCampaign(int id)
     {
         var customerId = GetCustomerId();
@@ -112,7 +122,7 @@ public class SlnMarketingController : ControllerBase
         return Ok(reminder);
     }
 
-    [HttpPut("reminders/{id}")]
+    [HttpPut("reminders/{id:int}")]
     public async Task<ActionResult> UpdateReminder(int id, [FromBody] SlnAutoReminderUpdateDto dto)
     {
         var customerId = GetCustomerId();
@@ -122,7 +132,7 @@ public class SlnMarketingController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
-    [HttpDelete("reminders/{id}")]
+    [HttpDelete("reminders/{id:int}")]
     public async Task<ActionResult> DeleteReminder(int id)
     {
         var customerId = GetCustomerId();
@@ -132,7 +142,7 @@ public class SlnMarketingController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
-    [HttpPost("reminders/{id}/toggle")]
+    [HttpPost("reminders/{id:int}/toggle")]
     public async Task<ActionResult> ToggleReminder(int id)
     {
         var customerId = GetCustomerId();

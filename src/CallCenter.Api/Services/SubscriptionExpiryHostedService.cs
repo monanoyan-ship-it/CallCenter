@@ -7,7 +7,7 @@ namespace CallCenter.Api.Services;
 
 /// <summary>
 /// Periyodik trial/abonelik suresi dolma kontrolu.
-/// Trial: <see cref="CallCenter.Shared.Entities.CustomerSubscription.PeriodPrice"/> == 0; sonraki tahakkuk tarihi + TrialSuspensionGraceDays sonrasi askiya.
+/// Trial: <see cref="CallCenter.Shared.Entities.CustomerSubscription.PeriodPrice"/> == 0; demo bitis tarihi sonrasi askiya.
 /// Ucretli: PeriodPrice &gt; 0; odenmemis en eski tahakkugun PeriodStartDate + UnpaidGraceDays sonrasi askiya.
 /// </summary>
 public class SubscriptionExpiryHostedService : BackgroundService

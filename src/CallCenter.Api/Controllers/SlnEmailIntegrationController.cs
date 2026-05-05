@@ -106,7 +106,7 @@ public class SlnEmailIntegrationController : ControllerBase
     [AllowAnonymous]
     public ActionResult GmailCallback([FromQuery] string? code, [FromQuery] string? error)
     {
-        var salonBaseUrl = _config["Salon:BaseUrl"] ?? "http://localhost:5270";
+        var salonBaseUrl = _config["Salon:BaseUrl"] ?? "http://localhost:5239";
         if (!string.IsNullOrEmpty(error))
             return Redirect($"{salonBaseUrl}/EmailSettings?error={Uri.EscapeDataString(error)}");
         return Redirect($"{salonBaseUrl}/EmailSettings?provider=gmail&code={Uri.EscapeDataString(code ?? "")}");
@@ -164,7 +164,7 @@ public class SlnEmailIntegrationController : ControllerBase
     [AllowAnonymous]
     public ActionResult Office365Callback([FromQuery] string? code, [FromQuery] string? error)
     {
-        var salonBaseUrl = _config["Salon:BaseUrl"] ?? "http://localhost:5270";
+        var salonBaseUrl = _config["Salon:BaseUrl"] ?? "http://localhost:5239";
         if (!string.IsNullOrEmpty(error))
             return Redirect($"{salonBaseUrl}/EmailSettings?error={Uri.EscapeDataString(error)}");
         return Redirect($"{salonBaseUrl}/EmailSettings?provider=office365&code={Uri.EscapeDataString(code ?? "")}");

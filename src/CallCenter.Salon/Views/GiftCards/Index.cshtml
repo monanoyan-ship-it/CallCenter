@@ -73,6 +73,14 @@
                             <label class="form-label small">Son Kullanma Tarihi</label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.expiresAt" />
                         </div>
+                        <div class="col-12">
+                            <label class="form-label small">Odeme Yontemi</label>
+                            <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Karti</option>
+                                <option value="4">Havale/EFT</option>
+                            </select>
+                        </div>
                         <div class="col-6">
                             <label class="form-label small">Alici Adi</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientName" />

@@ -64,7 +64,7 @@ public class ProxyController(IConfiguration config) : MgmtBaseController
         {
             using var client = CreateApiClient();
             var response = await send(client);
-            return await ToJsonResult(response);
+            return await ToApiResult(response);
         }
         catch (HttpRequestException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
         {
@@ -93,7 +93,7 @@ public class ProxyController(IConfiguration config) : MgmtBaseController
         });
     }
 
-    private static async Task<IActionResult> ToJsonResult(HttpResponseMessage response)
+    private static async Task<IActionResult> ToApiResult(HttpResponseMessage response)
     {
         var statusCode = (int)response.StatusCode;
 
@@ -101,12 +101,34 @@ public class ProxyController(IConfiguration config) : MgmtBaseController
         if (statusCode == 204)
             return new StatusCodeResult(204);
 
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
+        var mediaType = response.Content.Headers.ContentType?.MediaType ?? "";
+        var contentType = response.Content.Headers.ContentType?.ToString();
+        var isJson = string.IsNullOrWhiteSpace(mediaType)
+            || mediaType.Contains("json", StringComparison.OrdinalIgnoreCase);
+
+        if (isJson || !response.IsSuccessStatusCode)
         {
-            Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
-            ContentType = "application/json; charset=utf-8",
-            StatusCode = statusCode
-        };
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
+                ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/json; charset=utf-8" : contentType,
+                StatusCode = statusCode
+            };
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+        fileName = fileName?.Trim('"');
+
+        if (string.IsNullOrWhiteSpace(contentType))
+            contentType = "application/octet-stream";
+
+        var result = new FileContentResult(bytes, contentType);
+        if (!string.IsNullOrWhiteSpace(fileName))
+            result.FileDownloadName = fileName;
+
+        return result;
     }
 }

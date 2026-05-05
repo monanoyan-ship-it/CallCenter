@@ -12,7 +12,7 @@ public class ProxyController : SlnBaseController
     {
         using var client = CreateApiClient();
         var response = await client.GetAsync($"api/{path}{Request.QueryString}");
-        return await ToJsonResult(response);
+        return await ToApiResult(response);
     }
 
     [HttpPost("proxy/{**path}")]
@@ -39,14 +39,14 @@ public class ProxyController : SlnBaseController
                 multipart.Add(new StringContent(field.Value!), field.Key);
             }
             var multipartResponse = await client.PostAsync($"api/{path}{Request.QueryString}", multipart);
-            return await ToJsonResult(multipartResponse);
+            return await ToApiResult(multipartResponse);
         }
 
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
         var response = await client.PostAsync($"api/{path}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        return await ToJsonResult(response);
+        return await ToApiResult(response);
     }
 
     [HttpPut("proxy/{**path}")]
@@ -57,7 +57,7 @@ public class ProxyController : SlnBaseController
         var body = await reader.ReadToEndAsync();
         var response = await client.PutAsync($"api/{path}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        return await ToJsonResult(response);
+        return await ToApiResult(response);
     }
 
     [HttpDelete("proxy/{**path}")]
@@ -65,27 +65,49 @@ public class ProxyController : SlnBaseController
     {
         using var client = CreateApiClient();
         var response = await client.DeleteAsync($"api/{path}");
-        return await ToJsonResult(response);
+        return await ToApiResult(response);
     }
 
     /// <summary>
-    /// API response'unu JSON ContentResult'a cevirir.
+    /// API response'unu JSON veya dosya cevabina cevirir.
     /// Bos body'de "null" doner (jQuery dataType:'json' ile uyumlu).
     /// 204 NoContent body/Content-Length kabul etmez, StatusCodeResult doner.
     /// </summary>
-    private static async Task<IActionResult> ToJsonResult(HttpResponseMessage response)
+    private static async Task<IActionResult> ToApiResult(HttpResponseMessage response)
     {
         var statusCode = (int)response.StatusCode;
 
         if (statusCode == 204)
             return new StatusCodeResult(204);
 
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
+        var mediaType = response.Content.Headers.ContentType?.MediaType ?? "";
+        var contentType = response.Content.Headers.ContentType?.ToString();
+        var isJson = string.IsNullOrWhiteSpace(mediaType)
+            || mediaType.Contains("json", StringComparison.OrdinalIgnoreCase);
+
+        if (isJson || !response.IsSuccessStatusCode)
         {
-            Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
-            ContentType = "application/json; charset=utf-8",
-            StatusCode = statusCode
-        };
+            var text = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                Content = string.IsNullOrWhiteSpace(text) ? "null" : text,
+                ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/json; charset=utf-8" : contentType,
+                StatusCode = statusCode
+            };
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+        fileName = fileName?.Trim('"');
+
+        if (string.IsNullOrWhiteSpace(contentType))
+            contentType = "application/octet-stream";
+
+        var result = new FileContentResult(bytes, contentType);
+        if (!string.IsNullOrWhiteSpace(fileName))
+            result.FileDownloadName = fileName;
+
+        return result;
     }
 }

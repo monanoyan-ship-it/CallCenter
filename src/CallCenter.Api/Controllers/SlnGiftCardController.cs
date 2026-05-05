@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
 using CallCenter.Shared.DTOs;
@@ -47,10 +46,11 @@ public class SlnGiftCardController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<SlnGiftCardDto>> CreateGiftCard([FromBody] SlnGiftCardCreateDto dto)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _giftCardFactory.CreateGiftCardAsync(dto, userId, customerId));
+        var (card, error) = await _giftCardFactory.CreateGiftCardAsync(dto, personnelId, customerId, GetBranchId());
+        return card != null ? Ok(card) : BadRequest(error);
     }
 
     [HttpPost("redeem")]
@@ -71,9 +71,15 @@ public class SlnGiftCardController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
-    private int GetUserId()
-        => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+    private int GetPersonnelId()
+        => int.Parse(User.FindFirst("CustomerPersonnelId")?.Value ?? "0");
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 }

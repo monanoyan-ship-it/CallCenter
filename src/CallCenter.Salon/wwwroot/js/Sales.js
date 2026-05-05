@@ -2,15 +2,18 @@ function SalesViewModel() {
     var self = this;
     self.categories = ko.observableArray([]);
     self.allServices = ko.observableArray([]);
+    self.products = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
     self.staffList = ko.observableArray([]);
     self.recipes = ko.observableArray([]);
     self.selectedCategoryId = ko.observable(null);
+    self.productSearchQuery = ko.observable('');
     self.showRecipes = ko.observable(false);
     self.cartItems = ko.observableArray([]);
     self.clientId = ko.observable(null);
     self.selectedPersonnelId = ko.observable(null);
     self.paymentMethodId = ko.observable('1');
+    self.giftCardCode = ko.observable('');
     self.discountAmount = ko.observable(0);
     self.tipAmount = ko.observable(0);
     self.tipIncludeInTotal = ko.observable(false); // BUG.A2: bahsis toplama dahil mi
@@ -21,20 +24,92 @@ function SalesViewModel() {
     self.isPrepaid = ko.observable(false);
     self.prepaidAmount = ko.observable(0);
 
+    function readError(xhr, fallback) {
+        if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
+    }
+
     // ═══ Autocomplete ═══
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.clientId);
+
+    self.ensureBenefitFields = function (item) {
+        if (typeof item.benefitText !== 'function') item.benefitText = ko.observable(item.benefitText || null);
+        if (!('membershipId' in item)) item.membershipId = null;
+        if (!('useMembershipBenefit' in item)) item.useMembershipBenefit = false;
+        if (!('clientPackageId' in item)) item.clientPackageId = null;
+        if (!('usePackageSession' in item)) item.usePackageSession = false;
+        if (!('packageRemainingSessions' in item)) item.packageRemainingSessions = null;
+        return item;
+    };
+
+    self.resetServiceBenefit = function (item) {
+        self.ensureBenefitFields(item);
+        if (!item.serviceId) return;
+        item.membershipId = null;
+        item.useMembershipBenefit = false;
+        item.clientPackageId = null;
+        item.usePackageSession = false;
+        item.packageRemainingSessions = null;
+        item.benefitText(null);
+        item.editPrice(item.unitPrice);
+    };
 
     // Musteri secildiginde uyelik kontrolu
     self.clientId.subscribe(function (newClientId) {
         if (!newClientId || self.cartItems().length === 0) return;
-        self.applyMembershipBenefits();
+        self.applyClientBenefits();
     });
 
     self.applyMembershipBenefits = function () {
+        self.applyClientBenefits();
+    };
+
+    self.applyClientBenefits = function () {
         var clientId = self.clientId();
         if (!clientId) return;
-        var serviceIds = self.cartItems().filter(function (i) { return i.serviceId; }).map(function (i) { return i.serviceId; });
+
+        var serviceItems = self.cartItems().filter(function (i) { return i.serviceId; });
+        serviceItems.forEach(self.resetServiceBenefit);
+
+        var serviceIds = serviceItems.map(function (i) { return i.serviceId; })
+            .filter(function (value, index, arr) { return arr.indexOf(value) === index; });
         if (serviceIds.length === 0) return;
+
+        $.ajax({
+            url: '/proxy/sln-packages/usable',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ slnClientId: parseInt(clientId), serviceIds: serviceIds })
+        }).done(function (packages) {
+            (packages || []).forEach(function (pkg) {
+                var item = serviceItems.find(function (i) { return i.serviceId === pkg.serviceId && i.usePackageSession !== true; });
+                if (!item || pkg.remainingSessions <= 0) return;
+
+                item.editPrice(0);
+                item.clientPackageId = pkg.clientPackageId;
+                item.usePackageSession = true;
+                item.packageRemainingSessions = pkg.remainingSessions;
+                item.benefitText(pkg.packageName + ': paket seansi (kalan ' + pkg.remainingSessions + ')');
+            });
+        }).always(function () {
+            self.applyMembershipOnly();
+        });
+    };
+
+    self.applyMembershipOnly = function () {
+        var clientId = self.clientId();
+        if (!clientId) return;
+        var serviceIds = self.cartItems().filter(function (i) { return i.serviceId && i.usePackageSession !== true; }).map(function (i) { return i.serviceId; });
+        if (serviceIds.length === 0) return;
+
+        self.cartItems().forEach(function (item) {
+            if (!item.serviceId || item.usePackageSession === true) return;
+            self.ensureBenefitFields(item);
+            item.membershipId = null;
+            item.useMembershipBenefit = false;
+            item.benefitText(null);
+            item.editPrice(item.unitPrice);
+        });
 
         $.ajax({
             url: '/proxy/sln-memberships/check-benefits',
@@ -44,18 +119,24 @@ function SalesViewModel() {
         }).done(function (benefits) {
             if (!benefits || !benefits.length) return;
             self.cartItems().forEach(function (item) {
+                if (item.usePackageSession === true) return;
+                self.ensureBenefitFields(item);
                 var benefit = benefits.find(function (b) { return b.serviceId === item.serviceId; });
                 if (!benefit) return;
 
                 if (benefit.hasFreeBenefit && benefit.remainingFree > 0) {
                     // Ucretsiz hakki var
                     item.editPrice(0);
-                    item.benefitText = benefit.planName + ': ' + benefit.usedThisMonth + '/' + benefit.freeCountPerMonth + ' kullanildi (ucretsiz)';
+                    item.membershipId = benefit.membershipId;
+                    item.useMembershipBenefit = true;
+                    item.benefitText(benefit.planName + ': ' + benefit.usedThisPeriod + '/' + benefit.freeCount + ' kullanildi (ucretsiz)');
                 } else if (benefit.discountPercent && benefit.discountPercent > 0) {
                     // Indirimli
                     var discounted = item.unitPrice * (1 - benefit.discountPercent / 100);
                     item.editPrice(Math.round(discounted * 100) / 100);
-                    item.benefitText = benefit.planName + ': %' + benefit.discountPercent + ' indirim';
+                    item.membershipId = null;
+                    item.useMembershipBenefit = false;
+                    item.benefitText(benefit.planName + ': %' + benefit.discountPercent + ' indirim');
                 }
             });
             if (benefits.some(function (b) { return b.hasFreeBenefit || b.discountPercent; }))
@@ -67,6 +148,16 @@ function SalesViewModel() {
         var catId = self.selectedCategoryId();
         if (!catId) return self.allServices();
         return self.allServices().filter(function (s) { return s.categoryId === catId && s.isActive; });
+    });
+
+    self.filteredProducts = ko.computed(function () {
+        var q = (self.productSearchQuery() || '').trim().toLowerCase();
+        if (!q) return [];
+        return self.products().filter(function (p) {
+            return (p.isActive !== false)
+                && (((p.name || '').toLowerCase().indexOf(q) >= 0)
+                    || ((p.barcode || '').toLowerCase().indexOf(q) >= 0));
+        }).slice(0, 8);
     });
 
     self.subtotal = ko.computed(function () {
@@ -97,6 +188,7 @@ function SalesViewModel() {
             // Ilk kategoriyi sec
             if (data.length > 0) self.selectedCategoryId(data[0].id);
         });
+        self.loadProducts();
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
             self.clientList(data.items || data);
         });
@@ -106,6 +198,12 @@ function SalesViewModel() {
         $.ajax({ url: '/proxy/sln-recipes', method: 'GET' }).done(function (data) {
             self.recipes((data.items || data).filter(function (r) { return r.isActive; }));
         });
+    };
+
+    self.loadProducts = function () {
+        $.ajax({ url: '/proxy/sln-products', method: 'GET' })
+            .done(function (data) { self.products(data.items || data); })
+            .fail(function () { self.products([]); });
     };
 
     // ═══ Recipe Toggle ═══
@@ -127,7 +225,8 @@ function SalesViewModel() {
                         name: item.serviceName,
                         unitPrice: item.servicePrice,
                         editPrice: ko.observable(item.servicePrice),
-                        quantity: ko.observable(1)
+                        quantity: ko.observable(1),
+                        benefitText: ko.observable(null)
                     });
                 }
             }
@@ -154,14 +253,80 @@ function SalesViewModel() {
             unitPrice: service.price,
             editPrice: ko.observable(service.price),
             quantity: ko.observable(1),
-            benefitText: null
+            benefitText: ko.observable(null)
         });
         // Uyelik kontrolu
         self.applyMembershipBenefits();
     };
 
+    self.addProductToCart = function (product) {
+        var stock = parseFloat(product.stockQuantity) || 0;
+        if (stock <= 0) {
+            toastr.warning('Urun stogu yok');
+            return;
+        }
+
+        var existing = self.cartItems().find(function (item) { return item.productId === product.id; });
+        if (existing) {
+            var nextQuantity = existing.quantity() + 1;
+            if (nextQuantity > stock) {
+                toastr.warning('Yetersiz stok: ' + product.name);
+                return;
+            }
+            existing.quantity(nextQuantity);
+            return;
+        }
+
+        self.cartItems.push({
+            serviceId: null,
+            productId: product.id,
+            name: product.name,
+            unitPrice: product.salePrice || 0,
+            editPrice: ko.observable(product.salePrice || 0),
+            quantity: ko.observable(1),
+            stockQuantity: stock,
+            benefitText: ko.observable(null)
+        });
+    };
+
+    self.addProductBySearch = function () {
+        var q = (self.productSearchQuery() || '').trim().toLowerCase();
+        if (!q) return;
+
+        var exact = self.products().find(function (p) {
+            return (p.barcode || '').toLowerCase() === q;
+        });
+        var matches = self.filteredProducts();
+        var product = exact || (matches.length === 1 ? matches[0] : null);
+
+        if (!product) {
+            toastr.warning('Urun bulunamadi');
+            return;
+        }
+
+        self.addProductToCart(product);
+        self.productSearchQuery('');
+    };
+
+    self.onProductSearchKeydown = function (_, event) {
+        if (event.key === 'Enter') {
+            self.addProductBySearch();
+            return false;
+        }
+        return true;
+    };
+
     self.increaseQty = function (item) {
+        if (item.productId && item.quantity() + 1 > item.stockQuantity) {
+            toastr.warning('Yetersiz stok: ' + item.name);
+            return;
+        }
+        if (item.usePackageSession === true && item.quantity() + 1 > item.packageRemainingSessions) {
+            toastr.warning('Paket seansi yetersiz: ' + item.name);
+            return;
+        }
         item.quantity(item.quantity() + 1);
+        if (item.serviceId) self.applyClientBenefits();
     };
 
     self.decreaseQty = function (item) {
@@ -170,10 +335,12 @@ function SalesViewModel() {
         } else {
             self.cartItems.remove(item);
         }
+        if (item.serviceId) self.applyClientBenefits();
     };
 
     self.removeFromCart = function (item) {
         self.cartItems.remove(item);
+        if (item.serviceId) self.applyClientBenefits();
     };
 
     // ═══ Checkout ═══
@@ -182,17 +349,22 @@ function SalesViewModel() {
         var items = self.cartItems().map(function (item) {
             return {
                 serviceId: item.serviceId,
-                productId: null,
+                productId: item.productId || null,
                 personnelId: self.selectedPersonnelId() ? parseInt(self.selectedPersonnelId()) : null,
                 quantity: item.quantity(),
                 unitPrice: parseFloat(item.editPrice()) || item.unitPrice,
-                discountAmount: 0
+                discountAmount: 0,
+                membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
+                useMembershipBenefit: item.useMembershipBenefit === true,
+                clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
+                usePackageSession: item.usePackageSession === true
             };
         });
 
         var data = {
             slnClientId: self.clientId() ? parseInt(self.clientId()) : null,
             paymentMethodId: parseInt(self.paymentMethodId()) || 1,
+            giftCardCode: parseInt(self.paymentMethodId()) === 5 ? self.giftCardCode() : null,
             discountAmount: parseFloat(self.discountAmount()) || 0,
             tipAmount: parseFloat(self.tipAmount()) || 0,
             includeTipInTotal: self.tipIncludeInTotal() === true,
@@ -221,14 +393,16 @@ function SalesViewModel() {
             }
 
             self.cartItems([]);
+            self.loadProducts();
             self.clientId(null);
             self.clientAutocomplete.clear();
             self.discountAmount(0);
             self.tipAmount(0);
+            self.giftCardCode('');
             self.linkedAppointmentId(null);
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Ödeme alınamadı');
+            toastr.error(readError(xhr, 'Odeme alinamadi'));
             self.isSaving(false);
         });
     };
@@ -236,6 +410,11 @@ function SalesViewModel() {
     self.checkout = function () {
         if (self.cartItems().length === 0) {
             toastr.warning('Sepet bos');
+            return;
+        }
+
+        if (parseInt(self.paymentMethodId()) === 5 && !(self.giftCardCode() || '').trim()) {
+            toastr.warning('Hediye karti kodu girilmelidir');
             return;
         }
 
@@ -362,7 +541,8 @@ function SalesViewModel() {
                         name: svc.name,
                         unitPrice: svc.price,
                         editPrice: ko.observable(svc.price),
-                        quantity: ko.observable(1)
+                        quantity: ko.observable(1),
+                        benefitText: ko.observable(null)
                     });
                 }
             });
@@ -375,7 +555,8 @@ function SalesViewModel() {
                         name: svc.name,
                         unitPrice: svc.price,
                         editPrice: ko.observable(svc.price),
-                        quantity: ko.observable(1)
+                        quantity: ko.observable(1),
+                        benefitText: ko.observable(null)
                     });
                 }
             });
@@ -384,6 +565,14 @@ function SalesViewModel() {
         // Randevu bağla
         self.linkedAppointmentId(appt.id);
         appointmentModal.hide();
+
+        if (!(appt.isPrepaid && appt.prepaidAmount > 0)) {
+            if (appt.slnClientId) {
+                self.applyClientBenefits();
+            }
+            toastr.info('Randevu sepete alindi. Ek hizmet/urun ekleyebilirsiniz.');
+            return;
+        }
 
         // Ön ödemeli ise direkt tamamla mı sor
         if (appt.isPrepaid && appt.prepaidAmount > 0) {
@@ -412,10 +601,16 @@ function SalesViewModel() {
 
                         if (b.hasFreeBenefit && b.remainingFree > 0) {
                             item.editPrice(0);
-                            item.benefitText = b.planName + ': ücretsiz (' + b.usedThisMonth + '/' + b.freeCountPerMonth + ')';
+                            item.membershipId = b.membershipId;
+                            item.useMembershipBenefit = true;
+                            self.ensureBenefitFields(item);
+                            item.benefitText(b.planName + ': ücretsiz (' + b.usedThisPeriod + '/' + b.freeCount + ')');
                         } else if (b.discountPercent && b.discountPercent > 0) {
                             item.editPrice(Math.round(item.unitPrice * (1 - b.discountPercent / 100) * 100) / 100);
-                            item.benefitText = b.planName + ': %' + b.discountPercent + ' indirim';
+                            item.membershipId = null;
+                            item.useMembershipBenefit = false;
+                            self.ensureBenefitFields(item);
+                            item.benefitText(b.planName + ': %' + b.discountPercent + ' indirim');
                             allFree = false;
                         } else {
                             allFree = false;
@@ -444,7 +639,11 @@ function SalesViewModel() {
             return {
                 serviceId: item.serviceId, productId: null,
                 personnelId: self.selectedPersonnelId() ? parseInt(self.selectedPersonnelId()) : null,
-                quantity: item.quantity(), unitPrice: 0, discountAmount: 0
+                quantity: item.quantity(), unitPrice: 0, discountAmount: 0,
+                membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
+                useMembershipBenefit: item.useMembershipBenefit === true,
+                clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
+                usePackageSession: item.usePackageSession === true
             };
         });
 
@@ -474,7 +673,7 @@ function SalesViewModel() {
             self.linkedAppointmentId(null);
             self.isPrepaid(false);
             self.prepaidAmount(0);
-        }).fail(function () { toastr.error('İşlem kaydedilemedi.'); });
+        }).fail(function (xhr) { toastr.error(readError(xhr, 'Islem kaydedilemedi.')); });
     };
 
     self.unlinkAppointment = function () {

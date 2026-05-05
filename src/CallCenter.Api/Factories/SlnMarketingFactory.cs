@@ -5,6 +5,7 @@ using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CallCenter.Api.Factories;
 
@@ -14,14 +15,27 @@ public class SlnMarketingFactory : ISlnMarketingFactory
     private readonly ISlnAutoReminderEntityService _reminders;
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnInvoiceEntityService _invoices;
+    private readonly ISlnClientMembershipEntityService _clientMemberships;
+    private readonly ISlnClientPackageEntityService _clientPackages;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnMarketingFactory> _logger;
+
+    private const decimal EstimatedSmsUnitCost = 0.80m;
+    private const decimal EstimatedEmailUnitCost = 0.00m;
+
+    private static readonly JsonSerializerOptions SegmentJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public SlnMarketingFactory(
         ISlnCampaignEntityService campaigns,
         ISlnAutoReminderEntityService reminders,
         ISlnClientEntityService clients,
         ISlnInvoiceEntityService invoices,
+        ISlnClientMembershipEntityService clientMemberships,
+        ISlnClientPackageEntityService clientPackages,
         IUnitOfWork uow,
         ILogger<SlnMarketingFactory> logger)
     {
@@ -29,6 +43,8 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         _reminders = reminders;
         _clients = clients;
         _invoices = invoices;
+        _clientMemberships = clientMemberships;
+        _clientPackages = clientPackages;
         _uow = uow;
         _logger = logger;
     }
@@ -67,7 +83,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
         // Segment preview ile alici sayisi hesapla
         var preview = await GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
-        campaign.TotalRecipients = preview.MatchingClients;
+        campaign.TotalRecipients = preview.SmsReachableClients;
 
         _campaigns.Add(campaign);
         await _uow.SaveChangesAsync();
@@ -91,7 +107,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         campaign.StatusId = dto.ScheduledAt.HasValue ? 2 : 1;
 
         var preview = await GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
-        campaign.TotalRecipients = preview.MatchingClients;
+        campaign.TotalRecipients = preview.SmsReachableClients;
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -113,8 +129,9 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
     public async Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId)
     {
+        var now = DateTime.UtcNow;
         var query = _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId);
+            .Where(c => c.CustomerId == customerId && c.IsActive);
 
         if (!string.IsNullOrEmpty(segmentFilter))
         {
@@ -133,36 +150,69 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
                     if (filter.MinAge.HasValue)
                     {
-                        var maxBirthDate = DateTime.UtcNow.AddYears(-filter.MinAge.Value);
+                        var maxBirthDate = now.AddYears(-filter.MinAge.Value);
                         query = query.Where(c => c.BirthDate.HasValue && c.BirthDate.Value <= maxBirthDate);
                     }
 
                     if (filter.MaxAge.HasValue)
                     {
-                        var minBirthDate = DateTime.UtcNow.AddYears(-filter.MaxAge.Value - 1);
+                        var minBirthDate = now.AddYears(-filter.MaxAge.Value - 1);
                         query = query.Where(c => c.BirthDate.HasValue && c.BirthDate.Value >= minBirthDate);
                     }
 
                     if (filter.LastVisitDays.HasValue)
                     {
-                        var sinceDate = DateTime.UtcNow.AddDays(-filter.LastVisitDays.Value);
+                        var sinceDate = now.AddDays(-filter.LastVisitDays.Value);
                         var clientIds = await _invoices.GetAllQueryable()
-                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.InvoiceDate >= sinceDate)
-                            .Select(i => i.SlnClientId)
+                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue && i.InvoiceDate >= sinceDate)
+                            .Select(i => i.SlnClientId!.Value)
                             .Distinct()
                             .ToListAsync();
                         query = query.Where(c => clientIds.Contains(c.Id));
                     }
 
+                    if (filter.InactiveDays.HasValue)
+                    {
+                        var sinceDate = now.AddDays(-filter.InactiveDays.Value);
+                        var recentlyVisitedClientIds = await _invoices.GetAllQueryable()
+                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue && i.InvoiceDate >= sinceDate)
+                            .Select(i => i.SlnClientId!.Value)
+                            .Distinct()
+                            .ToListAsync();
+                        query = query.Where(c => !recentlyVisitedClientIds.Contains(c.Id));
+                    }
+
+                    if (filter.BirthdayInDays.HasValue)
+                    {
+                        var birthdayClientIds = await GetBirthdayClientIdsAsync(customerId, filter.BirthdayInDays.Value, now);
+                        query = query.Where(c => birthdayClientIds.Contains(c.Id));
+                    }
+
                     if (filter.MinSpent.HasValue)
                     {
                         var spentClients = await _invoices.GetAllQueryable()
-                            .Where(i => i.CustomerId == customerId && i.StatusId != 3)
-                            .GroupBy(i => i.SlnClientId)
+                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue)
+                            .GroupBy(i => i.SlnClientId!.Value)
                             .Where(g => g.Sum(i => i.NetAmount) >= filter.MinSpent.Value)
                             .Select(g => g.Key)
                             .ToListAsync();
                         query = query.Where(c => spentClients.Contains(c.Id));
+                    }
+
+                    if (filter.HasActiveMembership.HasValue)
+                    {
+                        var membershipClientIds = await GetActiveMembershipClientIdsAsync(customerId, now);
+                        query = filter.HasActiveMembership.Value
+                            ? query.Where(c => membershipClientIds.Contains(c.Id))
+                            : query.Where(c => !membershipClientIds.Contains(c.Id));
+                    }
+
+                    if (filter.HasActivePackage.HasValue)
+                    {
+                        var packageClientIds = await GetActivePackageClientIdsAsync(customerId, now);
+                        query = filter.HasActivePackage.Value
+                            ? query.Where(c => packageClientIds.Contains(c.Id))
+                            : query.Where(c => !packageClientIds.Contains(c.Id));
                     }
                 }
             }
@@ -172,8 +222,69 @@ public class SlnMarketingFactory : ISlnMarketingFactory
             }
         }
 
-        var count = await query.CountAsync();
-        return new SlnSegmentPreviewDto { MatchingClients = count };
+        var clients = await query
+            .Select(c => new
+            {
+                c.Id,
+                c.Phone,
+                c.Email,
+                c.IsBlacklisted
+            })
+            .ToListAsync();
+
+        var eligibleClients = clients.Where(c => !c.IsBlacklisted).ToList();
+        var smsReachable = eligibleClients.Count(c => HasContactValue(c.Phone));
+        var emailReachable = eligibleClients.Count(c => HasContactValue(c.Email));
+
+        return new SlnSegmentPreviewDto
+        {
+            MatchingClients = clients.Count,
+            SmsReachableClients = smsReachable,
+            EmailReachableClients = emailReachable,
+            MissingPhoneCount = eligibleClients.Count(c => !HasContactValue(c.Phone)),
+            MissingEmailCount = eligibleClients.Count(c => !HasContactValue(c.Email)),
+            ExcludedByOptOutCount = clients.Count(c => c.IsBlacklisted),
+            EstimatedSmsCost = Math.Round(smsReachable * EstimatedSmsUnitCost, 2, MidpointRounding.AwayFromZero),
+            EstimatedEmailCost = Math.Round(emailReachable * EstimatedEmailUnitCost, 2, MidpointRounding.AwayFromZero)
+        };
+    }
+
+    public async Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId)
+    {
+        var definitions = new[]
+        {
+            new SegmentPresetDefinition("all", "Tum aktif musteriler", "Aktif durumdaki tum musteri kayitlari.", null),
+            new SegmentPresetDefinition("birthday-30", "Dogum gunu yaklasanlar", "Onumuzdeki 30 gun icinde dogum gunu olan musteriler.", new SegmentFilterModel { BirthdayInDays = 30 }),
+            new SegmentPresetDefinition("inactive-60", "60 gundur gelmeyenler", "Son 60 gunde adisyonu olmayan aktif musteriler.", new SegmentFilterModel { InactiveDays = 60 }),
+            new SegmentPresetDefinition("high-spend", "Yuksek harcama", "Toplam harcamasi 3.000 TL ve uzeri olan musteriler.", new SegmentFilterModel { MinSpent = 3000 }),
+            new SegmentPresetDefinition("active-membership", "Aktif uyeligi olanlar", "Aktif salon uyeligi devam eden musteriler.", new SegmentFilterModel { HasActiveMembership = true }),
+            new SegmentPresetDefinition("active-package", "Aktif paketi olanlar", "Kalan seansi olan aktif paket sahibi musteriler.", new SegmentFilterModel { HasActivePackage = true }),
+            new SegmentPresetDefinition("no-membership-package", "Uyelik veya paketi olmayanlar", "Aktif uyeligi ve aktif paketi bulunmayan musteriler.", new SegmentFilterModel { HasActiveMembership = false, HasActivePackage = false })
+        };
+
+        var result = new List<SlnSegmentPresetDto>();
+        foreach (var definition in definitions)
+        {
+            var filterJson = SerializeSegmentFilter(definition.Filter);
+            var preview = await GetSegmentPreviewAsync(filterJson, customerId);
+            result.Add(new SlnSegmentPresetDto
+            {
+                Key = definition.Key,
+                Name = definition.Name,
+                Description = definition.Description,
+                FilterJson = filterJson,
+                MatchingClients = preview.MatchingClients,
+                SmsReachableClients = preview.SmsReachableClients,
+                EmailReachableClients = preview.EmailReachableClients,
+                MissingPhoneCount = preview.MissingPhoneCount,
+                MissingEmailCount = preview.MissingEmailCount,
+                ExcludedByOptOutCount = preview.ExcludedByOptOutCount,
+                EstimatedSmsCost = preview.EstimatedSmsCost,
+                EstimatedEmailCost = preview.EstimatedEmailCost
+            });
+        }
+
+        return result;
     }
 
     public async Task<(bool Success, string? Error)> SendCampaignAsync(int campaignId, int customerId)
@@ -184,10 +295,13 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Kampanya zaten gonderilmis");
 
+        var preview = await GetSegmentPreviewAsync(campaign.SegmentFilter, customerId);
+
         // Gonderim simule et (gercek SMS entegrasyonu sonra eklenecek)
         campaign.StatusId = 4; // Completed
         campaign.SentAt = DateTime.UtcNow;
-        campaign.SentCount = campaign.TotalRecipients;
+        campaign.TotalRecipients = preview.SmsReachableClients;
+        campaign.SentCount = preview.SmsReachableClients;
 
         await _uow.SaveChangesAsync();
 
@@ -303,6 +417,67 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         CreatedAt = r.CreatedAt
     };
 
+    private async Task<List<int>> GetBirthdayClientIdsAsync(int customerId, int daysAhead, DateTime now)
+    {
+        var start = now.Date;
+        var end = start.AddDays(Math.Max(daysAhead, 0));
+        var clients = await _clients.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId && c.IsActive && c.BirthDate.HasValue)
+            .Select(c => new { c.Id, c.BirthDate })
+            .ToListAsync();
+
+        return clients
+            .Where(c => IsBirthdayInRange(c.BirthDate!.Value, start, end))
+            .Select(c => c.Id)
+            .ToList();
+    }
+
+    private async Task<List<int>> GetActiveMembershipClientIdsAsync(int customerId, DateTime now)
+        => await _clientMemberships.GetAllQueryable()
+            .Where(m => m.CustomerId == customerId
+                && m.StatusId == 1
+                && m.StartDate <= now
+                && (!m.EndDate.HasValue || m.EndDate.Value >= now))
+            .Select(m => m.SlnClientId)
+            .Distinct()
+            .ToListAsync();
+
+    private async Task<List<int>> GetActivePackageClientIdsAsync(int customerId, DateTime now)
+        => await _clientPackages.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId
+                && p.SlnClientId.HasValue
+                && p.IsActive
+                && p.RemainingSessions > 0
+                && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value >= now))
+            .Select(p => p.SlnClientId!.Value)
+            .Distinct()
+            .ToListAsync();
+
+    private static bool IsBirthdayInRange(DateTime birthDate, DateTime start, DateTime end)
+    {
+        var nextBirthday = BuildBirthday(start.Year, birthDate);
+        if (nextBirthday < start)
+            nextBirthday = BuildBirthday(start.Year + 1, birthDate);
+
+        return nextBirthday <= end;
+    }
+
+    private static DateTime BuildBirthday(int year, DateTime birthDate)
+    {
+        if (birthDate.Month == 2 && birthDate.Day == 29 && !DateTime.IsLeapYear(year))
+            return new DateTime(year, 2, 28);
+
+        return new DateTime(year, birthDate.Month, birthDate.Day);
+    }
+
+    private static string? SerializeSegmentFilter(SegmentFilterModel? filter)
+        => filter == null ? null : JsonSerializer.Serialize(filter, SegmentJsonOptions);
+
+    private static bool HasContactValue(string? value)
+        => !string.IsNullOrWhiteSpace(value);
+
+    private sealed record SegmentPresetDefinition(string Key, string Name, string Description, SegmentFilterModel? Filter);
+
     /// <summary>Segment filtre modeli (JSON deserialize)</summary>
     private class SegmentFilterModel
     {
@@ -311,7 +486,11 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         public int? MaxAge { get; set; }
         public string? City { get; set; }
         public int? LastVisitDays { get; set; }
+        public int? InactiveDays { get; set; }
+        public int? BirthdayInDays { get; set; }
         public decimal? MinSpent { get; set; }
+        public bool? HasActiveMembership { get; set; }
+        public bool? HasActivePackage { get; set; }
         public string? ServiceName { get; set; }
     }
 }

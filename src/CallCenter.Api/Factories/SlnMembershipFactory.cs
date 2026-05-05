@@ -271,6 +271,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
                 // Bu hizmet planda yok — genel plan indirimi uygula
                 return new ServiceMembershipBenefit
                 {
+                    MembershipId = membership.Id,
                     ServiceId = serviceId,
                     ServiceName = "",
                     DiscountPercent = membership.Plan.DiscountPercent > 0 ? membership.Plan.DiscountPercent : null,
@@ -283,6 +284,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
             return new ServiceMembershipBenefit
             {
+                MembershipId = membership.Id,
                 ServiceId = serviceId,
                 ServiceName = planService.Service?.Name ?? "",
                 HasFreeBenefit = planService.FreeCount > 0,
@@ -298,6 +300,9 @@ public class SlnMembershipFactory : ISlnMembershipFactory
     {
         // Uyeligin mevcut donem baslangicini al
         var membership = await _membershipEs.GetByIdAsync(membershipId);
+        if (membership == null || membership.CustomerId != customerId || membership.StatusId != 1)
+            return;
+
         var periodStart = membership?.CurrentPeriodStart;
 
         var usage = await _usageEs.GetAllQueryable()

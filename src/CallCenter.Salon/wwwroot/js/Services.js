@@ -27,10 +27,23 @@ function ServicesViewModel() {
     // ═══ Autocomplete ═══
     self.categoryAutocomplete = createAutocomplete(self.categories, 'name', self.serviceForm.categoryId);
 
+    function normalizeList(data) {
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.items)) return data.items;
+        return [];
+    }
+
+    function normalizeCategories(data) {
+        return normalizeList(data).map(function (cat) {
+            cat.services = Array.isArray(cat.services) ? cat.services : [];
+            return cat;
+        });
+    }
+
     self.filteredCategories = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         var cats = self.categories().map(function (cat) {
-            var filtered = cat.services.filter(function (s) {
+            var filtered = (cat.services || []).filter(function (s) {
                 return !q || (s.name || '').toLowerCase().indexOf(q) >= 0;
             });
             return { id: cat.id, name: cat.name, sortOrder: cat.sortOrder, services: filtered };
@@ -51,10 +64,10 @@ function ServicesViewModel() {
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
-            self.categories(data);
+            self.categories(normalizeCategories(data));
         });
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
-            self.services(data.items || data);
+            self.services(normalizeList(data));
         });
     };
 

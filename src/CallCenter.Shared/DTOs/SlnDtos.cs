@@ -238,6 +238,7 @@ public class SlnInvoiceCreateDto
 {
     public int? SlnClientId { get; set; }
     public int PaymentMethodId { get; set; } = 1;
+    public string? GiftCardCode { get; set; }
     public int? PosDeviceId { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal TipAmount { get; set; }
@@ -255,6 +256,10 @@ public class SlnInvoiceItemCreateDto
     public decimal Quantity { get; set; } = 1;
     public decimal UnitPrice { get; set; }
     public decimal DiscountAmount { get; set; }
+    public int? MembershipId { get; set; }
+    public bool UseMembershipBenefit { get; set; }
+    public int? ClientPackageId { get; set; }
+    public bool UsePackageSession { get; set; }
 }
 
 // ═══ SlnExpense ═══
@@ -568,6 +573,8 @@ public class SlnPackageDefinitionCreateDto
 public class SlnClientPackageDto
 {
     public int Id { get; set; }
+    public int PackageDefinitionId { get; set; }
+    public int ServiceId { get; set; }
     public string PackageName { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
     public string? ClientName { get; set; }
@@ -584,12 +591,29 @@ public class SlnClientPackageSellDto
 {
     public int PackageDefinitionId { get; set; }
     public int? SlnClientId { get; set; }
+    public int PaymentMethodId { get; set; } = 1;
 }
 
 public class SlnPackageUseDto
 {
     public int ClientPackageId { get; set; }
     public string? Notes { get; set; }
+}
+
+public class SlnPackageBenefitCheckDto
+{
+    public int SlnClientId { get; set; }
+    public List<int> ServiceIds { get; set; } = [];
+}
+
+public class SlnPackageBenefitDto
+{
+    public int ClientPackageId { get; set; }
+    public int PackageDefinitionId { get; set; }
+    public int ServiceId { get; set; }
+    public string PackageName { get; set; } = string.Empty;
+    public int RemainingSessions { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 }
 
 // ═══ SlnGiftCard ═══
@@ -622,6 +646,7 @@ public class SlnGiftCardTransactionDto
 public class SlnGiftCardCreateDto
 {
     public decimal Amount { get; set; }
+    public int PaymentMethodId { get; set; } = 1;
     public string? RecipientName { get; set; }
     public string? RecipientPhone { get; set; }
     public string? SenderName { get; set; }
@@ -702,6 +727,29 @@ public class SlnCampaignUpdateDto
 public class SlnSegmentPreviewDto
 {
     public int MatchingClients { get; set; }
+    public int SmsReachableClients { get; set; }
+    public int EmailReachableClients { get; set; }
+    public int MissingPhoneCount { get; set; }
+    public int MissingEmailCount { get; set; }
+    public int ExcludedByOptOutCount { get; set; }
+    public decimal EstimatedSmsCost { get; set; }
+    public decimal EstimatedEmailCost { get; set; }
+}
+
+public class SlnSegmentPresetDto
+{
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string? FilterJson { get; set; }
+    public int MatchingClients { get; set; }
+    public int SmsReachableClients { get; set; }
+    public int EmailReachableClients { get; set; }
+    public int MissingPhoneCount { get; set; }
+    public int MissingEmailCount { get; set; }
+    public int ExcludedByOptOutCount { get; set; }
+    public decimal EstimatedSmsCost { get; set; }
+    public decimal EstimatedEmailCost { get; set; }
 }
 
 // ═══ SlnAutoReminder (S7) ═══
@@ -742,6 +790,73 @@ public class SlnSalesReportDto
     public List<SlnPaymentMethodSalesDto> PaymentMethodBreakdown { get; set; } = [];
 }
 
+public class SlnKpiReportDto
+{
+    public decimal TotalRevenue { get; set; }
+    public int InvoiceCount { get; set; }
+    public decimal AverageTicket { get; set; }
+    public decimal BookedHours { get; set; }
+    public decimal CapacityHours { get; set; }
+    public decimal OccupancyPercent { get; set; }
+    public int AppointmentCount { get; set; }
+    public int CompletedAppointmentCount { get; set; }
+    public int ActiveClientCount { get; set; }
+    public int RepeatClientCount { get; set; }
+    public decimal RepeatVisitRatePercent { get; set; }
+    public decimal AverageLifetimeValue { get; set; }
+    public decimal PeriodSpendPerClient { get; set; }
+    public int ActiveStaffCount { get; set; }
+    public decimal RevenuePerActiveStaff { get; set; }
+    public decimal RevenuePerBookedHour { get; set; }
+    public List<SlnStaffEfficiencyDto> StaffEfficiency { get; set; } = [];
+}
+
+public class SlnStaffEfficiencyDto
+{
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public int ServiceCount { get; set; }
+    public int AppointmentCount { get; set; }
+    public int CompletedAppointmentCount { get; set; }
+    public decimal BookedHours { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal RevenuePerBookedHour { get; set; }
+    public decimal RevenuePerService { get; set; }
+}
+
+public class SlnBranchComparisonReportDto
+{
+    public List<SlnBranchComparisonRowDto> Branches { get; set; } = [];
+    public List<SlnBranchDimensionRowDto> Services { get; set; } = [];
+    public List<SlnBranchDimensionRowDto> Personnel { get; set; } = [];
+    public List<SlnBranchDimensionRowDto> Products { get; set; } = [];
+}
+
+public class SlnBranchComparisonRowDto
+{
+    public int? BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public decimal TotalRevenue { get; set; }
+    public decimal ServiceRevenue { get; set; }
+    public decimal ProductRevenue { get; set; }
+    public int InvoiceCount { get; set; }
+    public decimal AverageTicket { get; set; }
+    public int AppointmentCount { get; set; }
+    public int CompletedAppointmentCount { get; set; }
+    public int ActiveClientCount { get; set; }
+    public decimal RevenueSharePercent { get; set; }
+}
+
+public class SlnBranchDimensionRowDto
+{
+    public int? BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public int DimensionId { get; set; }
+    public string DimensionName { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public decimal Revenue { get; set; }
+}
+
 public class SlnDailySalesDto
 {
     public DateTime Date { get; set; }
@@ -776,7 +891,14 @@ public class SlnStockReportDto
     public int TotalProducts { get; set; }
     public int LowStockCount { get; set; }
     public decimal TotalStockValue { get; set; }
+    public decimal TotalRetailValue { get; set; }
+    public decimal PotentialGrossProfit { get; set; }
+    public decimal AverageMarginPercent { get; set; }
+    public decimal EstimatedVatTotal { get; set; }
+    public decimal SupplierDebtTotal { get; set; }
     public List<SlnStockItemDto> Items { get; set; } = [];
+    public List<SlnStockTaxBreakdownDto> TaxBreakdown { get; set; } = [];
+    public List<SlnSupplierDebtBreakdownDto> SupplierDebtBreakdown { get; set; } = [];
 }
 
 public class SlnStockItemDto
@@ -787,8 +909,31 @@ public class SlnStockItemDto
     public decimal StockQuantity { get; set; }
     public decimal MinStockLevel { get; set; }
     public decimal PurchasePrice { get; set; }
+    public decimal SalePrice { get; set; }
+    public decimal TaxRate { get; set; }
     public decimal StockValue { get; set; }
+    public decimal RetailValue { get; set; }
+    public decimal PotentialGrossProfit { get; set; }
+    public decimal MarginPercent { get; set; }
+    public decimal EstimatedVatAmount { get; set; }
     public bool IsLowStock { get; set; }
+}
+
+public class SlnStockTaxBreakdownDto
+{
+    public decimal TaxRate { get; set; }
+    public int ProductCount { get; set; }
+    public decimal StockValue { get; set; }
+    public decimal RetailValue { get; set; }
+    public decimal EstimatedVatAmount { get; set; }
+}
+
+public class SlnSupplierDebtBreakdownDto
+{
+    public int SupplierId { get; set; }
+    public string SupplierName { get; set; } = string.Empty;
+    public decimal Balance { get; set; }
+    public DateTime? LastTransactionDate { get; set; }
 }
 
 public class SlnFinanceReportDto
@@ -796,7 +941,32 @@ public class SlnFinanceReportDto
     public decimal TotalIncome { get; set; }
     public decimal TotalExpense { get; set; }
     public decimal NetProfit { get; set; }
+    public int InvoiceCount { get; set; }
+    public decimal GrossRevenue { get; set; }
+    public decimal DiscountTotal { get; set; }
+    public decimal ServiceRevenue { get; set; }
+    public decimal ProductRevenue { get; set; }
+    public decimal SalesVatTotal { get; set; }
+    public decimal ExpenseVatTotal { get; set; }
+    public decimal VatPayable { get; set; }
+    public decimal StockValue { get; set; }
+    public decimal RetailStockValue { get; set; }
+    public decimal EstimatedStockVat { get; set; }
+    public decimal CashIncome { get; set; }
+    public decimal CashExpense { get; set; }
+    public decimal CashNet { get; set; }
+    public decimal CashBalance { get; set; }
+    public List<SlnPaymentMethodSalesDto> PaymentMethodBreakdown { get; set; } = [];
+    public List<SlnFinanceTaxBreakdownDto> TaxBreakdown { get; set; } = [];
     public List<SlnExpenseCategoryBreakdownDto> ExpenseBreakdown { get; set; } = [];
+}
+
+public class SlnFinanceTaxBreakdownDto
+{
+    public decimal TaxRate { get; set; }
+    public decimal TaxableAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public int LineCount { get; set; }
 }
 
 public class SlnExpenseCategoryBreakdownDto
@@ -937,6 +1107,7 @@ public class SlnRegisterRequest
     public string Phone { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public int? SubscriptionPlanId { get; set; }
 }
 
 public class SlnRegisterResponse
@@ -1151,6 +1322,30 @@ public class SlnWinbackRuleCreateDto
 
 public class SlnWinbackRuleUpdateDto : SlnWinbackRuleCreateDto
 {
+}
+
+public class SlnWinbackPreviewDto
+{
+    public int RuleId { get; set; }
+    public string RuleName { get; set; } = string.Empty;
+    public int InactiveDays { get; set; }
+    public int EligibleClients { get; set; }
+    public int SmsReachableClients { get; set; }
+    public int EmailReachableClients { get; set; }
+    public int MissingContactCount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public string MessagePreview { get; set; } = string.Empty;
+    public List<SlnWinbackCandidateDto> Candidates { get; set; } = [];
+}
+
+public class SlnWinbackCandidateDto
+{
+    public int ClientId { get; set; }
+    public string ClientName { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public DateTime? LastVisitAt { get; set; }
+    public int InactiveDays { get; set; }
 }
 
 // ═══ SlnPersonnelServicePrice (D4) ═══

@@ -101,10 +101,21 @@
                     <a href="/Modules" class="btn btn-sm btn-outline-purple flex-fill" style="border-color:#7b1fa2;color:#7b1fa2;">
                         <i class="bi bi-puzzle me-1"></i>Modülleri Yönet
                     </a>
-                    <a href="/Modules/Purchase" class="btn btn-sm btn-purple flex-fill" style="background:#7b1fa2;border-color:#7b1fa2;color:#fff;">
+                    <a id="subPaymentBtn" href="/Modules?pay=subscription" class="btn btn-sm btn-purple flex-fill" style="background:#7b1fa2;border-color:#7b1fa2;color:#fff;display:none;">
                         <i class="bi bi-credit-card me-1"></i>Ödeme Yap
                     </a>
                 </div>
+                <div class="small text-muted mt-2" id="subPaymentInfo" style="display:none;"></div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white border-0 fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Kritik Stok</span>
+                <span class="badge bg-danger" id="lowStockCount">0</span>
+            </div>
+            <div class="card-body" id="lowStockList">
+                <p class="text-muted small mb-0">Yukleniyor...</p>
             </div>
         </div>
 

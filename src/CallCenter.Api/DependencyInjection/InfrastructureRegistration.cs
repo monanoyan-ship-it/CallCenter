@@ -32,6 +32,9 @@ public static class InfrastructureRegistration
         services.AddSingleton<GmailOAuthService>();
         services.AddSingleton<Office365OAuthService>();
         services.AddScoped<IEmailSendService, MailKitEmailSendService>();
+        services.AddSingleton<SlnReportEmailQueue>();
+        services.AddScoped<SlnReportEmailService>();
+        services.AddHostedService<SlnReportEmailSchedulerService>();
 
         // Platform Email (Resend SMTP - sistem emailleri: kayit onayi, sifre sifirlama vb.)
         services.AddSingleton<IPlatformEmailService, ResendPlatformEmailService>();

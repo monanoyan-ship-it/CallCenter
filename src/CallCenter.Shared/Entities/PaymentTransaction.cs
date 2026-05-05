@@ -38,7 +38,7 @@ public class PaymentTransaction
     /// <summary>Odeme yontemi: 1=KrediKarti, 2=Havale, 3=MailOrder</summary>
     public int PaymentMethodId { get; set; }
 
-    /// <summary>Odeme durumu: 1=Beklemede, 2=Basarili, 3=Basarisiz, 4=Iade</summary>
+    /// <summary>Odeme durumu: 1=Beklemede, 2=Basarili, 3=Basarisiz, 4=Iade, 5=Iptal</summary>
     public int StatusId { get; set; } = 1;
 
     /// <summary>Odeme saglayici (Iyzico, Stripe vb.)</summary>

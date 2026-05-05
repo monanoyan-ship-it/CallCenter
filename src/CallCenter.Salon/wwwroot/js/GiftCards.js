@@ -10,7 +10,8 @@ function GiftCardsViewModel() {
         recipientPhone: ko.observable(''),
         senderName: ko.observable(''),
         message: ko.observable(''),
-        expiresAt: ko.observable('')
+        expiresAt: ko.observable(''),
+        paymentMethodId: ko.observable('1')
     };
 
     self.filteredCards = ko.computed(function () {
@@ -24,6 +25,10 @@ function GiftCardsViewModel() {
     });
 
     var formModal;
+    function readError(xhr) {
+        if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || 'Bir hata olustu';
+    }
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-gift-cards', method: 'GET' }).done(function (data) {
@@ -38,6 +43,7 @@ function GiftCardsViewModel() {
         self.form.senderName('');
         self.form.message('');
         self.form.expiresAt('');
+        self.form.paymentMethodId('1');
         formModal.show();
     };
 
@@ -48,7 +54,8 @@ function GiftCardsViewModel() {
             recipientPhone: self.form.recipientPhone(),
             senderName: self.form.senderName(),
             message: self.form.message(),
-            expiresAt: self.form.expiresAt() ? self.form.expiresAt() + 'T23:59:59Z' : null
+            expiresAt: self.form.expiresAt() ? self.form.expiresAt() + 'T23:59:59Z' : null,
+            paymentMethodId: parseInt(self.form.paymentMethodId()) || 1
         };
 
         if (!data.amount || data.amount <= 0) { toastr.warning('Tutar zorunludur'); return; }
@@ -65,7 +72,7 @@ function GiftCardsViewModel() {
             toastr.success('Hediye karti olusturuldu: ' + result.code);
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(readError(xhr));
             self.isSaving(false);
         });
     };

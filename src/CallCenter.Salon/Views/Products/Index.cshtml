@@ -31,7 +31,7 @@
                             <th>Stok</th>
                             <th>Alis Fiyati</th>
                             <th>Satis Fiyati</th>
-                            <th style="width: 80px;"></th>
+                            <th style="width: 170px;"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredProducts">
@@ -52,6 +52,15 @@
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success" title="Alis Ekle" data-bind="click: $parent.openPurchase">
+                                        <i class="bi bi-cart-plus"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" title="Transfer" data-bind="click: $parent.openStockTransfer">
+                                        <i class="bi bi-arrow-left-right"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning" title="Sayim" data-bind="click: $parent.openStockCount">
+                                        <i class="bi bi-clipboard-check"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
@@ -172,6 +181,152 @@
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alis Modal -->
+    <div class="modal fade" id="purchaseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Alis Kaydi</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: purchaseProduct -->
+                    <div class="mb-3">
+                        <div class="small text-muted">Urun</div>
+                        <div class="fw-semibold" data-bind="text: purchaseProduct().name"></div>
+                    </div>
+                    <!-- /ko -->
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Tedarikci *</label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: suppliers,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: purchaseForm.supplierId,
+                                               optionsCaption: 'Tedarikci secin'"></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">
+                                Miktar
+                                <!-- ko if: purchaseProduct -->
+                                <span class="text-muted" data-bind="text: '(' + purchaseProduct().unit + ')'"></span>
+                                <!-- /ko -->
+                            </label>
+                            <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: purchaseForm.quantity, valueUpdate: 'afterkeydown'" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Birim Alis Fiyati (TL)</label>
+                            <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: purchaseForm.unitPrice, valueUpdate: 'afterkeydown'" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: purchaseForm.notes"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                                <span class="small text-muted">Toplam</span>
+                                <span class="fw-bold" data-bind="text: purchaseTotal().toLocaleString('tr-TR') + ' TL'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-success btn-sm" data-bind="click: savePurchase, disable: isPurchaseSaving">
+                        <span data-bind="visible: isPurchaseSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isPurchaseSaving()"></i>Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stok Operasyon Modal -->
+    <div class="modal fade" id="stockOperationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: stockOperationMode() === 'transfer' ? 'Stok Transferi' : 'Stok Sayimi'"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: stockOperationProduct -->
+                    <div class="mb-3">
+                        <div class="small text-muted">Urun</div>
+                        <div class="fw-semibold" data-bind="text: stockOperationProduct().name"></div>
+                        <div class="small text-muted">Mevcut global stok: <span data-bind="text: stockOperationProduct().stockQuantity"></span></div>
+                    </div>
+                    <!-- /ko -->
+
+                    <div data-bind="visible: stockOperationMode() === 'transfer'">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Kaynak sube</label>
+                                <select class="form-select form-select-sm"
+                                        data-bind="options: branches,
+                                                   optionsText: 'name',
+                                                   optionsValue: 'id',
+                                                   value: stockOperationForm.fromBranchId,
+                                                   optionsCaption: 'Merkez / belirsiz'"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Hedef sube *</label>
+                                <select class="form-select form-select-sm"
+                                        data-bind="options: branches,
+                                                   optionsText: 'name',
+                                                   optionsValue: 'id',
+                                                   value: stockOperationForm.toBranchId,
+                                                   optionsCaption: 'Sube secin'"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Miktar</label>
+                                <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: stockOperationForm.quantity" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Not</label>
+                                <input type="text" class="form-control form-control-sm" data-bind="value: stockOperationForm.notes" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div data-bind="visible: stockOperationMode() === 'count'">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Sayim subesi</label>
+                                <select class="form-select form-select-sm"
+                                        data-bind="options: branches,
+                                                   optionsText: 'name',
+                                                   optionsValue: 'id',
+                                                   value: stockOperationForm.branchId,
+                                                   optionsCaption: 'Genel stok'"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Sayilan stok</label>
+                                <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: stockOperationForm.countedQuantity" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">Not</label>
+                                <textarea class="form-control form-control-sm" rows="2" data-bind="value: stockOperationForm.notes"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 small mt-3 mb-0">
+                        Transfer global stok toplamını değiştirmez; sayım farkı global stok değerini sayılan miktara göre günceller ve audit hareketi yazar.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveStockOperation, disable: isStockOperationSaving">
+                        <span data-bind="visible: isStockOperationSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isStockOperationSaving()"></i>Kaydet
                     </button>
                 </div>
             </div>

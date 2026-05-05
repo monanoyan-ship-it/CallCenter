@@ -15,7 +15,9 @@ public class JwtIdentity
     public const string TokenCookie = JwtAuthCookieOptions.FallbackSharedCookieName;
 
     public string? Token { get; init; }
-    public bool IsAuthenticated => !string.IsNullOrEmpty(Token);
+    public DateTimeOffset? ExpiresAt { get; init; }
+    public bool IsExpired => ExpiresAt.HasValue && ExpiresAt.Value <= DateTimeOffset.UtcNow;
+    public bool IsAuthenticated => !string.IsNullOrEmpty(Token) && !IsExpired;
 
     public string UserName { get; init; } = "";
     public string FullName { get; init; } = "";
@@ -51,7 +53,7 @@ public class JwtIdentity
         try
         {
             var parts = token.Split('.');
-            if (parts.Length != 3) return new JwtIdentity { Token = token };
+            if (parts.Length != 3) return new JwtIdentity();
             var payload = parts[1].Replace('-', '+').Replace('_', '/');
             switch (payload.Length % 4) { case 2: payload += "=="; break; case 3: payload += "="; break; }
             using var doc = JsonDocument.Parse(System.Convert.FromBase64String(payload));
@@ -60,6 +62,15 @@ public class JwtIdentity
             int i(string k) => root.TryGetProperty(k, out var v) && int.TryParse(v.GetString(), out var n) ? n : 0;
             int? io(string k) => root.TryGetProperty(k, out var v) && int.TryParse(v.GetString(), out var n) ? n : (int?)null;
             bool b(string k) => root.TryGetProperty(k, out var v) && bool.TryParse(v.GetString(), out var x) && x;
+            DateTimeOffset? exp()
+            {
+                if (!root.TryGetProperty("exp", out var v)) return null;
+                if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var unix))
+                    return DateTimeOffset.FromUnixTimeSeconds(unix);
+                if (long.TryParse(v.GetString(), out unix))
+                    return DateTimeOffset.FromUnixTimeSeconds(unix);
+                return null;
+            }
 
             const string Name = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
             const string GivenName = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname";
@@ -76,12 +87,13 @@ public class JwtIdentity
                 CustomerRoleId = i("CustomerRoleId"),
                 IsCustomerAdmin = b("IsCustomerAdmin"),
                 CustomerModules = s("CustomerModules"),
-                BranchId = io("BranchId")
+                BranchId = io("BranchId"),
+                ExpiresAt = exp()
             };
         }
         catch
         {
-            return new JwtIdentity { Token = token };
+            return new JwtIdentity();
         }
     }
 }

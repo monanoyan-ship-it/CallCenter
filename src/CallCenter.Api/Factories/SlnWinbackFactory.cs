@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
@@ -10,11 +11,22 @@ namespace CallCenter.Api.Factories;
 public class SlnWinbackFactory : ISlnWinbackFactory
 {
     private readonly ISlnWinbackRuleEntityService _winbackRuleEs;
+    private readonly ISlnClientEntityService _clients;
+    private readonly ISlnInvoiceEntityService _invoices;
+    private readonly ISlnMarketingFactory _marketingFactory;
     private readonly IUnitOfWork _uow;
 
-    public SlnWinbackFactory(ISlnWinbackRuleEntityService winbackRuleEs, IUnitOfWork uow)
+    public SlnWinbackFactory(
+        ISlnWinbackRuleEntityService winbackRuleEs,
+        ISlnClientEntityService clients,
+        ISlnInvoiceEntityService invoices,
+        ISlnMarketingFactory marketingFactory,
+        IUnitOfWork uow)
     {
         _winbackRuleEs = winbackRuleEs;
+        _clients = clients;
+        _invoices = invoices;
+        _marketingFactory = marketingFactory;
         _uow = uow;
     }
 
@@ -84,6 +96,106 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         rule.IsActive = !rule.IsActive;
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    public async Task<SlnWinbackPreviewDto?> GetPreviewAsync(int id, int customerId)
+    {
+        var rule = await _winbackRuleEs.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        if (rule == null) return null;
+
+        var candidates = await GetCandidatesAsync(rule, customerId);
+        return new SlnWinbackPreviewDto
+        {
+            RuleId = rule.Id,
+            RuleName = rule.Name,
+            InactiveDays = rule.InactiveDays,
+            EligibleClients = candidates.Count,
+            SmsReachableClients = candidates.Count(c => !string.IsNullOrWhiteSpace(c.Phone)),
+            EmailReachableClients = candidates.Count(c => !string.IsNullOrWhiteSpace(c.Email)),
+            MissingContactCount = candidates.Count(c => string.IsNullOrWhiteSpace(c.Phone) && string.IsNullOrWhiteSpace(c.Email)),
+            DiscountPercent = rule.DiscountPercent ?? 0,
+            MessagePreview = BuildMessage(rule),
+            Candidates = candidates.Take(50).ToList()
+        };
+    }
+
+    public async Task<(SlnCampaignDto? Campaign, string? Error)> CreateCampaignFromRuleAsync(int id, int customerId)
+    {
+        var rule = await _winbackRuleEs.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        if (rule == null) return (null, "Kural bulunamadi");
+        if (!rule.IsActive) return (null, "Pasif kuraldan kampanya olusturulamaz");
+
+        var preview = await GetPreviewAsync(id, customerId);
+        if (preview == null) return (null, "Kural bulunamadi");
+        if (preview.EligibleClients == 0) return (null, "Bu kural icin uygun pasif musteri yok");
+
+        var segmentFilter = JsonSerializer.Serialize(new { inactiveDays = rule.InactiveDays });
+        var campaign = await _marketingFactory.CreateCampaignAsync(new SlnCampaignCreateDto
+        {
+            Name = $"Winback - {rule.Name} - {DateTime.UtcNow:yyyyMMdd}",
+            MessageTemplate = BuildMessage(rule),
+            SegmentFilter = segmentFilter
+        }, customerId);
+
+        return (campaign, null);
+    }
+
+    private async Task<List<SlnWinbackCandidateDto>> GetCandidatesAsync(SlnWinbackRule rule, int customerId)
+    {
+        var now = DateTime.UtcNow;
+        var cutoff = now.AddDays(-rule.InactiveDays);
+        var clients = await _clients.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId && c.IsActive && !c.IsBlacklisted && c.CreatedAt <= cutoff)
+            .OrderBy(c => c.FullName)
+            .ToListAsync();
+
+        if (clients.Count == 0)
+            return [];
+
+        var clientIds = clients.Select(c => c.Id).ToList();
+        var lastVisits = await _invoices.GetAllQueryable()
+            .Where(i => i.CustomerId == customerId
+                && i.SlnClientId.HasValue
+                && clientIds.Contains(i.SlnClientId.Value)
+                && i.StatusId != 3)
+            .GroupBy(i => i.SlnClientId!.Value)
+            .Select(g => new { ClientId = g.Key, LastVisitAt = g.Max(i => i.InvoiceDate) })
+            .ToDictionaryAsync(x => x.ClientId, x => x.LastVisitAt);
+
+        return clients
+            .Select(c =>
+            {
+                lastVisits.TryGetValue(c.Id, out var lastVisitAt);
+                var referenceDate = lastVisitAt == default ? c.CreatedAt : lastVisitAt;
+                return new { Client = c, LastVisitAt = lastVisitAt == default ? (DateTime?)null : lastVisitAt, Days = (int)Math.Floor((now - referenceDate).TotalDays) };
+            })
+            .Where(x => x.Days >= rule.InactiveDays)
+            .OrderByDescending(x => x.Days)
+            .ThenBy(x => x.Client.FullName)
+            .Select(x => new SlnWinbackCandidateDto
+            {
+                ClientId = x.Client.Id,
+                ClientName = x.Client.FullName,
+                Phone = x.Client.Phone,
+                Email = x.Client.Email,
+                LastVisitAt = x.LastVisitAt,
+                InactiveDays = x.Days
+            })
+            .ToList();
+    }
+
+    private static string BuildMessage(SlnWinbackRule rule)
+    {
+        var discount = rule.DiscountPercent.HasValue && rule.DiscountPercent.Value > 0
+            ? $"%{rule.DiscountPercent.Value}"
+            : "";
+
+        return (rule.MessageTemplate ?? string.Empty)
+            .Replace("{gun}", rule.InactiveDays.ToString(), StringComparison.OrdinalIgnoreCase)
+            .Replace("{indirim}", discount, StringComparison.OrdinalIgnoreCase)
+            .Trim();
     }
 
     private static SlnWinbackRuleDto MapToDto(SlnWinbackRule r) => new()

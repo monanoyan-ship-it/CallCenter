@@ -131,21 +131,133 @@
             <div class="table-responsive" data-bind="visible: pendingHavale().length > 0">
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
-                        <tr><th>Tarih</th><th>Firma</th><th>Tip</th><th>Tutar</th><th style="width:140px;"></th></tr>
+                        <tr><th>Tarih</th><th>Firma</th><th>Tip</th><th>Referans</th><th>Dekont</th><th>Tutar</th><th style="width:190px;"></th></tr>
                     </thead>
                     <tbody data-bind="foreach: pendingHavale">
                         <tr>
                             <td class="small" data-bind="text: new Date(createdAt).toLocaleString('tr-TR')"></td>
                             <td data-bind="text: customerName || '-'"></td>
                             <td><span class="badge bg-info" data-bind="text: paymentType || '-'"></span></td>
+                            <td class="small" data-bind="text: referenceNote || '-'"></td>
+                            <td>
+                                <button class="btn btn-outline-secondary btn-sm py-0 px-2" data-bind="visible: hasReceipt, click: $parent.downloadHavaleReceipt">
+                                    <i class="bi bi-paperclip me-1"></i>Dekont
+                                </button>
+                                <span class="text-muted small" data-bind="visible: !hasReceipt">-</span>
+                            </td>
                             <td class="fw-medium" data-bind="text: amount.toLocaleString('tr-TR', {style:'currency',currency:currency||'TRY'})"></td>
                             <td>
                                 <button class="btn btn-success btn-sm me-1" data-bind="click: $parent.confirmHavale"><i class="bi bi-check-lg"></i> Onayla</button>
+                                <button class="btn btn-outline-info btn-sm me-1" title="Zaman cizelgesi" data-bind="click: $parent.openTimeline"><i class="bi bi-clock-history"></i></button>
                                 <button class="btn btn-danger btn-sm" data-bind="click: $parent.rejectHavale"><i class="bi bi-x-lg"></i></button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Odeme Operasyonlari -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Son Odeme Islemleri</h6>
+                    <button class="btn btn-outline-primary btn-sm" data-bind="click: loadPaymentHistory, disable: paymentHistoryLoading">
+                        <span class="spinner-border spinner-border-sm me-1" data-bind="visible: paymentHistoryLoading"></span>
+                        <i class="bi bi-arrow-clockwise" data-bind="visible: !paymentHistoryLoading()"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="text-center py-4" data-bind="visible: paymentHistoryLoading">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div class="text-center text-muted py-4" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length === 0">
+                        Odeme kaydi yok.
+                    </div>
+                    <div class="table-responsive" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length > 0">
+                        <table class="table table-hover table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Firma</th>
+                                    <th>Tip</th>
+                                    <th>Yontem</th>
+                                    <th class="text-end">Tutar</th>
+                                    <th>Durum</th>
+                                    <th class="text-end" style="width:240px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: paymentHistory">
+                                <tr>
+                                    <td class="small text-nowrap" data-bind="text: $parent.formatDate(completedAt || createdAt)"></td>
+                                    <td class="small" data-bind="text: customerName || '-'"></td>
+                                    <td class="small" data-bind="text: paymentType || '-'"></td>
+                                    <td class="small" data-bind="text: paymentMethod || provider || '-'"></td>
+                                    <td class="small text-end fw-semibold" data-bind="text: $parent.formatAmount($data)"></td>
+                                    <td>
+                                        <span class="small fw-semibold" data-bind="css: $parent.statusClass($data), text: status || '-'"></span>
+                                        <div class="small text-danger" data-bind="visible: errorMessage, text: errorMessage"></div>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" title="Zaman cizelgesi" data-bind="click: $parent.openTimeline">
+                                            <i class="bi bi-clock-history"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm py-0 px-2 me-1" title="Dekont" data-bind="visible: canDownloadReceipt, click: $parent.downloadReceipt">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm py-0 px-2 me-1" title="Havale dekontu" data-bind="visible: canDownloadHavaleReceipt, click: $parent.downloadHavaleReceipt">
+                                            <i class="bi bi-paperclip"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm py-0 px-2 me-1" title="Iade" data-bind="visible: statusId === 2 && amount > 0, click: $parent.refundPayment">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm py-0 px-2" title="Iptal" data-bind="visible: statusId === 1, click: $parent.cancelPayment">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0"><i class="bi bi-shuffle me-2"></i>Mutabakat Ozeti</h6>
+                    <button class="btn btn-outline-primary btn-sm" data-bind="click: loadReconciliation, disable: reconciliationLoading">
+                        <span class="spinner-border spinner-border-sm me-1" data-bind="visible: reconciliationLoading"></span>
+                        <i class="bi bi-arrow-clockwise" data-bind="visible: !reconciliationLoading()"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-3" data-bind="visible: reconciliationLoading">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                    <div data-bind="visible: reconciliation">
+                        <!-- ko with: reconciliation -->
+                        <div class="row g-2 small">
+                            <div class="col-6"><div class="text-muted">Kayit</div><div class="fw-bold" data-bind="text: totals.count"></div></div>
+                            <div class="col-6"><div class="text-muted">Basarili</div><div class="fw-bold text-success" data-bind="text: totals.successfulAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
+                            <div class="col-6"><div class="text-muted">Bekleyen</div><div class="fw-bold text-warning" data-bind="text: totals.pendingAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
+                            <div class="col-6"><div class="text-muted">Iade</div><div class="fw-bold text-info" data-bind="text: totals.refundedAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
+                        </div>
+                        <hr />
+                        <div class="small">
+                            <div class="d-flex justify-content-between"><span>Provider refsiz basarili</span><strong data-bind="text: anomalies.successfulWithoutProviderRef.length"></strong></div>
+                            <div class="d-flex justify-content-between"><span>24 saati asan bekleyen</span><strong data-bind="text: anomalies.pendingOlderThan24Hours.length"></strong></div>
+                            <div class="d-flex justify-content-between"><span>Hatasiz basarisiz</span><strong data-bind="text: anomalies.failedWithoutError.length"></strong></div>
+                            <div class="d-flex justify-content-between"><span>Tekrarlanan provider ref</span><strong data-bind="text: anomalies.duplicateProviderReferences.length"></strong></div>
+                        </div>
+                        <!-- /ko -->
+                    </div>
+                    <div class="text-muted small" data-bind="visible: !reconciliation() && !reconciliationLoading()">
+                        Mutabakat ozeti henuz yuklenmedi.
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -263,6 +375,41 @@
                 <div class="modal-footer py-2 justify-content-center">
                     <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
                     <button class="btn btn-danger btn-sm" data-bind="click: executeDelete">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline Modal -->
+    <div class="modal fade" id="timelineModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title"><i class="bi bi-clock-history me-1"></i>Odeme Zaman Cizelgesi</h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: timeline() && timeline().payment -->
+                    <div class="alert alert-light border py-2 small">
+                        <strong data-bind="text: timeline().payment.paymentType || '-'"></strong>
+                        <span class="mx-1">-</span>
+                        <span data-bind="text: timeline().payment.amount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ' + (timeline().payment.currency || 'TRY')"></span>
+                        <span class="badge bg-secondary ms-2" data-bind="text: timeline().payment.status || '-'"></span>
+                        <div class="text-muted" data-bind="visible: timeline().payment.providerTransactionId">
+                            Provider ref: <span data-bind="text: timeline().payment.providerTransactionId"></span>
+                        </div>
+                    </div>
+                    <div class="list-group list-group-flush" data-bind="foreach: timeline().events">
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong class="small" data-bind="text: title"></strong>
+                                <span class="text-muted small text-nowrap" data-bind="text: $root.formatDate(at)"></span>
+                            </div>
+                            <div class="small text-muted" data-bind="visible: detail, text: detail"></div>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                    <div class="text-muted small" data-bind="visible: !timeline()">Zaman cizelgesi bulunamadi.</div>
                 </div>
             </div>
         </div>

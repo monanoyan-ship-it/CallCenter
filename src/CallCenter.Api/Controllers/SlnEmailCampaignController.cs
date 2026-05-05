@@ -26,7 +26,7 @@ public class SlnEmailCampaignController : ControllerBase
         return Ok(await _factory.GetCampaignsAsync(customerId));
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<SlnEmailCampaignDto>> GetCampaign(int id)
     {
         var customerId = GetCustomerId();
@@ -43,7 +43,7 @@ public class SlnEmailCampaignController : ControllerBase
         return Ok(await _factory.CreateCampaignAsync(dto, customerId));
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnEmailCampaignUpdateDto dto)
     {
         var customerId = GetCustomerId();
@@ -52,12 +52,37 @@ public class SlnEmailCampaignController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteCampaign(int id)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
         var (success, error) = await _factory.DeleteCampaignAsync(id, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpPost("segment-preview")]
+    public async Task<ActionResult<SlnSegmentPreviewDto>> SegmentPreview([FromBody] string? segmentFilter)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _factory.GetSegmentPreviewAsync(segmentFilter, customerId));
+    }
+
+    [HttpGet("segment-presets")]
+    public async Task<ActionResult<List<SlnSegmentPresetDto>>> GetSegmentPresets()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _factory.GetSegmentPresetsAsync(customerId));
+    }
+
+    [HttpPost("{id:int}/send")]
+    public async Task<ActionResult> SendCampaign(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (success, error) = await _factory.SendCampaignAsync(id, customerId);
         return success ? Ok() : BadRequest(error);
     }
 

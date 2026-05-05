@@ -9,4 +9,7 @@ public interface ISlnEmailCampaignFactory
     Task<SlnEmailCampaignDto> CreateCampaignAsync(SlnEmailCampaignCreateDto dto, int customerId);
     Task<(bool Success, string? Error)> UpdateCampaignAsync(int id, SlnEmailCampaignUpdateDto dto, int customerId);
     Task<(bool Success, string? Error)> DeleteCampaignAsync(int id, int customerId);
+    Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId);
+    Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId);
+    Task<(bool Success, string? Error)> SendCampaignAsync(int id, int customerId);
 }

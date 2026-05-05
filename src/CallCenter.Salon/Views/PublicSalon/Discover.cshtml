@@ -38,7 +38,7 @@
             <div class="container d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold"><i class="bi bi-scissors me-2"></i>CorpLynk <span style="color:#ce93d8;">Salon</span></h5>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="small"><t key="salon.discover.tagline">Discover nearby salons</t></span>
+                    <span class="small"><t key="salon.discover.tagline">Yakındaki salonları keşfet</t></span>
                     <a href="/user/login" class="btn btn-sm btn-outline-light"><i class="bi bi-box-arrow-in-right me-1"></i><t key="salon.discover.login">Giriş Yap</t></a>
                 </div>
                 <div class="lang-dropdown" style="display:inline-block;position:relative;margin-left:8px;">
@@ -64,7 +64,7 @@
         <!-- Arama + Liste -->
         <div class="container py-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0"><i class="bi bi-shop me-2"></i><t key="salon.discover.salons">Salons</t> <small class="text-muted" data-bind="text: '(' + filteredSalons().length + ')'"></small></h5>
+                <h5 class="mb-0"><i class="bi bi-shop me-2"></i><t key="salon.discover.salons">Salonlar</t> <small class="text-muted" data-bind="text: '(' + filteredSalons().length + ')'"></small></h5>
                 <div class="input-group search-box">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" class="form-control" placeholder="Salon veya sehir ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
@@ -79,7 +79,7 @@
             <!-- ko if: !isLoading() && filteredSalons().length === 0 -->
             <div class="text-center text-muted py-5">
                 <i class="bi bi-search" style="font-size:3rem;opacity:.3;"></i>
-                <p class="mt-2"><t key="salon.discover.no_results">No salons found.</t></p>
+                <p class="mt-2"><t key="salon.discover.no_results">Salon bulunamadı.</t></p>
             </div>
             <!-- /ko -->
 
@@ -129,6 +129,18 @@
                                     <span data-bind="text: priceRange"></span>
                                 </small>
                                 <!-- /ko -->
+                                <div class="d-flex gap-2 mt-2">
+                                    <a class="btn btn-sm btn-outline-primary"
+                                       data-bind="attr: { href: '/salon/' + slug, 'aria-label': (branchName || salonName || 'Salon') + ' profilini gor' },
+                                                  click: function(_, e) { e.stopPropagation(); return true; }">
+                                        <i class="bi bi-shop me-1"></i>Profil
+                                    </a>
+                                    <a class="btn btn-sm btn-primary"
+                                       data-bind="attr: { href: '/salon/' + slug + '/book', 'aria-label': (branchName || salonName || 'Salon') + ' icin randevu al' },
+                                                  click: function(_, e) { e.stopPropagation(); return true; }">
+                                        <i class="bi bi-calendar-check me-1"></i>Randevu
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

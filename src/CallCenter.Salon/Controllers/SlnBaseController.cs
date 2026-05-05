@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using CallCenter.Shared.Auth;
 using CallCenter.Shared.Enums;
@@ -26,6 +27,7 @@ public abstract class SlnBaseController : Controller
 
         // Rol + modul + abonelik kontrolleri (Proxy, PublicProxy, Modules muaf)
         if (jwt.IsAuthenticated
+            && controllerType != typeof(AccountController)
             && controllerType != typeof(ProxyController)
             && controllerType != typeof(PublicProxyController)
             && controllerType != typeof(ModulesController))
@@ -36,6 +38,9 @@ public abstract class SlnBaseController : Controller
             // Rol bazli
             if (!string.IsNullOrEmpty(controllerName) && !SalonRolePermissions.CanAccess(roleId, controllerName))
             {
+                if (TryRefreshCurrentSession(context, jwt.Token))
+                    return;
+
                 context.Result = RedirectToAction("Index", "Home");
                 return;
             }
@@ -51,6 +56,9 @@ public abstract class SlnBaseController : Controller
 
                 if (!SalonModuleControllerMap.HasModule(activeModuleIds, controllerName))
                 {
+                    if (TryRefreshCurrentSession(context, jwt.Token))
+                        return;
+
                     context.Result = RedirectToAction("Index", "Home");
                     return;
                 }
@@ -129,6 +137,44 @@ public abstract class SlnBaseController : Controller
             return (canAccess, hasActiveStrict);
         }
         catch { return (true, true); }
+    }
+
+    private bool TryRefreshCurrentSession(ActionExecutingContext context, string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token) || Request.Query.ContainsKey("_sessionRefreshed"))
+            return false;
+
+        try
+        {
+            var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+            var client = factory.CreateClient("SalonApi");
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = client.PostAsync("api/auth/refresh-current",
+                new StringContent("{}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult();
+
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("token", out var tokenEl) || tokenEl.GetString() is not { Length: > 0 } newToken)
+                return false;
+
+            HttpContext.SetAuthCookie(newToken, 1);
+            var opt = new CookieOptions { Path = "/" };
+            Response.Cookies.Delete(CookiePanelAccess, opt);
+            Response.Cookies.Delete(CookieStrictSubscription, opt);
+
+            var returnUrl = $"{Request.Path}{Request.QueryString}";
+            returnUrl += Request.QueryString.HasValue ? "&_sessionRefreshed=1" : "?_sessionRefreshed=1";
+            context.Result = LocalRedirect(returnUrl);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     protected HttpClient CreateApiClient()

@@ -31,4 +31,6 @@ public interface ISlnProductFactory
 
     // Stok hareket
     Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int userId, int customerId);
+    Task<(bool Success, string? Error)> TransferStockAsync(int productId, int? fromBranchId, int toBranchId, decimal quantity, string? notes, int userId, int customerId);
+    Task<(bool Success, string? Error)> AdjustStockCountAsync(int productId, int? branchId, decimal countedQuantity, string? notes, int userId, int customerId);
 }

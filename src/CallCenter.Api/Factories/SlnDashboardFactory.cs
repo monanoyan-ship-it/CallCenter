@@ -10,6 +10,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnInvoiceEntityService _invoices;
+    private readonly ISlnProductEntityService _products;
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ICustomerSubscriptionEntityService _subscriptions;
     private readonly ICustomerPortalModuleEntityService _portalModules;
@@ -21,6 +22,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         ISlnClientEntityService clients,
         ISlnAppointmentEntityService appointments,
         ISlnInvoiceEntityService invoices,
+        ISlnProductEntityService products,
         ICustomerPersonnelEntityService personnel,
         ICustomerSubscriptionEntityService subscriptions,
         ICustomerPortalModuleEntityService portalModules,
@@ -31,6 +33,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _clients = clients;
         _appointments = appointments;
         _invoices = invoices;
+        _products = products;
         _personnel = personnel;
         _subscriptions = subscriptions;
         _portalModules = portalModules;
@@ -91,6 +94,46 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         if (branchId.HasValue)
             staffQuery = staffQuery.Where(p => p.BranchId == branchId.Value);
         var activeStaff = await staffQuery.CountAsync();
+
+        var lowStockProducts = await _products.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId
+                     && p.IsActive
+                     && p.MinStockLevel > 0
+                     && p.StockQuantity <= p.MinStockLevel)
+            .OrderBy(p => p.StockQuantity - p.MinStockLevel)
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.StockQuantity,
+                p.MinStockLevel,
+                p.Unit
+            })
+            .Take(8)
+            .ToListAsync();
+
+        var lowStockCount = await _products.GetAllQueryable()
+            .CountAsync(p => p.CustomerId == customerId
+                          && p.IsActive
+                          && p.MinStockLevel > 0
+                          && p.StockQuantity <= p.MinStockLevel);
+
+        var lowStockAlerts = lowStockProducts
+            .Select(p =>
+            {
+                var targetStock = p.MinStockLevel * 2;
+                var reorderQuantity = Math.Max(p.MinStockLevel, targetStock - p.StockQuantity);
+                return new
+                {
+                    productId = p.Id,
+                    productName = p.Name,
+                    stockQuantity = p.StockQuantity,
+                    minStockLevel = p.MinStockLevel,
+                    unit = p.Unit,
+                    reorderQuantity
+                };
+            })
+            .ToList();
 
         // Hatirlatmalar — bu hafta dogum gunu olan musteriler (TR-aware)
         var today = DateTime.UtcNow.Date;
@@ -210,6 +253,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             todayAppointmentsCount,
             todayRevenue,
             activeStaff,
+            lowStockCount,
+            lowStockAlerts,
             todayAppointments,
             reminders = birthdayReminders,
             subscription = subscriptionInfo

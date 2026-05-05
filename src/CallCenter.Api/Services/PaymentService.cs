@@ -46,6 +46,243 @@ public class PaymentService
         }
     }
 
+    private static int GetEffectiveSubscriptionIntervalMonths(SubscriptionPlan? plan)
+    {
+        var interval = plan?.IntervalMonths ?? 0;
+        return interval > 0 ? interval : 1;
+    }
+
+    private async Task ActivateSalonSubscriptionAfterPlatformPaymentAsync(CustomerBillingPeriod period, decimal paidAmount)
+    {
+        if (period.BillingKindId != CustomerBillingKinds.SalonPlatform) return;
+
+        var subscription = await _db.CustomerSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.CustomerId == period.CustomerId
+                && (s.StatusId == SubscriptionStatuses.Ids.Active || s.StatusId == SubscriptionStatuses.Ids.Suspended))
+            .OrderByDescending(s => s.StatusId == SubscriptionStatuses.Ids.Active)
+            .ThenByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync();
+        if (subscription == null) return;
+
+        if (subscription.PeriodPrice <= 0m)
+        {
+            var platformAmount = period.Amount > 0m
+                ? period.Amount
+                : Math.Max(0m, paidAmount - period.ServiceAmount);
+            platformAmount = Math.Round(platformAmount, 2, MidpointRounding.AwayFromZero);
+
+            if (platformAmount > 0m)
+                subscription.PeriodPrice = platformAmount;
+
+            if (period.UnitPrice > 0m)
+            {
+                var interval = GetEffectiveSubscriptionIntervalMonths(subscription.Plan);
+                subscription.MonthlyPrice = Math.Round(period.UnitPrice / interval, 2, MidpointRounding.AwayFromZero);
+            }
+
+            subscription.StartDate = DateTime.SpecifyKind(period.PeriodStartDate, DateTimeKind.Utc);
+            subscription.BillingDay = period.PeriodStartDate.Day;
+        }
+
+        subscription.StatusId = SubscriptionStatuses.Ids.Active;
+        subscription.CancelledAt = null;
+    }
+
+    private static int? TryReadPackageGroupId(string? notes)
+        => TryReadNoteInt(notes, "PackageGroup:");
+
+    private static int? TryReadMembershipPlanId(string? notes)
+        => TryReadNoteInt(notes, "MembershipPlan:");
+
+    private static int? TryReadMembershipSlnClientId(string? notes)
+        => TryReadNoteInt(notes, "SlnClient:");
+
+    private static string? TryReadMembershipSlug(string? notes)
+        => TryReadNoteValue(notes, "Slug:");
+
+    private static string AddNoteValue(string? notes, string prefix, string value)
+    {
+        var part = prefix + value;
+        return string.IsNullOrWhiteSpace(notes) ? part : notes + "|" + part;
+    }
+
+    private static string EncodeNoteValue(string value)
+        => Uri.EscapeDataString(value);
+
+    private static string DecodeNoteValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        try { return Uri.UnescapeDataString(value); }
+        catch { return value; }
+    }
+
+    private static string AddEncodedNoteValue(string? notes, string prefix, string? value)
+        => string.IsNullOrWhiteSpace(value) ? notes ?? string.Empty : AddNoteValue(notes, prefix, EncodeNoteValue(value.Trim()));
+
+    private static string AddNoteEvent(string? notes, string kind, string detail)
+        => AddEncodedNoteValue(notes, "Event:", $"{DateTime.UtcNow:O}~{kind}~{detail}");
+
+    private async Task CancelPendingCheckoutAttemptsAsync(
+        int customerId,
+        int paymentTypeId,
+        int? billingPeriodId = null,
+        int? packageGroupId = null)
+    {
+        var query = _db.PaymentTransactions
+            .Where(t => t.CustomerId == customerId
+                     && t.PaymentTypeId == paymentTypeId
+                     && t.StatusId == PaymentStatuses.Ids.Beklemede);
+
+        if (billingPeriodId.HasValue)
+            query = query.Where(t => t.BillingPeriodId == billingPeriodId.Value);
+
+        var pending = await query.ToListAsync();
+        foreach (var tx in pending)
+        {
+            if (packageGroupId.HasValue && TryReadPackageGroupId(tx.Notes) != packageGroupId.Value)
+                continue;
+
+            tx.StatusId = PaymentStatuses.Ids.Iptal;
+            tx.CompletedAt = DateTime.UtcNow;
+            tx.ErrorMessage = "Yeni odeme denemesi baslatildigi icin iptal edildi.";
+            tx.Notes = AddNoteEvent(tx.Notes, "CheckoutSuperseded", tx.ErrorMessage);
+        }
+    }
+
+    private static List<string> ReadDecodedNoteValues(string? notes, string prefix)
+    {
+        var values = new List<string>();
+        if (string.IsNullOrWhiteSpace(notes)) return values;
+        foreach (var part in notes.Split('|', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                values.Add(DecodeNoteValue(part[prefix.Length..]));
+        }
+
+        return values;
+    }
+
+    private static int? TryReadNoteInt(string? notes, string prefix)
+    {
+        var value = TryReadNoteValue(notes, prefix);
+        return int.TryParse(value, out var id) ? id : null;
+    }
+
+    private static string? TryReadNoteValue(string? notes, string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(notes)) return null;
+        foreach (var part in notes.Split('|', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return part[prefix.Length..];
+        }
+
+        return null;
+    }
+
+    private static string? TryReadDecodedNoteValue(string? notes, string prefix)
+    {
+        var raw = TryReadNoteValue(notes, prefix);
+        return raw == null ? null : DecodeNoteValue(raw);
+    }
+
+    private static string GetPaymentReceiptRoot()
+        => Path.Combine(AppContext.BaseDirectory, "App_Data", "payment-receipts");
+
+    private static string? GetAllowedReceiptExtension(string? fileName, string? contentType)
+    {
+        var ext = Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
+        if (ext is ".pdf" or ".jpg" or ".jpeg" or ".png" or ".webp")
+            return ext;
+
+        return (contentType ?? string.Empty).ToLowerInvariant() switch
+        {
+            "application/pdf" => ".pdf",
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => null
+        };
+    }
+
+    private static string GuessReceiptContentType(string? contentType, string extension)
+    {
+        if (!string.IsNullOrWhiteSpace(contentType))
+            return contentType;
+
+        return extension switch
+        {
+            ".pdf" => "application/pdf",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private static string SanitizeFileName(string? fileName, string fallback)
+    {
+        var safe = Path.GetFileName(string.IsNullOrWhiteSpace(fileName) ? fallback : fileName);
+        foreach (var ch in Path.GetInvalidFileNameChars())
+            safe = safe.Replace(ch, '_');
+        return string.IsNullOrWhiteSpace(safe) ? fallback : safe;
+    }
+
+    private async Task<(string? RelativePath, string? OriginalFileName, string? ContentType, string? Error)> SaveHavaleReceiptAsync(
+        int customerId,
+        Guid transactionUid,
+        string? fileName,
+        string? contentType,
+        string? base64)
+    {
+        if (string.IsNullOrWhiteSpace(base64))
+            return (null, null, null, null);
+
+        var ext = GetAllowedReceiptExtension(fileName, contentType);
+        if (ext == null)
+            return (null, null, null, "Dekont dosyasi PDF, JPG, PNG veya WEBP olmalidir.");
+
+        var payload = base64.Trim();
+        var comma = payload.IndexOf(',');
+        if (payload.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma >= 0)
+            payload = payload[(comma + 1)..];
+
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(payload);
+        }
+        catch
+        {
+            return (null, null, null, "Dekont dosyasi okunamadi.");
+        }
+
+        if (bytes.Length == 0)
+            return (null, null, null, "Dekont dosyasi bos.");
+        if (bytes.Length > 5 * 1024 * 1024)
+            return (null, null, null, "Dekont dosyasi en fazla 5 MB olabilir.");
+
+        var originalName = SanitizeFileName(fileName, $"havale-dekont{ext}");
+        var root = GetPaymentReceiptRoot();
+        var customerFolder = Path.Combine(root, customerId.ToString());
+        Directory.CreateDirectory(customerFolder);
+
+        var storedName = transactionUid.ToString("N") + ext;
+        var fullPath = Path.Combine(customerFolder, storedName);
+        await File.WriteAllBytesAsync(fullPath, bytes);
+
+        return ($"{customerId}/{storedName}", originalName, GuessReceiptContentType(contentType, ext), null);
+    }
+
+    private static (string? RelativePath, string? OriginalFileName, string? ContentType) GetHavaleReceiptInfo(PaymentTransaction tx)
+    {
+        return (
+            TryReadDecodedNoteValue(tx.Notes, "HavaleReceiptPath:"),
+            TryReadDecodedNoteValue(tx.Notes, "HavaleReceiptName:"),
+            TryReadDecodedNoteValue(tx.Notes, "HavaleReceiptType:"));
+    }
+
     /// <summary>Salon adisyon odemesi baslatir (PlatformUser odiyor)</summary>
     public async Task<PaymentResult> ProcessInvoicePaymentAsync(int customerId, int invoiceId, int platformUserId, PaymentCardInfo card)
     {
@@ -124,6 +361,7 @@ public class PaymentService
             period.IsPaid = true;
             period.PaidAt = DateTime.UtcNow;
             period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
+            await ActivateSalonSubscriptionAfterPlatformPaymentAsync(period, amount);
             _logger.LogInformation("Abonelik odemesi basarili: PeriodId={PeriodId}, Amount={Amount}", billingPeriodId, amount);
         }
         else
@@ -192,10 +430,17 @@ public class PaymentService
             await RefreshSalonSubscriptionDisplayMonthlySafeAsync(customerId);
         return gatewayResult;
     }
-    public async Task<PaymentResult> CreateHavaleRequestAsync(int customerId, int moduleId)
+    public async Task<PaymentResult> CreateHavaleRequestAsync(
+        int customerId,
+        int moduleId,
+        string? referenceNote = null,
+        string? receiptFileName = null,
+        string? receiptContentType = null,
+        string? receiptBase64 = null)
     {
         var pricing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == moduleId);
         if (pricing == null) return PaymentResult.Fail("Modul fiyati tanimlanmamis.");
+        if (pricing.MonthlyPrice <= 0) return PaymentResult.Fail("Bu modul ucretsizdir.");
 
         var tx = new PaymentTransaction
         {
@@ -207,6 +452,22 @@ public class PaymentService
             StatusId = PaymentStatuses.Ids.Beklemede,
             Provider = "Havale"
         };
+
+        tx.Notes = AddNoteEvent(tx.Notes, "CustomerHavaleRequested", "Havale/EFT talebi olusturuldu.");
+        tx.Notes = AddEncodedNoteValue(tx.Notes, "HavaleRef:", referenceNote);
+
+        var receipt = await SaveHavaleReceiptAsync(
+            customerId, tx.Uid, receiptFileName, receiptContentType, receiptBase64);
+        if (!string.IsNullOrEmpty(receipt.Error))
+            return PaymentResult.Fail(receipt.Error);
+
+        if (!string.IsNullOrEmpty(receipt.RelativePath))
+        {
+            tx.Notes = AddEncodedNoteValue(tx.Notes, "HavaleReceiptPath:", receipt.RelativePath);
+            tx.Notes = AddEncodedNoteValue(tx.Notes, "HavaleReceiptName:", receipt.OriginalFileName);
+            tx.Notes = AddEncodedNoteValue(tx.Notes, "HavaleReceiptType:", receipt.ContentType);
+            tx.Notes = AddNoteEvent(tx.Notes, "CustomerReceiptUploaded", "Havale dekontu yuklendi.");
+        }
 
         _db.PaymentTransactions.Add(tx);
         await _db.SaveChangesAsync();
@@ -227,6 +488,7 @@ public class PaymentService
 
         tx.StatusId = PaymentStatuses.Ids.Basarili;
         tx.CompletedAt = DateTime.UtcNow;
+        tx.Notes = AddNoteEvent(tx.Notes, "AdminHavaleConfirmed", "Havale admin tarafindan onaylandi.");
 
         // Modul satin almaysa modulu aktif et
         if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.ModuleId.HasValue && tx.CustomerId.HasValue)
@@ -272,6 +534,7 @@ public class PaymentService
         tx.StatusId = PaymentStatuses.Ids.Basarisiz;
         tx.ErrorMessage = reason ?? "Havale admin tarafindan reddedildi.";
         tx.CompletedAt = DateTime.UtcNow;
+        tx.Notes = AddNoteEvent(tx.Notes, "AdminHavaleRejected", tx.ErrorMessage);
 
         await _db.SaveChangesAsync();
         return PaymentResult.Ok(tx.Uid, null);
@@ -286,6 +549,394 @@ public class PaymentService
                      && t.StatusId == PaymentStatuses.Ids.Beklemede)
             .OrderBy(t => t.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<(byte[]? Bytes, string? FileName, string? ContentType, string? Error)> GetHavaleReceiptFileAsync(
+        Guid transactionUid,
+        int? customerId = null,
+        bool allowAnyCustomer = false)
+    {
+        var tx = await _db.PaymentTransactions.FirstOrDefaultAsync(t => t.Uid == transactionUid);
+        if (tx == null) return (null, null, null, "Islem bulunamadi.");
+        if (!allowAnyCustomer && tx.CustomerId != customerId)
+            return (null, null, null, "Bu dekont icin yetkiniz yok.");
+
+        var (relativePath, originalFileName, contentType) = GetHavaleReceiptInfo(tx);
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return (null, null, null, "Bu havale icin yuklu dekont yok.");
+
+        var root = Path.GetFullPath(GetPaymentReceiptRoot());
+        var filePath = Path.GetFullPath(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        if (!filePath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            return (null, null, null, "Dekont yolu gecersiz.");
+        if (!File.Exists(filePath))
+            return (null, null, null, "Dekont dosyasi bulunamadi.");
+
+        var bytes = await File.ReadAllBytesAsync(filePath);
+        return (bytes, originalFileName ?? Path.GetFileName(filePath), contentType ?? "application/octet-stream", null);
+    }
+
+    public async Task<PaymentResult> RefundTransactionAsync(Guid transactionUid, decimal? amount = null, string? reason = null)
+    {
+        var tx = await _db.PaymentTransactions.FirstOrDefaultAsync(t => t.Uid == transactionUid);
+        if (tx == null) return PaymentResult.Fail("Islem bulunamadi.");
+        if (tx.Amount <= 0) return PaymentResult.Fail("Bu islem iade edilemez.");
+        if (tx.StatusId != PaymentStatuses.Ids.Basarili)
+            return PaymentResult.Fail("Yalnizca basarili odemeler iade edilebilir.");
+
+        var refundToken = $"RefundOf:{tx.Uid}";
+        var alreadyRefunded = await _db.PaymentTransactions
+            .Where(t => t.Notes != null
+                     && t.Notes.Contains(refundToken)
+                     && t.StatusId == PaymentStatuses.Ids.Basarili
+                     && t.Amount < 0)
+            .SumAsync(t => -t.Amount);
+
+        var remaining = Math.Round(tx.Amount - alreadyRefunded, 2, MidpointRounding.AwayFromZero);
+        if (remaining <= 0)
+            return PaymentResult.Fail("Bu odeme zaten tamamen iade edilmis.");
+
+        var refundAmount = Math.Round(amount ?? remaining, 2, MidpointRounding.AwayFromZero);
+        if (refundAmount <= 0)
+            return PaymentResult.Fail("Iade tutari 0'dan buyuk olmalidir.");
+        if (refundAmount > remaining)
+            return PaymentResult.Fail($"Iade tutari kalan iade edilebilir tutari asamaz: {remaining:N2} {tx.Currency}");
+
+        string? refundReference;
+        if (tx.PaymentMethodId == BillingPaymentMethods.Ids.Havale)
+        {
+            refundReference = "HAVALE-REFUND-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        }
+        else
+        {
+            var providerReference = tx.ProviderPaymentId ?? tx.ProviderTransactionId;
+            if (string.IsNullOrWhiteSpace(providerReference))
+                return PaymentResult.Fail("Odeme saglayici referansi eksik, iade yapilamadi.");
+
+            var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+            if (config == null) return PaymentResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+            var gateway = _gatewayFactory.Create(config);
+            var refundResult = await gateway.RefundAsync(providerReference, refundAmount);
+            if (!refundResult.Success)
+            {
+                tx.Notes = AddNoteEvent(tx.Notes, "AdminRefundFailed", refundResult.Error ?? "Iade basarisiz.");
+                await _db.SaveChangesAsync();
+                return PaymentResult.Fail(refundResult.Error ?? "Iade basarisiz.");
+            }
+
+            refundReference = refundResult.RefundId;
+        }
+
+        var refundTx = new PaymentTransaction
+        {
+            PaymentTypeId = tx.PaymentTypeId,
+            CustomerId = tx.CustomerId,
+            PlatformUserId = tx.PlatformUserId,
+            InvoiceId = tx.InvoiceId,
+            BillingPeriodId = tx.BillingPeriodId,
+            ModuleId = tx.ModuleId,
+            Amount = -refundAmount,
+            Currency = tx.Currency,
+            PaymentMethodId = tx.PaymentMethodId,
+            StatusId = PaymentStatuses.Ids.Basarili,
+            Provider = tx.Provider,
+            ProviderTransactionId = refundReference,
+            ProviderPaymentId = tx.ProviderPaymentId,
+            CompletedAt = DateTime.UtcNow,
+            Notes = AddNoteEvent($"RefundOf:{tx.Uid}", "AdminRefundSucceeded",
+                $"{refundAmount:N2} {tx.Currency} iade edildi.")
+        };
+        refundTx.Notes = AddEncodedNoteValue(refundTx.Notes, "Reason:", reason);
+        _db.PaymentTransactions.Add(refundTx);
+
+        var totalRefunded = alreadyRefunded + refundAmount;
+        tx.Notes = AddNoteEvent(tx.Notes, "AdminRefundRequested",
+            $"{refundAmount:N2} {tx.Currency} iade islemi baslatildi.");
+        if (totalRefunded >= tx.Amount)
+            tx.StatusId = PaymentStatuses.Ids.Iade;
+
+        await _db.SaveChangesAsync();
+        return PaymentResult.Ok(refundTx.Uid, refundReference);
+    }
+
+    public async Task<PaymentResult> CancelTransactionAsync(Guid transactionUid, string? reason = null)
+    {
+        var tx = await _db.PaymentTransactions.FirstOrDefaultAsync(t => t.Uid == transactionUid);
+        if (tx == null) return PaymentResult.Fail("Islem bulunamadi.");
+        if (tx.StatusId != PaymentStatuses.Ids.Beklemede)
+            return PaymentResult.Fail("Yalnizca bekleyen islemler iptal edilebilir.");
+
+        tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+        tx.ErrorMessage = string.IsNullOrWhiteSpace(reason) ? "Islem admin tarafindan iptal edildi." : reason.Trim();
+        tx.CompletedAt = DateTime.UtcNow;
+        tx.Notes = AddNoteEvent(tx.Notes, "AdminPaymentCancelled", tx.ErrorMessage);
+
+        await _db.SaveChangesAsync();
+        return PaymentResult.Ok(tx.Uid, tx.ProviderTransactionId);
+    }
+
+    public async Task<(object? Data, string? Error)> GetPaymentTimelineAsync(
+        Guid transactionUid,
+        int? customerId = null,
+        int? platformUserId = null,
+        bool allowAnyCustomer = false)
+    {
+        var tx = await _db.PaymentTransactions
+            .Include(t => t.Customer)
+            .Include(t => t.PlatformUser)
+            .FirstOrDefaultAsync(t => t.Uid == transactionUid);
+        if (tx == null) return (null, "Islem bulunamadi.");
+        if (!allowAnyCustomer)
+        {
+            if (customerId.HasValue && tx.CustomerId != customerId)
+                return (null, "Bu islem icin yetkiniz yok.");
+            if (platformUserId.HasValue && tx.PlatformUserId != platformUserId)
+                return (null, "Bu islem icin yetkiniz yok.");
+        }
+
+        var refundToken = $"RefundOf:{tx.Uid}";
+        var refunds = await _db.PaymentTransactions
+            .Where(t => t.Notes != null && t.Notes.Contains(refundToken))
+            .OrderBy(t => t.CreatedAt)
+            .ToListAsync();
+
+        var events = new List<object>();
+        void AddEvent(DateTime at, string kind, string title, string? detail = null)
+            => events.Add(new
+            {
+                at,
+                kind,
+                title,
+                detail
+            });
+
+        AddEvent(tx.CreatedAt, "created", "Islem olusturuldu",
+            $"{PaymentTypes.GetById(tx.PaymentTypeId)?.Description ?? "Odeme"} - {tx.Amount:N2} {tx.Currency}");
+
+        if (!string.IsNullOrWhiteSpace(tx.ProviderTransactionId))
+            AddEvent(tx.CreatedAt, "provider-reference", "Provider islem referansi alindi", tx.ProviderTransactionId);
+        if (!string.IsNullOrWhiteSpace(tx.ProviderPaymentId))
+            AddEvent(tx.CompletedAt ?? tx.CreatedAt, "provider-payment", "Provider odeme ID alindi", tx.ProviderPaymentId);
+
+        foreach (var rawEvent in ReadDecodedNoteValues(tx.Notes, "Event:"))
+        {
+            var parts = rawEvent.Split('~', 3);
+            var at = parts.Length > 0 && DateTime.TryParse(parts[0], out var parsedAt)
+                ? parsedAt
+                : tx.CreatedAt;
+            var kind = parts.Length > 1 ? parts[1] : "note";
+            var detail = parts.Length > 2 ? parts[2] : rawEvent;
+            AddEvent(at, kind, PaymentEventTitle(kind), detail);
+        }
+
+        var havaleRef = TryReadDecodedNoteValue(tx.Notes, "HavaleRef:");
+        if (!string.IsNullOrWhiteSpace(havaleRef))
+            AddEvent(tx.CreatedAt, "havale-reference", "Havale aciklamasi girildi", havaleRef);
+
+        var receipt = GetHavaleReceiptInfo(tx);
+        if (!string.IsNullOrWhiteSpace(receipt.RelativePath))
+            AddEvent(tx.CreatedAt, "receipt", "Havale dekontu yuklendi", receipt.OriginalFileName);
+
+        if (tx.StatusId == PaymentStatuses.Ids.Basarili)
+            AddEvent(tx.CompletedAt ?? tx.CreatedAt, "success", "Odeme basarili tamamlandi");
+        else if (tx.StatusId == PaymentStatuses.Ids.Basarisiz)
+            AddEvent(tx.CompletedAt ?? tx.CreatedAt, "failed", "Odeme basarisiz oldu", tx.ErrorMessage);
+        else if (tx.StatusId == PaymentStatuses.Ids.Iade)
+            AddEvent(tx.CompletedAt ?? tx.CreatedAt, "refunded", "Odeme tamamen iade edildi");
+
+        foreach (var refund in refunds)
+        {
+            AddEvent(refund.CompletedAt ?? refund.CreatedAt, "refund",
+                "Iade kaydi olustu", $"{Math.Abs(refund.Amount):N2} {refund.Currency} - {refund.ProviderTransactionId}");
+        }
+
+        var orderedEvents = events
+            .OrderBy(e => (DateTime)e.GetType().GetProperty("at")!.GetValue(e)!)
+            .ToList();
+
+        return (new
+        {
+            payment = new
+            {
+                tx.Uid,
+                tx.PaymentTypeId,
+                PaymentType = PaymentTypes.GetById(tx.PaymentTypeId)?.Description,
+                tx.Amount,
+                tx.Currency,
+                tx.PaymentMethodId,
+                PaymentMethod = BillingPaymentMethods.GetById(tx.PaymentMethodId)?.Description,
+                tx.StatusId,
+                Status = PaymentStatuses.GetById(tx.StatusId)?.Description,
+                tx.Provider,
+                tx.ProviderTransactionId,
+                tx.ProviderPaymentId,
+                CustomerName = tx.Customer?.Name,
+                PlatformUser = tx.PlatformUser?.FullName,
+                tx.ErrorMessage,
+                tx.CreatedAt,
+                tx.CompletedAt
+            },
+            events = orderedEvents,
+            refunds = refunds.Select(r => new
+            {
+                r.Uid,
+                r.Amount,
+                r.Currency,
+                r.ProviderTransactionId,
+                r.CreatedAt,
+                r.CompletedAt,
+                Reason = TryReadDecodedNoteValue(r.Notes, "Reason:")
+            })
+        }, null);
+    }
+
+    private static string PaymentEventTitle(string kind)
+    {
+        return kind switch
+        {
+            "CustomerHavaleRequested" => "Musteri havale bildirimi yapti",
+            "CustomerReceiptUploaded" => "Dekont yuklendi",
+            "AdminHavaleConfirmed" => "Admin havaleyi onayladi",
+            "AdminHavaleRejected" => "Admin havaleyi reddetti",
+            "AdminRefundRequested" => "Admin iade baslatti",
+            "AdminRefundSucceeded" => "Iade basarili",
+            "AdminRefundFailed" => "Iade basarisiz",
+            "AdminPaymentCancelled" => "Admin islemi iptal etti",
+            "ProviderCallbackSucceeded" => "Provider callback basarili",
+            "ProviderCallbackFailed" => "Provider callback basarisiz",
+            "GatewayPaymentSucceeded" => "Gateway odemesi basarili",
+            "GatewayPaymentFailed" => "Gateway odemesi basarisiz",
+            _ => "Islem notu"
+        };
+    }
+
+    public async Task<object> GetPaymentReconciliationAsync(DateTime? from = null, DateTime? to = null, string? provider = null)
+    {
+        var start = DateTime.SpecifyKind(from?.Date ?? DateTime.UtcNow.Date.AddDays(-30), DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind((to?.Date ?? DateTime.UtcNow.Date).AddDays(1), DateTimeKind.Utc);
+        if (end <= start) end = start.AddDays(1);
+
+        var query = _db.PaymentTransactions
+            .Include(t => t.Customer)
+            .Where(t => t.CreatedAt >= start && t.CreatedAt < end);
+        if (!string.IsNullOrWhiteSpace(provider))
+            query = query.Where(t => t.Provider != null && t.Provider.ToLower() == provider.ToLower());
+
+        var txs = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+        var duplicateRefs = txs
+            .Where(t => !string.IsNullOrWhiteSpace(t.ProviderTransactionId))
+            .GroupBy(t => new { t.Provider, t.ProviderTransactionId })
+            .Where(g => g.Count() > 1)
+            .Select(g => new { g.Key.Provider, g.Key.ProviderTransactionId, Count = g.Count() })
+            .ToList();
+
+        var refundOriginalUids = txs
+            .Select(t => TryReadNoteValue(t.Notes, "RefundOf:"))
+            .Select(v => Guid.TryParse(v, out var parsed) ? parsed : (Guid?)null)
+            .Where(v => v.HasValue)
+            .Select(v => v!.Value)
+            .Distinct()
+            .ToList();
+        var existingRefundOriginals = refundOriginalUids.Count == 0
+            ? new HashSet<Guid>()
+            : (await _db.PaymentTransactions
+                .Where(t => refundOriginalUids.Contains(t.Uid))
+                .Select(t => t.Uid)
+                .ToListAsync()).ToHashSet();
+
+        object Row(PaymentTransaction t) => new
+        {
+            t.Uid,
+            t.PaymentTypeId,
+            PaymentType = PaymentTypes.GetById(t.PaymentTypeId)?.Description,
+            t.CustomerId,
+            CustomerName = t.Customer?.Name,
+            t.Amount,
+            t.Currency,
+            t.PaymentMethodId,
+            PaymentMethod = BillingPaymentMethods.GetById(t.PaymentMethodId)?.Description,
+            t.StatusId,
+            Status = PaymentStatuses.GetById(t.StatusId)?.Description,
+            t.Provider,
+            t.ProviderTransactionId,
+            t.ProviderPaymentId,
+            t.ErrorMessage,
+            t.CreatedAt,
+            t.CompletedAt
+        };
+
+        var successfulWithoutProviderRef = txs
+            .Where(t => t.StatusId == PaymentStatuses.Ids.Basarili
+                     && t.PaymentMethodId != BillingPaymentMethods.Ids.Havale
+                     && string.IsNullOrWhiteSpace(t.ProviderTransactionId)
+                     && string.IsNullOrWhiteSpace(t.ProviderPaymentId))
+            .Take(50)
+            .Select(Row)
+            .ToList();
+
+        var pendingOlderThan24Hours = txs
+            .Where(t => t.StatusId == PaymentStatuses.Ids.Beklemede && t.CreatedAt < DateTime.UtcNow.AddHours(-24))
+            .Take(50)
+            .Select(Row)
+            .ToList();
+
+        var failedWithoutError = txs
+            .Where(t => t.StatusId == PaymentStatuses.Ids.Basarisiz && string.IsNullOrWhiteSpace(t.ErrorMessage))
+            .Take(50)
+            .Select(Row)
+            .ToList();
+
+        var refundsWithoutOriginal = txs
+            .Where(t => t.Amount < 0
+                     && Guid.TryParse(TryReadNoteValue(t.Notes, "RefundOf:"), out var originalUid)
+                     && !existingRefundOriginals.Contains(originalUid))
+            .Take(50)
+            .Select(Row)
+            .ToList();
+
+        return new
+        {
+            period = new { from = start, to = end.AddTicks(-1), provider },
+            totals = new
+            {
+                count = txs.Count,
+                successfulAmount = txs.Where(t => t.StatusId == PaymentStatuses.Ids.Basarili && t.Amount > 0).Sum(t => t.Amount),
+                pendingAmount = txs.Where(t => t.StatusId == PaymentStatuses.Ids.Beklemede && t.Amount > 0).Sum(t => t.Amount),
+                failedAmount = txs.Where(t => t.StatusId == PaymentStatuses.Ids.Basarisiz && t.Amount > 0).Sum(t => t.Amount),
+                refundedAmount = txs.Where(t => t.Amount < 0).Sum(t => Math.Abs(t.Amount))
+            },
+            byProvider = txs
+                .GroupBy(t => string.IsNullOrWhiteSpace(t.Provider) ? "Unknown" : t.Provider!)
+                .Select(g => new
+                {
+                    provider = g.Key,
+                    count = g.Count(),
+                    successfulAmount = g.Where(t => t.StatusId == PaymentStatuses.Ids.Basarili && t.Amount > 0).Sum(t => t.Amount),
+                    refundAmount = g.Where(t => t.Amount < 0).Sum(t => Math.Abs(t.Amount))
+                })
+                .OrderByDescending(x => x.successfulAmount)
+                .ToList(),
+            byStatus = txs
+                .GroupBy(t => t.StatusId)
+                .Select(g => new
+                {
+                    statusId = g.Key,
+                    status = PaymentStatuses.GetById(g.Key)?.Description,
+                    count = g.Count(),
+                    amount = g.Sum(t => t.Amount)
+                })
+                .OrderBy(x => x.statusId)
+                .ToList(),
+            anomalies = new
+            {
+                successfulWithoutProviderRef,
+                pendingOlderThan24Hours,
+                failedWithoutError,
+                refundsWithoutOriginal,
+                duplicateProviderReferences = duplicateRefs
+            }
+        };
     }
 
     /// <summary>Uyelik odemesi (PlatformUser odeme yapar)</summary>
@@ -332,6 +983,159 @@ public class PaymentService
         return gatewayResult;
     }
 
+    /// <summary>Salon musteri uyeligi icin Iyzico Checkout Form baslatir (3DS).</summary>
+    public async Task<CheckoutFormResult> InitMembershipCheckoutAsync(
+        int planId,
+        int slnClientId,
+        int platformUserId,
+        string callbackUrl,
+        string? slug = null,
+        string? buyerIp = null)
+    {
+        var plan = await _db.SlnMembershipPlans
+            .Include(p => p.Customer)
+            .FirstOrDefaultAsync(p => p.Id == planId && p.IsActive);
+        if (plan == null) return CheckoutFormResult.Fail("Uyelik plani bulunamadi.");
+        if (plan.Price <= 0) return CheckoutFormResult.Fail("Bu plan ucretsizdir.");
+
+        var slnClient = await _db.SlnClients
+            .FirstOrDefaultAsync(c => c.Id == slnClientId && c.CustomerId == plan.CustomerId);
+        if (slnClient == null) return CheckoutFormResult.Fail("Musteri kaydi bulunamadi.");
+
+        var hasActiveMembership = await _db.SlnClientMemberships
+            .AnyAsync(m => m.CustomerId == plan.CustomerId && m.SlnClientId == slnClientId && m.StatusId == 1);
+        if (hasActiveMembership) return CheckoutFormResult.Fail("Bu musterinin zaten aktif bir uyeligi var.");
+
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        var notes = $"MembershipPlan:{planId}|SlnClient:{slnClientId}";
+        if (!string.IsNullOrWhiteSpace(slug))
+            notes += $"|Slug:{slug}";
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.UyelikOdemesi,
+            CustomerId = plan.CustomerId,
+            PlatformUserId = platformUserId,
+            Amount = plan.Price,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Provider = PaymentProviders.GetById(config.ProviderTypeId)?.SystemName ?? "Iyzico",
+            Notes = notes
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var gateway = _gatewayFactory.Create(config);
+            if (gateway is not IyzicoGateway iyzicoGw)
+                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
+
+            var platformUser = await _db.PlatformUsers.FindAsync(platformUserId);
+            var buyerName = !string.IsNullOrWhiteSpace(platformUser?.FullName)
+                ? platformUser.FullName
+                : slnClient.FullName;
+            var buyerEmail = !string.IsNullOrWhiteSpace(platformUser?.Email)
+                ? platformUser.Email
+                : slnClient.Email ?? "noreply@corplynk.com";
+
+            var req = new CheckoutFormRequest
+            {
+                Amount = plan.Price,
+                ConversationId = tx.Uid.ToString("N"),
+                CallbackUrl = callbackUrl,
+                BuyerId = platformUserId.ToString(),
+                BuyerName = buyerName,
+                BuyerEmail = buyerEmail,
+                BuyerIp = buyerIp,
+                Description = $"Salon musteri uyeligi - {plan.Name}"
+            };
+
+            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            if (result.Success)
+            {
+                tx.ProviderTransactionId = result.Token;
+                await _db.SaveChangesAsync();
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = ex.Message;
+            await _db.SaveChangesAsync();
+            return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
+        }
+    }
+
+    private async Task ActivateSalonCustomerMembershipAfterPaymentAsync(PaymentTransaction tx)
+    {
+        if (tx.CustomerId == null) return;
+
+        var planId = TryReadMembershipPlanId(tx.Notes);
+        var slnClientId = TryReadMembershipSlnClientId(tx.Notes);
+        if (planId == null || slnClientId == null) return;
+
+        var plan = await _db.SlnMembershipPlans
+            .FirstOrDefaultAsync(p => p.Id == planId.Value && p.CustomerId == tx.CustomerId.Value && p.IsActive);
+        if (plan == null) return;
+
+        var slnClient = await _db.SlnClients
+            .FirstOrDefaultAsync(c => c.Id == slnClientId.Value && c.CustomerId == tx.CustomerId.Value);
+        if (slnClient == null) return;
+
+        var now = DateTime.UtcNow;
+        var membership = await _db.SlnClientMemberships
+            .FirstOrDefaultAsync(m => m.CustomerId == tx.CustomerId.Value && m.SlnClientId == slnClientId.Value && m.StatusId == 1);
+
+        if (membership == null)
+        {
+            _db.SlnClientMemberships.Add(new SlnClientMembership
+            {
+                CustomerId = tx.CustomerId.Value,
+                PlanId = plan.Id,
+                SlnClientId = slnClient.Id,
+                StartDate = now,
+                CurrentPeriodStart = plan.DurationType == 1 ? now : null,
+                CurrentPeriodEnd = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+                EndDate = plan.DurationType == 1 ? now.AddDays(plan.DurationDays) : null,
+                PaidAmount = tx.Amount,
+                StatusId = 1
+            });
+        }
+        else
+        {
+            membership.PlanId = plan.Id;
+            membership.PaidAmount = Math.Max(membership.PaidAmount, tx.Amount);
+            membership.StatusId = 1;
+        }
+
+        if (tx.PlatformUserId.HasValue)
+        {
+            var link = await _db.PlatformUserSalons
+                .FirstOrDefaultAsync(s => s.PlatformUserId == tx.PlatformUserId.Value && s.CustomerId == tx.CustomerId.Value);
+
+            if (link == null)
+            {
+                _db.PlatformUserSalons.Add(new PlatformUserSalon
+                {
+                    PlatformUserId = tx.PlatformUserId.Value,
+                    CustomerId = tx.CustomerId.Value,
+                    SlnClientId = slnClient.Id,
+                    IsActive = true
+                });
+            }
+            else
+            {
+                link.IsActive = true;
+                link.SlnClientId ??= slnClient.Id;
+            }
+        }
+    }
+
     /// <summary>Online randevu on odemesi/depozito (musteri kendi karti ile, salon API uzerinden)</summary>
     public async Task<PaymentResult> ProcessAppointmentDepositAsync(int customerId, decimal amount, PaymentCardInfo card, string? buyerIp = null)
     {
@@ -367,11 +1171,15 @@ public class PaymentService
     /// <summary>Odeme gecmisi</summary>
     public async Task<List<PaymentTransaction>> GetTransactionsAsync(int? customerId = null, int? platformUserId = null, int page = 1, int pageSize = 20)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var query = _db.PaymentTransactions.AsQueryable();
         if (customerId.HasValue) query = query.Where(t => t.CustomerId == customerId);
         if (platformUserId.HasValue) query = query.Where(t => t.PlatformUserId == platformUserId);
         return await query
             .Include(t => t.Customer)
+            .Include(t => t.PlatformUser)
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -451,15 +1259,104 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         return (bytes, fileName, null);
     }
 
+    /// <summary>Salon/management kullanicisi icin odeme dekontu (HTML).</summary>
+    public async Task<(byte[]? Bytes, string? FileName, string? Error)> GetCustomerReceiptHtmlAsync(
+        Guid transactionUid,
+        int customerId,
+        bool allowAnyCustomer = false)
+    {
+        var tx = await _db.PaymentTransactions
+            .Include(t => t.Customer)
+            .Include(t => t.PlatformUser)
+            .FirstOrDefaultAsync(t => t.Uid == transactionUid);
+
+        if (tx == null) return (null, null, "Islem bulunamadi.");
+        if (!allowAnyCustomer && tx.CustomerId != customerId)
+            return (null, null, "Bu dekont icin yetkiniz yok.");
+        if (tx.StatusId != PaymentStatuses.Ids.Basarili && tx.StatusId != PaymentStatuses.Ids.Iade)
+            return (null, null, "Yalnizca tamamlanan veya iade edilmis islemler icin dekont indirilebilir.");
+
+        var encoder = HtmlEncoder.Default;
+        string E(string? s) => encoder.Encode(s ?? string.Empty);
+
+        var typeLabel = PaymentTypes.GetById(tx.PaymentTypeId)?.Description ?? "Odeme";
+        var statusLabel = PaymentStatuses.GetById(tx.StatusId)?.Description ?? string.Empty;
+        var methodLabel = BillingPaymentMethods.GetById(tx.PaymentMethodId)?.Description ?? string.Empty;
+        var when = (tx.CompletedAt ?? tx.CreatedAt).ToUniversalTime().ToString("yyyy-MM-dd HH:mm") + " UTC";
+        var salonLine = tx.Customer != null
+            ? $"<tr><th>Isletme</th><td>{E(tx.Customer.Name)}</td></tr>"
+            : string.Empty;
+        var payerText = tx.PlatformUser != null
+            ? $"{tx.PlatformUser.FullName} - {tx.PlatformUser.Phone}"
+            : tx.Customer?.Name ?? string.Empty;
+        var cardLine = !string.IsNullOrEmpty(tx.CardLastFour)
+            ? $"<tr><th>Kart</th><td>**** **** **** {E(tx.CardLastFour)}</td></tr>"
+            : string.Empty;
+        var refLine = !string.IsNullOrEmpty(tx.ProviderTransactionId)
+            ? $"<tr><th>Referans</th><td>{E(tx.ProviderTransactionId)}</td></tr>"
+            : string.Empty;
+        var paymentIdLine = !string.IsNullOrEmpty(tx.ProviderPaymentId)
+            ? $"<tr><th>Provider odeme ID</th><td>{E(tx.ProviderPaymentId)}</td></tr>"
+            : string.Empty;
+
+        var html = $@"<!DOCTYPE html>
+<html lang=""tr"">
+<head>
+<meta charset=""utf-8""/>
+<meta name=""viewport"" content=""width=device-width, initial-scale=1""/>
+<title>Odeme Dekontu</title>
+<style>
+body {{ font-family: system-ui, Segoe UI, sans-serif; margin: 2rem; color: #222; }}
+h1 {{ font-size: 1.25rem; margin-bottom: 0.25rem; }}
+.sub {{ color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }}
+table {{ border-collapse: collapse; width: 100%; max-width: 560px; }}
+th, td {{ text-align: left; padding: 0.5rem 0; border-bottom: 1px solid #eee; }}
+th {{ width: 40%; color: #555; font-weight: 600; }}
+.amount {{ font-size: 1.35rem; font-weight: 700; }}
+footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
+@media print {{ body {{ margin: 1cm; }} }}
+</style>
+</head>
+<body>
+<p><strong>CorpLynk Salon</strong></p>
+<h1>Odeme dekontu</h1>
+<p class=""sub"">Bu belge bilgilendirme amaclidir; mali mevzuata uygun fatura yerine gecmez. Yazdir &gt; PDF olarak kaydedebilirsiniz.</p>
+<table>
+<tr><th>Islem no</th><td>{tx.Uid}</td></tr>
+<tr><th>Tarih</th><td>{when}</td></tr>
+<tr><th>Odeme turu</th><td>{E(typeLabel)}</td></tr>
+{salonLine}
+<tr><th>Odeyen</th><td>{E(payerText)}</td></tr>
+<tr><th>Durum</th><td>{E(statusLabel)}</td></tr>
+<tr><th>Tutar</th><td class=""amount"">{tx.Amount.ToString("N2")} {E(tx.Currency)}</td></tr>
+<tr><th>Odeme yontemi</th><td>{E(methodLabel)}</td></tr>
+{cardLine}
+<tr><th>Odeme altyapisi</th><td>{E(tx.Provider)}</td></tr>
+{refLine}
+{paymentIdLine}
+</table>
+<footer>CorpLynk</footer>
+</body>
+</html>";
+
+        var bytes = Encoding.UTF8.GetBytes(html);
+        var fileName = $"corpLynk-dekont-{tx.Uid:N}.html";
+        return (bytes, fileName, null);
+    }
+
     public async Task<object?> GetPackagePreviewAsync(int customerId, int packageGroupId)
     {
         var group = SalonModuleGroups.GetById(packageGroupId);
         if (group == null) return null;
 
-        var alreadyActive = await _db.CustomerPortalModules
-            .AnyAsync(m => m.CustomerId == customerId && m.IsActive
-                && SalonModuleGroups.GetModuleIds(packageGroupId).Contains(m.ModuleId));
-        if (alreadyActive) return new { error = "Bu paket zaten aktif." };
+        var moduleIds = SalonModuleGroups.GetModuleIds(packageGroupId);
+        if (moduleIds.Count == 0) return new { error = "Bu paket henuz satin almaya acik degil." };
+
+        var activeIds = await _db.CustomerPortalModules
+            .Where(m => m.CustomerId == customerId && m.IsActive && moduleIds.Contains(m.ModuleId))
+            .Select(m => m.ModuleId)
+            .ToListAsync();
+        if (moduleIds.All(activeIds.Contains)) return new { error = "Bu paket zaten aktif." };
 
         var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
 
@@ -475,9 +1372,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             packageGroupId = group.Id,
             packageName = group.Description,
             monthlyPrice,
+            recurringMonthlyAmount = monthlyPrice,
+            currency = "TRY",
+            taxIncluded = true,
             proRata = new { days = daysUntilBilling, dailyRate = Math.Round(dailyRate, 2), amount = proRataAmount },
             nextBillingDate = nextBilling.ToString("yyyy-MM-dd"),
-            totalNow = proRataAmount
+            totalNow = proRataAmount,
+            billingNote = "Fiyatlar KDV dahil aylik paket tutaridir. Bugun yalniz sonraki tahakkuk tarihine kadar olan kist donem tahsil edilir."
         };
     }
 
@@ -499,10 +1400,14 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         var group = SalonModuleGroups.GetById(packageGroupId);
         if (group == null) return CheckoutFormResult.Fail("Paket bulunamadi.");
 
-        var alreadyActive = await _db.CustomerPortalModules
-            .AnyAsync(m => m.CustomerId == customerId && m.IsActive
-                && SalonModuleGroups.GetModuleIds(packageGroupId).Contains(m.ModuleId));
-        if (alreadyActive) return CheckoutFormResult.Fail("Bu paket zaten aktif.");
+        var moduleIds = SalonModuleGroups.GetModuleIds(packageGroupId);
+        if (moduleIds.Count == 0) return CheckoutFormResult.Fail("Bu paket henuz satin almaya acik degil.");
+
+        var activeIds = await _db.CustomerPortalModules
+            .Where(m => m.CustomerId == customerId && m.IsActive && moduleIds.Contains(m.ModuleId))
+            .Select(m => m.ModuleId)
+            .ToListAsync();
+        if (moduleIds.All(activeIds.Contains)) return CheckoutFormResult.Fail("Bu paket zaten aktif.");
 
         var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
 
@@ -519,11 +1424,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
 
+        await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.ModulSatinAlma, packageGroupId: packageGroupId);
+
         var tx = new PaymentTransaction
         {
             PaymentTypeId = PaymentTypes.Ids.ModulSatinAlma,
             CustomerId = customerId,
-            ModuleId = packageGroupId,
+            ModuleId = null,
             Amount = proRataAmount,
             PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
             StatusId = PaymentStatuses.Ids.Beklemede,
@@ -585,6 +1492,8 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.PlatformAbonelik, billingPeriodId: unpaidPeriod.Id);
 
         var tx = new PaymentTransaction
         {
@@ -657,6 +1566,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             tx.StatusId = PaymentStatuses.Ids.Basarili;
             tx.ProviderPaymentId = verifyResult.ProviderPaymentId;
             tx.CompletedAt = DateTime.UtcNow;
+            tx.Notes = AddNoteEvent(tx.Notes, "ProviderCallbackSucceeded", "Checkout callback dogrulamasi basarili.");
 
             if (tx.BillingPeriodId.HasValue)
             {
@@ -667,13 +1577,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                     period.IsPaid = true;
                     period.PaidAt = DateTime.UtcNow;
                     period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
+                    await ActivateSalonSubscriptionAfterPlatformPaymentAsync(period, tx.Amount);
                 }
             }
 
             // Paket satin alma ise modulleri aktif et
-            if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.Notes?.StartsWith("PackageGroup:") == true)
+            if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && TryReadPackageGroupId(tx.Notes) is int pgId)
             {
-                var pgId = int.Parse(tx.Notes.Split('|')[0].Split(':')[1]);
                 var moduleIds = SalonModuleGroups.GetModuleIds(pgId);
                 var group = SalonModuleGroups.GetById(pgId);
                 foreach (var moduleId in moduleIds)
@@ -700,6 +1610,9 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                     }
                 }
             }
+
+            if (tx.PaymentTypeId == PaymentTypes.Ids.UyelikOdemesi && TryReadMembershipPlanId(tx.Notes).HasValue)
+                await ActivateSalonCustomerMembershipAfterPaymentAsync(tx);
 
             // Randevu depozitosu ise randevuyu onayli yap (StatusId 6 = AwaitingPayment → 2 = Confirmed)
             if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
@@ -741,6 +1654,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             tx.StatusId = PaymentStatuses.Ids.Basarisiz;
             tx.ErrorMessage = verifyResult.Error;
             tx.CompletedAt = DateTime.UtcNow;
+            tx.Notes = AddNoteEvent(tx.Notes, "ProviderCallbackFailed", verifyResult.Error ?? "Checkout dogrulamasi basarisiz.");
             await _db.SaveChangesAsync();
             _logger.LogWarning("Checkout odeme basarisiz: TxUid={TxUid}, Hata={Error}", tx.Uid, verifyResult.Error);
             return PaymentResult.Fail(verifyResult.Error ?? "Odeme basarisiz");
@@ -842,9 +1756,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 StatusId = PaymentStatuses.Ids.Basarili,
                 Provider = tx.Provider,
                 ProviderTransactionId = refundResult.RefundId,
+                ProviderPaymentId = tx.ProviderPaymentId,
                 CompletedAt = DateTime.UtcNow,
-                Notes = $"Refund:Appointment:{appointmentId}"
+                Notes = AddNoteEvent($"Refund:Appointment:{appointmentId}|RefundOf:{tx.Uid}", "AdminRefundSucceeded",
+                    $"{apt.PrepaidAmount:N2} {tx.Currency} randevu depozitosu iade edildi.")
             };
+            tx.Notes = AddNoteEvent(tx.Notes, "AdminRefundRequested",
+                $"{apt.PrepaidAmount:N2} {tx.Currency} randevu depozitosu iade edildi.");
             _db.PaymentTransactions.Add(refundTx);
             await _db.SaveChangesAsync();
             _logger.LogInformation("Depozito iadesi basarili: AptId={AptId}, Tutar={Amount}", appointmentId, apt.PrepaidAmount);
@@ -900,6 +1818,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 tx.ProviderTransactionId = result.ProviderTransactionId;
                 tx.ProviderPaymentId = result.ProviderPaymentId;
                 tx.CompletedAt = DateTime.UtcNow;
+                tx.Notes = AddNoteEvent(tx.Notes, "GatewayPaymentSucceeded", "Kart odemesi gateway tarafinda tamamlandi.");
                 _db.PaymentTransactions.Add(tx);
                 return PaymentResult.Ok(tx.Uid, tx.ProviderTransactionId);
             }
@@ -907,6 +1826,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             {
                 tx.StatusId = PaymentStatuses.Ids.Basarisiz;
                 tx.ErrorMessage = result.Error ?? "Odeme basarisiz.";
+                tx.Notes = AddNoteEvent(tx.Notes, "GatewayPaymentFailed", tx.ErrorMessage);
                 _db.PaymentTransactions.Add(tx);
                 return PaymentResult.Fail(tx.ErrorMessage);
             }
@@ -915,6 +1835,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         {
             tx.StatusId = PaymentStatuses.Ids.Basarisiz;
             tx.ErrorMessage = $"Gateway hatasi: {ex.Message}";
+            tx.Notes = AddNoteEvent(tx.Notes, "GatewayPaymentFailed", tx.ErrorMessage);
             _db.PaymentTransactions.Add(tx);
             _logger.LogError(ex, "Odeme gateway hatasi: TxUid={TxUid}", tx.Uid);
             return PaymentResult.Fail(tx.ErrorMessage);

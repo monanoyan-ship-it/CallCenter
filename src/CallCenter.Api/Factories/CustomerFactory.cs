@@ -6,6 +6,7 @@ using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace CallCenter.Api.Factories;
 
@@ -619,7 +620,23 @@ public class CustomerFactory : ICustomerFactory
         if (await _userEs.ExistsByUsernameAsync(userName))
             return new SlnRegisterResponse { Error = "Bu kullanici adi zaten kullaniliyor." };
 
+        var activePlans = (await _subscriptionFactory.GetPlansAsync())
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.SortOrder)
+            .ThenBy(p => p.IntervalMonths)
+            .ToList();
+
+        SubscriptionPlan? registrationPlan = null;
+        if (request.SubscriptionPlanId.HasValue && request.SubscriptionPlanId.Value > 0)
+        {
+            registrationPlan = activePlans.FirstOrDefault(p => p.Id == request.SubscriptionPlanId.Value);
+            if (registrationPlan == null)
+                return new SlnRegisterResponse { Error = "Secilen abonelik plani bulunamadi." };
+        }
+        registrationPlan ??= activePlans.FirstOrDefault();
+
         var registeredAt = DateTime.UtcNow;
+        var trialEndsAt = registeredAt.AddDays(PlatformBillingAccessPolicy.RegistrationTrialDays);
 
         // Customer (Salon)
         var customer = new Customer
@@ -630,9 +647,24 @@ public class CustomerFactory : ICustomerFactory
             MaxUsers = 5,
             IsActive = true,
             CreatedAt = registeredAt,
-            BillingAnchorDay = registeredAt.Day
+            BillingAnchorDay = trialEndsAt.Day
         };
         _customerEs.Add(customer);
+        await _uow.SaveChangesAsync();
+
+        var hqBranch = new SlnBranch
+        {
+            CustomerId = customer.Id,
+            Name = "Merkez",
+            Slug = await CreateUniqueBranchSlugAsync(customer.Name),
+            IsHeadquarter = true,
+            IsActive = true,
+            ActivatedAt = registeredAt,
+            CompanyTitle = customer.Name,
+            Phone = request.Phone,
+            Email = request.Email
+        };
+        _branchEs.Add(hqBranch);
         await _uow.SaveChangesAsync();
 
         // Salon urunu ekle
@@ -686,6 +718,7 @@ public class CustomerFactory : ICustomerFactory
             CustomerRoleId = SalonRoles.Ids.SalonOwner,
             IsCustomerAdmin = true,
             IsActive = true,
+            BranchId = hqBranch.Id,
             CreatedAt = DateTime.UtcNow
         };
         _personnelEs.Add(personnel);
@@ -694,25 +727,21 @@ public class CustomerFactory : ICustomerFactory
         // Default salon verileri (hizmet kategorileri, hizmetler, masraf kategorileri, kasa)
         await SalonDefaultDataHelper.SeedDefaultDataAsync(_serviceCategoryEs, _serviceEs, _expenseCategoryEs, _cashRegisterEs, _moduleEs, _branchEs, _uow, customer.Id);
 
-        // Deneme: PeriodPrice=0 (MonthlyPrice yalnizca yonetim ozeti — donem fiyatlari + moduller ile Refresh ile dolar).
-        // Ilk tahakkuk CreateInitialBillingPeriod ile; sonraki kesimler tahakkuk satirlarindan turetilir.
+        // Deneme: StartDate demo bitisidir. Kayit aninda tahakkuk olusturulmaz;
+        // ilk donem odeme baslatildiginda abonelikten turetilir.
         try
         {
-            var anyPlan = await _planEs.GetAllQueryable()
-                .Where(p => p.IsActive)
-                .OrderBy(p => p.SortOrder)
-                .FirstOrDefaultAsync();
-            if (anyPlan != null)
+            if (registrationPlan != null)
             {
-                var reg = DateTime.SpecifyKind(registeredAt, DateTimeKind.Utc);
+                var subscriptionStart = DateTime.SpecifyKind(trialEndsAt, DateTimeKind.Utc);
                 _subscriptionEs.Add(new CustomerSubscription
                 {
                     CustomerId = customer.Id,
-                    PlanId = anyPlan.Id,
-                    StartDate = reg,
+                    PlanId = registrationPlan.Id,
+                    StartDate = subscriptionStart,
                     MonthlyPrice = 0,
                     PeriodPrice = 0,
-                    BillingDay = registeredAt.Day,
+                    BillingDay = subscriptionStart.Day,
                     StatusId = 1, // Active (trial)
                     PaymentGraceDays = 5
                 });
@@ -724,15 +753,6 @@ public class CustomerFactory : ICustomerFactory
                 catch
                 {
                     /* Ozet tutari guncellenmezse kayit akisi surer */
-                }
-
-                try
-                {
-                    await _subscriptionFactory.CreateInitialBillingPeriodForCustomerAsync(customer.Id);
-                }
-                catch
-                {
-                    /* Ilk tahakkuk olusmazsa kayit akisi yine tamamlanir */
                 }
             }
             // Plan yoksa: IsTest dokunulmaz (false). Test muafiyeti sadece admin firma detayinda isaretlenir.
@@ -757,5 +777,30 @@ public class CustomerFactory : ICustomerFactory
             FullName = loginResponse.FullName,
             Role = loginResponse.Role
         };
+    }
+
+    private async Task<string> CreateUniqueBranchSlugAsync(string input)
+    {
+        var baseSlug = GenerateSlug(input);
+        if (string.IsNullOrWhiteSpace(baseSlug))
+            baseSlug = "salon";
+
+        var slug = baseSlug;
+        var suffix = 2;
+        while (await _branchEs.GetAllQueryable().AnyAsync(b => b.Slug == slug))
+        {
+            slug = $"{baseSlug}-{suffix++}";
+        }
+        return slug;
+    }
+
+    private static string GenerateSlug(string input)
+    {
+        var slug = (input ?? "").ToLowerInvariant().Trim();
+        slug = slug.Replace("ı", "i").Replace("ğ", "g").Replace("ü", "u")
+                   .Replace("ş", "s").Replace("ö", "o").Replace("ç", "c");
+        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+        slug = Regex.Replace(slug, @"[\s-]+", "-").Trim('-');
+        return slug;
     }
 }

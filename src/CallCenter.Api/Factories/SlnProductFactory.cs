@@ -14,6 +14,8 @@ public class SlnProductFactory : ISlnProductFactory
     private readonly ISlnProductBrandEntityService _brands;
     private readonly ISlnSupplierEntityService _suppliers;
     private readonly ISlnStockMovementEntityService _stockMovements;
+    private readonly ISlnSupplierTransactionEntityService _supplierTransactions;
+    private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnProductFactory> _logger;
 
@@ -23,6 +25,8 @@ public class SlnProductFactory : ISlnProductFactory
         ISlnProductBrandEntityService brands,
         ISlnSupplierEntityService suppliers,
         ISlnStockMovementEntityService stockMovements,
+        ISlnSupplierTransactionEntityService supplierTransactions,
+        ISlnBranchEntityService branches,
         IUnitOfWork uow,
         ILogger<SlnProductFactory> logger)
     {
@@ -31,6 +35,8 @@ public class SlnProductFactory : ISlnProductFactory
         _brands = brands;
         _suppliers = suppliers;
         _stockMovements = stockMovements;
+        _supplierTransactions = supplierTransactions;
+        _branches = branches;
         _uow = uow;
         _logger = logger;
     }
@@ -330,6 +336,20 @@ public class SlnProductFactory : ISlnProductFactory
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
 
         if (product == null) return (false, "Urun bulunamadi");
+        if (movementTypeId < 1 || movementTypeId > 5) return (false, "Gecersiz stok hareket tipi");
+        if (quantity <= 0) return (false, "Miktar 0'dan buyuk olmali");
+        if (unitPrice < 0) return (false, "Birim fiyat negatif olamaz");
+        if (movementTypeId == 1 && !supplierId.HasValue) return (false, "Alis hareketi icin tedarikci secilmelidir");
+        if (movementTypeId == 1 && unitPrice <= 0) return (false, "Alis hareketi icin birim fiyat 0'dan buyuk olmali");
+
+        SlnSupplier? supplier = null;
+        if (supplierId.HasValue)
+        {
+            supplier = await _suppliers.GetAllQueryable()
+                .FirstOrDefaultAsync(s => s.Id == supplierId.Value && s.CustomerId == customerId);
+
+            if (supplier == null) return (false, "Tedarikci bulunamadi");
+        }
 
         var movement = new SlnStockMovement
         {
@@ -342,6 +362,19 @@ public class SlnProductFactory : ISlnProductFactory
             Notes = notes,
             CreatedByPersonnelId = userId
         };
+
+        if (movementTypeId == 1 && supplier != null)
+        {
+            var amount = Math.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+            _supplierTransactions.Add(new SlnSupplierTransaction
+            {
+                SupplierId = supplier.Id,
+                TransactionTypeId = 1,
+                Amount = amount,
+                Description = BuildPurchaseDescription(product, quantity, unitPrice, notes),
+                TransactionDate = DateTime.UtcNow
+            });
+        }
 
         // Stok miktarini guncelle
         // 1=Purchase(+), 2=Sale(-), 3=InternalUse(-), 4=Transfer(0), 5=Return(+)
@@ -361,6 +394,111 @@ public class SlnProductFactory : ISlnProductFactory
             productId, movementTypeId, quantity);
 
         return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> TransferStockAsync(
+        int productId,
+        int? fromBranchId,
+        int toBranchId,
+        decimal quantity,
+        string? notes,
+        int userId,
+        int customerId)
+    {
+        var product = await _products.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
+        if (product == null) return (false, "Urun bulunamadi");
+        if (quantity <= 0) return (false, "Transfer miktari 0'dan buyuk olmali");
+        if (product.StockQuantity < quantity) return (false, "Transfer icin yeterli global stok yok");
+
+        if (fromBranchId.HasValue && fromBranchId.Value == toBranchId)
+            return (false, "Kaynak ve hedef sube ayni olamaz");
+
+        if (fromBranchId.HasValue && !await BranchExistsAsync(fromBranchId.Value, customerId))
+            return (false, "Kaynak sube bulunamadi");
+        if (!await BranchExistsAsync(toBranchId, customerId))
+            return (false, "Hedef sube bulunamadi");
+
+        var unitPrice = product.PurchasePrice;
+        var transferUid = Guid.NewGuid().ToString("N");
+        var cleanNotes = string.IsNullOrWhiteSpace(notes) ? "" : " - " + notes.Trim();
+
+        _stockMovements.Add(new SlnStockMovement
+        {
+            CustomerId = customerId,
+            ProductId = productId,
+            BranchId = fromBranchId,
+            MovementTypeId = 4,
+            Quantity = -quantity,
+            UnitPrice = unitPrice,
+            Notes = $"TransferOut:{transferUid}|ToBranch:{toBranchId}{cleanNotes}",
+            CreatedByPersonnelId = userId
+        });
+
+        _stockMovements.Add(new SlnStockMovement
+        {
+            CustomerId = customerId,
+            ProductId = productId,
+            BranchId = toBranchId,
+            MovementTypeId = 4,
+            Quantity = quantity,
+            UnitPrice = unitPrice,
+            Notes = $"TransferIn:{transferUid}|FromBranch:{fromBranchId?.ToString() ?? "Merkez"}{cleanNotes}",
+            CreatedByPersonnelId = userId
+        });
+
+        await _uow.SaveChangesAsync();
+        _logger.LogInformation("Stok transferi audit kaydi olustu: Product={ProductId}, From={FromBranchId}, To={ToBranchId}, Qty={Qty}",
+            productId, fromBranchId, toBranchId, quantity);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> AdjustStockCountAsync(
+        int productId,
+        int? branchId,
+        decimal countedQuantity,
+        string? notes,
+        int userId,
+        int customerId)
+    {
+        var product = await _products.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
+        if (product == null) return (false, "Urun bulunamadi");
+        if (countedQuantity < 0) return (false, "Sayilan stok negatif olamaz");
+        if (branchId.HasValue && !await BranchExistsAsync(branchId.Value, customerId))
+            return (false, "Sube bulunamadi");
+
+        var before = product.StockQuantity;
+        var difference = countedQuantity - before;
+        var cleanNotes = string.IsNullOrWhiteSpace(notes) ? "" : " - " + notes.Trim();
+
+        _stockMovements.Add(new SlnStockMovement
+        {
+            CustomerId = customerId,
+            ProductId = productId,
+            BranchId = branchId,
+            MovementTypeId = 6,
+            Quantity = difference,
+            UnitPrice = product.PurchasePrice,
+            Notes = $"StockCount|Before:{before:0.##}|Counted:{countedQuantity:0.##}|Diff:{difference:0.##}{cleanNotes}",
+            CreatedByPersonnelId = userId
+        });
+
+        product.StockQuantity = countedQuantity;
+        await _uow.SaveChangesAsync();
+
+        _logger.LogInformation("Stok sayim farki kaydedildi: Product={ProductId}, Branch={BranchId}, Before={Before}, Counted={Counted}, Diff={Diff}",
+            productId, branchId, before, countedQuantity, difference);
+        return (true, null);
+    }
+
+    private async Task<bool> BranchExistsAsync(int branchId, int customerId)
+        => await _branches.GetAllQueryable().AnyAsync(b => b.Id == branchId && b.CustomerId == customerId && b.IsActive);
+
+    private static string BuildPurchaseDescription(SlnProduct product, decimal quantity, decimal unitPrice, string? notes)
+    {
+        var description = $"Alis kaydi: {product.Name} ({quantity:0.##} {product.Unit} x {unitPrice:0.##} TL)";
+        return string.IsNullOrWhiteSpace(notes) ? description : $"{description} - {notes.Trim()}";
     }
 
     private static SlnProductDto MapProductToDto(SlnProduct p) => new()

@@ -35,7 +35,7 @@
                             <td class="small" data-bind="text: contactPerson || '-'"></td>
                             <td class="small" data-bind="text: phone"></td>
                             <td class="small" data-bind="text: email || '-'"></td>
-                            <td class="small fw-semibold" data-bind="text: (balance || 0).toLocaleString('tr-TR') + ' TL', css: { 'text-danger': (balance || 0) < 0, 'text-success': (balance || 0) >= 0 }"></td>
+                            <td class="small fw-semibold" data-bind="text: (balance || 0).toLocaleString('tr-TR') + ' TL', css: { 'text-danger': (balance || 0) > 0, 'text-success': (balance || 0) <= 0 }"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
@@ -68,7 +68,7 @@
             <div class="row g-3">
                 <div class="col-md-12 text-center">
                     <div class="text-muted small">Toplam Bakiye</div>
-                    <div class="fw-bold" data-bind="text: totalBalance().toLocaleString('tr-TR') + ' TL', css: { 'text-danger': totalBalance() < 0, 'text-success': totalBalance() >= 0 }"></div>
+                    <div class="fw-bold" data-bind="text: totalBalance().toLocaleString('tr-TR') + ' TL', css: { 'text-danger': totalBalance() > 0, 'text-success': totalBalance() <= 0 }"></div>
                 </div>
             </div>
         </div>

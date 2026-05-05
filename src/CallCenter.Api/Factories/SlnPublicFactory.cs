@@ -75,6 +75,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         {
             customerId = branch.CustomerId;
             profile = await _profiles.GetAllQueryable()
+                .Include(p => p.Customer)
                 .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.IsPublished);
         }
         else
@@ -88,10 +89,9 @@ public class SlnPublicFactory : ISlnPublicFactory
 
             // Eski slug ile geldiyse merkez subeyi bul
             branch = await _branches.GetAllQueryable()
+                .Include(b => b.Customer)
                 .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
         }
-
-        if (profile == null) return null;
 
         var categories = await _serviceCategories.GetAllQueryable()
             .Where(c => c.CustomerId == customerId && c.IsActive)
@@ -101,37 +101,37 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         return new SlnSalonProfileDto
         {
-            Id = profile.Id,
+            Id = profile?.Id ?? 0,
             CustomerId = customerId,
-            Slug = branch?.Slug ?? profile.Slug ?? "",
-            SalonName = branch?.Customer?.Name ?? profile.Customer?.Name ?? "",
-            Description = profile.Description,
-            Address = branch?.Address ?? profile.Address,
-            City = branch?.City ?? profile.City,
-            District = branch?.District ?? profile.District,
-            Phone = branch?.Phone ?? profile.Phone,
-            Email = branch?.Email ?? profile.Email,
-            Website = profile.Website,
-            GoogleMapsUrl = branch?.GoogleMapsUrl ?? profile.GoogleMapsUrl,
-            LogoUrl = profile.LogoUrl,
-            CoverImageUrl = profile.CoverImageUrl,
-            FaviconUrl = profile.FaviconUrl,
-            GalleryImagesJson = profile.GalleryImagesJson,
-            WorkingHoursJson = branch?.WorkingHoursJson ?? profile.WorkingHoursJson,
-            IsPublished = profile.IsPublished,
-            ShowServices = profile.ShowServices,
-            ShowMemberships = profile.ShowMemberships,
-            ShowBooking = profile.ShowBooking,
-            ShowHours = profile.ShowHours,
-            ShowContact = profile.ShowContact,
-            SectionOrderJson = profile.SectionOrderJson,
-            ShowBanners = profile.ShowBanners,
-            ShowTeam = profile.ShowTeam,
-            ShowReviews = profile.ShowReviews,
-            ShowMap = profile.ShowMap,
-            BannersJson = profile.BannersJson,
-            Latitude = branch?.Latitude ?? profile.Latitude,
-            Longitude = branch?.Longitude ?? profile.Longitude,
+            Slug = branch?.Slug ?? profile?.Slug ?? "",
+            SalonName = branch?.Customer?.Name ?? profile?.Customer?.Name ?? "",
+            Description = profile?.Description,
+            Address = branch?.Address ?? profile?.Address,
+            City = branch?.City ?? profile?.City,
+            District = branch?.District ?? profile?.District,
+            Phone = branch?.Phone ?? profile?.Phone,
+            Email = branch?.Email ?? profile?.Email,
+            Website = profile?.Website,
+            GoogleMapsUrl = branch?.GoogleMapsUrl ?? profile?.GoogleMapsUrl,
+            LogoUrl = profile?.LogoUrl,
+            CoverImageUrl = profile?.CoverImageUrl,
+            FaviconUrl = profile?.FaviconUrl,
+            GalleryImagesJson = profile?.GalleryImagesJson,
+            WorkingHoursJson = branch?.WorkingHoursJson ?? profile?.WorkingHoursJson,
+            IsPublished = profile?.IsPublished ?? true,
+            ShowServices = profile?.ShowServices ?? true,
+            ShowMemberships = profile?.ShowMemberships ?? true,
+            ShowBooking = profile?.ShowBooking ?? true,
+            ShowHours = profile?.ShowHours ?? true,
+            ShowContact = profile?.ShowContact ?? true,
+            SectionOrderJson = profile?.SectionOrderJson,
+            ShowBanners = profile?.ShowBanners ?? true,
+            ShowTeam = profile?.ShowTeam ?? true,
+            ShowReviews = profile?.ShowReviews ?? true,
+            ShowMap = profile?.ShowMap ?? true,
+            BannersJson = profile?.BannersJson,
+            Latitude = branch?.Latitude ?? profile?.Latitude,
+            Longitude = branch?.Longitude ?? profile?.Longitude,
             ServiceCategories = categories.Select(c => new SlnServiceCategoryDto
             {
                 Id = c.Id,
@@ -367,11 +367,27 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         var plans = await _membershipPlans.GetAllQueryable()
             .Where(p => p.CustomerId == customerId.Value && p.IsActive)
+            .Include(p => p.Services).ThenInclude(s => s.Service)
             .OrderBy(p => p.SortOrder)
             .Select(p => new
             {
                 p.Id, p.Name, p.Description, p.IconClass, p.Color,
-                p.DurationType, p.DurationDays, p.Price, p.DiscountPercent, p.PriorityBooking
+                p.DurationType,
+                p.DurationDays,
+                p.Price,
+                MonthlyPrice = p.Price,
+                Currency = "TRY",
+                TaxIncluded = true,
+                IsSalonCustomerMembership = true,
+                p.DiscountPercent,
+                p.PriorityBooking,
+                ServiceDetails = p.Services.Select(s => new
+                {
+                    s.ServiceId,
+                    ServiceName = s.Service != null ? s.Service.Name : "",
+                    s.FreeCount,
+                    DiscountPercent = s.DiscountPercent ?? 0
+                }).ToList()
             })
             .ToListAsync();
 
@@ -417,6 +433,19 @@ public class SlnPublicFactory : ISlnPublicFactory
                 return (false, "Bu telefon numarasina ait zaten aktif bir uyelik bulunmaktadir.", null);
         }
 
+        if (plan.Price > 0m)
+        {
+            return (true, null, new
+            {
+                success = true,
+                requiresPayment = true,
+                slnClientId = client.Id,
+                planId = plan.Id,
+                amount = plan.Price,
+                message = "Uyelik basvurunuz alindi. Uyelik odeme tamamlandiktan sonra aktif edilecektir."
+            });
+        }
+
         var now = DateTime.UtcNow;
         var membership = new SlnClientMembership
         {
@@ -434,7 +463,14 @@ public class SlnPublicFactory : ISlnPublicFactory
         _clientMemberships.Add(membership);
         await _uow.SaveChangesAsync();
 
-        return (true, null, new { success = true, message = "Uyelik basvurunuz alinmistir. Salonumuz sizinle iletisime gececektir." });
+        return (true, null, new
+        {
+            success = true,
+            requiresPayment = false,
+            slnClientId = client.Id,
+            planId = plan.Id,
+            message = "Uyelik basvurunuz alinmistir."
+        });
     }
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
@@ -915,9 +951,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         // Depozito kontrolü — online randevu her zaman ödeme gerektirir
         var policy = await _noShowPolicies.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.CustomerId == cid);
-        var depositAmount = policy?.DepositAmount ?? 0m;
-        if (depositAmount <= 0)
-            return (false, "Bu salon icin online randevu depozitosu yapilandirilmamistir. Randevu almak icin lutfen salonla dogrudan iletisime gecin.", null);
+        var requireDeposit = policy?.IsActive == true && policy.RequireDeposit && policy.DepositAmount > 0m;
+        var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
 
         // Müşteri bul / oluştur
         var client = await _clients.GetAllQueryable()
@@ -949,13 +984,25 @@ public class SlnPublicFactory : ISlnPublicFactory
             ServiceId = dto.ServiceId,
             StartTime = start,
             EndTime = end,
-            StatusId = 6, // AwaitingPayment
+            StatusId = requireDeposit ? 6 : 1,
             Notes = dto.Notes,
             DepositAmount = depositAmount
         };
 
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();
+
+        if (!requireDeposit)
+        {
+            return (true, null, new
+            {
+                success = true,
+                requireDeposit = false,
+                appointmentId = appointment.Id,
+                depositAmount = 0m,
+                message = "Randevunuz olusturuldu. Salon tarafindan onaylanacaktir."
+            });
+        }
 
         // Depozito gerekli → Iyzico checkout form başlat
         var checkoutResult = await _paymentService.InitBookingDepositCheckoutAsync(

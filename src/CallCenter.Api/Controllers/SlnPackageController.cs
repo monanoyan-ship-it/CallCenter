@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
 using CallCenter.Shared.DTOs;
@@ -63,26 +62,40 @@ public class SlnPackageController : ControllerBase
     [HttpPost("sell")]
     public async Task<ActionResult<SlnClientPackageDto>> SellPackage([FromBody] SlnClientPackageSellDto dto)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (pkg, error) = await _packageFactory.SellPackageAsync(dto, userId, customerId);
+        var (pkg, error) = await _packageFactory.SellPackageAsync(dto, personnelId, customerId, GetBranchId());
         return pkg != null ? Ok(pkg) : BadRequest(error);
     }
 
     [HttpPost("use")]
     public async Task<ActionResult> UseSession([FromBody] SlnPackageUseDto dto)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _packageFactory.UseSessionAsync(dto, userId, customerId);
+        var (success, error) = await _packageFactory.UseSessionAsync(dto, personnelId, customerId);
         return success ? Ok() : BadRequest(error);
     }
 
-    private int GetUserId()
-        => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+    [HttpPost("usable")]
+    public async Task<ActionResult<List<SlnPackageBenefitDto>>> GetUsablePackages([FromBody] SlnPackageBenefitCheckDto dto)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _packageFactory.GetUsablePackagesAsync(customerId, dto.SlnClientId, dto.ServiceIds));
+    }
+
+    private int GetPersonnelId()
+        => int.Parse(User.FindFirst("CustomerPersonnelId")?.Value ?? "0");
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 }

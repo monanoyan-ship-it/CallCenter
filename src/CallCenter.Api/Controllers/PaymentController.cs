@@ -64,7 +64,13 @@ public class PaymentController : ControllerBase
     public async Task<ActionResult> HavaleRequest([FromBody] HavaleRequestDto request)
     {
         var customerId = GetCustomerId();
-        var result = await _paymentService.CreateHavaleRequestAsync(customerId, request.ModuleId);
+        var result = await _paymentService.CreateHavaleRequestAsync(
+            customerId,
+            request.ModuleId,
+            request.ReferenceNote,
+            request.ReceiptFileName,
+            request.ReceiptContentType,
+            request.ReceiptBase64);
         if (!result.Success) return BadRequest(new { message = result.Error });
         return Ok(new { transactionId = result.TransactionUid, message = "Havale talebiniz alindi. Odemeniz onaylandiktan sonra modul aktif edilecektir." });
     }
@@ -105,21 +111,38 @@ public class PaymentController : ControllerBase
             t.ModuleId,
             t.Amount,
             t.Currency,
-            t.CreatedAt
+            t.CreatedAt,
+            ReferenceNote = TryDecodeNoteValue(TryReadNoteValue(t.Notes, "HavaleRef:")),
+            HasReceipt = TryReadNoteValue(t.Notes, "HavaleReceiptPath:") != null,
+            ReceiptFileName = TryDecodeNoteValue(TryReadNoteValue(t.Notes, "HavaleReceiptName:"))
         }));
     }
 
-    /// <summary>Uyelik odemesi (PlatformUser)</summary>
+    /// <summary>Yuklenen havale dekontu (Admin veya ilgili salon)</summary>
+    [HttpGet("havale-receipt/{uid:guid}")]
+    [Authorize(Roles = "CustomerUser,Admin")]
+    public async Task<IActionResult> DownloadHavaleReceipt(Guid uid)
+    {
+        var isAdmin = User.IsInRole("Admin");
+        int? customerId = isAdmin ? null : GetCustomerId();
+        var (bytes, fileName, contentType, error) = await _paymentService.GetHavaleReceiptFileAsync(uid, customerId, isAdmin);
+        if (error != null) return NotFound(new { message = error });
+        return File(bytes!, contentType!, fileName);
+    }
+
+    /// <summary>Salon musteri uyeligi checkout formu (PlatformUser)</summary>
     [HttpPost("membership")]
+    [HttpPost("membership-checkout")]
     [Authorize(Roles = "PlatformUser")]
     public async Task<ActionResult> PayMembership([FromBody] MembershipPaymentRequest request)
     {
         var platformUserId = GetPlatformUserId();
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var result = await _paymentService.ProcessMembershipPaymentAsync(
-            request.PlanId, request.SlnClientId, platformUserId, request.Card, buyerIp);
-        if (!result.Success) return BadRequest(new { message = result.Error });
-        return Ok(new { transactionId = result.TransactionUid, message = "Uyelik odemesi basarili." });
+        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var result = await _paymentService.InitMembershipCheckoutAsync(
+            request.PlanId, request.SlnClientId, platformUserId, callbackUrl, request.Slug, buyerIp);
+        if (!result.Success) return BadRequest(new { success = false, error = result.Error, message = result.Error });
+        return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
     }
 
     /// <summary>Paket pro-rata on izleme (fiyat hesabi)</summary>
@@ -128,7 +151,10 @@ public class PaymentController : ControllerBase
     public async Task<ActionResult> PackagePreview([FromBody] PackageRequest request)
     {
         var customerId = GetCustomerId();
-        var result = await _paymentService.GetPackagePreviewAsync(customerId, request.PackageGroupId);
+        var packageGroupId = ResolvePackageGroupId(request);
+        if (!packageGroupId.HasValue) return BadRequest(new { error = "Paket veya modul secimi gecersiz." });
+
+        var result = await _paymentService.GetPackagePreviewAsync(customerId, packageGroupId.Value);
         if (result == null) return NotFound(new { error = "Paket bulunamadi." });
         return Ok(result);
     }
@@ -139,9 +165,12 @@ public class PaymentController : ControllerBase
     public async Task<ActionResult> PackageCheckout([FromBody] PackageRequest request)
     {
         var customerId = GetCustomerId();
+        var packageGroupId = ResolvePackageGroupId(request);
+        if (!packageGroupId.HasValue) return BadRequest(new { success = false, error = "Paket veya modul secimi gecersiz." });
+
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
         var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
-        var result = await _paymentService.InitPackageCheckoutAsync(customerId, request.PackageGroupId, callbackUrl, buyerIp);
+        var result = await _paymentService.InitPackageCheckoutAsync(customerId, packageGroupId.Value, callbackUrl, buyerIp);
         if (!result.Success) return BadRequest(new { success = false, error = result.Error });
         return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
     }
@@ -170,7 +199,17 @@ public class PaymentController : ControllerBase
         if (tx.StatusId == PaymentStatuses.Ids.Beklemede)
             return Ok(new { success = false, pending = true, error = "Odeme henuz tamamlanmadi." });
         if (tx.StatusId == PaymentStatuses.Ids.Basarili)
-            return Ok(new { success = true });
+            return Ok(new
+            {
+                success = true,
+                paymentTypeId = tx.PaymentTypeId,
+                message = tx.PaymentTypeId == PaymentTypes.Ids.PlatformAbonelik
+                    ? "Abonelik odemeniz basarili. Tahakkuk kapatildi."
+                    : "Modulunuz aktif edildi.",
+                requiresSessionRefresh = tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma
+            });
+        if (tx.StatusId == PaymentStatuses.Ids.Iptal)
+            return Ok(new { success = false, error = tx.ErrorMessage ?? "Odeme denemesi iptal edildi." });
         return Ok(new { success = false, error = tx.ErrorMessage ?? "Odeme basarisiz." });
     }
 
@@ -206,6 +245,7 @@ public class PaymentController : ControllerBase
             PaymentTypes.Ids.ModulSatinAlma => $"{salon}/Modules?iyzicoToken={t}",
             // Platform tahakkuku Salon yöneticisi KK ile öder; Web köküne göndermek çift kilit / yanlış uygulama yaratıyordu
             PaymentTypes.Ids.PlatformAbonelik => $"{salon}/Modules?iyzicoToken={t}",
+            PaymentTypes.Ids.UyelikOdemesi => BuildMembershipReturnUrl(tx, salon, t, paymentSuccess, error),
             _ => $"{salon}/Modules?iyzicoToken={t}"
         };
     }
@@ -221,6 +261,17 @@ public class PaymentController : ControllerBase
             return $"{salonBase}/Modules?iyzicoToken={t}";
 
         var url = $"{salonBase}/salon/{slug}/book?iyzicoToken={t}&paid={success.ToString().ToLower()}";
+        if (!success && !string.IsNullOrEmpty(error))
+            url += $"&payerr={Uri.EscapeDataString(error)}";
+        return url;
+    }
+
+    private static string BuildMembershipReturnUrl(PaymentTransaction tx, string salonBase, string t, bool success, string? error)
+    {
+        var slug = TryReadMembershipSlug(tx.Notes);
+        var url = string.IsNullOrWhiteSpace(slug)
+            ? $"{salonBase}/user/panel?iyzicoToken={t}&paid={success.ToString().ToLower()}"
+            : $"{salonBase}/salon/{Uri.EscapeDataString(slug)}?iyzicoToken={t}&paid={success.ToString().ToLower()}";
         if (!success && !string.IsNullOrEmpty(error))
             url += $"&payerr={Uri.EscapeDataString(error)}";
         return url;
@@ -265,11 +316,24 @@ public class PaymentController : ControllerBase
     [HttpGet("history")]
     public async Task<ActionResult> GetHistory([FromQuery] int? customerId, [FromQuery] int page = 1)
     {
+        int? scopedCustomerId = customerId;
         int? platformUserId = null;
-        if (User.IsInRole("PlatformUser"))
-            platformUserId = GetPlatformUserId();
 
-        var transactions = await _paymentService.GetTransactionsAsync(customerId, platformUserId, page);
+        if (User.IsInRole("PlatformUser"))
+        {
+            platformUserId = GetPlatformUserId();
+            scopedCustomerId = null;
+        }
+        else if (User.IsInRole("CustomerUser"))
+        {
+            scopedCustomerId = GetCustomerId();
+        }
+        else if (!User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
+        var transactions = await _paymentService.GetTransactionsAsync(scopedCustomerId, platformUserId, page);
         return Ok(transactions.Select(t => new
         {
             t.Uid,
@@ -277,17 +341,73 @@ public class PaymentController : ControllerBase
             PaymentType = PaymentTypes.GetById(t.PaymentTypeId)?.Description,
             t.Amount,
             t.Currency,
+            t.PaymentMethodId,
+            PaymentMethod = BillingPaymentMethods.GetById(t.PaymentMethodId)?.Description,
             t.StatusId,
             Status = PaymentStatuses.GetById(t.StatusId)?.Description,
             t.Provider,
             t.CardLastFour,
             t.InstallmentCount,
             t.ModuleId,
+            PackageGroupId = TryReadPackageGroupId(t.Notes),
             CustomerName = t.Customer?.Name,
             t.CreatedAt,
             t.CompletedAt,
-            t.ErrorMessage
+            t.ErrorMessage,
+            CanDownloadReceipt = t.StatusId == PaymentStatuses.Ids.Basarili || t.StatusId == PaymentStatuses.Ids.Iade,
+            CanDownloadHavaleReceipt = TryReadNoteValue(t.Notes, "HavaleReceiptPath:") != null,
+            CanRetry = t.StatusId == PaymentStatuses.Ids.Basarisiz
+                && (t.PaymentTypeId == PaymentTypes.Ids.PlatformAbonelik || t.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma)
         }));
+    }
+
+    /// <summary>Admin tam/kismi iade baslatir</summary>
+    [HttpPost("{uid:guid}/refund")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> Refund(Guid uid, [FromBody] PaymentRefundRequest? request = null)
+    {
+        var result = await _paymentService.RefundTransactionAsync(uid, request?.Amount, request?.Reason);
+        if (!result.Success) return BadRequest(new { message = result.Error });
+        return Ok(new { transactionId = result.TransactionUid, providerTxId = result.ProviderTransactionId, message = "Iade kaydi olusturuldu." });
+    }
+
+    /// <summary>Admin bekleyen odemeyi iptal eder</summary>
+    [HttpPost("{uid:guid}/cancel")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> Cancel(Guid uid, [FromBody] PaymentCancelRequest? request = null)
+    {
+        var result = await _paymentService.CancelTransactionAsync(uid, request?.Reason);
+        if (!result.Success) return BadRequest(new { message = result.Error });
+        return Ok(new { transactionId = result.TransactionUid, message = "Odeme iptal edildi." });
+    }
+
+    /// <summary>Support/audit zaman cizelgesi</summary>
+    [HttpGet("{uid:guid}/timeline")]
+    public async Task<ActionResult> GetTimeline(Guid uid)
+    {
+        int? customerId = null;
+        int? platformUserId = null;
+        var allowAny = User.IsInRole("Admin");
+
+        if (User.IsInRole("CustomerUser"))
+            customerId = GetCustomerId();
+        else if (User.IsInRole("PlatformUser"))
+            platformUserId = GetPlatformUserId();
+        else if (!allowAny)
+            return Forbid();
+
+        var (data, error) = await _paymentService.GetPaymentTimelineAsync(uid, customerId, platformUserId, allowAny);
+        if (error != null) return NotFound(new { message = error });
+        return Ok(data);
+    }
+
+    /// <summary>Provider/DB mutabakat ozet raporu</summary>
+    [HttpGet("reconciliation")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> GetReconciliation([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? provider)
+    {
+        var data = await _paymentService.GetPaymentReconciliationAsync(from, to, provider);
+        return Ok(data);
     }
 
     /// <summary>Platform kullanicisi odeme dekontu (HTML; yazdir veya PDF olarak kaydet)</summary>
@@ -296,6 +416,18 @@ public class PaymentController : ControllerBase
     public async Task<IActionResult> DownloadMyReceipt(Guid uid)
     {
         var (bytes, fileName, error) = await _paymentService.GetPlatformUserReceiptHtmlAsync(uid, GetPlatformUserId());
+        if (error != null) return NotFound(new { message = error });
+        return File(bytes!, "text/html; charset=utf-8", fileName);
+    }
+
+    /// <summary>Salon/management kullanicisi odeme dekontu (HTML; yazdir veya PDF olarak kaydet)</summary>
+    [HttpGet("receipt/{uid:guid}")]
+    [Authorize(Roles = "CustomerUser,Admin")]
+    public async Task<IActionResult> DownloadReceipt(Guid uid)
+    {
+        var isAdmin = User.IsInRole("Admin");
+        var customerId = isAdmin ? 0 : GetCustomerId();
+        var (bytes, fileName, error) = await _paymentService.GetCustomerReceiptHtmlAsync(uid, customerId, isAdmin);
         if (error != null) return NotFound(new { message = error });
         return File(bytes!, "text/html; charset=utf-8", fileName);
     }
@@ -317,6 +449,48 @@ public class PaymentController : ControllerBase
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
         return $"{Request.Scheme}://{Request.Host}";
+    }
+
+    private static int? ResolvePackageGroupId(PackageRequest request)
+    {
+        if (request.PackageGroupId.HasValue)
+            return SalonModuleGroups.GetById(request.PackageGroupId.Value) != null ? request.PackageGroupId.Value : null;
+
+        if (request.ModuleId.HasValue)
+            return SalonModuleGroups.GetGroupId(request.ModuleId.Value);
+
+        return null;
+    }
+
+    private static int? TryReadPackageGroupId(string? notes)
+        => TryReadNoteInt(notes, "PackageGroup:");
+
+    private static string? TryReadMembershipSlug(string? notes)
+        => TryReadNoteValue(notes, "Slug:");
+
+    private static int? TryReadNoteInt(string? notes, string prefix)
+    {
+        var value = TryReadNoteValue(notes, prefix);
+        return int.TryParse(value, out var id) ? id : null;
+    }
+
+    private static string? TryReadNoteValue(string? notes, string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(notes)) return null;
+        foreach (var part in notes.Split('|', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return part[prefix.Length..];
+        }
+
+        return null;
+    }
+
+    private static string? TryDecodeNoteValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        try { return Uri.UnescapeDataString(value); }
+        catch { return value; }
     }
 }
 
@@ -342,9 +516,24 @@ public class ModulePurchaseRequest
 public class HavaleRequestDto
 {
     public int ModuleId { get; set; }
+    public string? ReferenceNote { get; set; }
+    public string? ReceiptFileName { get; set; }
+    public string? ReceiptContentType { get; set; }
+    public string? ReceiptBase64 { get; set; }
 }
 
 public class HavaleRejectDto
+{
+    public string? Reason { get; set; }
+}
+
+public class PaymentRefundRequest
+{
+    public decimal? Amount { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class PaymentCancelRequest
 {
     public string? Reason { get; set; }
 }
@@ -353,12 +542,13 @@ public class MembershipPaymentRequest
 {
     public int PlanId { get; set; }
     public int SlnClientId { get; set; }
-    public PaymentCardInfo Card { get; set; } = new();
+    public string? Slug { get; set; }
 }
 
 public class PackageRequest
 {
-    public int PackageGroupId { get; set; }
+    public int? PackageGroupId { get; set; }
+    public int? ModuleId { get; set; }
 }
 
 public class PackageResultRequest

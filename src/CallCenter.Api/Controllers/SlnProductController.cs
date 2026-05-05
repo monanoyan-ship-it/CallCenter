@@ -235,6 +235,32 @@ public class SlnProductController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    [HttpPost("{id}/stock-transfer")]
+    public async Task<ActionResult> TransferStock(int id, [FromBody] SlnStockTransferRequest req)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _productFactory.TransferStockAsync(
+            id, req.FromBranchId, req.ToBranchId, req.Quantity, req.Notes, userId, customerId);
+
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpPost("{id}/stock-count")]
+    public async Task<ActionResult> AdjustStockCount(int id, [FromBody] SlnStockCountRequest req)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _productFactory.AdjustStockCountAsync(
+            id, req.BranchId, req.CountedQuantity, req.Notes, userId, customerId);
+
+        return success ? Ok() : BadRequest(error);
+    }
+
     private int GetUserId()
         => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
@@ -259,6 +285,21 @@ public class SlnStockMovementRequest
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public int? SupplierId { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnStockTransferRequest
+{
+    public int? FromBranchId { get; set; }
+    public int ToBranchId { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnStockCountRequest
+{
+    public int? BranchId { get; set; }
+    public decimal CountedQuantity { get; set; }
     public string? Notes { get; set; }
 }
 

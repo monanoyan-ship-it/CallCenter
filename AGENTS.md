@@ -1,6 +1,6 @@
-# Call Center Projesi - Claude Talimatlari
+# Call Center Projesi - Ajan Talimatlari
 
-Bu dosya her Claude/Codex oturumunda once okunacak operasyon rehberidir. Buradaki kurallar ClaudeManager'daki kurallarin yerine gecmez; sadece hizli baslangic ve proje haritasi saglar.
+Bu dosya Codex/Claude ajanlari icin repo kok rehberidir. Her oturumda once ClaudeManager okunur; bu dosya ise proje haritasi, calisma kurallari ve kritik tuzaklari hizli hatirlatir.
 
 ## KESIN EMIRLER
 
@@ -19,7 +19,7 @@ curl -s http://127.0.0.1:41847/api/projects/15/roadmap/summary
 ClaudeManager okunamazsa kullaniciyi bilgilendir ve onay almadan devam etme.
 
 ### 2. Oturum Koordinasyonu ZORUNLU (Chat ID 8)
-Birden fazla Claude/Codex oturumu ayni anda calisabilir. Cakismayi onlemek icin ClaudeManager rehberinden sonra mutlaka chat oku, okundu isaretle ve claim birak.
+Birden fazla ajan oturumu ayni anda calisabilir. Cakismayi onlemek icin ClaudeManager rehberinden sonra mutlaka chat oku, okundu isaretle ve claim birak.
 
 ```
 curl -s http://127.0.0.1:41847/api/ai-chat/8/unread/a
@@ -105,7 +105,7 @@ Tum ana tablolar tek DbContext'tedir:
 - Salon: SlnClient, SlnAppointment, SlnInvoice, SlnCash, SlnBranch, SlnMembership, vb.
 - CRM: CrmContact, Ticket, Deal, Activity, Quality.
 - Billing/subscription/payment: SubscriptionPlan, CustomerSubscription, PaymentTransaction, PlatformPaymentConfig.
-- KVKK, audit, integration, webhook, translation tabloları.
+- KVKK, audit, integration, webhook, translation tablolari.
 
 Kritik veri model kurallari:
 - Primary key: `int Id`, auto-increment.
@@ -245,7 +245,7 @@ Onemli notlar:
 - #137 Management Deploy
 - #58 Windows App
 
-Dockerfile kuralı:
+Dockerfile kurali:
 - Root `Dockerfile` her zaman API'ye ait olmali.
 - Salon/CRM/Management deploy ederken root Dockerfile gecici degisir.
 - Deploy bitince root Dockerfile hemen API'ye geri alinmali ve `head -3 Dockerfile` ile dogrulanmali.
@@ -274,6 +274,10 @@ Kritik deploy hatalari:
 - Salon/Management UI degisikliklerinde MVC view + ilgili JS + proxy endpoint birlikte kontrol edilmeli.
 - Tarayici testi gerekiyorsa lokal uygulamalari Visual Studio ile calistirma prensibine uy; `dotnet run/watch` kullanma.
 - Test calistirilamadiysa final raporda acikca soyle.
+
+## CLAUDE.md ile Senkron
+
+`CLAUDE.md` ve `AGENTS.md` ayni ana kurallari tasimali. Birine proje haritasi, deploy kuralı veya kritik hata eklendiginde digerini de guncelle.
 
 ## ClaudeManager v2.0 Kullanım Kılavuzu
 

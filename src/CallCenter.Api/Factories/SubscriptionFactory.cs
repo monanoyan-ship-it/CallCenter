@@ -18,6 +18,14 @@ public class SubscriptionFactory : ISubscriptionFactory
     private readonly ServicePricingFactory _servicePricingFactory;
     private readonly IUnitOfWork _uow;
 
+    private static readonly (int IntervalMonths, decimal DiscountPercent, string Name, int SortOrder)[] DefaultSalonPlans =
+    [
+        (1, 0m, "1 Aylik Abonelik", 1),
+        (3, 10m, "3 Aylik Abonelik (%10 indirim)", 2),
+        (6, 15m, "6 Aylik Abonelik (%15 indirim)", 3),
+        (12, 20m, "12 Aylik Abonelik (%20 indirim)", 4)
+    ];
+
     /// <summary>Plan indirimi uygulanmadan temel paket dönem tutarı (tahakkuk sıfırlanmasın).</summary>
     private async Task<decimal> ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(int intervalMonths)
     {
@@ -95,6 +103,15 @@ public class SubscriptionFactory : ISubscriptionFactory
     private static decimal GetEffectiveDiscountPercent(CustomerSubscription sub) =>
         sub.DiscountPercentOverride ?? sub.Plan.DiscountPercent;
 
+    private static readonly int[] PayableSubscriptionStatusIds =
+    [
+        SubscriptionStatuses.Ids.Active,
+        SubscriptionStatuses.Ids.Suspended
+    ];
+
+    private static bool IsPayableSubscriptionStatus(int statusId) =>
+        PayableSubscriptionStatusIds.Contains(statusId);
+
     /// <summary>
     /// Liste fiyatı / deneme (<see cref="CustomerSubscription.PeriodPrice"/>=0) modunda 2+ şubede Temel Paket tutarı
     /// yalnız şube satırında (N × Core brüt − eşik) hesaplanır; taban satırda Core tekrar eklenmez.
@@ -152,7 +169,76 @@ public class SubscriptionFactory : ISubscriptionFactory
     // ═══ PLAN YÖNETİMİ ═══
 
     public async Task<List<SubscriptionPlan>> GetPlansAsync()
-        => await _planEs.GetAllQueryable().OrderBy(p => p.SortOrder).ToListAsync();
+    {
+        await EnsureDefaultSalonPlansAsync();
+        return await _planEs.GetAllQueryable().OrderBy(p => p.SortOrder).ThenBy(p => p.Id).ToListAsync();
+    }
+
+    private async Task EnsureDefaultSalonPlansAsync()
+    {
+        var plans = await _planEs.GetAllQueryable().OrderBy(p => p.SortOrder).ThenBy(p => p.Id).ToListAsync();
+        var changed = false;
+
+        foreach (var standard in DefaultSalonPlans)
+        {
+            var plan = plans.FirstOrDefault(p => p.IntervalMonths == standard.IntervalMonths);
+            if (plan == null)
+            {
+                plan = new SubscriptionPlan
+                {
+                    Name = standard.Name,
+                    IntervalMonths = standard.IntervalMonths,
+                    DiscountPercent = standard.DiscountPercent,
+                    SortOrder = standard.SortOrder,
+                    IsActive = true
+                };
+                _planEs.Add(plan);
+                plans.Add(plan);
+                changed = true;
+                continue;
+            }
+
+            if (ShouldNormalizePlanName(plan))
+            {
+                plan.Name = standard.Name;
+                changed = true;
+            }
+
+            if (plan.DiscountPercent <= 0m && standard.DiscountPercent > 0m && ShouldNormalizePlanDiscount(plan))
+            {
+                plan.DiscountPercent = standard.DiscountPercent;
+                changed = true;
+            }
+
+            if (plan.SortOrder <= 0)
+            {
+                plan.SortOrder = standard.SortOrder;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            await _uow.SaveChangesAsync();
+    }
+
+    private static bool ShouldNormalizePlanName(SubscriptionPlan plan)
+    {
+        if (string.IsNullOrWhiteSpace(plan.Name))
+            return true;
+
+        var normalized = plan.Name.Trim().ToLowerInvariant();
+        return normalized is "aylik" or "aylik plan" or "1 ay" or "1 aylik"
+            or "3 aylik" or "3 ay" or "6 aylik" or "6 ay"
+            or "yillik" or "12 aylik" or "12 ay";
+    }
+
+    private static bool ShouldNormalizePlanDiscount(SubscriptionPlan plan)
+    {
+        var normalized = (plan.Name ?? "").Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(normalized)
+            || normalized.Contains("indirim", StringComparison.OrdinalIgnoreCase)
+            || normalized is "3 aylik" or "3 ay" or "6 aylik" or "6 ay" or "yillik" or "12 aylik" or "12 ay";
+    }
 
     public async Task<SubscriptionPlan> CreatePlanAsync(string name, int intervalMonths, decimal discountPercent)
     {
@@ -371,7 +457,7 @@ public class SubscriptionFactory : ISubscriptionFactory
         var sub = await _subscriptionEs.GetAllQueryable()
             .Include(s => s.Customer)
             .Include(s => s.Plan)
-            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && PayableSubscriptionStatusIds.Contains(s.StatusId));
         if (sub == null || sub.Customer.IsTest) return;
 
         var lastMap = await BuildLastSalonPeriodStartMapAsync([customerId]);
@@ -395,7 +481,7 @@ public class SubscriptionFactory : ISubscriptionFactory
 
         var sub = await _subscriptionEs.GetAllQueryable()
             .Include(s => s.Plan)
-            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && PayableSubscriptionStatusIds.Contains(s.StatusId));
         if (sub == null) return (false, "Aktif abonelik yok.");
         var intervalMonths = GetEffectiveBillingIntervalMonths(sub.Plan);
 
@@ -597,15 +683,39 @@ public class SubscriptionFactory : ISubscriptionFactory
         return oldestCc;
     }
 
+    private async Task<CustomerBillingPeriod?> EnsureSalonSubscriptionPeriodForPaymentAsync(CustomerSubscription sub)
+    {
+        var existing = await GetOldestUnpaidSalonDebtPeriodAsync(sub.CustomerId);
+        if (existing != null) return existing;
+
+        if (sub.PeriodPrice > 0m)
+        {
+            var hasAnySalonPeriod = await _billingPeriodEs.GetAllQueryable()
+                .AnyAsync(p => p.CustomerId == sub.CustomerId && p.BillingKindId == CustomerBillingKinds.SalonPlatform);
+            if (hasAnySalonPeriod) return null;
+        }
+
+        var customer = await _customerEs.GetByIdAsync(sub.CustomerId);
+        if (customer == null || customer.IsTest) return null;
+
+        var lastMap = await BuildLastSalonPeriodStartMapAsync([sub.CustomerId]);
+        var next = ResolveNextSalonAccrualStartUtc(sub, lastMap);
+        if (await TryCreateSalonBillingPeriodIfMissingAsync(sub, next.Year, next.Month, next))
+            await _uow.SaveChangesAsync();
+
+        return await GetOldestUnpaidSalonDebtPeriodAsync(sub.CustomerId);
+    }
+
     /// <inheritdoc />
     public async Task<(CustomerBillingPeriod Period, decimal PayAmount)?> TryResolveSalonSubscriptionPaymentAsync(int customerId)
     {
         var sub = await _subscriptionEs.GetAllQueryable()
-            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
-        // Deneme: platform KK ödemesi yok
-        if (sub != null && sub.PeriodPrice <= 0m) return null;
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && PayableSubscriptionStatusIds.Contains(s.StatusId));
 
-        var period = await GetOldestUnpaidSalonDebtPeriodAsync(customerId);
+        var period = sub != null
+            ? await EnsureSalonSubscriptionPeriodForPaymentAsync(sub)
+            : await GetOldestUnpaidSalonDebtPeriodAsync(customerId);
         if (period == null) return null;
 
         var pay = period.Amount + period.ServiceAmount;
@@ -631,9 +741,8 @@ public class SubscriptionFactory : ISubscriptionFactory
         var activeSub = sub.FirstOrDefault();
 
         var activeEntity = await _subscriptionEs.GetAllQueryable()
-            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
-        if (activeEntity != null && activeEntity.PeriodPrice <= 0m)
-            return new { subscription = activeSub, unpaidBillings = Array.Empty<object>() };
+            .Include(s => s.Plan)
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && PayableSubscriptionStatusIds.Contains(s.StatusId));
 
         var salonOnly = !await HasActiveCallCenterProductAsync(customerId);
         var breakdown = await GetSalonBillingBreakdownForCustomerAsync(customerId);
@@ -671,6 +780,7 @@ public class SubscriptionFactory : ISubscriptionFactory
                     p.PeriodStartDate,
                     p.PeriodEndDate,
                     p.StatusId,
+                    isUpcoming = false,
                     salonModuleLines = p.ModuleLines
                         .OrderBy(l => l.PackageGroupId ?? int.MaxValue)
                         .ThenBy(l => l.ModuleId ?? int.MaxValue)
@@ -679,7 +789,35 @@ public class SubscriptionFactory : ISubscriptionFactory
                 };
             })
             .Where(x => x.total > 0m)
+            .Cast<object>()
             .ToList();
+
+        if (unpaidBillings.Count == 0 && activeEntity != null && activeEntity.PeriodPrice <= 0m)
+        {
+            var next = await GetNextSalonAccrualUtcAsync(customerId) ?? activeEntity.StartDate;
+            var virtualBreakdown = await GetSalonBillingBreakdownForCustomerAsync(customerId);
+            if (virtualBreakdown.HasValue)
+            {
+                var virtualTotal = virtualBreakdown.Value.PlatformAmount + virtualBreakdown.Value.ModuleAmount;
+                if (virtualTotal > 0m)
+                {
+                    unpaidBillings.Add(new
+                    {
+                        Id = 0,
+                        Year = next.Year,
+                        Month = next.Month,
+                        Amount = virtualBreakdown.Value.PlatformAmount,
+                        ServiceAmount = virtualBreakdown.Value.ModuleAmount,
+                        total = virtualTotal,
+                        PeriodStartDate = next,
+                        PeriodEndDate = next.AddMonths(GetEffectiveBillingIntervalMonths(activeEntity.Plan)),
+                        StatusId = BillingPeriodStatuses.Ids.Draft,
+                        isUpcoming = true,
+                        salonModuleLines = Array.Empty<object>()
+                    });
+                }
+            }
+        }
 
         return new { subscription = activeSub, unpaidBillings };
     }
@@ -728,7 +866,7 @@ public class SubscriptionFactory : ISubscriptionFactory
 
         var sub = await _subscriptionEs.GetAllQueryable()
             .Include(s => s.Plan)
-            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && PayableSubscriptionStatusIds.Contains(s.StatusId));
 
         if (sub == null)
         {
@@ -763,7 +901,7 @@ public class SubscriptionFactory : ISubscriptionFactory
             }
         }
 
-        return new { canAccessPanel = canAccess, hasActiveSubscription = true };
+        return new { canAccessPanel = canAccess, hasActiveSubscription = sub.StatusId == SubscriptionStatuses.Ids.Active };
     }
 
     public async Task RefreshSubscriptionDisplayMonthlyPriceAsync(int customerId, bool saveChanges = true)
@@ -803,7 +941,7 @@ public class SubscriptionFactory : ISubscriptionFactory
     {
         var sub = await _subscriptionEs.GetAllQueryable()
             .Include(s => s.Plan)
-            .FirstOrDefaultAsync(s => s.CustomerId == customerId && s.StatusId == SubscriptionStatuses.Ids.Active);
+            .FirstOrDefaultAsync(s => s.CustomerId == customerId && PayableSubscriptionStatusIds.Contains(s.StatusId));
         if (sub == null) return null;
 
         var (basePeriodAmount, branchAmount, moduleAmount, _, _) =

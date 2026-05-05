@@ -7,6 +7,13 @@ function PurchaseViewModel(moduleId) {
     self.bankInfo = ko.observable(null);
     self.paymentMethod = ko.observable('kk');
     self.paymentResult = ko.observable(null);
+    self.havale = {
+        referenceNote: ko.observable(''),
+        receiptFileName: ko.observable(''),
+        receiptContentType: ko.observable(''),
+        receiptBase64: ko.observable(''),
+        isReadingReceipt: ko.observable(false)
+    };
 
     self.card = {
         holderName: ko.observable(''), number: ko.observable(''),
@@ -70,13 +77,59 @@ function PurchaseViewModel(moduleId) {
         }).always(function () { self.isProcessing(false); });
     };
 
+    self.onReceiptSelected = function (vm, e) {
+        var file = e && e.target && e.target.files && e.target.files[0];
+        self.havale.receiptFileName('');
+        self.havale.receiptContentType('');
+        self.havale.receiptBase64('');
+        if (!file) return true;
+
+        if (file.size > 5 * 1024 * 1024) {
+            toastr.warning('Dekont dosyasi en fazla 5 MB olabilir.');
+            e.target.value = '';
+            return true;
+        }
+
+        var allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+        if (allowed.indexOf(file.type) === -1) {
+            toastr.warning('Dekont PDF, JPG, PNG veya WEBP olmalidir.');
+            e.target.value = '';
+            return true;
+        }
+
+        self.havale.isReadingReceipt(true);
+        var reader = new FileReader();
+        reader.onload = function () {
+            self.havale.receiptFileName(file.name);
+            self.havale.receiptContentType(file.type);
+            self.havale.receiptBase64(String(reader.result || ''));
+            self.havale.isReadingReceipt(false);
+        };
+        reader.onerror = function () {
+            toastr.error('Dekont dosyasi okunamadi.');
+            self.havale.isReadingReceipt(false);
+        };
+        reader.readAsDataURL(file);
+        return true;
+    };
+
     self.submitHavale = function () {
+        if (self.havale.isReadingReceipt()) {
+            toastr.info('Dekont dosyasi okunuyor, lutfen bekleyin.');
+            return;
+        }
         confirmModal('Havale Onayi', 'Havaleyi yaptiginizi onayliyor musunuz?', function () {
             self.isProcessing(true);
             $.ajax({
                 url: '/proxy/payments/havale-request', method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ moduleId: moduleId }),
+                data: JSON.stringify({
+                    moduleId: moduleId,
+                    referenceNote: self.havale.referenceNote() || null,
+                    receiptFileName: self.havale.receiptFileName() || null,
+                    receiptContentType: self.havale.receiptContentType() || null,
+                    receiptBase64: self.havale.receiptBase64() || null
+                }),
                 success: function (data) {
                     self.paymentResult({ success: true, message: data.message });
                 },

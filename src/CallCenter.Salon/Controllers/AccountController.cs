@@ -45,6 +45,20 @@ public class AccountController : SlnBaseController
         return View();
     }
 
+    [HttpGet]
+    public async Task<IActionResult> RegisterOptions()
+    {
+        using var client = CreateApiClient();
+        var response = await client.GetAsync("api/auth/salon-register/options");
+        var json = await response.Content.ReadAsStringAsync();
+        return new ContentResult
+        {
+            Content = json,
+            ContentType = "application/json",
+            StatusCode = (int)response.StatusCode
+        };
+    }
+
     [HttpPost]
     public async Task<IActionResult> DoRegister([FromBody] JsonElement body)
     {
@@ -81,12 +95,26 @@ public class AccountController : SlnBaseController
         return RedirectToAction("Login", "Account", new { loggedOut = 1 });
     }
 
-    /// <summary>Abonelik odemesi sonrasi panel cache temizligi.</summary>
-    public IActionResult RefreshSession()
+    /// <summary>Abonelik/modul odemesi sonrasi JWT modul claim'i ve panel cache yenileme.</summary>
+    public async Task<IActionResult> RefreshSession(string? returnUrl = null)
     {
+        using var client = CreateApiClient();
+        var response = await client.PostAsync("api/auth/refresh-current",
+            new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadAsStringAsync();
+            SetAuthFromLoginResponse(json, 1);
+        }
+
         var opt = new CookieOptions { Path = "/" };
         Response.Cookies.Delete("SlnPanelOk", opt);
         Response.Cookies.Delete("SlnSubStrict", opt);
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return LocalRedirect(returnUrl);
+
         return RedirectToAction("Index", "Home");
     }
 

@@ -54,6 +54,28 @@ function ClientsViewModel() {
 
     var formModal;
 
+    function read(obj, camel, pascal) {
+        if (!obj) return undefined;
+        if (obj[camel] !== undefined && obj[camel] !== null) return obj[camel];
+        return obj[pascal];
+    }
+
+    function applyClientToForm(client) {
+        self.form.fullName(read(client, 'fullName', 'FullName') || '');
+        self.form.phone(read(client, 'phone', 'Phone') || '');
+        self.form.phone2(read(client, 'phone2', 'Phone2') || '');
+        self.form.email(read(client, 'email', 'Email') || '');
+        var genderId = read(client, 'genderId', 'GenderId');
+        self.form.genderId(genderId != null ? String(genderId) : '');
+        var birthDate = read(client, 'birthDate', 'BirthDate');
+        self.form.birthDate(birthDate ? String(birthDate).substring(0, 10) : '');
+        self.form.city(read(client, 'city', 'City') || '');
+        self.form.address(read(client, 'address', 'Address') || '');
+        self.hairColorAc.setFromValue(read(client, 'hairColor', 'HairColor') || '');
+        self.skinTypeAc.setFromValue(read(client, 'skinType', 'SkinType') || '');
+        self.form.notes(read(client, 'notes', 'Notes') || '');
+    }
+
     self.loadData = function () {
         var url = '/proxy/sln-clients?page=' + self.currentPage() + '&pageSize=' + self.pageSize;
         var q = self.searchQuery();
@@ -99,29 +121,15 @@ function ClientsViewModel() {
     self.openEdit = function (client) {
         self.isEditing(true);
         self.editingId(client.id);
-        // SlnClientDto fields
-        self.form.fullName(client.fullName || '');
-        self.form.phone(client.phone || '');
-        self.form.email(client.email || '');
-        self.form.genderId(client.genderId != null ? String(client.genderId) : '');
-        self.form.birthDate(client.birthDate ? client.birthDate.substring(0, 10) : '');
-        self.hairColorAc.setFromValue(client.hairColor || '');
-        // Detail-only fields: fetch from detail endpoint
-        self.form.phone2('');
-        self.form.city('');
-        self.form.address('');
-        self.skinTypeAc.clear();
-        self.form.notes('');
+        applyClientToForm(client);
 
         $.ajax({ url: '/proxy/sln-clients/' + client.id, method: 'GET' }).done(function (data) {
-            self.form.phone2(data.phone2 || '');
-            self.form.city(data.city || '');
-            self.form.address(data.address || '');
-            self.skinTypeAc.setFromValue(data.skinType || '');
-            self.form.notes(data.notes || '');
+            applyClientToForm(data);
+        }).fail(function () {
+            toastr.warning('Musteri detaylari yuklenemedi, listedeki bilgilerle devam ediliyor.');
+        }).always(function () {
+            formModal.show();
         });
-
-        formModal.show();
     };
 
     self.save = function () {
