@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function CashViewModel() {
     var self = this;
     self.cashRegisters = ko.observableArray([]);
@@ -29,8 +33,15 @@ function CashViewModel() {
         paymentMethodId: ko.observable(1)
     };
 
-    var transactionTypeNames = { 1: 'Gelir', 2: 'Gider', 3: 'Transfer' };
-    var paymentMethodNames = { 1: 'Nakit', 2: 'Kredi Karti' };
+    var transactionTypeNames = {
+        1: slnJsT('salon.cash.transaction.income', 'Gelir'),
+        2: slnJsT('salon.cash.transaction.expense', 'Gider'),
+        3: slnJsT('salon.cash.transaction.transfer', 'Transfer')
+    };
+    var paymentMethodNames = {
+        1: slnJsT('salon.payment.cash', 'Nakit'),
+        2: slnJsT('salon.payment.credit_card', 'Kredi Kartı')
+    };
 
     var registerModal, transactionModal;
     var transactionRegisterId = null;
@@ -39,7 +50,7 @@ function CashViewModel() {
         $.ajax({ url: '/proxy/sln-finance/cash-registers', method: 'GET' }).done(function (data) {
             self.cashRegisters(data.items || data);
         }).fail(function () {
-            toastr.error('Kasa listesi yuklenemedi');
+            toastr.error(slnJsT('salon.cash.js.kasa_listesi_yuklenemedi', 'Kasa listesi yüklenemedi'));
         });
     };
 
@@ -47,12 +58,12 @@ function CashViewModel() {
         $.ajax({ url: '/proxy/sln-finance/cash-registers/' + registerId + '/transactions', method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (t) {
-                t.typeName = transactionTypeNames[t.transactionTypeId] || 'Bilinmiyor';
+                t.typeName = transactionTypeNames[t.transactionTypeId] || slnJsT('salon.common.unknown', 'Bilinmiyor');
                 t.paymentMethodName = paymentMethodNames[t.paymentMethodId] || '-';
             });
             self.transactions(items);
         }).fail(function () {
-            toastr.error('Kasa hareketleri yuklenemedi');
+            toastr.error(slnJsT('salon.cash.js.kasa_hareketleri_yuklenemedi', 'Kasa hareketleri yüklenemedi'));
         });
     };
 
@@ -94,9 +105,9 @@ function CashViewModel() {
             branchId: self.registerForm.branchId() ? parseInt(self.registerForm.branchId()) : null,
             isActive: self.registerForm.isActive() !== false
         };
-        if (!data.name) { toastr.warning('Kasa adi zorunludur'); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.cash.js.kasa_adi_zorunludur', 'Kasa adı zorunludur')); return; }
         if (self.branches().length > 1 && !data.branchId) {
-            toastr.warning('Sube seciniz'); return;
+            toastr.warning(slnJsT('salon.cash.js.sube_seciniz', 'Şube seçiniz')); return;
         }
 
         var id = self.registerForm.id();
@@ -112,10 +123,10 @@ function CashViewModel() {
         }).done(function () {
             registerModal.hide();
             self.loadRegisters();
-            toastr.success(id ? 'Kasa guncellendi' : 'Kasa olusturuldu');
+            toastr.success(id ? slnJsT('salon.cash.js.kasa_guncellendi', 'Kasa güncellendi') : slnJsT('salon.cash.js.kasa_olusturuldu', 'Kasa oluşturuldu'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Kasa olusturulamadi');
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.cash.js.kasa_olusturulamadi', 'Kasa oluşturulamadı'));
             self.isSaving(false);
         });
     };
@@ -139,7 +150,7 @@ function CashViewModel() {
         };
 
         if (!data.description || !data.amount) {
-            toastr.warning('Aciklama ve tutar zorunludur');
+            toastr.warning(slnJsT('salon.cash.js.aciklama_ve_tutar_zorunludur', 'Açıklama ve tutar zorunludur'));
             return;
         }
 
@@ -155,7 +166,7 @@ function CashViewModel() {
             if (self.selectedRegister() && self.selectedRegister().id === transactionRegisterId) {
                 self.loadTransactions(transactionRegisterId);
             }
-            toastr.success('Islem kaydedildi');
+            toastr.success(slnJsT('salon.cash.js.islem_kaydedildi', 'İşlem kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || 'Islem kaydedilemedi');
@@ -207,9 +218,9 @@ function CashViewModel() {
         }).done(function () {
             openRegisterModal.hide();
             self.loadRegisters();
-            toastr.success('Kasa acildi');
+            toastr.success(slnJsT('salon.cash.js.kasa_acildi', 'Kasa acildi'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Kasa acilamadi');
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.cash.js.kasa_acilamadi', 'Kasa acilamadi'));
         }).always(function () {
             self.isSaving(false);
         });

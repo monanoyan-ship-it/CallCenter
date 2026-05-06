@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Sadakat Programi";
 }
@@ -11,7 +12,7 @@
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-clients">
-                <i class="bi bi-star me-1"></i>Musteri Puanlari
+                <i class="bi bi-star me-1"></i><t key="salon.loyalty.auto.musteri_puanlari"><t key="salon.loyalty.auto.musteri_puanlari">Müşteri Puanlari</t></t>
             </button>
         </li>
     </ul>
@@ -45,7 +46,7 @@
                         </div>
                     </div>
                     <button class="btn btn-primary btn-sm mt-3" data-bind="click: saveConfig, disable: isSaving">
-                        <i class="bi bi-check-lg me-1"></i>Kaydet
+                        <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save"><t key="salon.common.btn.save">Kaydet</t></t>
                     </button>
                 </div>
             </div>
@@ -56,7 +57,7 @@
             <div class="table-responsive">
                 <table class="table table-hover table-sm">
                     <thead class="table-light">
-                        <tr><th>Musteri</th><th>Toplam Kazanilan</th><th>Kulllanilan</th><th>Mevcut Bakiye</th><th>TL Degeri</th></tr>
+                        <tr><th><t key="salon.panel.payments.customer">Müşteri</t></th><th><t key="salon.loyalty.auto.toplam_kazanilan">Toplam Kazanılan</t></th><th>Kulllanilan</th><th><t key="salon.loyalty.auto.mevcut_bakiye">Mevcut Bakiye</t></th><th>TL Degeri</th></tr>
                     </thead>
                     <tbody data-bind="foreach: clientLoyalties">
                         <tr>
@@ -64,7 +65,7 @@
                             <td class="small text-success" data-bind="text: totalEarned + ' puan'"></td>
                             <td class="small text-danger" data-bind="text: totalSpent + ' puan'"></td>
                             <td><span class="badge bg-primary" data-bind="text: currentBalance + ' puan'"></span></td>
-                            <td class="small fw-bold" data-bind="text: balanceValue.toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small fw-bold" data-bind="text: balanceValue.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                         </tr>
                     </tbody>
                 </table>

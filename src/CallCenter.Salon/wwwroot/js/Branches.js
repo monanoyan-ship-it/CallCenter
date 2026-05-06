@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function BranchesViewModel() {
     var self = this;
     self.branches = ko.observableArray([]);
@@ -170,7 +174,7 @@ function BranchesViewModel() {
         };
 
         if (!data.name) {
-            toastr.warning('Sube adi zorunludur');
+            toastr.warning(slnJsT('salon.branches.js.sube_adi_zorunludur', 'Şube adı zorunludur'));
             return;
         }
 
@@ -189,22 +193,22 @@ function BranchesViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Sube guncellendi' : 'Sube eklendi');
+            toastr.success(self.isEditing() ? slnJsT('salon.branches.js.sube_guncellendi', 'Şube güncellendi') : slnJsT('salon.branches.js.sube_eklendi', 'Şube eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.remove = function (branch) {
-        confirmModal('Onay', branch.name + ' subesini silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), branch.name + ' subesini silmek istediginize emin misiniz?', function() {
             $.ajax({
                 url: '/proxy/sln-branches/' + branch.id,
                 method: 'DELETE'
             }).done(function () {
                 self.loadData();
-                toastr.success('Sube silindi');
+                toastr.success(slnJsT('salon.branches.js.sube_silindi', 'Şube silindi'));
             }).fail(function () {
                 toastr.error('Silinemedi');
             });

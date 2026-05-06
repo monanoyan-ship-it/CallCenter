@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ClientsViewModel() {
     var self = this;
     self.clients = ko.observableArray([]);
@@ -126,7 +130,7 @@ function ClientsViewModel() {
         $.ajax({ url: '/proxy/sln-clients/' + client.id, method: 'GET' }).done(function (data) {
             applyClientToForm(data);
         }).fail(function () {
-            toastr.warning('Musteri detaylari yuklenemedi, listedeki bilgilerle devam ediliyor.');
+            toastr.warning(slnJsT('salon.clients.js.musteri_detaylari_yuklenemedi_listedeki_bilgilerle_devam_ediliyor', 'Müşteri detayları yüklenemedi, listedeki bilgilerle devam ediliyor.'));
         }).always(function () {
             formModal.show();
         });
@@ -148,7 +152,7 @@ function ClientsViewModel() {
         };
 
         if (!data.fullName || !data.phone) {
-            toastr.warning('Ad soyad ve telefon zorunludur');
+            toastr.warning(slnJsT('salon.clients.js.ad_soyad_ve_telefon_zorunludur', 'Ad soyad ve telefon zorunludur'));
             return;
         }
 
@@ -171,22 +175,22 @@ function ClientsViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Musteri guncellendi' : 'Musteri eklendi');
+            toastr.success(self.isEditing() ? slnJsT('salon.clients.js.musteri_guncellendi', 'Müşteri güncellendi') : slnJsT('salon.clients.js.musteri_eklendi', 'Müşteri eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.remove = function (client) {
-        confirmModal('Onay', 'Bu musteriyi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.clients.js.bu_musteriyi_silmek_istediginize_emin_misiniz', 'Bu müşteriyi silmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-clients/' + client.id,
                 method: 'DELETE'
             }).done(function () {
                 self.loadData();
-                toastr.success('Musteri silindi');
+                toastr.success(slnJsT('salon.clients.js.musteri_silindi', 'Müşteri silindi'));
             }).fail(function () {
                 toastr.error('Silinemedi');
             });

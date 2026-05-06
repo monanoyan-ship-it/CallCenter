@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ServicesViewModel() {
     var self = this;
     self.categories = ko.observableArray([]);
@@ -90,7 +94,7 @@ function ServicesViewModel() {
 
     self.saveCategory = function () {
         var data = { name: self.categoryForm.name(), sortOrder: parseInt(self.categoryForm.sortOrder()) || 0 };
-        if (!data.name) { toastr.warning('Kategori adi zorunludur'); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.js.kategori_adi_zorunludur', 'Kategori adi zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-services/categories';
@@ -103,21 +107,21 @@ function ServicesViewModel() {
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
             categoryModal.hide();
             self.loadData();
-            toastr.success('Kategori kaydedildi');
+            toastr.success(slnJsT('salon.services.js.kategori_kaydedildi', 'Kategori kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Kategori kaydedilemedi');
+            toastr.error(slnJsT('salon.services.js.kategori_kaydedilemedi', 'Kategori kaydedilemedi'));
             self.isSaving(false);
         });
     };
 
     self.removeCategory = function (cat) {
-        confirmModal('Onay', "'" + cat.name + "' kategorisini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + cat.name + "' kategorisini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Kategori silindi');
+                toastr.success(slnJsT('salon.services.js.kategori_silindi', 'Kategori silindi'));
             }).fail(function () {
-                toastr.error('Kategori silinemedi');
+                toastr.error(slnJsT('salon.services.js.kategori_silinemedi', 'Kategori silinemedi'));
             });
         });
     };
@@ -156,8 +160,8 @@ function ServicesViewModel() {
             price: parseFloat(self.serviceForm.price()) || 0,
             isActive: self.serviceForm.isActive() === 'true'
         };
-        if (!data.name) { toastr.warning('Hizmet adi zorunludur'); return; }
-        if (!data.categoryId) { toastr.warning('Kategori secimi zorunludur'); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.js.hizmet_adi_zorunludur', 'Hizmet adı zorunludur')); return; }
+        if (!data.categoryId) { toastr.warning(slnJsT('salon.services.js.kategori_secimi_zorunludur', 'Kategori seçimi zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-services';
@@ -170,21 +174,21 @@ function ServicesViewModel() {
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
             serviceModal.hide();
             self.loadData();
-            toastr.success('Hizmet kaydedildi');
+            toastr.success(slnJsT('salon.services.js.hizmet_kaydedildi', 'Hizmet kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Hizmet kaydedilemedi');
+            toastr.error(slnJsT('salon.services.js.hizmet_kaydedilemedi', 'Hizmet kaydedilemedi'));
             self.isSaving(false);
         });
     };
 
     self.removeService = function (svc) {
-        confirmModal('Onay', "'" + svc.name + "' hizmetini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + svc.name + "' hizmetini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/sln-services/' + svc.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Hizmet silindi');
+                toastr.success(slnJsT('salon.services.js.hizmet_silindi', 'Hizmet silindi'));
             }).fail(function () {
-                toastr.error('Hizmet silinemedi');
+                toastr.error(slnJsT('salon.services.js.hizmet_silinemedi', 'Hizmet silinemedi'));
             });
         });
     };

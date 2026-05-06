@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ProfileViewModel() {
     var self = this;
     self.isSaving = ko.observable(false);
@@ -41,10 +45,10 @@ function ProfileViewModel() {
             url: '/proxy/sln-profile', method: 'POST',
             contentType: 'application/json', data: JSON.stringify(data)
         }).done(function () {
-            toastr.success('Profil kaydedildi');
+            toastr.success(slnJsT('salon.profile.saved', 'Profil kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || xhr.responseText || 'Kaydedilemedi');
+            toastr.error(xhr.responseJSON?.error || xhr.responseText || slnJsT('salon.common.error.save_failed', 'Kaydedilemedi'));
             self.isSaving(false);
         });
     };

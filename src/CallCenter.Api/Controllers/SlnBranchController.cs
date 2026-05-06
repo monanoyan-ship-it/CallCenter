@@ -25,6 +25,13 @@ public class SlnBranchController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var branches = await _branchFactory.GetBranchesAsync(customerId);
+        if (!IsSalonOwner())
+        {
+            var branchId = GetBranchId();
+            if (!branchId.HasValue) return Forbid();
+            branches = branches.Where(b => b.Id == branchId.Value).ToList();
+        }
+
         return Ok(branches);
     }
 
@@ -33,12 +40,14 @@ public class SlnBranchController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        if (!IsSalonOwner() && GetBranchId() != id) return Forbid();
 
         var branch = await _branchFactory.GetBranchAsync(id, customerId);
         return branch != null ? Ok(branch) : NotFound();
     }
 
     [HttpPost]
+    [RequireSalonOwner]
     public async Task<ActionResult<SlnBranchDto>> CreateBranch([FromBody] SlnBranchCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -49,6 +58,7 @@ public class SlnBranchController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequireSalonOwner]
     public async Task<ActionResult> UpdateBranch(int id, [FromBody] SlnBranchUpdateDto dto)
     {
         var customerId = GetCustomerId();
@@ -59,6 +69,7 @@ public class SlnBranchController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequireSalonOwner]
     public async Task<ActionResult> DeleteBranch(int id)
     {
         var customerId = GetCustomerId();
@@ -70,6 +81,7 @@ public class SlnBranchController : ControllerBase
 
     /// <summary>Firmaya ait tum subelerin city/district alanlarini TR-normalize eder</summary>
     [HttpPost("normalize-addresses")]
+    [RequireSalonOwner]
     public async Task<ActionResult> NormalizeAddresses()
     {
         var customerId = GetCustomerId();
@@ -80,6 +92,7 @@ public class SlnBranchController : ControllerBase
 
     /// <summary>WorkingHoursJson NULL olan subelere default 09:00-19:00 (Pzt-Cmt) seed eder</summary>
     [HttpPost("normalize-working-hours")]
+    [RequireSalonOwner]
     public async Task<ActionResult> NormalizeWorkingHours()
     {
         var customerId = GetCustomerId();
@@ -90,6 +103,7 @@ public class SlnBranchController : ControllerBase
 
     /// <summary>Lat/Lng NULL olan subelere Nominatim ile bulk geocoding (1 sn rate-limit, async).</summary>
     [HttpPost("normalize-coordinates")]
+    [RequireSalonOwner]
     public async Task<ActionResult> NormalizeCoordinates()
     {
         var customerId = GetCustomerId();
@@ -100,4 +114,17 @@ public class SlnBranchController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private bool IsSalonOwner()
+    {
+        if (User.IsInRole("Admin")) return true;
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
+    }
 }

@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function EmailCampaignsViewModel() {
     var self = this;
     self.campaigns = ko.observableArray([]);
@@ -17,10 +21,15 @@ function EmailCampaignsViewModel() {
         scheduledAt: ko.observable('')
     };
 
-    var statusTexts = { 1: 'Taslak', 2: 'Planlanmis', 3: 'Gonderiliyor', 4: 'Tamamlandi' };
+    var statusTexts = {
+        1: slnJsT('salon.campaigns.status.draft', 'Taslak'),
+        2: slnJsT('salon.campaigns.status.scheduled', 'Planlanmış'),
+        3: slnJsT('salon.campaigns.status.sending', 'Gönderiliyor'),
+        4: slnJsT('salon.campaigns.status.completed', 'Tamamlandı')
+    };
     var statusBadges = { 1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success' };
 
-    self.statusText = function (id) { return statusTexts[id] || 'Bilinmiyor'; };
+    self.statusText = function (id) { return statusTexts[id] || slnJsT('salon.common.unknown', 'Bilinmiyor'); };
     self.statusBadge = function (id) { return statusBadges[id] || 'bg-secondary'; };
 
     var formModal;
@@ -35,7 +44,7 @@ function EmailCampaignsViewModel() {
         $.ajax({ url: '/proxy/sln-email-campaigns/segment-presets', method: 'GET' }).done(function (data) {
             self.segmentPresets(data || []);
         }).fail(function () {
-            toastr.error('Hazir segmentler yuklenemedi');
+            toastr.error(slnJsT('salon.campaigns.js.segment_presets_load_failed', 'Hazır segmentler yüklenemedi'));
         });
     };
 
@@ -101,7 +110,7 @@ function EmailCampaignsViewModel() {
         };
 
         if (!data.subject || !data.htmlBody) {
-            toastr.warning('Konu ve icerik zorunludur');
+            toastr.warning(slnJsT('salon.emailcampaigns.js.konu_ve_icerik_zorunludur', 'Konu ve icerik zorunludur'));
             return;
         }
 
@@ -117,24 +126,24 @@ function EmailCampaignsViewModel() {
             .done(function () {
                 formModal.hide();
                 self.loadData();
-                toastr.success(self.isEditing() ? 'Kampanya guncellendi' : 'Kampanya olusturuldu');
+                toastr.success(self.isEditing() ? slnJsT('salon.emailcampaigns.js.kampanya_guncellendi', 'Kampanya güncellendi') : slnJsT('salon.emailcampaigns.js.kampanya_olusturuldu', 'Kampanya oluşturuldu'));
                 self.isSaving(false);
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || 'Bir hata olustu');
+                toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
                 self.isSaving(false);
             });
     };
 
     self.remove = function (campaign) {
-        confirmModal('Onay', 'Bu kampanyayi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.emailcampaigns.js.bu_kampanyayi_silmek_istediginize_emin_misiniz', 'Bu kampanyayı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id, method: 'DELETE' })
-                .done(function () { self.loadData(); toastr.success('Kampanya silindi'); })
+                .done(function () { self.loadData(); toastr.success(slnJsT('salon.emailcampaigns.js.kampanya_silindi', 'Kampanya silindi')); })
                 .fail(function () { toastr.error('Silinemedi'); });
         });
     };
 
     self.send = function (campaign) {
-        confirmModal('Onay', campaign.subject + ' e-posta kampanyasini gondermek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), campaign.subject + slnJsT('salon.emailcampaigns.js.e_posta_kampanyasini_gondermek_istediginize_emin_misiniz', ' e-posta kampanyasini gondermek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id + '/send', method: 'POST' })
                 .done(function () {
                     self.loadData();

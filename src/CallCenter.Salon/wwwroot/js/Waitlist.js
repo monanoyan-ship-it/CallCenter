@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function WaitlistViewModel() {
     var self = this;
 
@@ -7,13 +11,19 @@ function WaitlistViewModel() {
     self.todayAppointments = ko.observableArray([]);
     self.isLoadingAppts = ko.observable(false);
 
-    var apptStatusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
+    var apptStatusNames = {
+        1: slnJsT('salon.appointments.status.scheduled', 'Planlanmış'),
+        2: slnJsT('salon.appointments.status.confirmed', 'Onaylandı'),
+        3: slnJsT('salon.appointments.status.completed', 'Tamamlandı'),
+        4: slnJsT('salon.appointments.status.cancelled', 'İptal'),
+        5: slnJsT('salon.appointments.status.no_show', 'Gelmedi')
+    };
     var apptStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
 
     function toDateStr(d) { return d.toISOString().substring(0, 10); }
 
     var today = new Date();
-    self.todayLabel = today.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    self.todayLabel = today.toLocaleDateString(document.documentElement.lang || undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     self.loadTodayAppointments = function () {
         self.isLoadingAppts(true);
@@ -56,11 +66,11 @@ function WaitlistViewModel() {
         }).fail(function () { toastr.error('Islem hatasi'); });
     }
 
-    self.apptComplete = function (a) { updateApptStatus(a.id, 3, 'Randevu tamamlandi'); };
+    self.apptComplete = function (a) { updateApptStatus(a.id, 3, slnJsT('salon.waitlist.js.randevu_tamamlandi', 'Randevu tamamlandi')); };
     self.apptNoShow = function (a) { updateApptStatus(a.id, 5, 'Gelmedi olarak isaretlendi'); };
     self.apptCancel = function (a) {
-        confirmModal('Onay', 'Bu randevuyu iptal etmek istediginize emin misiniz?', function() {
-            updateApptStatus(a.id, 4, 'Randevu iptal edildi');
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.waitlist.js.bu_randevuyu_iptal_etmek_istediginize_emin_misiniz', 'Bu randevuyu iptal etmek istediginize emin misiniz?'), function() {
+            updateApptStatus(a.id, 4, slnJsT('salon.waitlist.js.randevu_iptal_edildi', 'Randevu iptal edildi'));
         });
     };
 
@@ -83,7 +93,13 @@ function WaitlistViewModel() {
         notes: ko.observable('')
     };
 
-    var wlStatusTexts = { 1: 'Bekliyor', 2: 'Bildirildi', 3: 'Randevu Alindi', 4: 'Iptal', 5: 'Gerceklesti' };
+    var wlStatusTexts = {
+        1: slnJsT('salon.waitlist.status.waiting', 'Bekliyor'),
+        2: slnJsT('salon.waitlist.status.notified', 'Bildirildi'),
+        3: slnJsT('salon.waitlist.js.randevu_alindi', 'Randevu Alındı'),
+        4: slnJsT('salon.common.btn.cancel', 'İptal'),
+        5: slnJsT('salon.waitlist.status.completed', 'Gerçekleşti')
+    };
     var wlStatusBadges = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-secondary', 5: 'bg-primary' };
 
     self.wlStatusText = function (id) { return wlStatusTexts[id] || '?'; };
@@ -153,7 +169,7 @@ function WaitlistViewModel() {
         };
 
         if (!data.slnClientId || !data.serviceId || !data.preferredDate) {
-            toastr.warning('Musteri, hizmet ve tarih zorunludur');
+            toastr.warning(slnJsT('salon.waitlist.js.musteri_hizmet_ve_tarih_zorunludur', 'Müşteri, hizmet ve tarih zorunludur'));
             return;
         }
 
@@ -167,45 +183,45 @@ function WaitlistViewModel() {
             toastr.success('Bekleme listesine eklendi');
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.notifyEntry = function (entry) {
         $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/2', method: 'PUT' })
-            .done(function () { self.loadWaitlist(); toastr.success('Musteri bilgilendirildi'); });
+            .done(function () { self.loadWaitlist(); toastr.success(slnJsT('salon.waitlist.js.musteri_bilgilendirildi', 'Müşteri bilgilendirildi')); });
     };
 
     self.appointmentMade = function (entry) {
         $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/3', method: 'PUT' })
-            .done(function () { self.loadWaitlist(); toastr.success('Randevu alindi olarak isaretlendi'); });
+            .done(function () { self.loadWaitlist(); toastr.success(slnJsT('salon.waitlist.js.randevu_alindi_olarak_isaretlendi', 'Randevu alindi olarak isaretlendi')); });
     };
 
     self.markCompleted = function (entry) {
         $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/5', method: 'PUT' })
-            .done(function () { self.loadWaitlist(); toastr.success('Gerceklesti olarak isaretlendi'); });
+            .done(function () { self.loadWaitlist(); toastr.success(slnJsT('salon.waitlist.js.marked_completed', 'Gerçekleşti olarak işaretlendi')); });
     };
 
     self.removeEntry = function (entry) {
-        confirmModal('Onay', 'Bu kaydi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.waitlist.js.delete_confirm', 'Bu kaydı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-waitlist/' + entry.id, method: 'DELETE' })
-                .done(function () { self.loadWaitlist(); toastr.success('Kayit silindi'); });
+                .done(function () { self.loadWaitlist(); toastr.success(slnJsT('salon.waitlist.js.kayit_silindi', 'Kayit silindi')); });
         });
     };
 
     self.normalizeBranches = function () {
-        confirmModal('Onay', 'Sube bilgisi olmayan bekleme kayitlari personelin (varsa) veya merkez subeye baglanacak. Devam?', function () {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.waitlist.js.sube_bilgisi_olmayan_bekleme_kayitlari_personelin_varsa_veya_merkez_su', 'Şube bilgisi olmayan bekleme kayitlari personelin (varsa) veya merkez şubeye baglanacak. Devam?'), function () {
             $.ajax({ url: '/proxy/sln-waitlist/normalize-branches?_nb=1', method: 'POST' })
                 .done(function (res) {
                     if (res && res.error) { toastr.error(res.error); return; }
-                    var msg = (res.updated || 0) + ' kayit guncellendi';
-                    if (res.viaPersonnel > 0) msg += ' (personelden: ' + res.viaPersonnel + ')';
-                    if (res.viaHq > 0) msg += ' (merkeze: ' + res.viaHq + ')';
+                    var msg = slnJsT('salon.waitlist.js.records_updated', '{count} kayıt güncellendi').replace('{count}', res.updated || 0);
+                    if (res.viaPersonnel > 0) msg += ' (' + slnJsT('salon.appointments.from_staff_suffix', 'personelden') + ': ' + res.viaPersonnel + ')';
+                    if (res.viaHq > 0) msg += ' (' + slnJsT('salon.appointments.to_hq_suffix', 'merkeze') + ': ' + res.viaHq + ')';
                     toastr.success(msg);
                     self.loadWaitlist();
                 })
-                .fail(function () { toastr.error('Normalize basarisiz'); });
+                .fail(function () { toastr.error(slnJsT('salon.waitlist.js.normalize_failed', 'Normalize başarısız')); });
         });
     };
 
@@ -247,7 +263,7 @@ function WaitlistViewModel() {
 
     self.submitConvert = function () {
         if (!self.convertForm.date() || !self.convertForm.time() || !self.convertForm.personnelId()) {
-            toastr.warning('Tarih, saat ve personel zorunlu');
+            toastr.warning(slnJsT('salon.waitlist.js.tarih_saat_ve_personel_zorunlu', 'Tarih, saat ve personel zorunlu'));
             return;
         }
         self.isConverting(true);
@@ -270,11 +286,11 @@ function WaitlistViewModel() {
                     convertModal.hide();
                     self.loadWaitlist();
                     self.loadTodayAppointments();
-                    toastr.success('Randevu olusturuldu, bekleme kaydi guncellendi');
+                    toastr.success(slnJsT('salon.waitlist.js.randevu_olusturuldu_bekleme_kaydi_guncellendi', 'Randevu oluşturuldu, bekleme kaydi güncellendi'));
                 });
         }).fail(function (xhr) {
             self.isConverting(false);
-            var err = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || xhr.responseText || 'Randevu olusturulamadi';
+            var err = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || xhr.responseText || slnJsT('salon.waitlist.js.randevu_olusturulamadi', 'Randevu oluşturulamadı');
             toastr.error(err);
         });
     };

@@ -9,6 +9,10 @@
         return d.innerHTML;
     }
 
+    function bannerT(key, fallback) {
+        return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+    }
+
     $.ajax({ url: '/proxy/subscriptions/banner', dataType: 'text' })
         .done(function (text) {
             if (text == null || !String(text).trim()) return;
@@ -26,7 +30,7 @@
                     '<div class="alert alert-danger sln-banner-row mb-0 rounded-0 border-0 border-bottom py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">' +
                     '<span class="d-flex align-items-center"><i class="bi bi-exclamation-octagon-fill me-2"></i>' +
                     escapeHtml(data.overdue.message) + '</span>' +
-                    '<a class="btn btn-sm btn-danger flex-shrink-0" href="/Modules"><i class="bi bi-credit-card me-1"></i>Ödeme / Modüller</a></div>'
+                    '<a class="btn btn-sm btn-danger flex-shrink-0" href="/Modules"><i class="bi bi-credit-card me-1"></i>' + escapeHtml(bannerT('salon.layout.payment_modules', 'Ödeme / Modüller')) + '</a></div>'
                 );
             }
 

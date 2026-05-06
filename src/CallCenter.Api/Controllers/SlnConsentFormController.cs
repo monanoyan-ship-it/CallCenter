@@ -12,6 +12,7 @@ namespace CallCenter.Api.Controllers;
 [Route("api/sln-consent-forms")]
 [Authorize]
 [RequireModule(SalonPortalModules.Ids.SlnConsentForms)]
+[RequireSalonOwner]
 public class SlnConsentFormController : ControllerBase
 {
     private readonly ISlnConsentFormFactory _factory;

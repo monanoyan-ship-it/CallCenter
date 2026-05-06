@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function EmailSettingsViewModel() {
     var self = this;
     self.integrations = ko.observableArray([]);
@@ -68,7 +72,7 @@ function EmailSettingsViewModel() {
     self.saveYandex = function () {
         var email = self.yandexForm.email();
         var pass = self.yandexForm.appPassword();
-        if (!email || !pass) { toastr.warning('E-posta ve uygulama sifresi zorunludur.'); return; }
+        if (!email || !pass) { toastr.warning(slnJsT('salon.emailsettings.js.e_posta_ve_uygulama_sifresi_zorunludur', 'E-posta ve uygulama sifresi zorunludur.')); return; }
 
         self.isSaving(true);
         $.ajax({
@@ -85,10 +89,10 @@ function EmailSettingsViewModel() {
             })
         }).done(function () {
             yandexModal.hide();
-            toastr.success('Yandex hesabi eklendi.');
+            toastr.success(slnJsT('salon.emailsettings.js.yandex_hesabi_eklendi', 'Yandex hesabi eklendi.'));
             self.loadData();
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Hata olustu.');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Hata oluştu.'));
         }).always(function () { self.isSaving(false); });
     };
 
@@ -109,7 +113,7 @@ function EmailSettingsViewModel() {
         var host = self.smtpForm.host();
         var username = self.smtpForm.username();
         var password = self.smtpForm.password();
-        if (!host || !username || !password) { toastr.warning('Sunucu, kullanici adi ve sifre zorunludur.'); return; }
+        if (!host || !username || !password) { toastr.warning(slnJsT('salon.emailsettings.js.sunucu_kullanici_adi_ve_sifre_zorunludur', 'Sunucu, kullanici adı ve sifre zorunludur.')); return; }
 
         var senderEmail = self.smtpForm.senderEmail() || username;
         self.isSaving(true);
@@ -133,10 +137,10 @@ function EmailSettingsViewModel() {
             })
         }).done(function () {
             smtpModal.hide();
-            toastr.success('SMTP hesabi eklendi.');
+            toastr.success(slnJsT('salon.emailsettings.js.smtp_hesabi_eklendi', 'SMTP hesabi eklendi.'));
             self.loadData();
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Hata olustu.');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Hata oluştu.'));
         }).always(function () { self.isSaving(false); });
     };
 
@@ -149,7 +153,7 @@ function EmailSettingsViewModel() {
 
     self.confirmTestSend = function () {
         var email = self.testEmail();
-        if (!email) { toastr.warning('Alici e-posta zorunludur.'); return; }
+        if (!email) { toastr.warning(slnJsT('salon.emailsettings.js.alici_e_posta_zorunludur', 'Alici e-posta zorunludur.')); return; }
 
         self.isTesting(true);
         $.ajax({
@@ -160,10 +164,10 @@ function EmailSettingsViewModel() {
         }).done(function (result) {
             testModal.hide();
             if (result.success) toastr.success('Test e-postasi gonderildi!');
-            else toastr.error(result.error || 'Gonderim basarisiz.');
+            else toastr.error(result.error || slnJsT('salon.emailsettings.js.gonderim_basarisiz', 'Gonderim basarisiz.'));
             self.loadData();
         }).fail(function () {
-            toastr.error('Bir hata olustu.');
+            toastr.error(slnJsT('salon.emailsettings.js.bir_hata_olustu', 'Bir hata oluştu.'));
         }).always(function () { self.isTesting(false); });
     };
 
@@ -180,7 +184,7 @@ function EmailSettingsViewModel() {
     };
 
     self.remove = function (item) {
-        confirmModal('Onay', item.senderEmail + ' hesabini kaldirmak istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), item.senderEmail + slnJsT('salon.emailsettings.js.hesabini_kaldirmak_istediginize_emin_misiniz', ' hesabını kaldırmak istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-email-integrations/' + item.uid,
                 method: 'DELETE'
@@ -216,10 +220,10 @@ function EmailSettingsViewModel() {
                     toastr.success(result.email + ' hesabi basariyla baglandi!');
                     self.loadData();
                 } else {
-                    toastr.error(result.error || 'Baglanti hatasi.');
+                    toastr.error(result.error || slnJsT('salon.emailsettings.js.baglanti_hatasi', 'Baglanti hatasi.'));
                 }
             }).fail(function () {
-                toastr.error('Baglanti sirasinda hata olustu.');
+                toastr.error(slnJsT('salon.emailsettings.js.baglanti_sirasinda_hata_olustu', 'Bağlantı sırasında hata oluştu.'));
             });
             history.replaceState(null, '', window.location.pathname);
         }

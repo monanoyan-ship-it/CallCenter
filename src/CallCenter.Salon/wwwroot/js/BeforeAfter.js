@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function BeforeAfterViewModel() {
     var self = this;
     self.photos = ko.observableArray([]);
@@ -66,7 +70,7 @@ function BeforeAfterViewModel() {
         };
 
         if (!data.slnClientId) {
-            toastr.warning('Musteri secimi zorunludur');
+            toastr.warning(slnJsT('salon.beforeafter.js.musteri_secimi_zorunludur', 'Müşteri seçimi zorunludur'));
             return;
         }
 
@@ -77,18 +81,18 @@ function BeforeAfterViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success('Fotograf eklendi');
+            toastr.success(slnJsT('salon.beforeafter.js.fotograf_eklendi', 'Fotoğraf eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.remove = function (photo) {
-        confirmModal('Onay', 'Bu fotografi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.beforeafter.js.bu_fotografi_silmek_istediginize_emin_misiniz', 'Bu fotoğrafı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-before-after/' + photo.id, method: 'DELETE' })
-                .done(function () { self.loadData(); toastr.success('Fotograf silindi'); });
+                .done(function () { self.loadData(); toastr.success(slnJsT('salon.beforeafter.js.fotograf_silindi', 'Fotoğraf silindi')); });
         });
     };
 

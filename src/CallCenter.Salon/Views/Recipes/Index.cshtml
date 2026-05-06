@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Receteler";
 }
@@ -7,10 +8,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="input-group" style="max-width: 320px;">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Recete ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control" placeholder="@(Translation.T("salon.recipes.auto.recete_ara", "Reçete ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Recete
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.recipes.auto.yeni_recete">Yeni Reçete</t>
         </button>
     </div>
 
@@ -43,7 +44,7 @@
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="fw-bold text-primary" data-bind="text: (estimatedCost || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'"></span>
+                            <span class="fw-bold text-primary" data-bind="text: (estimatedCost || 0).toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'"></span>
                             <small class="text-muted ms-1">maliyet</small>
                         </div>
                         <div class="btn-group btn-group-sm">
@@ -69,7 +70,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Recete Duzenle' : 'Yeni Recete'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.recipes.auto.recete_duzenle', 'Reçete Düzenle') : salonT('salon.recipes.auto.yeni_recete', 'Yeni Reçete')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -79,7 +80,7 @@
                             <input type="text" class="form-control form-control-sm" placeholder="Orn: Siyahtan Sariya" data-bind="value: form.name" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">İkon</label>
+                            <label class="form-label small"><t key="salon.recipes.auto.ikon">İkon</t></label>
                             <div class="d-flex flex-wrap gap-1">
                                 <!-- ko foreach: iconOptions -->
                                 <button type="button" class="btn py-1 px-2" style="font-size:1.1rem;"
@@ -92,28 +93,28 @@
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Referans Fotoğraf</label>
+                            <label class="form-label small"><t key="salon.recipes.auto.referans_fotograf">Referans Fotoğraf</t></label>
                             <div class="d-flex align-items-center gap-2">
                                 <!-- ko if: form.photoUrl() -->
                                 <img data-bind="attr: { src: form.photoUrl }" style="width:60px; height:60px; object-fit:cover; border-radius:6px;" />
                                 <button class="btn btn-outline-danger btn-sm py-0" data-bind="click: function() { form.photoUrl(''); }"><i class="bi bi-trash"></i></button>
                                 <!-- /ko -->
                                 <label class="btn btn-outline-primary btn-sm py-0">
-                                    <i class="bi bi-camera me-1"></i>Fotoğraf Seç
+                                    <i class="bi bi-camera me-1"></i><t key="salon.recipes.auto.fotograf_sec">Fotoğraf Seç</t>
                                     <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: uploadRecipePhoto }" />
                                 </label>
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Açıklama</label>
+                            <label class="form-label small"><t key="salon.common.description">Açıklama</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.description" />
                         </div>
                         <!-- Hizmet Secimi (opsiyonel) -->
                         <div class="col-12">
-                            <label class="form-label small">Hizmet (opsiyonel)</label>
+                            <label class="form-label small"><t key="salon.recipes.auto.hizmet_opsiyonel">Hizmet (opsiyonel)</t></label>
                             <div class="position-relative" data-bind="with: serviceAutocomplete">
                                 <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control" placeholder="Hizmet secin..."
+                                    <input type="text" class="form-control" placeholder="@(Translation.T("salon.recipes.auto.hizmet_secin", "Hizmet secin..."))"
                                            data-bind="value: query, valueUpdate: 'afterkeydown',
                                                       event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                     <!-- ko if: selectedName() -->
@@ -138,17 +139,17 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label small mb-0">Malzemeler</label>
                             <button class="btn btn-outline-primary btn-sm" data-bind="click: addItem">
-                                <i class="bi bi-plus me-1"></i>Malzeme Ekle
+                                <i class="bi bi-plus me-1"></i><t key="salon.recipes.auto.malzeme_ekle">Malzeme Ekle</t>
                             </button>
                         </div>
                         <div data-bind="visible: form.items().length > 0">
                             <table class="table table-sm align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Urun</th>
+                                        <th><t key="salon.sidebar.products">Ürün</t></th>
                                         <th style="width:90px;">Miktar</th>
                                         <th style="width:90px;">Birim</th>
-                                        <th style="width:130px;">Not</th>
+                                        <th style="width:130px;"><t key="salon.appointments.notes">Not</t></th>
                                         <th style="width:90px;" class="text-end">Maliyet</th>
                                         <th style="width:40px;"></th>
                                     </tr>
@@ -157,7 +158,7 @@
                                     <tr>
                                         <td>
                                             <div class="position-relative" data-bind="with: productAutocomplete">
-                                                <input type="text" class="form-control form-control-sm" placeholder="Urun ara..."
+                                                <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.urun_ara", "Ürün ara..."))"
                                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:180px;overflow-y:auto;z-index:1060;"
@@ -180,7 +181,7 @@
                                                     data-bind="value: unit, options: unitOptions"></select>
                                         </td>
                                         <td>
-                                            <input type="text" class="form-control form-control-sm" placeholder="Not..."
+                                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.not", "Not..."))"
                                                    data-bind="value: notes" />
                                         </td>
                                         <td class="text-end small pt-2" data-bind="text: $parent.getItemCost($data)"></td>
@@ -193,15 +194,15 @@
                         </div>
 
                         <div class="d-flex justify-content-end gap-3 mt-2" data-bind="visible: form.items().length > 0">
-                            <span class="text-muted small">Tahmini Maliyet: <strong class="text-primary" data-bind="text: calculatedCost().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'"></strong></span>
+                            <span class="text-muted small">Tahmini Maliyet: <strong class="text-primary" data-bind="text: calculatedCost().toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'"></strong></span>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

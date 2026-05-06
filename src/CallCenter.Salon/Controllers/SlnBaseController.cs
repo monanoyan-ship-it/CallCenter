@@ -25,12 +25,11 @@ public abstract class SlnBaseController : Controller
             return;
         }
 
-        // Rol + modul + abonelik kontrolleri (Proxy, PublicProxy, Modules muaf)
+        // Rol + modul + abonelik kontrolleri (Proxy ve PublicProxy muaf)
         if (jwt.IsAuthenticated
             && controllerType != typeof(AccountController)
             && controllerType != typeof(ProxyController)
-            && controllerType != typeof(PublicProxyController)
-            && controllerType != typeof(ModulesController))
+            && controllerType != typeof(PublicProxyController))
         {
             var controllerName = context.RouteData.Values["controller"]?.ToString() ?? "";
             var roleId = jwt.CustomerRoleId > 0 ? jwt.CustomerRoleId : 101;
@@ -66,7 +65,8 @@ public abstract class SlnBaseController : Controller
 
             // Abonelik + 5 gun tahakkuk gecikmesi: panel kilidi canAccessPanel ile
             if (controllerType != typeof(SubscriptionRequiredController)
-                && controllerType != typeof(AccountController))
+                && controllerType != typeof(AccountController)
+                && controllerType != typeof(ModulesController))
             {
                 var panelC = HttpContext.Request.Cookies[CookiePanelAccess];
                 var strictC = HttpContext.Request.Cookies[CookieStrictSubscription];

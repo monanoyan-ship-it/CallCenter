@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function SalesViewModel() {
     var self = this;
     self.categories = ko.observableArray([]);
@@ -136,11 +140,11 @@ function SalesViewModel() {
                     item.editPrice(Math.round(discounted * 100) / 100);
                     item.membershipId = null;
                     item.useMembershipBenefit = false;
-                    item.benefitText(benefit.planName + ': %' + benefit.discountPercent + ' indirim');
+                    item.benefitText(benefit.planName + ': ' + slnJsT('salon.sales.membership_discount_suffix', '%{percent} indirim').replace('{percent}', benefit.discountPercent));
                 }
             });
             if (benefits.some(function (b) { return b.hasFreeBenefit || b.discountPercent; }))
-                toastr.info('Üyelik avantajları uygulandı.');
+                toastr.info(slnJsT('salon.sales.js.uyelik_avantajlari_uygulandi', 'Üyelik avantajları uygulandı.'));
         });
     };
 
@@ -262,7 +266,7 @@ function SalesViewModel() {
     self.addProductToCart = function (product) {
         var stock = parseFloat(product.stockQuantity) || 0;
         if (stock <= 0) {
-            toastr.warning('Urun stogu yok');
+            toastr.warning(slnJsT('salon.sales.js.urun_stogu_yok', 'Ürün stoğu yok'));
             return;
         }
 
@@ -300,7 +304,7 @@ function SalesViewModel() {
         var product = exact || (matches.length === 1 ? matches[0] : null);
 
         if (!product) {
-            toastr.warning('Urun bulunamadi');
+            toastr.warning(slnJsT('salon.sales.js.urun_bulunamadi', 'Ürün bulunamadı'));
             return;
         }
 
@@ -322,7 +326,7 @@ function SalesViewModel() {
             return;
         }
         if (item.usePackageSession === true && item.quantity() + 1 > item.packageRemainingSessions) {
-            toastr.warning('Paket seansi yetersiz: ' + item.name);
+            toastr.warning(slnJsT('salon.sales.js.paket_seansi_yetersiz', 'Paket seansi yetersiz: ') + item.name);
             return;
         }
         item.quantity(item.quantity() + 1);
@@ -368,7 +372,7 @@ function SalesViewModel() {
             discountAmount: parseFloat(self.discountAmount()) || 0,
             tipAmount: parseFloat(self.tipAmount()) || 0,
             includeTipInTotal: self.tipIncludeInTotal() === true,
-            notes: self.isPrepaid() ? 'Ön ödeme: ' + self.prepaidAmount() + ' TL (Online)' : null,
+            notes: self.isPrepaid() ? slnJsT('salon.sales.note.prepayment_prefix', 'Ön ödeme') + ': ' + self.prepaidAmount() + ' TL (Online)' : null,
             prepaidAmount: self.prepaidAmount(),
             items: items
         };
@@ -380,7 +384,7 @@ function SalesViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(data)
         }).done(function () {
-            toastr.success('Ödeme alındı');
+            toastr.success(slnJsT('salon.sales.js.odeme_alindi', 'Ödeme alındı'));
 
             // Randevu bağlıysa tamamlandı olarak işaretle
             if (self.linkedAppointmentId()) {
@@ -402,7 +406,7 @@ function SalesViewModel() {
             self.linkedAppointmentId(null);
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, 'Odeme alinamadi'));
+            toastr.error(readError(xhr, slnJsT('salon.sales.js.odeme_alinamadi', 'Ödeme alınamadı')));
             self.isSaving(false);
         });
     };
@@ -420,9 +424,9 @@ function SalesViewModel() {
 
         // BUG2.2/PAY.4: Musteri secilmediyse ad/soyad sor, hizli musteri olustur
         if (!self.clientId()) {
-            confirmModal('Hızlı Müşteri', 'Müşteri seçilmedi. Tahsilat için ad-soyad girin:', function (name) {
+            confirmModal(slnJsT('salon.sales.js.hizli_musteri', 'Hızlı Müşteri'), slnJsT('salon.sales.js.musteri_secilmedi_tahsilat_icin_ad_soyad_girin', 'Müşteri seçilmedi. Tahsilat için ad-soyad girin:'), function (name) {
                 name = (name || '').trim();
-                if (!name) { toastr.warning('Müşteri adı gerekli.'); return; }
+                if (!name) { toastr.warning(slnJsT('salon.sales.js.musteri_adi_gerekli', 'Müşteri adı gerekli.')); return; }
 
                 var body = { fullName: name };
                 self.isSaving(true);
@@ -436,7 +440,7 @@ function SalesViewModel() {
                     var newId = (resp && (resp.id || resp.Id)) || null;
                     if (!newId) {
                         console.error('[hizli musteri] gecerli id yok', resp);
-                        toastr.error('Müşteri oluşturulamadı (kimlik dönmedi).');
+                        toastr.error(slnJsT('salon.sales.js.musteri_olusturulamadi_kimlik_donmedi', 'Müşteri oluşturulamadı (kimlik dönmedi).'));
                         self.isSaving(false);
                         return;
                     }
@@ -453,21 +457,21 @@ function SalesViewModel() {
                 }).fail(function (xhr) {
                     console.error('[hizli musteri] POST failed', xhr.status, xhr.responseText);
                     var msg = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error))
-                        || ('Müşteri oluşturulamadı (HTTP ' + xhr.status + ').');
+                        || (slnJsT('salon.sales.customer_create_failed_http', 'Müşteri oluşturulamadı') + ' (HTTP ' + xhr.status + ').');
                     toastr.error(msg);
                     self.isSaving(false);
                 });
-            }, { input: true, inputLabel: 'Ad Soyad', confirmText: 'Devam', confirmClass: 'btn-primary' });
+            }, { input: true, inputLabel: slnJsT('salon.appointments.full_name_required', 'Ad Soyad *'), confirmText: slnJsT('salon.common.continue', 'Devam'), confirmClass: 'btn-primary' });
             return;
         }
 
         // BUG2.1: Personel secilmediyse uyari
         if (!self.selectedPersonnelId()) {
             confirmModal(
-                'Personel Seçilmedi',
-                'Bu tahsilat personele atanmadan kaydedilecek. Devam edilsin mi?',
+                slnJsT('salon.sales.staff_not_selected', 'Personel Seçilmedi'),
+                slnJsT('salon.sales.staff_not_selected_confirm', 'Bu tahsilat personele atanmadan kaydedilecek. Devam edilsin mi?'),
                 function () { self._executeCheckout(); },
-                { confirmText: 'Devam Et', confirmClass: 'btn-warning' }
+                { confirmText: slnJsT('salon.common.continue_action', 'Devam Et'), confirmClass: 'btn-warning' }
             );
             return;
         }
@@ -570,13 +574,13 @@ function SalesViewModel() {
             if (appt.slnClientId) {
                 self.applyClientBenefits();
             }
-            toastr.info('Randevu sepete alindi. Ek hizmet/urun ekleyebilirsiniz.');
+            toastr.info(slnJsT('salon.sales.js.randevu_sepete_alindi_ek_hizmet_urun_ekleyebilirsiniz', 'Randevu sepete alindi. Ek hizmet/ürün ekleyebilirsiniz.'));
             return;
         }
 
         // Ön ödemeli ise direkt tamamla mı sor
         if (appt.isPrepaid && appt.prepaidAmount > 0) {
-            confirmModal('Onay', 'Bu randevu online ödenmiş (' + appt.prepaidAmount + ' TL). Ek işlem yoksa direkt tamamlansın mı?', function() {
+            confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.sales.js.bu_randevu_online_odenmis', 'Bu randevu online ödenmiş (') + appt.prepaidAmount + slnJsT('salon.sales.js.tl_ek_islem_yoksa_direkt_tamamlansin_mi', ' TL). Ek işlem yoksa direkt tamamlansın mı?'), function() {
                 self.completeWithoutPayment(appt.id);
             });
             return;
@@ -604,13 +608,13 @@ function SalesViewModel() {
                             item.membershipId = b.membershipId;
                             item.useMembershipBenefit = true;
                             self.ensureBenefitFields(item);
-                            item.benefitText(b.planName + ': ücretsiz (' + b.usedThisPeriod + '/' + b.freeCount + ')');
+                            item.benefitText(b.planName + ': ' + slnJsT('salon.sales.membership_free_usage_suffix', 'ücretsiz ({used}/{total})').replace('{used}', b.usedThisPeriod).replace('{total}', b.freeCount));
                         } else if (b.discountPercent && b.discountPercent > 0) {
                             item.editPrice(Math.round(item.unitPrice * (1 - b.discountPercent / 100) * 100) / 100);
                             item.membershipId = null;
                             item.useMembershipBenefit = false;
                             self.ensureBenefitFields(item);
-                            item.benefitText(b.planName + ': %' + b.discountPercent + ' indirim');
+                            item.benefitText(b.planName + ': ' + slnJsT('salon.sales.membership_discount_suffix', '%{percent} indirim').replace('{percent}', b.discountPercent));
                             allFree = false;
                         } else {
                             allFree = false;
@@ -618,19 +622,19 @@ function SalesViewModel() {
                     });
 
                     if (allFree && self.cartItems().length > 0) {
-                        confirmModal('Onay', 'Tüm hizmetler üyelik kapsamında ücretsiz. Ek işlem yoksa direkt tamamlansın mı?', function() {
+                        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.sales.js.tum_hizmetler_uyelik_kapsaminda_ucretsiz_ek_islem_yoksa_direkt_tamamla', 'Tüm hizmetler üyelik kapsamında ücretsiz. Ek işlem yoksa direkt tamamlansın mı?'), function() {
                             self.completeWithoutPayment(appt.id);
                         });
                         return;
                     }
 
-                    toastr.info('Üyelik avantajları uygulandı. Ek hizmet/ürün ekleyebilirsiniz.');
+                    toastr.info(slnJsT('salon.sales.js.uyelik_avantajlari_uygulandi_ek_hizmet_urun_ekleyebilirsiniz', 'Üyelik avantajları uygulandı. Ek hizmet/ürün ekleyebilirsiniz.'));
                 });
                 return;
             }
         }
 
-        toastr.info('Randevu sepete alındı. Ek hizmet/ürün ekleyebilirsiniz.');
+        toastr.info(slnJsT('salon.sales.js.randevu_sepete_alindi_ek_hizmet_urun_ekleyebilirsiniz', 'Randevu sepete alındı. Ek hizmet/ürün ekleyebilirsiniz.'));
     };
 
     self.completeWithoutPayment = function (appointmentId) {
@@ -651,7 +655,7 @@ function SalesViewModel() {
             slnClientId: self.clientId() ? parseInt(self.clientId()) : null,
             paymentMethodId: 1,
             discountAmount: 0, tipAmount: 0,
-            notes: self.isPrepaid() ? 'Ön ödeme ile tamamlandı' : 'Üyelik kapsamında tamamlandı',
+            notes: self.isPrepaid() ? slnJsT('salon.sales.note.completed_with_prepayment', 'Ön ödeme ile tamamlandı') : slnJsT('salon.sales.note.completed_with_membership', 'Üyelik kapsamında tamamlandı'),
             prepaidAmount: self.prepaidAmount(),
             items: items
         };
@@ -666,7 +670,7 @@ function SalesViewModel() {
                 method: 'PUT', contentType: 'application/json',
                 data: JSON.stringify({ statusId: 3 })
             });
-            toastr.success('İşlem tamamlandı (ödeme alınmadı).');
+            toastr.success(slnJsT('salon.sales.js.islem_tamamlandi_odeme_alinmadi', 'İşlem tamamlandı (ödeme alınmadı).'));
             self.cartItems([]);
             self.clientId(null);
             self.clientAutocomplete.clear();

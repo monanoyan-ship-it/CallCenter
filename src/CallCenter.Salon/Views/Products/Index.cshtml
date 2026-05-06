@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Urunler";
 }
@@ -8,12 +9,12 @@
         <div class="d-flex align-items-center gap-2">
             <div class="input-group" style="max-width: 280px;">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="Urun ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                <input type="text" class="form-control" placeholder="@(Translation.T("salon.products.auto.urun_ara", "Ürün ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width:160px;" data-bind="options: categories, optionsText: 'name', optionsValue: 'name', value: selectedCategoryName, optionsCaption: 'Tum Kategoriler'"></select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Urun
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.products.auto.yeni_urun">Yeni Ürün</t>
         </button>
     </div>
 
@@ -24,13 +25,13 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Urun Adi</th>
-                            <th>Kategori</th>
+                            <th><t key="salon.products.auto.urun_adi">Ürün Adı</t></th>
+                            <th><t key="salon.reports.category">Kategori</t></th>
                             <th>Marka</th>
                             <th>Barkod</th>
                             <th>Stok</th>
                             <th>Alis Fiyati</th>
-                            <th>Satis Fiyati</th>
+                            <th><t key="salon.products.auto.satis_fiyati">Satış Fiyatı</t></th>
                             <th style="width: 170px;"></th>
                         </tr>
                     </thead>
@@ -46,14 +47,14 @@
                                 <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Dusuk stok"></i>
                                 <!-- /ko -->
                             </td>
-                            <td class="small" data-bind="text: (purchasePrice || 0).toLocaleString('tr-TR') + ' TL'"></td>
-                            <td class="small" data-bind="text: (salePrice || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small" data-bind="text: (purchasePrice || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                            <td class="small" data-bind="text: (salePrice || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.products.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-success" title="Alis Ekle" data-bind="click: $parent.openPurchase">
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.products.auto.alis_ekle", "Alış Ekle"))" data-bind="click: $parent.openPurchase">
                                         <i class="bi bi-cart-plus"></i>
                                     </button>
                                     <button class="btn btn-outline-primary" title="Transfer" data-bind="click: $parent.openStockTransfer">
@@ -62,7 +63,7 @@
                                     <button class="btn btn-outline-warning" title="Sayim" data-bind="click: $parent.openStockCount">
                                         <i class="bi bi-clipboard-check"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -74,7 +75,7 @@
             <!-- ko if: filteredProducts().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-box-seam" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz urun eklenmemis</p>
+                <p class="mt-2 small"><t key="salon.products.auto.henuz_urun_eklenmemis">Henüz ürün eklenmemiş</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -85,26 +86,26 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Urun Duzenle' : 'Yeni Urun'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.products.auto.urun_duzenle', 'Ürün Düzenle') : salonT('salon.products.auto.yeni_urun', 'Yeni Ürün')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Urun Adi *</label>
+                            <label class="form-label small"><t key="salon.products.auto.urun_adi_2">Ürün Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kategori</label>
+                            <label class="form-label small"><t key="salon.reports.category">Kategori</t></label>
                             <div class="position-relative" data-bind="with: categoryAutocomplete">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="Kategori yazin..."
+                                       placeholder="@(Translation.T("salon.products.auto.kategori_yazin", "Kategori yazin..."))"
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
+                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
@@ -132,7 +133,7 @@
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
+                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
@@ -156,7 +157,7 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Birim</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="Adet, Litre, Kutu..." data-bind="value: form.unit" />
+                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.products.auto.adet_litre_kutu", "Adet, Litre, Kutu..."))" data-bind="value: form.unit" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Stok</label>
@@ -171,16 +172,16 @@
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.purchasePrice" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Satis Fiyati (TL) *</label>
+                            <label class="form-label small"><t key="salon.products.auto.satis_fiyati_tl">Satış Fiyatı (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.salePrice" />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>
@@ -198,19 +199,19 @@
                 <div class="modal-body">
                     <!-- ko if: purchaseProduct -->
                     <div class="mb-3">
-                        <div class="small text-muted">Urun</div>
+                        <div class="small text-muted"><t key="salon.sidebar.products">Ürün</t></div>
                         <div class="fw-semibold" data-bind="text: purchaseProduct().name"></div>
                     </div>
                     <!-- /ko -->
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Tedarikci *</label>
+                            <label class="form-label small"><t key="salon.products.auto.tedarikci">Tedarikci *</t></label>
                             <select class="form-select form-select-sm"
                                     data-bind="options: suppliers,
                                                optionsText: 'name',
                                                optionsValue: 'id',
                                                value: purchaseForm.supplierId,
-                                               optionsCaption: 'Tedarikci secin'"></select>
+                                               optionsCaption: salonT('salon.products.auto.tedarikci_secin', 'Tedarikci secin')"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">
@@ -226,22 +227,22 @@
                             <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: purchaseForm.unitPrice, valueUpdate: 'afterkeydown'" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: purchaseForm.notes"></textarea>
                         </div>
                         <div class="col-12">
                             <div class="d-flex justify-content-between align-items-center border-top pt-3">
-                                <span class="small text-muted">Toplam</span>
-                                <span class="fw-bold" data-bind="text: purchaseTotal().toLocaleString('tr-TR') + ' TL'"></span>
+                                <span class="small text-muted"><t key="salon.products.auto.toplam">Toplam</t></span>
+                                <span class="fw-bold" data-bind="text: purchaseTotal().toLocaleString(document.documentElement.lang || undefined) + ' TL'"></span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-success btn-sm" data-bind="click: savePurchase, disable: isPurchaseSaving">
                         <span data-bind="visible: isPurchaseSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isPurchaseSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isPurchaseSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>
@@ -259,7 +260,7 @@
                 <div class="modal-body">
                     <!-- ko if: stockOperationProduct -->
                     <div class="mb-3">
-                        <div class="small text-muted">Urun</div>
+                        <div class="small text-muted"><t key="salon.sidebar.products">Ürün</t></div>
                         <div class="fw-semibold" data-bind="text: stockOperationProduct().name"></div>
                         <div class="small text-muted">Mevcut global stok: <span data-bind="text: stockOperationProduct().stockQuantity"></span></div>
                     </div>
@@ -268,7 +269,7 @@
                     <div data-bind="visible: stockOperationMode() === 'transfer'">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label small">Kaynak sube</label>
+                                <label class="form-label small"><t key="salon.products.auto.kaynak_sube">Kaynak şube</t></label>
                                 <select class="form-select form-select-sm"
                                         data-bind="options: branches,
                                                    optionsText: 'name',
@@ -277,20 +278,20 @@
                                                    optionsCaption: 'Merkez / belirsiz'"></select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small">Hedef sube *</label>
+                                <label class="form-label small"><t key="salon.products.auto.hedef_sube">Hedef şube *</t></label>
                                 <select class="form-select form-select-sm"
                                         data-bind="options: branches,
                                                    optionsText: 'name',
                                                    optionsValue: 'id',
                                                    value: stockOperationForm.toBranchId,
-                                                   optionsCaption: 'Sube secin'"></select>
+                                                   optionsCaption: salonT('salon.products.auto.sube_secin', 'Şube secin')"></select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small">Miktar</label>
                                 <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: stockOperationForm.quantity" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small">Not</label>
+                                <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                                 <input type="text" class="form-control form-control-sm" data-bind="value: stockOperationForm.notes" />
                             </div>
                         </div>
@@ -299,34 +300,34 @@
                     <div data-bind="visible: stockOperationMode() === 'count'">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label small">Sayim subesi</label>
+                                <label class="form-label small"><t key="salon.products.stock_count_branch">Sayım şubesi</t></label>
                                 <select class="form-select form-select-sm"
                                         data-bind="options: branches,
                                                    optionsText: 'name',
                                                    optionsValue: 'id',
                                                    value: stockOperationForm.branchId,
-                                                   optionsCaption: 'Genel stok'"></select>
+                                                   optionsCaption: salonT('salon.products.general_stock', 'Genel stok')"></select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small">Sayilan stok</label>
+                                <label class="form-label small"><t key="salon.products.counted_stock">Sayılan stok</t></label>
                                 <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: stockOperationForm.countedQuantity" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label small">Not</label>
+                                <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                                 <textarea class="form-control form-control-sm" rows="2" data-bind="value: stockOperationForm.notes"></textarea>
                             </div>
                         </div>
                     </div>
 
                     <div class="alert alert-info py-2 small mt-3 mb-0">
-                        Transfer global stok toplamını değiştirmez; sayım farkı global stok değerini sayılan miktara göre günceller ve audit hareketi yazar.
+                        <t key="salon.products.stock_operation_hint">Transfer global stok toplamını değiştirmez; sayım farkı global stok değerini sayılan miktara göre günceller ve audit hareketi yazar.</t>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveStockOperation, disable: isStockOperationSaving">
                         <span data-bind="visible: isStockOperationSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isStockOperationSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isStockOperationSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Once/Sonra Fotograflari";
 }
@@ -6,10 +7,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="input-group" style="max-width: 320px;">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Musteri ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control" placeholder="@(Translation.T("salon.beforeafter.auto.musteri_ara", "Müşteri ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Fotograf
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.beforeafter.auto.yeni_fotograf">Yeni Fotograf</t>
         </button>
     </div>
 
@@ -55,8 +56,8 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="text-muted" data-bind="text: personnelName || ''"></small>
                         <div>
-                            <small class="text-muted me-2" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></small>
-                            <button class="btn btn-outline-danger btn-sm px-1" data-bind="click: $parent.remove" title="Sil">
+                            <small class="text-muted me-2" data-bind="text: new Date(createdAt).toLocaleDateString(document.documentElement.lang || undefined)"></small>
+                            <button class="btn btn-outline-danger btn-sm px-1" data-bind="click: $parent.remove" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -78,17 +79,17 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-images me-2"></i>Yeni Once/Sonra Fotograf</h6>
+                    <h6 class="modal-title"><i class="bi bi-images me-2"></i><t key="salon.beforeafter.auto.yeni_once_sonra_fotograf">Yeni Önce/Sonra Fotoğraf</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Musteri *</label>
+                            <label class="form-label small"><t key="salon.beforeafter.auto.musteri">Müşteri *</t></label>
                             <select class="form-select form-select-sm" data-bind="options: clients, optionsText: 'fullName', optionsValue: 'id', value: form.slnClientId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Hizmet</label>
+                            <label class="form-label small"><t key="salon.book.summary.service">Hizmet</t></label>
                             <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-6">
@@ -100,7 +101,7 @@
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.afterPhotoUrl" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
                         </div>
                         <div class="col-6">
@@ -112,10 +113,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

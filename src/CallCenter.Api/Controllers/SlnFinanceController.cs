@@ -95,12 +95,15 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _financeFactory.UpdateCashRegisterAsync(id, req.Name, req.BranchId, req.IsActive, customerId);
+        var branchScopeId = GetBranchId();
+        var effectiveBranchId = branchScopeId ?? req.BranchId;
+        var (success, error) = await _financeFactory.UpdateCashRegisterAsync(id, req.Name, effectiveBranchId, req.IsActive, customerId, branchScopeId);
         return success ? Ok() : BadRequest(new { message = error });
     }
 
     /// <summary>BranchId null olan eski kasalari merkez subeye tasir (bir seferlik)</summary>
     [HttpPost("cash-registers/normalize-branch")]
+    [RequireSalonOwner]
     public async Task<ActionResult> NormalizeCashRegisterBranches()
     {
         var customerId = GetCustomerId();

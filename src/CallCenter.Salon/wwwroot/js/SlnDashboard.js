@@ -1,6 +1,10 @@
 // Salon Dashboard — istatistik kartlari + bugun randevulari + dogum gunu hatirlatmalari
 (function () {
-    function fmt(n) { return (n || 0).toLocaleString('tr-TR'); }
+    var DASH_LOCALE = document.documentElement.lang || undefined;
+    function dashT(key, fallback) {
+        return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+    }
+    function fmt(n) { return (n || 0).toLocaleString(DASH_LOCALE); }
     function escapeHtml(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
@@ -23,7 +27,7 @@
         }
         if (info) {
             info.style.display = '';
-            info.textContent = 'Odeme durumu kontrol ediliyor...';
+            info.textContent = dashT('salon.dashboard.payment_status_checking', 'Ödeme durumu kontrol ediliyor...');
         }
 
         $.get('/proxy/subscriptions/my', function (d) {
@@ -46,13 +50,13 @@
             if (info) {
                 info.style.display = '';
                 info.textContent = subscription && subscription.isTrial
-                    ? 'Demo surecindesiniz; su anda odenecek tahakkuk yok.'
-                    : 'Odenecek tahakkuk yok.';
+                    ? dashT('salon.dashboard.trial_no_accrual', 'Demo sürecindesiniz; şu anda ödenecek tahakkuk yok.')
+                    : dashT('salon.dashboard.no_payable_accrual', 'Ödenecek tahakkuk yok.');
             }
         }).fail(function () {
             if (info) {
                 info.style.display = '';
-                info.textContent = 'Odeme durumu alinamadi.';
+                info.textContent = dashT('salon.modules.payment_status_failed', 'Ödeme durumu alınamadı.');
             }
         });
     }
@@ -71,16 +75,16 @@
             var lowStockList = document.getElementById('lowStockList');
             if (lowStockList) {
                 if (!d.lowStockAlerts || d.lowStockAlerts.length === 0) {
-                    lowStockList.innerHTML = '<p class="text-muted small mb-0">Kritik stok yok.</p>';
+                    lowStockList.innerHTML = '<p class="text-muted small mb-0">' + escapeHtml(dashT('salon.dashboard.no_critical_stock', 'Kritik stok yok.')) + '</p>';
                 } else {
                     lowStockList.innerHTML = d.lowStockAlerts.map(function (p) {
                         var unit = escapeHtml(p.unit || '');
                         return '<a href="/Products" class="d-block text-decoration-none text-dark border-bottom py-2">' +
                             '<div class="d-flex align-items-start justify-content-between gap-2">' +
                             '<div><div class="small fw-semibold">' + escapeHtml(p.productName) + '</div>' +
-                            '<div class="text-muted" style="font-size:.75rem;">Stok: ' + fmt(p.stockQuantity) + ' / ' + fmt(p.minStockLevel) + ' ' + unit + '</div></div>' +
-                            '<span class="badge bg-danger-subtle text-danger">Kritik</span></div>' +
-                            '<div class="small text-success mt-1"><i class="bi bi-cart-plus me-1"></i>Siparis onerisi: ' + fmt(p.reorderQuantity) + ' ' + unit + '</div>' +
+                            '<div class="text-muted" style="font-size:.75rem;">' + escapeHtml(dashT('salon.dashboard.stock', 'Stok')) + ': ' + fmt(p.stockQuantity) + ' / ' + fmt(p.minStockLevel) + ' ' + unit + '</div></div>' +
+                            '<span class="badge bg-danger-subtle text-danger">' + escapeHtml(dashT('salon.dashboard.critical', 'Kritik')) + '</span></div>' +
+                            '<div class="small text-success mt-1"><i class="bi bi-cart-plus me-1"></i>' + escapeHtml(dashT('salon.dashboard.reorder_suggestion', 'Sipariş önerisi')) + ': ' + fmt(p.reorderQuantity) + ' ' + unit + '</div>' +
                             '</a>';
                     }).join('');
                 }
@@ -90,11 +94,17 @@
             var apptList = document.getElementById('todayApptList');
             if (apptList) {
                 if (!d.todayAppointments || d.todayAppointments.length === 0) {
-                    apptList.innerHTML = '<p class="text-muted small mb-0">Bugün randevu yok.</p>';
+                    apptList.innerHTML = '<p class="text-muted small mb-0">' + escapeHtml(dashT('salon.dashboard.no_appointments_today', 'Bugün randevu yok.')) + '</p>';
                 } else {
                     apptList.innerHTML = d.todayAppointments.map(function (a) {
                         var time = a.startTime ? a.startTime.substring(11, 16) : '-';
-                        var statusText = ({1:'Planlanmış',2:'Onaylandı',3:'Tamamlandı',4:'İptal',5:'Gelmedi'})[a.statusId] || '';
+                        var statusText = ({
+                            1: dashT('salon.dashboard.status.scheduled', 'Planlanmış'),
+                            2: dashT('salon.dashboard.status.confirmed', 'Onaylandı'),
+                            3: dashT('salon.dashboard.status.completed', 'Tamamlandı'),
+                            4: dashT('salon.dashboard.status.cancelled', 'İptal'),
+                            5: dashT('salon.dashboard.status.no_show', 'Gelmedi')
+                        })[a.statusId] || '';
                         var statusCss = ({1:'bg-warning text-dark',2:'bg-info',3:'bg-success',4:'bg-danger',5:'bg-secondary'})[a.statusId] || 'bg-secondary';
                         return '<div class="d-flex align-items-center justify-content-between border-bottom py-2">' +
                             '<div><span class="fw-semibold small">' + time + '</span> · <span class="small">' + (a.clientName || '-') + '</span>' +
@@ -111,12 +121,12 @@
                 subCard.style.display = '';
 
                 var badge = document.getElementById('subStatusBadge');
-                if (s.statusId === 1) { badge.className = 'badge bg-success'; badge.textContent = 'Aktif'; }
-                else if (s.statusId === 2) { badge.className = 'badge bg-warning text-dark'; badge.textContent = 'Askıda'; }
-                else { badge.className = 'badge bg-secondary'; badge.textContent = 'Pasif'; }
+                if (s.statusId === 1) { badge.className = 'badge bg-success'; badge.textContent = dashT('salon.common.status_active', 'Aktif'); }
+                else if (s.statusId === 2) { badge.className = 'badge bg-warning text-dark'; badge.textContent = dashT('salon.dashboard.status.suspended', 'Askıda'); }
+                else { badge.className = 'badge bg-secondary'; badge.textContent = dashT('salon.common.status_inactive', 'Pasif'); }
 
                 var pkgWrap = document.getElementById('subPackages');
-                pkgWrap.innerHTML = '<span class="badge bg-purple text-white">Temel Paket · ' + fmt(s.basicPackagePrice) + ' ₺</span>';
+                pkgWrap.innerHTML = '<span class="badge bg-purple text-white">' + escapeHtml(dashT('salon.modules.base_package', 'Temel Paket')) + ' · ' + fmt(s.basicPackagePrice) + ' ₺</span>';
                 (s.activePackages || []).forEach(function (p) {
                     var el = document.createElement('span');
                     el.className = 'badge bg-success-subtle text-success';
@@ -124,7 +134,7 @@
                     pkgWrap.appendChild(el);
                 });
 
-                document.getElementById('subMonthlyTotal').textContent = fmt(s.monthlyTotal) + ' ₺/ay';
+                document.getElementById('subMonthlyTotal').textContent = fmt(s.monthlyTotal) + ' ' + dashT('salon.modules.per_month_suffix', '₺/ay');
                 var branchInfo = document.getElementById('subBranchInfo');
                 if (branchInfo) {
                     if (s.branchCount > 1) {
@@ -132,14 +142,20 @@
                         var pct = typeof s.branchDiscountPercent === 'number' ? s.branchDiscountPercent : 0;
                         var gross = typeof s.grossBranchMonthly === 'number' ? s.grossBranchMonthly : 0;
                         var net = typeof s.netBranchMonthly === 'number' ? s.netBranchMonthly : 0;
-                        branchInfo.innerHTML = s.branchCount + ' şube · şube eşik indirimi %' + pct +
-                            ' · brüt ' + fmt(gross) + ' ₺ → net ' + fmt(net) + ' ₺/ay <span class="text-muted">(paket+temel: ' + fmt(s.baseMonthly) + ' ₺)</span>';
+                        var branchText = dashT('salon.dashboard.branch_info', '{count} şube · şube eşik indirimi %{discount} · brüt {gross} ₺ → net {net} ₺/ay')
+                            .replace('{count}', s.branchCount)
+                            .replace('{discount}', pct)
+                            .replace('{gross}', fmt(gross))
+                            .replace('{net}', fmt(net));
+                        var baseText = dashT('salon.dashboard.branch_base', 'paket+temel: {amount} ₺')
+                            .replace('{amount}', fmt(s.baseMonthly));
+                        branchInfo.innerHTML = escapeHtml(branchText) + ' <span class="text-muted">(' + escapeHtml(baseText) + ')</span>';
                     } else {
                         branchInfo.style.display = 'none';
                     }
                 }
                 document.getElementById('subNextBilling').textContent = s.nextBillingDate
-                    ? new Date(s.nextBillingDate).toLocaleDateString('tr-TR')
+                    ? new Date(s.nextBillingDate).toLocaleDateString(DASH_LOCALE)
                     : '-';
                 updateSubscriptionPaymentCta(s);
             } else if (subCard) {
@@ -150,7 +166,7 @@
             var remList = document.getElementById('reminderList');
             if (remList) {
                 if (!d.reminders || d.reminders.length === 0) {
-                    remList.innerHTML = '<p class="text-muted small mb-0">Bu hafta doğum günü yok.</p>';
+                    remList.innerHTML = '<p class="text-muted small mb-0">' + escapeHtml(dashT('salon.dashboard.no_birthdays_this_week', 'Bu hafta doğum günü yok.')) + '</p>';
                 } else {
                     remList.innerHTML = d.reminders.map(function (r) {
                         return '<div class="d-flex align-items-center justify-content-between border-bottom py-2">' +

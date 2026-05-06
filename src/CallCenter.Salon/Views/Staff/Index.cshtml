@@ -1,5 +1,9 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Personel";
+    ViewData["Title"] = Translation.T("salon.sidebar.staff", "Personel");
+    var staffJwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
+    var canManageStaff = staffJwt.CustomerRoleId <= 0
+        || staffJwt.CustomerRoleId == CallCenter.Shared.Enums.SalonRoles.Ids.SalonOwner;
 }
 
 <div id="staff-vm">
@@ -7,11 +11,14 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="input-group" style="max-width: 320px;">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Personel ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control" placeholder="@(Translation.T("salon.staff.auto.personel_ara", "Personel ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
-        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Personel
-        </button>
+        @if (canManageStaff)
+        {
+            <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+                <i class="bi bi-plus-lg me-1"></i><t key="salon.staff.auto.yeni_personel">Yeni Personel</t>
+            </button>
+        }
     </div>
 
     <!-- Table -->
@@ -25,10 +32,13 @@
                             <th>Kullanici Adi</th>
                             <th>E-posta</th>
                             <th>Unvan</th>
-                            <th>Sube</th>
+                            <th><t key="salon.common.branch">Şube</t></th>
                             <th>Rol</th>
-                            <th>Durum</th>
-                            <th style="width: 110px;"></th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
+                            @if (canManageStaff)
+                            {
+                                <th style="width: 110px;"></th>
+                            }
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredStaff">
@@ -42,19 +52,22 @@
                             <td>
                                 <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
                             </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-outline-warning" title="Sifre Sifirla" data-bind="click: $parent.resetPassword">
-                                        <i class="bi bi-key"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
+                            @if (canManageStaff)
+                            {
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" title="@(Translation.T("salon.staff.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" title="Sifre Sifirla" data-bind="click: $parent.resetPassword">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            }
                         </tr>
                     </tbody>
                 </table>
@@ -62,7 +75,7 @@
             <!-- ko if: filteredStaff().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-person-badge" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz personel eklenmemis</p>
+                <p class="mt-2 small"><t key="salon.staff.auto.henuz_personel_eklenmemis">Henüz personel eklenmemis</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -71,16 +84,16 @@
     <!-- Personel Ozeti -->
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white fw-semibold">
-            <i class="bi bi-people me-2"></i>Personel Ozeti
+            <i class="bi bi-people me-2"></i><t key="salon.staff.auto.personel_ozeti">Personel Ozeti</t>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6 text-center">
-                    <div class="text-muted small">Aktif Personel</div>
+                    <div class="text-muted small"><t key="salon.staff.auto.aktif_personel">Aktif Personel</t></div>
                     <div class="fw-bold text-primary" data-bind="text: activeCount()"></div>
                 </div>
                 <div class="col-md-6 text-center">
-                    <div class="text-muted small">Toplam Personel</div>
+                    <div class="text-muted small"><t key="salon.staff.auto.toplam_personel">Toplam Personel</t></div>
                     <div class="fw-bold" data-bind="text: staffList().length"></div>
                 </div>
             </div>
@@ -92,7 +105,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Personel Duzenle' : 'Yeni Personel'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.staff.auto.personel_duzenle', 'Personel Düzenle') : salonT('salon.staff.auto.yeni_personel', 'Yeni Personel')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -101,7 +114,7 @@
                         <!-- ko if: isOwnerEdit() -->
                         <div class="col-12">
                             <div class="alert alert-info py-2 small mb-0">
-                                <i class="bi bi-shop me-1"></i><strong>Salon Sahibi</strong> — Ad soyad, e-posta ve sifre guncellenebilir.
+                                <i class="bi bi-shop me-1"></i><strong>Salon Sahibi</strong><t key="salon.staff.auto.ad_soyad_e_posta_ve_sifre_guncellenebilir">— Ad soyad, e-posta ve sifre guncellenebilir.</t>
                             </div>
                         </div>
                         <!-- /ko -->
@@ -109,7 +122,7 @@
                         <!-- Fotograf (sadece edit modunda) -->
                         <!-- ko if: isEditing() -->
                         <div class="col-12">
-                            <label class="form-label small">Profil Fotografı</label>
+                            <label class="form-label small"><t key="salon.staff.auto.profil_fotografi">Profil Fotoğrafı</t></label>
                             <div class="d-flex align-items-center gap-3">
                                 <!-- ko if: form.photoUrl() -->
                                 <img data-bind="attr: { src: form.photoUrl }" class="rounded-circle" style="width:60px;height:60px;object-fit:cover;border:2px solid #dee2e6;" />
@@ -122,7 +135,7 @@
                                 <label class="btn btn-outline-secondary btn-sm mb-0" data-bind="css: { disabled: isUploadingPhoto() }">
                                     <span data-bind="visible: isUploadingPhoto()" class="spinner-border spinner-border-sm me-1"></span>
                                     <i class="bi bi-upload me-1" data-bind="visible: !isUploadingPhoto()"></i>
-                                    <span data-bind="text: isUploadingPhoto() ? 'Yukleniyor...' : 'Fotograf Sec'"></span>
+                                    <span data-bind="text: isUploadingPhoto() ? salonT('salon.common.loading', 'Yükleniyor...') : salonT('salon.staff.auto.fotograf_sec', 'Fotoğraf Seç')"></span>
                                     <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: uploadPhoto }, disable: isUploadingPhoto" />
                                 </label>
                                 <small class="text-muted">Max 3 MB, JPEG/PNG/WebP</small>
@@ -171,12 +184,12 @@
                                 options: roleList, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Rol seciniz'"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Sube <span data-bind="visible: branchList().length > 1">*</span></label>
+                            <label class="form-label small"><t key="salon.common.branch">Şube</t> <span data-bind="visible: branchList().length > 1">*</span></label>
                             <select class="form-select form-select-sm" data-bind="value: form.branchId,
-                                options: branchList, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Sube seciniz'"></select>
+                                options: branchList, optionsText: 'name', optionsValue: 'id', optionsCaption: salonT('salon.staff.auto.sube_seciniz', 'Şube seciniz')"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Durum</label>
+                            <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.isActive">
                                 <option value="true">Aktif</option>
                                 <option value="false">Pasif</option>
@@ -185,7 +198,7 @@
                         <!-- Hizmet Yetenekleri -->
                         <!-- ko if: serviceCategories().length > 0 -->
                         <div class="col-12">
-                            <label class="form-label small">Hizmet Yetenekleri <small class="text-muted fw-normal">(bu personel hangi hizmetleri yapabilir?)</small></label>
+                            <label class="form-label small"><t key="salon.staff.auto.hizmet_yetenekleri">Hizmet Yetenekleri</t> <small class="text-muted fw-normal"><t key="salon.staff.auto.bu_personel_hangi_hizmetleri_yapabilir">(bu personel hangi hizmetleri yapabilir?)</t></small></label>
                             <!-- ko foreach: serviceCategories -->
                             <div class="mb-2">
                                 <small class="text-muted fw-bold" data-bind="text: name"></small>
@@ -207,7 +220,7 @@
                         <div class="col-12 mt-3">
                             <label class="form-label small fw-semibold">
                                 <i class="bi bi-eye me-1"></i>Site Gorunurluk Ayarlari
-                                <small class="text-muted fw-normal d-block">Bu personelin online randevu ve ekibimiz sayfasinda nasil gorunecegini belirleyin</small>
+                        <small class="text-muted fw-normal d-block"><t key="salon.staff.public_display_hint">Bu personelin online randevu ve ekibimiz sayfasında nasıl görüneceğini belirleyin</t></small>
                             </label>
                             <div class="bg-light rounded p-2">
                                 <div class="form-check form-switch mb-1">
@@ -238,10 +251,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

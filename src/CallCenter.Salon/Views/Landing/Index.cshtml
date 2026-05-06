@@ -1,15 +1,18 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     Layout = null;
     var currentCulture = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
     var langPrefix = $"/{currentCulture}";
+    var titleSuffix = Translation.T("salon.landing.title_suffix", "Salon Yönetim Platformu");
+    var metaDescription = Translation.T("salon.landing.meta.description", "Randevu, POS, sadakat, online rezervasyon. Salonunuz için her şey tek platformda.");
 }
 <!DOCTYPE html>
 <html lang="@currentCulture">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CorpLynk Salon — @(currentCulture == "tr" ? "Salon Yonetim Platformu" : "Salon Management Platform")</title>
-    <meta name="description" content="@(currentCulture == "tr" ? "Randevu, POS, sadakat, online rezervasyon. Salonunuz icin her sey tek platformda." : "Appointments, POS, loyalty, online booking. Everything your salon needs in one platform.")" />
+    <title>CorpLynk Salon - @titleSuffix</title>
+    <meta name="description" content="@metaDescription" />
     <link rel="canonical" href="https://sln.corplynk.com/" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -91,12 +94,12 @@
                 <i class="bi bi-hexagon-fill"></i> CorpLynk
             </a>
             <div class="nav-links">
-                <a href="https://corplynk.com@(langPrefix)">@(currentCulture == "tr" ? "Ana Sayfa" : "Home")</a>
-                <a href="#features">@(currentCulture == "tr" ? "Ozellikler" : "Features")</a>
+                <a href="https://corplynk.com@(langPrefix)"><t key="salon.landing.nav.home">Ana Sayfa</t></a>
+                <a href="#features"><t key="salon.landing.nav.features">Özellikler</t></a>
                 <a href="/discover" class="nav-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);">
-                    <i class="bi bi-calendar-plus me-1"></i>@(currentCulture == "tr" ? "Randevu Al" : "Book Now")
+                    <i class="bi bi-calendar-plus me-1"></i><t key="salon.landing.nav.book_now">Randevu Al</t>
                 </a>
-                <a href="/Account/Login" class="nav-btn">@(currentCulture == "tr" ? "Giris Yap" : "Sign In")</a>
+                <a href="/Account/Login" class="nav-btn"><t key="salon.landing.nav.sign_in">Giriş Yap</t></a>
                 @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
                 {
                     <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();" class="nav-btn" style="margin-left:4px;@(lang.Code == currentCulture ? "background:var(--accent);color:#fff;" : "")">@lang.Label</a>
@@ -108,24 +111,22 @@
         <section class="hero">
             <div class="hero-badge">
                 <span class="dot"></span>
-                @(currentCulture == "tr" ? "Salon Yonetim Platformu" : "Salon Management Platform")
+                <t key="salon.landing.hero.badge">Salon Yönetim Platformu</t>
             </div>
             <h1>
-                @(currentCulture == "tr" ? "Salonunuzu" : "Your Salon,")<br />
-                <span>@(currentCulture == "tr" ? "Dijitallestirin." : "Digitized.")</span>
+                <t key="salon.landing.hero.line1">Salonunuzu</t><br />
+                <span><t key="salon.landing.hero.highlight">Dijitalleştirin.</t></span>
             </h1>
             <p>
-                @(currentCulture == "tr"
-                    ? "Randevu, POS, musteri sadakati, online rezervasyon, personel yonetimi ve detayli raporlar. Salonunuz icin ihtiyaciniz olan her sey tek platformda."
-                    : "Appointments, POS, customer loyalty, online booking, staff management, and detailed reports. Everything your salon needs in one platform.")
+                <t key="salon.landing.hero.desc">Randevu, POS, müşteri sadakati, online rezervasyon, personel yönetimi ve detaylı raporlar. Salonunuz için ihtiyacınız olan her şey tek platformda.</t>
             </p>
             <div class="hero-cta">
                 <a href="/discover" class="btn-primary-cta">
                     <i class="bi bi-calendar-plus me-1"></i>
-                    <span>@(currentCulture == "tr" ? "Randevu Al" : "Book Appointment")</span>
+                    <span><t key="salon.landing.cta.book_appointment">Randevu Al</t></span>
                 </a>
                 <a href="/Account/Login" class="btn-outline-cta">
-                    <span>@(currentCulture == "tr" ? "Salon Girisi" : "Salon Login")</span>
+                    <span><t key="salon.landing.cta.salon_login">Salon Girişi</t></span>
                     <i class="bi bi-box-arrow-in-right"></i>
                 </a>
             </div>
@@ -134,52 +135,52 @@
         <!-- Features -->
         <section class="section" id="features">
             <div class="section-header">
-                <div class="section-badge">@(currentCulture == "tr" ? "Ozellikler" : "Features")</div>
-                <h2 class="section-title">@(currentCulture == "tr" ? "Ihtiyaciniz Olan Her Sey" : "Everything You Need")</h2>
-                <p class="section-desc">@(currentCulture == "tr" ? "Salonunuzu uctan uca yonetmek icin kapsamli araclar." : "Comprehensive tools to manage your salon end-to-end.")</p>
+                <div class="section-badge"><t key="salon.landing.features.badge">Özellikler</t></div>
+                <h2 class="section-title"><t key="salon.landing.features.title">İhtiyacınız Olan Her Şey</t></h2>
+                <p class="section-desc"><t key="salon.landing.features.desc">Salonunuzu uçtan uca yönetmek için kapsamlı araçlar.</t></p>
             </div>
 
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon"><i class="bi bi-calendar-check"></i></div>
-                    <h3>@(currentCulture == "tr" ? "Randevu Yonetimi" : "Appointment Management")</h3>
-                    <p>@(currentCulture == "tr" ? "Takvim gorunumu, otomatik hatirlatmalar, online rezervasyon. Musterileriniz 7/24 randevu alabilir." : "Calendar view, automatic reminders, online booking. Your clients can book 24/7.")</p>
+                    <h3><t key="salon.landing.feature.appointments.title">Randevu Yönetimi</t></h3>
+                    <p><t key="salon.landing.feature.appointments.desc">Takvim görünümü, otomatik hatırlatmalar, online rezervasyon. Müşterileriniz 7/24 randevu alabilir.</t></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="bi bi-credit-card"></i></div>
-                    <h3>@(currentCulture == "tr" ? "Hizli Satis (POS)" : "Quick Sales (POS)")</h3>
-                    <p>@(currentCulture == "tr" ? "Hizmet ve urun satisi, nakit/kart/havale odeme, fisli islem. Recete ve paket destegiyle." : "Service and product sales, cash/card/transfer payment, receipt generation. With recipe and package support.")</p>
+                    <h3><t key="salon.landing.feature.pos.title">Hızlı Satış (POS)</t></h3>
+                    <p><t key="salon.landing.feature.pos.desc">Hizmet ve ürün satışı, nakit/kart/havale ödeme, fişli işlem. Reçete ve paket desteğiyle.</t></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="bi bi-star"></i></div>
-                    <h3>@(currentCulture == "tr" ? "Sadakat Programi" : "Loyalty Program")</h3>
-                    <p>@(currentCulture == "tr" ? "Puan biriktirme, hediye karti, uyelik/abonelik sistemi. Musterilerinizi geri kazanin." : "Points collection, gift cards, membership/subscription system. Win back your customers.")</p>
+                    <h3><t key="salon.landing.feature.loyalty.title">Sadakat Programı</t></h3>
+                    <p><t key="salon.landing.feature.loyalty.desc">Puan biriktirme, hediye kartı, üyelik/abonelik sistemi. Müşterilerinizi geri kazanın.</t></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="bi bi-globe"></i></div>
-                    <h3>@(currentCulture == "tr" ? "Online Rezervasyon" : "Online Booking")</h3>
-                    <p>@(currentCulture == "tr" ? "Salonunuzun profil sayfasi ve online randevu formu. Bekleme listesi destegiyle." : "Your salon's profile page and online booking form. With waitlist support.")</p>
+                    <h3><t key="salon.landing.feature.online.title">Online Rezervasyon</t></h3>
+                    <p><t key="salon.landing.feature.online.desc">Salonunuzun profil sayfası ve online randevu formu. Bekleme listesi desteğiyle.</t></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="bi bi-person-badge"></i></div>
-                    <h3>@(currentCulture == "tr" ? "Personel Yonetimi" : "Staff Management")</h3>
-                    <p>@(currentCulture == "tr" ? "Calisan profilleri, uzmanlik alanlari, personel bazli fiyatlandirma ve hasilat paylasimi." : "Employee profiles, expertise areas, staff-based pricing, and revenue sharing.")</p>
+                    <h3><t key="salon.landing.feature.staff.title">Personel Yönetimi</t></h3>
+                    <p><t key="salon.landing.feature.staff.desc">Çalışan profilleri, uzmanlık alanları, personel bazlı fiyatlandırma ve hasılat paylaşımı.</t></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon"><i class="bi bi-bar-chart"></i></div>
-                    <h3>@(currentCulture == "tr" ? "Raporlar ve Analiz" : "Reports & Analytics")</h3>
-                    <p>@(currentCulture == "tr" ? "Gun sonu kasa, gelir/gider, personel performansi, musteri analizleri. Veriye dayali kararlar." : "End-of-day cash, income/expense, staff performance, customer analytics. Data-driven decisions.")</p>
+                    <h3><t key="salon.landing.feature.reports.title">Raporlar ve Analiz</t></h3>
+                    <p><t key="salon.landing.feature.reports.desc">Gün sonu kasa, gelir/gider, personel performansı, müşteri analizleri. Veriye dayalı kararlar.</t></p>
                 </div>
             </div>
         </section>
 
         <!-- Footer -->
         <footer class="footer">
-            <span>&copy; 2026 CorpLynk. @(currentCulture == "tr" ? "Tum haklari saklidir." : "All rights reserved.")</span>
+            <span>&copy; 2026 CorpLynk. <t key="salon.landing.footer.rights">Tüm hakları saklıdır.</t></span>
             <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-                <a href="/privacy">@(currentCulture == "tr" ? "Gizlilik Politikasi" : "Privacy Policy")</a>
-                <a href="/terms">@(currentCulture == "tr" ? "Kullanim Kosullari" : "Terms of Use")</a>
-                <a href="/discover">@(currentCulture == "tr" ? "Randevu Al" : "Book Appointment")</a>
+                <a href="/privacy"><t key="salon.landing.footer.privacy">Gizlilik Politikası</t></a>
+                <a href="/terms"><t key="salon.landing.footer.terms">Kullanım Koşulları</t></a>
+                <a href="/discover"><t key="salon.landing.cta.book_appointment">Randevu Al</t></a>
                 <a href="mailto:info@corplynk.com">info@corplynk.com</a>
             </div>
         </footer>

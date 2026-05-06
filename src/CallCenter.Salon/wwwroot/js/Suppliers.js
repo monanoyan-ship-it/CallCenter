@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function SuppliersViewModel() {
     var self = this;
     self.suppliers = ko.observableArray([]);
@@ -96,7 +100,7 @@ function SuppliersViewModel() {
         };
 
         if (!data.name || !data.phone) {
-            toastr.warning('Firma adi ve telefon zorunludur');
+            toastr.warning(slnJsT('salon.suppliers.js.firma_adi_ve_telefon_zorunludur', 'Firma adı ve telefon zorunludur'));
             return;
         }
 
@@ -115,21 +119,21 @@ function SuppliersViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Tedarikci guncellendi' : 'Tedarikci eklendi');
+            toastr.success(self.isEditing() ? slnJsT('salon.suppliers.js.tedarikci_guncellendi', 'Tedarikçi güncellendi') : slnJsT('salon.suppliers.js.tedarikci_eklendi', 'Tedarikçi eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.remove = function (supplier) {
-        confirmModal('Onay', "'" + supplier.name + "' tedarikcisini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + supplier.name + "' tedarikcisini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/sln-products/suppliers/' + supplier.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Tedarikci silindi');
+                toastr.success(slnJsT('salon.suppliers.js.tedarikci_silindi', 'Tedarikçi silindi'));
             }).fail(function () {
-                toastr.error('Tedarikci silinemedi');
+                toastr.error(slnJsT('salon.suppliers.js.tedarikci_silinemedi', 'Tedarikçi silinemedi'));
             });
         });
     };

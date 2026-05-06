@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ConsentFormsViewModel() {
     var self = this;
     self.forms = ko.observableArray([]);
@@ -60,7 +64,7 @@ function ConsentFormsViewModel() {
         };
 
         if (!data.title || !data.htmlContent) {
-            toastr.warning('Baslik ve icerik zorunludur');
+            toastr.warning(slnJsT('salon.consentforms.js.baslik_ve_icerik_zorunludur', 'Baslik ve icerik zorunludur'));
             return;
         }
 
@@ -76,18 +80,18 @@ function ConsentFormsViewModel() {
             .done(function () {
                 formModal.hide();
                 self.loadForms();
-                toastr.success(self.isEditing() ? 'Form guncellendi' : 'Form olusturuldu');
+                toastr.success(self.isEditing() ? slnJsT('salon.consentforms.js.form_guncellendi', 'Form güncellendi') : slnJsT('salon.consentforms.js.form_olusturuldu', 'Form oluşturuldu'));
                 self.isSaving(false);
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || 'Bir hata olustu');
+                toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
                 self.isSaving(false);
             });
     };
 
     self.removeForm = function (form) {
-        confirmModal('Onay', 'Bu formu silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.consentforms.js.bu_formu_silmek_istediginize_emin_misiniz', 'Bu formu silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-consent-forms/' + form.id, method: 'DELETE' })
-                .done(function () { self.loadForms(); toastr.success('Form silindi'); })
+                .done(function () { self.loadForms(); toastr.success(slnJsT('salon.consentforms.js.form_silindi', 'Form silindi')); })
                 .fail(function () { toastr.error('Silinemedi'); });
         });
     };

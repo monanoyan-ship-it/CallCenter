@@ -179,20 +179,49 @@ public class PlatformFactory : IPlatformFactory
             .Where(p => customerIds.Contains(p.CustomerId))
             .ToDictionaryAsync(p => p.CustomerId, p => p.LogoUrl);
 
-        return appointments.Select(a => new PlatformAppointmentDto
+        var legacyServiceIds = appointments
+            .Where(a => a.ServiceId.HasValue && (a.Services == null || a.Services.Count == 0))
+            .Select(a => a.ServiceId!.Value)
+            .Distinct()
+            .ToList();
+        var legacyServices = legacyServiceIds.Count == 0
+            ? new Dictionary<int, SlnService>()
+            : await _serviceEs.GetAllQueryable()
+                .Where(s => legacyServiceIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id);
+
+        return appointments.Select(a =>
         {
-            Id = a.Id,
-            SalonName = salonNames.GetValueOrDefault(a.CustomerId, "-"),
-            SalonLogoUrl = salonLogos.GetValueOrDefault(a.CustomerId),
-            AppointmentDate = a.StartTime.Date,
-            StartTime = a.StartTime.TimeOfDay,
-            EndTime = a.EndTime.TimeOfDay,
-            PersonnelName = a.Personnel?.Title,
-            ServiceNames = a.Services?.Select(s => s.SlnService?.Name ?? "-").ToList() ?? new(),
-            TotalPrice = a.Services?.Sum(s => s.SlnService?.Price ?? 0) ?? 0,
-            StatusId = a.StatusId,
-            IsPrepaid = a.IsPrepaid,
-            PrepaidAmount = a.PrepaidAmount
+            var serviceNames = a.Services?
+                .Select(s => s.SlnService?.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!)
+                .ToList() ?? new List<string>();
+            var totalPrice = a.Services?.Sum(s => s.SlnService?.Price ?? 0) ?? 0;
+
+            if (serviceNames.Count == 0
+                && a.ServiceId.HasValue
+                && legacyServices.TryGetValue(a.ServiceId.Value, out var legacyService))
+            {
+                serviceNames.Add(legacyService.Name);
+                totalPrice = legacyService.Price;
+            }
+
+            return new PlatformAppointmentDto
+            {
+                Id = a.Id,
+                SalonName = salonNames.GetValueOrDefault(a.CustomerId, "-"),
+                SalonLogoUrl = salonLogos.GetValueOrDefault(a.CustomerId),
+                AppointmentDate = a.StartTime.Date,
+                StartTime = a.StartTime.TimeOfDay,
+                EndTime = a.EndTime.TimeOfDay,
+                PersonnelName = a.Personnel?.Title,
+                ServiceNames = serviceNames,
+                TotalPrice = totalPrice,
+                StatusId = a.StatusId,
+                IsPrepaid = a.IsPrepaid,
+                PrepaidAmount = a.PrepaidAmount
+            };
         }).ToList();
     }
 

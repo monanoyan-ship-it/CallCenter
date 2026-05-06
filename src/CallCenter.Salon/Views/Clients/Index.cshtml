@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Musteriler";
 }
@@ -7,10 +8,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="input-group" style="max-width: 320px;">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Musteri ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control" placeholder="@(Translation.T("salon.clients.auto.musteri_ara", "Müşteri ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Musteri
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.auto.yeni_musteri">Yeni Müşteri</t>
         </button>
     </div>
 
@@ -25,7 +26,7 @@
                             <th>Telefon</th>
                             <th>E-posta</th>
                             <th>Cinsiyet</th>
-                            <th>Randevu</th>
+                            <th><t key="salon.clients.auto.randevu">Randevu</t></th>
                             <th>Harcama</th>
                             <th style="width: 80px;"></th>
                         </tr>
@@ -39,13 +40,13 @@
                             <td class="small" data-bind="text: email"></td>
                             <td class="small" data-bind="text: genderText"></td>
                             <td class="small" data-bind="text: visitCount || '-'"></td>
-                            <td class="small" data-bind="text: totalSpent ? totalSpent.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                            <td class="small" data-bind="text: totalSpent ? totalSpent.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '-'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.clients.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -57,7 +58,7 @@
             <!-- ko if: filteredClients().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-people" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz musteri eklenmemis</p>
+                <p class="mt-2 small"><t key="salon.clients.auto.henuz_musteri_eklenmemis">Henüz müşteri eklenmemis</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -65,7 +66,7 @@
 
     <!-- Sayfalama -->
     <div class="d-flex justify-content-between align-items-center mt-3" data-bind="visible: totalPages() > 1">
-        <small class="text-muted" data-bind="text: 'Toplam ' + totalCount() + ' musteri'"></small>
+        <small class="text-muted" data-bind="text: salonT('salon.clients.auto.toplam', 'Toplam') + totalCount() + salonT('salon.clients.auto.musteri', 'müşteri')"></small>
         <nav>
             <ul class="pagination pagination-sm mb-0">
                 <li class="page-item" data-bind="css: { disabled: currentPage() <= 1 }">
@@ -88,7 +89,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Musteri Duzenle' : 'Yeni Musteri'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.clients.auto.musteri_duzenle', 'Müşteri Düzenle') : salonT('salon.clients.auto.yeni_musteri', 'Yeni Müşteri')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -166,16 +167,16 @@
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

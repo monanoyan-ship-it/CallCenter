@@ -1,15 +1,16 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Randevu Kurallari";
+    ViewData["Title"] = Translation.T("salon.noshowpolicy.auto.randevu_kurallari", "Randevu Kuralları");
 }
 
 <div id="noshow-vm">
     <div class="card border-0 shadow-sm" style="max-width:650px;">
-        <div class="card-header bg-white fw-semibold"><i class="bi bi-shield-exclamation me-2"></i>Randevu Kurallari</div>
+        <div class="card-header bg-white fw-semibold"><i class="bi bi-shield-exclamation me-2"></i><t key="salon.noshowpolicy.auto.randevu_kurallari">Randevu Kuralları</t></div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Randevuya gelmeyen veya gec iptal eden musteriler icin uygulanacak kurallari belirleyin.</p>
+            <p class="text-muted small mb-3"><t key="salon.noshowpolicy.description">Randevuya gelmeyen veya geç iptal eden müşteriler için uygulanacak kuralları belirleyin.</t></p>
             <div class="row g-3">
                 <div class="col-6">
-                    <label class="form-label small">Durum</label>
+                    <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
                     <select class="form-select form-select-sm" data-bind="value: config.isActive">
                         <option value="true">Aktif</option>
                         <option value="false">Pasif</option>
@@ -18,38 +19,38 @@
                 <div class="col-6">
                     <div class="form-check form-switch mt-4">
                         <input class="form-check-input" type="checkbox" id="requireDeposit" data-bind="checked: config.requireDeposit" />
-                        <label class="form-check-label small" for="requireDeposit">On Odeme Zorunlu</label>
+                        <label class="form-check-label small" for="requireDeposit"><t key="salon.noshowpolicy.auto.on_odeme_zorunlu">Ön Ödeme Zorunlu</t></label>
                     </div>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">On Odeme Tutari (TL)</label>
+                    <label class="form-label small"><t key="salon.noshowpolicy.auto.on_odeme_tutari_tl">Ön Ödeme Tutarı (TL)</t></label>
                     <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.depositAmount" />
-                    <small class="text-muted">Online randevu sirasinda alinacak tutar</small>
+                    <small class="text-muted"><t key="salon.noshowpolicy.auto.online_randevu_sirasinda_alinacak_tutar">Online randevu sirasinda alinacak tutar</t></small>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Ucretsiz Iptal Suresi (saat)</label>
+                    <label class="form-label small"><t key="salon.noshowpolicy.auto.ucretsiz_iptal_suresi_saat">Ücretsiz İptal Süresi (saat)</t></label>
                     <input type="number" class="form-control form-control-sm" min="0" data-bind="value: config.freeCancellationHours" />
-                    <small class="text-muted">Randevudan kac saat once ucretsiz iptal edilebilir</small>
+                    <small class="text-muted"><t key="salon.noshowpolicy.auto.randevudan_kac_saat_once_ucretsiz_iptal_edilebilir">Randevudan kac saat once ucretsiz iptal edilebilir</t></small>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Gec Iptal Ucreti (TL)</label>
+                    <label class="form-label small"><t key="salon.noshowpolicy.auto.gec_iptal_ucreti_tl">Gec İptal Ucreti (TL)</t></label>
                     <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.lateCancellationFee" />
-                    <small class="text-muted">0 = on odeme tutari kadar kesilir</small>
+                    <small class="text-muted"><t key="salon.noshowpolicy.auto.0_on_odeme_tutari_kadar_kesilir">0 = on odeme tutari kadar kesilir</t></small>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Gelmeme Ucreti (TL)</label>
+                    <label class="form-label small"><t key="salon.noshowpolicy.no_show_fee">Gelmeme Ücreti (TL)</t></label>
                     <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: config.noShowFee" />
-                    <small class="text-muted">0 = on odeme tutari kadar kesilir</small>
+                    <small class="text-muted"><t key="salon.noshowpolicy.auto.0_on_odeme_tutari_kadar_kesilir">0 = on odeme tutari kadar kesilir</t></small>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small">Engelleme Siniri</label>
+                    <label class="form-label small"><t key="salon.noshowpolicy.blacklist_threshold">Engelleme Sınırı</t></label>
                     <input type="number" class="form-control form-control-sm" min="1" data-bind="value: config.blacklistThreshold" />
-                    <small class="text-muted">Kac kez gelmezse musteri engellenir</small>
+                    <small class="text-muted"><t key="salon.noshowpolicy.auto.kac_kez_gelmezse_musteri_engellenir">Kac kez gelmezse müşteri engellenir</t></small>
                 </div>
             </div>
             <button class="btn btn-primary btn-sm mt-3" data-bind="click: saveConfig, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
             </button>
         </div>
     </div>

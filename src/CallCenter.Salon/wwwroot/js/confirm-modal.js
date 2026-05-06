@@ -5,6 +5,9 @@
     var modalId = 'shared-confirm-modal';
     var _onConfirm = null;
     var _hasInput = false;
+    function modalT(key, fallback) {
+        return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+    }
 
     function ensureModal() {
         if (document.getElementById(modalId)) return;
@@ -14,7 +17,7 @@
             '    <div class="modal-content">' +
             '      <div class="modal-header py-2">' +
             '        <h6 class="modal-title" id="' + modalId + '-title"></h6>' +
-            '        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Kapat"></button>' +
+            '        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="' + modalT('salon.common.close', 'Kapat') + '"></button>' +
             '      </div>' +
             '      <div class="modal-body">' +
             '        <p id="' + modalId + '-message" class="mb-2"></p>' +
@@ -24,8 +27,8 @@
             '        </div>' +
             '      </div>' +
             '      <div class="modal-footer py-1">' +
-            '        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Vazgec</button>' +
-            '        <button type="button" class="btn btn-sm btn-primary" id="' + modalId + '-confirm">Onayla</button>' +
+            '        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">' + modalT('salon.common.cancel_action', 'Vazgeç') + '</button>' +
+            '        <button type="button" class="btn btn-sm btn-primary" id="' + modalId + '-confirm">' + modalT('salon.common.btn.confirm', 'Onayla') + '</button>' +
             '      </div>' +
             '    </div>' +
             '  </div>' +

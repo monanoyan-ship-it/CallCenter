@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     var moduleId = ViewData["ModuleId"];
 }
@@ -9,7 +10,7 @@
     <!-- Modul bulunamadi -->
     <div class="text-center py-5" data-bind="visible: !isLoading() && !moduleInfo()">
         <i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-2"></i>
-        <p>Modul bilgisi bulunamadi.</p>
+        <p><t key="salon.modules.auto.modul_bilgisi_bulunamadi">Modül bilgisi bulunamadi.</t></p>
         <a href="/Modules" class="btn btn-outline-primary btn-sm">Modullere Don</a>
     </div>
 
@@ -25,9 +26,9 @@
                         <hr />
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="text-muted">Aylik Ucret:</span>
-                            <span class="fs-4 fw-bold text-primary" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString('tr-TR', {style:'currency', currency:'TRY'}) : ''"></span>
+                            <span class="fs-4 fw-bold text-primary" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : ''"></span>
                         </div>
-                        <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i>Odeme sonrasi modul hemen aktif olacaktir.</div>
+                        <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i><t key="salon.modules.auto.odeme_sonrasi_modul_hemen_aktif_olacaktir">Ödeme sonrası modül hemen aktif olacaktır.</t></div>
                     </div>
                 </div>
 
@@ -36,11 +37,11 @@
                     <div class="card-body text-center py-4">
                         <div data-bind="visible: paymentResult() && paymentResult().success">
                             <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
-                            <h5 class="text-success" data-bind="text: paymentResult() && paymentResult().message ? 'Talep Alindi' : 'Odeme Basarili!'"></h5>
+                            <h5 class="text-success" data-bind="text: paymentResult() && paymentResult().message ? 'Talep Alindi' : salonT('salon.modules.auto.odeme_basarili', 'Ödeme Başarılı!')"></h5>
                             <p class="text-muted small mb-2" data-bind="text: paymentResult() && paymentResult().message ? paymentResult().message : 'Modulunuz aktif edildi.'"></p>
                             <div class="alert alert-warning py-2 small text-start" data-bind="visible: paymentResult() && !paymentResult().message">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong>Yeni modulu menude gormek icin oturumu yenileyin.</strong>
+                                <strong><t key="salon.modules.auto.yeni_modulu_menude_gormek_icin_oturumu_yenileyin">Yeni modülu menude gormek icin oturumu yenileyin.</t></strong>
                             </div>
                             <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: paymentResult() && !paymentResult().message">
                                 <i class="bi bi-arrow-clockwise me-1"></i>Oturumu Yenile
@@ -48,7 +49,7 @@
                         </div>
                         <div data-bind="visible: paymentResult() && !paymentResult().success">
                             <i class="bi bi-x-circle-fill text-danger fs-1 d-block mb-2"></i>
-                            <h5 class="text-danger">Odeme Basarisiz</h5>
+                            <h5 class="text-danger"><t key="salon.modules.auto.odeme_basarisiz">Ödeme Başarısız</t></h5>
                             <p class="text-muted small" data-bind="text: paymentResult() ? paymentResult().error : ''"></p>
                             <button class="btn btn-outline-primary btn-sm mt-2" data-bind="click: function(){ paymentResult(null); }">Tekrar Dene</button>
                         </div>
@@ -112,11 +113,11 @@
                             <button class="btn btn-primary w-100" data-bind="click: payWithCard, disable: isProcessing">
                                 <span data-bind="visible: isProcessing" class="spinner-border spinner-border-sm me-1"></span>
                                 <i class="bi bi-lock-fill me-1" data-bind="visible: !isProcessing()"></i>
-                                <span data-bind="text: moduleInfo() ? 'Ode ' + moduleInfo().monthlyPrice.toLocaleString('tr-TR', {style:'currency', currency:'TRY'}) : 'Ode'"></span>
+                                <span data-bind="text: moduleInfo() ? 'Ode ' + moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : 'Ode'"></span>
                             </button>
                             <div class="text-center mt-2">
                                 <i class="bi bi-shield-check text-success me-1"></i>
-                                <span class="text-muted small">256-bit SSL ile guvenli odeme</span>
+                                <span class="text-muted small"><t key="salon.modules.auto.256_bit_ssl_ile_guvenli_odeme">256-bit SSL ile güvenli ödeme</t></span>
                             </div>
                         </div>
 
@@ -137,7 +138,7 @@
                                                 <button class="btn btn-outline-secondary btn-sm ms-2" data-bind="click: copyIban" title="Kopyala"><i class="bi bi-clipboard"></i></button>
                                             </td>
                                         </tr>
-                                        <tr><th class="bg-light">Tutar</th><td class="fw-bold" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString('tr-TR', {style:'currency', currency:'TRY'}) : ''"></td></tr>
+                                        <tr><th class="bg-light"><t key="salon.panel.payments.amount">Tutar</t></th><td class="fw-bold" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : ''"></td></tr>
                                         <tr data-bind="visible: bankInfo() && bankInfo().description"><th class="bg-light">Aciklama</th><td data-bind="text: bankInfo() ? bankInfo().description : ''"></td></tr>
                                     </table>
                                 </div>

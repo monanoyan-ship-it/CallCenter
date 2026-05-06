@@ -1,5 +1,6 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Raporlar";
+    ViewData["Title"] = Translation.T("salon.reports.title", "Raporlar");
 }
 
 <div id="reports-vm">
@@ -8,22 +9,22 @@
         <div class="card-body py-2">
             <div class="row align-items-center g-2">
                 <div class="col-auto">
-                    <label class="form-label small mb-0">Baslangic:</label>
+                    <label class="form-label small mb-0"><t key="salon.reports.date_from">Başlangıç:</t></label>
                 </div>
                 <div class="col-auto">
                     <input type="date" class="form-control form-control-sm" data-bind="value: dateFrom" />
                 </div>
                 <div class="col-auto">
-                    <label class="form-label small mb-0">Bitis:</label>
+                    <label class="form-label small mb-0"><t key="salon.reports.date_to">Bitiş:</t></label>
                 </div>
                 <div class="col-auto">
                     <input type="date" class="form-control form-control-sm" data-bind="value: dateTo" />
                 </div>
                 <div class="col-auto">
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" data-bind="click: setToday">Bugun</button>
-                        <button class="btn btn-outline-secondary" data-bind="click: setWeek">Bu Hafta</button>
-                        <button class="btn btn-outline-secondary" data-bind="click: setMonth">Bu Ay</button>
+                        <button class="btn btn-outline-secondary" data-bind="click: setToday"><t key="salon.reports.today">Bugün</t></button>
+                        <button class="btn btn-outline-secondary" data-bind="click: setWeek"><t key="salon.reports.this_week">Bu Hafta</t></button>
+                        <button class="btn btn-outline-secondary" data-bind="click: setMonth"><t key="salon.reports.this_month">Bu Ay</t></button>
                     </div>
                 </div>
                 <div class="col-auto">
@@ -57,10 +58,10 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <small class="text-muted">Gelir</small>
+                    <small class="text-muted"><t key="salon.reports.revenue">Gelir</t></small>
                     <h5 class="text-success mb-1" data-bind="text: formatMoney(overview().totalRevenue)"></h5>
                     <div class="small text-muted">
-                        <span data-bind="text: overview().invoiceCount"></span> adisyon · Ort.
+                        <span data-bind="text: overview().invoiceCount"></span> <t key="salon.reports.invoice_suffix">adisyon</t> · <t key="salon.reports.avg_abbr">Ort.</t>
                         <span data-bind="text: formatMoney(overview().averageTicket)"></span>
                     </div>
                 </div>
@@ -69,11 +70,11 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <small class="text-muted">Doluluk</small>
+                    <small class="text-muted"><t key="salon.reports.occupancy">Doluluk</t></small>
                     <h5 class="text-primary mb-1" data-bind="text: formatPercent(overview().occupancyPercent)"></h5>
                     <div class="small text-muted">
                         <span data-bind="text: formatNumber(overview().bookedHours, 1)"></span> /
-                        <span data-bind="text: formatNumber(overview().capacityHours, 1)"></span> saat
+                        <span data-bind="text: formatNumber(overview().capacityHours, 1)"></span> <t key="salon.reports.hour_lower">saat</t>
                     </div>
                 </div>
             </div>
@@ -81,11 +82,11 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <small class="text-muted">Tekrar Ziyaret</small>
+                    <small class="text-muted"><t key="salon.reports.repeat_visit">Tekrar Ziyaret</t></small>
                     <h5 class="text-info mb-1" data-bind="text: formatPercent(overview().repeatVisitRatePercent)"></h5>
                     <div class="small text-muted">
-                        <span data-bind="text: overview().repeatClientCount"></span> tekrar eden /
-                        <span data-bind="text: overview().activeClientCount"></span> aktif musteri
+                        <span data-bind="text: overview().repeatClientCount"></span> <t key="salon.reports.repeat_clients_suffix">tekrar eden</t> /
+                        <span data-bind="text: overview().activeClientCount"></span> <t key="salon.reports.active_customer">aktif müşteri</t>
                     </div>
                 </div>
             </div>
@@ -93,10 +94,10 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <small class="text-muted">LTV</small>
+                    <small class="text-muted"><t key="salon.reports.ltv">LTV</t></small>
                     <h5 class="mb-1" data-bind="text: formatMoney(overview().averageLifetimeValue)"></h5>
                     <div class="small text-muted">
-                        Donem kisi basi <span data-bind="text: formatMoney(overview().periodSpendPerClient)"></span>
+                        <t key="salon.reports.period_per_person">Dönem kişi başı</t> <span data-bind="text: formatMoney(overview().periodSpendPerClient)"></span>
                     </div>
                 </div>
             </div>
@@ -104,10 +105,10 @@
         <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3">
-                    <small class="text-muted">Personel Verimliligi</small>
+                    <small class="text-muted"><t key="salon.reports.staff_efficiency">Personel Verimliliği</t></small>
                     <h5 class="mb-1" data-bind="text: formatMoney(overview().revenuePerActiveStaff)"></h5>
                     <div class="small text-muted">
-                        Kisi basi · Saat basi <span data-bind="text: formatMoney(overview().revenuePerBookedHour)"></span>
+                        <t key="salon.reports.per_person_hour">Kişi başı · Saat başı</t> <span data-bind="text: formatMoney(overview().revenuePerBookedHour)"></span>
                     </div>
                 </div>
             </div>
@@ -118,22 +119,22 @@
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
-            <a class="nav-link active" data-bs-toggle="tab" href="#sales-tab" data-bind="click: loadSales">Satis</a>
+            <a class="nav-link active" data-bs-toggle="tab" href="#sales-tab" data-bind="click: loadSales"><t key="salon.reports.tabs.sales">Satış</t></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#staff-tab" data-bind="click: loadStaff">Personel</a>
+            <a class="nav-link" data-bs-toggle="tab" href="#staff-tab" data-bind="click: loadStaff"><t key="salon.sidebar.staff">Personel</t></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#branches-tab" data-bind="click: loadBranchComparison">Subeler</a>
+            <a class="nav-link" data-bs-toggle="tab" href="#branches-tab" data-bind="click: loadBranchComparison"><t key="salon.sidebar.branches">Şubeler</t></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#stock-tab" data-bind="click: loadStock">Stok</a>
+            <a class="nav-link" data-bs-toggle="tab" href="#stock-tab" data-bind="click: loadStock"><t key="salon.sidebar.inventory">Stok</t></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#finance-tab" data-bind="click: loadFinance">Finans</a>
+            <a class="nav-link" data-bs-toggle="tab" href="#finance-tab" data-bind="click: loadFinance"><t key="salon.sidebar.finance">Finans</t></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#clients-tab" data-bind="click: loadClients">Musteri</a>
+            <a class="nav-link" data-bs-toggle="tab" href="#clients-tab" data-bind="click: loadClients"><t key="salon.panel.payments.customer">Müşteri</t></a>
         </li>
     </ul>
 
@@ -144,25 +145,25 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Toplam Gelir</small>
+                        <small class="text-muted"><t key="salon.reports.total_revenue">Toplam Gelir</t></small>
                         <h5 class="text-success mb-0" data-bind="text: formatMoney(sales().totalRevenue)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Adisyon Sayisi</small>
+                        <small class="text-muted"><t key="salon.reports.invoice_count">Adisyon Sayısı</t></small>
                         <h5 class="mb-0" data-bind="text: sales().totalInvoices"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Hizmet Geliri</small>
+                        <small class="text-muted"><t key="salon.reports.service_revenue">Hizmet Geliri</t></small>
                         <h5 class="text-primary mb-0" data-bind="text: formatMoney(sales().serviceRevenue)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Urun Geliri</small>
+                        <small class="text-muted"><t key="salon.reports.product_revenue">Ürün Geliri</t></small>
                         <h5 class="text-info mb-0" data-bind="text: formatMoney(sales().productRevenue)"></h5>
                     </div>
                 </div>
@@ -171,15 +172,15 @@
             <div class="row g-3">
                 <div class="col-md-8">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white"><small class="fw-semibold">Gunluk Satis</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.daily_sales">Günlük Satış</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Tarih</th><th>Adisyon</th><th>Gelir</th></tr>
+                                    <tr><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.reports.invoice">Adisyon</t></th><th><t key="salon.reports.revenue">Gelir</t></th></tr>
                                 </thead>
                                 <tbody data-bind="foreach: sales().dailySales">
                                     <tr>
-                                        <td class="small" data-bind="text: new Date(date).toLocaleDateString('tr-TR')"></td>
+                                        <td class="small" data-bind="text: new Date(date).toLocaleDateString(document.documentElement.lang || undefined)"></td>
                                         <td class="small" data-bind="text: invoiceCount"></td>
                                         <td class="small" data-bind="text: $parent.formatMoney(revenue)"></td>
                                     </tr>
@@ -190,11 +191,11 @@
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white"><small class="fw-semibold">Odeme Yontemi Dagilimi</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.payment_method_breakdown">Ödeme Yöntemi Dağılımı</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Yontem</th><th>Adet</th><th>Tutar</th></tr>
+                                    <tr><th><t key="salon.modules.payment_method">Yöntem</t></th><th><t key="salon.reports.count">Adet</t></th><th><t key="salon.panel.payments.amount">Tutar</t></th></tr>
                                 </thead>
                                 <tbody data-bind="foreach: sales().paymentMethodBreakdown">
                                     <tr>
@@ -210,7 +211,7 @@
             </div>
             <!-- /ko -->
             <!-- ko if: !sales() && !isLoading() -->
-            <div class="text-center text-muted py-4"><p>Rapor verisi yuklenecek...</p></div>
+            <div class="text-center text-muted py-4"><p><t key="salon.reports.data_will_load">Rapor verisi yüklenecek...</t></p></div>
             <!-- /ko -->
         </div>
 
@@ -219,11 +220,11 @@
             <!-- ko if: staff() -->
             <!-- ko if: overview() && overview().staffEfficiency.length > 0 -->
             <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white"><small class="fw-semibold">Verimlilik Ozeti</small></div>
+                <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.efficiency_summary">Verimlilik Özeti</t></small></div>
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Personel</th><th>Randevu</th><th>Tamamlanan</th><th>Saat</th><th>Ciro</th><th>Saat Basi</th><th>Hizmet Basi</th></tr>
+                            <tr><th><t key="salon.sidebar.staff">Personel</t></th><th><t key="salon.sidebar.appointments">Randevu</t></th><th><t key="salon.reports.completed">Tamamlanan</t></th><th><t key="salon.reports.hour">Saat</t></th><th><t key="salon.reports.turnover">Ciro</t></th><th><t key="salon.reports.per_hour">Saat Başı</t></th><th><t key="salon.reports.per_service">Hizmet Başı</t></th></tr>
                         </thead>
                         <tbody data-bind="foreach: overview().staffEfficiency">
                             <tr>
@@ -244,7 +245,7 @@
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Personel</th><th>Hizmet Sayisi</th><th>Ciro</th><th>Prim</th></tr>
+                            <tr><th><t key="salon.sidebar.staff">Personel</t></th><th><t key="salon.reports.service_count">Hizmet Sayısı</t></th><th><t key="salon.reports.turnover">Ciro</t></th><th><t key="salon.reports.commission">Prim</t></th></tr>
                         </thead>
                         <tbody data-bind="foreach: staff().staff">
                             <tr>
@@ -264,11 +265,11 @@
         <div class="tab-pane fade" id="branches-tab">
             <!-- ko if: branchComparison() -->
             <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white"><small class="fw-semibold">Sube Ozetleri</small></div>
+                <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.branch_summaries">Şube Özetleri</t></small></div>
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Sube</th><th>Ciro</th><th>Pay</th><th>Adisyon</th><th>Ort. Sepet</th><th>Hizmet</th><th>Urun</th><th>Randevu</th><th>Musteri</th></tr>
+                            <tr><th><t key="salon.common.branch">Şube</t></th><th><t key="salon.reports.turnover">Ciro</t></th><th><t key="salon.reports.share">Pay</t></th><th><t key="salon.reports.invoice">Adisyon</t></th><th><t key="salon.reports.average_basket">Ort. Sepet</t></th><th><t key="salon.book.summary.service">Hizmet</t></th><th><t key="salon.sidebar.products">Ürün</t></th><th><t key="salon.sidebar.appointments">Randevu</t></th><th><t key="salon.panel.payments.customer">Müşteri</t></th></tr>
                         </thead>
                         <tbody data-bind="foreach: branchComparison().branches">
                             <tr>
@@ -292,10 +293,10 @@
             <div class="row g-3">
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Hizmet Boyutu</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.service_dimension">Hizmet Boyutu</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
-                                <thead class="table-light"><tr><th>Sube</th><th>Hizmet</th><th>Adet</th><th>Ciro</th></tr></thead>
+                                <thead class="table-light"><tr><th><t key="salon.common.branch">Şube</t></th><th><t key="salon.book.summary.service">Hizmet</t></th><th><t key="salon.reports.count">Adet</t></th><th><t key="salon.reports.turnover">Ciro</t></th></tr></thead>
                                 <tbody data-bind="foreach: branchComparison().services">
                                     <tr>
                                         <td class="small" data-bind="text: branchName"></td>
@@ -306,17 +307,17 @@
                                 </tbody>
                             </table>
                             <!-- ko if: branchComparison().services.length === 0 -->
-                            <div class="text-center text-muted small py-3">Hizmet geliri yok.</div>
+                            <div class="text-center text-muted small py-3"><t key="salon.reports.no_service_revenue">Hizmet geliri yok.</t></div>
                             <!-- /ko -->
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Personel Boyutu</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.staff_dimension">Personel Boyutu</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
-                                <thead class="table-light"><tr><th>Sube</th><th>Personel</th><th>Adet</th><th>Ciro</th></tr></thead>
+                                <thead class="table-light"><tr><th><t key="salon.common.branch">Şube</t></th><th><t key="salon.sidebar.staff">Personel</t></th><th><t key="salon.reports.count">Adet</t></th><th><t key="salon.reports.turnover">Ciro</t></th></tr></thead>
                                 <tbody data-bind="foreach: branchComparison().personnel">
                                     <tr>
                                         <td class="small" data-bind="text: branchName"></td>
@@ -327,17 +328,17 @@
                                 </tbody>
                             </table>
                             <!-- ko if: branchComparison().personnel.length === 0 -->
-                            <div class="text-center text-muted small py-3">Personel bazli gelir yok.</div>
+                            <div class="text-center text-muted small py-3"><t key="salon.reports.no_staff_revenue">Personel bazlı gelir yok.</t></div>
                             <!-- /ko -->
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Urun Boyutu</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.product_dimension">Ürün Boyutu</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
-                                <thead class="table-light"><tr><th>Sube</th><th>Urun</th><th>Adet</th><th>Ciro</th></tr></thead>
+                                <thead class="table-light"><tr><th><t key="salon.common.branch">Şube</t></th><th><t key="salon.sidebar.products">Ürün</t></th><th><t key="salon.reports.count">Adet</t></th><th><t key="salon.reports.turnover">Ciro</t></th></tr></thead>
                                 <tbody data-bind="foreach: branchComparison().products">
                                     <tr>
                                         <td class="small" data-bind="text: branchName"></td>
@@ -348,7 +349,7 @@
                                 </tbody>
                             </table>
                             <!-- ko if: branchComparison().products.length === 0 -->
-                            <div class="text-center text-muted small py-3">Urun geliri yok.</div>
+                            <div class="text-center text-muted small py-3"><t key="salon.reports.no_product_revenue">Ürün geliri yok.</t></div>
                             <!-- /ko -->
                         </div>
                     </div>
@@ -363,44 +364,44 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Toplam Urun</small>
+                        <small class="text-muted"><t key="salon.reports.total_products">Toplam Ürün</t></small>
                         <h5 class="mb-0" data-bind="text: stock().totalProducts"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Dusuk Stok</small>
+                        <small class="text-muted"><t key="salon.reports.low_stock">Düşük Stok</t></small>
                         <h5 class="text-danger mb-0" data-bind="text: stock().lowStockCount"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Stok Maliyeti</small>
+                        <small class="text-muted"><t key="salon.reports.stock_cost">Stok Maliyeti</t></small>
                         <h5 class="text-primary mb-0" data-bind="text: formatMoney(stock().totalStockValue)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Raf Satis Degeri</small>
+                        <small class="text-muted"><t key="salon.reports.retail_value">Raf Satış Değeri</t></small>
                         <h5 class="text-info mb-0" data-bind="text: formatMoney(stock().totalRetailValue)"></h5>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Tahmini Brut Kar</small>
+                        <small class="text-muted"><t key="salon.reports.estimated_gross_profit">Tahmini Brüt Kar</t></small>
                         <h5 class="mb-0" data-bind="text: formatMoney(stock().potentialGrossProfit), css: { 'text-success': stock().potentialGrossProfit >= 0, 'text-danger': stock().potentialGrossProfit < 0 }"></h5>
-                        <small class="text-muted" data-bind="text: formatPercent(stock().averageMarginPercent) + ' marj'"></small>
+                        <small class="text-muted" data-bind="text: formatPercent(stock().averageMarginPercent) + ' ' + salonT('salon.reports.margin', 'Marj').toLowerCase()"></small>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Tahmini KDV</small>
+                        <small class="text-muted"><t key="salon.reports.estimated_vat">Tahmini KDV</t></small>
                         <h5 class="text-warning mb-0" data-bind="text: formatMoney(stock().estimatedVatTotal)"></h5>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Tedarikci Borcu</small>
+                        <small class="text-muted"><t key="salon.reports.supplier_debt">Tedarikçi Borcu</t></small>
                         <h5 class="mb-0" data-bind="text: formatMoney(stock().supplierDebtTotal), css: { 'text-danger': stock().supplierDebtTotal > 0, 'text-success': stock().supplierDebtTotal <= 0 }"></h5>
                     </div>
                 </div>
@@ -409,11 +410,11 @@
             <div class="row g-3 mb-3">
                 <div class="col-lg-6">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">KDV Kirilimi</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.vat_breakdown">KDV Kırılımı</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <thead class="table-light">
-                                    <tr><th>KDV</th><th>Urun</th><th>Stok Maliyeti</th><th>Satis Degeri</th><th>Tahmini KDV</th></tr>
+                                    <tr><th><t key="salon.reports.vat">KDV</t></th><th><t key="salon.sidebar.products">Ürün</t></th><th><t key="salon.reports.stock_cost">Stok Maliyeti</t></th><th><t key="salon.reports.sales_value">Satış Değeri</t></th><th><t key="salon.reports.estimated_vat">Tahmini KDV</t></th></tr>
                                 </thead>
                                 <tbody data-bind="foreach: stock().taxBreakdown">
                                     <tr>
@@ -426,29 +427,29 @@
                                 </tbody>
                             </table>
                             <!-- ko if: stock().taxBreakdown.length === 0 -->
-                            <div class="text-center text-muted small py-3">KDV kirilimi icin urun yok.</div>
+                            <div class="text-center text-muted small py-3"><t key="salon.reports.no_vat_products">KDV kırılımı için ürün yok.</t></div>
                             <!-- /ko -->
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-6">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Tedarikci Borclari</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.supplier_debts">Tedarikçi Borçları</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Tedarikci</th><th>Bakiye</th><th>Son Hareket</th></tr>
+                                    <tr><th><t key="salon.sidebar.suppliers">Tedarikçi</t></th><th><t key="salon.reports.balance">Bakiye</t></th><th><t key="salon.reports.last_activity">Son Hareket</t></th></tr>
                                 </thead>
                                 <tbody data-bind="foreach: stock().supplierDebtBreakdown">
                                     <tr>
                                         <td class="small" data-bind="text: supplierName"></td>
                                         <td class="small fw-semibold" data-bind="text: $parent.formatMoney(balance), css: { 'text-danger': balance > 0, 'text-success': balance <= 0 }"></td>
-                                        <td class="small" data-bind="text: lastTransactionDate ? new Date(lastTransactionDate).toLocaleDateString('tr-TR') : '-'"></td>
+                                        <td class="small" data-bind="text: lastTransactionDate ? new Date(lastTransactionDate).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td>
                                     </tr>
                                 </tbody>
                             </table>
                             <!-- ko if: stock().supplierDebtBreakdown.length === 0 -->
-                            <div class="text-center text-muted small py-3">Acik tedarikci bakiyesi yok.</div>
+                            <div class="text-center text-muted small py-3"><t key="salon.reports.no_supplier_balance">Açık tedarikçi bakiyesi yok.</t></div>
                             <!-- /ko -->
                         </div>
                     </div>
@@ -456,11 +457,11 @@
             </div>
 
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white"><small class="fw-semibold">Urun Stok ve Marj Detayi</small></div>
+                <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.product_stock_margin_detail">Ürün Stok ve Marj Detayı</t></small></div>
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Urun</th><th>Kategori</th><th>Stok</th><th>Min</th><th>KDV</th><th>Maliyet</th><th>Satis Degeri</th><th>Marj</th></tr>
+                            <tr><th><t key="salon.sidebar.products">Ürün</t></th><th><t key="salon.reports.category">Kategori</t></th><th><t key="salon.sidebar.inventory">Stok</t></th><th><t key="salon.reports.min">Min</t></th><th><t key="salon.reports.vat">KDV</t></th><th><t key="salon.reports.cost">Maliyet</t></th><th><t key="salon.reports.sales_value">Satış Değeri</t></th><th><t key="salon.reports.margin">Marj</t></th></tr>
                         </thead>
                         <tbody data-bind="foreach: stock().items">
                             <tr data-bind="css: { 'table-danger': isLowStock }">
@@ -486,49 +487,49 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Toplam Gelir</small>
+                        <small class="text-muted"><t key="salon.reports.total_revenue">Toplam Gelir</t></small>
                         <h5 class="text-success mb-0" data-bind="text: formatMoney(finance().totalIncome)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Toplam Gider</small>
+                        <small class="text-muted"><t key="salon.reports.total_expense">Toplam Gider</t></small>
                         <h5 class="text-danger mb-0" data-bind="text: formatMoney(finance().totalExpense)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Net Kar</small>
+                        <small class="text-muted"><t key="salon.reports.net_profit">Net Kâr</t></small>
                         <h5 class="mb-0" data-bind="text: formatMoney(finance().netProfit), css: { 'text-success': finance().netProfit >= 0, 'text-danger': finance().netProfit < 0 }"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Fatura</small>
+                        <small class="text-muted"><t key="salon.reports.invoice_short">Fatura</t></small>
                         <h5 class="mb-0" data-bind="text: finance().invoiceCount"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Satis KDV</small>
+                        <small class="text-muted"><t key="salon.reports.sales_vat">Satış KDV</t></small>
                         <h5 class="text-warning mb-0" data-bind="text: formatMoney(finance().salesVatTotal)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Gider KDV</small>
+                        <small class="text-muted"><t key="salon.reports.expense_vat">Gider KDV</t></small>
                         <h5 class="text-info mb-0" data-bind="text: formatMoney(finance().expenseVatTotal)"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Odenecek KDV</small>
+                        <small class="text-muted"><t key="salon.reports.vat_payable">Ödenecek KDV</t></small>
                         <h5 class="mb-0" data-bind="text: formatMoney(finance().vatPayable), css: { 'text-danger': finance().vatPayable > 0, 'text-success': finance().vatPayable <= 0 }"></h5>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Kasa Net</small>
+                        <small class="text-muted"><t key="salon.reports.cash_net">Kasa Net</t></small>
                         <h5 class="mb-0" data-bind="text: formatMoney(finance().cashNet), css: { 'text-success': finance().cashNet >= 0, 'text-danger': finance().cashNet < 0 }"></h5>
                     </div>
                 </div>
@@ -537,14 +538,14 @@
             <div class="row g-3 mb-3">
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Fatura Ozeti</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.invoice_summary">Fatura Özeti</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <tbody>
-                                    <tr><td class="small">Brut Satis</td><td class="small text-end" data-bind="text: formatMoney(finance().grossRevenue)"></td></tr>
-                                    <tr><td class="small">Indirim</td><td class="small text-end" data-bind="text: formatMoney(finance().discountTotal)"></td></tr>
-                                    <tr><td class="small">Hizmet Geliri</td><td class="small text-end" data-bind="text: formatMoney(finance().serviceRevenue)"></td></tr>
-                                    <tr><td class="small">Urun Geliri</td><td class="small text-end" data-bind="text: formatMoney(finance().productRevenue)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.gross_sales">Brüt Satış</t></td><td class="small text-end" data-bind="text: formatMoney(finance().grossRevenue)"></td></tr>
+                                    <tr><td class="small"><t key="salon.profile.membership.discount_suffix">İndirim</t></td><td class="small text-end" data-bind="text: formatMoney(finance().discountTotal)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.service_revenue">Hizmet Geliri</t></td><td class="small text-end" data-bind="text: formatMoney(finance().serviceRevenue)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.product_revenue">Ürün Geliri</t></td><td class="small text-end" data-bind="text: formatMoney(finance().productRevenue)"></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -552,14 +553,14 @@
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Kasa Ozeti</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.cash_summary">Kasa Özeti</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <tbody>
-                                    <tr><td class="small">Kasa Giris</td><td class="small text-end text-success" data-bind="text: formatMoney(finance().cashIncome)"></td></tr>
-                                    <tr><td class="small">Kasa Cikis</td><td class="small text-end text-danger" data-bind="text: formatMoney(finance().cashExpense)"></td></tr>
-                                    <tr><td class="small">Donem Net</td><td class="small text-end" data-bind="text: formatMoney(finance().cashNet)"></td></tr>
-                                    <tr><td class="small">Donem Sonu Bakiye</td><td class="small text-end fw-semibold" data-bind="text: formatMoney(finance().cashBalance)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.cash_in">Kasa Giriş</t></td><td class="small text-end text-success" data-bind="text: formatMoney(finance().cashIncome)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.cash_out">Kasa Çıkış</t></td><td class="small text-end text-danger" data-bind="text: formatMoney(finance().cashExpense)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.period_net">Dönem Net</t></td><td class="small text-end" data-bind="text: formatMoney(finance().cashNet)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.period_end_balance">Dönem Sonu Bakiye</t></td><td class="small text-end fw-semibold" data-bind="text: formatMoney(finance().cashBalance)"></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -567,12 +568,12 @@
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Stok Degeri</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.stock_value">Stok Değeri</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
                                 <tbody>
-                                    <tr><td class="small">Stok Maliyeti</td><td class="small text-end" data-bind="text: formatMoney(finance().stockValue)"></td></tr>
-                                    <tr><td class="small">Raf Satis Degeri</td><td class="small text-end" data-bind="text: formatMoney(finance().retailStockValue)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.stock_cost">Stok Maliyeti</t></td><td class="small text-end" data-bind="text: formatMoney(finance().stockValue)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.retail_value">Raf Satış Değeri</t></td><td class="small text-end" data-bind="text: formatMoney(finance().retailStockValue)"></td></tr>
                                     <tr><td class="small">Tahmini Stok KDV</td><td class="small text-end" data-bind="text: formatMoney(finance().estimatedStockVat)"></td></tr>
                                 </tbody>
                             </table>
@@ -584,10 +585,10 @@
             <div class="row g-3">
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Odeme Yontemleri</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.payment_methods">Ödeme Yöntemleri</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
-                                <thead class="table-light"><tr><th>Yontem</th><th>Adet</th><th>Tutar</th></tr></thead>
+                                <thead class="table-light"><tr><th><t key="salon.modules.payment_method">Yöntem</t></th><th><t key="salon.reports.count">Adet</t></th><th><t key="salon.panel.payments.amount">Tutar</t></th></tr></thead>
                                 <tbody data-bind="foreach: finance().paymentMethodBreakdown">
                                     <tr>
                                         <td class="small" data-bind="text: paymentMethodName"></td>
@@ -601,10 +602,10 @@
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Satis KDV Kirilimi</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.sales_vat_breakdown">Satış KDV Kırılımı</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
-                                <thead class="table-light"><tr><th>KDV</th><th>Satir</th><th>Matrah</th><th>Tutar</th></tr></thead>
+                                <thead class="table-light"><tr><th><t key="salon.reports.vat">KDV</t></th><th><t key="salon.reports.line">Satır</t></th><th><t key="salon.reports.taxable_amount">Matrah</t></th><th><t key="salon.panel.payments.amount">Tutar</t></th></tr></thead>
                                 <tbody data-bind="foreach: finance().taxBreakdown">
                                     <tr>
                                         <td class="small" data-bind="text: $parent.formatPercent(taxRate)"></td>
@@ -619,10 +620,10 @@
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white"><small class="fw-semibold">Masraf Dagilimi</small></div>
+                        <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.expense_breakdown">Masraf Dağılımı</t></small></div>
                         <div class="card-body p-0">
                             <table class="table table-sm mb-0">
-                                <thead class="table-light"><tr><th>Kategori</th><th>Adet</th><th>Tutar</th></tr></thead>
+                                <thead class="table-light"><tr><th><t key="salon.reports.category">Kategori</t></th><th><t key="salon.reports.count">Adet</t></th><th><t key="salon.panel.payments.amount">Tutar</t></th></tr></thead>
                                 <tbody data-bind="foreach: finance().expenseBreakdown">
                                     <tr>
                                         <td class="small" data-bind="text: categoryName"></td>
@@ -644,36 +645,36 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Toplam Musteri</small>
+                        <small class="text-muted"><t key="salon.dashboard.total_clients">Toplam Müşteri</t></small>
                         <h5 class="mb-0" data-bind="text: clientReport().totalClients"></h5>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Donemde Yeni</small>
+                        <small class="text-muted"><t key="salon.reports.new_in_period">Dönemde Yeni</t></small>
                         <h5 class="text-primary mb-0" data-bind="text: clientReport().newClientsInPeriod"></h5>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm text-center p-3">
-                        <small class="text-muted">Ort. Ziyaret Sikligi</small>
+                        <small class="text-muted"><t key="salon.reports.avg_visit_frequency">Ort. Ziyaret Sıklığı</t></small>
                         <h5 class="mb-0" data-bind="text: clientReport().averageVisitFrequency.toFixed(1)"></h5>
                     </div>
                 </div>
             </div>
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white"><small class="fw-semibold">En Degerli Musteriler</small></div>
+                <div class="card-header bg-white"><small class="fw-semibold"><t key="salon.reports.top_clients">En Değerli Müşteriler</t></small></div>
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
-                            <tr><th>Musteri</th><th>Ziyaret</th><th>Toplam Harcama</th><th>Son Ziyaret</th></tr>
+                            <tr><th><t key="salon.panel.payments.customer">Müşteri</t></th><th><t key="salon.reports.visit">Ziyaret</t></th><th><t key="salon.reports.total_spent">Toplam Harcama</t></th><th><t key="salon.reports.last_visit">Son Ziyaret</t></th></tr>
                         </thead>
                         <tbody data-bind="foreach: clientReport().topClients">
                             <tr>
                                 <td class="fw-semibold small" data-bind="text: clientName"></td>
                                 <td class="small" data-bind="text: visitCount"></td>
                                 <td class="small" data-bind="text: $parent.formatMoney(totalSpent)"></td>
-                                <td class="small" data-bind="text: lastVisit ? new Date(lastVisit).toLocaleDateString('tr-TR') : '-'"></td>
+                                <td class="small" data-bind="text: lastVisit ? new Date(lastVisit).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -687,7 +688,7 @@
     <!-- ko if: isLoading() -->
     <div class="text-center py-4">
         <div class="spinner-border spinner-border-sm text-primary"></div>
-        <span class="ms-2 text-muted small">Yukleniyor...</span>
+        <span class="ms-2 text-muted small"><t key="salon.common.loading">Yükleniyor...</t></span>
     </div>
     <!-- /ko -->
 
@@ -695,17 +696,17 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header py-2">
-                    <h6 class="modal-title"><i class="bi bi-envelope me-1"></i>Raporu E-posta ile Gonder</h6>
+                    <h6 class="modal-title"><i class="bi bi-envelope me-1"></i><t key="salon.reports.email_modal.title">Raporu E-posta ile Gönder</t></h6>
                     <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">
-                        <label class="form-label small">Alicilar</label>
-                        <textarea class="form-control form-control-sm" rows="2" placeholder="ornek@firma.com; muhasebe@firma.com" data-bind="value: emailForm.toAddresses"></textarea>
+                        <label class="form-label small"><t key="salon.reports.email_modal.recipients">Alıcılar</t></label>
+                        <textarea class="form-control form-control-sm" rows="2" placeholder="@(Translation.T("salon.reports.email_modal.recipients_placeholder", "ornek@firma.com; muhasebe@firma.com"))" data-bind="value: emailForm.toAddresses"></textarea>
                     </div>
                     <div class="row g-2">
                         <div class="col-md-6 mb-2">
-                            <label class="form-label small">Format</label>
+                            <label class="form-label small"><t key="salon.reports.email_modal.format">Format</t></label>
                             <select class="form-select form-select-sm" data-bind="value: emailForm.format">
                                 <option value="pdf">PDF</option>
                                 <option value="xlsx">Excel</option>
@@ -713,27 +714,27 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-2">
-                            <label class="form-label small">Zamanla</label>
+                            <label class="form-label small"><t key="salon.reports.email_modal.schedule">Zamanla</t></label>
                             <input type="datetime-local" class="form-control form-control-sm" data-bind="value: emailForm.scheduledAt" />
                         </div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Konu</label>
-                        <input class="form-control form-control-sm" data-bind="value: emailForm.subject" placeholder="Bos birakilirsa otomatik olusturulur" />
+                        <label class="form-label small"><t key="salon.reports.email_modal.subject">Konu</t></label>
+                        <input class="form-control form-control-sm" data-bind="value: emailForm.subject" placeholder="@(Translation.T("salon.reports.email_modal.subject_placeholder", "Boş bırakılırsa otomatik oluşturulur"))" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Mesaj</label>
-                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: emailForm.message" placeholder="E-posta govdesine eklenecek not"></textarea>
+                        <label class="form-label small"><t key="salon.reports.email_modal.message">Mesaj</t></label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: emailForm.message" placeholder="@(Translation.T("salon.reports.email_modal.message_placeholder", "E-posta gövdesine eklenecek not"))"></textarea>
                     </div>
                     <div class="text-muted small">
-                        Zaman alani bos ise rapor hemen gonderilir. Gonderim, tanimli salon e-posta entegrasyonunu kullanir.
+                        <t key="salon.reports.email_modal.help">Zaman alanı boş ise rapor hemen gönderilir. Gönderim, tanımlı salon e-posta entegrasyonunu kullanır.</t>
                     </div>
                 </div>
                 <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: sendReportEmail, disable: isEmailSending">
                         <span class="spinner-border spinner-border-sm me-1" data-bind="visible: isEmailSending"></span>
-                        <i class="bi bi-send me-1" data-bind="visible: !isEmailSending()"></i>Gonder / Zamanla
+                        <i class="bi bi-send me-1" data-bind="visible: !isEmailSending()"></i><t key="salon.reports.email_modal.send_schedule">Gönder / Zamanla</t>
                     </button>
                 </div>
             </div>

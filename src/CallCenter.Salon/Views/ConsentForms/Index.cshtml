@@ -1,12 +1,13 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Onay Formlari";
+    ViewData["Title"] = Translation.T("salon.consentforms.auto.onay_formlari", "Onay Formları");
 }
 
 <div id="consentforms-vm">
     <ul class="nav nav-tabs mb-3" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-forms">
-                <i class="bi bi-file-earmark-text me-1"></i>Form Tanimlari
+                <i class="bi bi-file-earmark-text me-1"></i><t key="salon.consentforms.auto.form_tanimlari"><t key="salon.consentforms.auto.form_tanimlari">Form Tanimlari</t></t>
             </button>
         </li>
         <li class="nav-item">
@@ -20,9 +21,9 @@
         <!-- Form Tanimlari -->
         <div class="tab-pane fade show active" id="tab-forms">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">Form Tanimlari</h6>
+                <h6 class="mb-0"><t key="salon.consentforms.auto.form_tanimlari">Form Tanimlari</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewForm">
-                    <i class="bi bi-plus-lg me-1"></i>Yeni Form
+                    <i class="bi bi-plus-lg me-1"></i><t key="salon.consentforms.auto.yeni_form"><t key="salon.consentforms.auto.yeni_form">Yeni Form</t></t>
                 </button>
             </div>
 
@@ -50,13 +51,13 @@
                                     <td class="small">
                                         <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
                                     </td>
-                                    <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                                    <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString(document.documentElement.lang || undefined)"></td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" title="Duzenle" data-bind="click: $parent.openEditForm">
+                                            <button class="btn btn-outline-primary" title="@(Translation.T("salon.common.btn.edit_tooltip", "Düzenle"))" data-bind="click: $parent.openEditForm">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
-                                            <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.removeForm">
+                                            <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removeForm">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -68,7 +69,7 @@
                     <!-- ko if: forms().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-file-earmark-text" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Henuz form tanimlanmamis</p>
+                        <p class="mt-2 small"><t key="salon.consentforms.auto.henuz_form_tanimlanmamis">Henuz form tanimlanmamis</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -83,8 +84,8 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Form</th>
-                                    <th>Musteri</th>
+                                    <th><t key="salon.consentforms.auto.form">Form</t></th>
+                                    <th><t key="salon.panel.payments.customer">Müşteri</t></th>
                                     <th>IP Adresi</th>
                                     <th>Imza Tarihi</th>
                                 </tr>
@@ -94,7 +95,7 @@
                                     <td class="fw-semibold small" data-bind="text: formTitle"></td>
                                     <td class="small" data-bind="text: clientName"></td>
                                     <td class="small" data-bind="text: ipAddress || '-'"></td>
-                                    <td class="small" data-bind="text: new Date(signedAt).toLocaleString('tr-TR')"></td>
+                                    <td class="small" data-bind="text: new Date(signedAt).toLocaleString(document.documentElement.lang || undefined)"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -102,7 +103,7 @@
                     <!-- ko if: signedConsents().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-pen" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Henuz imzalanmis form yok</p>
+                        <p class="mt-2 small"><t key="salon.consentforms.auto.henuz_imzalanmis_form_yok">Henuz imzalanmis form yok</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -115,7 +116,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Form Duzenle' : 'Yeni Onay Formu'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.consentforms.auto.form_duzenle', 'Form Düzenle') : salonT('salon.consentforms.auto.yeni_onay_formu', 'Yeni Onay Formu')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -143,10 +144,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveForm, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save"><t key="salon.common.btn.save">Kaydet</t></t>
                     </button>
                 </div>
             </div>

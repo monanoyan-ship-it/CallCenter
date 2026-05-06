@@ -8,6 +8,18 @@
  *   veya JS: initPhoneInput(inputElement, koObservable)
  */
 
+function phoneT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
+function phoneCountryKey(countryCode) {
+    return 'salon.phone.country.plus' + String(countryCode || '').replace(/\D/g, '');
+}
+
+function phoneCountryName(country) {
+    return phoneT(phoneCountryKey(country.code), country.name);
+}
+
 // Ulke kodlari (en cok kullanilanlar uste)
 var PHONE_COUNTRIES = [
     { code: '+90', name: 'Türkiye', flag: '🇹🇷', format: 'XXX XXX XX XX', maxDigits: 10 },
@@ -118,7 +130,7 @@ ko.bindingHandlers.phoneInput = {
         container.innerHTML =
             '<button class="btn btn-outline-secondary dropdown-toggle phone-country-btn" type="button" style="min-width:80px; font-size:.85rem;"></button>' +
             '<div class="dropdown-menu phone-country-dropdown p-1" style="max-height:250px; overflow-y:auto; min-width:260px;">' +
-                '<input type="text" class="form-control form-control-sm mb-1 phone-country-search" placeholder="Ülke ara..." />' +
+                '<input type="text" class="form-control form-control-sm mb-1 phone-country-search" placeholder="' + phoneT('salon.phone.country_search', 'Ülke ara...') + '" />' +
                 '<div class="phone-country-list"></div>' +
             '</div>' +
             '<input type="tel" class="form-control form-control-sm phone-national-input" placeholder="5XX XXX XX XX" />';
@@ -138,11 +150,12 @@ ko.bindingHandlers.phoneInput = {
             var q = (filter || '').toLowerCase();
             var html = '';
             PHONE_COUNTRIES.forEach(function (c) {
-                if (q && c.name.toLowerCase().indexOf(q) < 0 && c.code.indexOf(q) < 0) return;
+                var localizedName = phoneCountryName(c);
+                if (q && localizedName.toLowerCase().indexOf(q) < 0 && c.name.toLowerCase().indexOf(q) < 0 && c.code.indexOf(q) < 0) return;
                 html += '<a class="dropdown-item small py-1 px-2" href="#" data-code="' + c.code + '">' +
-                    c.flag + ' ' + c.name + ' <span class="text-muted">' + c.code + '</span></a>';
+                    c.flag + ' ' + localizedName + ' <span class="text-muted">' + c.code + '</span></a>';
             });
-            listDiv.innerHTML = html || '<div class="text-muted small px-2">Sonuç yok</div>';
+            listDiv.innerHTML = html || '<div class="text-muted small px-2">' + phoneT('salon.common.no_results', 'Sonuç yok') + '</div>';
         }
 
         function updateBtn() {

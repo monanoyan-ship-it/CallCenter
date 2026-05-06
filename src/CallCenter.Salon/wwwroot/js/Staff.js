@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function StaffViewModel() {
     var self = this;
     self.staffList = ko.observableArray([]);
@@ -111,7 +115,7 @@ function StaffViewModel() {
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
         }).fail(function () {
-            toastr.error('Personel listesi yuklenemedi');
+            toastr.error(slnJsT('salon.staff.js.personel_listesi_yuklenemedi', 'Personel listesi yüklenemedi'));
         });
     };
 
@@ -214,7 +218,7 @@ function StaffViewModel() {
         }
 
         if (self.branchList().length > 1 && !data.branchId) {
-            toastr.warning('Sube secimi zorunludur');
+            toastr.warning(slnJsT('salon.staff.js.sube_secimi_zorunludur', 'Şube seçimi zorunludur'));
             return;
         }
 
@@ -223,12 +227,12 @@ function StaffViewModel() {
             data.password = self.form.password();
             if (!data.userName) { toastr.warning('Kullanici adi zorunludur'); return; }
             if (self.usernameAvailable() === false) { toastr.warning('Bu kullanici adi zaten kullaniliyor'); return; }
-            if (!data.password) { toastr.warning('Sifre zorunludur'); return; }
+            if (!data.password) { toastr.warning(slnJsT('salon.staff.js.sifre_zorunludur', 'Şifre zorunludur')); return; }
             if (data.userName.length < 3) { toastr.warning('Kullanici adi en az 3 karakter olmali'); return; }
 
             var pwdErrors = validatePassword(data.password);
             if (pwdErrors.length > 0) {
-                toastr.warning('Sifre gereksinimleri:\n' + pwdErrors.join(', '));
+                toastr.warning(slnJsT('salon.staff.js.sifre_gereksinimleri_n', 'Şifre gereksinimleri:\\n') + pwdErrors.join(', '));
                 return;
             }
         } else {
@@ -236,7 +240,7 @@ function StaffViewModel() {
             if (pwd) {
                 var pwdErrors = validatePassword(pwd);
                 if (pwdErrors.length > 0) {
-                    toastr.warning('Sifre gereksinimleri:\n' + pwdErrors.join(', '));
+                    toastr.warning(slnJsT('salon.staff.js.sifre_gereksinimleri_n', 'Şifre gereksinimleri:\\n') + pwdErrors.join(', '));
                     return;
                 }
                 data.password = pwd;
@@ -258,7 +262,7 @@ function StaffViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Personel guncellendi' : 'Personel eklendi');
+            toastr.success(self.isEditing() ? slnJsT('salon.staff.js.personel_guncellendi', 'Personel güncellendi') : slnJsT('salon.staff.js.personel_eklendi', 'Personel eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
             var msg = xhr.responseJSON?.message || xhr.responseJSON?.error || xhr.responseJSON;
@@ -266,19 +270,19 @@ function StaffViewModel() {
                 // Backend hata mesajlarini kullanici dostu hale getir
                 if (msg.indexOf('kullanici adi') >= 0) toastr.error('Bu kullanici adi zaten kullaniliyor. Farkli bir isim deneyin.');
                 else if (msg.indexOf('e-posta') >= 0) toastr.error('Bu e-posta adresi zaten kullaniliyor.');
-                else if (msg.indexOf('limit') >= 0) toastr.error('Maksimum personel limitine ulasildi.');
+                else if (msg.indexOf(slnJsT('salon.staff.js.limit', 'limit')) >= 0) toastr.error(slnJsT('salon.staff.js.maksimum_personel_limitine_ulasildi', 'Maksimum personel limitine ulaşıldı.'));
                 else toastr.error(msg);
             } else {
-                toastr.error('Bir hata olustu');
+                toastr.error(slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             }
             self.isSaving(false);
         });
     };
 
     self.resetPassword = function (staff) {
-        confirmModal('Sifre Sifirla', staff.fullName + ' icin yeni sifre giriniz:', function (newPassword) {
+        confirmModal(slnJsT('salon.staff.js.sifre_sifirla', 'Şifre Sıfırla'), staff.fullName + slnJsT('salon.staff.js.icin_yeni_sifre_giriniz', ' icin yeni sifre giriniz:'), function (newPassword) {
             if (!newPassword || newPassword.length < 8) {
-                toastr.warning('Sifre en az 8 karakter olmalidir');
+                toastr.warning(slnJsT('salon.staff.js.sifre_en_az_8_karakter_olmalidir', 'Şifre en az 8 karakter olmalidir'));
                 return;
             }
             $.ajax({
@@ -301,20 +305,20 @@ function StaffViewModel() {
                     password: newPassword
                 })
             }).done(function () {
-                toastr.success('Sifre sifirlandi');
+                toastr.success(slnJsT('salon.staff.js.sifre_sifirlandi', 'Şifre sifirlandi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.message || xhr.responseJSON?.error || 'Sifre sifirlanamadi');
+                toastr.error(xhr.responseJSON?.message || xhr.responseJSON?.error || slnJsT('salon.staff.js.sifre_sifirlanamadi', 'Şifre sifirlanamadi'));
             });
-        }, { input: true, inputLabel: 'Yeni Sifre' });
+        }, { input: true, inputLabel: slnJsT('salon.staff.new_password', 'Yeni Şifre') });
     };
 
     self.remove = function (staff) {
-        confirmModal('Onay', "'" + staff.fullName + "' personelini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + staff.fullName + "' personelini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/portal/personnel/' + staff.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Personel silindi');
+                toastr.success(slnJsT('salon.staff.js.personel_silindi', 'Personel silindi'));
             }).fail(function () {
-                toastr.error('Personel silinemedi');
+                toastr.error(slnJsT('salon.staff.js.personel_silinemedi', 'Personel silinemedi'));
             });
         });
     };

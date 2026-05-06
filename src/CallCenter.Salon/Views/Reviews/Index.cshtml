@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Yorumlar";
 }
@@ -7,7 +8,7 @@
     <div class="row g-3 mb-3">
         <div class="col-md-2">
             <div class="card border-0 shadow-sm text-center py-2">
-                <div class="small text-muted">Toplam</div>
+                <div class="small text-muted"><t key="salon.reviews.auto.toplam">Toplam</t></div>
                 <div class="fw-bold" data-bind="text: stats().totalReviews"></div>
             </div>
         </div>
@@ -38,7 +39,7 @@
             </div>
         </div>
         <div class="col-md-2 d-flex align-items-center">
-            <small class="text-muted">Yorumlar müşteri tarafından eklenir. Salon panelinden yorum eklenemez (objektiflik için).</small>
+                    <small class="text-muted"><t key="salon.reviews.objectivity_notice">Yorumlar müşteri tarafından eklenir. Salon panelinden yorum eklenemez (objektiflik için).</t></small>
         </div>
     </div>
 
@@ -59,12 +60,12 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Musteri</th>
+                            <th><t key="salon.panel.payments.customer">Müşteri</t></th>
                             <th>Puan</th>
                             <th>Yorum</th>
                             <th>Kaynak</th>
-                            <th>Durum</th>
-                            <th>Tarih</th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
+                            <th><t key="salon.panel.payments.date">Tarih</t></th>
                             <th style="width:150px;"></th>
                         </tr>
                     </thead>
@@ -81,7 +82,7 @@
                             <td class="small">
                                 <span class="badge" data-bind="text: $parent.reviewStatusText(statusId), css: $parent.reviewStatusBadge(statusId)"></span>
                             </td>
-                            <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString(document.documentElement.lang || undefined)"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <!-- ko if: statusId === 1 -->
@@ -92,7 +93,7 @@
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                     <!-- /ko -->
-                                    <button class="btn btn-outline-secondary" title="Sil" data-bind="click: $parent.remove">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -115,13 +116,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-chat-square-text me-2"></i>Yeni Yorum</h6>
+                    <h6 class="modal-title"><i class="bi bi-chat-square-text me-2"></i><t key="salon.reviews.auto.yeni_yorum">Yeni Yorum</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Musteri Adi *</label>
+                            <label class="form-label small"><t key="salon.reviews.auto.musteri_adi">Müşteri Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.clientName" />
                         </div>
                         <div class="col-6">
@@ -154,10 +155,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

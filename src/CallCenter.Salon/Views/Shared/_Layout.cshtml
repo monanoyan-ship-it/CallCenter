@@ -1,5 +1,11 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    var __layoutLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var __layoutTranslations = await Translation.GetAllAsync(__layoutLang);
+    var __layoutTranslationsJson = System.Text.Json.JsonSerializer.Serialize(__layoutTranslations);
+}
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@__layoutLang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -72,99 +78,99 @@
 
             @if (canShow("Sales")) {
             <a class="nav-link mt-2 @(ctrl == "Sales" ? "active" : "")" href="/Sales" style="font-size:.95rem;">
-                <i class="bi bi-cart-check-fill me-2"></i><strong>Hizli Satis</strong>
+                <i class="bi bi-cart-check-fill me-2"></i><strong><t key="salon.sidebar.quick_sales">Hızlı Satış</t></strong>
             </a>
             }
 
             @{ var salonLinks = new[] { "Home", "Clients", "Appointments", "Waitlist" }.Where(p => canShow(p)).ToArray(); }
             @if (salonLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Salon</span><i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.salon">Salon</t></span><i class="bi bi-chevron-down chevron @(mainOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(mainOpen ? "show" : "")">
-                @if (canShow("Home")) { <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/Home"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a> }
-                @if (canShow("Clients")) { <a class="nav-link @(ctrl == "Clients" ? "active" : "")" href="/Clients"><i class="bi bi-people-fill me-2"></i>Musteriler</a> }
-                @if (canShow("Appointments")) { <a class="nav-link @(ctrl == "Appointments" ? "active" : "")" href="/Appointments"><i class="bi bi-calendar-check me-2"></i>Randevular</a> }
-                @if (canShow("Waitlist")) { <a class="nav-link @(ctrl == "Waitlist" ? "active" : "")" href="/Waitlist"><i class="bi bi-clock-history me-2"></i>Bekleme Listesi</a> }
+                @if (canShow("Home")) { <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/Home"><i class="bi bi-speedometer2 me-2"></i><t key="salon.sidebar.dashboard">Dashboard</t></a> }
+                @if (canShow("Clients")) { <a class="nav-link @(ctrl == "Clients" ? "active" : "")" href="/Clients"><i class="bi bi-people-fill me-2"></i><t key="salon.sidebar.clients">Müşteriler</t></a> }
+                @if (canShow("Appointments")) { <a class="nav-link @(ctrl == "Appointments" ? "active" : "")" href="/Appointments"><i class="bi bi-calendar-check me-2"></i><t key="salon.sidebar.appointments">Randevular</t></a> }
+                @if (canShow("Waitlist")) { <a class="nav-link @(ctrl == "Waitlist" ? "active" : "")" href="/Waitlist"><i class="bi bi-clock-history me-2"></i><t key="salon.sidebar.waitlist">Bekleme Listesi</t></a> }
             </div>
             }
 
             @{ var opsLinks = new[] { "Services", "Staff", "Recipes", "PersonnelPrices" }.Where(p => canShow(p)).ToArray(); }
             @if (opsLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Operasyon</span><i class="bi bi-chevron-down chevron @(opsOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.operations">Operasyon</t></span><i class="bi bi-chevron-down chevron @(opsOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(opsOpen ? "show" : "")">
-                @if (canShow("Services")) { <a class="nav-link @(ctrl == "Services" ? "active" : "")" href="/Services"><i class="bi bi-list-check me-2"></i>Hizmetler</a> }
-                @if (canShow("Staff")) { <a class="nav-link @(ctrl == "Staff" ? "active" : "")" href="/Staff"><i class="bi bi-person-badge me-2"></i>Personel</a> }
-                @if (canShow("Recipes")) { <a class="nav-link @(ctrl == "Recipes" ? "active" : "")" href="/Recipes"><i class="bi bi-journal-bookmark me-2"></i>Receteler</a> }
-                @if (canShow("PersonnelPrices")) { <a class="nav-link @(ctrl == "PersonnelPrices" ? "active" : "")" href="/PersonnelPrices"><i class="bi bi-currency-exchange me-2"></i>Personel Fiyatlari</a> }
+                @if (canShow("Services")) { <a class="nav-link @(ctrl == "Services" ? "active" : "")" href="/Services"><i class="bi bi-list-check me-2"></i><t key="salon.sidebar.services">Hizmetler</t></a> }
+                @if (canShow("Staff")) { <a class="nav-link @(ctrl == "Staff" ? "active" : "")" href="/Staff"><i class="bi bi-person-badge me-2"></i><t key="salon.sidebar.staff">Personel</t></a> }
+                @if (canShow("Recipes")) { <a class="nav-link @(ctrl == "Recipes" ? "active" : "")" href="/Recipes"><i class="bi bi-journal-bookmark me-2"></i><t key="salon.sidebar.recipes">Reçeteler</t></a> }
+                @if (canShow("PersonnelPrices")) { <a class="nav-link @(ctrl == "PersonnelPrices" ? "active" : "")" href="/PersonnelPrices"><i class="bi bi-currency-exchange me-2"></i><t key="salon.sidebar.personnel_prices">Personel Fiyatları</t></a> }
             </div>
             }
 
             @{ var stockLinks = new[] { "Products", "Suppliers" }.Where(p => canShow(p)).ToArray(); }
             @if (stockLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Stok</span><i class="bi bi-chevron-down chevron @(stockOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.inventory">Stok</t></span><i class="bi bi-chevron-down chevron @(stockOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(stockOpen ? "show" : "")">
-                @if (canShow("Products")) { <a class="nav-link @(ctrl == "Products" ? "active" : "")" href="/Products"><i class="bi bi-box-seam me-2"></i>Urunler</a> }
-                @if (canShow("Suppliers")) { <a class="nav-link @(ctrl == "Suppliers" ? "active" : "")" href="/Suppliers"><i class="bi bi-truck me-2"></i>Tedarikciler</a> }
+                @if (canShow("Products")) { <a class="nav-link @(ctrl == "Products" ? "active" : "")" href="/Products"><i class="bi bi-box-seam me-2"></i><t key="salon.sidebar.products">Ürünler</t></a> }
+                @if (canShow("Suppliers")) { <a class="nav-link @(ctrl == "Suppliers" ? "active" : "")" href="/Suppliers"><i class="bi bi-truck me-2"></i><t key="salon.sidebar.suppliers">Tedarikçiler</t></a> }
             </div>
             }
 
             @{ var finLinks = new[] { "Invoices", "Cash", "Expenses", "GiftCards", "Packages" }.Where(p => canShow(p)).ToArray(); }
             @if (finLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Finans</span><i class="bi bi-chevron-down chevron @(financeOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.finance">Finans</t></span><i class="bi bi-chevron-down chevron @(financeOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(financeOpen ? "show" : "")">
-                @if (canShow("Invoices")) { <a class="nav-link @(ctrl == "Invoices" ? "active" : "")" href="/Invoices"><i class="bi bi-receipt me-2"></i>Adisyonlar</a> }
-                @if (canShow("Cash")) { <a class="nav-link @(ctrl == "Cash" ? "active" : "")" href="/Cash"><i class="bi bi-cash-stack me-2"></i>Kasa</a> }
-                @if (canShow("Expenses")) { <a class="nav-link @(ctrl == "Expenses" ? "active" : "")" href="/Expenses"><i class="bi bi-credit-card me-2"></i>Masraflar</a> }
-                @if (canShow("GiftCards")) { <a class="nav-link @(ctrl == "GiftCards" ? "active" : "")" href="/GiftCards"><i class="bi bi-gift me-2"></i>Hediye Kartlari</a> }
-                @if (canShow("Packages")) { <a class="nav-link @(ctrl == "Packages" ? "active" : "")" href="/Packages"><i class="bi bi-box-seam me-2"></i>Seans Paketleri</a> }
+                @if (canShow("Invoices")) { <a class="nav-link @(ctrl == "Invoices" ? "active" : "")" href="/Invoices"><i class="bi bi-receipt me-2"></i><t key="salon.sidebar.invoices">Adisyonlar</t></a> }
+                @if (canShow("Cash")) { <a class="nav-link @(ctrl == "Cash" ? "active" : "")" href="/Cash"><i class="bi bi-cash-stack me-2"></i><t key="salon.sidebar.cash">Kasa</t></a> }
+                @if (canShow("Expenses")) { <a class="nav-link @(ctrl == "Expenses" ? "active" : "")" href="/Expenses"><i class="bi bi-credit-card me-2"></i><t key="salon.sidebar.expenses">Masraflar</t></a> }
+                @if (canShow("GiftCards")) { <a class="nav-link @(ctrl == "GiftCards" ? "active" : "")" href="/GiftCards"><i class="bi bi-gift me-2"></i><t key="salon.sidebar.gift_cards">Hediye Kartları</t></a> }
+                @if (canShow("Packages")) { <a class="nav-link @(ctrl == "Packages" ? "active" : "")" href="/Packages"><i class="bi bi-box-seam me-2"></i><t key="salon.sidebar.packages">Seans Paketleri</t></a> }
             </div>
             }
 
             @{ var mktLinks = new[] { "Campaigns", "Memberships", "Loyalty", "EmailCampaigns", "Reviews", "Winback" }.Where(p => canShow(p)).ToArray(); }
             @if (mktLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Pazarlama</span><i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.marketing">Pazarlama</t></span><i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(marketingOpen ? "show" : "")">
-                @if (canShow("Campaigns")) { <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns"><i class="bi bi-megaphone me-2"></i>Kampanyalar</a> }
-                @if (canShow("Memberships")) { <a class="nav-link @(ctrl == "Memberships" ? "active" : "")" href="/Memberships"><i class="bi bi-award me-2"></i>Uyelik Planlari</a> }
-                @if (canShow("Loyalty")) { <a class="nav-link @(ctrl == "Loyalty" ? "active" : "")" href="/Loyalty"><i class="bi bi-star me-2"></i>Sadakat Programi</a> }
-                @if (canShow("EmailCampaigns")) { <a class="nav-link @(ctrl == "EmailCampaigns" ? "active" : "")" href="/EmailCampaigns"><i class="bi bi-envelope me-2"></i>E-posta Kampanyalari</a> }
-                @if (canShow("Reviews")) { <a class="nav-link @(ctrl == "Reviews" ? "active" : "")" href="/Reviews"><i class="bi bi-chat-square-text me-2"></i>Yorumlar</a> }
-                @if (canShow("Winback")) { <a class="nav-link @(ctrl == "Winback" ? "active" : "")" href="/Winback"><i class="bi bi-arrow-repeat me-2"></i>Geri Kazanim</a> }
+                @if (canShow("Campaigns")) { <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns"><i class="bi bi-megaphone me-2"></i><t key="salon.sidebar.campaigns">Kampanyalar</t></a> }
+                @if (canShow("Memberships")) { <a class="nav-link @(ctrl == "Memberships" ? "active" : "")" href="/Memberships"><i class="bi bi-award me-2"></i><t key="salon.sidebar.memberships">Üyelik Planları</t></a> }
+                @if (canShow("Loyalty")) { <a class="nav-link @(ctrl == "Loyalty" ? "active" : "")" href="/Loyalty"><i class="bi bi-star me-2"></i><t key="salon.sidebar.loyalty">Sadakat Programı</t></a> }
+                @if (canShow("EmailCampaigns")) { <a class="nav-link @(ctrl == "EmailCampaigns" ? "active" : "")" href="/EmailCampaigns"><i class="bi bi-envelope me-2"></i><t key="salon.sidebar.email_campaigns">E-posta Kampanyaları</t></a> }
+                @if (canShow("Reviews")) { <a class="nav-link @(ctrl == "Reviews" ? "active" : "")" href="/Reviews"><i class="bi bi-chat-square-text me-2"></i><t key="salon.sidebar.reviews">Yorumlar</t></a> }
+                @if (canShow("Winback")) { <a class="nav-link @(ctrl == "Winback" ? "active" : "")" href="/Winback"><i class="bi bi-arrow-repeat me-2"></i><t key="salon.sidebar.winback">Geri Kazanım</t></a> }
             </div>
             }
 
             @if (canShow("Reports")) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Raporlar</span><i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.reports">Raporlar</t></span><i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(reportOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports"><i class="bi bi-bar-chart-line me-2"></i>Raporlar</a>
+                <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports"><i class="bi bi-bar-chart-line me-2"></i><t key="salon.sidebar.reports">Raporlar</t></a>
             </div>
             }
 
-            @{ var mngLinks = new[] { "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter", "EmailSettings", "PageSettings", "Modules" }.Where(p => can.Contains(p)).ToArray(); }
+            @{ var mngLinks = new[] { "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter", "EmailSettings", "PageSettings", "Modules" }.Where(p => canShow(p)).ToArray(); }
             @if (mngLinks.Length > 0) {
             <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
-                <span>Yonetim</span><i class="bi bi-chevron-down chevron @(managementOpen ? "open" : "")"></i>
+                <span><t key="salon.sidebar.management">Yönetim</t></span><i class="bi bi-chevron-down chevron @(managementOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(managementOpen ? "show" : "")">
-                @if (canShow("Profile")) { <a class="nav-link @(ctrl == "Profile" ? "active" : "")" href="/Profile"><i class="bi bi-shop me-2"></i>Salon Profili</a> }
-                @if (canShow("Branches")) { <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches"><i class="bi bi-building me-2"></i>Subeler</a> }
-                @if (canShow("NoShowPolicy")) { <a class="nav-link @(ctrl == "NoShowPolicy" ? "active" : "")" href="/NoShowPolicy"><i class="bi bi-shield-exclamation me-2"></i>Randevu Kurallari</a> }
-                @if (canShow("ConsentForms")) { <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms"><i class="bi bi-file-earmark-text me-2"></i>Onay Formlari</a> }
-                @if (canShow("BeforeAfter")) { <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter"><i class="bi bi-images me-2"></i>Once/Sonra</a> }
-                @if (canShow("EmailSettings")) { <a class="nav-link @(ctrl == "EmailSettings" ? "active" : "")" href="/EmailSettings"><i class="bi bi-envelope-at me-2"></i>E-posta Ayarlari</a> }
-                @if (canShow("PageSettings")) { <a class="nav-link @(ctrl == "PageSettings" ? "active" : "")" href="/PageSettings"><i class="bi bi-layout-text-sidebar me-2"></i>Sayfa Ayarlari</a> }
-                @if (can.Contains("Modules")) { <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules"><i class="bi bi-puzzle me-2"></i>Moduller</a> }
+                @if (canShow("Profile")) { <a class="nav-link @(ctrl == "Profile" ? "active" : "")" href="/Profile"><i class="bi bi-shop me-2"></i><t key="salon.sidebar.profile">Salon Profili</t></a> }
+                @if (canShow("Branches")) { <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches"><i class="bi bi-building me-2"></i><t key="salon.sidebar.branches">Şubeler</t></a> }
+                @if (canShow("NoShowPolicy")) { <a class="nav-link @(ctrl == "NoShowPolicy" ? "active" : "")" href="/NoShowPolicy"><i class="bi bi-shield-exclamation me-2"></i><t key="salon.sidebar.noshow_policy">Randevu Kuralları</t></a> }
+                @if (canShow("ConsentForms")) { <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms"><i class="bi bi-file-earmark-text me-2"></i><t key="salon.sidebar.consent_forms">Onay Formları</t></a> }
+                @if (canShow("BeforeAfter")) { <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter"><i class="bi bi-images me-2"></i><t key="salon.sidebar.before_after">Önce/Sonra</t></a> }
+                @if (canShow("EmailSettings")) { <a class="nav-link @(ctrl == "EmailSettings" ? "active" : "")" href="/EmailSettings"><i class="bi bi-envelope-at me-2"></i><t key="salon.sidebar.email_settings">E-posta Ayarları</t></a> }
+                @if (canShow("PageSettings")) { <a class="nav-link @(ctrl == "PageSettings" ? "active" : "")" href="/PageSettings"><i class="bi bi-layout-text-sidebar me-2"></i><t key="salon.sidebar.page_settings">Sayfa Ayarları</t></a> }
+                @if (canShow("Modules")) { <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules"><i class="bi bi-puzzle me-2"></i><t key="salon.sidebar.modules">Modüller</t></a> }
             </div>
             }
 
@@ -173,7 +179,7 @@
                     <small class="text-white-50">
                         <i class="bi bi-person-circle me-1"></i>@__jwt.FullName
                     </small>
-                    <a href="/Account/Logout" class="text-white-50" title="Cikis"><i class="bi bi-box-arrow-right"></i></a>
+                    <a href="/Account/Logout" class="text-white-50" title="@(Translation.T("salon.common.logout_tooltip", "Çıkış"))"><i class="bi bi-box-arrow-right"></i></a>
                 </div>
             </div>
         </nav>
@@ -204,6 +210,11 @@
     <script src="~/js/autocomplete-helper.js" asp-append-version="true"></script>
     <script src="~/js/phone-input.js" asp-append-version="true"></script>
     <script>
+        window.salonTranslations = Object.assign({}, window.salonTranslations || {}, @Html.Raw(__layoutTranslationsJson));
+        window.salonT = window.salonT || function(key, fallback) {
+            return (window.salonTranslations && window.salonTranslations[key]) || fallback || key;
+        };
+
         // AJAX hata yonetimi — sadece 401 (oturum suresi doldu) login'e yonlendirir.
         // 403 (modul aktif degil / yetki yok) redirect tetiklemez; sayfa kendi hatasini gosterir.
         var _redirecting = false;
@@ -261,8 +272,15 @@
         (function() {
             var roleId = parseInt('@(__jwt.CustomerRoleId > 0 ? __jwt.CustomerRoleId : 101)');
             var jwtBranch = '@(__jwt.BranchId?.ToString() ?? "")';
-            // JWT'de BranchId varsa (personel) baglantiyi sessionStorage'a senkronla.
-            if (jwtBranch && !sessionStorage.getItem('slnBranchId')) {
+            var sessionKey = '@__jwt.UserName' + '|' + roleId + '|' + (jwtBranch || '');
+            var previousSessionKey = sessionStorage.getItem('slnBranchSessionKey');
+            if (previousSessionKey !== sessionKey) {
+                if (jwtBranch) sessionStorage.setItem('slnBranchId', jwtBranch);
+                else sessionStorage.removeItem('slnBranchId');
+                sessionStorage.setItem('slnBranchSessionKey', sessionKey);
+            }
+            // JWT'de BranchId varsa (personel) baglantiyi sessionStorage'a her zaman senkronla.
+            if (jwtBranch) {
                 sessionStorage.setItem('slnBranchId', jwtBranch);
             }
             var currentBranch = window.slnGetBranch();
@@ -279,7 +297,7 @@
                     if (branches.length <= 1) return;
 
                     var html = '<select class="form-select form-select-sm" style="width:auto; min-width:150px;" onchange="switchBranch(this.value)">';
-                    html += '<option value=""' + (currentBranch === '' ? ' selected' : '') + '>Tüm Şubeler</option>';
+                    html += '<option value=""' + (currentBranch === '' ? ' selected' : '') + '>' + salonT('salon.common.all_branches', 'Tüm Şubeler') + '</option>';
                     branches.forEach(function (b) {
                         html += '<option value="' + b.id + '"' + (currentBranch == b.id ? ' selected' : '') + '>' + b.name + '</option>';
                     });

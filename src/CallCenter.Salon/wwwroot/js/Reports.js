@@ -1,5 +1,9 @@
 function ReportsViewModel() {
     var self = this;
+    var REPORTS_LOCALE = document.documentElement.lang || undefined;
+    function reportT(key, fallback) {
+        return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+    }
 
     // Tarih araligi
     var today = new Date();
@@ -28,17 +32,17 @@ function ReportsViewModel() {
 
     self.formatMoney = function (val) {
         if (val === null || val === undefined) return '-';
-        return parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
+        return parseFloat(val).toLocaleString(REPORTS_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
     };
 
     self.formatPercent = function (val) {
         if (val === null || val === undefined) return '-';
-        return parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + '%';
+        return parseFloat(val).toLocaleString(REPORTS_LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + '%';
     };
 
     self.formatNumber = function (val, digits) {
         if (val === null || val === undefined) return '-';
-        return parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
+        return parseFloat(val).toLocaleString(REPORTS_LOCALE, { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
     };
 
     // Hizli tarih seciciler
@@ -78,7 +82,7 @@ function ReportsViewModel() {
                 data.staffEfficiency = data.staffEfficiency || [];
                 self.overview(data);
             })
-            .fail(function () { toastr.error('KPI raporu yuklenemedi'); });
+            .fail(function () { toastr.error(reportT('salon.reports.error.kpi', 'KPI raporu yüklenemedi')); });
     };
 
     self.refreshReports = function () {
@@ -110,7 +114,7 @@ function ReportsViewModel() {
         self.isLoading(true);
         $.ajax({ url: '/proxy/sln-reports/sales?' + dateParams(), method: 'GET' })
             .done(function (data) { self.sales(data); })
-            .fail(function () { toastr.error('Satis raporu yuklenemedi'); })
+            .fail(function () { toastr.error(reportT('salon.reports.error.sales', 'Satış raporu yüklenemedi')); })
             .always(function () { self.isLoading(false); });
     };
 
@@ -119,7 +123,7 @@ function ReportsViewModel() {
         self.isLoading(true);
         $.ajax({ url: '/proxy/sln-reports/staff?' + dateParams(), method: 'GET' })
             .done(function (data) { self.staff(data); })
-            .fail(function () { toastr.error('Personel raporu yuklenemedi'); })
+            .fail(function () { toastr.error(reportT('salon.reports.error.staff', 'Personel raporu yüklenemedi')); })
             .always(function () { self.isLoading(false); });
     };
 
@@ -133,7 +137,7 @@ function ReportsViewModel() {
                 data.items = data.items || [];
                 self.stock(data);
             })
-            .fail(function () { toastr.error('Stok raporu yuklenemedi'); })
+            .fail(function () { toastr.error(reportT('salon.reports.error.stock', 'Stok raporu yüklenemedi')); })
             .always(function () { self.isLoading(false); });
     };
 
@@ -147,7 +151,7 @@ function ReportsViewModel() {
                 data.expenseBreakdown = data.expenseBreakdown || [];
                 self.finance(data);
             })
-            .fail(function () { toastr.error('Finans raporu yuklenemedi'); })
+            .fail(function () { toastr.error(reportT('salon.reports.error.finance', 'Finans raporu yüklenemedi')); })
             .always(function () { self.isLoading(false); });
     };
 
@@ -156,7 +160,7 @@ function ReportsViewModel() {
         self.isLoading(true);
         $.ajax({ url: '/proxy/sln-reports/clients?' + dateParams(), method: 'GET' })
             .done(function (data) { self.clientReport(data); })
-            .fail(function () { toastr.error('Musteri raporu yuklenemedi'); })
+            .fail(function () { toastr.error(reportT('salon.reports.error.clients', 'Müşteri raporu yüklenemedi')); })
             .always(function () { self.isLoading(false); });
     };
 
@@ -171,7 +175,7 @@ function ReportsViewModel() {
                 data.products = data.products || [];
                 self.branchComparison(data);
             })
-            .fail(function () { toastr.error('Sube karsilastirma raporu yuklenemedi'); })
+            .fail(function () { toastr.error(reportT('salon.reports.error.branches', 'Şube karşılaştırma raporu yüklenemedi')); })
             .always(function () { self.isLoading(false); });
     };
 
@@ -180,7 +184,7 @@ function ReportsViewModel() {
         var query = dateParams()
             + '&report=' + encodeURIComponent(report)
             + '&format=' + encodeURIComponent(format);
-        toastr.info('Rapor dosyasi hazirlaniyor...');
+        toastr.info(reportT('salon.reports.export_preparing', 'Rapor dosyası hazırlanıyor...'));
         window.location.href = '/proxy/sln-reports/export?' + query;
     };
 
@@ -207,7 +211,7 @@ function ReportsViewModel() {
     self.sendReportEmail = function () {
         var recipients = (self.emailForm.toAddresses() || '').split(/[;,\n\r]+/).map(function (x) { return x.trim(); }).filter(Boolean);
         if (recipients.length === 0) {
-            toastr.warning('En az bir e-posta adresi girin.');
+            toastr.warning(reportT('salon.reports.email_required', 'En az bir e-posta adresi girin.'));
             return;
         }
 
@@ -227,10 +231,10 @@ function ReportsViewModel() {
                 message: self.emailForm.message() || null
             })
         }).done(function (data) {
-            toastr.success((data && data.message) || 'Rapor e-postasi islemi alindi.');
+            toastr.success((data && data.message) || reportT('salon.reports.email_queued', 'Rapor e-postası işlemi alındı.'));
             bootstrap.Modal.getOrCreateInstance(document.getElementById('reportEmailModal')).hide();
         }).fail(function (xhr) {
-            var msg = xhr.responseJSON ? (xhr.responseJSON.message || xhr.responseJSON.error) : 'Rapor e-postasi gonderilemedi.';
+            var msg = xhr.responseJSON ? (xhr.responseJSON.message || xhr.responseJSON.error) : reportT('salon.reports.email_failed', 'Rapor e-postası gönderilemedi.');
             toastr.error(msg);
         }).always(function () {
             self.isEmailSending(false);

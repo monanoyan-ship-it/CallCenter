@@ -532,11 +532,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return result;
     }
 
-    public async Task<(bool Success, string? Error)> UpdateCashRegisterAsync(int registerId, string name, int? branchId, bool isActive, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateCashRegisterAsync(int registerId, string name, int? branchId, bool isActive, int customerId, int? branchScopeId = null)
     {
         var register = await _cashRegisters.GetAllQueryable()
             .FirstOrDefaultAsync(r => r.Id == registerId && r.CustomerId == customerId);
         if (register == null) return (false, "Kasa bulunamadi");
+        if (branchScopeId.HasValue && register.BranchId != branchScopeId.Value)
+            return (false, "Bu kasa icin yetkiniz yok");
+
+        if (branchScopeId.HasValue)
+            branchId = branchScopeId.Value;
 
         if (!string.IsNullOrWhiteSpace(name)) register.Name = name.Trim();
         if (branchId.HasValue)

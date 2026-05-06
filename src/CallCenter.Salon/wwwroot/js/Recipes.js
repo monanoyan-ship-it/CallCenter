@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function RecipesViewModel() {
     var self = this;
     self.recipes = ko.observableArray([]);
@@ -58,7 +62,7 @@ function RecipesViewModel() {
         var prod = self.productList().find(function (p) { return p.id == item.productId(); });
         if (!prod) return '-';
         var qty = parseFloat(item.quantity()) || 0;
-        return (prod.purchasePrice * qty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
+        return (prod.purchasePrice * qty).toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
     };
 
     // ═══ Hizmet Autocomplete (opsiyonel) ═══
@@ -221,7 +225,7 @@ function RecipesViewModel() {
             toastr.success(self.isEditing() ? 'Recete guncellendi' : 'Recete olusturuldu');
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
@@ -229,26 +233,26 @@ function RecipesViewModel() {
     self.uploadRecipePhoto = function (data, event) {
         var file = event.target.files[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { toastr.warning('Dosya 5 MB dan büyük olamaz.'); return; }
+        if (file.size > 5 * 1024 * 1024) { toastr.warning(slnJsT('salon.recipes.js.dosya_5_mb_dan_buyuk_olamaz', 'Dosya 5 MB’dan büyük olamaz.')); return; }
 
         var formData = new FormData();
         formData.append('file', file);
-        toastr.info('Yükleniyor...');
+        toastr.info(slnJsT('salon.common.loading', 'Yükleniyor...'));
         $.ajax({
             url: '/proxy/sln-profile/upload-image?type=recipe',
             method: 'POST', data: formData, processData: false, contentType: false
         }).done(function (result) {
             self.form.photoUrl(result.url);
-            toastr.success('Fotoğraf yüklendi.');
-        }).fail(function () { toastr.error('Yükleme hatası.'); });
+            toastr.success(slnJsT('salon.recipes.js.fotograf_yuklendi', 'Fotoğraf yüklendi.'));
+        }).fail(function () { toastr.error(slnJsT('salon.recipes.js.yukleme_hatasi', 'Yükleme hatası.')); });
         event.target.value = '';
     };
 
     self.remove = function (recipe) {
-        confirmModal('Onay', "'" + recipe.name + "' recetesini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + recipe.name + "' recetesini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/sln-recipes/' + recipe.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Recete silindi');
+                toastr.success(slnJsT('salon.recipes.js.recete_silindi', 'Recete silindi'));
             });
         });
     };

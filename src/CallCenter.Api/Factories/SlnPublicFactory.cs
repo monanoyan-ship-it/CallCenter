@@ -20,6 +20,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnClientMembershipEntityService _clientMemberships;
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnAppointmentEntityService _appointments;
+    private readonly ISlnAppointmentServiceEntityService _appointmentServices;
     private readonly ISlnPersonnelSkillEntityService _skills;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
     private readonly ISlnWaitlistEntryEntityService _waitlist;
@@ -37,6 +38,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnClientMembershipEntityService clientMemberships,
         ISlnClientEntityService clients,
         ISlnAppointmentEntityService appointments,
+        ISlnAppointmentServiceEntityService appointmentServices,
         ISlnPersonnelSkillEntityService skills,
         ISlnNoShowPolicyEntityService noShowPolicies,
         ISlnWaitlistEntryEntityService waitlist,
@@ -53,6 +55,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         _clientMemberships = clientMemberships;
         _clients = clients;
         _appointments = appointments;
+        _appointmentServices = appointmentServices;
         _skills = skills;
         _noShowPolicies = noShowPolicies;
         _waitlist = waitlist;
@@ -252,14 +255,39 @@ public class SlnPublicFactory : ISlnPublicFactory
         }).ToList();
     }
 
-    /// <summary>Branch slug veya eski profile slug'dan customerId bul</summary>
-    private async Task<int?> ResolveCustomerIdAsync(string slug)
-    {
-        var branch = await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive);
-        if (branch != null) return branch.CustomerId;
+    private sealed record ResolvedSalonScope(int CustomerId, int? BranchId);
 
-        var profile = await _profiles.GetAllQueryable().FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
-        return profile?.CustomerId;
+    /// <summary>Branch slug veya eski profile slug'dan salon ve etkin sube kapsamini bul.</summary>
+    private async Task<ResolvedSalonScope?> ResolveSalonScopeAsync(string slug)
+    {
+        var branch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive);
+        if (branch != null)
+            return new ResolvedSalonScope(branch.CustomerId, branch.Id);
+
+        var profile = await _profiles.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished);
+        if (profile == null)
+            return null;
+
+        var headquarterBranchId = await _branches.GetAllQueryable()
+            .Where(b => b.CustomerId == profile.CustomerId && b.IsHeadquarter && b.IsActive)
+            .Select(b => (int?)b.Id)
+            .FirstOrDefaultAsync();
+
+        return new ResolvedSalonScope(profile.CustomerId, headquarterBranchId);
+    }
+
+    private async Task<int?> ResolveCustomerIdAsync(string slug)
+        => (await ResolveSalonScopeAsync(slug))?.CustomerId;
+
+    private static IQueryable<CustomerPersonnel> ApplyPublicBranchScope(
+        IQueryable<CustomerPersonnel> query,
+        int? branchId)
+    {
+        return branchId.HasValue
+            ? query.Where(p => p.BranchId == branchId.Value || p.BranchId == null)
+            : query;
     }
 
     /// <summary>Salonun onaylanmis yorumlarini getir</summary>
@@ -290,8 +318,8 @@ public class SlnPublicFactory : ISlnPublicFactory
     /// <summary>Salonun ekibini getir — sadece HIZMET VEREN aktif personel (Kuafor/Uzman vs.)</summary>
     public async Task<object?> GetTeamAsync(string slug)
     {
-        var customerId = await ResolveCustomerIdAsync(slug);
-        if (customerId == null) return null;
+        var scope = await ResolveSalonScopeAsync(slug);
+        if (scope == null) return null;
 
         // Sadece teknik personel (skill atayanlar): Hairdresser, Beautician, Default (Diğer)
         // Hariç: SalonOwner(101), Manager(102), Cashier(105), Receptionist(106), BranchManager(107)
@@ -300,9 +328,11 @@ public class SlnPublicFactory : ISlnPublicFactory
             Shared.Enums.SalonRoles.Ids.Beautician
         };
 
-        var team = await _personnel.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId.Value && p.IsActive && p.PublicVisible
-                     && serviceRoleIds.Contains(p.CustomerRoleId))
+        var teamQuery = _personnel.GetAllQueryable()
+            .Where(p => p.CustomerId == scope.CustomerId && p.IsActive && p.PublicVisible
+                     && serviceRoleIds.Contains(p.CustomerRoleId));
+
+        var team = await ApplyPublicBranchScope(teamQuery, scope.BranchId)
             .Include(p => p.User)
             .OrderBy(p => p.CustomerRoleId)
             .Select(p => new
@@ -476,9 +506,9 @@ public class SlnPublicFactory : ISlnPublicFactory
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
     public async Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date, int? personnelId = null)
     {
-        var customerId = await ResolveCustomerIdAsync(slug);
-        if (customerId == null) return null;
-        var cid = customerId.Value;
+        var scope = await ResolveSalonScopeAsync(slug);
+        if (scope == null) return null;
+        var cid = scope.CustomerId;
 
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == cid && s.IsActive);
@@ -535,6 +565,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         var staffQuery = _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == cid && p.IsActive
                      && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+        staffQuery = ApplyPublicBranchScope(staffQuery, scope.BranchId);
 
         if (skilledIds.Count > 0)
             staffQuery = staffQuery.Where(p => skilledIds.Contains(p.Id));
@@ -629,9 +660,9 @@ public class SlnPublicFactory : ISlnPublicFactory
     /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
     public async Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId)
     {
-        var customerId = await ResolveCustomerIdAsync(slug);
-        if (customerId == null) return null;
-        var cid = customerId.Value;
+        var scope = await ResolveSalonScopeAsync(slug);
+        if (scope == null) return null;
+        var cid = scope.CustomerId;
 
         // Skill eslesmesi olan personelleri bul
         var skilledPersonnelIds = await _skills.GetAllQueryable()
@@ -643,6 +674,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         var query = _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == cid && p.IsActive && p.PublicVisible
                      && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+        query = ApplyPublicBranchScope(query, scope.BranchId);
 
         // Skill tanimlanmissa filtrele, yoksa tum aktif personelleri don
         if (skilledPersonnelIds.Count > 0)
@@ -689,9 +721,9 @@ public class SlnPublicFactory : ISlnPublicFactory
     /// <summary>Online randevu olustur (auth gerekmez). Salon politikasi depozito gerektiriyorsa karttan tahsil eder.</summary>
     public async Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto, string? buyerIp = null)
     {
-        var customerId = await ResolveCustomerIdAsync(slug);
-        if (customerId == null) return (false, "Salon bulunamadi", null);
-        var cid = customerId.Value;
+        var scope = await ResolveSalonScopeAsync(slug);
+        if (scope == null) return (false, "Salon bulunamadi", null);
+        var cid = scope.CustomerId;
 
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
@@ -739,6 +771,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             var bookStaffQuery = _personnel.GetAllQueryable()
                 .Where(p => p.CustomerId == cid && p.IsActive
                          && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+            bookStaffQuery = ApplyPublicBranchScope(bookStaffQuery, scope.BranchId);
 
             if (skilledForBook.Count > 0)
                 bookStaffQuery = bookStaffQuery.Where(p => skilledForBook.Contains(p.Id));
@@ -761,6 +794,16 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
         else
         {
+            var isBookableStaff = await ApplyPublicBranchScope(_personnel.GetAllQueryable()
+                    .Where(p => p.Id == resolvedPersonnelId
+                             && p.CustomerId == cid
+                             && p.IsActive
+                             && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner),
+                    scope.BranchId)
+                .AnyAsync();
+            if (!isBookableStaff)
+                return (false, "Secilen personel bu subede musait degil.", null);
+
             var hasOverlap = await _appointments.GetAllQueryable()
                 .AnyAsync(a => a.PersonnelId == resolvedPersonnelId
                             && a.CustomerId == cid
@@ -838,6 +881,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         var appointment = new SlnAppointment
         {
             CustomerId = cid,
+            BranchId = scope.BranchId,
             SlnClientId = client.Id,
             PersonnelId = resolvedPersonnelId,
             ServiceId = dto.ServiceId,
@@ -851,6 +895,13 @@ public class SlnPublicFactory : ISlnPublicFactory
         };
 
         _appointments.Add(appointment);
+        await _uow.SaveChangesAsync();
+        _appointmentServices.Add(new SlnAppointmentService
+        {
+            SlnAppointmentId = appointment.Id,
+            SlnServiceId = dto.ServiceId,
+            SortOrder = 0
+        });
         await _uow.SaveChangesAsync();
 
         return (true, null, new
@@ -868,9 +919,9 @@ public class SlnPublicFactory : ISlnPublicFactory
 
     public async Task<(bool Success, string? Error, object? Result)> BookCheckoutAsync(string slug, SlnOnlineBookingDto dto, string callbackUrl, string? buyerIp = null)
     {
-        var customerId = await ResolveCustomerIdAsync(slug);
-        if (customerId == null) return (false, "Salon bulunamadi", null);
-        var cid = customerId.Value;
+        var scope = await ResolveSalonScopeAsync(slug);
+        if (scope == null) return (false, "Salon bulunamadi", null);
+        var cid = scope.CustomerId;
 
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
@@ -915,6 +966,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             var bookStaffQuery = _personnel.GetAllQueryable()
                 .Where(p => p.CustomerId == cid && p.IsActive
                          && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
+            bookStaffQuery = ApplyPublicBranchScope(bookStaffQuery, scope.BranchId);
 
             if (skilledForBook.Count > 0)
                 bookStaffQuery = bookStaffQuery.Where(p => skilledForBook.Contains(p.Id));
@@ -937,6 +989,16 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
         else
         {
+            var isBookableStaff = await ApplyPublicBranchScope(_personnel.GetAllQueryable()
+                    .Where(p => p.Id == resolvedPersonnelId
+                             && p.CustomerId == cid
+                             && p.IsActive
+                             && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner),
+                    scope.BranchId)
+                .AnyAsync();
+            if (!isBookableStaff)
+                return (false, "Secilen personel bu subede musait degil.", null);
+
             var hasOverlap = await _appointments.GetAllQueryable()
                 .AnyAsync(a => a.PersonnelId == resolvedPersonnelId
                             && a.CustomerId == cid
@@ -979,6 +1041,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         var appointment = new SlnAppointment
         {
             CustomerId = cid,
+            BranchId = scope.BranchId,
             SlnClientId = client.Id,
             PersonnelId = resolvedPersonnelId,
             ServiceId = dto.ServiceId,
@@ -990,6 +1053,13 @@ public class SlnPublicFactory : ISlnPublicFactory
         };
 
         _appointments.Add(appointment);
+        await _uow.SaveChangesAsync();
+        _appointmentServices.Add(new SlnAppointmentService
+        {
+            SlnAppointmentId = appointment.Id,
+            SlnServiceId = dto.ServiceId,
+            SortOrder = 0
+        });
         await _uow.SaveChangesAsync();
 
         if (!requireDeposit)

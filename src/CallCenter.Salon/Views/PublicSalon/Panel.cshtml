@@ -1,13 +1,17 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     Layout = null;
+    var panelLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var panelTranslations = await Translation.GetAllAsync(panelLang);
+    var panelTranslationsJson = System.Text.Json.JsonSerializer.Serialize(panelTranslations);
 }
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@panelLang">
 <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panelim - CorpLynk Salon</title>
+    <title>@(Translation.T("salon.panel.title", "Panelim")) - CorpLynk Salon</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
@@ -25,19 +29,19 @@
         </div>
         <div>
             <span class="me-3 small" id="userName"></span>
-            <a href="/discover"><i class="bi bi-search me-1"></i>Keşfet</a>
-            <a href="#" class="ms-3" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i>Çıkış</a>
+            <a href="/discover"><i class="bi bi-search me-1"></i><t key="salon.panel.nav.discover">Keşfet</t></a>
+            <a href="#" class="ms-3" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i><t key="salon.common.logout_tooltip">Çıkış</t></a>
         </div>
     </div>
 
     <div class="container py-4" id="panel">
         <!-- Tabs -->
         <ul class="nav nav-pills mb-3">
-            <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#tabSalons"><i class="bi bi-shop me-1"></i>Salonlarım</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabAppointments"><i class="bi bi-calendar-check me-1"></i>Randevularım</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabLoyalty"><i class="bi bi-star me-1"></i>Sadakat</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabProfile"><i class="bi bi-person me-1"></i>Profilim</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabBilling"><i class="bi bi-receipt me-1"></i>Fatura Bilgileri</a></li>
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#tabSalons"><i class="bi bi-shop me-1"></i><t key="salon.panel.tabs.salons">Salonlarım</t></a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabAppointments"><i class="bi bi-calendar-check me-1"></i><t key="salon.panel.tabs.appointments">Randevularım</t></a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabLoyalty"><i class="bi bi-star me-1"></i><t key="salon.panel.tabs.loyalty">Sadakat</t></a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabProfile"><i class="bi bi-person me-1"></i><t key="salon.panel.tabs.profile">Profilim</t></a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabBilling"><i class="bi bi-receipt me-1"></i><t key="salon.panel.tabs.billing">Fatura Bilgileri</t></a></li>
         </ul>
 
         <div class="tab-content">
@@ -46,18 +50,18 @@
                 <div class="row g-3" id="salonList"></div>
                 <div class="text-center text-muted py-4" id="noSalons" style="display:none;">
                     <i class="bi bi-shop fs-1 d-block mb-2 opacity-25"></i>
-                    Henüz bir salona üye değilsiniz. <a href="/discover">Salonları keşfedin!</a>
+                    <t key="salon.panel.empty.salons">Henüz bir salona üye değilsiniz.</t> <a href="/discover"><t key="salon.panel.empty.salons_link">Salonları keşfedin!</t></a>
                 </div>
             </div>
 
             <!-- Randevularım -->
             <div class="tab-pane fade" id="tabAppointments">
                 <div class="d-flex gap-2 mb-3">
-                    <button class="btn btn-sm btn-primary" onclick="loadAppointments(false)">Yaklaşan</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="loadAppointments(true)">Geçmiş</button>
+                    <button class="btn btn-sm btn-primary" onclick="loadAppointments(false)"><t key="salon.panel.appointments.upcoming">Yaklaşan</t></button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="loadAppointments(true)"><t key="salon.panel.appointments.past">Geçmiş</t></button>
                 </div>
                 <div id="appointmentList"></div>
-                <div class="text-center text-muted py-4" id="noAppts" style="display:none;">Randevu bulunamadı.</div>
+                <div class="text-center text-muted py-4" id="noAppts" style="display:none;"><t key="salon.panel.empty.appointments">Randevu bulunamadı.</t></div>
             </div>
 
             <!-- İptal Onay Modalı -->
@@ -65,15 +69,15 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header py-2" style="background:linear-gradient(135deg,#2d1b3d 0%,#4a1a6b 100%);color:#fff;">
-                            <h6 class="modal-title"><i class="bi bi-x-circle me-2"></i>Randevu İptali</h6>
+                            <h6 class="modal-title"><i class="bi bi-x-circle me-2"></i><t key="salon.panel.cancel.title">Randevu İptali</t></h6>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             <p id="cancelModalMsg" class="mb-0"></p>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Vazgeç</button>
-                            <button type="button" class="btn btn-danger btn-sm" id="cancelModalConfirmBtn"><i class="bi bi-x-lg me-1"></i>İptal Et</button>
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.panel.cancel.keep">Vazgeç</t></button>
+                            <button type="button" class="btn btn-danger btn-sm" id="cancelModalConfirmBtn"><i class="bi bi-x-lg me-1"></i><t key="salon.panel.cancel.confirm">İptal Et</t></button>
                         </div>
                     </div>
                 </div>
@@ -82,7 +86,7 @@
             <!-- Sadakat -->
             <div class="tab-pane fade" id="tabLoyalty">
                 <div id="loyaltyList"></div>
-                <div class="text-center text-muted py-4" id="noLoyalty" style="display:none;">Sadakat bilgisi bulunamadı.</div>
+                <div class="text-center text-muted py-4" id="noLoyalty" style="display:none;"><t key="salon.panel.empty.loyalty">Sadakat bilgisi bulunamadı.</t></div>
             </div>
 
             <!-- Profilim -->
@@ -90,32 +94,32 @@
                 <div class="card section-card">
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label small">Ad Soyad</label>
+                            <label class="form-label small"><t key="salon.panel.profile.fullname">Ad Soyad</t></label>
                             <input type="text" class="form-control" id="profName" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small">E-posta</label>
+                            <label class="form-label small"><t key="salon.panel.profile.email">E-posta</t></label>
                             <input type="email" class="form-control" id="profEmail" />
                         </div>
-                        <button class="btn btn-primary btn-sm" onclick="saveProfile()"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+                        <button class="btn btn-primary btn-sm" onclick="saveProfile()"><i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t></button>
                     </div>
                 </div>
                 <div class="card section-card mt-3">
                     <div class="card-body">
-                        <h6 class="text-muted small mb-3"><i class="bi bi-key me-1"></i>Şifre değiştir</h6>
+                        <h6 class="text-muted small mb-3"><i class="bi bi-key me-1"></i><t key="salon.panel.password.title">Şifre değiştir</t></h6>
                         <div class="mb-2">
-                            <label class="form-label small">Mevcut şifre</label>
+                            <label class="form-label small"><t key="salon.panel.password.current">Mevcut şifre</t></label>
                             <input type="password" class="form-control form-control-sm" id="pwdCurrent" autocomplete="current-password" />
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small">Yeni şifre</label>
+                            <label class="form-label small"><t key="salon.panel.password.new">Yeni şifre</t></label>
                             <input type="password" class="form-control form-control-sm" id="pwdNew" autocomplete="new-password" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small">Yeni şifre (tekrar)</label>
+                            <label class="form-label small"><t key="salon.panel.password.repeat">Yeni şifre (tekrar)</t></label>
                             <input type="password" class="form-control form-control-sm" id="pwdNew2" autocomplete="new-password" />
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="changePassword()"><i class="bi bi-shield-lock me-1"></i>Şifreyi güncelle</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="changePassword()"><i class="bi bi-shield-lock me-1"></i><t key="salon.panel.password.update">Şifreyi güncelle</t></button>
                     </div>
                 </div>
             </div>
@@ -124,59 +128,59 @@
                 <div class="card section-card">
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label small">Fatura Tipi</label>
+                            <label class="form-label small"><t key="salon.panel.billing.type">Fatura Tipi</t></label>
                             <select class="form-select form-select-sm" id="billingType" onchange="toggleBillingType()">
-                                <option value="1">Bireysel</option>
-                                <option value="2">Kurumsal</option>
+                                <option value="1"><t key="salon.panel.billing.type.individual">Bireysel</t></option>
+                                <option value="2"><t key="salon.panel.billing.type.corporate">Kurumsal</t></option>
                             </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small">Ad Soyad</label>
+                            <label class="form-label small"><t key="salon.panel.profile.fullname">Ad Soyad</t></label>
                             <input type="text" class="form-control form-control-sm" id="billingFullName" />
                         </div>
                         <div id="corporateFields" style="display:none;">
                             <div class="mb-2">
-                                <label class="form-label small">Firma Adı</label>
+                                    <label class="form-label small"><t key="salon.panel.billing.company_name">Firma Adı</t></label>
                                 <input type="text" class="form-control form-control-sm" id="billingCompanyName" />
                             </div>
                             <div class="row g-2">
                                 <div class="col-6 mb-2">
-                                    <label class="form-label small">Vergi Dairesi</label>
+                                    <label class="form-label small"><t key="salon.panel.billing.tax_office">Vergi Dairesi</t></label>
                                     <input type="text" class="form-control form-control-sm" id="billingTaxOffice" />
                                 </div>
                                 <div class="col-6 mb-2">
-                                    <label class="form-label small">Vergi No</label>
+                                    <label class="form-label small"><t key="salon.panel.billing.tax_number">Vergi No</t></label>
                                     <input type="text" class="form-control form-control-sm" id="billingTaxNumber" />
                                 </div>
                             </div>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small">Adres</label>
+                            <label class="form-label small"><t key="salon.panel.billing.address">Adres</t></label>
                             <input type="text" class="form-control form-control-sm" id="billingAddress" />
                         </div>
                         <div class="row g-2">
                             <div class="col-4 mb-2">
-                                <label class="form-label small">İl</label>
+                                <label class="form-label small"><t key="salon.panel.billing.city">İl</t></label>
                                 <input type="text" class="form-control form-control-sm" id="billingCity" />
                             </div>
                             <div class="col-4 mb-2">
-                                <label class="form-label small">İlçe</label>
+                                <label class="form-label small"><t key="salon.panel.billing.district">İlçe</t></label>
                                 <input type="text" class="form-control form-control-sm" id="billingDistrict" />
                             </div>
                             <div class="col-4 mb-2">
-                                <label class="form-label small">Posta Kodu</label>
+                                <label class="form-label small"><t key="salon.panel.billing.postal_code">Posta Kodu</t></label>
                                 <input type="text" class="form-control form-control-sm" id="billingPostalCode" />
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-sm" onclick="saveBilling()"><i class="bi bi-check-lg me-1"></i>Kaydet</button>
+                        <button class="btn btn-primary btn-sm" onclick="saveBilling()"><i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t></button>
                     </div>
                 </div>
                 <div class="card section-card mt-3">
                     <div class="card-body">
-                        <h6 class="text-muted small mb-2"><i class="bi bi-receipt-cutoff me-1"></i>Ödeme geçmişi ve dekontlar</h6>
-                        <p class="small text-muted mb-3">Tamamlanan veya iade edilen ödemeler için dekontu indirebilirsiniz. HTML dosyasını açıp tarayıcıdan <strong>Yazdır</strong> ile PDF olarak kaydedebilirsiniz.</p>
+                        <h6 class="text-muted small mb-2"><i class="bi bi-receipt-cutoff me-1"></i><t key="salon.panel.payments.title">Ödeme geçmişi ve dekontlar</t></h6>
+                        <p class="small text-muted mb-3"><t key="salon.panel.payments.desc">Tamamlanan veya iade edilen ödemeler için dekontu indirebilirsiniz. HTML dosyasını açıp tarayıcıdan Yazdır ile PDF olarak kaydedebilirsiniz.</t></p>
                         <div id="paymentHistoryList"></div>
-                        <div class="text-center text-muted py-3" id="noPayments" style="display:none;">Henüz ödeme kaydı yok.</div>
+                        <div class="text-center text-muted py-3" id="noPayments" style="display:none;"><t key="salon.panel.payments.empty">Henüz ödeme kaydı yok.</t></div>
                     </div>
                 </div>
             </div>
@@ -194,6 +198,12 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        var PANEL_LANG = '@panelLang';
+        window.salonTranslations = @Html.Raw(panelTranslationsJson);
+        window.salonT = function(key, fallback) {
+            return (window.salonTranslations && window.salonTranslations[key]) || fallback || key;
+        };
+
         var TOKEN = localStorage.getItem('platformToken');
         if (!TOKEN) window.location.href = '/user/login';
 
@@ -227,7 +237,7 @@
                         '<h6>' + s.salonName + '</h6>' +
                         '<small class="text-muted">' + (s.city || '') + ' ' + (s.district || '') + '</small>' +
                         '<div class="mt-2"><button class="btn btn-sm ' + (s.isFavorite ? 'btn-warning' : 'btn-outline-warning') + '" onclick="toggleFav(' + s.customerId + ')"><i class="bi bi-star' + (s.isFavorite ? '-fill' : '') + '"></i></button>' +
-                        ' <a href="/salon/' + s.customerId + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>Randevu</a></div>' +
+                        ' <a href="/salon/' + s.customerId + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>' + salonT('salon.panel.action.appointment', 'Randevu') + '</a></div>' +
                         '</div></div></div>';
                 }).join('');
             });
@@ -239,12 +249,12 @@
 
         // ═══ Randevularım ═══
         function apptStatusBadge(s) {
-            if (s === 1) return '<span class="badge bg-secondary ms-1">Bekliyor</span>';
-            if (s === 2) return '<span class="badge bg-success ms-1">Onaylandı</span>';
-            if (s === 3) return '<span class="badge bg-info text-dark ms-1">Tamamlandı</span>';
-            if (s === 4) return '<span class="badge bg-danger ms-1">İptal</span>';
-            if (s === 5) return '<span class="badge bg-warning text-dark ms-1">Gelmedi</span>';
-            if (s === 6) return '<span class="badge bg-warning text-dark ms-1">Ödeme Bekleniyor</span>';
+            if (s === 1) return '<span class="badge bg-secondary ms-1">' + salonT('salon.panel.status.pending', 'Bekliyor') + '</span>';
+            if (s === 2) return '<span class="badge bg-success ms-1">' + salonT('salon.panel.status.approved', 'Onaylandı') + '</span>';
+            if (s === 3) return '<span class="badge bg-info text-dark ms-1">' + salonT('salon.panel.status.completed', 'Tamamlandı') + '</span>';
+            if (s === 4) return '<span class="badge bg-danger ms-1">' + salonT('salon.panel.status.cancelled', 'İptal') + '</span>';
+            if (s === 5) return '<span class="badge bg-warning text-dark ms-1">' + salonT('salon.panel.status.no_show', 'Gelmedi') + '</span>';
+            if (s === 6) return '<span class="badge bg-warning text-dark ms-1">' + salonT('salon.panel.status.payment_pending', 'Ödeme Bekleniyor') + '</span>';
             return '';
         }
 
@@ -255,7 +265,7 @@
                 document.getElementById('noAppts').style.display = 'none';
                 el.innerHTML = data.map(function(a) {
                     var dateOnly = a.appointmentDate ? a.appointmentDate.substring(0, 10) : '';
-                    var date = dateOnly ? new Date(dateOnly).toLocaleDateString('tr-TR') : '';
+                    var date = dateOnly ? new Date(dateOnly).toLocaleDateString(PANEL_LANG || undefined) : '';
                     var time = a.startTime ? a.startTime.substring(0, 5) : '';
                     var canCancel = a.statusId === 1 || a.statusId === 2;
                     var apptIso = dateOnly ? new Date(dateOnly + 'T' + (a.startTime || '00:00:00')).toISOString() : '';
@@ -283,13 +293,13 @@
         }
 
         function cancelAppt(id, isPrepaid, prepaidAmount, startTime) {
-            var msg = 'Randevunuzu iptal etmek istediğinize emin misiniz?';
+            var msg = salonT('salon.panel.cancel.question', 'Randevunuzu iptal etmek istediğinize emin misiniz?');
             if (isPrepaid && prepaidAmount > 0) {
                 var hoursLeft = (new Date(startTime) - new Date()) / 3600000;
                 if (hoursLeft >= 24) {
-                    msg += '<br><br><span class="text-success fw-semibold">✅ Ücretsiz iptal penceresindeyiz — depozitonuz iade edilecektir.</span>';
+                    msg += '<br><br><span class="text-success fw-semibold">' + salonT('salon.panel.cancel.refund_yes', 'Ücretsiz iptal penceresindeyiz; depozitonuz iade edilecektir.') + '</span>';
                 } else {
-                    msg += '<br><br><span class="text-danger fw-semibold">⚠️ Ücretsiz iptal süresi geçmiş olabilir — depozitonuz iade edilmeyebilir.</span>';
+                    msg += '<br><br><span class="text-danger fw-semibold">' + salonT('salon.panel.cancel.refund_maybe_no', 'Ücretsiz iptal süresi geçmiş olabilir; depozitonuz iade edilmeyebilir.') + '</span>';
                 }
             }
             document.getElementById('cancelModalMsg').innerHTML = msg;
@@ -299,7 +309,7 @@
                 _cancelModal.hide();
                 api('platform/appointments/' + id, { method: 'DELETE' })
                     .then(function(data) {
-                        showToast(data && data.message ? data.message : 'Randevunuz iptal edildi.', true);
+                        showToast(data && data.message ? data.message : salonT('salon.panel.cancel.success', 'Randevunuz iptal edildi.'), true);
                         loadAppointments(false);
                     })
                     .catch(function() { loadAppointments(false); });
@@ -320,11 +330,11 @@
                     return '<div class="card section-card mb-2"><div class="card-body">' +
                         '<h6>' + l.salonName + '</h6>' +
                         '<div class="row g-2">' +
-                        '<div class="col-4"><div class="small text-muted">Puan</div><strong>' + l.currentPoints + '</strong></div>' +
-                        '<div class="col-4"><div class="small text-muted">Üyelik</div><strong>' + (l.membershipPlanName || '-') + '</strong></div>' +
-                        '<div class="col-4"><div class="small text-muted">İndirim</div><strong>' + (l.membershipDiscount ? '%' + l.membershipDiscount : '-') + '</strong></div>' +
+                        '<div class="col-4"><div class="small text-muted">' + salonT('salon.panel.loyalty.points', 'Puan') + '</div><strong>' + l.currentPoints + '</strong></div>' +
+                        '<div class="col-4"><div class="small text-muted">' + salonT('salon.panel.loyalty.membership', 'Üyelik') + '</div><strong>' + (l.membershipPlanName || '-') + '</strong></div>' +
+                        '<div class="col-4"><div class="small text-muted">' + salonT('salon.panel.loyalty.discount', 'İndirim') + '</div><strong>' + (l.membershipDiscount ? '%' + l.membershipDiscount : '-') + '</strong></div>' +
                         '</div>' +
-                        (cards ? '<div class="mt-2"><small class="text-muted">Hediye Kartları:</small> ' + cards + '</div>' : '') +
+                        (cards ? '<div class="mt-2"><small class="text-muted">' + salonT('salon.panel.loyalty.gift_cards', 'Hediye Kartları') + ':</small> ' + cards + '</div>' : '') +
                         '</div></div>';
                 }).join('');
             });
@@ -346,16 +356,16 @@
                     fullName: document.getElementById('profName').value,
                     email: document.getElementById('profEmail').value || null
                 })
-            }).then(function() { showToast('Profil güncellendi.', true); });
+            }).then(function() { showToast(salonT('salon.panel.profile.saved', 'Profil güncellendi.'), true); });
         }
 
         function changePassword() {
             var cur = document.getElementById('pwdCurrent').value;
             var nw = document.getElementById('pwdNew').value;
             var nw2 = document.getElementById('pwdNew2').value;
-            if (!cur || !nw || !nw2) { showToast('Tüm şifre alanlarını doldurun.', false); return; }
-            if (nw !== nw2) { showToast('Yeni şifreler eşleşmiyor.', false); return; }
-            if (nw.length < 6) { showToast('Yeni şifre en az 6 karakter olmalıdır.', false); return; }
+            if (!cur || !nw || !nw2) { showToast(salonT('salon.panel.password.required', 'Tüm şifre alanlarını doldurun.'), false); return; }
+            if (nw !== nw2) { showToast(salonT('salon.panel.password.mismatch', 'Yeni şifreler eşleşmiyor.'), false); return; }
+            if (nw.length < 6) { showToast(salonT('salon.panel.password.min_length', 'Yeni şifre en az 6 karakter olmalıdır.'), false); return; }
             fetch('/public-proxy/platform/me/password', {
                 method: 'PUT',
                 headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
@@ -365,14 +375,14 @@
             }).then(function(x) {
                 if (x.status === 401) { logout(); return; }
                 if (x.ok) {
-                    showToast((x.j && x.j.message) ? x.j.message : 'Şifreniz güncellendi.', true);
+                    showToast((x.j && x.j.message) ? x.j.message : salonT('salon.panel.password.saved', 'Şifreniz güncellendi.'), true);
                     document.getElementById('pwdCurrent').value = '';
                     document.getElementById('pwdNew').value = '';
                     document.getElementById('pwdNew2').value = '';
                 } else {
-                    showToast((x.j && x.j.message) ? x.j.message : 'Şifre değiştirilemedi.', false);
+                    showToast((x.j && x.j.message) ? x.j.message : salonT('salon.panel.password.failed', 'Şifre değiştirilemedi.'), false);
                 }
-            }).catch(function() { showToast('İstek başarısız.', false); });
+            }).catch(function() { showToast(salonT('salon.panel.error.request_failed', 'İstek başarısız.'), false); });
         }
 
         // Init
@@ -419,7 +429,7 @@
                     billingDistrict: document.getElementById('billingDistrict').value || null,
                     billingPostalCode: document.getElementById('billingPostalCode').value || null
                 })
-            }).then(function() { showToast('Fatura bilgileri güncellendi.', true); });
+            }).then(function() { showToast(salonT('salon.panel.billing.saved', 'Fatura bilgileri güncellendi.'), true); });
         }
 
         function loadPaymentHistory() {
@@ -433,17 +443,17 @@
                 }
                 if (empty) empty.style.display = 'none';
                 if (!el) return;
-                el.innerHTML = '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light"><tr><th>Tarih</th><th>Tür</th><th>İşletme</th><th class="text-end">Tutar</th><th>Durum</th><th></th></tr></thead><tbody>' +
+                el.innerHTML = '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light"><tr><th>' + salonT('salon.panel.payments.date', 'Tarih') + '</th><th>' + salonT('salon.panel.payments.type', 'Tür') + '</th><th>' + salonT('salon.panel.payments.business', 'İşletme') + '</th><th class="text-end">' + salonT('salon.panel.payments.amount', 'Tutar') + '</th><th>' + salonT('salon.panel.payments.status', 'Durum') + '</th><th></th></tr></thead><tbody>' +
                     data.map(function(p) {
                         var dt = p.completedAt || p.createdAt;
-                        var dateStr = dt ? new Date(dt).toLocaleString('tr-TR') : '—';
+                        var dateStr = dt ? new Date(dt).toLocaleString(PANEL_LANG || undefined) : '-';
                         var canDl = p.statusId === 2 || p.statusId === 4;
                         var uid = p.uid || '';
                         var dl = canDl && uid
-                            ? '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="downloadReceipt(\'' + uid + '\')"><i class="bi bi-download me-1"></i>İndir</button>'
-                            : '<span class="text-muted small">—</span>';
-                        var biz = p.customerName || '—';
-                        var amt = p.amount != null ? Number(p.amount).toFixed(2) + ' ' + (p.currency || 'TRY') : '—';
+                            ? '<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="downloadReceipt(\'' + uid + '\')"><i class="bi bi-download me-1"></i>' + salonT('salon.panel.payments.download', 'İndir') + '</button>'
+                            : '<span class="text-muted small">-</span>';
+                        var biz = p.customerName || '-';
+                        var amt = p.amount != null ? Number(p.amount).toFixed(2) + ' ' + (p.currency || 'TRY') : '-';
                         return '<tr><td class="text-nowrap">' + dateStr + '</td><td>' + (p.paymentType || '') + '</td><td>' + biz + '</td><td class="text-end">' + amt + '</td><td><span class="small">' + (p.status || '') + '</span></td><td class="text-end">' + dl + '</td></tr>';
                     }).join('') + '</tbody></table></div>';
             });
@@ -455,8 +465,8 @@
                     if (r.status === 401) { logout(); return Promise.reject(); }
                     if (!r.ok) {
                         return r.json().then(function(j) {
-                            showToast((j && j.message) ? j.message : 'Dekont alınamadı.', false);
-                        }, function() { showToast('Dekont alınamadı.', false); });
+                            showToast((j && j.message) ? j.message : salonT('salon.panel.payments.receipt_failed', 'Dekont alınamadı.'), false);
+                        }, function() { showToast(salonT('salon.panel.payments.receipt_failed', 'Dekont alınamadı.'), false); });
                     }
                     var fname = 'corpLynk-dekont.html';
                     var disp = r.headers.get('Content-Disposition');
@@ -477,7 +487,7 @@
                         a.click();
                         a.remove();
                         URL.revokeObjectURL(url);
-                        showToast('Dekont indirildi.', true);
+                        showToast(salonT('salon.panel.payments.receipt_downloaded', 'Dekont indirildi.'), true);
                     });
                 })
                 .catch(function() { });

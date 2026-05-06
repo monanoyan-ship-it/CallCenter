@@ -15,6 +15,7 @@ namespace CallCenter.Api.Controllers;
 [Route("api/sln-email-integrations")]
 [Authorize]
 [RequireModule(SalonPortalModules.Ids.SlnEmailCampaigns)]
+[RequireSalonOwner]
 public class SlnEmailIntegrationController : ControllerBase
 {
     private readonly ISlnEmailIntegrationFactory _factory;

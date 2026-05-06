@@ -1,12 +1,13 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Salon Profili";
+    ViewData["Title"] = Translation.T("salon.profile.auto.salon_profili", "Salon Profili");
 }
 
 <div id="profile-vm">
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-shop me-2"></i>Firma Bilgileri</div>
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-shop me-2"></i><t key="salon.profile.auto.firma_bilgileri">Firma Bilgileri</t></div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12">
@@ -53,15 +54,15 @@
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="radio" name="billingType" id="bt1" value="1" data-bind="checked: form.billingType" />
                         <label class="form-check-label small" for="bt1">
-                            <strong>Tek Fatura</strong><br />
-                            <span class="text-muted">Tum subeler icin merkez sube fatura bilgileri kullanilir</span>
+                            <strong><t key="salon.profile.auto.tek_fatura">Tek Fatura</t></strong><br />
+                            <span class="text-muted"><t key="salon.profile.auto.tum_subeler_icin_merkez_sube_fatura_bilgileri_kullanilir">Tüm şubeler için merkez şube fatura bilgileri kullanılır</t></span>
                         </label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="billingType" id="bt2" value="2" data-bind="checked: form.billingType" />
                         <label class="form-check-label small" for="bt2">
-                            <strong>Sube Bazli</strong><br />
-                            <span class="text-muted">Her sube kendi fatura bilgilerini kullanir</span>
+                            <strong><t key="salon.profile.auto.sube_bazli">Şube Bazlı</t></strong><br />
+                            <span class="text-muted"><t key="salon.profile.auto.her_sube_kendi_fatura_bilgilerini_kullanir">Her şube kendi fatura bilgilerini kullanır</t></span>
                         </label>
                     </div>
                 </div>
@@ -69,14 +70,14 @@
 
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-body text-center text-muted small">
-                    <i class="bi bi-info-circle me-1"></i>Adres, telefon, calisma saatleri ve fatura bilgileri
+                    <i class="bi bi-info-circle me-1"></i><t key="salon.profile.auto.adres_telefon_calisma_saatleri_ve_fatura_bilgileri"><t key="salon.profile.auto.adres_telefon_calisma_saatleri_ve_fatura_bilgileri">Adres, telefon, calisma saatleri ve fatura bilgileri</t></t>
                     <a href="/Branches"><strong>Subeler</strong></a> sayfasindan yonetilir.
                 </div>
             </div>
 
             <button class="btn btn-primary w-100 mt-3" data-bind="click: save, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Profili Kaydet
+                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.profile.auto.profili_kaydet"><t key="salon.profile.auto.profili_kaydet">Profili Kaydet</t></t>
             </button>
         </div>
     </div>

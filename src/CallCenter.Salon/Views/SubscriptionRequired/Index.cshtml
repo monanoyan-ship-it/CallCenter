@@ -1,5 +1,7 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Abonelik Gerekli";
+    ViewData["Title"] = Translation.T("salon.subscription_required.title", "Abonelik Gerekli");
+    string T(string key, string fallback) => Translation.T(key, fallback);
 }
 
 <div class="container py-5">
@@ -8,39 +10,35 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center p-5">
                     <i class="bi bi-lock-fill text-warning" style="font-size:3rem;"></i>
-                    <h4 class="mt-3">Salon erişimi kısıtlandı</h4>
+                    <h4 class="mt-3">@T("salon.subscription_required.heading", "Salon erişimi kısıtlandı")</h4>
                     <p class="text-muted mb-3 text-start small">
-                        <strong>Son ödeme tarihi henüz gelmediyse</strong> panel tam kilitlenmez; üstteki bilgilendirme süresi içinde çalışmaya devam edebilirsiniz.
-                        <strong>Ödenmemiş platform tahakkuku</strong> için <strong>Modüller</strong> sayfasından <strong>kredi kartı ile tahakkuk ödemesi</strong> yapabilirsiniz (Iyzico).
+                        @T("salon.subscription_required.grace_info", "Son ödeme tarihi henüz gelmediyse panel tam kilitlenmez; üstteki bilgilendirme süresi içinde çalışmaya devam edebilirsiniz. Ödenmemiş platform tahakkuku için Modüller sayfasından kredi kartı ile tahakkuk ödemesi yapabilirsiniz (Iyzico).")
                     </p>
                     <p class="text-muted mb-3 text-start small">
-                        Panel erişimi deneme süresi sonu veya ödenmemiş <strong>platform tahakkuku</strong> (ödeme süresi dolduktan sonra) nedeniyle kapatılmış olabilir.
+                        @T("salon.subscription_required.reason", "Panel erişimi deneme süresi sonu veya ödeme süresi dolmuş ödenmemiş platform tahakkuku nedeniyle kapatılmış olabilir.")
                     </p>
                     <p class="text-muted mb-3 text-start small">
-                        <strong>Yeni kayıt:</strong> İlk platform faturası genelde deneme süresi sonunda oluşur; bu aşamada birkaç dakika sonra
-                        <a href="/Account/RefreshSession">oturumu yenileyin</a>; sorun sürerse destek ile iletişime geçin.
+                        @T("salon.subscription_required.new_registration", "Yeni kayıt: İlk platform faturası genelde deneme süresi sonunda oluşur; bu aşamada birkaç dakika sonra oturumu yenileyin. Sorun sürerse destek ile iletişime geçin.")
                     </p>
                     <p class="text-muted mb-4 text-start small">
-                        <strong>Salon adisyonları</strong> (müşteri faturaları) panel açıldığında <strong>Adisyonlar</strong> menüsündedir;
-                        bunlar platform tahakkukundan farklıdır.
+                        @T("salon.subscription_required.invoice_note", "Salon adisyonları müşteri faturalarıdır ve panel açıldığında Adisyonlar menüsündedir; bunlar platform tahakkukundan farklıdır.")
                     </p>
                     <div class="d-grid gap-2">
                         <a href="/Modules" class="btn btn-primary">
-                            <i class="bi bi-puzzle me-1"></i>Modüller — tahakkuk KK ödemesi
+                            <i class="bi bi-puzzle me-1"></i>@T("salon.subscription_required.modules_payment", "Modüller - tahakkuk KK ödemesi")
                         </a>
                         <a href="/Home/Index" class="btn btn-outline-secondary">
-                            <i class="bi bi-house me-1"></i>Ana sayfa
+                            <i class="bi bi-house me-1"></i>@T("salon.sidebar.dashboard", "Ana sayfa")
                         </a>
                         <form method="post" action="/Account/Logout" class="d-inline">
-                            <button type="submit" class="btn btn-link text-muted">Çıkış yap</button>
+                            <button type="submit" class="btn btn-link text-muted">@T("salon.subscription_required.logout", "Çıkış yap")</button>
                         </form>
                     </div>
                 </div>
             </div>
             <div class="text-center mt-3">
                 <small class="text-muted">
-                    Ödeme veya abonelik güncellendiyse
-                    <a href="/Account/RefreshSession">oturumu yenileyin</a>.
+                    @T("salon.subscription_required.refresh_hint", "Ödeme veya abonelik güncellendiyse oturumu yenileyin.")
                 </small>
             </div>
         </div>

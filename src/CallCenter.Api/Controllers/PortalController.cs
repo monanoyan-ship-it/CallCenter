@@ -81,6 +81,12 @@ public class PortalController : AuditableControllerBase
         return claim != null && int.TryParse(claim, out var id) ? id : null;
     }
 
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirstValue("BranchId");
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
+
     private int? ResolveCustomerId(int? queryCustomerId)
     {
         if (IsAdmin)
@@ -93,6 +99,16 @@ public class PortalController : AuditableControllerBase
     private bool HasPermission(int permTypeId)
     {
         if (IsAdmin || IsCustomerAdmin) return true;
+
+        var roleId = GetCustomerRoleId();
+        if (roleId.HasValue && SalonRoles.GetById(roleId.Value) != null)
+        {
+            if (permTypeId == CustomerPermissionTypes.Ids.PersonnelView)
+                return SalonRolePermissions.CanAccess(roleId.Value, "Staff");
+
+            if (permTypeId == CustomerPermissionTypes.Ids.PersonnelManage)
+                return roleId.Value == SalonRoles.Ids.SalonOwner;
+        }
 
         var perms = User.FindFirstValue("CustomerPermissions");
         if (string.IsNullOrEmpty(perms)) return false;
@@ -146,7 +162,7 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        return Ok(await _portalFactory.GetPersonnelAsync(cid.Value, GetCustomerPersonnelId(), GetCustomerRoleId()));
+        return Ok(await _portalFactory.GetPersonnelAsync(cid.Value, GetCustomerPersonnelId(), GetCustomerRoleId(), GetBranchId()));
     }
 
     [HttpPost("personnel")]

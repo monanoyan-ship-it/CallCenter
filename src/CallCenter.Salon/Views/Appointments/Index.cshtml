@@ -1,5 +1,6 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Randevular";
+    ViewData["Title"] = Translation.T("salon.appointments.title", "Randevular");
 }
 
 <div id="appointments-vm">
@@ -10,7 +11,7 @@
                 <!-- Sol: Tarih Araligi -->
                 <div class="col-lg-8">
                     <label class="form-label small fw-semibold mb-1">
-                        <i class="bi bi-calendar-range me-1"></i>Tarih Araligi
+                        <i class="bi bi-calendar-range me-1"></i><t key="salon.appointments.date_range">Tarih Aralığı</t>
                     </label>
 
                     <!-- Preset Butonlari -->
@@ -29,11 +30,11 @@
                         <input type="date" class="form-control form-control-sm" style="width:140px;" data-bind="value: manualFrom" />
                         <span class="text-muted small">-</span>
                         <input type="date" class="form-control form-control-sm" style="width:140px;" data-bind="value: manualTo" />
-                        <button class="btn btn-outline-primary btn-sm" data-bind="click: addManualRange" title="Ekle">
+                        <button class="btn btn-outline-primary btn-sm" data-bind="click: addManualRange" title="@(Translation.T("salon.common.add", "Ekle"))">
                             <i class="bi bi-plus-lg"></i>
                         </button>
                         <!-- ko if: dateRanges().length > 1 -->
-                        <button class="btn btn-outline-danger btn-sm" data-bind="click: clearAllRanges" title="Tumu temizle">
+                        <button class="btn btn-outline-danger btn-sm" data-bind="click: clearAllRanges" title="@(Translation.T("salon.appointments.clear_all", "Tümünü temizle"))">
                             <i class="bi bi-trash"></i>
                         </button>
                         <!-- /ko -->
@@ -49,7 +50,7 @@
                         </span>
                         <!-- /ko -->
                         <!-- ko if: dateRanges().length === 0 -->
-                        <span class="text-muted small fst-italic">Tarih araligi secin</span>
+                        <span class="text-muted small fst-italic"><t key="salon.appointments.select_date_range">Tarih aralığı seçin</t></span>
                         <!-- /ko -->
                     </div>
                 </div>
@@ -57,7 +58,7 @@
                 <!-- Sag: Personel Filtresi + Yeni Randevu -->
                 <div class="col-lg-4">
                     <label class="form-label small fw-semibold mb-1">
-                        <i class="bi bi-people me-1"></i>Personel
+                        <i class="bi bi-people me-1"></i><t key="salon.sidebar.staff">Personel</t>
                     </label>
                     <div class="position-relative" data-bind="with: staffFilterAutocomplete">
                         <div class="form-control form-control-sm d-flex flex-wrap align-items-center gap-1"
@@ -74,7 +75,7 @@
                                    autocomplete="off"
                                    data-bind="value: query, valueUpdate: 'afterkeydown',
                                               event: { focus: onFocus, blur: onBlur, keydown: onKeydown },
-                                              attr: { placeholder: selectedItems().length ? '' : 'Tum personel...' }" />
+                                              attr: { placeholder: selectedItems().length ? '' : salonT('salon.appointments.all_staff_placeholder', 'Tüm personel...') }" />
                         </div>
                         <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
                              data-bind="css: { show: showDropdown }">
@@ -88,11 +89,11 @@
                     </div>
                     <div class="mt-2 text-end d-flex gap-1 justify-content-end">
                         <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
-                                title="Sube bilgisi olmayan eski randevulari merkez subeye bagla">
-                            <i class="bi bi-shuffle me-1"></i>Sube Normalize
+                                title="@(Translation.T("salon.appointments.normalize_tooltip", "Şube bilgisi olmayan randevuları merkez şubeye bağla"))">
+                            <i class="bi bi-shuffle me-1"></i><t key="salon.appointments.normalize_branches">Şube Normalize</t>
                         </button>
                         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-                            <i class="bi bi-plus-lg me-1"></i>Yeni Randevu
+                            <i class="bi bi-plus-lg me-1"></i><t key="salon.appointments.new_appointment">Yeni Randevu</t>
                         </button>
                     </div>
                 </div>
@@ -104,16 +105,16 @@
     <!-- ko if: personnelReport().length > 0 -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 small"><i class="bi bi-bar-chart me-1"></i>Personel Ozeti</h6>
-            <small class="text-muted" data-bind="text: filteredAppointments().length + ' randevu'"></small>
+            <h6 class="mb-0 small"><i class="bi bi-bar-chart me-1"></i><t key="salon.appointments.staff_summary">Personel Özeti</t></h6>
+            <small class="text-muted" data-bind="text: filteredAppointments().length + ' ' + salonT('salon.appointments.appointment_suffix', 'randevu')"></small>
         </div>
         <div class="card-body p-0">
             <table class="table table-sm table-borderless mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="small">Personel</th>
-                        <th class="small text-center">Toplam</th>
-                        <th class="small text-center">Tamamlanan</th>
+                        <th class="small"><t key="salon.sidebar.staff">Personel</t></th>
+                        <th class="small text-center"><t key="salon.reports.count">Toplam</t></th>
+                        <th class="small text-center"><t key="salon.reports.completed">Tamamlanan</t></th>
                     </tr>
                 </thead>
                 <tbody data-bind="foreach: personnelReport">
@@ -132,7 +133,7 @@
     <!-- ko if: isLoadingAppointments() -->
     <div class="text-center py-4">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Yukleniyor...</span>
+            <span class="visually-hidden"><t key="salon.common.loading">Yükleniyor...</t></span>
         </div>
     </div>
     <!-- /ko -->
@@ -142,22 +143,22 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h6 class="mb-0 small" data-bind="text: rangesDescription"></h6>
-            <small class="text-muted" data-bind="text: filteredAppointments().length + ' randevu'"></small>
+            <small class="text-muted" data-bind="text: filteredAppointments().length + ' ' + salonT('salon.appointments.appointment_suffix', 'randevu')"></small>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:90px;">Tarih</th>
-                            <th style="width:60px;">Saat</th>
-                            <th>Musteri</th>
-                            <th>Hizmetler</th>
-                            <th>Personel</th>
-                            <th>Sube</th>
-                            <th>Sure</th>
-                            <th>On Odeme</th>
-                            <th>Durum</th>
+                            <th style="width:90px;"><t key="salon.panel.payments.date">Tarih</t></th>
+                            <th style="width:60px;"><t key="salon.reports.hour">Saat</t></th>
+                            <th><t key="salon.panel.payments.customer">Müşteri</t></th>
+                            <th><t key="salon.appointments.services">Hizmetler</t></th>
+                            <th><t key="salon.sidebar.staff">Personel</t></th>
+                            <th><t key="salon.common.branch">Şube</t></th>
+                            <th><t key="salon.appointments.duration">Süre</t></th>
+                            <th><t key="salon.appointments.prepayment">Ön Ödeme</t></th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
                             <th style="width:100px;"></th>
                         </tr>
                     </thead>
@@ -178,13 +179,13 @@
                                 <span class="text-muted">-</span>
                                 <!-- /ko -->
                             </td>
-                            <td class="small" data-bind="text: durationMinutes ? durationMinutes + ' dk' : '-'"></td>
+                            <td class="small" data-bind="text: durationMinutes ? durationMinutes + ' ' + salonT('salon.common.minute_abbr', 'dk') : '-'"></td>
                             <td class="small">
                                 <!-- ko if: isPrepaid && prepaidAmount > 0 -->
-                                <span class="badge bg-success" data-bind="text: 'Odenmis: ' + prepaidAmount.toLocaleString('tr-TR') + ' TL'" title="Online on odeme alindi"></span>
+                                <span class="badge bg-success" data-bind="text: salonT('salon.appointments.paid_prefix', 'Ödenmiş') + ': ' + prepaidAmount.toLocaleString(document.documentElement.lang || undefined) + ' TL'" title="@(Translation.T("salon.appointments.online_prepayment_received", "Online ön ödeme alındı"))"></span>
                                 <!-- /ko -->
                                 <!-- ko if: !isPrepaid && depositAmount > 0 -->
-                                <span class="badge bg-info text-dark" data-bind="text: 'Depozito: ' + depositAmount.toLocaleString('tr-TR') + ' TL'"></span>
+                                <span class="badge bg-info text-dark" data-bind="text: salonT('salon.appointments.deposit_prefix', 'Depozito') + ': ' + depositAmount.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></span>
                                 <!-- /ko -->
                                 <!-- ko if: !isPrepaid && (!depositAmount || depositAmount === 0) -->
                                 <span class="text-muted">-</span>
@@ -194,23 +195,23 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <!-- Planlanmis (1): once Onayla -->
-                                    <button class="btn btn-outline-info" title="Onayla" data-bind="click: $parent.confirm, visible: statusId === 1">
+                                    <button class="btn btn-outline-info" title="@(Translation.T("salon.appointments.confirm", "Onayla"))" data-bind="click: $parent.confirm, visible: statusId === 1">
                                         <i class="bi bi-check"></i>
                                     </button>
                                     <!-- Onaylandi (2): Tamamla -->
-                                    <button class="btn btn-outline-success" title="Tamamla" data-bind="click: $parent.complete, visible: statusId === 2">
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.appointments.complete", "Tamamla"))" data-bind="click: $parent.complete, visible: statusId === 2">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.common.btn.edit_tooltip", "Düzenle"))" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Iptal" data-bind="click: $parent.cancel, visible: statusId !== 3 && statusId !== 4 && statusId !== 5">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.cancel", "İptal"))" data-bind="click: $parent.cancel, visible: statusId !== 3 && statusId !== 4 && statusId !== 5">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
-                                    <button class="btn btn-outline-dark" title="Gelmedi" data-bind="click: $parent.markNoShow, visible: statusId === 1 || statusId === 2">
+                                    <button class="btn btn-outline-dark" title="@(Translation.T("salon.appointments.no_show", "Gelmedi"))" data-bind="click: $parent.markNoShow, visible: statusId === 1 || statusId === 2">
                                         <i class="bi bi-person-x"></i>
                                     </button>
-                                    <a class="btn btn-outline-info" title="Adisyon Olustur" data-bind="visible: statusId === 3,
+                                    <a class="btn btn-outline-info" title="@(Translation.T("salon.appointments.create_invoice", "Adisyon Oluştur"))" data-bind="visible: statusId === 3,
                                         attr: { href: '/Invoices?fromAppt=1&clientId=' + slnClientId + '&clientName=' + encodeURIComponent(clientName || '') + '&serviceIds=' + (serviceIds || []).join(',') + '&personnelId=' + (personnelId || '') }">
                                         <i class="bi bi-receipt"></i>
                                     </a>
@@ -227,14 +228,14 @@
     <!-- ko if: filteredAppointments().length === 0 && dateRanges().length > 0 -->
     <div class="text-center text-muted py-4">
         <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
-        <p class="mt-2 small">Secilen tarih araliginda randevu bulunamadi</p>
+        <p class="mt-2 small"><t key="salon.appointments.no_appointments_in_range">Seçilen tarih aralığında randevu bulunamadı</t></p>
     </div>
     <!-- /ko -->
 
     <!-- ko if: dateRanges().length === 0 -->
     <div class="text-center text-muted py-4">
         <i class="bi bi-calendar-plus" style="font-size: 2rem;"></i>
-        <p class="mt-2 small">Randevulari gormek icin tarih araligi secin</p>
+        <p class="mt-2 small"><t key="salon.appointments.select_range_to_view">Randevuları görmek için tarih aralığı seçin</t></p>
     </div>
     <!-- /ko -->
     <!-- /ko -->
@@ -244,22 +245,22 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Randevu Duzenle' : 'Yeni Randevu'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.appointments.edit_appointment', 'Randevu Düzenle') : salonT('salon.appointments.new_appointment', 'Yeni Randevu')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Musteri *</label>
+                            <label class="form-label small"><t key="salon.appointments.customer_required">Müşteri *</t></label>
                             <div class="position-relative" data-bind="with: clientAutocomplete">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="Musteri adi yazin..."
+                                       placeholder="@(Translation.T("salon.appointments.customer_placeholder", "Müşteri adı yazın..."))"
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
+                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
@@ -274,7 +275,7 @@
                                     <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
                                     <a class="dropdown-item small py-1 px-2 text-primary fw-semibold" href="#"
                                        data-bind="event: { mousedown: function() { $root.showNewClient(query()); } }">
-                                        <i class="bi bi-person-plus me-1"></i>Yeni musteri olustur
+                                        <i class="bi bi-person-plus me-1"></i><t key="salon.appointments.create_new_customer">Yeni müşteri oluştur</t>
                                     </a>
                                     <!-- /ko -->
                                 </div>
@@ -283,7 +284,7 @@
                             <div class="border rounded p-2 mt-1 bg-light" data-bind="visible: newClientVisible" style="display:none;">
                                 <div class="row g-1">
                                     <div class="col-5">
-                                        <input type="text" class="form-control form-control-sm" placeholder="Ad Soyad *" data-bind="value: newClientForm.fullName" />
+                                        <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.appointments.full_name_required", "Ad Soyad *"))" data-bind="value: newClientForm.fullName" />
                                     </div>
                                     <div class="col-4">
                                         <div data-bind="phoneInput: newClientForm.phone"></div>
@@ -301,7 +302,7 @@
                         </div>
                         <!-- Tarih/Saat asagida personel secildikten sonra slot olarak gosterilir -->
                         <div class="col-12">
-                            <label class="form-label small">Kategori <small class="text-muted fw-normal">(tikla sec)</small></label>
+                            <label class="form-label small"><t key="salon.appointments.category">Kategori</t> <small class="text-muted fw-normal"><t key="salon.appointments.click_to_select">(tıkla seç)</t></small></label>
                             <div class="d-flex flex-wrap gap-1 mb-2" data-bind="foreach: serviceList">
                                 <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"
                                     data-bind="text: name,
@@ -312,13 +313,13 @@
                         </div>
                         <!-- ko if: selectedCategoryServices().length > 0 -->
                         <div class="col-12">
-                            <label class="form-label small">Hizmetler * <small class="text-muted fw-normal">(tikla sec)</small></label>
+                            <label class="form-label small"><t key="salon.appointments.services_required">Hizmetler *</t> <small class="text-muted fw-normal"><t key="salon.appointments.click_to_select">(tıkla seç)</t></small></label>
                             <div class="d-flex flex-wrap gap-1" data-bind="foreach: selectedCategoryServices">
                                 <button type="button" class="btn py-1 px-2" style="font-size:.85rem; min-height:36px;"
                                     data-bind="click: function() { $root.toggleService($data.id); },
                                                css: $root.form.serviceIds().indexOf($data.id) >= 0 ? 'btn-primary' : 'btn-outline-secondary'">
                                     <span data-bind="text: name"></span>
-                                    <small class="ms-1 opacity-75" data-bind="text: durationMinutes + 'dk'"></small>
+                                    <small class="ms-1 opacity-75" data-bind="text: durationMinutes + salonT('salon.common.minute_abbr', 'dk')"></small>
                                 </button>
                             </div>
                         </div>
@@ -337,7 +338,7 @@
                         </div>
                         <!-- /ko -->
                         <div class="col-12">
-                            <label class="form-label small">Personel * <small class="text-muted fw-normal">(tikla sec)</small></label>
+                            <label class="form-label small"><t key="salon.appointments.staff_required">Personel *</t> <small class="text-muted fw-normal"><t key="salon.appointments.click_to_select">(tıkla seç)</t></small></label>
                             <!-- ko if: availableStaffForService().length > 0 -->
                             <div class="d-flex flex-wrap gap-1" data-bind="foreach: availableStaffForService">
                                 <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"
@@ -359,13 +360,13 @@
                         </div>
                         <!-- Tarih + Musait Saatler -->
                         <div class="col-4">
-                            <label class="form-label small">Tarih *</label>
+                            <label class="form-label small"><t key="salon.appointments.date_required">Tarih *</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: slotDate" />
                         </div>
                         <div class="col-8">
-                            <label class="form-label small">Saat * <small class="text-muted fw-normal">(musait saatleri tikla)</small></label>
+                            <label class="form-label small"><t key="salon.appointments.time_required">Saat *</t> <small class="text-muted fw-normal"><t key="salon.appointments.click_available_slots">(müsait saatleri tıkla)</t></small></label>
                             <!-- ko if: slotsLoading() -->
-                            <div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>Yukleniyor...</div>
+                            <div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span><t key="salon.common.loading">Yükleniyor...</t></div>
                             <!-- /ko -->
                             <!-- ko if: !slotsLoading() && availableSlots().length > 0 -->
                             <div class="d-flex flex-wrap gap-1">
@@ -380,24 +381,24 @@
                             </div>
                             <!-- /ko -->
                             <!-- ko if: !slotsLoading() && availableSlots().length === 0 && form.personnelId() && slotDate() -->
-                            <div class="text-muted small">Musait saat bulunamadi</div>
+                            <div class="text-muted small"><t key="salon.appointments.no_available_slots">Müsait saat bulunamadı</t></div>
                             <!-- /ko -->
                             <!-- ko if: !form.personnelId() || !slotDate() -->
-                            <div class="text-muted small">Once personel ve tarih seciniz</div>
+                            <div class="text-muted small"><t key="salon.appointments.select_staff_and_date_first">Önce personel ve tarih seçiniz</t></div>
                             <!-- /ko -->
                         </div>
                         <input type="hidden" data-bind="value: form.startTime" />
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

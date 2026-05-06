@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function NoShowPolicyViewModel() {
     var self = this;
     self.isSaving = ko.observable(false);
@@ -40,10 +44,10 @@ function NoShowPolicyViewModel() {
             url: '/proxy/sln-noshow-policy', method: 'POST',
             contentType: 'application/json', data: JSON.stringify(data)
         }).done(function () {
-            toastr.success('No-Show politikasi kaydedildi');
+            toastr.success(slnJsT('salon.noshowpolicy.saved', 'No-Show politikası kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Kaydedilemedi');
+            toastr.error(slnJsT('salon.common.error.save_failed', 'Kaydedilemedi'));
             self.isSaving(false);
         });
     };

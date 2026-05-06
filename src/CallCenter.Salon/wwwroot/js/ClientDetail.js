@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ClientDetailViewModel() {
     var self = this;
     var id = clientDetailId;
@@ -20,14 +24,24 @@ function ClientDetailViewModel() {
 
     var formulaModal, photoModal;
 
-    var appointmentStatusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
+    var appointmentStatusNames = {
+        1: slnJsT('salon.appointments.status.scheduled', 'Planlanmış'),
+        2: slnJsT('salon.appointments.status.confirmed', 'Onaylandı'),
+        3: slnJsT('salon.appointments.status.completed', 'Tamamlandı'),
+        4: slnJsT('salon.appointments.status.cancelled', 'İptal'),
+        5: slnJsT('salon.appointments.status.no_show', 'Gelmedi')
+    };
     var appointmentStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
-    var invoiceStatusNames = { 1: 'Acik', 2: 'Odendi', 3: 'Iptal' };
+    var invoiceStatusNames = {
+        1: slnJsT('salon.invoices.status.open', 'Açık'),
+        2: slnJsT('salon.invoices.status.paid', 'Ödendi'),
+        3: slnJsT('salon.appointments.status.cancelled', 'İptal')
+    };
     var invoiceStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
 
     self.loadClient = function () {
         $.ajax({ url: '/proxy/sln-clients/' + id, method: 'GET' }).done(function (data) {
-            data.genderText = data.genderId === 1 ? 'Erkek' : data.genderId === 2 ? 'Kadin' : '';
+            data.genderText = data.genderId === 1 ? slnJsT('salon.common.gender.male', 'Erkek') : data.genderId === 2 ? slnJsT('salon.common.gender.female', 'Kadın') : '';
             if (data.birthDate) {
                 var bd = new Date(data.birthDate);
                 var today = new Date();
@@ -38,9 +52,9 @@ function ClientDetailViewModel() {
             self.formulas(data.formulas || []);
             self.photos(data.photos || []);
             self.totalSpent(data.totalSpent || 0);
-            self.lastVisit(data.lastVisit ? new Date(data.lastVisit).toLocaleDateString('tr-TR') : null);
+            self.lastVisit(data.lastVisit ? new Date(data.lastVisit).toLocaleDateString(document.documentElement.lang || undefined) : null);
         }).fail(function () {
-            toastr.error('Musteri bilgisi yuklenemedi');
+            toastr.error(slnJsT('salon.clientdetail.js.musteri_bilgisi_yuklenemedi', 'Müşteri bilgisi yüklenemedi'));
         });
     };
 
@@ -48,7 +62,7 @@ function ClientDetailViewModel() {
         $.ajax({ url: '/proxy/sln-appointments?slnClientId=' + id, method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (a) {
-                a.statusText = appointmentStatusNames[a.statusId] || 'Bilinmiyor';
+                a.statusText = appointmentStatusNames[a.statusId] || slnJsT('salon.common.unknown', 'Bilinmiyor');
                 a.statusCss = appointmentStatusCss[a.statusId] || 'bg-secondary';
             });
             self.appointments(items);
@@ -59,7 +73,7 @@ function ClientDetailViewModel() {
         $.ajax({ url: '/proxy/sln-finance/invoices?slnClientId=' + id, method: 'GET' }).done(function (data) {
             var items = data.items || data;
             items.forEach(function (inv) {
-                inv.statusText = invoiceStatusNames[inv.statusId] || 'Bilinmiyor';
+                inv.statusText = invoiceStatusNames[inv.statusId] || slnJsT('salon.common.unknown', 'Bilinmiyor');
                 inv.statusCss = invoiceStatusCss[inv.statusId] || 'bg-secondary';
                 inv.servicesSummary = (inv.items || []).map(function (it) { return it.itemName; }).join(', ') || '-';
             });
@@ -95,7 +109,7 @@ function ClientDetailViewModel() {
         }).done(function () {
             formulaModal.hide();
             self.loadClient();
-            toastr.success('Formul kaydedildi');
+            toastr.success(slnJsT('salon.clientdetail.js.formul_kaydedildi', 'Formül kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
             toastr.error('Formul kaydedilemedi');
@@ -104,13 +118,13 @@ function ClientDetailViewModel() {
     };
 
     self.removeFormula = function (formula) {
-        confirmModal('Onay', 'Bu formulu silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu formulu silmek istediginize emin misiniz?', function() {
             $.ajax({
                 url: '/proxy/sln-clients/formulas/' + formula.id,
                 method: 'DELETE'
             }).done(function () {
                 self.loadClient();
-                toastr.success('Formul silindi');
+                toastr.success(slnJsT('salon.clientdetail.js.formul_silindi', 'Formül silindi'));
             });
         });
     };
@@ -150,13 +164,13 @@ function ClientDetailViewModel() {
     };
 
     self.removePhoto = function (photo) {
-        confirmModal('Onay', 'Bu fotografi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu fotografi silmek istediginize emin misiniz?', function() {
             $.ajax({
                 url: '/proxy/sln-clients/' + id + '/photos/' + photo.id,
                 method: 'DELETE'
             }).done(function () {
                 self.loadClient();
-                toastr.success('Fotograf silindi');
+                toastr.success(slnJsT('salon.clientdetail.js.fotograf_silindi', 'Fotoğraf silindi'));
             });
         });
     };

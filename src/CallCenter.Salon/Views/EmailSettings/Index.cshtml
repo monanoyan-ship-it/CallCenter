@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "E-posta Ayarlari";
 }
@@ -34,13 +35,13 @@
                     <span class="badge bg-success" style="font-size:.65rem;"><i class="bi bi-check-circle me-1"></i>Calisiyor</span>
                     <!-- /ko -->
                     <!-- ko if: lastTestSuccess === false -->
-                    <span class="badge bg-danger" style="font-size:.65rem;"><i class="bi bi-x-circle me-1"></i>Hata</span>
+                    <span class="badge bg-danger" style="font-size:.65rem;"><i class="bi bi-x-circle me-1"></i><t key="salon.emailsettings.auto.hata">Hata</t></span>
                     <!-- /ko -->
                     <!-- ko if: lastTestSuccess === null || lastTestSuccess === undefined -->
                     <span class="badge bg-secondary" style="font-size:.65rem;">Test edilmedi</span>
                     <!-- /ko -->
 
-                    <button class="btn btn-outline-primary btn-sm py-0 px-1" title="Test Gonder"
+                    <button class="btn btn-outline-primary btn-sm py-0 px-1" title="@(Translation.T("salon.emailsettings.auto.test_gonder", "Test Gönder"))"
                         data-bind="click: $parent.testSend, disable: $parent.isTesting">
                         <i class="bi bi-send"></i>
                     </button>
@@ -125,9 +126,9 @@
                     </div>
                 </div>
                 <div class="modal-footer py-1">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button class="btn btn-warning btn-sm" data-bind="click: saveYandex, disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>Kaydet
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>
@@ -183,9 +184,9 @@
                     </div>
                 </div>
                 <div class="modal-footer py-1">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button class="btn btn-primary btn-sm" data-bind="click: saveSmtp, disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>Kaydet
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>
@@ -197,7 +198,7 @@
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header py-2">
-                    <h6 class="modal-title">Test E-postasi Gonder</h6>
+                    <h6 class="modal-title"><t key="salon.emailsettings.auto.test_e_postasi_gonder">Test E-postası Gönder</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -205,9 +206,9 @@
                     <input type="email" class="form-control form-control-sm" data-bind="value: testEmail" placeholder="test@example.com" />
                 </div>
                 <div class="modal-footer py-1">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button class="btn btn-primary btn-sm" data-bind="click: confirmTestSend, disable: isTesting">
-                        <span data-bind="visible: isTesting" class="spinner-border spinner-border-sm me-1"></span>Gonder
+                        <span data-bind="visible: isTesting" class="spinner-border spinner-border-sm me-1"></span><t key="salon.common.send">Gönder</t>
                     </button>
                 </div>
             </div>

@@ -1,5 +1,9 @@
 function MembershipsViewModel() {
     var self = this;
+    var MEMBERSHIPS_LOCALE = document.documentElement.lang || undefined;
+    function memberT(key, fallback) {
+        return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+    }
     self.plans = ko.observableArray([]);
     self.memberships = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
@@ -99,7 +103,7 @@ function MembershipsViewModel() {
     self.saveNewClient = function () {
         var name = self.newClientForm.fullName();
         var phone = self.newClientForm.phone();
-        if (!name || !phone) { toastr.warning('Ad ve telefon zorunludur'); return; }
+        if (!name || !phone) { toastr.warning(memberT('salon.memberships.name_phone_required', 'Ad ve telefon zorunludur')); return; }
 
         self.isCreatingClient(true);
         $.ajax({
@@ -115,9 +119,9 @@ function MembershipsViewModel() {
             self.clientAutocomplete.query(newClient.fullName);
             self.clientAutocomplete.selectedName(newClient.fullName);
             self.newClientVisible(false);
-            toastr.success('Müşteri oluşturuldu ve seçildi');
+            toastr.success(memberT('salon.memberships.customer_created_selected', 'Müşteri oluşturuldu ve seçildi'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Müşteri oluşturulamadı');
+            toastr.error(xhr.responseJSON?.error || memberT('salon.memberships.customer_create_failed', 'Müşteri oluşturulamadı'));
         }).always(function () { self.isCreatingClient(false); });
     };
 
@@ -169,22 +173,25 @@ function MembershipsViewModel() {
                 return { serviceId: s.serviceId, freeCount: parseInt(s.freeCount()) || 0, discountPercent: parseInt(s.discount()) || 0 };
             })
         };
-        if (!d.name) { toastr.warning('Plan adi zorunludur'); return; }
+        if (!d.name) { toastr.warning(memberT('salon.memberships.plan_name_required', 'Plan adı zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-memberships/plans';
         var method = 'POST';
         if (self.isEditingPlan()) { url += '/' + self.editingPlanId(); method = 'PUT'; }
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
-            planModal.hide(); self.loadData(); toastr.success('Plan kaydedildi'); self.isSaving(false);
-        }).fail(function (x) { toastr.error(x.responseJSON?.error || 'Hata'); self.isSaving(false); });
+            planModal.hide(); self.loadData(); toastr.success(memberT('salon.memberships.plan_saved', 'Plan kaydedildi')); self.isSaving(false);
+        }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.generic', 'Bir hata oluştu')); self.isSaving(false); });
     };
 
     self.removePlan = function (p) {
-        confirmModal('Onay', "'" + p.name + "' planini silmek istediginize emin misiniz?", function() {
+        confirmModal(
+            memberT('salon.common.btn.confirm', 'Onayla'),
+            memberT('salon.memberships.delete_plan_confirm', "'{name}' planını silmek istediğinize emin misiniz?").replace('{name}', p.name),
+            function() {
             $.ajax({ url: '/proxy/sln-memberships/plans/' + p.id, method: 'DELETE' }).done(function () {
-                self.loadData(); toastr.success('Plan silindi');
-            }).fail(function (x) { toastr.error(x.responseJSON?.error || 'Silinemedi'); });
+                self.loadData(); toastr.success(memberT('salon.memberships.plan_deleted', 'Plan silindi'));
+            }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.delete_failed', 'Silinemedi')); });
         });
     };
 
@@ -196,26 +203,26 @@ function MembershipsViewModel() {
 
     self.saveMember = function () {
         var d = { planId: parseInt(self.memberForm.planId()), slnClientId: parseInt(self.memberForm.slnClientId()) };
-        if (!d.planId || !d.slnClientId) { toastr.warning('Plan ve musteri zorunludur'); return; }
+        if (!d.planId || !d.slnClientId) { toastr.warning(memberT('salon.memberships.plan_customer_required', 'Plan ve müşteri zorunludur')); return; }
 
         self.isSaving(true);
         $.ajax({ url: '/proxy/sln-memberships', method: 'POST', contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
-            memberModal.hide(); self.loadData(); toastr.success('Uyelik olusturuldu'); self.isSaving(false);
-        }).fail(function (x) { toastr.error(x.responseJSON?.error || 'Hata'); self.isSaving(false); });
+            memberModal.hide(); self.loadData(); toastr.success(memberT('salon.memberships.membership_created', 'Üyelik oluşturuldu')); self.isSaving(false);
+        }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.generic', 'Bir hata oluştu')); self.isSaving(false); });
     };
 
     self.freezeMember = function (m) {
-        $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/freeze', method: 'PUT' }).done(function () { self.loadData(); toastr.info('Uyelik donduruldu'); });
+        $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/freeze', method: 'PUT' }).done(function () { self.loadData(); toastr.info(memberT('salon.memberships.membership_frozen', 'Üyelik donduruldu')); });
     };
 
     self.cancelMember = function (m) {
-        confirmModal('Onay', 'Uyeligi iptal etmek istediginize emin misiniz?', function() {
-            $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/cancel', method: 'PUT' }).done(function () { self.loadData(); toastr.success('Uyelik iptal edildi'); });
+        confirmModal(memberT('salon.common.btn.confirm', 'Onayla'), memberT('salon.memberships.cancel_member_confirm', 'Üyeliği iptal etmek istediğinize emin misiniz?'), function() {
+            $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/cancel', method: 'PUT' }).done(function () { self.loadData(); toastr.success(memberT('salon.memberships.membership_cancelled', 'Üyelik iptal edildi')); });
         });
     };
 
     self.reactivateMember = function (m) {
-        $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/reactivate', method: 'PUT' }).done(function () { self.loadData(); toastr.success('Uyelik tekrar aktif'); });
+        $.ajax({ url: '/proxy/sln-memberships/' + m.id + '/reactivate', method: 'PUT' }).done(function () { self.loadData(); toastr.success(memberT('salon.memberships.membership_reactivated', 'Üyelik tekrar aktif')); });
     };
 
     $(document).ready(function () {

@@ -25,6 +25,7 @@ public class SlnProfileController : ControllerBase
     }
 
     [HttpGet]
+    [RequireSalonOwner]
     public async Task<ActionResult> GetProfile()
     {
         var cid = GetCustomerId();
@@ -37,6 +38,7 @@ public class SlnProfileController : ControllerBase
     }
 
     [HttpPost]
+    [RequireSalonOwner]
     public async Task<ActionResult> SaveProfile([FromBody] SlnSalonProfileUpdateDto dto)
     {
         var cid = GetCustomerId();
@@ -47,6 +49,7 @@ public class SlnProfileController : ControllerBase
     }
 
     [HttpPut("page-settings")]
+    [RequireSalonOwner]
     public async Task<ActionResult> SavePageSettings([FromBody] SlnPageSettingsDto dto)
     {
         var cid = GetCustomerId();
@@ -63,6 +66,8 @@ public class SlnProfileController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
+        if (!IsSalonOwner() && !string.Equals(type, "recipe", StringComparison.OrdinalIgnoreCase))
+            return Forbid();
 
         if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
         if (file.Length > 5_242_880) return BadRequest("Dosya 5 MB'dan buyuk olamaz.");
@@ -91,6 +96,7 @@ public class SlnProfileController : ControllerBase
 
     /// <summary>Yuklenmis gorseli sil</summary>
     [HttpDelete("delete-image")]
+    [RequireSalonOwner]
     public async Task<ActionResult> DeleteImage([FromQuery] string path)
     {
         var cid = GetCustomerId();
@@ -104,4 +110,11 @@ public class SlnProfileController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private bool IsSalonOwner()
+    {
+        if (User.IsInRole("Admin")) return true;
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
+    }
 }

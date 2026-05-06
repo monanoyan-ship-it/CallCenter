@@ -1,12 +1,13 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Personel Fiyatlari & Hasilat";
+    ViewData["Title"] = Translation.T("salon.personnelprices.auto.personel_fiyatlari_hasilat", "Personel Fiyatları & Hasılat");
 }
 
 <div id="personnelprices-vm">
     <ul class="nav nav-tabs mb-3" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-prices">
-                <i class="bi bi-currency-exchange me-1"></i>Personel Fiyatlari
+                <i class="bi bi-currency-exchange me-1"></i><t key="salon.personnelprices.auto.personel_fiyatlari">Personel Fiyatları</t>
             </button>
         </li>
         <li class="nav-item">
@@ -20,9 +21,9 @@
         <!-- Personel Fiyatlari -->
         <div class="tab-pane fade show active" id="tab-prices">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">Personel Bazli Fiyatlandirma</h6>
+                <h6 class="mb-0"><t key="salon.personnelprices.auto.personel_bazli_fiyatlandirma">Personel Bazlı Fiyatlandırma</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewPrice">
-                    <i class="bi bi-plus-lg me-1"></i>Fiyat Ekle
+                    <i class="bi bi-plus-lg me-1"></i><t key="salon.personnelprices.auto.fiyat_ekle">Fiyat Ekle</t>
                 </button>
             </div>
 
@@ -32,8 +33,8 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Personel</th>
-                                    <th>Hizmet</th>
+                                    <th><t key="salon.sidebar.staff">Personel</t></th>
+                                    <th><t key="salon.book.summary.service">Hizmet</t></th>
                                     <th>Ozel Fiyat (TL)</th>
                                     <th style="width:80px;"></th>
                                 </tr>
@@ -42,9 +43,9 @@
                                 <tr>
                                     <td class="fw-semibold small" data-bind="text: personnelName"></td>
                                     <td class="small" data-bind="text: serviceName || ((serviceNames && serviceNames.length) ? serviceNames.join(', ') : '-')"></td>
-                                    <td class="small fw-bold text-primary" data-bind="text: price.toLocaleString('tr-TR') + ' TL'"></td>
+                                    <td class="small fw-bold text-primary" data-bind="text: price.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                                     <td>
-                                        <button class="btn btn-outline-danger btn-sm px-1" title="Sil" data-bind="click: $parent.removePrice">
+                                        <button class="btn btn-outline-danger btn-sm px-1" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removePrice">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </td>
@@ -55,7 +56,7 @@
                     <!-- ko if: prices().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-currency-exchange" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Tum personel standart fiyat kullanıyor</p>
+                        <p class="mt-2 small"><t key="salon.personnelprices.auto.tum_personel_standart_fiyat_kullaniyor">Tum personel standart fiyat kullanıyor</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -67,7 +68,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="mb-0">Hasilat Paylasimi</h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewRevenue">
-                    <i class="bi bi-plus-lg me-1"></i>Paylasim Ekle
+                    <i class="bi bi-plus-lg me-1"></i><t key="salon.personnelprices.auto.paylasim_ekle">Paylaşım Ekle</t>
                 </button>
             </div>
 
@@ -77,12 +78,12 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Personel</th>
+                                    <th><t key="salon.sidebar.staff">Personel</t></th>
                                     <th>Model</th>
                                     <th>Pay %</th>
                                     <th>Aylik Kira</th>
                                     <th>Min Garanti</th>
-                                    <th>Durum</th>
+                                    <th><t key="salon.appointments.status">Durum</t></th>
                                     <th style="width:80px;"></th>
                                 </tr>
                             </thead>
@@ -91,13 +92,13 @@
                                     <td class="fw-semibold small" data-bind="text: personnelName"></td>
                                     <td class="small" data-bind="text: $parent.modelTypeText(modelTypeId)"></td>
                                     <td class="small" data-bind="text: '%' + personnelSharePercent"></td>
-                                    <td class="small" data-bind="text: monthlyRent > 0 ? monthlyRent.toLocaleString('tr-TR') + ' TL' : '-'"></td>
-                                    <td class="small" data-bind="text: minimumGuarantee > 0 ? minimumGuarantee.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                                    <td class="small" data-bind="text: monthlyRent > 0 ? monthlyRent.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '-'"></td>
+                                    <td class="small" data-bind="text: minimumGuarantee > 0 ? minimumGuarantee.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '-'"></td>
                                     <td class="small">
                                         <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-outline-danger btn-sm px-1" title="Sil" data-bind="click: $parent.removeRevenue">
+                                        <button class="btn btn-outline-danger btn-sm px-1" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removeRevenue">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </td>
@@ -121,17 +122,17 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Personel Fiyat Ekle</h6>
+                    <h6 class="modal-title"><t key="salon.personnelprices.auto.personel_fiyat_ekle">Personel Fiyat Ekle</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Personel *</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.personel">Personel *</t></label>
                             <select class="form-select form-select-sm" data-bind="options: staff, optionsText: 'fullName', optionsValue: 'id', value: priceForm.personnelId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Hizmet *</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.hizmet">Hizmet *</t></label>
                             <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: priceForm.serviceId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
@@ -141,10 +142,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: savePrice, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>
@@ -162,7 +163,7 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Personel *</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.personel">Personel *</t></label>
                             <select class="form-select form-select-sm" data-bind="options: staff, optionsText: 'fullName', optionsValue: 'id', value: revenueForm.personnelId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-6">
@@ -174,7 +175,7 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Personel Pay %</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.personel_pay">Personel Pay %</t></label>
                             <input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: revenueForm.personnelSharePercent" />
                         </div>
                         <div class="col-6">
@@ -194,10 +195,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveRevenue, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

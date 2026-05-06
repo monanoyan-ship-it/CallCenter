@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ReviewsViewModel() {
     var self = this;
     self.reviews = ko.observableArray([]);
@@ -13,12 +17,21 @@ function ReviewsViewModel() {
         externalUrl: ko.observable('')
     };
 
-    var sourceTexts = { 1: 'Dahili', 2: 'Google', 3: 'Instagram', 4: 'Facebook' };
-    var reviewStatusTexts = { 1: 'Bekliyor', 2: 'Onaylandi', 3: 'Reddedildi' };
+    var sourceTexts = {
+        1: slnJsT('salon.reviews.source.internal', 'Dahili'),
+        2: 'Google',
+        3: 'Instagram',
+        4: 'Facebook'
+    };
+    var reviewStatusTexts = {
+        1: slnJsT('salon.reviews.status.pending', 'Bekliyor'),
+        2: slnJsT('salon.reviews.status.approved', 'Onaylandı'),
+        3: slnJsT('salon.reviews.status.rejected', 'Reddedildi')
+    };
     var reviewStatusBadges = { 1: 'bg-warning', 2: 'bg-success', 3: 'bg-danger' };
 
-    self.sourceText = function (id) { return sourceTexts[id] || 'Bilinmiyor'; };
-    self.reviewStatusText = function (id) { return reviewStatusTexts[id] || 'Bilinmiyor'; };
+    self.sourceText = function (id) { return sourceTexts[id] || slnJsT('salon.common.unknown', 'Bilinmiyor'); };
+    self.reviewStatusText = function (id) { return reviewStatusTexts[id] || slnJsT('salon.common.unknown', 'Bilinmiyor'); };
     self.reviewStatusBadge = function (id) { return reviewStatusBadges[id] || 'bg-secondary'; };
 
     self.filteredReviews = ko.computed(function () {
@@ -57,7 +70,7 @@ function ReviewsViewModel() {
         };
 
         if (!data.clientName) {
-            toastr.warning('Musteri adi zorunludur');
+            toastr.warning(slnJsT('salon.reviews.js.musteri_adi_zorunludur', 'Müşteri adı zorunludur'));
             return;
         }
 
@@ -68,24 +81,24 @@ function ReviewsViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success('Yorum eklendi');
+            toastr.success(slnJsT('salon.reviews.js.yorum_eklendi', 'Yorum eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.updateStatus = function (review, statusId) {
         $.ajax({ url: '/proxy/sln-reviews/' + review.id + '/status/' + statusId, method: 'PUT' })
-            .done(function () { self.loadData(); toastr.success('Yorum durumu guncellendi'); })
+            .done(function () { self.loadData(); toastr.success(slnJsT('salon.reviews.js.yorum_durumu_guncellendi', 'Yorum durumu güncellendi')); })
             .fail(function () { toastr.error('Guncellenemedi'); });
     };
 
     self.remove = function (review) {
-        confirmModal('Onay', 'Bu yorumu silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.reviews.js.bu_yorumu_silmek_istediginize_emin_misiniz', 'Bu yorumu silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-reviews/' + review.id, method: 'DELETE' })
-                .done(function () { self.loadData(); toastr.success('Yorum silindi'); })
+                .done(function () { self.loadData(); toastr.success(slnJsT('salon.reviews.js.yorum_silindi', 'Yorum silindi')); })
                 .fail(function () { toastr.error('Silinemedi'); });
         });
     };

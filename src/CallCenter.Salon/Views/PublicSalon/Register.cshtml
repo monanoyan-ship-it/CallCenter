@@ -1,13 +1,16 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     Layout = null;
+    var pageLang = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    string T(string key, string fallback) => Translation.T(key, fallback);
 }
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@pageLang">
 <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kayıt - CorpLynk Salon</title>
+    <title>@T("salon.publicsalon.auto.kayit_corplynk_salon", "Kayıt - CorpLynk Salon")</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
@@ -22,7 +25,7 @@
                 <i class="bi bi-translate"></i>
             </span>
             <div style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px 0;min-width:140px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);">
-                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=tr|uic=tr;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">TR — Türkçe</a>
+                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=tr|uic=tr;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;"><t key="salon.publicsalon.auto.tr_turkce">TR — Türkçe</t></a>
                 <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=en|uic=en;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">EN — English</a>
                 <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=de|uic=de;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">DE — Deutsch</a>
                 <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ar|uic=ar;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">AR — العربية</a>
@@ -33,7 +36,7 @@
     <div class="auth-card">
         <div class="text-center mb-4">
             <i class="bi bi-scissors" style="font-size:2rem; color:#6f42c1;"></i>
-            <h5 class="mt-2">CorpLynk <span style="color:#ce93d8;">Salon</span></h5>
+            <h5 class="mt-2">CorpLynk <span style="color:#ce93d8;"><t key="salon.publicsalon.auto.salon">Salon</t></span></h5>
             <p class="text-muted small"><t key="salon.register.subtitle">Create a new account</t></p>
         </div>
         <div id="register-form">
@@ -81,7 +84,7 @@
                 <i class="bi bi-person-plus me-1"></i><t key="salon.register.btn">Sign Up</t>
             </button>
             <div class="text-center mt-3">
-                <a href="/user/login" id="loginLink" class="small">Zaten hesabiniz var mi? <strong>Giris yapin</strong></a>
+                <a href="/user/login" id="loginLink" class="small">Zaten hesabiniz var mi? <strong><t key="salon.publicsalon.auto.giris_yapin">Giriş yapin</t></strong></a>
             </div>
             <div class="text-center mt-2">
                 <a href="/discover" class="small text-muted"><i class="bi bi-search me-1"></i>Salonlari Kesfet</a>
@@ -101,7 +104,7 @@
 
         async function doRegister() {
             if (!document.getElementById('kvkkConsent').checked) {
-                document.getElementById('error-msg').textContent = 'Gizlilik Politikası ve Kullanım Koşullarını kabul etmelisiniz.';
+                document.getElementById('error-msg').textContent = '@T("salon.publicsalon.register.consent_required", "Gizlilik Politikası ve Kullanım Koşullarını kabul etmelisiniz.")';
                 document.getElementById('error-msg').classList.remove('d-none');
                 return;
             }
@@ -121,7 +124,7 @@
                     })
                 });
                 var data = await resp.json();
-                if (!resp.ok) throw new Error(data.message || 'Kayıt başarısız.');
+                if (!resp.ok) throw new Error(data.message || '@T("salon.publicsalon.register_failed", "Kayıt başarısız.")');
                 localStorage.setItem('platformToken', data.token);
                 localStorage.setItem('platformUser', JSON.stringify(data.user));
                 window.location.href = _returnUrl;

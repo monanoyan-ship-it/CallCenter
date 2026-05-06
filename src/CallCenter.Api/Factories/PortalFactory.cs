@@ -132,7 +132,7 @@ public class PortalFactory : IPortalFactory
 
     // PERSONNEL
 
-    public async Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null)
+    public async Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null, int? callerBranchId = null)
     {
         var isEkipLideri = callerRoleId == CustomerRoles.Ids.EkipLideri && callerPersonnelId.HasValue;
         List<int>? teamMemberIds = null;
@@ -146,6 +146,8 @@ public class PortalFactory : IPortalFactory
             .Where(p => p.CustomerId == customerId);
         if (isEkipLideri && teamMemberIds != null)
             query = query.Where(p => teamMemberIds.Contains(p.Id));
+        if (callerBranchId.HasValue)
+            query = query.Where(p => p.BranchId == callerBranchId.Value);
 
         var personnel = await query
             .Include(p => p.User)
@@ -185,7 +187,8 @@ public class PortalFactory : IPortalFactory
 
         foreach (var p in personnel)
         {
-            p.CustomerRoleName = CustomerRoles.GetById(p.CustomerRoleId)?.Description;
+            p.CustomerRoleName = SalonRoles.GetById(p.CustomerRoleId)?.Description
+                ?? CustomerRoles.GetById(p.CustomerRoleId)?.Description;
             p.SkillServiceIds = skillMap.GetValueOrDefault(p.Id);
         }
 
@@ -274,7 +277,8 @@ public class PortalFactory : IPortalFactory
             Email = user.Email,
             Title = personnelEntity.Title,
             CustomerRoleId = personnelEntity.CustomerRoleId,
-            CustomerRoleName = CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
+            CustomerRoleName = SalonRoles.GetById(personnelEntity.CustomerRoleId)?.Description
+                ?? CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
             BranchId = personnelEntity.BranchId,
             SkillServiceIds = dto.SkillServiceIds,
             IsActive = true

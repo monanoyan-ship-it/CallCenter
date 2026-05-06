@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function PurchaseViewModel(moduleId) {
     var self = this;
 
@@ -49,7 +53,7 @@ function PurchaseViewModel(moduleId) {
     self.payWithCard = function () {
         var num = self.card.number().replace(/\s/g, '');
         if (!self.card.holderName() || num.length < 15 || !self.card.expMonth() || !self.card.expYear() || !self.card.cvc()) {
-            toastr.warning('Lutfen tum kart bilgilerini doldurun.'); return;
+            toastr.warning(slnJsT('salon.modulepurchase.card_required', 'Lütfen tüm kart bilgilerini doldurun.')); return;
         }
 
         self.isProcessing(true);
@@ -71,7 +75,7 @@ function PurchaseViewModel(moduleId) {
                 self.paymentResult({ success: true, transactionId: data.transactionId });
             },
             error: function (xhr) {
-                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Odeme islemi basarisiz oldu.';
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : slnJsT('salon.modulepurchase.payment_failed', 'Ödeme işlemi başarısız oldu.');
                 self.paymentResult({ success: false, error: msg });
             }
         }).always(function () { self.isProcessing(false); });
@@ -85,14 +89,14 @@ function PurchaseViewModel(moduleId) {
         if (!file) return true;
 
         if (file.size > 5 * 1024 * 1024) {
-            toastr.warning('Dekont dosyasi en fazla 5 MB olabilir.');
+            toastr.warning(slnJsT('salon.modulepurchase.receipt_size_warning', 'Dekont dosyası en fazla 5 MB olabilir.'));
             e.target.value = '';
             return true;
         }
 
         var allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
         if (allowed.indexOf(file.type) === -1) {
-            toastr.warning('Dekont PDF, JPG, PNG veya WEBP olmalidir.');
+            toastr.warning(slnJsT('salon.modulepurchase.receipt_type_warning', 'Dekont PDF, JPG, PNG veya WEBP olmalıdır.'));
             e.target.value = '';
             return true;
         }
@@ -106,7 +110,7 @@ function PurchaseViewModel(moduleId) {
             self.havale.isReadingReceipt(false);
         };
         reader.onerror = function () {
-            toastr.error('Dekont dosyasi okunamadi.');
+            toastr.error(slnJsT('salon.module_purchase.receipt_read_failed', 'Dekont dosyası okunamadı.'));
             self.havale.isReadingReceipt(false);
         };
         reader.readAsDataURL(file);
@@ -115,10 +119,10 @@ function PurchaseViewModel(moduleId) {
 
     self.submitHavale = function () {
         if (self.havale.isReadingReceipt()) {
-            toastr.info('Dekont dosyasi okunuyor, lutfen bekleyin.');
+            toastr.info(slnJsT('salon.module_purchase.receipt_reading_wait', 'Dekont dosyası okunuyor, lütfen bekleyin.'));
             return;
         }
-        confirmModal('Havale Onayi', 'Havaleyi yaptiginizi onayliyor musunuz?', function () {
+        confirmModal(slnJsT('salon.module_purchase.bank_transfer_confirm_title', 'Havale Onayı'), slnJsT('salon.module_purchase.bank_transfer_confirm_message', 'Havaleyi yaptığınızı onaylıyor musunuz?'), function () {
             self.isProcessing(true);
             $.ajax({
                 url: '/proxy/payments/havale-request', method: 'POST',
@@ -134,7 +138,7 @@ function PurchaseViewModel(moduleId) {
                     self.paymentResult({ success: true, message: data.message });
                 },
                 error: function (xhr) {
-                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Havale talebi olusturulamadi.';
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : slnJsT('salon.module_purchase.bank_transfer_request_failed', 'Havale talebi oluşturulamadı.');
                     self.paymentResult({ success: false, error: msg });
                 }
             }).always(function () { self.isProcessing(false); });
@@ -143,7 +147,7 @@ function PurchaseViewModel(moduleId) {
 
     self.copyIban = function () {
         var iban = self.bankInfo() ? (self.bankInfo().iban || self.bankInfo().IBAN) : '';
-        navigator.clipboard.writeText(iban).then(function () { toastr.success('IBAN kopyalandi.'); });
+        navigator.clipboard.writeText(iban).then(function () { toastr.success(slnJsT('salon.module_purchase.iban_copied', 'IBAN kopyalandı.')); });
     };
 
     self.loadModule();

@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function InvoicesViewModel() {
     var self = this;
     self.invoices = ko.observableArray([]);
@@ -21,7 +25,7 @@ function InvoicesViewModel() {
         items: ko.observableArray([])
     };
 
-    // ═══ Yeni Musteri ═══
+    // Yeni musteri
     self.newClientVisible = ko.observable(false);
     self.isCreatingClient = ko.observable(false);
     self.newClientForm = { fullName: ko.observable(''), phone: ko.observable('') };
@@ -35,7 +39,7 @@ function InvoicesViewModel() {
     self.hideNewClient = function () { self.newClientVisible(false); };
     self.saveNewClient = function () {
         var name = self.newClientForm.fullName(), phone = self.newClientForm.phone();
-        if (!name || !phone) { toastr.warning('Ad ve telefon zorunludur'); return; }
+        if (!name || !phone) { toastr.warning(slnJsT('salon.memberships.name_phone_required', 'Ad ve telefon zorunludur')); return; }
         self.isCreatingClient(true);
         $.ajax({
             url: '/proxy/sln-clients', method: 'POST',
@@ -49,21 +53,30 @@ function InvoicesViewModel() {
             self.clientAutocomplete.query(c.fullName);
             self.clientAutocomplete.selectedName(c.fullName);
             self.newClientVisible(false);
-            toastr.success('Musteri olusturuldu');
-        }).fail(function () { toastr.error('Musteri olusturulamadi'); })
+            toastr.success(slnJsT('salon.invoices.js.musteri_olusturuldu', 'Müşteri oluşturuldu'));
+        }).fail(function () { toastr.error(slnJsT('salon.invoices.js.musteri_olusturulamadi', 'Müşteri oluşturulamadı')); })
           .always(function () { self.isCreatingClient(false); });
     };
 
-    // ═══ Autocomplete ═══
+    // Autocomplete
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.form.slnClientId);
 
     self.summary = ko.observable({});
 
-    var statusNames = { 1: 'Acik', 2: 'Odendi', 3: 'Iptal' };
+    var statusNames = {
+        1: slnJsT('salon.invoices.status.open', 'Açık'),
+        2: slnJsT('salon.invoices.status.paid', 'Ödendi'),
+        3: slnJsT('salon.common.btn.cancel', 'İptal')
+    };
     var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
-    var paymentNames = { 1: 'Nakit', 2: 'Kredi Karti', 3: 'Karma', 4: 'Havale' };
+    var paymentNames = {
+        1: slnJsT('salon.payment.cash', 'Nakit'),
+        2: slnJsT('salon.payment.credit_card', 'Kredi Kartı'),
+        3: slnJsT('salon.payment.mixed', 'Karma'),
+        4: slnJsT('salon.payment.bank_transfer', 'Havale')
+    };
 
-    // ���══ Kalem Yonetimi ═══
+    // Kalem yonetimi
     function createItem(type, id, name, price, taxRateVal) {
         var item = {
             type: type,
@@ -79,11 +92,11 @@ function InvoicesViewModel() {
             return net * (parseFloat(item.taxRate()) || 0) / 100;
         });
         item.taxAmount = ko.computed(function () {
-            return item.taxAmountRaw().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+            return item.taxAmountRaw().toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
         });
         item.lineTotal = ko.computed(function () {
             var total = (parseFloat(item.unitPrice()) || 0) - (parseFloat(item.discountAmount()) || 0);
-            return Math.max(0, total).toLocaleString('tr-TR') + ' ₺';
+            return Math.max(0, total).toLocaleString(document.documentElement.lang || undefined) + ' ₺';
         });
         return item;
     }
@@ -112,7 +125,7 @@ function InvoicesViewModel() {
         self.form.items().forEach(function (item) {
             tax += item.taxAmountRaw();
         });
-        return tax.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+        return tax.toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
     });
 
     self.grandTotal = ko.computed(function () {
@@ -123,7 +136,7 @@ function InvoicesViewModel() {
         return total - (parseFloat(self.form.discountAmount()) || 0) + (parseFloat(self.form.tipAmount()) || 0);
     });
 
-    // ═══ Karma Odeme ═══
+    // Karma odeme
     self.form.splitCash = ko.observable(0);
     self.form.splitCreditCard = ko.observable(0);
     self.form.splitTransfer = ko.observable(0);
@@ -134,7 +147,7 @@ function InvoicesViewModel() {
              + (parseFloat(self.form.splitTransfer()) || 0);
     });
 
-    // ═══ Iade ═══
+    // Iade
     self.refundInvoice = ko.observable(null);
     self.refundForm = {
         amount: ko.observable(0),
@@ -159,7 +172,7 @@ function InvoicesViewModel() {
         var amount = parseFloat(self.refundForm.amount()) || 0;
         var reason = self.refundForm.reason();
         if (!amount || !reason) {
-            toastr.warning('Tutar ve sebep zorunludur');
+            toastr.warning(slnJsT('salon.invoices.js.tutar_ve_sebep_zorunludur', 'Tutar ve sebep zorunludur'));
             return;
         }
 
@@ -182,7 +195,7 @@ function InvoicesViewModel() {
         }).always(function () { self.isSaving(false); });
     };
 
-    // ═══ Filtre ═══
+    // Filtre
     self.filteredInvoices = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         var status = self.filterStatus();
@@ -198,7 +211,7 @@ function InvoicesViewModel() {
         });
     });
 
-    // ═══ Veri Yukleme ═══
+    // Veri yukleme
     var formModal;
 
     self.loadData = function () {
@@ -249,7 +262,7 @@ function InvoicesViewModel() {
             .fail(function () { self.productList([]); });
     };
 
-    // ═══ Form ═══
+    // Form
     self.openNew = function () {
         self.isEditing(false);
         self.form.slnClientId(null);
@@ -352,15 +365,15 @@ function InvoicesViewModel() {
             self.loadData();
             toastr.success('Adisyon olusturuldu');
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
         }).always(function () { self.isSaving(false); });
     };
 
     self.cancelInvoice = function (invoice) {
-        confirmModal('Onay', 'Bu adisyonu iptal etmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.invoices.js.bu_adisyonu_iptal_etmek_istediginize_emin_misiniz', 'Bu adisyonu iptal etmek istediginize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-finance/invoices/' + invoice.id + '/cancel', method: 'PUT' }).done(function () {
                 self.loadData();
-                toastr.success('Adisyon iptal edildi');
+                toastr.success(slnJsT('salon.invoices.js.adisyon_iptal_edildi', 'Adisyon iptal edildi'));
             });
         });
     };

@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function PersonnelPricesViewModel() {
     var self = this;
     self.prices = ko.observableArray([]);
@@ -21,8 +25,12 @@ function PersonnelPricesViewModel() {
         isActive: ko.observable(true)
     };
 
-    var modelTypeTexts = { 1: 'Yuzde', 2: 'Sabit Kira', 3: 'Hibrit' };
-    self.modelTypeText = function (id) { return modelTypeTexts[id] || 'Bilinmiyor'; };
+    var modelTypeTexts = {
+        1: slnJsT('salon.personnel_prices.model.percent', 'Yüzde'),
+        2: slnJsT('salon.personnel_prices.model.fixed_rent', 'Sabit Kira'),
+        3: slnJsT('salon.personnel_prices.model.hybrid', 'Hibrit')
+    };
+    self.modelTypeText = function (id) { return modelTypeTexts[id] || slnJsT('salon.common.unknown', 'Bilinmiyor'); };
 
     var priceModal, revenueModal;
 
@@ -68,7 +76,7 @@ function PersonnelPricesViewModel() {
         };
 
         if (!data.personnelId || !data.serviceId) {
-            toastr.warning('Personel ve hizmet secimi zorunludur');
+            toastr.warning(slnJsT('salon.personnelprices.js.personel_ve_hizmet_secimi_zorunludur', 'Personel ve hizmet seçimi zorunludur'));
             return;
         }
 
@@ -79,18 +87,18 @@ function PersonnelPricesViewModel() {
         }).done(function () {
             priceModal.hide();
             self.loadPrices();
-            toastr.success('Fiyat kaydedildi');
+            toastr.success(slnJsT('salon.personnelprices.js.fiyat_kaydedildi', 'Fiyat kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.removePrice = function (price) {
-        confirmModal('Onay', 'Bu fiyati silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu fiyati silmek istediginize emin misiniz?', function() {
             $.ajax({ url: '/proxy/sln-personnel-prices/' + price.id, method: 'DELETE' })
-                .done(function () { self.loadPrices(); toastr.success('Fiyat silindi'); });
+                .done(function () { self.loadPrices(); toastr.success(slnJsT('salon.personnelprices.js.fiyat_silindi', 'Fiyat silindi')); });
         });
     };
 
@@ -117,7 +125,7 @@ function PersonnelPricesViewModel() {
         };
 
         if (!data.personnelId) {
-            toastr.warning('Personel secimi zorunludur');
+            toastr.warning(slnJsT('salon.personnelprices.js.personel_secimi_zorunludur', 'Personel seçimi zorunludur'));
             return;
         }
 
@@ -128,18 +136,18 @@ function PersonnelPricesViewModel() {
         }).done(function () {
             revenueModal.hide();
             self.loadRevenueShares();
-            toastr.success('Hasilat paylasimi kaydedildi');
+            toastr.success(slnJsT('salon.personnelprices.js.hasilat_paylasimi_kaydedildi', 'Hasılat paylaşımı kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.removeRevenue = function (share) {
-        confirmModal('Onay', 'Bu hasilat paylasimini silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu hasilat paylasimini silmek istediginize emin misiniz?', function() {
             $.ajax({ url: '/proxy/sln-personnel-prices/revenue-shares/' + share.id, method: 'DELETE' })
-                .done(function () { self.loadRevenueShares(); toastr.success('Hasilat paylasimi silindi'); });
+                .done(function () { self.loadRevenueShares(); toastr.success(slnJsT('salon.personnelprices.js.hasilat_paylasimi_silindi', 'Hasilat paylasimi silindi')); });
         });
     };
 

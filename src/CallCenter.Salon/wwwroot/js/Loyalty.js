@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function LoyaltyViewModel() {
     var self = this;
     self.clientLoyalties = ko.observableArray([]);
@@ -32,10 +36,10 @@ function LoyaltyViewModel() {
             url: '/proxy/sln-loyalty/config', method: 'POST',
             contentType: 'application/json', data: JSON.stringify(data)
         }).done(function () {
-            toastr.success('Sadakat ayarlari kaydedildi');
+            toastr.success(slnJsT('salon.loyalty.settings_saved', 'Sadakat ayarları kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Kaydedilemedi');
+            toastr.error(slnJsT('salon.common.error.save_failed', 'Kaydedilemedi'));
             self.isSaving(false);
         });
     };

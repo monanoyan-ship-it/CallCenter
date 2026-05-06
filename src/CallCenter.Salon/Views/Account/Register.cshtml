@@ -1,13 +1,16 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Kayit Ol";
+    ViewData["Title"] = Translation.T("salon.account.auto.kayit_ol", "Kayıt Ol");
     Layout = null;
+    var pageLang = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    string T(string key, string fallback) => Translation.T(key, fallback);
 }
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@pageLang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CorpLynk Salon - Kayit Ol</title>
+    <title>@T("salon.account.auto.corplynk_salon_kayit_ol", "CorpLynk Salon - Kayıt Ol")</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
@@ -36,18 +39,18 @@
             <i class="bi bi-arrow-left me-1"></i>Geri
         </a>
         <div class="text-center mb-4">
-            <div class="brand"><i class="bi bi-scissors me-2"></i>CorpLynk <span>Salon</span></div>
-            <small class="text-muted">Ucretsiz Salon Hesabi Olustur</small>
+            <div class="brand"><i class="bi bi-scissors me-2"></i>CorpLynk <span><t key="salon.account.auto.salon">Salon</t></span></div>
+            <small class="text-muted"><t key="salon.account.auto.ucretsiz_salon_hesabi_olustur">Ucretsiz Salon Hesabi Olustur</t></small>
         </div>
 
         <div id="errorAlert" class="alert alert-danger py-2 small d-none"></div>
 
         <form id="registerForm" autocomplete="off">
             <div class="alert alert-info py-2 small">
-                <i class="bi bi-info-circle me-1"></i>Kayıt bilgileriniz aynı zamanda fatura bilgileriniz olarak kullanılacaktır. Lütfen eksiksiz ve doğru doldurunuz.
+                <i class="bi bi-info-circle me-1"></i>@T("salon.account.register.billing_info_notice", "Kayıt bilgileriniz aynı zamanda fatura bilgileriniz olarak kullanılacaktır. Lütfen eksiksiz ve doğru doldurunuz.")
             </div>
             <div class="mb-3">
-                <label class="form-label small">Salon / Firma Adı</label>
+                <label class="form-label small"><t key="salon.account.auto.salon_firma_adi">Salon / Firma Adı</t></label>
                 <input type="text" name="salonName" class="form-control" placeholder="Ornek: Guzellik Merkezi" required />
             </div>
             <div class="mb-3">
@@ -83,7 +86,7 @@
             <div class="mb-3">
                 <label class="form-label small">Platform Aboneligi *</label>
                 <div id="planLoading" class="border rounded-3 p-3 small text-muted">
-                    <span class="spinner-border spinner-border-sm me-1"></span>Planlar yukleniyor...
+                    <span class="spinner-border spinner-border-sm me-1"></span><t key="salon.account.auto.planlar_yukleniyor"><t key="salon.account.auto.planlar_yukleniyor">Planlar yukleniyor...</t></t>
                 </div>
                 <div id="planList" class="subscription-grid d-none"></div>
                 <input type="hidden" name="subscriptionPlanId" id="subscriptionPlanId" />
@@ -98,17 +101,17 @@
                     <input type="text" name="userName" class="form-control" required autocomplete="off" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label small">Sifre</label>
+                    <label class="form-label small"><t key="salon.account.password">Şifre</t></label>
                     <input type="password" name="password" class="form-control" minlength="6" required autocomplete="new-password" />
                 </div>
             </div>
             <button type="submit" class="btn btn-salon w-100" id="btnRegister">
-                <i class="bi bi-person-plus me-1"></i>Kayit Ol
+                <i class="bi bi-person-plus me-1"></i><t key="salon.account.auto.kayit_ol">Kayıt Ol</t>
             </button>
         </form>
 
         <div class="text-center mt-3">
-            <small class="text-muted">Zaten hesabiniz var mi? <a href="/Account/Login" class="text-decoration-none" style="color:#7b1fa2">Giris Yap</a></small>
+            <small class="text-muted">Zaten hesabiniz var mi? <a href="/Account/Login" class="text-decoration-none" style="color:#7b1fa2"><t key="salon.account.auto.giris_yap">Giriş Yap</t></a></small>
         </div>
     </div>
 
@@ -127,7 +130,7 @@
         };
 
         function formatMoney(value) {
-            return (Number(value) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' TL';
+            return (Number(value) || 0).toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' TL';
         }
 
         function addDays(date, days) {
@@ -156,7 +159,7 @@
             var list = document.getElementById('planList');
 
             if (!plans.length) {
-                loading.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Abonelik planlari yuklenemedi. Kayit sirasinda varsayilan aylik plan secilecek.';
+                loading.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>@T("salon.account.register.plans_load_failed", "Abonelik planları yüklenemedi. Kayıt sırasında varsayılan aylık plan seçilecek.")';
                 return;
             }
 
@@ -168,16 +171,16 @@
                 var discount = Number(planValue(plan, 'discountPercent')) || 0;
                 var periodPrice = Number(planValue(plan, 'periodPrice')) || 0;
                 var monthlyEquivalent = Number(planValue(plan, 'monthlyEquivalent')) || 0;
-                var discountText = discount > 0 ? '%' + discount.toLocaleString('tr-TR') + ' indirim' : 'Indirimsiz';
+                var discountText = discount > 0 ? '%' + discount.toLocaleString(document.documentElement.lang || undefined) + ' @T("salon.account.register.discount_suffix", "indirim")' : '@T("salon.account.register.no_discount", "İndirimsiz")';
 
                 return '<button type="button" class="subscription-option text-start bg-white" data-plan-id="' + idAttr + '">' +
                     '<div class="d-flex justify-content-between align-items-start gap-2">' +
                     '<div class="subscription-title">' + name + '</div>' +
-                    '<span class="badge bg-light text-dark border">' + interval + ' ay</span>' +
+                    '<span class="badge bg-light text-dark border">' + interval + ' @T("salon.account.register.month_suffix", "ay")</span>' +
                     '</div>' +
                     '<div class="subscription-price mt-2">' + formatMoney(periodPrice) + '</div>' +
-                    '<div class="subscription-meta">Donem tahsilati</div>' +
-                    '<div class="subscription-meta mt-1">' + formatMoney(monthlyEquivalent) + ' / ay esdegeri - ' + discountText + '</div>' +
+                    '<div class="subscription-meta">@T("salon.account.register.period_collection", "Dönem tahsilatı")</div>' +
+                    '<div class="subscription-meta mt-1">' + formatMoney(monthlyEquivalent) + ' / @T("salon.account.register.month_equivalent", "ay eşdeğeri") - ' + discountText + '</div>' +
                     '</button>';
             }).join('');
 
@@ -212,17 +215,17 @@
             var interval = Number(planValue(selected, 'intervalMonths')) || 1;
             var periodPrice = Number(planValue(selected, 'periodPrice')) || 0;
 
-            document.getElementById('trialText').textContent = 'Kayit tarihinden itibaren ' + trialDays + ' gun ucretsiz kullanim.';
+            document.getElementById('trialText').textContent = '@T("salon.account.register.trial_prefix", "Kayıt tarihinden itibaren") ' + trialDays + ' @T("salon.account.register.trial_suffix", "gün ücretsiz kullanım.")';
             document.getElementById('firstBillingText').textContent =
-                firstPaymentDate.toLocaleDateString('tr-TR') + ' tarihinde ' + formatMoney(periodPrice) +
-                ' tahsilat; sonraki tahakkuk ' + interval + ' ayda bir.';
+                firstPaymentDate.toLocaleDateString(document.documentElement.lang || undefined) + ' tarihinde ' + formatMoney(periodPrice) +
+                ' @T("salon.account.register.first_billing_suffix", "tahsilat; sonraki tahakkuk") ' + interval + ' @T("salon.account.register.every_months_suffix", "ayda bir.")';
             document.getElementById('trialInfo').classList.remove('d-none');
         }
 
         async function loadRegisterOptions() {
             try {
                 var resp = await fetch('/Account/RegisterOptions');
-                if (!resp.ok) throw new Error('Planlar yuklenemedi');
+                if (!resp.ok) throw new Error('@T("salon.account.register.plans_load_failed_short", "Planlar yüklenemedi")');
                 renderPlans(await resp.json());
             } catch (ex) {
                 renderPlans({
@@ -230,7 +233,7 @@
                     coreMonthlyPrice: 1700,
                     plans: [{
                         id: null,
-                        name: '1 Aylik Abonelik',
+                        name: '@T("salon.account.register.default_monthly_plan", "1 Aylık Abonelik")',
                         intervalMonths: 1,
                         discountPercent: 0,
                         periodPrice: 1700,
@@ -246,7 +249,7 @@
             var btn = document.getElementById('btnRegister');
             var errDiv = document.getElementById('errorAlert');
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Kaydediliyor...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>@T("salon.account.register.saving", "Kaydediliyor...")';
             errDiv.classList.add('d-none');
 
             var fd = new FormData(this);
@@ -263,10 +266,10 @@
             };
 
             if (!body.subscriptionPlanId && registerOptions.plans.length > 1) {
-                errDiv.textContent = 'Lutfen abonelik planinizi secin.';
+                errDiv.textContent = '@T("salon.account.register.select_plan", "Lütfen abonelik planınızı seçin.")';
                 errDiv.classList.remove('d-none');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>Kayit Ol';
+                btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>@T("salon.account.auto.kayit_ol", "Kayıt Ol")';
                 return;
             }
 
@@ -280,15 +283,15 @@
                 if (data.success) {
                     window.location.href = '/';
                 } else {
-                    errDiv.textContent = data.error || 'Kayit sirasinda bir hata olustu.';
+                    errDiv.textContent = data.error || '@T("salon.account.register.failed", "Kayıt sırasında bir hata oluştu.")';
                     errDiv.classList.remove('d-none');
                 }
             } catch (ex) {
-                errDiv.textContent = 'Baglanti hatasi. Lutfen tekrar deneyin.';
+                errDiv.textContent = '@T("salon.account.register.connection_error", "Bağlantı hatası. Lütfen tekrar deneyin.")';
                 errDiv.classList.remove('d-none');
             }
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>Kayit Ol';
+            btn.innerHTML = '<i class="bi bi-person-plus me-1"></i>@T("salon.account.auto.kayit_ol", "Kayıt Ol")';
         });
 
         loadRegisterOptions();

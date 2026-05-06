@@ -1,15 +1,16 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Kasa";
+    ViewData["Title"] = Translation.T("salon.cash.auto.kasa", "Kasa");
 }
 
 <div id="cash-vm">
     <!-- Toolbar -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
-            <h5 class="mb-0">Kasa Yonetimi</h5>
+            <h5 class="mb-0"><t key="salon.cash.auto.kasa_yonetimi">Kasa Yönetimi</t></h5>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNewRegister">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Kasa
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.cash.auto.yeni_kasa">Yeni Kasa</t>
         </button>
     </div>
 
@@ -22,21 +23,21 @@
                     <h6 class="mb-0" data-bind="text: name"></h6>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
-                        <i class="bi bi-pencil text-muted" style="cursor:pointer;font-size:.8rem;" title="Duzenle" data-bind="click: $parent.editRegister"></i>
+                        <i class="bi bi-pencil text-muted" style="cursor:pointer;font-size:.8rem;" title="@(Translation.T("salon.cash.auto.duzenle", "Düzenle"))" data-bind="click: $parent.editRegister"></i>
                     </div>
                 </div>
                 <div class="card-body py-2">
                     <div class="row text-center">
                         <div class="col-4">
                             <div class="text-muted" style="font-size: .7rem;">Bakiye</div>
-                            <div class="fw-bold" data-bind="text: (balance || 0).toLocaleString('tr-TR') + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></div>
+                            <div class="fw-bold" data-bind="text: (balance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></div>
                         </div>
                         <div class="col-4">
                             <div class="text-muted" style="font-size: .7rem;">Tur</div>
                             <div class="small" data-bind="text: typeName"></div>
                         </div>
                         <div class="col-4">
-                            <div class="text-muted" style="font-size: .7rem;">Sube</div>
+                            <div class="text-muted" style="font-size: .7rem;"><t key="salon.common.branch">Şube</t></div>
                             <div class="small" data-bind="text: branchName || '-'"></div>
                         </div>
                     </div>
@@ -50,7 +51,7 @@
                             <i class="bi bi-plus-lg me-1"></i>Islem
                         </button>
                         <button class="btn btn-outline-info" data-bind="click: $parent.openCashRegister">
-                            <i class="bi bi-unlock me-1"></i>Kasa Ac
+                            <i class="bi bi-unlock me-1"></i><t key="salon.cash.auto.kasa_ac">Kasa Aç</t>
                         </button>
                         <button class="btn btn-outline-secondary" data-bind="click: $parent.openZReport">
                             <i class="bi bi-file-earmark-bar-graph me-1"></i>Z Raporu
@@ -67,7 +68,7 @@
         <div class="col-12">
             <div class="text-center text-muted py-5">
                 <i class="bi bi-safe" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz kasa tanimlanmamis</p>
+                <p class="mt-2 small"><t key="salon.cash.auto.henuz_kasa_tanimlanmamis">Henüz kasa tanımlanmamış</t></p>
             </div>
         </div>
         <!-- /ko -->
@@ -82,7 +83,7 @@
                 <span data-bind="text: selectedRegister().name"></span> - Hareketler
             </h6>
             <button class="btn btn-success btn-sm" data-bind="click: function() { openNewTransaction(selectedRegister()); }">
-                <i class="bi bi-plus-lg me-1"></i>Yeni Islem
+                <i class="bi bi-plus-lg me-1"></i><t key="salon.cash.auto.yeni_islem">Yeni İşlem</t>
             </button>
         </div>
         <div class="card-body p-0">
@@ -90,20 +91,20 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Tarih</th>
+                            <th><t key="salon.panel.payments.date">Tarih</t></th>
                             <th>Tur</th>
-                            <th>Aciklama</th>
-                            <th>Tutar</th>
+                            <th><t key="salon.common.description">Açıklama</t></th>
+                            <th><t key="salon.panel.payments.amount">Tutar</t></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: transactions">
                         <tr>
-                            <td class="small" data-bind="text: createdAt ? new Date(createdAt).toLocaleDateString('tr-TR') : '-'"></td>
+                            <td class="small" data-bind="text: createdAt ? new Date(createdAt).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td>
                             <td>
                                 <span class="badge" data-bind="text: typeName, css: transactionTypeId === 1 ? 'bg-success' : 'bg-danger'"></span>
                             </td>
                             <td class="small" data-bind="text: description"></td>
-                            <td class="small fw-semibold" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL', css: transactionTypeId === 1 ? 'text-success' : 'text-danger'"></td>
+                            <td class="small fw-semibold" data-bind="text: (amount || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL', css: transactionTypeId === 1 ? 'text-success' : 'text-danger'"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -123,23 +124,23 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: registerForm.id() ? 'Kasa Duzenle' : 'Yeni Kasa'"></h6>
+                    <h6 class="modal-title" data-bind="text: registerForm.id() ? salonT('salon.cash.auto.kasa_duzenle', 'Kasa Düzenle') : salonT('salon.cash.auto.yeni_kasa', 'Yeni Kasa')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Kasa Adi *</label>
+                            <label class="form-label small"><t key="salon.cash.auto.kasa_adi">Kasa Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: registerForm.name" />
                         </div>
                         <!-- ko if: branches().length > 1 -->
                         <div class="col-12">
-                            <label class="form-label small">Sube *</label>
+                            <label class="form-label small"><t key="salon.cash.auto.sube">Şube *</t></label>
                             <select class="form-select form-select-sm" data-bind="value: registerForm.branchId,
                                 options: branches,
                                 optionsText: function(b){ return b.name + (b.isHeadquarter ? ' (Merkez)' : ''); },
                                 optionsValue: 'id',
-                                optionsCaption: 'Sube seciniz'"></select>
+                                optionsCaption: salonT('salon.cash.auto.sube_seciniz', 'Şube seciniz')"></select>
                         </div>
                         <!-- /ko -->
                         <!-- ko if: registerForm.id() -->
@@ -153,10 +154,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveRegister, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>
@@ -172,15 +173,15 @@
             <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
-                        <tr><th>Tarih</th><th>Kasa</th><th>Sistem</th><th>Sayilan</th><th>Fark</th><th>Not</th></tr>
+                        <tr><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.cash.auto.kasa">Kasa</t></th><th>Sistem</th><th>Sayilan</th><th>Fark</th><th><t key="salon.appointments.notes">Not</t></th></tr>
                     </thead>
                     <tbody data-bind="foreach: closings">
                         <tr>
-                            <td class="small" data-bind="text: new Date(closingDate).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: new Date(closingDate).toLocaleDateString(document.documentElement.lang || undefined)"></td>
                             <td class="small" data-bind="text: registerName"></td>
-                            <td class="small" data-bind="text: systemTotal.toLocaleString('tr-TR') + ' TL'"></td>
-                            <td class="small" data-bind="text: countedTotal.toLocaleString('tr-TR') + ' TL'"></td>
-                            <td class="small fw-semibold" data-bind="text: difference.toLocaleString('tr-TR') + ' TL', css: difference >= 0 ? 'text-success' : 'text-danger'"></td>
+                            <td class="small" data-bind="text: systemTotal.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                            <td class="small" data-bind="text: countedTotal.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                            <td class="small fw-semibold" data-bind="text: difference.toLocaleString(document.documentElement.lang || undefined) + ' TL', css: difference >= 0 ? 'text-success' : 'text-danger'"></td>
                             <td class="small text-muted" data-bind="text: notes || '-'"></td>
                         </tr>
                     </tbody>
@@ -194,7 +195,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning bg-opacity-10">
-                    <h6 class="modal-title"><i class="bi bi-lock me-2"></i>Gun Sonu Kasa Kapama</h6>
+                    <h6 class="modal-title"><i class="bi bi-lock me-2"></i><t key="salon.cash.auto.gun_sonu_kasa_kapama">Gun Sonu Kasa Kapama</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -202,32 +203,32 @@
                     <div class="row g-3 mb-3">
                         <div class="col-4 text-center">
                             <div class="text-muted small">Gelir</div>
-                            <div class="fw-bold text-success" data-bind="text: dailySummary().income.toLocaleString('tr-TR') + ' TL'"></div>
+                            <div class="fw-bold text-success" data-bind="text: dailySummary().income.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                         </div>
                         <div class="col-4 text-center">
                             <div class="text-muted small">Gider</div>
-                            <div class="fw-bold text-danger" data-bind="text: dailySummary().expense.toLocaleString('tr-TR') + ' TL'"></div>
+                            <div class="fw-bold text-danger" data-bind="text: dailySummary().expense.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                         </div>
                         <div class="col-4 text-center">
                             <div class="text-muted small">Sistem Net</div>
-                            <div class="fw-bold text-primary" data-bind="text: dailySummary().net.toLocaleString('tr-TR') + ' TL'"></div>
+                            <div class="fw-bold text-primary" data-bind="text: dailySummary().net.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                         </div>
                     </div>
                     <hr />
                     <!-- /ko -->
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Sayilan Tutar (TL) *</label>
+                            <label class="form-label small"><t key="salon.cash.auto.sayilan_tutar_tl">Sayilan Tutar (TL) *</t></label>
                             <input type="number" class="form-control" step="0.01" data-bind="value: closingForm.countedTotal" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: closingForm.notes"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-warning btn-sm" data-bind="click: saveClosing, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-lock me-1" data-bind="visible: !isSaving()"></i>Kapamayi Tamamla
@@ -242,7 +243,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-info bg-opacity-10">
-                    <h6 class="modal-title"><i class="bi bi-unlock me-2"></i>Kasa Ac (Gun Basi)</h6>
+                    <h6 class="modal-title"><i class="bi bi-unlock me-2"></i><t key="salon.cash.auto.kasa_ac_gun_basi">Kasa Ac (Gun Basi)</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -271,13 +272,13 @@
                         <!-- ko if: openRegisterForm.balanceType() === 'auto' && openRegisterForm.lastClosingBalance() !== null -->
                         <div class="alert alert-info py-2 mt-2 small">
                             <i class="bi bi-info-circle me-1"></i>Son kapanistan tasinacak bakiye:
-                            <strong data-bind="text: (openRegisterForm.lastClosingBalance() || 0).toLocaleString('tr-TR') + ' TL'"></strong>
+                            <strong data-bind="text: (openRegisterForm.lastClosingBalance() || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></strong>
                         </div>
                         <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-info btn-sm" data-bind="click: saveOpenRegister, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-unlock me-1" data-bind="visible: !isSaving()"></i>Kasayi Ac
@@ -299,7 +300,7 @@
                     <!-- ko if: zReportLoading() -->
                     <div class="text-center py-4">
                         <div class="spinner-border spinner-border-sm text-primary"></div>
-                        <p class="small text-muted mt-2">Rapor yukleniyor...</p>
+                        <p class="small text-muted mt-2"><t key="salon.cash.auto.rapor_yukleniyor">Rapor yukleniyor...</t></p>
                     </div>
                     <!-- /ko -->
                     <!-- ko if: !zReportLoading() && zReport() -->
@@ -308,7 +309,7 @@
                             <div class="card bg-light border-0">
                                 <div class="card-body py-2 text-center">
                                     <div class="text-muted" style="font-size:.7rem;">Acilis Bakiyesi</div>
-                                    <div class="fw-bold" data-bind="text: (zReport().openingBalance || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                                    <div class="fw-bold" data-bind="text: (zReport().openingBalance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                                 </div>
                             </div>
                         </div>
@@ -316,7 +317,7 @@
                             <div class="card bg-light border-0">
                                 <div class="card-body py-2 text-center">
                                     <div class="text-muted" style="font-size:.7rem;">Kapanis Bakiyesi</div>
-                                    <div class="fw-bold" data-bind="text: (zReport().closingBalance || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                                    <div class="fw-bold" data-bind="text: (zReport().closingBalance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                                 </div>
                             </div>
                         </div>
@@ -328,18 +329,18 @@
                         <tbody>
                             <tr>
                                 <td class="small fw-semibold">Nakit</td>
-                                <td class="small text-end text-success" data-bind="text: (zReport().cashIncome || 0).toLocaleString('tr-TR') + ' TL'"></td>
-                                <td class="small text-end text-danger" data-bind="text: (zReport().cashExpense || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small text-end text-success" data-bind="text: (zReport().cashIncome || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                                <td class="small text-end text-danger" data-bind="text: (zReport().cashExpense || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             </tr>
                             <tr>
                                 <td class="small fw-semibold">Kredi Karti</td>
-                                <td class="small text-end text-success" data-bind="text: (zReport().creditCardIncome || 0).toLocaleString('tr-TR') + ' TL'"></td>
-                                <td class="small text-end text-danger" data-bind="text: (zReport().creditCardExpense || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small text-end text-success" data-bind="text: (zReport().creditCardIncome || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                                <td class="small text-end text-danger" data-bind="text: (zReport().creditCardExpense || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             </tr>
                             <tr class="table-light fw-bold">
-                                <td class="small">Toplam</td>
-                                <td class="small text-end text-success" data-bind="text: (zReport().totalIncome || 0).toLocaleString('tr-TR') + ' TL'"></td>
-                                <td class="small text-end text-danger" data-bind="text: (zReport().totalExpense || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                                <td class="small"><t key="salon.cash.auto.toplam">Toplam</t></td>
+                                <td class="small text-end text-success" data-bind="text: (zReport().totalIncome || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                                <td class="small text-end text-danger" data-bind="text: (zReport().totalExpense || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -347,12 +348,12 @@
                     <!-- ko if: !zReportLoading() && !zReport() -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-file-earmark-bar-graph" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Rapor verisi bulunamadi</p>
+                        <p class="mt-2 small"><t key="salon.cash.auto.rapor_verisi_bulunamadi">Rapor verisi bulunamadi</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.cash.auto.kapat">Kapat</t></button>
                 </div>
             </div>
         </div>
@@ -363,7 +364,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Yeni Kasa Islemi</h6>
+                    <h6 class="modal-title"><t key="salon.cash.auto.yeni_kasa_islemi">Yeni Kasa Islemi</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -376,27 +377,27 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Tutar (TL) *</label>
+                            <label class="form-label small"><t key="salon.cash.auto.tutar_tl">Tutar (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: transactionForm.amount" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Odeme Yontemi</label>
+                            <label class="form-label small"><t key="salon.cash.auto.odeme_yontemi">Ödeme Yontemi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: transactionForm.paymentMethodId">
                                 <option value="1">Nakit</option>
                                 <option value="2">Kredi Karti</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Aciklama *</label>
+                            <label class="form-label small"><t key="salon.cash.auto.aciklama">Açıklama *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: transactionForm.description" />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveTransaction, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

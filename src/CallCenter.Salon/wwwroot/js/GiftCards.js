@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function GiftCardsViewModel() {
     var self = this;
     self.cards = ko.observableArray([]);
@@ -27,7 +31,7 @@ function GiftCardsViewModel() {
     var formModal;
     function readError(xhr) {
         if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
-        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || 'Bir hata olustu';
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || slnJsT('salon.common.error.generic', 'Bir hata oluştu');
     }
 
     self.loadData = function () {
@@ -58,7 +62,7 @@ function GiftCardsViewModel() {
             paymentMethodId: parseInt(self.form.paymentMethodId()) || 1
         };
 
-        if (!data.amount || data.amount <= 0) { toastr.warning('Tutar zorunludur'); return; }
+        if (!data.amount || data.amount <= 0) { toastr.warning(slnJsT('salon.giftcards.js.tutar_zorunludur', 'Tutar zorunludur')); return; }
 
         self.isSaving(true);
         $.ajax({
@@ -69,7 +73,7 @@ function GiftCardsViewModel() {
         }).done(function (result) {
             formModal.hide();
             self.loadData();
-            toastr.success('Hediye karti olusturuldu: ' + result.code);
+            toastr.success(slnJsT('salon.giftcards.js.hediye_karti_olusturuldu', 'Hediye kartı oluşturuldu: ') + result.code);
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(readError(xhr));
@@ -78,13 +82,13 @@ function GiftCardsViewModel() {
     };
 
     self.deactivate = function (card) {
-        confirmModal('Onay', "'" + card.code + "' kartini iptal etmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + card.code + "' " + slnJsT('salon.giftcards.cancel_confirm_suffix', 'kartını iptal etmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-gift-cards/' + card.id + '/deactivate',
                 method: 'PUT'
             }).done(function () {
                 self.loadData();
-                toastr.success('Hediye karti iptal edildi');
+                toastr.success(slnJsT('salon.giftcards.js.hediye_karti_iptal_edildi', 'Hediye kartı iptal edildi'));
             });
         });
     };

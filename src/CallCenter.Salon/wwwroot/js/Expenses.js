@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ExpensesViewModel() {
     var self = this;
     self.expenses = ko.observableArray([]);
@@ -57,7 +61,11 @@ function ExpensesViewModel() {
 
     var formModal;
 
-    var statusNames = { 1: 'Beklemede', 2: 'Onayli', 3: 'Reddedildi' };
+    var statusNames = {
+        1: slnJsT('salon.expenses.status.pending', 'Beklemede'),
+        2: slnJsT('salon.expenses.status.approved', 'Onaylı'),
+        3: slnJsT('salon.expenses.status.rejected', 'Reddedildi')
+    };
     var statusCssMap = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
 
     self.loadData = function () {
@@ -69,16 +77,20 @@ function ExpensesViewModel() {
 
         $.ajax({ url: url, method: 'GET' }).done(function (data) {
             var items = data.items || data;
-            var pmNames = { 1: 'Nakit', 2: 'Kredi Karti', 3: 'Havale/EFT' };
+            var pmNames = {
+                1: slnJsT('salon.payment.cash', 'Nakit'),
+                2: slnJsT('salon.payment.credit_card', 'Kredi Kartı'),
+                3: slnJsT('salon.payment.bank_transfer_eft', 'Havale/EFT')
+            };
             items.forEach(function (e) {
                 e.paymentMethodText = pmNames[e.paymentMethodId] || '-';
                 e.statusId = e.statusId || 1;
-                e.statusText = statusNames[e.statusId] || 'Beklemede';
+                e.statusText = statusNames[e.statusId] || slnJsT('salon.expenses.status.pending', 'Beklemede');
                 e.statusCss = statusCssMap[e.statusId] || 'bg-secondary';
             });
             self.expenses(items);
         }).fail(function () {
-            toastr.error('Masraflar yuklenemedi');
+            toastr.error(slnJsT('salon.expenses.js.expenses_load_failed', 'Masraflar yüklenemedi'));
         });
     };
 
@@ -129,7 +141,7 @@ function ExpensesViewModel() {
         };
 
         if (!data.description || !data.amount) {
-            toastr.warning('Aciklama ve tutar zorunludur');
+            toastr.warning(slnJsT('salon.expenses.js.aciklama_ve_tutar_zorunludur', 'Açıklama ve tutar zorunludur'));
             return;
         }
 
@@ -148,16 +160,16 @@ function ExpensesViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Masraf guncellendi' : 'Masraf eklendi');
+            toastr.success(self.isEditing() ? slnJsT('salon.expenses.js.masraf_guncellendi', 'Masraf güncellendi') : slnJsT('salon.expenses.js.masraf_eklendi', 'Masraf eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
 
     self.approveExpense = function (expense) {
-        confirmModal('Onay', 'Bu masrafi onaylamak istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu masrafi onaylamak istediginize emin misiniz?', function() {
             $.ajax({
                 url: '/proxy/sln-finance/expenses/' + expense.id,
                 method: 'PUT',
@@ -165,7 +177,7 @@ function ExpensesViewModel() {
                 data: JSON.stringify({ statusId: 2 })
             }).done(function () {
                 self.loadData();
-                toastr.success('Masraf onaylandi');
+                toastr.success(slnJsT('salon.expenses.js.masraf_onaylandi', 'Masraf onaylandi'));
             }).fail(function (xhr) {
                 toastr.error(xhr.responseJSON?.error || 'Onaylama basarisiz');
             });
@@ -173,7 +185,7 @@ function ExpensesViewModel() {
     };
 
     self.rejectExpense = function (expense) {
-        confirmModal('Onay', 'Bu masrafi reddetmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu masrafi reddetmek istediginize emin misiniz?', function() {
             $.ajax({
                 url: '/proxy/sln-finance/expenses/' + expense.id,
                 method: 'PUT',
@@ -181,7 +193,7 @@ function ExpensesViewModel() {
                 data: JSON.stringify({ statusId: 3 })
             }).done(function () {
                 self.loadData();
-                toastr.success('Masraf reddedildi');
+                toastr.success(slnJsT('salon.expenses.js.masraf_reddedildi', 'Masraf reddedildi'));
             }).fail(function (xhr) {
                 toastr.error(xhr.responseJSON?.error || 'Reddetme basarisiz');
             });
@@ -189,12 +201,12 @@ function ExpensesViewModel() {
     };
 
     self.remove = function (expense) {
-        confirmModal('Onay', 'Bu masrafi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu masrafi silmek istediginize emin misiniz?', function() {
             $.ajax({ url: '/proxy/sln-finance/expenses/' + expense.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Masraf silindi');
+                toastr.success(slnJsT('salon.expenses.js.masraf_silindi', 'Masraf silindi'));
             }).fail(function () {
-                toastr.error('Masraf silinemedi');
+                toastr.error(slnJsT('salon.expenses.js.masraf_silinemedi', 'Masraf silinemedi'));
             });
         });
     };

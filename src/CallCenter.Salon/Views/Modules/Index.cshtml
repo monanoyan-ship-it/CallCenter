@@ -1,5 +1,6 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Modul Yonetimi";
+    ViewData["Title"] = Translation.T("salon.modules.title", "Modül Yönetimi");
 }
 
 <div id="modules-vm">
@@ -8,12 +9,12 @@
         <div class="fw-semibold mb-1"><i class="bi bi-receipt-cutoff me-1"></i><span data-bind="text: platformBillingTitle"></span></div>
         <ul class="mb-2 ps-3" data-bind="foreach: platformUnpaid">
             <li><span data-bind="text: (month || '-') + '/' + (year || '-')"></span> —
-                <strong data-bind="text: (total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺'"></strong></li>
+                <strong data-bind="text: (total || 0).toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2 }) + ' ₺'"></strong></li>
         </ul>
         <div class="d-flex flex-wrap gap-2 align-items-center">
             <button type="button" class="btn btn-sm btn-success" data-bind="click: startPlatformAccrualPayment, disable: platformPayLoading">
                 <span data-bind="visible: platformPayLoading" class="spinner-border spinner-border-sm me-1"></span>
-                <i class="bi bi-credit-card me-1"></i>Kredi kartı ile tahakkuk ödemesi
+                <i class="bi bi-credit-card me-1"></i><t key="salon.modules.pay_accrual_card">Kredi kartı ile tahakkuk ödemesi</t>
             </button>
             <span class="text-muted" data-bind="text: platformBillingHint"></span>
         </div>
@@ -21,7 +22,7 @@
     <!-- /ko -->
 
     <!-- Temel Paket -->
-    <h6 class="text-muted mb-3"><i class="bi bi-box-seam me-1"></i>Temel Paket</h6>
+    <h6 class="text-muted mb-3"><i class="bi bi-box-seam me-1"></i><t key="salon.modules.base_package">Temel Paket</t></h6>
     <div class="row g-3 mb-4" data-bind="foreach: defaultModules">
         <div class="col-md-4 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
@@ -30,7 +31,7 @@
                         <i class="bi me-2" data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="font-size:1.3rem;color:#6f42c1;"></i>
                         <div>
                             <div class="fw-bold small" data-bind="text: description || systemName"></div>
-                            <span class="badge bg-success" style="font-size:0.6rem;">Dahil</span>
+                            <span class="badge bg-success" style="font-size:0.6rem;"><t key="salon.modules.included">Dahil</t></span>
                         </div>
                     </div>
                 </div>
@@ -40,16 +41,16 @@
 
     <!-- Aktif Modulleriniz -->
     <!-- ko if: activeGroups().length > 0 -->
-    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i>Aktif Modulleriniz</h6>
+    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i><t key="salon.modules.active_title">Aktif Modülleriniz</t></h6>
     <!-- ko foreach: activeGroups -->
     <div class="card border-0 shadow-sm mb-3 border-start border-3 border-success">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
             <div>
                 <span class="badge bg-success" data-bind="text: groupName"></span>
-                <span class="badge bg-success-subtle text-success ms-1" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'"></span>
+                <span class="badge bg-success-subtle text-success ms-1" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
             </div>
             <button class="btn btn-sm btn-outline-danger py-0" data-bind="click: $root.cancelPackage">
-                <i class="bi bi-x-circle me-1"></i>Iptal Et
+                <i class="bi bi-x-circle me-1"></i><t key="salon.panel.cancel.confirm">İptal Et</t>
             </button>
         </div>
         <div class="card-body py-2">
@@ -60,7 +61,7 @@
                         <i data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }, style: { color: (typeof isImplemented !== 'undefined' && isImplemented === false) ? '#ccc' : '#198754', fontSize: '.9rem' }"></i>
                         <span class="small" data-bind="text: description || systemName || moduleName, css: { 'text-muted': typeof isImplemented !== 'undefined' && isImplemented === false }"></span>
                         <!-- ko if: typeof isImplemented !== 'undefined' && isImplemented === false -->
-                        <i class="bi bi-lock text-warning" style="font-size:.7rem;cursor:help;" title="Bu hizmet yakin zamanda aktif edilecektir."></i>
+                        <i class="bi bi-lock text-warning" style="font-size:.7rem;cursor:help;" title="@(Translation.T("salon.modules.coming_soon", "Bu hizmet yakın zamanda aktif edilecektir."))"></i>
                         <!-- /ko -->
                     </div>
                 </div>
@@ -72,21 +73,21 @@
     <!-- /ko -->
 
     <!-- Satin Alinabilir Moduller -->
-    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-cart-plus me-1"></i>Satin Alinabilir Moduller</h6>
+    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-cart-plus me-1"></i><t key="salon.modules.available_title">Satın Alınabilir Modüller</t></h6>
     <!-- ko if: availableModules().length === 0 -->
-    <div class="alert alert-info py-2 small">Tum moduller zaten aktif.</div>
+    <div class="alert alert-info py-2 small"><t key="salon.modules.all_active">Tüm modüller zaten aktif.</t></div>
     <!-- /ko -->
     <!-- ko foreach: availableGroups -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
             <div>
                 <strong data-bind="text: groupName"></strong>
-                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' hizmet)'"></span>
+                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' ' + salonT('salon.profile.services.count_suffix', 'hizmet') + ')'"></span>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-purple" data-bind="text: packagePrice.toLocaleString('tr-TR') + ' ₺/ay'" style="font-size:.85rem;background:#6f42c1;"></span>
+                <span class="badge bg-purple" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')" style="font-size:.85rem;background:#6f42c1;"></span>
                 <button class="btn btn-sm btn-success" data-bind="click: $root.purchasePackage">
-                    <i class="bi bi-cart-plus me-1"></i>Satin Al
+                    <i class="bi bi-cart-plus me-1"></i><t key="salon.modules.purchase">Satın Al</t>
                 </button>
             </div>
         </div>
@@ -109,8 +110,8 @@
     <div class="card border-0 shadow-sm mt-4 bg-light">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold">Aylik Modul Tutari</span>
-                <span class="fs-5 fw-bold text-primary" data-bind="text: displayMonthlyTotal().toLocaleString('tr-TR') + ' ₺/ay'"></span>
+                <span class="fw-bold"><t key="salon.modules.monthly_total">Aylık Modül Tutarı</t></span>
+                <span class="fs-5 fw-bold text-primary" data-bind="text: displayMonthlyTotal().toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
             </div>
             <!-- ko if: branchSummaryText().length > 0 -->
             <div class="small text-muted text-end mt-1" data-bind="text: branchSummaryText"></div>
@@ -121,7 +122,7 @@
     <!-- Odeme gecmisi -->
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i>Odeme Gecmisi</h6>
+            <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i><t key="salon.modules.payment_history">Ödeme Geçmişi</t></h6>
             <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: loadPaymentHistory, disable: paymentHistoryLoading">
                 <span class="spinner-border spinner-border-sm me-1" data-bind="visible: paymentHistoryLoading"></span>
                 <i class="bi bi-arrow-clockwise" data-bind="visible: !paymentHistoryLoading()"></i>
@@ -132,17 +133,17 @@
                 <div class="spinner-border text-primary"></div>
             </div>
             <div class="text-center text-muted py-4" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length === 0">
-                Henuz odeme kaydi yok.
+                <t key="salon.panel.payments.empty">Henüz ödeme kaydı yok.</t>
             </div>
             <div class="table-responsive" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length > 0">
                 <table class="table table-sm table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Tarih</th>
-                            <th>Tur</th>
-                            <th>Yontem</th>
-                            <th class="text-end">Tutar</th>
-                            <th>Durum</th>
+                            <th><t key="salon.panel.payments.date">Tarih</t></th>
+                            <th><t key="salon.panel.payments.type">Tür</t></th>
+                            <th><t key="salon.modules.payment_method">Yöntem</t></th>
+                            <th class="text-end"><t key="salon.panel.payments.amount">Tutar</t></th>
+                            <th><t key="salon.panel.payments.status">Durum</t></th>
                             <th class="text-end"></th>
                         </tr>
                     </thead>
@@ -159,15 +160,15 @@
                             <td class="text-end text-nowrap">
                                 <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 me-1"
                                         data-bind="visible: canDownloadReceipt, click: $root.downloadReceipt">
-                                    <i class="bi bi-download me-1"></i>Dekont
+                                    <i class="bi bi-download me-1"></i><t key="salon.modules.receipt">Dekont</t>
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 me-1"
                                         data-bind="visible: canDownloadHavaleReceipt, click: $root.downloadHavaleReceipt">
-                                    <i class="bi bi-paperclip me-1"></i>Havale
+                                    <i class="bi bi-paperclip me-1"></i><t key="salon.modules.bank_transfer">Havale</t>
                                 </button>
                                 <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
                                         data-bind="visible: canRetry, click: $root.retryPayment">
-                                    <i class="bi bi-arrow-repeat me-1"></i>Tekrar Dene
+                                    <i class="bi bi-arrow-repeat me-1"></i><t key="salon.modules.retry">Tekrar Dene</t>
                                 </button>
                             </td>
                         </tr>
@@ -190,46 +191,46 @@
                     <div data-bind="visible: purchaseStep() === 'preview'">
                         <div class="text-center py-3" data-bind="visible: purchaseLoading()">
                             <div class="spinner-border text-primary"></div>
-                            <div class="small text-muted mt-2">Fiyat hesaplaniyor...</div>
+                            <div class="small text-muted mt-2"><t key="salon.modules.price_calculating">Fiyat hesaplanıyor...</t></div>
                         </div>
                         <div data-bind="visible: !purchaseLoading() && purchasePreview()">
                             <div class="alert alert-info py-2 small mb-3">
-                                <i class="bi bi-info-circle me-1"></i>Bugun yalniz sonraki tahakkuk tarihine kadar olan kist donem tahsil edilir; fiyatlar KDV dahildir.
+                                <i class="bi bi-info-circle me-1"></i><t key="salon.modules.prorata_info">Bugün yalnız sonraki tahakkuk tarihine kadar olan kıst dönem tahsil edilir; fiyatlar KDV dahildir.</t>
                             </div>
                             <table class="table table-sm mb-3">
                                 <tr>
-                                    <td class="text-muted">Modul</td>
+                                    <td class="text-muted"><t key="salon.modules.module">Modül</t></td>
                                     <td class="fw-bold text-end" data-bind="text: purchasePreview() ? purchasePreview().packageName : ''"></td>
                                 </tr>
                                 <tr>
-                                    <td class="text-muted">Aylik Paket Fiyati</td>
-                                    <td class="text-end" data-bind="text: purchasePreview() ? purchasePreview().monthlyPrice.toLocaleString('tr-TR') + ' ₺' : ''"></td>
+                                    <td class="text-muted"><t key="salon.modules.monthly_package_price">Aylık Paket Fiyatı</t></td>
+                                    <td class="text-end" data-bind="text: purchasePreview() ? purchasePreview().monthlyPrice.toLocaleString(document.documentElement.lang || undefined) + ' ₺' : ''"></td>
                                 </tr>
                                 <tr>
-                                    <td class="text-muted">Sonraki Tahakkuk</td>
-                                    <td class="text-end" data-bind="text: purchasePreview() ? new Date(purchasePreview().nextBillingDate).toLocaleDateString('tr-TR') : ''"></td>
+                                    <td class="text-muted"><t key="salon.modules.next_billing">Sonraki Tahakkuk</t></td>
+                                    <td class="text-end" data-bind="text: purchasePreview() ? new Date(purchasePreview().nextBillingDate).toLocaleDateString(document.documentElement.lang || undefined) : ''"></td>
                                 </tr>
                                 <tr>
-                                    <td class="text-muted">Kist-i Hesap</td>
+                                    <td class="text-muted"><t key="salon.modules.prorata">Kıst-ı Hesap</t></td>
                                     <td class="text-end">
-                                        <span data-bind="text: purchasePreview() && purchasePreview().proRata ? purchasePreview().proRata.days + ' gun x ' + purchasePreview().proRata.dailyRate.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺' : ''"></span>
+                                        <span data-bind="text: purchasePreview() && purchasePreview().proRata ? purchasePreview().proRata.days + ' ' + salonT('salon.modules.days', 'gün') + ' x ' + purchasePreview().proRata.dailyRate.toLocaleString(document.documentElement.lang || undefined, {minimumFractionDigits:2}) + ' ₺' : ''"></span>
                                     </td>
                                 </tr>
                                 <tr class="table-success">
-                                    <td class="fw-bold">Simdi Odenecek</td>
-                                    <td class="fw-bold text-end fs-5 text-success" data-bind="text: purchasePreview() ? purchasePreview().totalNow.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺' : ''"></td>
+                                    <td class="fw-bold"><t key="salon.modules.pay_now">Şimdi Ödenecek</t></td>
+                                    <td class="fw-bold text-end fs-5 text-success" data-bind="text: purchasePreview() ? purchasePreview().totalNow.toLocaleString(document.documentElement.lang || undefined, {minimumFractionDigits:2}) + ' ₺' : ''"></td>
                                 </tr>
                                 <tr>
-                                    <td class="text-muted">Sonraki Donemlerden Itibaren</td>
-                                    <td class="text-end" data-bind="text: purchasePreview() ? (purchasePreview().recurringMonthlyAmount || purchasePreview().monthlyPrice).toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' ₺/ay (KDV dahil)' : ''"></td>
+                                    <td class="text-muted"><t key="salon.modules.recurring_from_next">Sonraki Dönemlerden İtibaren</t></td>
+                                    <td class="text-end" data-bind="text: purchasePreview() ? (purchasePreview().recurringMonthlyAmount || purchasePreview().monthlyPrice).toLocaleString(document.documentElement.lang || undefined, {minimumFractionDigits:2}) + ' ' + salonT('salon.modules.per_month_tax_included', '₺/ay (KDV dahil)') : ''"></td>
                                 </tr>
                             </table>
                             <div class="small text-muted mb-3">
                                 <i class="bi bi-calendar-check me-1"></i>
-                                <span data-bind="text: purchasePreview() && purchasePreview().billingNote ? purchasePreview().billingNote : 'Sonraki tahakkuktan itibaren paket aylik olarak faturalandirilacaktir.'"></span>
+                                 <span data-bind="text: purchasePreview() && purchasePreview().billingNote ? purchasePreview().billingNote : salonT('salon.modules.default_billing_note', 'Sonraki tahakkuktan itibaren paket aylık olarak faturalandırılacaktır.')"></span>
                             </div>
                             <button class="btn btn-success w-100" data-bind="click: startCheckout, disable: purchaseLoading()">
-                                <i class="bi bi-credit-card me-1"></i>Odemeye Gec
+                                <i class="bi bi-credit-card me-1"></i><t key="salon.modules.go_to_payment">Ödemeye Geç</t>
                             </button>
                         </div>
                     </div>
@@ -238,7 +239,7 @@
                     <div data-bind="visible: purchaseStep() === 'checkout'">
                         <div class="text-center py-3" data-bind="visible: purchaseLoading()">
                             <div class="spinner-border text-primary"></div>
-                            <div class="small text-muted mt-2">Odeme formu hazirlaniyor...</div>
+                            <div class="small text-muted mt-2"><t key="salon.modules.payment_form_preparing">Ödeme formu hazırlanıyor...</t></div>
                         </div>
                         <div id="iyzico-checkout-container" data-bind="iyzicoCheckoutHtml: checkoutFormHtml"></div>
                     </div>
@@ -247,7 +248,7 @@
                     <div data-bind="visible: purchaseStep() === 'result'">
                         <div class="text-center py-4" data-bind="visible: purchaseLoading() && !purchaseResult()">
                             <div class="spinner-border text-primary"></div>
-                            <div class="small text-muted mt-2">Odeme sonucu dogrulaniyor...</div>
+                            <div class="small text-muted mt-2"><t key="salon.modules.payment_result_checking">Ödeme sonucu doğrulanıyor...</t></div>
                         </div>
                         <div class="text-center py-4" data-bind="visible: purchaseResult() && purchaseResult().success">
                             <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
@@ -255,17 +256,17 @@
                             <p class="text-muted small mb-1" data-bind="text: purchaseResultMessage"></p>
                             <div class="alert alert-warning py-2 small mt-3 text-start" data-bind="visible: purchaseResultRequiresSessionRefresh">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong>Yeni modulu menude gormek icin oturumu yenileyin.</strong>
+                                <strong><t key="salon.modules.session_refresh_required">Yeni modülü menüde görmek için oturumu yenileyin.</t></strong>
                             </div>
                             <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: purchaseResultRequiresSessionRefresh">
-                                <i class="bi bi-arrow-clockwise me-1"></i>Oturumu Yenile
+                                <i class="bi bi-arrow-clockwise me-1"></i><t key="salon.modules.refresh_session">Oturumu Yenile</t>
                             </a>
                         </div>
                         <div class="text-center py-4" data-bind="visible: purchaseResult() && !purchaseResult().success">
                             <i class="bi bi-x-circle-fill text-danger" style="font-size:3rem;"></i>
-                            <h5 class="mt-2 text-danger">Odeme Basarisiz</h5>
+                            <h5 class="mt-2 text-danger"><t key="salon.modules.payment_failed_title">Ödeme Başarısız</t></h5>
                             <p class="text-muted small" data-bind="text: purchaseResult() ? purchaseResult().error : ''"></p>
-                            <button class="btn btn-outline-primary btn-sm" data-bind="click: function(){ purchaseStep('preview'); }">Tekrar Dene</button>
+                            <button class="btn btn-outline-primary btn-sm" data-bind="click: function(){ purchaseStep('preview'); }"><t key="salon.modules.retry">Tekrar Dene</t></button>
                         </div>
                     </div>
                 </div>

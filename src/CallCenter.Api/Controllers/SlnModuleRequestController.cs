@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Filters;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ namespace CallCenter.Api.Controllers;
 [ApiController]
 [Route("api/sln-module-requests")]
 [Authorize]
+[RequireSalonOwner]
 public class SlnModuleRequestController : ControllerBase
 {
     private readonly IModuleRequestFactory _factory;

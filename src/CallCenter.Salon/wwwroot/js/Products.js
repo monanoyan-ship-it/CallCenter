@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function ProductsViewModel() {
     var self = this;
     self.products = ko.observableArray([]);
@@ -199,12 +203,12 @@ function ProductsViewModel() {
     }
 
     self.save = function () {
-        if (!self.form.name()) { toastr.warning('Urun adi zorunludur'); return; }
+        if (!self.form.name()) { toastr.warning(slnJsT('salon.products.js.urun_adi_zorunludur', 'Ürün adi zorunludur')); return; }
 
         // Kategori zorunlu - secilmemis ve yazilmamissa uyar
         var catText = (self.categoryAutocomplete.query() || '').trim();
         if (!self.form.categoryId() && !catText) {
-            toastr.warning('Kategori zorunludur');
+            toastr.warning(slnJsT('salon.products.js.kategori_zorunludur', 'Kategori zorunludur'));
             return;
         }
 
@@ -215,7 +219,7 @@ function ProductsViewModel() {
             ensureLookup(self.brandAutocomplete, self.form.brandId, self.brands, '/proxy/sln-products/brands')
         ]).then(function (results) {
             if (!results[0]) {
-                toastr.error('Kategori olusturulamadi');
+                toastr.error(slnJsT('salon.products.js.kategori_olusturulamadi', 'Kategori oluşturulamadı'));
                 self.isSaving(false);
                 return;
             }
@@ -247,9 +251,9 @@ function ProductsViewModel() {
                 formModal.hide();
                 self.loadData();
                 self.loadLookups();
-                toastr.success(self.isEditing() ? 'Urun guncellendi' : 'Urun eklendi');
+                toastr.success(self.isEditing() ? slnJsT('salon.products.js.urun_guncellendi', 'Ürün güncellendi') : slnJsT('salon.products.js.urun_eklendi', 'Ürün eklendi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+                toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
             }).always(function () { self.isSaving(false); });
         });
     };
@@ -268,7 +272,7 @@ function ProductsViewModel() {
         var quantity = parseFloat(self.purchaseForm.quantity()) || 0;
         var unitPrice = parseFloat(self.purchaseForm.unitPrice()) || 0;
 
-        if (!supplierId) { toastr.warning('Tedarikci secilmelidir'); return; }
+        if (!supplierId) { toastr.warning(slnJsT('salon.products.js.tedarikci_secilmelidir', 'Tedarikci secilmelidir')); return; }
         if (quantity <= 0) { toastr.warning("Miktar 0'dan buyuk olmalidir"); return; }
         if (unitPrice <= 0) { toastr.warning("Alis fiyati 0'dan buyuk olmalidir"); return; }
 
@@ -288,7 +292,7 @@ function ProductsViewModel() {
         }).done(function () {
             purchaseModal.hide();
             self.loadData();
-            toastr.success('Alis kaydi eklendi, tedarikci carisi guncellendi');
+            toastr.success(slnJsT('salon.products.js.alis_kaydi_eklendi_tedarikci_carisi_guncellendi', 'Alis kaydi eklendi, tedarikci carisi güncellendi'));
         }).fail(function (xhr) {
             toastr.error(getErrorMessage(xhr, 'Alis kaydi eklenemedi'));
         }).always(function () {
@@ -306,7 +310,7 @@ function ProductsViewModel() {
             var toBranchId = parseInt(self.stockOperationForm.toBranchId());
             var quantity = parseFloat(self.stockOperationForm.quantity()) || 0;
             if (!toBranchId) {
-                toastr.warning('Hedef sube secilmelidir');
+                toastr.warning(slnJsT('salon.products.js.hedef_sube_secilmelidir', 'Hedef şube secilmelidir'));
                 self.isStockOperationSaving(false);
                 return;
             }
@@ -357,7 +361,7 @@ function ProductsViewModel() {
         }).done(function () {
             stockOperationModal.hide();
             self.loadData();
-            toastr.success('Sayim farki kaydedildi');
+            toastr.success(slnJsT('salon.products.js.sayim_farki_kaydedildi', 'Sayim farki kaydedildi'));
         }).fail(function (xhr) {
             toastr.error(getErrorMessage(xhr, 'Sayim farki kaydedilemedi'));
         }).always(function () {
@@ -366,12 +370,12 @@ function ProductsViewModel() {
     };
 
     self.remove = function (product) {
-        confirmModal('Onay', "'" + product.name + "' urununu silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + product.name + "' urununu silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/sln-products/' + product.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Urun silindi');
+                toastr.success(slnJsT('salon.products.js.urun_silindi', 'Ürün silindi'));
             }).fail(function () {
-                toastr.error('Urun silinemedi');
+                toastr.error(slnJsT('salon.products.js.urun_silinemedi', 'Ürün silinemedi'));
             });
         });
     };

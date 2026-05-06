@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "E-posta Kampanyalari";
 }
@@ -6,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h6 class="mb-0">E-posta Kampanyalari</h6>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Kampanya
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.emailcampaigns.auto.yeni_kampanya"><t key="salon.emailcampaigns.auto.yeni_kampanya">Yeni Kampanya</t></t>
         </button>
     </div>
 
@@ -36,20 +37,20 @@
                             <td class="small" data-bind="text: sentCount"></td>
                             <td class="small" data-bind="text: openCount"></td>
                             <td class="small" data-bind="text: clickCount"></td>
-                            <td class="small" data-bind="text: scheduledAt ? new Date(scheduledAt).toLocaleDateString('tr-TR') : '-'"></td>
+                            <td class="small" data-bind="text: scheduledAt ? new Date(scheduledAt).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <!-- ko if: statusId < 3 -->
-                                    <button class="btn btn-outline-primary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-primary" title="@(Translation.T("salon.common.btn.edit_tooltip", "Düzenle"))" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <!-- /ko -->
                                     <!-- ko if: statusId <= 2 -->
-                                    <button class="btn btn-outline-success" title="Gonder" data-bind="click: $parent.send">
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.emailcampaigns.auto.gonder", "Gonder"))" data-bind="click: $parent.send">
                                         <i class="bi bi-send"></i>
                                     </button>
                                     <!-- /ko -->
-                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -72,7 +73,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Kampanya Duzenle' : 'Yeni E-posta Kampanyasi'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.emailcampaigns.auto.kampanya_duzenle', 'Kampanya Düzenle') : salonT('salon.emailcampaigns.auto.yeni_e_posta_kampanyasi', 'Yeni E-posta Kampanyası')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -118,10 +119,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save"><t key="salon.common.btn.save">Kaydet</t></t>
                     </button>
                 </div>
             </div>

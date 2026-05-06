@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Bekleme Listesi";
 }
@@ -26,7 +27,7 @@
                 <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
                     <small class="text-muted">
                         <i class="bi bi-calendar3 me-1"></i><span data-bind="text: todayLabel"></span>
-                        &mdash; <strong data-bind="text: todayAppointments().length"></strong> randevu
+                        &mdash; <strong data-bind="text: todayAppointments().length"></strong><t key="salon.waitlist.auto.randevu">randevu</t>
                     </small>
                     <button class="btn btn-outline-secondary btn-sm py-0" data-bind="click: loadTodayAppointments">
                         <i class="bi bi-arrow-clockwise"></i>
@@ -39,19 +40,19 @@
                     <!-- ko if: !isLoadingAppts() && todayAppointments().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-calendar-x" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Bugun icin randevu yok</p>
+                        <p class="mt-2 small"><t key="salon.waitlist.auto.bugun_icin_randevu_yok">Bugün için randevu yok</t></p>
                     </div>
                     <!-- /ko -->
                     <div class="table-responsive" data-bind="visible: !isLoadingAppts() && todayAppointments().length > 0">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:60px;">Saat</th>
-                                    <th>Musteri</th>
+                                    <th style="width:60px;"><t key="salon.reports.hour">Saat</t></th>
+                                    <th><t key="salon.panel.payments.customer">Müşteri</t></th>
                                     <th>Hizmetler</th>
-                                    <th>Personel</th>
+                                    <th><t key="salon.sidebar.staff">Personel</t></th>
                                     <th class="text-center" style="width:60px;">Sure</th>
-                                    <th style="width:100px;">Durum</th>
+                                    <th style="width:100px;"><t key="salon.appointments.status">Durum</t></th>
                                     <th style="width:140px;"></th>
                                 </tr>
                             </thead>
@@ -77,7 +78,7 @@
                                                 data-bind="click: $parent.apptNoShow">
                                                 <i class="bi bi-person-x"></i>
                                             </button>
-                                            <button class="btn btn-outline-danger py-0 px-1" title="Iptal"
+                                            <button class="btn btn-outline-danger py-0 px-1" title="@(Translation.T("salon.common.btn.cancel", "İptal"))"
                                                 data-bind="click: $parent.apptCancel">
                                                 <i class="bi bi-x-circle"></i>
                                             </button>
@@ -88,7 +89,7 @@
                                             <!-- /ko -->
                                             <!-- Iptal/Gelmedi bilgi -->
                                             <!-- ko if: statusId === 4 -->
-                                            <span class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i>Iptal</span>
+                                            <span class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i><t key="salon.common.btn.cancel">İptal</t></span>
                                             <!-- /ko -->
                                             <!-- ko if: statusId === 5 -->
                                             <span class="text-secondary small"><i class="bi bi-person-x-fill me-1"></i>Gelmedi</span>
@@ -108,15 +109,15 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="input-group" style="max-width: 320px;">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" placeholder="Musteri veya hizmet ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                    <input type="text" class="form-control" placeholder="@(Translation.T("salon.waitlist.auto.musteri_veya_hizmet_ara", "Müşteri veya hizmet ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
                 </div>
                 <div class="d-flex gap-1">
                     <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
-                            title="Sube bilgisi olmayan eski kayitlari personelin/merkezin subesine bagla">
-                        <i class="bi bi-shuffle me-1"></i>Sube Normalize
+                            title="@(Translation.T("salon.waitlist.auto.sube_bilgisi_olmayan_eski_kayitlari_personelin_merkezin_sube", "Şube bilgisi olmayan eski kayitlari personelin/merkezin subesine bagla"))">
+                        <i class="bi bi-shuffle me-1"></i><t key="salon.waitlist.auto.sube_normalize">Şube Normalize</t>
                     </button>
                     <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-                        <i class="bi bi-plus-lg me-1"></i>Yeni Kayit
+                        <i class="bi bi-plus-lg me-1"></i><t key="salon.waitlist.auto.yeni_kayit">Yeni Kayıt</t>
                     </button>
                 </div>
             </div>
@@ -127,12 +128,12 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Musteri</th>
-                                    <th>Hizmet</th>
-                                    <th>Tercih Edilen Personel</th>
-                                    <th>Tarih</th>
-                                    <th>Saat Dilimi</th>
-                                    <th>Durum</th>
+                                    <th><t key="salon.panel.payments.customer">Müşteri</t></th>
+                                    <th><t key="salon.book.summary.service">Hizmet</t></th>
+                                    <th><t key="salon.waitlist.auto.tercih_edilen_personel">Tercih Edilen Personel</t></th>
+                                    <th><t key="salon.panel.payments.date">Tarih</t></th>
+                                    <th><t key="salon.waitlist.auto.saat_dilimi">Saat Dilimi</t></th>
+                                    <th><t key="salon.appointments.status">Durum</t></th>
                                     <th style="width:150px;"></th>
                                 </tr>
                             </thead>
@@ -157,7 +158,7 @@
                                             <button class="btn btn-outline-primary py-0 px-1" title="Randevuya Donustur" data-bind="click: $parent.openConvert">
                                                 <i class="bi bi-calendar-plus"></i>
                                             </button>
-                                            <button class="btn btn-outline-success py-0 px-1" title="Randevu Alindi (Manuel)" data-bind="click: $parent.appointmentMade">
+                                            <button class="btn btn-outline-success py-0 px-1" title="@(Translation.T("salon.waitlist.auto.randevu_alindi_manuel", "Randevu Alindi (Manuel)"))" data-bind="click: $parent.appointmentMade">
                                                 <i class="bi bi-calendar-check"></i>
                                             </button>
                                             <!-- /ko -->
@@ -167,7 +168,7 @@
                                             </button>
                                             <!-- /ko -->
                                             <!-- ko if: statusId !== 5 && statusId !== 4 -->
-                                            <button class="btn btn-outline-danger py-0 px-1" title="Sil" data-bind="click: $parent.removeEntry">
+                                            <button class="btn btn-outline-danger py-0 px-1" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removeEntry">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                             <!-- /ko -->
@@ -206,29 +207,29 @@
                     </div>
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Tarih *</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.tarih">Tarih *</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: convertForm.date" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Saat *</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.saat">Saat *</t></label>
                             <input type="time" class="form-control form-control-sm" data-bind="value: convertForm.time" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Personel *</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.personel">Personel *</t></label>
                             <select class="form-select form-select-sm"
                                     data-bind="options: staff, optionsText: 'fullName', optionsValue: 'id', value: convertForm.personnelId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: convertForm.notes"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: submitConvert, disable: isConverting">
                         <span data-bind="visible: isConverting" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isConverting()"></i>Randevu Olustur
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isConverting()"></i><t key="salon.waitlist.auto.randevu_olustur">Randevu Oluştur</t>
                     </button>
                 </div>
             </div>
@@ -240,29 +241,29 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-clock-history me-2"></i>Bekleme Listesine Ekle</h6>
+                    <h6 class="modal-title"><i class="bi bi-clock-history me-2"></i><t key="salon.waitlist.auto.bekleme_listesine_ekle">Bekleme Listesine Ekle</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Musteri *</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.musteri">Müşteri *</t></label>
                             <select class="form-select form-select-sm" data-bind="options: clients, optionsText: 'fullName', optionsValue: 'id', value: form.slnClientId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Hizmet *</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.hizmet">Hizmet *</t></label>
                             <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Tercih Edilen Personel</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.tercih_edilen_personel">Tercih Edilen Personel</t></label>
                             <select class="form-select form-select-sm" data-bind="options: staff, optionsText: 'fullName', optionsValue: 'id', value: form.preferredPersonnelId, optionsCaption: 'Farketmez'"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Tercih Edilen Tarih *</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.tercih_edilen_tarih">Tercih Edilen Tarih *</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.preferredDate" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Saat Dilimi</label>
+                            <label class="form-label small"><t key="salon.waitlist.auto.saat_dilimi">Saat Dilimi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.preferredTimeSlot">
                                 <option value="">Farketmez</option>
                                 <option value="Sabah">Sabah (09-12)</option>
@@ -271,16 +272,16 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Not</label>
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

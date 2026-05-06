@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function PageSettingsViewModel() {
     var self = this;
     self.isLoading = ko.observable(true);
@@ -18,9 +22,9 @@ function PageSettingsViewModel() {
         { key: 'gallery', label: 'Galeri', icon: 'bi bi-images', field: 'showGallery' },
         { key: 'services', label: 'Hizmetler', icon: 'bi bi-list-check', field: 'showServices' },
         { key: 'memberships', label: 'Uyelik Planlari', icon: 'bi bi-award', field: 'showMemberships' },
-        { key: 'booking', label: 'Online Randevu', icon: 'bi bi-calendar-check', field: 'showBooking' },
+        { key: 'booking', label: slnJsT('salon.pagesettings.js.online_randevu', 'Online Randevu'), icon: 'bi bi-calendar-check', field: 'showBooking' },
         { key: 'team', label: 'Ekibimiz', icon: 'bi bi-people', field: 'showTeam' },
-        { key: 'reviews', label: 'Musteri Yorumlari', icon: 'bi bi-chat-square-text', field: 'showReviews' },
+        { key: 'reviews', label: slnJsT('salon.pagesettings.js.musteri_yorumlari', 'Müşteri Yorumları'), icon: 'bi bi-chat-square-text', field: 'showReviews' },
         { key: 'hours', label: 'Calisma Saatleri', icon: 'bi bi-clock', field: 'showHours' },
         { key: 'map', label: 'Harita', icon: 'bi bi-geo-alt', field: 'showMap' },
         { key: 'contact', label: 'Iletisim', icon: 'bi bi-telephone', field: 'showContact' }
@@ -132,7 +136,7 @@ function PageSettingsViewModel() {
         var formData = new FormData();
         formData.append('file', file);
 
-        toastr.info('Yukleniyor...');
+        toastr.info(slnJsT('salon.pagesettings.js.yukleniyor', 'Yukleniyor...'));
         $.ajax({
             url: '/proxy/sln-profile/upload-image?type=' + type,
             method: 'POST',
@@ -164,7 +168,7 @@ function PageSettingsViewModel() {
         if (!files || files.length === 0) return;
 
         var remaining = files.length;
-        toastr.info(files.length + ' gorsel yukleniyor...');
+        toastr.info(files.length + slnJsT('salon.pagesettings.js.gorsel_yukleniyor', ' gorsel yukleniyor...'));
 
         for (var i = 0; i < files.length; i++) {
             (function (file) {
@@ -214,7 +218,7 @@ function PageSettingsViewModel() {
         var formData = new FormData();
         formData.append('file', file);
 
-        toastr.info('Yukleniyor...');
+        toastr.info(slnJsT('salon.pagesettings.js.yukleniyor', 'Yukleniyor...'));
         $.ajax({
             url: '/proxy/sln-profile/upload-image?type=banner',
             method: 'POST',
@@ -268,7 +272,7 @@ function PageSettingsViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         }).done(function () {
-            toastr.success('Sayfa ayarlari kaydedildi.');
+            toastr.success(slnJsT('salon.pagesettings.js.sayfa_ayarlari_kaydedildi', 'Sayfa ayarlari kaydedildi.'));
         }).fail(function () {
             toastr.error('Kaydetme hatasi.');
         }).always(function () { self.isSaving(false); });

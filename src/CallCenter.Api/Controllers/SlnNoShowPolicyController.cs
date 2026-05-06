@@ -12,6 +12,7 @@ namespace CallCenter.Api.Controllers;
 [Route("api/sln-noshow-policy")]
 [Authorize]
 [RequireModule(SalonPortalModules.Ids.SlnNoShowPolicy)]
+[RequireSalonOwner]
 public class SlnNoShowPolicyController : ControllerBase
 {
     private readonly ISlnNoShowPolicyFactory _factory;

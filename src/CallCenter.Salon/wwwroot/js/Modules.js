@@ -3,6 +3,12 @@
  * innerHTML ile enjekte edilen script'ler guvenlik nedeniyle calismaz; odeme formu gorunmez.
  * Script'leri DOM'a yeniden ekleyerek calistirir.
  */
+function moduleT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
+var MODULE_LOCALE = document.documentElement.lang || undefined;
+
 function injectIyzicoCheckoutHtml(container, html) {
     if (!container) return;
     try {
@@ -20,7 +26,7 @@ function injectIyzicoCheckoutHtml(container, html) {
         }
     } catch (e) {
         console.error('iyzico form inject', e);
-        container.innerHTML = '<p class="text-danger small mb-0">Ödeme formu yüklenirken hata oluştu. Sayfayı yenileyip tekrar deneyin.</p>';
+        container.innerHTML = '<p class="text-danger small mb-0">' + moduleT('salon.modules.checkout_inject_error', 'Ödeme formu yüklenirken hata oluştu. Sayfayı yenileyip tekrar deneyin.') + '</p>';
     }
 }
 
@@ -47,7 +53,12 @@ function ModulesViewModel() {
     });
 
     // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
-    var PACKAGE_NAMES = { 1: 'Stok Tedarik / Finans', 3: 'Müşteri Sadakati / Pazarlama', 5: 'Profesyonel', 6: 'Kurumsal' };
+    var PACKAGE_NAMES = {
+        1: moduleT('salon.modules.package.stock_finance', 'Stok Tedarik / Finans'),
+        3: moduleT('salon.modules.package.loyalty_marketing', 'Müşteri Sadakati / Pazarlama'),
+        5: moduleT('salon.modules.package.professional', 'Profesyonel'),
+        6: moduleT('salon.modules.package.corporate', 'Kurumsal')
+    };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
     var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
     self.packagePrices = ko.observable({});
@@ -71,7 +82,7 @@ function ModulesViewModel() {
         var grouped = {};
         nonDefault.forEach(function (m) {
             var gId = m.groupId || 0;
-            var gName = PACKAGE_NAMES[gId] || m.groupName || 'Diger';
+            var gName = PACKAGE_NAMES[gId] || m.groupName || moduleT('salon.modules.package.other', 'Diğer');
             if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), modules: [] };
             grouped[gId].modules.push(m);
         });
@@ -84,7 +95,7 @@ function ModulesViewModel() {
         var grouped = {};
         all.forEach(function (m) {
             var gId = m.groupId || 0;
-            var gName = PACKAGE_NAMES[gId] || m.groupName || 'Diger';
+            var gName = PACKAGE_NAMES[gId] || m.groupName || moduleT('salon.modules.package.other', 'Diğer');
             if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), modules: [] };
             grouped[gId].modules.push(m);
         });
@@ -104,13 +115,13 @@ function ModulesViewModel() {
     });
     self.platformBillingTitle = ko.computed(function () {
         return self.hasUpcomingPlatformBilling()
-            ? 'Demo / abonelik aktivasyonu'
-            : 'Odenmemis platform donemi';
+            ? moduleT('salon.modules.platform_activation_title', 'Demo / abonelik aktivasyonu')
+            : moduleT('salon.modules.platform_unpaid_title', 'Ödenmemiş platform dönemi');
     });
     self.platformBillingHint = ko.computed(function () {
         return self.hasUpcomingPlatformBilling()
-            ? 'Demo bitisindeki ilk abonelik donemini simdiden kartla odeyebilirsiniz.'
-            : 'Iyzico guvenli odeme; modul satin alma ile ayni kart altyapisi.';
+            ? moduleT('salon.modules.platform_activation_hint', 'Demo bitişindeki ilk abonelik dönemini şimdiden kartla ödeyebilirsiniz.')
+            : moduleT('salon.modules.platform_payment_hint', 'Iyzico güvenli ödeme; modül satın alma ile aynı kart altyapısı.');
     });
 
     // Paket + temel (çoklu şubede Temel Paket yalnız şube satırında) — şube tutarı API'de
@@ -140,7 +151,10 @@ function ModulesViewModel() {
         if (!s || !s.branchCount || s.branchCount <= 1) return '';
         var br = typeof s.branchDiscountPercent === 'number' ? s.branchDiscountPercent : 0;
         var net = typeof s.netBranchMonthly === 'number' ? s.netBranchMonthly : 0;
-        return s.branchCount + ' şube · şube eşik indirimi %' + br + ' · şube satırı ' + net.toLocaleString('tr-TR') + ' ₺/ay (tüm şubeler × Temel Paket brüt, sonra eşik)';
+        return moduleT('salon.modules.branch_summary', '{count} şube · şube eşik indirimi %{discount} · şube satırı {amount} ₺/ay (tüm şubeler × Temel Paket brüt, sonra eşik)')
+            .replace('{count}', s.branchCount)
+            .replace('{discount}', br)
+            .replace('{amount}', net.toLocaleString(MODULE_LOCALE));
     });
 
     /**
@@ -189,12 +203,12 @@ function ModulesViewModel() {
 
     self.paymentDateText = function (payment) {
         var dt = payment && (payment.completedAt || payment.createdAt);
-        return dt ? new Date(dt).toLocaleString('tr-TR') : '-';
+        return dt ? new Date(dt).toLocaleString(MODULE_LOCALE) : '-';
     };
 
     self.paymentAmountText = function (payment) {
         if (!payment || payment.amount == null) return '-';
-        return Number(payment.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ' + (payment.currency || 'TRY');
+        return Number(payment.amount).toLocaleString(MODULE_LOCALE, { minimumFractionDigits: 2 }) + ' ' + (payment.currency || 'TRY');
     };
 
     self.loadPaymentHistory = function () {
@@ -218,9 +232,9 @@ function ModulesViewModel() {
             .then(function (response) {
                 if (!response.ok) {
                     return response.json().then(function (body) {
-                        toastr.error((body && body.message) || 'Dekont indirilemedi.');
+                        toastr.error((body && body.message) || moduleT('salon.modules.receipt_download_failed', 'Dekont indirilemedi.'));
                     }, function () {
-                        toastr.error('Dekont indirilemedi.');
+                        toastr.error(moduleT('salon.modules.receipt_download_failed', 'Dekont indirilemedi.'));
                     });
                 }
 
@@ -234,11 +248,11 @@ function ModulesViewModel() {
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(url);
-                    toastr.success('Dekont indirildi.');
+                    toastr.success(moduleT('salon.panel.payments.receipt_downloaded', 'Dekont indirildi.'));
                 });
             })
             .catch(function () {
-                toastr.error('Dekont indirilemedi.');
+                toastr.error(moduleT('salon.modules.receipt_download_failed', 'Dekont indirilemedi.'));
             });
     };
 
@@ -248,9 +262,9 @@ function ModulesViewModel() {
             .then(function (response) {
                 if (!response.ok) {
                     return response.json().then(function (body) {
-                        toastr.error((body && body.message) || 'Havale dekontu indirilemedi.');
+                        toastr.error((body && body.message) || moduleT('salon.modules.bank_receipt_download_failed', 'Havale dekontu indirilemedi.'));
                     }, function () {
-                        toastr.error('Havale dekontu indirilemedi.');
+                        toastr.error(moduleT('salon.modules.bank_receipt_download_failed', 'Havale dekontu indirilemedi.'));
                     });
                 }
 
@@ -264,11 +278,11 @@ function ModulesViewModel() {
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(url);
-                    toastr.success('Havale dekontu indirildi.');
+                    toastr.success(moduleT('salon.modules.bank_receipt_downloaded', 'Havale dekontu indirildi.'));
                 });
             })
             .catch(function () {
-                toastr.error('Havale dekontu indirilemedi.');
+                toastr.error(moduleT('salon.modules.bank_receipt_download_failed', 'Havale dekontu indirilemedi.'));
             });
     };
 
@@ -279,10 +293,10 @@ function ModulesViewModel() {
             return;
         }
         if (payment.paymentTypeId === 4 && payment.packageGroupId) {
-            self.purchasePackage({ groupId: payment.packageGroupId, groupName: payment.paymentType || 'Paket' });
+            self.purchasePackage({ groupId: payment.packageGroupId, groupName: payment.paymentType || moduleT('salon.modules.package', 'Paket') });
             return;
         }
-        toastr.warning('Bu odeme icin tekrar deneme akisi bulunamadi.');
+        toastr.warning(moduleT('salon.modules.retry_not_available', 'Bu ödeme için tekrar deneme akışı bulunamadı.'));
     };
 
     var initialPlatformPayRequested = false;
@@ -310,7 +324,7 @@ function ModulesViewModel() {
                 self.packagePrices(d && typeof d === 'object' && !Array.isArray(d) ? d : {});
             })
             .fail(function () {
-                toastr.warning('Fiyat listesi yüklenemedi; varsayilan fiyatlar kullaniliyor.');
+                toastr.warning(moduleT('salon.modules.price_list_fallback', 'Fiyat listesi yüklenemedi; varsayılan fiyatlar kullanılıyor.'));
                 self.packagePrices({});
             });
 
@@ -356,7 +370,7 @@ function ModulesViewModel() {
                 self.platformUnpaid([]);
                 if (initialPlatformPayRequested && !initialPlatformPayHandled) {
                     initialPlatformPayHandled = true;
-                    toastr.error('Odeme durumu alinamadi.');
+                    toastr.error(moduleT('salon.modules.payment_status_failed', 'Ödeme durumu alınamadı.'));
                 }
             });
 
@@ -374,18 +388,21 @@ function ModulesViewModel() {
 
     self.requestDeactivation = function (mod) {
         var name = mod.description || mod.systemName;
-        confirmModal('Modul Iptali', name + ' modulunu iptal etmek istediginize emin misiniz?\nIptal talebi admin onayina gonderilecektir.', function () {
-            confirmModal('Iptal Sebebi', 'Iptal sebebini girebilirsiniz (zorunlu degil):', function (notes) {
+        confirmModal(
+            moduleT('salon.modules.cancel_module_title', 'Modül İptali'),
+            moduleT('salon.modules.cancel_module_body', '{name} modülünü iptal etmek istediğinize emin misiniz?\\nİptal talebi admin onayına gönderilecektir.').replace('{name}', name),
+            function () {
+            confirmModal(moduleT('salon.modules.cancel_reason_title', 'İptal Sebebi'), moduleT('salon.modules.cancel_reason_body', 'İptal sebebini girebilirsiniz (zorunlu değil):'), function (notes) {
                 $.ajax({
                     url: '/proxy/sln-module-requests',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ moduleId: mod.id, requestTypeId: 2, notes: notes || null }),
-                    success: function () { toastr.success('Iptal talebi olusturuldu.'); self.load(); },
-                    error: function (xhr) { toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Talep olusturulamadi.'); }
+                    success: function () { toastr.success(moduleT('salon.modules.cancel_request_created', 'İptal talebi oluşturuldu.')); self.load(); },
+                    error: function (xhr) { toastr.error((xhr.responseJSON && xhr.responseJSON.message) || moduleT('salon.modules.request_create_failed', 'Talep oluşturulamadı.')); }
                 });
-            }, { input: true, inputLabel: 'Iptal sebebi' });
-        }, { confirmClass: 'btn-danger', confirmText: 'Iptal Talep Et' });
+            }, { input: true, inputLabel: moduleT('salon.modules.cancel_reason_label', 'İptal sebebi') });
+        }, { confirmClass: 'btn-danger', confirmText: moduleT('salon.modules.request_cancel_button', 'İptal Talep Et') });
     };
 
     // Eski talep sistemi yerine satin alma akisi
@@ -394,25 +411,30 @@ function ModulesViewModel() {
     self.cancelPackage = function (pkg) {
         var name = pkg.groupName;
         var count = pkg.modules.length;
-        confirmModal('Paket Iptali', name + ' paketini iptal etmek ister misiniz?\n\nIçindeki ' + count + ' modül için toplu iptal talebi oluşturulacak.', function () {
+        confirmModal(
+            moduleT('salon.modules.cancel_package_title', 'Paket İptali'),
+            moduleT('salon.modules.cancel_package_body', '{name} paketini iptal etmek ister misiniz?\\n\\nİçindeki {count} modül için toplu iptal talebi oluşturulacak.')
+                .replace('{name}', name)
+                .replace('{count}', count),
+            function () {
             var done = 0, errors = 0;
             pkg.modules.forEach(function (m) {
                 $.ajax({
                     url: '/proxy/sln-module-requests',
                     method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ moduleId: m.id, requestTypeId: 2, notes: 'Paket iptali: ' + name })
+                    data: JSON.stringify({ moduleId: m.id, requestTypeId: 2, notes: moduleT('salon.modules.package_cancel_note', 'Paket iptali:') + ' ' + name })
                 }).always(function (res, status) {
                     done++;
                     if (status === 'error') errors++;
                     if (done === pkg.modules.length) {
-                        if (errors === 0) toastr.success('Paket iptal talebi olusturuldu (' + done + ' modül).');
-                        else toastr.warning(done - errors + '/' + done + ' modul icin iptal talebi olusturuldu.');
+                        if (errors === 0) toastr.success(moduleT('salon.modules.package_cancel_created', 'Paket iptal talebi oluşturuldu ({count} modül).').replace('{count}', done));
+                        else toastr.warning(moduleT('salon.modules.package_cancel_partial', '{ok}/{total} modül için iptal talebi oluşturuldu.').replace('{ok}', done - errors).replace('{total}', done));
                         self.load();
                     }
                 });
             });
-        }, { confirmClass: 'btn-danger', confirmText: 'Paketi İptal Et' });
+        }, { confirmClass: 'btn-danger', confirmText: moduleT('salon.modules.cancel_package_button', 'Paketi İptal Et') });
     };
 
     // === SATIN ALMA AKISI ===
@@ -421,20 +443,22 @@ function ModulesViewModel() {
     self.purchasePreview = ko.observable(null);
     self.purchaseResult = ko.observable(null);
     self.purchaseGroupId = ko.observable(null);
-    self.purchaseModalTitle = ko.observable('Modul Satin Al');
+    self.purchaseModalTitle = ko.observable(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
     /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
     self.checkoutFormHtml = ko.observable('');
 
     self.purchaseResultTitle = ko.computed(function () {
         var r = self.purchaseResult();
-        return r && r.success ? 'Odeme Basarili!' : 'Odeme Basarisiz';
+        return r && r.success
+            ? moduleT('salon.modules.payment_success_title', 'Ödeme Başarılı!')
+            : moduleT('salon.modules.payment_failed_title', 'Ödeme Başarısız');
     });
 
     self.purchaseResultMessage = ko.computed(function () {
         var r = self.purchaseResult();
         if (!r) return '';
-        if (r.success) return r.message || 'Modulunuz aktif edildi.';
-        return r.error || 'Odeme basarisiz oldu.';
+        if (r.success) return r.message || moduleT('salon.modules.module_activated', 'Modülünüz aktif edildi.');
+        return r.error || moduleT('salon.modules.payment_failed_message', 'Ödeme başarısız oldu.');
     });
 
     self.purchaseResultRequiresSessionRefresh = ko.computed(function () {
@@ -447,7 +471,7 @@ function ModulesViewModel() {
     });
 
     self.purchasePackage = function (pkg) {
-        self.purchaseModalTitle('Modul Satin Al');
+        self.purchaseModalTitle(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -473,11 +497,11 @@ function ModulesViewModel() {
                 return;
             }
             if (!data || typeof data !== 'object') {
-                toastr.error('Fiyat yaniti gecersiz.');
+                toastr.error(moduleT('salon.modules.invalid_price_response', 'Fiyat yanıtı geçersiz.'));
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
         }).fail(function (xhr) {
-            var msg = ajaxErrorMessage(xhr, 'Fiyat bilgisi alinamadi.');
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.price_info_failed', 'Fiyat bilgisi alınamadı.'));
             toastr.error(msg);
             self.purchaseLoading(false);
             bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
@@ -486,7 +510,7 @@ function ModulesViewModel() {
 
     self.purchaseModule = function (mod) {
         // Tek modul icin de ayni akis, groupId yerine moduleId gonder
-        self.purchaseModalTitle('Modul Satin Al');
+        self.purchaseModalTitle(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
         self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -512,11 +536,11 @@ function ModulesViewModel() {
                 return;
             }
             if (!data || typeof data !== 'object') {
-                toastr.error('Fiyat yaniti gecersiz.');
+                toastr.error(moduleT('salon.modules.invalid_price_response', 'Fiyat yanıtı geçersiz.'));
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
         }).fail(function (xhr) {
-            var msg = ajaxErrorMessage(xhr, 'Fiyat bilgisi alinamadi.');
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.price_info_failed', 'Fiyat bilgisi alınamadı.'));
             toastr.error(msg);
             self.purchaseLoading(false);
             bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
@@ -538,7 +562,7 @@ function ModulesViewModel() {
             self.purchaseLoading(false);
             var data = parseAjaxBody(text, xhr);
             if (!data || typeof data !== 'object') {
-                toastr.error('Odeme yaniti gecersiz.');
+                toastr.error(moduleT('salon.modules.invalid_payment_response', 'Ödeme yanıtı geçersiz.'));
                 self.purchaseStep('preview');
                 return;
             }
@@ -546,11 +570,11 @@ function ModulesViewModel() {
             if (data.success && raw) {
                 self.checkoutFormHtml(raw);
             } else {
-                toastr.error(data.error || 'Odeme formu olusturulamadi.');
+                toastr.error(data.error || moduleT('salon.modules.payment_form_create_failed', 'Ödeme formu oluşturulamadı.'));
                 self.purchaseStep('preview');
             }
         }).fail(function (xhr) {
-            var msg = ajaxErrorMessage(xhr, 'Odeme baslatilamadi.');
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.payment_start_failed', 'Ödeme başlatılamadı.'));
             toastr.error(msg);
             self.purchaseLoading(false);
             self.purchaseStep('preview');
@@ -559,7 +583,7 @@ function ModulesViewModel() {
 
     /** Açık platform tahakkuku: api/payments/subscription-checkout (ücretli abonelik veya aboneliksiz salon platform borcu) */
     self.startPlatformAccrualPayment = function () {
-        self.purchaseModalTitle('Abonelik Odemesi');
+        self.purchaseModalTitle(moduleT('salon.modules.subscription_payment_title', 'Abonelik Ödemesi'));
         self.purchasePreview(null);
         self.purchaseResult(null);
         self.purchaseGroupId(null);
@@ -582,7 +606,7 @@ function ModulesViewModel() {
             self.platformPayLoading(false);
             var data = parseAjaxBody(text, xhr);
             if (!data || typeof data !== 'object') {
-                toastr.error('Odeme yaniti gecersiz.');
+                toastr.error(moduleT('salon.modules.invalid_payment_response', 'Ödeme yanıtı geçersiz.'));
                 self.purchaseStep('preview');
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
                 return;
@@ -591,12 +615,12 @@ function ModulesViewModel() {
             if (data.success && raw) {
                 self.checkoutFormHtml(raw);
             } else {
-                toastr.error(data.error || 'Odeme formu olusturulamadi.');
+                toastr.error(data.error || moduleT('salon.modules.payment_form_create_failed', 'Ödeme formu oluşturulamadı.'));
                 self.purchaseStep('preview');
                 bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
             }
         }).fail(function (xhr) {
-            var msg = ajaxErrorMessage(xhr, 'Odeme baslatilamadi.');
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.payment_start_failed', 'Ödeme başlatılamadı.'));
             toastr.error(msg);
             self.purchaseLoading(false);
             self.platformPayLoading(false);
@@ -616,11 +640,11 @@ function ModulesViewModel() {
             data: JSON.stringify({ token: token })
         }).done(function (text, st, xhr) {
             var data = parseAjaxBody(text, xhr);
-            self.purchaseResult(data && typeof data === 'object' ? data : { success: false, error: 'Gecersiz yanit' });
+            self.purchaseResult(data && typeof data === 'object' ? data : { success: false, error: moduleT('salon.modules.invalid_response', 'Geçersiz yanıt') });
             self.purchaseStep('result');
             if (data && data.success) self.load();
         }).fail(function (xhr) {
-            var msg = ajaxErrorMessage(xhr, 'Odeme sonucu alinamadi.');
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.payment_result_failed', 'Ödeme sonucu alınamadı.'));
             self.purchaseResult({ success: false, error: msg });
             self.purchaseStep('result');
         }).always(function () {
@@ -635,7 +659,7 @@ function ModulesViewModel() {
             self.purchaseResult({ success: true });
             self.purchaseStep('result');
         } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
-            self.purchaseResult({ success: false, error: e.data.error || 'Odeme basarisiz oldu.' });
+            self.purchaseResult({ success: false, error: e.data.error || moduleT('salon.modules.payment_failed_message', 'Ödeme başarısız oldu.') });
             self.purchaseStep('result');
         }
     });
@@ -644,14 +668,14 @@ function ModulesViewModel() {
     self.requestPackage = self.purchasePackage;
 
     self.cancelRequest = function (req) {
-        confirmModal('Talep Iptali', 'Bu talebi iptal etmek istiyor musunuz?', function () {
+        confirmModal(moduleT('salon.modules.cancel_request_title', 'Talep İptali'), moduleT('salon.modules.cancel_request_body', 'Bu talebi iptal etmek istiyor musunuz?'), function () {
             $.ajax({
                 url: '/proxy/sln-module-requests/' + req.id,
                 method: 'DELETE',
-                success: function () { toastr.success('Talep iptal edildi.'); self.load(); },
-                error: function (xhr) { toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Iptal edilemedi.'); }
+                success: function () { toastr.success(moduleT('salon.modules.request_cancelled', 'Talep iptal edildi.')); self.load(); },
+                error: function (xhr) { toastr.error((xhr.responseJSON && xhr.responseJSON.message) || moduleT('salon.modules.cancel_failed', 'İptal edilemedi.')); }
             });
-        }, { confirmClass: 'btn-danger', confirmText: 'Iptal Et' });
+        }, { confirmClass: 'btn-danger', confirmText: moduleT('salon.panel.cancel.confirm', 'İptal Et') });
     };
 
     self.load();

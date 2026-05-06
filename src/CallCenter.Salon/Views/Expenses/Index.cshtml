@@ -1,3 +1,4 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = "Masraflar";
 }
@@ -8,7 +9,7 @@
         <div class="d-flex align-items-center gap-2">
             <div class="input-group" style="max-width: 280px;">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="Masraf ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                <input type="text" class="form-control" placeholder="@(Translation.T("salon.expenses.auto.masraf_ara", "Masraf ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width:160px;" data-bind="options: expenseCategories, optionsText: 'name', optionsValue: 'name', value: selectedCategoryName, optionsCaption: 'Tum Kategoriler'"></select>
             <input type="date" class="form-control form-control-sm" style="width:150px;" data-bind="value: filterStartDate" />
@@ -16,7 +17,7 @@
             <input type="date" class="form-control form-control-sm" style="width:150px;" data-bind="value: filterEndDate" />
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Masraf
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.expenses.auto.yeni_masraf">Yeni Masraf</t>
         </button>
     </div>
 
@@ -25,8 +26,8 @@
         <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Toplam Masraf</div>
-                    <div class="fw-bold text-danger" data-bind="text: (totalExpense() || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                    <div class="text-muted" style="font-size: .7rem;"><t key="salon.expenses.auto.toplam_masraf">Toplam Masraf</t></div>
+                    <div class="fw-bold text-danger" data-bind="text: (totalExpense() || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                 </div>
             </div>
         </div>
@@ -34,7 +35,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
                     <div class="text-muted" style="font-size: .7rem;">Bu Ayin Masrafi</div>
-                    <div class="fw-bold text-warning" data-bind="text: (monthlyExpense() || 0).toLocaleString('tr-TR') + ' TL'"></div>
+                    <div class="fw-bold text-warning" data-bind="text: (monthlyExpense() || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                 </div>
             </div>
         </div>
@@ -55,21 +56,21 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Tarih</th>
-                            <th>Kategori</th>
-                            <th>Aciklama</th>
-                            <th>Tutar</th>
-                            <th>Odeme</th>
-                            <th>Durum</th>
+                            <th><t key="salon.panel.payments.date">Tarih</t></th>
+                            <th><t key="salon.reports.category">Kategori</t></th>
+                            <th><t key="salon.common.description">Açıklama</t></th>
+                            <th><t key="salon.panel.payments.amount">Tutar</t></th>
+                            <th><t key="salon.modules.payment_method">Ödeme</t></th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
                             <th style="width: 140px;"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredExpenses">
                         <tr>
-                            <td class="small" data-bind="text: new Date(expenseDate).toLocaleDateString('tr-TR')"></td>
+                            <td class="small" data-bind="text: new Date(expenseDate).toLocaleDateString(document.documentElement.lang || undefined)"></td>
                             <td class="small" data-bind="text: categoryName"></td>
                             <td class="small fw-semibold" data-bind="text: description"></td>
-                            <td class="small fw-semibold text-danger" data-bind="text: (amount || 0).toLocaleString('tr-TR') + ' TL'"></td>
+                            <td class="small fw-semibold text-danger" data-bind="text: (amount || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             <td class="small" data-bind="text: paymentMethodText"></td>
                             <td>
                                 <span class="badge" data-bind="text: statusText, css: statusCss"></span>
@@ -84,10 +85,10 @@
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                     <!-- /ko -->
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.expenses.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -110,26 +111,26 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Masraf Duzenle' : 'Yeni Masraf'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.expenses.auto.masraf_duzenle', 'Masraf Düzenle') : salonT('salon.expenses.auto.yeni_masraf', 'Yeni Masraf')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Tarih *</label>
+                            <label class="form-label small"><t key="salon.expenses.auto.tarih">Tarih *</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.expenseDate" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kategori *</label>
+                            <label class="form-label small"><t key="salon.expenses.auto.kategori">Kategori *</t></label>
                             <div class="position-relative" data-bind="with: categoryAutocomplete">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="Kategori yazin..."
+                                       placeholder="@(Translation.T("salon.expenses.auto.kategori_yazin", "Kategori yazin..."))"
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="Temizle">
+                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
@@ -148,15 +149,15 @@
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Aciklama *</label>
+                            <label class="form-label small"><t key="salon.expenses.auto.aciklama">Açıklama *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.description" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Tutar (TL) *</label>
+                            <label class="form-label small"><t key="salon.expenses.auto.tutar_tl">Tutar (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.amount" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Odeme Yontemi</label>
+                            <label class="form-label small"><t key="salon.expenses.auto.odeme_yontemi">Ödeme Yontemi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
                                 <option value="1">Nakit</option>
                                 <option value="2">Kredi Karti</option>
@@ -166,10 +167,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

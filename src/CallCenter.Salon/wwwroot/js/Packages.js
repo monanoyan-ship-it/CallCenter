@@ -1,3 +1,7 @@
+function slnJsT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function PackagesViewModel() {
     var self = this;
     self.definitions = ko.observableArray([]);
@@ -25,7 +29,7 @@ function PackagesViewModel() {
     var defModal, sellModal;
     function readError(xhr) {
         if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
-        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || 'Hata';
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || slnJsT('salon.common.error.generic', 'Hata');
     }
 
     self.loadData = function () {
@@ -81,7 +85,7 @@ function PackagesViewModel() {
             validDays: parseInt(self.defForm.validDays()) || 365,
             isActive: true
         };
-        if (!data.name || !data.serviceId) { toastr.warning('Paket adi ve hizmet zorunludur'); return; }
+        if (!data.name || !data.serviceId) { toastr.warning(slnJsT('salon.packages.js.paket_adi_ve_hizmet_zorunludur', 'Paket adı ve hizmet zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-packages/definitions';
@@ -91,7 +95,7 @@ function PackagesViewModel() {
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
             defModal.hide();
             self.loadData();
-            toastr.success('Paket tanimi kaydedildi');
+            toastr.success(slnJsT('salon.packages.js.paket_tanimi_kaydedildi', 'Paket tanımı kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(readError(xhr));
@@ -100,10 +104,10 @@ function PackagesViewModel() {
     };
 
     self.removeDef = function (def) {
-        confirmModal('Onay', "'" + def.name + "' paketini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + def.name + "' paketini silmek istediginize emin misiniz?", function() {
             $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success('Paket tanimi silindi');
+                toastr.success(slnJsT('salon.packages.js.paket_tanimi_silindi', 'Paket tanımı silindi'));
             });
         });
     };
@@ -119,7 +123,7 @@ function PackagesViewModel() {
 
     self.confirmSell = function () {
         if (!self.sellClientId()) {
-            toastr.warning('Paket satisi icin musteri secilmelidir');
+            toastr.warning(slnJsT('salon.packages.js.paket_satisi_icin_musteri_secilmelidir', 'Paket satışı için müşteri seçilmelidir'));
             return;
         }
 
@@ -136,7 +140,7 @@ function PackagesViewModel() {
         }).done(function () {
             sellModal.hide();
             self.loadData();
-            toastr.success('Paket satildi ve tahsilat kaydedildi');
+            toastr.success(slnJsT('salon.packages.js.paket_satildi_ve_tahsilat_kaydedildi', 'Paket satildi ve tahsilat kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(readError(xhr));
@@ -146,7 +150,7 @@ function PackagesViewModel() {
 
     // Seans Kullan
     self.useSession = function (pkg) {
-        confirmModal('Onay', '1 seans kullanilacak. Emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), '1 seans kullanilacak. Emin misiniz?', function() {
             $.ajax({
                 url: '/proxy/sln-packages/use', method: 'POST',
                 contentType: 'application/json',

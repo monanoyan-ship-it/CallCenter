@@ -13,7 +13,7 @@ public interface ISlnFinanceFactory
     // Kasa
     Task<List<object>> GetCashRegistersAsync(int customerId, int? branchId = null);
     Task<object> CreateCashRegisterAsync(string name, int customerId, int? branchId = null);
-    Task<(bool Success, string? Error)> UpdateCashRegisterAsync(int registerId, string name, int? branchId, bool isActive, int customerId);
+    Task<(bool Success, string? Error)> UpdateCashRegisterAsync(int registerId, string name, int? branchId, bool isActive, int customerId, int? branchScopeId = null);
     Task<object> NormalizeCashRegisterBranchesAsync(int customerId);
     Task<List<SlnCashTransactionDto>> GetCashTransactionsAsync(int registerId, int customerId, DateTime? from, DateTime? to, int? branchId = null);
     Task<(SlnCashTransactionDto? Transaction, string? Error)> AddCashTransactionAsync(int registerId, int transactionTypeId, decimal amount, string description, int paymentMethodId, int userId, int customerId, int? branchId = null);

@@ -1,3 +1,8 @@
+var APPOINTMENTS_LOCALE = document.documentElement.lang || undefined;
+function appointmentT(key, fallback) {
+    return (window.salonT || function (k, f) { return f || k; })(key, fallback);
+}
+
 function AppointmentsViewModel() {
     var self = this;
     self.appointments = ko.observableArray([]);
@@ -74,11 +79,11 @@ function AppointmentsViewModel() {
             self.slotsLoading(false);
             // Bos slot listesi: personelin o gun calisma saati yok veya tum slotlar dolu
             if (slots.length === 0) {
-                toastr.warning('Bu personelin seçili tarihte müsait saati yok. Çalışma saatlerini kontrol edin veya başka tarih/personel deneyin.');
+                toastr.warning(appointmentT('salon.appointments.no_staff_slots_warning', 'Bu personelin seçili tarihte müsait saati yok. Çalışma saatlerini kontrol edin veya başka tarih/personel deneyin.'));
             }
         }).fail(function (xhr) {
             self.slotsLoading(false);
-            toastr.error('Müsait saatler yüklenemedi (HTTP ' + xhr.status + ').');
+            toastr.error(appointmentT('salon.appointments.slots_load_failed', 'Müsait saatler yüklenemedi') + ' (HTTP ' + xhr.status + ').');
         });
     }
 
@@ -94,7 +99,13 @@ function AppointmentsViewModel() {
         self.form.startTime(raw.replace(/Z$/i, '').substring(0, 16));
     };
 
-    var statusNames = { 1: 'Planlanmis', 2: 'Onaylandi', 3: 'Tamamlandi', 4: 'Iptal', 5: 'Gelmedi' };
+    var statusNames = {
+        1: appointmentT('salon.appointments.status.scheduled', 'Planlanmış'),
+        2: appointmentT('salon.appointments.status.confirmed', 'Onaylandı'),
+        3: appointmentT('salon.appointments.status.completed', 'Tamamlandı'),
+        4: appointmentT('salon.appointments.status.cancelled', 'İptal'),
+        5: appointmentT('salon.appointments.status.no_show', 'Gelmedi')
+    };
     var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
 
     // ═══ Tarih Yardimcilari ═══
@@ -114,23 +125,23 @@ function AppointmentsViewModel() {
     self.presetGroups = [
         {
             name: 'Gecmis', css: 'btn-outline-secondary', items: [
-                { label: 'Dun', calc: function () { var d = addDays(new Date(), -1); return { from: toDateStr(d), to: toDateStr(d) }; } },
-                { label: 'Gecen Hafta', calc: function () { var mon = getMonday(addDays(new Date(), -7)); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
-                { label: 'Gecen Ay', calc: function () { var d = new Date(); var prev = new Date(d.getFullYear(), d.getMonth() - 1, 1); return { from: toDateStr(prev), to: toDateStr(monthEnd(prev)) }; } }
+                { label: appointmentT('salon.appointments.preset.yesterday', 'Dün'), calc: function () { var d = addDays(new Date(), -1); return { from: toDateStr(d), to: toDateStr(d) }; } },
+                { label: appointmentT('salon.appointments.preset.last_week', 'Geçen Hafta'), calc: function () { var mon = getMonday(addDays(new Date(), -7)); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
+                { label: appointmentT('salon.appointments.preset.last_month', 'Geçen Ay'), calc: function () { var d = new Date(); var prev = new Date(d.getFullYear(), d.getMonth() - 1, 1); return { from: toDateStr(prev), to: toDateStr(monthEnd(prev)) }; } }
             ]
         },
         {
             name: 'Su An', css: 'btn-outline-primary', items: [
-                { label: 'Bugun', calc: function () { var d = toDateStr(new Date()); return { from: d, to: d }; } },
-                { label: 'Bu Hafta', calc: function () { var mon = getMonday(new Date()); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
-                { label: 'Bu Ay', calc: function () { var d = new Date(); return { from: toDateStr(monthStart(d)), to: toDateStr(monthEnd(d)) }; } }
+                { label: appointmentT('salon.reports.today', 'Bugün'), calc: function () { var d = toDateStr(new Date()); return { from: d, to: d }; } },
+                { label: appointmentT('salon.reports.this_week', 'Bu Hafta'), calc: function () { var mon = getMonday(new Date()); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
+                { label: appointmentT('salon.reports.this_month', 'Bu Ay'), calc: function () { var d = new Date(); return { from: toDateStr(monthStart(d)), to: toDateStr(monthEnd(d)) }; } }
             ]
         },
         {
             name: 'Gelecek', css: 'btn-outline-info', items: [
-                { label: 'Yarin', calc: function () { var d = addDays(new Date(), 1); return { from: toDateStr(d), to: toDateStr(d) }; } },
-                { label: 'Gelecek Hafta', calc: function () { var mon = getMonday(addDays(new Date(), 7)); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
-                { label: 'Gelecek Ay', calc: function () { var d = new Date(); var next = new Date(d.getFullYear(), d.getMonth() + 1, 1); return { from: toDateStr(next), to: toDateStr(monthEnd(next)) }; } }
+                { label: appointmentT('salon.appointments.preset.tomorrow', 'Yarın'), calc: function () { var d = addDays(new Date(), 1); return { from: toDateStr(d), to: toDateStr(d) }; } },
+                { label: appointmentT('salon.appointments.preset.next_week', 'Gelecek Hafta'), calc: function () { var mon = getMonday(addDays(new Date(), 7)); return { from: toDateStr(mon), to: toDateStr(addDays(mon, 6)) }; } },
+                { label: appointmentT('salon.appointments.preset.next_month', 'Gelecek Ay'), calc: function () { var d = new Date(); var next = new Date(d.getFullYear(), d.getMonth() + 1, 1); return { from: toDateStr(next), to: toDateStr(monthEnd(next)) }; } }
             ]
         }
     ];
@@ -144,8 +155,8 @@ function AppointmentsViewModel() {
 
     self.addManualRange = function () {
         var f = self.manualFrom(), t = self.manualTo();
-        if (!f || !t) { toastr.warning('Baslangic ve bitis tarihi girin'); return; }
-        if (f > t) { toastr.warning('Baslangic tarihi bitis tarihinden buyuk olamaz'); return; }
+        if (!f || !t) { toastr.warning(appointmentT('salon.appointments.enter_start_end_dates', 'Başlangıç ve bitiş tarihi girin')); return; }
+        if (f > t) { toastr.warning(appointmentT('salon.appointments.start_after_end', 'Başlangıç tarihi bitiş tarihinden büyük olamaz')); return; }
         var label = f + ' ~ ' + t;
         var exists = self.dateRanges().some(function (r) { return r.from === f && r.to === t; });
         if (!exists) {
@@ -165,7 +176,7 @@ function AppointmentsViewModel() {
 
     self.rangesDescription = ko.computed(function () {
         var ranges = self.dateRanges();
-        if (ranges.length === 0) return 'Aralik secilmedi';
+        if (ranges.length === 0) return appointmentT('salon.appointments.no_range_selected', 'Aralık seçilmedi');
         return ranges.map(function (r) { return r.label; }).join(' + ');
     });
 
@@ -219,7 +230,7 @@ function AppointmentsViewModel() {
                     if (seenIds[a.id]) return;
                     seenIds[a.id] = true;
 
-                    a.statusText = statusNames[a.statusId] || 'Bilinmiyor';
+                    a.statusText = statusNames[a.statusId] || appointmentT('salon.common.unknown', 'Bilinmiyor');
                     a.statusCss = statusCss[a.statusId] || 'bg-secondary';
                     a.serviceNamesText = (a.serviceNames && a.serviceNames.length > 0)
                         ? a.serviceNames.join(', ')
@@ -229,8 +240,8 @@ function AppointmentsViewModel() {
                         // toLocale ile cevirme +3 kayma yapar. ISO string'den dogrudan parse.
                         a.startTimeFormatted = a.startTime.substring(11, 16);
                         var datePart = a.startTime.substring(0, 10).split('-'); // YYYY-MM-DD
-                        var months = ['Oca','Sub','Mar','Nis','May','Haz','Tem','Agu','Eyl','Eki','Kas','Ara'];
-                        a.dateFormatted = parseInt(datePart[2]) + ' ' + months[parseInt(datePart[1]) - 1];
+                        var monthText = new Intl.DateTimeFormat(APPOINTMENTS_LOCALE || undefined, { month: 'short' }).format(new Date(2026, parseInt(datePart[1]) - 1, 1));
+                        a.dateFormatted = parseInt(datePart[2]) + ' ' + monthText;
                     }
                     if (a.startTime && a.endTime) {
                         // Suresi: iki ISO arasi dakika (UTC parse her iki tarafta da konsistan, kayma yok)
@@ -246,7 +257,7 @@ function AppointmentsViewModel() {
             self.appointments(allItems);
             self.isLoadingAppointments(false);
         }).catch(function () {
-            toastr.error('Randevular yuklenemedi');
+            toastr.error(appointmentT('salon.appointments.load_failed', 'Randevular yüklenemedi'));
             self.isLoadingAppointments(false);
         });
     };
@@ -342,7 +353,7 @@ function AppointmentsViewModel() {
     self.save = function () {
         var startTimeVal = self.form.startTime();
         if (!startTimeVal) {
-            toastr.warning('Tarih ve saat zorunludur');
+            toastr.warning(appointmentT('salon.appointments.date_time_required', 'Tarih ve saat zorunludur'));
             return;
         }
         if (startTimeVal.length <= 5) {
@@ -359,7 +370,7 @@ function AppointmentsViewModel() {
         };
 
         if (!data.slnClientId || !data.startTime || !data.serviceIds.length || !data.personnelId) {
-            toastr.warning('Musteri, saat, hizmet ve personel zorunludur');
+            toastr.warning(appointmentT('salon.appointments.form_required', 'Müşteri, saat, hizmet ve personel zorunludur'));
             return;
         }
 
@@ -378,10 +389,10 @@ function AppointmentsViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadAppointments();
-            toastr.success(self.isEditing() ? 'Randevu guncellendi' : 'Randevu eklendi');
+            toastr.success(self.isEditing() ? appointmentT('salon.appointments.updated', 'Randevu güncellendi') : appointmentT('salon.appointments.created', 'Randevu eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || appointmentT('salon.common.error.generic', 'Bir hata oluştu'));
             self.isSaving(false);
         });
     };
@@ -395,7 +406,7 @@ function AppointmentsViewModel() {
             data: JSON.stringify({ statusId: 2 })
         }).done(function () {
             self.loadAppointments();
-            toastr.success('Randevu onaylandi');
+            toastr.success(appointmentT('salon.appointments.confirmed', 'Randevu onaylandı'));
         });
     };
 
@@ -408,12 +419,12 @@ function AppointmentsViewModel() {
             data: JSON.stringify({ statusId: 3 })
         }).done(function () {
             self.loadAppointments();
-            toastr.success('Randevu tamamlandi');
+            toastr.success(appointmentT('salon.appointments.completed', 'Randevu tamamlandı'));
         });
     };
 
     self.cancel = function (appt) {
-        confirmModal('Onay', 'Bu randevuyu iptal etmek istediginize emin misiniz?', function() {
+        confirmModal(appointmentT('salon.common.btn.confirm', 'Onayla'), appointmentT('salon.appointments.cancel_confirm', 'Bu randevuyu iptal etmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-appointments/' + appt.id + '/status',
                 method: 'PUT',
@@ -422,16 +433,16 @@ function AppointmentsViewModel() {
             }).done(function (res) {
                 self.loadAppointments();
                 if (res && res.penalty > 0) {
-                    toastr.warning('Gec iptal — ' + res.message);
+                    toastr.warning(appointmentT('salon.appointments.late_cancel_prefix', 'Geç iptal') + ' — ' + res.message);
                 } else {
-                    toastr.success('Randevu iptal edildi');
+                    toastr.success(appointmentT('salon.appointments.cancelled', 'Randevu iptal edildi'));
                 }
             });
         });
     };
 
     self.markNoShow = function (appt) {
-        confirmModal('Onay', 'Bu musteriyi gelmedi olarak isaretlemek istiyor musunuz?', function() {
+        confirmModal(appointmentT('salon.common.btn.confirm', 'Onayla'), appointmentT('salon.appointments.no_show_confirm', 'Bu müşteriyi gelmedi olarak işaretlemek istiyor musunuz?'), function() {
             $.ajax({
                 url: '/proxy/sln-appointments/' + appt.id + '/status',
                 method: 'PUT',
@@ -439,7 +450,7 @@ function AppointmentsViewModel() {
                 data: JSON.stringify({ statusId: 5 })
             }).done(function (res) {
                 self.loadAppointments();
-                var msg = 'Musteri gelmedi olarak isaretlendi';
+                var msg = appointmentT('salon.appointments.no_show_marked', 'Müşteri gelmedi olarak işaretlendi');
                 if (res && res.penalty > 0) msg += ' — ' + res.message;
                 toastr.warning(msg);
             });
@@ -468,7 +479,7 @@ function AppointmentsViewModel() {
     self.saveNewClient = function () {
         var name = self.newClientForm.fullName();
         var phone = self.newClientForm.phone();
-        if (!name || !phone) { toastr.warning('Ad ve telefon zorunludur'); return; }
+        if (!name || !phone) { toastr.warning(appointmentT('salon.memberships.name_phone_required', 'Ad ve telefon zorunludur')); return; }
 
         self.isCreatingClient(true);
         $.ajax({
@@ -485,27 +496,27 @@ function AppointmentsViewModel() {
             self.clientAutocomplete.query(newClient.fullName);
             self.clientAutocomplete.selectedName(newClient.fullName);
             self.newClientVisible(false);
-            toastr.success('Musteri olusturuldu ve secildi');
+            toastr.success(appointmentT('salon.memberships.customer_created_selected', 'Müşteri oluşturuldu ve seçildi'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Musteri olusturulamadi');
+            toastr.error(xhr.responseJSON?.error || appointmentT('salon.memberships.customer_create_failed', 'Müşteri oluşturulamadı'));
         }).always(function () { self.isCreatingClient(false); });
     };
 
     // ═══ Sube Normalize ═══
     self.normalizeBranches = function () {
-        confirmModal('Onay', 'Tum randevular personellerinin subesine gore senkronize edilecek. Personel subesi yoksa merkez atanir. Devam?', function () {
+        confirmModal(appointmentT('salon.common.btn.confirm', 'Onayla'), appointmentT('salon.appointments.normalize_confirm', 'Tüm randevular personellerinin şubesine göre senkronize edilecek. Personel şubesi yoksa merkez atanır. Devam?'), function () {
             $.ajax({
                 url: '/proxy/sln-appointments/normalize-branches?_nb=1',
                 method: 'POST'
             }).done(function (res) {
                 if (res && res.error) { toastr.error(res.error); return; }
-                var msg = (res.updated || 0) + ' randevu guncellendi';
-                if (res.syncedFromPersonnel > 0) msg += ' (personelden: ' + res.syncedFromPersonnel + ')';
-                if (res.assignedToHq > 0) msg += ' (merkeze: ' + res.assignedToHq + ')';
+                var msg = (res.updated || 0) + ' ' + appointmentT('salon.appointments.updated_suffix', 'randevu güncellendi');
+                if (res.syncedFromPersonnel > 0) msg += ' (' + appointmentT('salon.appointments.from_staff_suffix', 'personelden') + ': ' + res.syncedFromPersonnel + ')';
+                if (res.assignedToHq > 0) msg += ' (' + appointmentT('salon.appointments.to_hq_suffix', 'merkeze') + ': ' + res.assignedToHq + ')';
                 toastr.success(msg);
                 self.loadAppointments();
             }).fail(function () {
-                toastr.error('Normalize basarisiz');
+                toastr.error(appointmentT('salon.appointments.normalize_failed', 'Normalize başarısız'));
             });
         });
     };
@@ -518,7 +529,7 @@ function AppointmentsViewModel() {
         self.dateRanges.push({
             from: toDateStr(mon),
             to: toDateStr(addDays(mon, 6)),
-            label: 'Bu Hafta'
+            label: appointmentT('salon.reports.this_week', 'Bu Hafta')
         });
     });
 }

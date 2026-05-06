@@ -1,13 +1,16 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     Layout = null;
+    var pageLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    string T(string key, string fallback) => Translation.T(key, fallback);
 }
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@pageLang">
 <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gizlilik Politikası ve KVKK Aydınlatma Metni - CorpLynk Salon</title>
+    <title>@T("salon.legal.privacy.title", "Gizlilik Politikası ve KVKK Aydınlatma Metni") - CorpLynk Salon</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
@@ -19,99 +22,98 @@
 </head>
 <body>
     <div class="container py-4" style="max-width: 800px;">
-        <a href="/" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i>Ana Sayfa</a>
+        <a href="/" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i>@T("salon.legal.home", "Ana Sayfa")</a>
         <div class="content-card p-4 mt-3">
+            <h2 class="mb-4">@T("salon.legal.privacy.title", "Gizlilik Politikası ve KVKK Aydınlatma Metni")</h2>
+            <p class="text-muted small">@T("salon.legal.last_updated", "Son güncelleme: 12 Nisan 2026")</p>
 
-            <h2 class="mb-4">Gizlilik Politikası ve KVKK Aydınlatma Metni</h2>
-            <p class="text-muted small">Son güncelleme: 12 Nisan 2026</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s1.title", "1. Veri Sorumlusu")</h3>
+            <p>@T("salon.legal.privacy.s1.p1", "Bu aydınlatma metni, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında, CorpLynk Salon platformu üzerinden kişisel verilerinizin işlenmesine ilişkin sizi bilgilendirmek amacıyla hazırlanmıştır.")</p>
 
-            <h3 class="mt-4">1. Veri Sorumlusu</h3>
-            <p>Bu aydınlatma metni, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında, CorpLynk Salon platformu ("Platform") üzerinden kişisel verilerinizin işlenmesine ilişkin sizi bilgilendirmek amacıyla hazırlanmıştır.</p>
-
-            <h3 class="mt-4">2. Toplanan Kişisel Veriler</h3>
-            <p>Platform üzerinden aşağıdaki kişisel veriler toplanmaktadır:</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s2.title", "2. Toplanan Kişisel Veriler")</h3>
+            <p>@T("salon.legal.privacy.s2.p1", "Platform üzerinden aşağıdaki kişisel veriler toplanmaktadır:")</p>
             <ul>
-                <li><strong>Kimlik bilgileri:</strong> Ad, soyad</li>
-                <li><strong>İletişim bilgileri:</strong> Telefon numarası, e-posta adresi</li>
-                <li><strong>Hesap bilgileri:</strong> Şifre (şifrelenmiş olarak saklanır, açık metin olarak ASLA kaydedilmez)</li>
-                <li><strong>Randevu bilgileri:</strong> Randevu tarihi, saati, alınan hizmetler</li>
-                <li><strong>Fatura bilgileri:</strong> Yalnızca kullanıcının kendisi tarafından girildiğinde saklanır</li>
+                <li><strong>@T("salon.legal.privacy.s2.identity.label", "Kimlik bilgileri:")</strong> @T("salon.legal.privacy.s2.identity.text", "Ad, soyad")</li>
+                <li><strong>@T("salon.legal.privacy.s2.contact.label", "İletişim bilgileri:")</strong> @T("salon.legal.privacy.s2.contact.text", "Telefon numarası, e-posta adresi")</li>
+                <li><strong>@T("salon.legal.privacy.s2.account.label", "Hesap bilgileri:")</strong> @T("salon.legal.privacy.s2.account.text", "Şifre, şifrelenmiş olarak saklanır ve açık metin olarak asla kaydedilmez")</li>
+                <li><strong>@T("salon.legal.privacy.s2.appointment.label", "Randevu bilgileri:")</strong> @T("salon.legal.privacy.s2.appointment.text", "Randevu tarihi, saati ve alınan hizmetler")</li>
+                <li><strong>@T("salon.legal.privacy.s2.billing.label", "Fatura bilgileri:")</strong> @T("salon.legal.privacy.s2.billing.text", "Yalnızca kullanıcının kendisi tarafından girildiğinde saklanır")</li>
             </ul>
 
             <div class="alert alert-success py-2">
                 <i class="bi bi-shield-check me-1"></i>
-                <strong>Önemli:</strong> Kredi kartı bilgileri, banka hesap bilgileri veya ödeme kartı verileri platformumuz tarafından ASLA kaydedilmez ve saklanmaz. Ödeme işlemleri, lisanslı ödeme kuruluşları (Iyzico, PayTR, Param) üzerinden gerçekleştirilir.
+                <strong>@T("salon.legal.privacy.important", "Önemli:")</strong>
+                @T("salon.legal.privacy.payment_notice", "Kredi kartı bilgileri, banka hesap bilgileri veya ödeme kartı verileri platformumuz tarafından asla kaydedilmez ve saklanmaz. Ödeme işlemleri, lisanslı ödeme kuruluşları üzerinden gerçekleştirilir.")
             </div>
 
-            <h3 class="mt-4">3. Verilerin İşlenme Amacı</h3>
-            <p>Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s3.title", "3. Verilerin İşlenme Amacı")</h3>
+            <p>@T("salon.legal.privacy.s3.p1", "Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:")</p>
             <ul>
-                <li>Kullanıcı hesabınızın oluşturulması ve yönetilmesi</li>
-                <li>Seçtiğiniz salonlara randevu oluşturulması</li>
-                <li>Üyelik ve sadakat programlarının yönetilmesi</li>
-                <li>İletişim ve bilgilendirme (randevu hatırlatma vb.)</li>
-                <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                <li>@T("salon.legal.privacy.s3.i1", "Kullanıcı hesabınızın oluşturulması ve yönetilmesi")</li>
+                <li>@T("salon.legal.privacy.s3.i2", "Seçtiğiniz salonlara randevu oluşturulması")</li>
+                <li>@T("salon.legal.privacy.s3.i3", "Üyelik ve sadakat programlarının yönetilmesi")</li>
+                <li>@T("salon.legal.privacy.s3.i4", "İletişim ve bilgilendirme, randevu hatırlatma gibi operasyonların yürütülmesi")</li>
+                <li>@T("salon.legal.privacy.s3.i5", "Yasal yükümlülüklerin yerine getirilmesi")</li>
             </ul>
 
-            <h3 class="mt-4">4. Verilerin Paylaşılması</h3>
-            <p>Kişisel verileriniz <strong>yalnızca sizin seçtiğiniz ve üye olduğunuz salonlarla</strong> paylaşılır. Hiçbir koşulda:</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s4.title", "4. Verilerin Paylaşılması")</h3>
+            <p>@T("salon.legal.privacy.s4.p1", "Kişisel verileriniz yalnızca sizin seçtiğiniz ve üye olduğunuz salonlarla paylaşılır. Hiçbir koşulda:")</p>
             <ul>
-                <li>Üye olmadığınız salonlarla paylaşım yapılmaz</li>
-                <li>Üçüncü taraf reklam şirketleriyle paylaşım yapılmaz</li>
-                <li>Verileriniz satılmaz veya kiralanmaz</li>
+                <li>@T("salon.legal.privacy.s4.i1", "Üye olmadığınız salonlarla paylaşım yapılmaz")</li>
+                <li>@T("salon.legal.privacy.s4.i2", "Üçüncü taraf reklam şirketleriyle paylaşım yapılmaz")</li>
+                <li>@T("salon.legal.privacy.s4.i3", "Verileriniz satılmaz veya kiralanmaz")</li>
             </ul>
-            <p>Ödeme işlemleri için yalnızca lisanslı ödeme kuruluşlarına (Iyzico, PayTR, Param) yönlendirme yapılır; bu kuruluşlara kişisel verileriniz aktarılmaz, yalnızca ödeme işlemi gerçekleştirilir.</p>
+            <p>@T("salon.legal.privacy.s4.p2", "Ödeme işlemleri için yalnızca lisanslı ödeme kuruluşlarına yönlendirme yapılır; bu kuruluşlara kişisel verileriniz aktarılmaz, yalnızca ödeme işlemi gerçekleştirilir.")</p>
 
-            <h3 class="mt-4">5. Salon Üyeliğinden Ayrılma</h3>
-            <p>Herhangi bir salonun üyeliğinden istediğiniz zaman ayrılabilirsiniz. Ayrıldığınızda:</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s5.title", "5. Salon Üyeliğinden Ayrılma")</h3>
+            <p>@T("salon.legal.privacy.s5.p1", "Herhangi bir salonun üyeliğinden istediğiniz zaman ayrılabilirsiniz. Ayrıldığınızda:")</p>
             <ul>
-                <li>O salonun personeli artık kişisel bilgilerinize erişemez</li>
-                <li>Randevu geçmişiniz o salon tarafından görüntülenemez</li>
-                <li>Üyelik ve sadakat bilgileriniz o salon için pasif hale getirilir</li>
+                <li>@T("salon.legal.privacy.s5.i1", "O salonun personeli artık kişisel bilgilerinize erişemez")</li>
+                <li>@T("salon.legal.privacy.s5.i2", "Randevu geçmişiniz o salon tarafından görüntülenemez")</li>
+                <li>@T("salon.legal.privacy.s5.i3", "Üyelik ve sadakat bilgileriniz o salon için pasif hale getirilir")</li>
             </ul>
-            <p>Platform hesabınızı tamamen silmek istediğinizde, <strong>Üye Paneli &gt; Profil</strong> sayfasından "Hesabımı Sil" seçeneğini kullanabilirsiniz. Hesap silme işlemi geri alınamaz ve tüm verileriniz kalıcı olarak silinir.</p>
+            <p>@T("salon.legal.privacy.s5.p2", "Platform hesabınızı tamamen silmek istediğinizde Üye Paneli > Profil sayfasından Hesabımı Sil seçeneğini kullanabilirsiniz. Hesap silme işlemi geri alınamaz ve tüm verileriniz kalıcı olarak silinir.")</p>
 
-            <h3 class="mt-4">6. Veri Saklama Süresi</h3>
-            <p>Kişisel verileriniz, ilgili mevzuatın gerektirdiği süreler boyunca saklanır. Yasal saklama süresi sona erdikten sonra verileriniz güvenli bir şekilde imha edilir.</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s6.title", "6. Veri Saklama Süresi")</h3>
+            <p>@T("salon.legal.privacy.s6.p1", "Kişisel verileriniz, ilgili mevzuatın gerektirdiği süreler boyunca saklanır. Yasal saklama süresi sona erdikten sonra verileriniz güvenli bir şekilde imha edilir.")</p>
             <ul>
-                <li>Hesap bilgileri: Hesap aktif olduğu sürece</li>
-                <li>Randevu geçmişi: 3 yıl (ticari kayıt yükümlülüğü)</li>
-                <li>Fatura bilgileri: 10 yıl (TTK md. 82)</li>
-                <li>İletişim kayıtları: 2 yıl (BTK yükümlülüğü)</li>
-            </ul>
-
-            <h3 class="mt-4">7. Haklarınız (KVKK md. 11)</h3>
-            <p>KVKK kapsamında aşağıdaki haklara sahipsiniz:</p>
-            <ul>
-                <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
-                <li>İşlenmişse buna ilişkin bilgi talep etme</li>
-                <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
-                <li>Yurt içinde veya yurt dışında aktarılıp aktarılmadığını öğrenme</li>
-                <li>Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
-                <li>KVKK md. 7 kapsamında silinmesini veya yok edilmesini isteme</li>
-                <li>Düzeltme, silme veya yok etme işlemlerinin aktarılmış olan üçüncü kişilere bildirilmesini isteme</li>
-                <li>İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme</li>
-                <li>Kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme</li>
+                <li>@T("salon.legal.privacy.s6.i1", "Hesap bilgileri: Hesap aktif olduğu sürece")</li>
+                <li>@T("salon.legal.privacy.s6.i2", "Randevu geçmişi: 3 yıl")</li>
+                <li>@T("salon.legal.privacy.s6.i3", "Fatura bilgileri: 10 yıl")</li>
+                <li>@T("salon.legal.privacy.s6.i4", "İletişim kayıtları: 2 yıl")</li>
             </ul>
 
-            <h3 class="mt-4">8. İletişim</h3>
-            <p>KVKK kapsamındaki haklarınızı kullanmak için aşağıdaki kanallardan bize ulaşabilirsiniz:</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s7.title", "7. Haklarınız (KVKK md. 11)")</h3>
+            <p>@T("salon.legal.privacy.s7.p1", "KVKK kapsamında aşağıdaki haklara sahipsiniz:")</p>
             <ul>
-                <li><strong>E-posta:</strong> info@corplynk.com</li>
-                <li><strong>Web:</strong> corplynk.com</li>
+                <li>@T("salon.legal.privacy.s7.i1", "Kişisel verilerinizin işlenip işlenmediğini öğrenme")</li>
+                <li>@T("salon.legal.privacy.s7.i2", "İşlenmişse buna ilişkin bilgi talep etme")</li>
+                <li>@T("salon.legal.privacy.s7.i3", "İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme")</li>
+                <li>@T("salon.legal.privacy.s7.i4", "Yurt içinde veya yurt dışında aktarılıp aktarılmadığını öğrenme")</li>
+                <li>@T("salon.legal.privacy.s7.i5", "Eksik veya yanlış işlenmişse düzeltilmesini isteme")</li>
+                <li>@T("salon.legal.privacy.s7.i6", "KVKK md. 7 kapsamında silinmesini veya yok edilmesini isteme")</li>
+                <li>@T("salon.legal.privacy.s7.i7", "Düzeltme, silme veya yok etme işlemlerinin aktarılmış üçüncü kişilere bildirilmesini isteme")</li>
+                <li>@T("salon.legal.privacy.s7.i8", "Otomatik sistemler ile analiz sonucu aleyhinize bir sonuç ortaya çıkmasına itiraz etme")</li>
+                <li>@T("salon.legal.privacy.s7.i9", "Kanuna aykırı işleme sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme")</li>
             </ul>
-            <p>Başvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılır. İşlemin ayrıca bir maliyet gerektirmesi halinde, Kişisel Verileri Koruma Kurulu tarafından belirlenen ücret tarifesi uygulanır.</p>
 
-            <h3 class="mt-4">9. Çerez Kullanımı</h3>
-            <p>Platform, oturum yönetimi için zorunlu çerezler kullanır. Reklam veya izleme amaçlı çerez kullanılmaz. Çerezler yalnızca oturum süresi boyunca aktiftir ve oturum kapandığında silinir.</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s8.title", "8. İletişim")</h3>
+            <p>@T("salon.legal.privacy.s8.p1", "KVKK kapsamındaki haklarınızı kullanmak için aşağıdaki kanallardan bize ulaşabilirsiniz:")</p>
+            <ul>
+                <li><strong>@T("salon.legal.email", "E-posta:")</strong> info@corplynk.com</li>
+                <li><strong>@T("salon.legal.web", "Web:")</strong> corplynk.com</li>
+            </ul>
+            <p>@T("salon.legal.privacy.s8.p2", "Başvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılır. İşlemin ayrıca bir maliyet gerektirmesi halinde, Kişisel Verileri Koruma Kurulu tarafından belirlenen ücret tarifesi uygulanır.")</p>
 
-            <h3 class="mt-4">10. Değişiklikler</h3>
-            <p>Bu gizlilik politikası gerektiğinde güncellenebilir. Önemli değişiklikler yapılması halinde platform üzerinden bildirim yapılır.</p>
+            <h3 class="mt-4">@T("salon.legal.privacy.s9.title", "9. Çerez Kullanımı")</h3>
+            <p>@T("salon.legal.privacy.s9.p1", "Platform, oturum yönetimi için zorunlu çerezler kullanır. Reklam veya izleme amaçlı çerez kullanılmaz. Çerezler yalnızca oturum süresi boyunca aktiftir ve oturum kapandığında silinir.")</p>
+
+            <h3 class="mt-4">@T("salon.legal.privacy.s10.title", "10. Değişiklikler")</h3>
+            <p>@T("salon.legal.privacy.s10.p1", "Bu gizlilik politikası gerektiğinde güncellenebilir. Önemli değişiklikler yapılması halinde platform üzerinden bildirim yapılır.")</p>
 
             <div class="text-center mt-4">
-                <button onclick="window.history.back()" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left me-1"></i>Geri Dön</button>
+                <button onclick="window.history.back()" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left me-1"></i>@T("salon.legal.back", "Geri Dön")</button>
             </div>
-
         </div>
     </div>
 </body>
