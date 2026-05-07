@@ -3,6 +3,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
+using CallCenter.Api.Services.Email;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -22,9 +23,12 @@ public class AuthFactory : IAuthFactory
     private readonly IConfiguration _config;
     private readonly IHubContext<CallCenterHub> _hubContext;
     private readonly IUnitOfWork _uow;
+    private readonly IPlatformEmailService _email;
 
     private const int MaxFailedAttempts = 5;
     private const int LockoutMinutes = 15;
+    private const int PasswordResetTokenHours = 1;
+    private const int VerificationResendCooldownMinutes = 5;
     private static readonly HashSet<string> SupportedLanguages = new(StringComparer.OrdinalIgnoreCase) { "tr", "en", "de", "ar", "ru" };
 
     public AuthFactory(
@@ -37,7 +41,8 @@ public class AuthFactory : IAuthFactory
         TokenService tokenService,
         IConfiguration config,
         IHubContext<CallCenterHub> hubContext,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IPlatformEmailService email)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -49,6 +54,7 @@ public class AuthFactory : IAuthFactory
         _config = config;
         _hubContext = hubContext;
         _uow = uow;
+        _email = email;
     }
 
     public async Task<(bool Success, LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
@@ -297,5 +303,197 @@ public class AuthFactory : IAuthFactory
         }
 
         await _uow.SaveChangesAsync();
+    }
+
+    public async Task<(bool Success, string? Error)> SendVerificationEmailAsync(string userName)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+            return (false, "Kullanıcı adı zorunlu.");
+
+        var user = await _users.GetByUsernameAsync(userName);
+        if (user == null)
+            return (false, "Kullanıcı bulunamadı.");
+
+        if (string.IsNullOrWhiteSpace(user.Email))
+            return (false, "Kullanıcının email adresi kayıtlı değil.");
+
+        if (user.IsEmailVerified)
+            return (false, "Email zaten doğrulanmış.");
+
+        if (user.EmailVerificationSentAt.HasValue &&
+            (DateTime.UtcNow - user.EmailVerificationSentAt.Value).TotalMinutes < VerificationResendCooldownMinutes)
+        {
+            return (false, $"Lütfen {VerificationResendCooldownMinutes} dakika içinde tekrar deneyin.");
+        }
+
+        var token = Guid.NewGuid().ToString("N");
+        user.EmailVerificationToken = token;
+        user.EmailVerificationSentAt = DateTime.UtcNow;
+        await _uow.SaveChangesAsync();
+
+        var baseUrl = (_config["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
+        var link = $"{baseUrl}/Account/VerifyEmail?token={token}";
+        var lang = NormalizeLanguage(user.PreferredLanguage);
+        var (subject, html) = BuildVerificationEmailBody(user.FullName, link, lang);
+
+        var ok = await _email.SendAsync(user.Email, user.FullName, subject, html);
+        return ok ? (true, null) : (false, "Email gönderilemedi.");
+    }
+
+    public async Task<(bool Success, string? Error)> VerifyEmailAsync(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return (false, "Geçersiz token.");
+
+        var user = await _users.GetByEmailVerificationTokenAsync(token);
+        if (user == null)
+            return (false, "Token geçersiz veya kullanılmış.");
+
+        user.IsEmailVerified = true;
+        user.EmailVerificationToken = null;
+        user.EmailVerificationSentAt = null;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> SendPasswordResetEmailAsync(string userName)
+    {
+        // Bilgi sızdırmasını önlemek için kullanıcı yoksa da başarı dön
+        if (string.IsNullOrWhiteSpace(userName))
+            return (true, null);
+
+        var user = await _users.GetByUsernameAsync(userName);
+        if (user == null || string.IsNullOrWhiteSpace(user.Email) || !user.IsActive)
+            return (true, null);
+
+        if (user.PasswordResetSentAt.HasValue &&
+            (DateTime.UtcNow - user.PasswordResetSentAt.Value).TotalMinutes < VerificationResendCooldownMinutes)
+        {
+            return (true, null);
+        }
+
+        var token = Guid.NewGuid().ToString("N");
+        user.PasswordResetToken = token;
+        user.PasswordResetSentAt = DateTime.UtcNow;
+        await _uow.SaveChangesAsync();
+
+        var baseUrl = (_config["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
+        var link = $"{baseUrl}/Account/ResetPassword?token={token}";
+        var lang = NormalizeLanguage(user.PreferredLanguage);
+        var (subject, html) = BuildPasswordResetEmailBody(user.FullName, link, lang);
+
+        await _email.SendAsync(user.Email, user.FullName, subject, html);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ResetPasswordAsync(string token, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return (false, "Geçersiz token.");
+        if (string.IsNullOrWhiteSpace(newPassword))
+            return (false, "Yeni şifre zorunlu.");
+
+        var user = await _users.GetByPasswordResetTokenAsync(token);
+        if (user == null)
+            return (false, "Token geçersiz veya kullanılmış.");
+
+        if (user.PasswordResetSentAt == null ||
+            (DateTime.UtcNow - user.PasswordResetSentAt.Value).TotalHours > PasswordResetTokenHours)
+        {
+            user.PasswordResetToken = null;
+            user.PasswordResetSentAt = null;
+            await _uow.SaveChangesAsync();
+            return (false, "Token süresi dolmuş.");
+        }
+
+        var (isValid, errors) = _passwordPolicy.ValidatePassword(newPassword);
+        if (!isValid)
+            return (false, string.Join(" ", errors));
+
+        if (await _passwordPolicy.IsPasswordReusedAsync(user.Id, newPassword))
+            return (false, "Bu şifre daha önce kullanılmış. Farklı bir şifre seçiniz.");
+
+        var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.PasswordHash = newHash;
+        user.PasswordChangedAt = DateTime.UtcNow;
+        user.PasswordResetToken = null;
+        user.PasswordResetSentAt = null;
+        user.MustChangePassword = false;
+        user.FailedLoginCount = 0;
+        user.LockedUntil = null;
+        await _uow.SaveChangesAsync();
+        await _passwordPolicy.RecordPasswordAsync(user.Id, newHash);
+        return (true, null);
+    }
+
+    private static string NormalizeLanguage(string? lang)
+    {
+        if (string.IsNullOrWhiteSpace(lang)) return "tr";
+        var lower = lang.ToLowerInvariant();
+        return lower == "en" ? "en" : "tr";
+    }
+
+    private static (string Subject, string Html) BuildVerificationEmailBody(string fullName, string link, string lang)
+    {
+        if (lang == "en")
+        {
+            var subject = "Verify your CorpLynk account";
+            var html = $"""
+                <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#212529;">
+                    <h2 style="color:#7b1fa2;">Welcome, {System.Net.WebUtility.HtmlEncode(fullName)}</h2>
+                    <p>Please verify your email address to activate your CorpLynk account.</p>
+                    <p style="margin:24px 0;">
+                        <a href="{link}" style="background:#7b1fa2;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;">Verify email</a>
+                    </p>
+                    <p style="color:#6c757d;font-size:13px;">If the button does not work, copy this link: <br/><span style="word-break:break-all;">{link}</span></p>
+                </div>
+                """;
+            return (subject, html);
+        }
+
+        var subjectTr = "CorpLynk hesabını doğrula";
+        var htmlTr = $"""
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#212529;">
+                <h2 style="color:#7b1fa2;">Hoş geldin, {System.Net.WebUtility.HtmlEncode(fullName)}</h2>
+                <p>CorpLynk hesabını aktif etmek için email adresini doğrula.</p>
+                <p style="margin:24px 0;">
+                    <a href="{link}" style="background:#7b1fa2;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;">Email'i doğrula</a>
+                </p>
+                <p style="color:#6c757d;font-size:13px;">Düğme çalışmıyorsa bu bağlantıyı kopyala:<br/><span style="word-break:break-all;">{link}</span></p>
+            </div>
+            """;
+        return (subjectTr, htmlTr);
+    }
+
+    private static (string Subject, string Html) BuildPasswordResetEmailBody(string fullName, string link, string lang)
+    {
+        if (lang == "en")
+        {
+            var subject = "Reset your CorpLynk password";
+            var html = $"""
+                <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#212529;">
+                    <h2 style="color:#7b1fa2;">Password reset</h2>
+                    <p>Hello {System.Net.WebUtility.HtmlEncode(fullName)}, click the button below to set a new password. The link is valid for 1 hour.</p>
+                    <p style="margin:24px 0;">
+                        <a href="{link}" style="background:#7b1fa2;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;">Reset password</a>
+                    </p>
+                    <p style="color:#6c757d;font-size:13px;">If you did not request this, you can ignore this email.</p>
+                </div>
+                """;
+            return (subject, html);
+        }
+
+        var subjectTr = "CorpLynk şifre sıfırlama";
+        var htmlTr = $"""
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#212529;">
+                <h2 style="color:#7b1fa2;">Şifre sıfırlama</h2>
+                <p>Merhaba {System.Net.WebUtility.HtmlEncode(fullName)}, yeni şifre belirlemek için butona tıkla. Bağlantı 1 saat geçerli.</p>
+                <p style="margin:24px 0;">
+                    <a href="{link}" style="background:#7b1fa2;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;">Şifreyi sıfırla</a>
+                </p>
+                <p style="color:#6c757d;font-size:13px;">Bu işlemi sen başlatmadıysan emaili görmezden gelebilirsin.</p>
+            </div>
+            """;
+        return (subjectTr, htmlTr);
     }
 }

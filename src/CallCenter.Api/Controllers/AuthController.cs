@@ -184,4 +184,57 @@ public class AuthController : AuditableControllerBase
         await AuditAuthAsync("PasswordChange", "Sifre basariyla degistirildi.");
         return Ok(new { message = "Şifre başarıyla değiştirildi." });
     }
+
+    [HttpPost("send-verification-email")]
+    public async Task<ActionResult> SendVerificationEmail(SendVerificationEmailRequest request)
+    {
+        var (success, error) = await _authFactory.SendVerificationEmailAsync(request.UserName);
+
+        if (!success)
+        {
+            await AuditAuthAsync("VerificationEmailFailed", $"Dogrulama maili gonderilemedi: {error}", null, request.UserName);
+            return BadRequest(new { message = error });
+        }
+
+        await AuditAuthAsync("VerificationEmailSent", $"Dogrulama maili gonderildi: '{request.UserName}'", null, request.UserName);
+        return Ok(new { message = "Doğrulama maili gönderildi." });
+    }
+
+    [HttpGet("verify-email")]
+    public async Task<ActionResult> VerifyEmail([FromQuery] string token)
+    {
+        var (success, error) = await _authFactory.VerifyEmailAsync(token);
+
+        if (!success)
+        {
+            await AuditAuthAsync("EmailVerifyFailed", $"Email dogrulama basarisiz: {error}");
+            return BadRequest(new { message = error });
+        }
+
+        await AuditAuthAsync("EmailVerified", "Email dogrulandi.");
+        return Ok(new { message = "Email başarıyla doğrulandı." });
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        await _authFactory.SendPasswordResetEmailAsync(request.UserName);
+        await AuditAuthAsync("PasswordResetRequested", $"Sifre sifirlama istendi: '{request.UserName}'", null, request.UserName);
+        return Ok(new { message = "Eğer hesap mevcutsa, şifre sıfırlama maili gönderildi." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var (success, error) = await _authFactory.ResetPasswordAsync(request.Token, request.NewPassword);
+
+        if (!success)
+        {
+            await AuditAuthAsync("PasswordResetFailed", $"Sifre sifirlama basarisiz: {error}");
+            return BadRequest(new { message = error });
+        }
+
+        await AuditAuthAsync("PasswordReset", "Sifre token ile sifirlandi.");
+        return Ok(new { message = "Şifre başarıyla güncellendi." });
+    }
 }

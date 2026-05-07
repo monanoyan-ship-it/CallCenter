@@ -23,6 +23,15 @@ public class User
     public DateTime? LockedUntil { get; set; }
     public bool MustChangePassword { get; set; }
 
+    // Email dogrulama
+    public bool IsEmailVerified { get; set; }
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationSentAt { get; set; }
+
+    // Sifre sifirlama
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetSentAt { get; set; }
+
     // Dil tercihi (null = sistem varsayilani "tr")
     public string? PreferredLanguage { get; set; }
 

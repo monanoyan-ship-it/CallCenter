@@ -10,6 +10,9 @@ public interface IUserEntityService
     Task<bool> ExistsByUsernameAsync(string username);
     Task<bool> ExistsByEmailAsync(string email, int? excludeId = null);
     Task<int> GetActiveAdminCountAsync();
+    Task<User?> GetByUsernameAsync(string username);
+    Task<User?> GetByEmailVerificationTokenAsync(string token);
+    Task<User?> GetByPasswordResetTokenAsync(string token);
     void Add(User entity);
     void Update(User entity);
     void Remove(User entity);

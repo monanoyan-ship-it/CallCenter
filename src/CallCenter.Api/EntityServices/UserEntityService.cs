@@ -34,6 +34,15 @@ public class UserEntityService : IUserEntityService
     public Task<int> GetActiveAdminCountAsync()
         => _db.Users.CountAsync(u => u.RoleId == UserRoles.Ids.Admin && u.IsActive);
 
+    public Task<User?> GetByUsernameAsync(string username)
+        => _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
+
+    public Task<User?> GetByEmailVerificationTokenAsync(string token)
+        => _db.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+
+    public Task<User?> GetByPasswordResetTokenAsync(string token)
+        => _db.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == token);
+
     public void Add(User entity) => _db.Users.Add(entity);
     public void Update(User entity) => _db.Users.Update(entity);
     public void Remove(User entity) => _db.Users.Remove(entity);
