@@ -43,8 +43,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseAppLocalization();
 app.UseRouting();
+app.UseAppLocalization();
 
 app.MapControllerRoute(
     name: "localized",

@@ -11,7 +11,7 @@
     <div class="text-center py-5" data-bind="visible: !isLoading() && !moduleInfo()">
         <i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-2"></i>
         <p><t key="salon.modules.auto.modul_bilgisi_bulunamadi">Modül bilgisi bulunamadi.</t></p>
-        <a href="/Modules" class="btn btn-outline-primary btn-sm">Modullere Don</a>
+        <a href="/Modules" class="btn btn-outline-primary btn-sm"><t key="salon.modules.back_to_modules">Modüllere Dön</t></a>
     </div>
 
     <!-- Modul Bilgisi + Odeme Formu -->
@@ -25,7 +25,7 @@
                         <p class="text-muted small" data-bind="text: moduleInfo() ? moduleInfo().description : ''"></p>
                         <hr />
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Aylik Ucret:</span>
+                            <span class="text-muted"><t key="salon.modules.monthly_fee">Aylık Ücret</t>:</span>
                             <span class="fs-4 fw-bold text-primary" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : ''"></span>
                         </div>
                         <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i><t key="salon.modules.auto.odeme_sonrasi_modul_hemen_aktif_olacaktir">Ödeme sonrası modül hemen aktif olacaktır.</t></div>
@@ -37,21 +37,21 @@
                     <div class="card-body text-center py-4">
                         <div data-bind="visible: paymentResult() && paymentResult().success">
                             <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
-                            <h5 class="text-success" data-bind="text: paymentResult() && paymentResult().message ? 'Talep Alindi' : salonT('salon.modules.auto.odeme_basarili', 'Ödeme Başarılı!')"></h5>
-                            <p class="text-muted small mb-2" data-bind="text: paymentResult() && paymentResult().message ? paymentResult().message : 'Modulunuz aktif edildi.'"></p>
+                            <h5 class="text-success" data-bind="text: paymentResult() && paymentResult().message ? salonT('salon.modules.request_received', 'Talep Alındı') : salonT('salon.modules.auto.odeme_basarili', 'Ödeme Başarılı!')"></h5>
+                            <p class="text-muted small mb-2" data-bind="text: paymentResult() && paymentResult().message ? paymentResult().message : salonT('salon.modules.activated', 'Modülünüz aktif edildi.')"></p>
                             <div class="alert alert-warning py-2 small text-start" data-bind="visible: paymentResult() && !paymentResult().message">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 <strong><t key="salon.modules.auto.yeni_modulu_menude_gormek_icin_oturumu_yenileyin">Yeni modülu menude gormek icin oturumu yenileyin.</t></strong>
                             </div>
                             <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: paymentResult() && !paymentResult().message">
-                                <i class="bi bi-arrow-clockwise me-1"></i>Oturumu Yenile
+                                <i class="bi bi-arrow-clockwise me-1"></i><t key="salon.modules.refresh_session">Oturumu Yenile</t>
                             </a>
                         </div>
                         <div data-bind="visible: paymentResult() && !paymentResult().success">
                             <i class="bi bi-x-circle-fill text-danger fs-1 d-block mb-2"></i>
                             <h5 class="text-danger"><t key="salon.modules.auto.odeme_basarisiz">Ödeme Başarısız</t></h5>
                             <p class="text-muted small" data-bind="text: paymentResult() ? paymentResult().error : ''"></p>
-                            <button class="btn btn-outline-primary btn-sm mt-2" data-bind="click: function(){ paymentResult(null); }">Tekrar Dene</button>
+                            <button class="btn btn-outline-primary btn-sm mt-2" data-bind="click: function(){ paymentResult(null); }"><t key="salon.modules.retry">Tekrar Dene</t></button>
                         </div>
                     </div>
                 </div>
@@ -64,7 +64,7 @@
                         <!-- Odeme Yontemi Secimi -->
                         <div class="btn-group w-100 mb-3" role="group">
                             <input type="radio" class="btn-check" name="payMethod" id="pmKK" value="kk" data-bind="checked: paymentMethod" />
-                            <label class="btn btn-outline-primary" for="pmKK"><i class="bi bi-credit-card me-1"></i>Kredi Karti</label>
+                            <label class="btn btn-outline-primary" for="pmKK"><i class="bi bi-credit-card me-1"></i><t key="salon.payment.credit_card">Kredi Kartı</t></label>
                             <input type="radio" class="btn-check" name="payMethod" id="pmHavale" value="havale" data-bind="checked: paymentMethod" />
                             <label class="btn btn-outline-primary" for="pmHavale"><i class="bi bi-bank me-1"></i>Havale/EFT</label>
                         </div>
@@ -72,11 +72,11 @@
                         <!-- KK Formu -->
                         <div data-bind="visible: paymentMethod() === 'kk'">
                             <div class="mb-2">
-                                <label class="form-label small">Kart Uzerindeki Isim *</label>
+                                <label class="form-label small"><t key="salon.payment.card_holder">Kart Üzerindeki İsim *</t></label>
                                 <input class="form-control form-control-sm" data-bind="value: card.holderName" placeholder="AD SOYAD" />
                             </div>
                             <div class="mb-2">
-                                <label class="form-label small">Kart Numarasi *</label>
+                                <label class="form-label small"><t key="salon.payment.card_number">Kart Numarası *</t></label>
                                 <input class="form-control form-control-sm" data-bind="value: card.number, event: { input: formatCardNumber }" maxlength="19" placeholder="0000 0000 0000 0000" />
                             </div>
                             <div class="row g-2 mb-2">
@@ -91,7 +91,7 @@
                                     </select>
                                 </div>
                                 <div class="col-4">
-                                    <label class="form-label small">Yil *</label>
+                                    <label class="form-label small"><t key="salon.common.year">Yıl</t> *</label>
                                     <select class="form-select form-select-sm" data-bind="value: card.expYear, options: yearOptions"></select>
                                 </div>
                                 <div class="col-4">
@@ -102,7 +102,7 @@
                             <div class="mb-3">
                                 <label class="form-label small">Taksit</label>
                                 <select class="form-select form-select-sm" data-bind="value: card.installment">
-                                    <option value="1">Tek Cekim</option>
+                                    <option value="1"><t key="salon.payment.single_payment">Tek Çekim</t></option>
                                     <option value="2">2 Taksit</option>
                                     <option value="3">3 Taksit</option>
                                     <option value="6">6 Taksit</option>
@@ -113,7 +113,7 @@
                             <button class="btn btn-primary w-100" data-bind="click: payWithCard, disable: isProcessing">
                                 <span data-bind="visible: isProcessing" class="spinner-border spinner-border-sm me-1"></span>
                                 <i class="bi bi-lock-fill me-1" data-bind="visible: !isProcessing()"></i>
-                                <span data-bind="text: moduleInfo() ? 'Ode ' + moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : 'Ode'"></span>
+                                <span data-bind="text: moduleInfo() ? salonT('salon.payment.pay_prefix', 'Öde') + ' ' + moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : salonT('salon.payment.pay_prefix', 'Öde')"></span>
                             </button>
                             <div class="text-center mt-2">
                                 <i class="bi bi-shield-check text-success me-1"></i>
@@ -125,7 +125,7 @@
                         <div data-bind="visible: paymentMethod() === 'havale'">
                             <div data-bind="visible: bankInfo()">
                                 <div class="alert alert-info small mb-3">
-                                    <i class="bi bi-info-circle me-1"></i>Asagidaki hesaba havale yaptiktan sonra "Havale Yaptim" butonuna tiklayiniz.
+                                    <i class="bi bi-info-circle me-1"></i><t key="salon.modules.bank_transfer_hint">Aşağıdaki hesaba havale yaptıktan sonra "Havale Yaptım" butonuna tıklayınız.</t>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-bordered mb-3">
@@ -139,7 +139,7 @@
                                             </td>
                                         </tr>
                                         <tr><th class="bg-light"><t key="salon.panel.payments.amount">Tutar</t></th><td class="fw-bold" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : ''"></td></tr>
-                                        <tr data-bind="visible: bankInfo() && bankInfo().description"><th class="bg-light">Aciklama</th><td data-bind="text: bankInfo() ? bankInfo().description : ''"></td></tr>
+                        <tr data-bind="visible: bankInfo() && bankInfo().description"><th class="bg-light"><t key="salon.common.description">Açıklama</t></th><td data-bind="text: bankInfo() ? bankInfo().description : ''"></td></tr>
                                     </table>
                                 </div>
                                 <div class="mb-2">

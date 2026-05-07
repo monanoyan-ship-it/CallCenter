@@ -181,6 +181,9 @@ public class SlnBranchFactory : ISlnBranchFactory
             Phone = dto.Phone,
             Email = dto.Email,
             GoogleMapsUrl = dto.GoogleMapsUrl,
+            PhotoUrl = dto.PhotoUrl,
+            CoverImageUrl = dto.CoverImageUrl,
+            GalleryImagesJson = dto.GalleryImagesJson,
             // Default calisma saatleri: Pzt-Cmt 09:00-19:00, Pazar kapali (yoksa)
             WorkingHoursJson = string.IsNullOrWhiteSpace(dto.WorkingHoursJson) ? DefaultWorkingHoursJson : dto.WorkingHoursJson,
             ManagerPersonnelId = dto.ManagerPersonnelId,
@@ -231,6 +234,9 @@ public class SlnBranchFactory : ISlnBranchFactory
         branch.Phone = dto.Phone;
         branch.Email = dto.Email;
         branch.GoogleMapsUrl = dto.GoogleMapsUrl;
+        branch.PhotoUrl = dto.PhotoUrl;
+        branch.CoverImageUrl = dto.CoverImageUrl;
+        branch.GalleryImagesJson = dto.GalleryImagesJson;
         branch.WorkingHoursJson = dto.WorkingHoursJson;
         branch.ManagerPersonnelId = dto.ManagerPersonnelId;
         branch.IsHeadquarter = dto.IsHeadquarter;
@@ -282,6 +288,8 @@ public class SlnBranchFactory : ISlnBranchFactory
         GoogleMapsUrl = b.GoogleMapsUrl,
         WorkingHoursJson = b.WorkingHoursJson,
         PhotoUrl = b.PhotoUrl,
+        CoverImageUrl = b.CoverImageUrl,
+        GalleryImagesJson = b.GalleryImagesJson,
         Latitude = b.Latitude,
         Longitude = b.Longitude,
         ManagerPersonnelId = b.ManagerPersonnelId,

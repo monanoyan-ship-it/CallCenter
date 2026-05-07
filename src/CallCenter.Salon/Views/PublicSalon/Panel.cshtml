@@ -232,12 +232,13 @@
                 if (!data || data.length === 0) { el.innerHTML = ''; document.getElementById('noSalons').style.display = ''; return; }
                 document.getElementById('noSalons').style.display = 'none';
                 el.innerHTML = data.map(function(s) {
+                    var slug = s.slug || s.customerId;
                     return '<div class="col-md-4"><div class="card section-card h-100"><div class="card-body text-center">' +
                         (s.logoUrl ? '<img src="' + s.logoUrl + '" style="max-height:60px;" class="mb-2" />' : '<i class="bi bi-shop fs-1 text-muted mb-2 d-block"></i>') +
                         '<h6>' + s.salonName + '</h6>' +
                         '<small class="text-muted">' + (s.city || '') + ' ' + (s.district || '') + '</small>' +
                         '<div class="mt-2"><button class="btn btn-sm ' + (s.isFavorite ? 'btn-warning' : 'btn-outline-warning') + '" onclick="toggleFav(' + s.customerId + ')"><i class="bi bi-star' + (s.isFavorite ? '-fill' : '') + '"></i></button>' +
-                        ' <a href="/salon/' + s.customerId + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>' + salonT('salon.panel.action.appointment', 'Randevu') + '</a></div>' +
+                        ' <a href="/salon/' + slug + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>' + salonT('salon.panel.action.appointment', 'Randevu') + '</a></div>' +
                         '</div></div></div>';
                 }).join('');
             });

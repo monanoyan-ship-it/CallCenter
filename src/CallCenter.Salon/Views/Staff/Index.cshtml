@@ -33,7 +33,7 @@
                             <th>E-posta</th>
                             <th>Unvan</th>
                             <th><t key="salon.common.branch">Şube</t></th>
-                            <th>Rol</th>
+                            <th><t key="salon.staff.role">Rol</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
                             @if (canManageStaff)
                             {
@@ -179,14 +179,14 @@
                         <!-- Salon sahibi icin gizlenen alanlar -->
                         <!-- ko if: !isOwnerEdit() -->
                         <div class="col-6">
-                            <label class="form-label small">Rol</label>
+                            <label class="form-label small"><t key="salon.staff.role">Rol</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.customerRoleId,
-                                options: roleList, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Rol seciniz'"></select>
+                                options: roleList, optionsText: 'displayName', optionsValue: 'id', optionsCaption: salonT('salon.staff.role_select', 'Rol seçiniz')"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.common.branch">Şube</t> <span data-bind="visible: branchList().length > 1">*</span></label>
                             <select class="form-select form-select-sm" data-bind="value: form.branchId,
-                                options: branchList, optionsText: 'name', optionsValue: 'id', optionsCaption: salonT('salon.staff.auto.sube_seciniz', 'Şube seciniz')"></select>
+                                options: branchList, optionsText: 'name', optionsValue: 'id', optionsCaption: salonT('salon.staff.auto.sube_seciniz', 'Şube seçiniz')"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>

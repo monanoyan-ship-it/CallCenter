@@ -37,6 +37,9 @@ function BranchesViewModel() {
         phone: ko.observable(''),
         email: ko.observable(''),
         googleMapsUrl: ko.observable(''),
+        photoUrl: ko.observable(''),
+        coverImageUrl: ko.observable(''),
+        galleryImages: ko.observableArray([]),
         latitude: ko.observable(''),
         longitude: ko.observable(''),
         managerPersonnelId: ko.observable(''),
@@ -85,11 +88,23 @@ function BranchesViewModel() {
         } catch (e) {}
     }
 
+    function parseGalleryImages(json) {
+        self.form.galleryImages([]);
+        if (!json) return;
+        try {
+            var parsed = JSON.parse(json);
+            if (!Array.isArray(parsed)) return;
+            self.form.galleryImages(parsed.map(function (item) {
+                return typeof item === 'string' ? item : (item && item.url);
+            }).filter(Boolean));
+        } catch (e) {}
+    }
+
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-branches', method: 'GET' }).done(function (data) {
             self.branches(data || []);
         }).fail(function () {
-            toastr.error('Subeler yuklenemedi');
+            toastr.error(slnJsT('salon.branches.js.load_failed', 'Şubeler yüklenemedi'));
         });
     };
 
@@ -106,6 +121,9 @@ function BranchesViewModel() {
         self.form.phone('');
         self.form.email('');
         self.form.googleMapsUrl('');
+        self.form.photoUrl('');
+        self.form.coverImageUrl('');
+        self.form.galleryImages([]);
         self.form.latitude('');
         self.form.longitude('');
         self.form.managerPersonnelId('');
@@ -137,6 +155,9 @@ function BranchesViewModel() {
         self.form.phone(branch.phone || '');
         self.form.email(branch.email || '');
         self.form.googleMapsUrl(branch.googleMapsUrl || '');
+        self.form.photoUrl(branch.photoUrl || '');
+        self.form.coverImageUrl(branch.coverImageUrl || '');
+        parseGalleryImages(branch.galleryImagesJson);
         self.form.latitude(branch.latitude != null ? String(branch.latitude) : '');
         self.form.longitude(branch.longitude != null ? String(branch.longitude) : '');
         self.form.managerPersonnelId(branch.managerPersonnelId || '');
@@ -161,6 +182,9 @@ function BranchesViewModel() {
             phone: self.form.phone(),
             email: self.form.email(),
             googleMapsUrl: self.form.googleMapsUrl(),
+            photoUrl: self.form.photoUrl() || null,
+            coverImageUrl: self.form.coverImageUrl() || null,
+            galleryImagesJson: self.form.galleryImages().length > 0 ? JSON.stringify(self.form.galleryImages()) : null,
             latitude: self.form.latitude() ? parseFloat(self.form.latitude()) : null,
             longitude: self.form.longitude() ? parseFloat(self.form.longitude()) : null,
             workingHoursJson: buildWorkingHoursJson(),
@@ -213,6 +237,77 @@ function BranchesViewModel() {
                 toastr.error('Silinemedi');
             });
         });
+    };
+
+    function uploadImage(file, type, done, always) {
+        if (file.size > 5 * 1024 * 1024) {
+            toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB dan buyuk olamaz.'));
+            if (always) always();
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        $.ajax({
+            url: '/proxy/sln-profile/upload-image?type=' + type,
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function (result) {
+            if (result && result.url) done(result.url);
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yukleme hatasi.'));
+        }).always(function () {
+            if (always) always();
+        });
+    }
+
+    self.uploadSingleImage = function (type, event) {
+        var file = event.target.files[0];
+        if (!file) return;
+
+        toastr.info(slnJsT('salon.pagesettings.js.loading', 'Yukleniyor...'));
+        uploadImage(file, type === 'photo' ? 'branch-photo' : 'branch-cover', function (url) {
+            if (type === 'photo') self.form.photoUrl(url);
+            else self.form.coverImageUrl(url);
+            toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Gorsel yuklendi.'));
+        });
+
+        event.target.value = '';
+    };
+
+    self.removeSingleImage = function (type) {
+        if (type === 'photo') self.form.photoUrl('');
+        else if (type === 'cover') self.form.coverImageUrl('');
+    };
+
+    self.uploadGalleryImages = function (data, event) {
+        var files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        var remaining = files.length;
+        toastr.info(files.length + slnJsT('salon.pagesettings.js.images_uploading', ' gorsel yukleniyor...'));
+
+        for (var i = 0; i < files.length; i++) {
+            (function (file) {
+                uploadImage(file, 'branch-gallery', function (url) {
+                    self.form.galleryImages.push(url);
+                }, function () {
+                    remaining--;
+                    if (remaining <= 0) {
+                        toastr.success(slnJsT('salon.pagesettings.js.gallery_images_uploaded', 'Galeri gorselleri yuklendi.'));
+                    }
+                });
+            })(files[i]);
+        }
+
+        event.target.value = '';
+    };
+
+    self.removeGalleryImage = function (index) {
+        self.form.galleryImages.splice(index, 1);
     };
 
     // ═══ Harita Picker ═══

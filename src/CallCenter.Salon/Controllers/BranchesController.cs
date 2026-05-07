@@ -4,7 +4,7 @@ public class BranchesController : SlnBaseController
 {
     public IActionResult Index()
     {
-        ViewData["Title"] = "Subeler";
+        ViewData["Title"] = "Şubeler";
         return View();
     }
 }

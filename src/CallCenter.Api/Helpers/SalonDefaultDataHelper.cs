@@ -84,8 +84,8 @@ public static class SalonDefaultDataHelper
         // ═══ Masraf Kategorileri ═══
         var expenseCategories = new[]
         {
-            "Kira", "Faturalar", "Malzeme / Urun Alimi", "Personel Giderleri",
-            "Vergi / SGK", "Temizlik", "Bakim / Onarim", "Reklam / Pazarlama", "Diger"
+            "Kira", "Faturalar", "Malzeme / Ürün Alımı", "Personel Giderleri",
+            "Vergi / SGK", "Temizlik", "Bakım / Onarım", "Reklam / Pazarlama", "Diğer"
         };
 
         foreach (var name in expenseCategories)
@@ -181,8 +181,8 @@ public static class SalonDefaultDataHelper
         // ═══ Masraf Kategorileri ═══
         var expenseCategories = new[]
         {
-            "Kira", "Faturalar", "Malzeme / Urun Alimi", "Personel Giderleri",
-            "Vergi / SGK", "Temizlik", "Bakim / Onarim", "Reklam / Pazarlama", "Diger"
+            "Kira", "Faturalar", "Malzeme / Ürün Alımı", "Personel Giderleri",
+            "Vergi / SGK", "Temizlik", "Bakım / Onarım", "Reklam / Pazarlama", "Diğer"
         };
 
         foreach (var name in expenseCategories)
@@ -218,52 +218,52 @@ public static class SalonDefaultDataHelper
     {
         return new (string Name, string Icon, string Color, int Sort, (string Name, decimal Price, int Duration)[] Services)[]
         {
-            ("Sac", "bi-scissors", "#7b1fa2", 1, new[]
+            ("Saç", "bi-scissors", "#7b1fa2", 1, new[]
             {
-                ("Sac Kesim", 150m, 30),
+                ("Saç Kesim", 150m, 30),
                 ("Fon", 100m, 20),
-                ("Sac Boyama", 400m, 90),
+                ("Saç Boyama", 400m, 90),
                 ("Ombre / Balyaj", 600m, 120),
-                ("Keratin Bakimi", 500m, 90),
-                ("Sac Bakimi", 200m, 45),
-                ("Sac Acma", 300m, 60),
-                ("Gecici Duzlestirme", 250m, 60),
+                ("Keratin Bakımı", 500m, 90),
+                ("Saç Bakımı", 200m, 45),
+                ("Saç Açma", 300m, 60),
+                ("Geçici Düzleştirme", 250m, 60),
             }),
-            ("Cilt Bakimi", "bi-droplet", "#e91e63", 2, new[]
+            ("Cilt Bakımı", "bi-droplet", "#e91e63", 2, new[]
             {
-                ("Cilt Bakimi", 300m, 60),
+                ("Cilt Bakımı", 300m, 60),
                 ("Hydrafacial", 500m, 45),
                 ("Cilt Temizleme", 200m, 30),
-                ("Maske Uygulamasi", 150m, 20),
+                ("Maske Uygulaması", 150m, 20),
             }),
-            ("Tirnak", "bi-brush", "#f44336", 3, new[]
+            ("Tırnak", "bi-brush", "#f44336", 3, new[]
             {
-                ("Manikur", 150m, 30),
-                ("Pedikur", 200m, 45),
-                ("Protez Tirnak", 400m, 90),
-                ("Kalici Oje", 200m, 45),
-                ("Tirnak Bakimi", 100m, 20),
+                ("Manikür", 150m, 30),
+                ("Pedikür", 200m, 45),
+                ("Protez Tırnak", 400m, 90),
+                ("Kalıcı Oje", 200m, 45),
+                ("Tırnak Bakımı", 100m, 20),
             }),
             ("Makyaj", "bi-palette", "#ff9800", 4, new[]
             {
-                ("Gunluk Makyaj", 300m, 45),
-                ("Gelin Makyaji", 1000m, 90),
-                ("Ozel Gun Makyaji", 500m, 60),
+                ("Günlük Makyaj", 300m, 45),
+                ("Gelin Makyajı", 1000m, 90),
+                ("Özel Gün Makyajı", 500m, 60),
             }),
-            ("Agda / Epilasyon", "bi-stars", "#4caf50", 5, new[]
+            ("Ağda / Epilasyon", "bi-stars", "#4caf50", 5, new[]
             {
-                ("Tum Vucut Agda", 400m, 60),
-                ("Bacak Agda", 150m, 20),
-                ("Kol Agda", 100m, 15),
-                ("Yuz Agda", 50m, 10),
-                ("Bikini Agda", 100m, 15),
+                ("Tüm Vücut Ağda", 400m, 60),
+                ("Bacak Ağda", 150m, 20),
+                ("Kol Ağda", 100m, 15),
+                ("Yüz Ağda", 50m, 10),
+                ("Bikini Ağda", 100m, 15),
             }),
-            ("Ozel Bakim", "bi-gem", "#2196f3", 6, new[]
+            ("Özel Bakım", "bi-gem", "#2196f3", 6, new[]
             {
-                ("Kas Alimi", 50m, 15),
+                ("Kaş Alımı", 50m, 15),
                 ("Kirpik Eki", 300m, 60),
                 ("Kirpik Lifting", 200m, 30),
-                ("Kalici Kas", 800m, 90),
+                ("Kalıcı Kaş", 800m, 90),
             }),
         };
     }

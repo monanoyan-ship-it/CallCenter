@@ -185,11 +185,11 @@ public static class PaymentProviders
 
 public static class PaymentTypes
 {
-    public static readonly TypeItem SalonAdisyon = new(1, "SalonAdisyon", "PaymentType.SalonAdisyon", "Salon Adisyon Odemesi", "bi-receipt", "bg-info", 1);
-    public static readonly TypeItem PlatformAbonelik = new(2, "PlatformAbonelik", "PaymentType.PlatformAbonelik", "Platform Abonelik Odemesi", "bi-box-seam", "bg-primary", 2);
-    public static readonly TypeItem UyelikOdemesi = new(3, "UyelikOdemesi", "PaymentType.UyelikOdemesi", "Uyelik Odemesi", "bi-person-check", "bg-success", 3);
-    public static readonly TypeItem ModulSatinAlma = new(4, "ModulSatinAlma", "PaymentType.ModulSatinAlma", "Modul Satin Alma", "bi-cart-check", "bg-warning text-dark", 4);
-    public static readonly TypeItem RandevuOnOdemesi = new(5, "RandevuOnOdemesi", "PaymentType.RandevuOnOdemesi", "Randevu On Odemesi/Depozito", "bi-calendar-check", "bg-info", 5);
+    public static readonly TypeItem SalonAdisyon = new(1, "SalonAdisyon", "PaymentType.SalonAdisyon", "Salon Adisyon Ödemesi", "bi-receipt", "bg-info", 1);
+    public static readonly TypeItem PlatformAbonelik = new(2, "PlatformAbonelik", "PaymentType.PlatformAbonelik", "Platform Abonelik Ödemesi", "bi-box-seam", "bg-primary", 2);
+    public static readonly TypeItem UyelikOdemesi = new(3, "UyelikOdemesi", "PaymentType.UyelikOdemesi", "Üyelik Ödemesi", "bi-person-check", "bg-success", 3);
+    public static readonly TypeItem ModulSatinAlma = new(4, "ModulSatinAlma", "PaymentType.ModulSatinAlma", "Modül Satın Alma", "bi-cart-check", "bg-warning text-dark", 4);
+    public static readonly TypeItem RandevuOnOdemesi = new(5, "RandevuOnOdemesi", "PaymentType.RandevuOnOdemesi", "Randevu Ön Ödemesi/Depozito", "bi-calendar-check", "bg-info", 5);
 
     public static IEnumerable<TypeItem> All => new[] { SalonAdisyon, PlatformAbonelik, UyelikOdemesi, ModulSatinAlma, RandevuOnOdemesi };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -207,7 +207,7 @@ public static class PaymentTypes
 public static class PaymentStatuses
 {
     public static readonly TypeItem Beklemede = new(1, "Beklemede", "PaymentStatus.Beklemede", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);
-    public static readonly TypeItem Basarili = new(2, "Basarili", "PaymentStatus.Basarili", "Basarili", "bi-check-circle-fill", "bg-success", 2);
+    public static readonly TypeItem Basarili = new(2, "Basarili", "PaymentStatus.Basarili", "Başarılı", "bi-check-circle-fill", "bg-success", 2);
     public static readonly TypeItem Basarisiz = new(3, "Basarisiz", "PaymentStatus.Basarisiz", "Basarisiz", "bi-x-circle-fill", "bg-danger", 3);
     public static readonly TypeItem Iade = new(4, "Iade", "PaymentStatus.Iade", "Iade Edildi", "bi-arrow-counterclockwise", "bg-warning text-dark", 4);
     public static readonly TypeItem Iptal = new(5, "Iptal", "PaymentStatus.Iptal", "Iptal Edildi", "bi-slash-circle", "bg-secondary", 5);

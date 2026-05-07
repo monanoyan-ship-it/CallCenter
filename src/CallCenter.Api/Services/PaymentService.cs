@@ -1392,7 +1392,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         var item = await _db.ServicePricingItems
             .FirstOrDefaultAsync(i => i.PeriodId == activePeriod.Id && i.PackageGroupId == packageGroupId);
-        return item?.MonthlyPrice;
+        if (item == null || item.MonthlyPrice <= 0m) return null;
+
+        var group = SalonModuleGroups.GetById(packageGroupId);
+        if (item.MonthlyPrice == 20m && group != null && group.MonthlyPrice != 20m)
+            return null;
+
+        return item.MonthlyPrice;
     }
 
     public async Task<CheckoutFormResult> InitPackageCheckoutAsync(int customerId, int packageGroupId, string callbackUrl, string? buyerIp = null)

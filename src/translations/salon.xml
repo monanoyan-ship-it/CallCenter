@@ -1132,7 +1132,7 @@
     <Key Id="salon.cash.auto.duzenle" Module="cash" Description="salon.cash.auto.duzenle"><Value Lang="tr">Düzenle</Value><Value Lang="en">Düzenle</Value></Key>
     <Key Id="salon.cash.auto.kasa_duzenle" Module="cash" Description="salon.cash.auto.kasa_duzenle"><Value Lang="tr">Kasa Düzenle</Value><Value Lang="en">Kasa Düzenle</Value></Key>
     <Key Id="salon.cash.auto.yeni_kasa" Module="cash" Description="salon.cash.auto.yeni_kasa"><Value Lang="tr">Yeni Kasa</Value><Value Lang="en">New Cash Register</Value></Key>
-    <Key Id="salon.cash.auto.sube_seciniz" Module="cash" Description="salon.cash.auto.sube_seciniz"><Value Lang="tr">Şube seciniz</Value><Value Lang="en">Şube seciniz</Value></Key>
+    <Key Id="salon.cash.auto.sube_seciniz" Module="cash" Description="salon.cash.auto.sube_seciniz"><Value Lang="tr">Şube seçiniz</Value><Value Lang="en">Select branch</Value></Key>
     <Key Id="salon.cash.auto.kasa_yonetimi" Module="cash" Description="salon.cash.auto.kasa_yonetimi"><Value Lang="tr">Kasa Yönetimi</Value><Value Lang="en">Cash Management</Value></Key>
     <Key Id="salon.cash.auto.henuz_kasa_tanimlanmamis" Module="cash" Description="salon.cash.auto.henuz_kasa_tanimlanmamis"><Value Lang="tr">Henüz kasa tanımlanmamış</Value><Value Lang="en">No cash register defined yet</Value></Key>
     <Key Id="salon.cash.auto.kasa_adi" Module="cash" Description="salon.cash.auto.kasa_adi"><Value Lang="tr">Kasa Adı *</Value><Value Lang="en">Kasa Adı *</Value></Key>
@@ -1140,7 +1140,7 @@
     <Key Id="salon.cash.auto.gun_sonu_kasa_kapama" Module="cash" Description="salon.cash.auto.gun_sonu_kasa_kapama"><Value Lang="tr">Gun Sonu Kasa Kapama</Value><Value Lang="en">Gun Sonu Kasa Kapama</Value></Key>
     <Key Id="salon.cash.auto.sayilan_tutar_tl" Module="cash" Description="salon.cash.auto.sayilan_tutar_tl"><Value Lang="tr">Sayilan Tutar (TL) *</Value><Value Lang="en">Sayilan Tutar (TL) *</Value></Key>
     <Key Id="salon.cash.auto.kasa_ac_gun_basi" Module="cash" Description="salon.cash.auto.kasa_ac_gun_basi"><Value Lang="tr">Kasa Ac (Gun Basi)</Value><Value Lang="en">Kasa Ac (Gun Basi)</Value></Key>
-    <Key Id="salon.cash.auto.rapor_yukleniyor" Module="cash" Description="salon.cash.auto.rapor_yukleniyor"><Value Lang="tr">Rapor yukleniyor...</Value><Value Lang="en">Rapor yukleniyor...</Value></Key>
+    <Key Id="salon.cash.auto.rapor_yukleniyor" Module="cash" Description="salon.cash.auto.rapor_yukleniyor"><Value Lang="tr">Rapor yükleniyor...</Value><Value Lang="en">Report is loading...</Value></Key>
     <Key Id="salon.cash.auto.toplam" Module="cash" Description="salon.cash.auto.toplam"><Value Lang="tr">Toplam</Value><Value Lang="en">Toplam</Value></Key>
     <Key Id="salon.cash.auto.rapor_verisi_bulunamadi" Module="cash" Description="salon.cash.auto.rapor_verisi_bulunamadi"><Value Lang="tr">Rapor verisi bulunamadi</Value><Value Lang="en">Rapor verisi bulunamadi</Value></Key>
     <Key Id="salon.cash.auto.kapat" Module="cash" Description="salon.cash.auto.kapat"><Value Lang="tr">Kapat</Value><Value Lang="en">Kapat</Value></Key>
@@ -1155,14 +1155,14 @@
     <Key Id="salon.products.auto.adet_litre_kutu" Module="products" Description="salon.products.auto.adet_litre_kutu"><Value Lang="tr">Adet, Litre, Kutu...</Value><Value Lang="en">Adet, Litre, Kutu...</Value></Key>
     <Key Id="salon.products.auto.urun_duzenle" Module="products" Description="salon.products.auto.urun_duzenle"><Value Lang="tr">Ürün Düzenle</Value><Value Lang="en">Edit Product</Value></Key>
     <Key Id="salon.products.auto.yeni_urun" Module="products" Description="salon.products.auto.yeni_urun"><Value Lang="tr">Yeni Ürün</Value><Value Lang="en">New Product</Value></Key>
-    <Key Id="salon.products.auto.tedarikci_secin" Module="products" Description="salon.products.auto.tedarikci_secin"><Value Lang="tr">Tedarikci secin</Value><Value Lang="en">Tedarikci secin</Value></Key>
-    <Key Id="salon.products.auto.sube_secin" Module="products" Description="salon.products.auto.sube_secin"><Value Lang="tr">Şube secin</Value><Value Lang="en">Şube secin</Value></Key>
+    <Key Id="salon.products.auto.tedarikci_secin" Module="products" Description="salon.products.auto.tedarikci_secin"><Value Lang="tr">Tedarikçi seçin</Value><Value Lang="en">Select supplier</Value></Key>
+    <Key Id="salon.products.auto.sube_secin" Module="products" Description="salon.products.auto.sube_secin"><Value Lang="tr">Şube seçin</Value><Value Lang="en">Select branch</Value></Key>
     <Key Id="salon.products.auto.urun_adi" Module="products" Description="salon.products.auto.urun_adi"><Value Lang="tr">Ürün Adı</Value><Value Lang="en">Product Name</Value></Key>
     <Key Id="salon.products.auto.satis_fiyati" Module="products" Description="salon.products.auto.satis_fiyati"><Value Lang="tr">Satış Fiyatı</Value><Value Lang="en">Sale Price</Value></Key>
     <Key Id="salon.products.auto.henuz_urun_eklenmemis" Module="products" Description="salon.products.auto.henuz_urun_eklenmemis"><Value Lang="tr">Henüz ürün eklenmemiş</Value><Value Lang="en">No product added yet</Value></Key>
     <Key Id="salon.products.auto.urun_adi_2" Module="products" Description="salon.products.auto.urun_adi_2"><Value Lang="tr">Ürün Adı *</Value><Value Lang="en">Ürün Adı *</Value></Key>
     <Key Id="salon.products.auto.satis_fiyati_tl" Module="products" Description="salon.products.auto.satis_fiyati_tl"><Value Lang="tr">Satış Fiyatı (TL) *</Value><Value Lang="en">Satış Fiyatı (TL) *</Value></Key>
-    <Key Id="salon.products.auto.tedarikci" Module="products" Description="salon.products.auto.tedarikci"><Value Lang="tr">Tedarikci *</Value><Value Lang="en">Tedarikci *</Value></Key>
+    <Key Id="salon.products.auto.tedarikci" Module="products" Description="salon.products.auto.tedarikci"><Value Lang="tr">Tedarikçi *</Value><Value Lang="en">Supplier *</Value></Key>
     <Key Id="salon.products.auto.toplam" Module="products" Description="salon.products.auto.toplam"><Value Lang="tr">Toplam</Value><Value Lang="en">Toplam</Value></Key>
     <Key Id="salon.products.auto.kaynak_sube" Module="products" Description="salon.products.auto.kaynak_sube"><Value Lang="tr">Kaynak şube</Value><Value Lang="en">Kaynak şube</Value></Key>
     <Key Id="salon.products.auto.hedef_sube" Module="products" Description="salon.products.auto.hedef_sube"><Value Lang="tr">Hedef şube *</Value><Value Lang="en">Hedef şube *</Value></Key>
@@ -1211,7 +1211,7 @@
     <Key Id="salon.branches.auto.musteri_okuttugunda_su_sayfa_acilir" Module="branches" Description="salon.branches.auto.musteri_okuttugunda_su_sayfa_acilir"><Value Lang="tr">Müşteri okuttugunda su sayfa acilir:</Value><Value Lang="en">Müşteri okuttugunda su sayfa acilir:</Value></Key>
     <Key Id="salon.branches.auto.kapat" Module="branches" Description="salon.branches.auto.kapat"><Value Lang="tr">Kapat</Value><Value Lang="en">Kapat</Value></Key>
     <Key Id="salon.branches.auto.sube_adi_2" Module="branches" Description="salon.branches.auto.sube_adi_2"><Value Lang="tr">Şube Adı *</Value><Value Lang="en">Şube Adı *</Value></Key>
-    <Key Id="salon.branches.auto.sube_muduru" Module="branches" Description="salon.branches.auto.sube_muduru"><Value Lang="tr">Şube Muduru</Value><Value Lang="en">Şube Muduru</Value></Key>
+    <Key Id="salon.branches.auto.sube_muduru" Module="branches" Description="salon.branches.auto.sube_muduru"><Value Lang="tr">Şube Müdürü</Value><Value Lang="en">Branch Manager</Value></Key>
     <Key Id="salon.branches.auto.ana_sube_merkez" Module="branches" Description="salon.branches.auto.ana_sube_merkez"><Value Lang="tr">Ana Şube (Merkez)</Value><Value Lang="en">Ana Şube (Merkez)</Value></Key>
     <Key Id="salon.branches.auto.fatura_bilgileri" Module="branches" Description="salon.branches.auto.fatura_bilgileri"><Value Lang="tr">Fatura Bilgileri</Value><Value Lang="en">Fatura Bilgileri</Value></Key>
     <Key Id="salon.services.auto.hizmet_ara" Module="services" Description="salon.services.auto.hizmet_ara"><Value Lang="tr">Hizmet ara...</Value><Value Lang="en">Search service...</Value></Key>
@@ -1232,7 +1232,7 @@
     <Key Id="salon.staff.auto.personel_duzenle" Module="staff" Description="salon.staff.auto.personel_duzenle"><Value Lang="tr">Personel Düzenle</Value><Value Lang="en">Personel Düzenle</Value></Key>
     <Key Id="salon.staff.auto.yeni_personel" Module="staff" Description="salon.staff.auto.yeni_personel"><Value Lang="tr">Yeni Personel</Value><Value Lang="en">New Staff</Value></Key>
     <Key Id="salon.staff.auto.fotograf_sec" Module="staff" Description="salon.staff.auto.fotograf_sec"><Value Lang="tr">Fotoğraf Seç</Value><Value Lang="en">Choose Photo</Value></Key>
-    <Key Id="salon.staff.auto.sube_seciniz" Module="staff" Description="salon.staff.auto.sube_seciniz"><Value Lang="tr">Şube seciniz</Value><Value Lang="en">Şube seciniz</Value></Key>
+    <Key Id="salon.staff.auto.sube_seciniz" Module="staff" Description="salon.staff.auto.sube_seciniz"><Value Lang="tr">Şube seçiniz</Value><Value Lang="en">Select branch</Value></Key>
     <Key Id="salon.staff.auto.henuz_personel_eklenmemis" Module="staff" Description="salon.staff.auto.henuz_personel_eklenmemis"><Value Lang="tr">Henüz personel eklenmemis</Value><Value Lang="en">Henüz personel eklenmemis</Value></Key>
     <Key Id="salon.staff.auto.aktif_personel" Module="staff" Description="salon.staff.auto.aktif_personel"><Value Lang="tr">Aktif Personel</Value><Value Lang="en">Aktif Personel</Value></Key>
     <Key Id="salon.staff.auto.toplam_personel" Module="staff" Description="salon.staff.auto.toplam_personel"><Value Lang="tr">Toplam Personel</Value><Value Lang="en">Toplam Personel</Value></Key>
@@ -1245,7 +1245,7 @@
     <Key Id="salon.sales.auto.musteri_opsiyonel" Module="sales" Description="salon.sales.auto.musteri_opsiyonel"><Value Lang="tr">Müşteri (opsiyonel)</Value><Value Lang="en">Customer (optional)</Value></Key>
     <Key Id="salon.sales.auto.randevu" Module="sales" Description="salon.sales.auto.randevu"><Value Lang="tr">Randevu #</Value><Value Lang="en">Randevu #</Value></Key>
     <Key Id="salon.sales.auto.tamamlandi" Module="sales" Description="salon.sales.auto.tamamlandi"><Value Lang="tr">Tamamlandı</Value><Value Lang="en">Tamamlandı</Value></Key>
-    <Key Id="salon.sales.auto.bir_kategori_seciniz" Module="sales" Description="salon.sales.auto.bir_kategori_seciniz"><Value Lang="tr">Bir kategori seciniz</Value><Value Lang="en">Bir kategori seciniz</Value></Key>
+    <Key Id="salon.sales.auto.bir_kategori_seciniz" Module="sales" Description="salon.sales.auto.bir_kategori_seciniz"><Value Lang="tr">Bir kategori seçiniz</Value><Value Lang="en">Select a category</Value></Key>
     <Key Id="salon.sales.auto.ara_toplam" Module="sales" Description="salon.sales.auto.ara_toplam"><Value Lang="tr">Ara Toplam</Value><Value Lang="en">Subtotal</Value></Key>
     <Key Id="salon.sales.auto.online_on_odeme" Module="sales" Description="salon.sales.auto.online_on_odeme"><Value Lang="tr">Online ön ödeme:</Value><Value Lang="en">Online ön ödeme:</Value></Key>
     <Key Id="salon.sales.auto.kalan_tutar" Module="sales" Description="salon.sales.auto.kalan_tutar"><Value Lang="tr">Kalan tutar:</Value><Value Lang="en">Kalan tutar:</Value></Key>
@@ -1299,7 +1299,7 @@
     <Key Id="salon.beforeafter.auto.yeni_once_sonra_fotograf" Module="beforeafter" Description="salon.beforeafter.auto.yeni_once_sonra_fotograf"><Value Lang="tr">Yeni Önce/Sonra Fotoğraf</Value><Value Lang="en">New Before/After Photo</Value></Key>
     <Key Id="salon.beforeafter.auto.musteri" Module="beforeafter" Description="salon.beforeafter.auto.musteri"><Value Lang="tr">Müşteri *</Value><Value Lang="en">Müşteri *</Value></Key>
     <Key Id="salon.recipes.auto.recete_ara" Module="recipes" Description="salon.recipes.auto.recete_ara"><Value Lang="tr">Reçete ara...</Value><Value Lang="en">Search recipe...</Value></Key>
-    <Key Id="salon.recipes.auto.hizmet_secin" Module="recipes" Description="salon.recipes.auto.hizmet_secin"><Value Lang="tr">Hizmet secin...</Value><Value Lang="en">Hizmet secin...</Value></Key>
+    <Key Id="salon.recipes.auto.hizmet_secin" Module="recipes" Description="salon.recipes.auto.hizmet_secin"><Value Lang="tr">Hizmet seçin...</Value><Value Lang="en">Select service...</Value></Key>
     <Key Id="salon.recipes.auto.urun_ara" Module="recipes" Description="salon.recipes.auto.urun_ara"><Value Lang="tr">Ürün ara...</Value><Value Lang="en">Search product...</Value></Key>
     <Key Id="salon.recipes.auto.not" Module="recipes" Description="salon.recipes.auto.not"><Value Lang="tr">Not...</Value><Value Lang="en">Not...</Value></Key>
     <Key Id="salon.recipes.auto.recete_duzenle" Module="recipes" Description="salon.recipes.auto.recete_duzenle"><Value Lang="tr">Reçete Düzenle</Value><Value Lang="en">Edit Recipe</Value></Key>
@@ -1329,7 +1329,7 @@
     <Key Id="salon.emailsettings.auto.hata" Module="emailsettings" Description="salon.emailsettings.auto.hata"><Value Lang="tr">Hata</Value><Value Lang="en">Error</Value></Key>
     <Key Id="salon.emailsettings.auto.test_e_postasi_gonder" Module="emailsettings" Description="salon.emailsettings.auto.test_e_postasi_gonder"><Value Lang="tr">Test E-postası Gönder</Value><Value Lang="en">Send Test Email</Value></Key>
     <!-- AUTO TRAILING LABELS -->
-    <Key Id="salon.account.auto.planlar_yukleniyor" Module="account" Description="salon.account.auto.planlar_yukleniyor"><Value Lang="tr">Planlar yukleniyor...</Value><Value Lang="en">Planlar yukleniyor...</Value></Key>
+    <Key Id="salon.account.auto.planlar_yukleniyor" Module="account" Description="salon.account.auto.planlar_yukleniyor"><Value Lang="tr">Planlar yükleniyor...</Value><Value Lang="en">Plans are loading...</Value></Key>
     <Key Id="salon.beforeafter.auto.yeni_fotograf" Module="beforeafter" Description="salon.beforeafter.auto.yeni_fotograf"><Value Lang="tr">Yeni Fotograf</Value><Value Lang="en">Yeni Fotograf</Value></Key>
     <Key Id="salon.cash.auto.kasa_ac" Module="cash" Description="salon.cash.auto.kasa_ac"><Value Lang="tr">Kasa Aç</Value><Value Lang="en">Open Cash Register</Value></Key>
     <Key Id="salon.cash.auto.yeni_islem" Module="cash" Description="salon.cash.auto.yeni_islem"><Value Lang="tr">Yeni İşlem</Value><Value Lang="en">New Transaction</Value></Key>
@@ -1338,7 +1338,7 @@
     <Key Id="salon.consentforms.auto.yeni_form" Module="consentforms" Description="salon.consentforms.auto.yeni_form"><Value Lang="tr">Yeni Form</Value><Value Lang="en">New Form</Value></Key>
     <Key Id="salon.emailcampaigns.auto.yeni_kampanya" Module="emailcampaigns" Description="salon.emailcampaigns.auto.yeni_kampanya"><Value Lang="tr">Yeni Kampanya</Value><Value Lang="en">New Campaign</Value></Key>
     <Key Id="salon.giftcards.auto.yeni_hediye_karti" Module="giftcards" Description="salon.giftcards.auto.yeni_hediye_karti"><Value Lang="tr">Yeni Hediye Kartı</Value><Value Lang="en">New Gift Card</Value></Key>
-    <Key Id="salon.invoices.auto.yeni_musteri_olustur" Module="invoices" Description="salon.invoices.auto.yeni_musteri_olustur"><Value Lang="tr">Yeni musteri olustur</Value><Value Lang="en">Yeni musteri olustur</Value></Key>
+    <Key Id="salon.invoices.auto.yeni_musteri_olustur" Module="invoices" Description="salon.invoices.auto.yeni_musteri_olustur"><Value Lang="tr">Yeni müşteri oluştur</Value><Value Lang="en">Create new customer</Value></Key>
     <Key Id="salon.loyalty.auto.musteri_puanlari" Module="loyalty" Description="salon.loyalty.auto.musteri_puanlari"><Value Lang="tr">Müşteri Puanlari</Value><Value Lang="en">Müşteri Puanlari</Value></Key>
     <Key Id="salon.packages.auto.paket_tanimlari" Module="packages" Description="salon.packages.auto.paket_tanimlari"><Value Lang="tr">Paket Tanimlari</Value><Value Lang="en">Paket Tanimlari</Value></Key>
     <Key Id="salon.packages.auto.satis_yap" Module="packages" Description="salon.packages.auto.satis_yap"><Value Lang="tr">Satis Yap</Value><Value Lang="en">Satis Yap</Value></Key>
@@ -1392,7 +1392,7 @@
     <Key Id="salon.waitlist.js.musteri_hizmet_ve_tarih_zorunludur" Module="waitlist" Description="salon.waitlist.js.musteri_hizmet_ve_tarih_zorunludur"><Value Lang="tr">Müşteri, hizmet ve tarih zorunludur</Value><Value Lang="en">Müşteri, hizmet ve tarih zorunludur</Value></Key>
     <Key Id="salon.waitlist.js.musteri_bilgilendirildi" Module="waitlist" Description="salon.waitlist.js.musteri_bilgilendirildi"><Value Lang="tr">Müşteri bilgilendirildi</Value><Value Lang="en">Müşteri bilgilendirildi</Value></Key>
     <Key Id="salon.waitlist.js.randevu_alindi_olarak_isaretlendi" Module="waitlist" Description="salon.waitlist.js.randevu_alindi_olarak_isaretlendi"><Value Lang="tr">Randevu alindi olarak isaretlendi</Value><Value Lang="en">Randevu alindi olarak isaretlendi</Value></Key>
-    <Key Id="salon.waitlist.js.kayit_silindi" Module="waitlist" Description="salon.waitlist.js.kayit_silindi"><Value Lang="tr">Kayit silindi</Value><Value Lang="en">Kayit silindi</Value></Key>
+    <Key Id="salon.waitlist.js.kayit_silindi" Module="waitlist" Description="salon.waitlist.js.kayit_silindi"><Value Lang="tr">Kayıt silindi</Value><Value Lang="en">Record deleted</Value></Key>
     <Key Id="salon.waitlist.js.sube_bilgisi_olmayan_bekleme_kayitlari_personelin_varsa_veya_merkez_su" Module="waitlist" Description="salon.waitlist.js.sube_bilgisi_olmayan_bekleme_kayitlari_personelin_varsa_veya_merkez_su"><Value Lang="tr">Şube bilgisi olmayan bekleme kayitlari personelin (varsa) veya merkez şubeye baglanacak. Devam?</Value><Value Lang="en">Şube bilgisi olmayan bekleme kayitlari personelin (varsa) veya merkez şubeye baglanacak. Devam?</Value></Key>
     <Key Id="salon.waitlist.js.tarih_saat_ve_personel_zorunlu" Module="waitlist" Description="salon.waitlist.js.tarih_saat_ve_personel_zorunlu"><Value Lang="tr">Tarih, saat ve personel zorunlu</Value><Value Lang="en">Tarih, saat ve personel zorunlu</Value></Key>
     <Key Id="salon.waitlist.js.randevu_olusturuldu_bekleme_kaydi_guncellendi" Module="waitlist" Description="salon.waitlist.js.randevu_olusturuldu_bekleme_kaydi_guncellendi"><Value Lang="tr">Randevu oluşturuldu, bekleme kaydi güncellendi</Value><Value Lang="en">Randevu oluşturuldu, bekleme kaydi güncellendi</Value></Key>
@@ -1402,7 +1402,7 @@
     <Key Id="salon.products.js.kategori_olusturulamadi" Module="products" Description="salon.products.js.kategori_olusturulamadi"><Value Lang="tr">Kategori oluşturulamadı</Value><Value Lang="en">Kategori oluşturulamadı</Value></Key>
     <Key Id="salon.products.js.urun_guncellendi" Module="products" Description="salon.products.js.urun_guncellendi"><Value Lang="tr">Ürün güncellendi</Value><Value Lang="en">Ürün güncellendi</Value></Key>
     <Key Id="salon.products.js.urun_eklendi" Module="products" Description="salon.products.js.urun_eklendi"><Value Lang="tr">Ürün eklendi</Value><Value Lang="en">Ürün eklendi</Value></Key>
-    <Key Id="salon.products.js.tedarikci_secilmelidir" Module="products" Description="salon.products.js.tedarikci_secilmelidir"><Value Lang="tr">Tedarikci secilmelidir</Value><Value Lang="en">Tedarikci secilmelidir</Value></Key>
+    <Key Id="salon.products.js.tedarikci_secilmelidir" Module="products" Description="salon.products.js.tedarikci_secilmelidir"><Value Lang="tr">Tedarikçi seçilmelidir</Value><Value Lang="en">Supplier must be selected</Value></Key>
     <Key Id="salon.products.js.alis_kaydi_eklendi_tedarikci_carisi_guncellendi" Module="products" Description="salon.products.js.alis_kaydi_eklendi_tedarikci_carisi_guncellendi"><Value Lang="tr">Alis kaydi eklendi, tedarikci carisi güncellendi</Value><Value Lang="en">Alis kaydi eklendi, tedarikci carisi güncellendi</Value></Key>
     <Key Id="salon.products.js.hedef_sube_secilmelidir" Module="products" Description="salon.products.js.hedef_sube_secilmelidir"><Value Lang="tr">Hedef şube secilmelidir</Value><Value Lang="en">Hedef şube secilmelidir</Value></Key>
     <Key Id="salon.products.js.sayim_farki_kaydedildi" Module="products" Description="salon.products.js.sayim_farki_kaydedildi"><Value Lang="tr">Sayim farki kaydedildi</Value><Value Lang="en">Sayim farki kaydedildi</Value></Key>
@@ -1492,7 +1492,7 @@
     <Key Id="salon.pagesettings.js.online_randevu" Module="pagesettings" Description="salon.pagesettings.js.online_randevu"><Value Lang="tr">Online Randevu</Value><Value Lang="en">Online Booking</Value></Key>
     <Key Id="salon.pagesettings.js.musteri_yorumlari" Module="pagesettings" Description="salon.pagesettings.js.musteri_yorumlari"><Value Lang="tr">Müşteri Yorumları</Value><Value Lang="en">Customer Reviews</Value></Key>
     <Key Id="salon.pagesettings.js.yukleniyor" Module="pagesettings" Description="salon.pagesettings.js.yukleniyor"><Value Lang="tr">Yukleniyor...</Value><Value Lang="en">Yukleniyor...</Value></Key>
-    <Key Id="salon.pagesettings.js.gorsel_yukleniyor" Module="pagesettings" Description="salon.pagesettings.js.gorsel_yukleniyor"><Value Lang="tr"> gorsel yukleniyor...</Value><Value Lang="en"> gorsel yukleniyor...</Value></Key>
+    <Key Id="salon.pagesettings.js.gorsel_yukleniyor" Module="pagesettings" Description="salon.pagesettings.js.gorsel_yukleniyor"><Value Lang="tr"> görsel yükleniyor...</Value><Value Lang="en"> image uploading...</Value></Key>
     <Key Id="salon.pagesettings.js.sayfa_ayarlari_kaydedildi" Module="pagesettings" Description="salon.pagesettings.js.sayfa_ayarlari_kaydedildi"><Value Lang="tr">Sayfa ayarlari kaydedildi.</Value><Value Lang="en">Sayfa ayarlari kaydedildi.</Value></Key>
     <!-- DISCOVER / REMAINING KEYS -->
     <Key Id="salon.discover.book_aria_suffix" Module="discover" Description="salon.discover.book_aria_suffix"><Value Lang="tr">için randevu al</Value><Value Lang="en">book an appointment</Value></Key>
@@ -1518,9 +1518,9 @@
     <Key Id="salon.consentforms.auto.onay_formlari" Module="consentforms" Description="salon.consentforms.auto.onay_formlari"><Value Lang="tr">Onay Formları</Value><Value Lang="en">Consent Forms</Value></Key>
     <Key Id="salon.consentforms.auto.form_duzenle" Module="consentforms" Description="salon.consentforms.auto.form_duzenle"><Value Lang="tr">Form Düzenle</Value><Value Lang="en">Edit Form</Value></Key>
     <Key Id="salon.consentforms.auto.yeni_onay_formu" Module="consentforms" Description="salon.consentforms.auto.yeni_onay_formu"><Value Lang="tr">Yeni Onay Formu</Value><Value Lang="en">New Consent Form</Value></Key>
-    <Key Id="salon.consentforms.auto.henuz_form_tanimlanmamis" Module="consentforms" Description="salon.consentforms.auto.henuz_form_tanimlanmamis"><Value Lang="tr">Henuz form tanimlanmamis</Value><Value Lang="en">Henuz form tanimlanmamis</Value></Key>
+    <Key Id="salon.consentforms.auto.henuz_form_tanimlanmamis" Module="consentforms" Description="salon.consentforms.auto.henuz_form_tanimlanmamis"><Value Lang="tr">Henüz form tanımlanmamış</Value><Value Lang="en">No form has been defined yet</Value></Key>
     <Key Id="salon.consentforms.auto.form" Module="consentforms" Description="salon.consentforms.auto.form"><Value Lang="tr">Form</Value><Value Lang="en">Form</Value></Key>
-    <Key Id="salon.consentforms.auto.henuz_imzalanmis_form_yok" Module="consentforms" Description="salon.consentforms.auto.henuz_imzalanmis_form_yok"><Value Lang="tr">Henuz imzalanmis form yok</Value><Value Lang="en">Henuz imzalanmis form yok</Value></Key>
+    <Key Id="salon.consentforms.auto.henuz_imzalanmis_form_yok" Module="consentforms" Description="salon.consentforms.auto.henuz_imzalanmis_form_yok"><Value Lang="tr">Henüz imzalanmış form yok</Value><Value Lang="en">No signed form yet</Value></Key>
     <Key Id="salon.giftcards.auto.kod_veya_alici_ara" Module="giftcards" Description="salon.giftcards.auto.kod_veya_alici_ara"><Value Lang="tr">Kod veya alıcı ara...</Value><Value Lang="en">Search code or recipient...</Value></Key>
     <Key Id="salon.giftcards.auto.iptal_et" Module="giftcards" Description="salon.giftcards.auto.iptal_et"><Value Lang="tr">İptal Et</Value><Value Lang="en">Cancel</Value></Key>
     <Key Id="salon.giftcards.auto.bakiye" Module="giftcards" Description="salon.giftcards.auto.bakiye"><Value Lang="tr">Bakiye</Value><Value Lang="en">Bakiye</Value></Key>
@@ -1548,12 +1548,12 @@
     <Key Id="salon.account.auto.beni_hatirla" Module="account" Description="salon.account.auto.beni_hatirla"><Value Lang="tr">Beni hatırla</Value><Value Lang="en">Remember me</Value></Key>
     <Key Id="salon.account.auto.30_gun" Module="account" Description="salon.account.auto.30_gun"><Value Lang="tr">(30 gün)</Value><Value Lang="en">(30 gün)</Value></Key>
     <Key Id="salon.account.auto.giris_yap" Module="account" Description="salon.account.auto.giris_yap"><Value Lang="tr">Giriş Yap</Value><Value Lang="en">Sign In</Value></Key>
-    <Key Id="salon.account.auto.ucretsiz_kayit_ol" Module="account" Description="salon.account.auto.ucretsiz_kayit_ol"><Value Lang="tr">Ucretsiz Kayıt Ol</Value><Value Lang="en">Ucretsiz Kayıt Ol</Value></Key>
-    <Key Id="salon.account.auto.kayit_ol" Module="account" Description="salon.account.auto.kayit_ol"><Value Lang="tr">Kayıt Ol';</Value><Value Lang="en">Kayıt Ol';</Value></Key>
+    <Key Id="salon.account.auto.ucretsiz_kayit_ol" Module="account" Description="salon.account.auto.ucretsiz_kayit_ol"><Value Lang="tr">Ücretsiz Kayıt Ol</Value><Value Lang="en">Register for Free</Value></Key>
+    <Key Id="salon.account.auto.kayit_ol" Module="account" Description="salon.account.auto.kayit_ol"><Value Lang="tr">Kayıt Ol</Value><Value Lang="en">Sign Up</Value></Key>
     <Key Id="salon.account.auto.corplynk_salon_kayit_ol" Module="account" Description="salon.account.auto.corplynk_salon_kayit_ol"><Value Lang="tr">CorpLynk Salon - Kayıt Ol</Value><Value Lang="en">CorpLynk Salon - Kayıt Ol</Value></Key>
-    <Key Id="salon.account.auto.ucretsiz_salon_hesabi_olustur" Module="account" Description="salon.account.auto.ucretsiz_salon_hesabi_olustur"><Value Lang="tr">Ucretsiz Salon Hesabi Olustur</Value><Value Lang="en">Ucretsiz Salon Hesabi Olustur</Value></Key>
+    <Key Id="salon.account.auto.ucretsiz_salon_hesabi_olustur" Module="account" Description="salon.account.auto.ucretsiz_salon_hesabi_olustur"><Value Lang="tr">Ücretsiz Salon Hesabı Oluştur</Value><Value Lang="en">Create a Free Salon Account</Value></Key>
     <Key Id="salon.account.auto.salon_firma_adi" Module="account" Description="salon.account.auto.salon_firma_adi"><Value Lang="tr">Salon / Firma Adı</Value><Value Lang="en">Salon / Company Name</Value></Key>
-    <Key Id="salon.account.auto.abonelik_planlari_yuklenemedi_kayit_sirasinda_varsayilan_aylik_plan_se" Module="account" Description="salon.account.auto.abonelik_planlari_yuklenemedi_kayit_sirasinda_varsayilan_aylik_plan_se"><Value Lang="tr">Abonelik planlari yuklenemedi. Kayıt sirasinda varsayilan aylik plan secilecek.';</Value><Value Lang="en">Abonelik planlari yuklenemedi. Kayıt sirasinda varsayilan aylik plan secilecek.';</Value></Key>
+    <Key Id="salon.account.auto.abonelik_planlari_yuklenemedi_kayit_sirasinda_varsayilan_aylik_plan_se" Module="account" Description="salon.account.auto.abonelik_planlari_yuklenemedi_kayit_sirasinda_varsayilan_aylik_plan_se"><Value Lang="tr">Abonelik planları yüklenemedi. Kayıt sırasında varsayılan aylık plan seçilecek.</Value><Value Lang="en">Subscription plans could not be loaded. The default monthly plan will be selected during registration.</Value></Key>
     <Key Id="salon.publicsalon.auto.giris_corplynk_salon" Module="publicsalon" Description="salon.publicsalon.auto.giris_corplynk_salon"><Value Lang="tr">Giriş - CorpLynk Salon</Value><Value Lang="en">Login - CorpLynk Salon</Value></Key>
     <Key Id="salon.publicsalon.auto.tr_turkce" Module="publicsalon" Description="salon.publicsalon.auto.tr_turkce"><Value Lang="tr">TR — Türkçe</Value><Value Lang="en">TR — Türkçe</Value></Key>
     <Key Id="salon.publicsalon.auto.salon" Module="publicsalon" Description="salon.publicsalon.auto.salon"><Value Lang="tr">Salon</Value><Value Lang="en">Salon</Value></Key>
@@ -1573,10 +1573,10 @@
     <Key Id="salon.subscriptionrequired.auto.salon_adisyonlari" Module="subscriptionrequired" Description="salon.subscriptionrequired.auto.salon_adisyonlari"><Value Lang="tr">Salon adisyonları</Value><Value Lang="en">Salon adisyonları</Value></Key>
     <Key Id="salon.subscriptionrequired.auto.musteri_faturalari_panel_acildiginda" Module="subscriptionrequired" Description="salon.subscriptionrequired.auto.musteri_faturalari_panel_acildiginda"><Value Lang="tr">(müşteri faturaları) panel açıldığında</Value><Value Lang="en">(müşteri faturaları) panel açıldığında</Value></Key>
     <Key Id="salon.subscriptionrequired.auto.cikis_yap" Module="subscriptionrequired" Description="salon.subscriptionrequired.auto.cikis_yap"><Value Lang="tr">Çıkış yap</Value><Value Lang="en">Çıkış yap</Value></Key>
-    <Key Id="salon.pagesettings.auto.gorsel_sec" Module="pagesettings" Description="salon.pagesettings.auto.gorsel_sec"><Value Lang="tr">Gorsel Sec</Value><Value Lang="en">Gorsel Sec</Value></Key>
+    <Key Id="salon.pagesettings.auto.gorsel_sec" Module="pagesettings" Description="salon.pagesettings.auto.gorsel_sec"><Value Lang="tr">Görsel Seç</Value><Value Lang="en">Select Image</Value></Key>
     <Key Id="salon.pagesettings.auto.salon" Module="pagesettings" Description="salon.pagesettings.auto.salon"><Value Lang="tr">/salon/</Value><Value Lang="en">/salon/</Value></Key>
     <Key Id="salon.pagesettings.auto.salon_profili" Module="pagesettings" Description="salon.pagesettings.auto.salon_profili"><Value Lang="tr">Salon Profili</Value><Value Lang="en">Salon Profili</Value></Key>
-    <Key Id="salon.pagesettings.auto.galeri_bos_public_sayfanizda_salon_fotograflarinizi_sergileyebilirsini" Module="pagesettings" Description="salon.pagesettings.auto.galeri_bos_public_sayfanizda_salon_fotograflarinizi_sergileyebilirsini"><Value Lang="tr">Galeri bos. Public sayfanizda salon fotograflarinizi sergileyebilirsiniz.</Value><Value Lang="en">Galeri bos. Public sayfanizda salon fotograflarinizi sergileyebilirsiniz.</Value></Key>
+    <Key Id="salon.pagesettings.auto.galeri_bos_public_sayfanizda_salon_fotograflarinizi_sergileyebilirsini" Module="pagesettings" Description="salon.pagesettings.auto.galeri_bos_public_sayfanizda_salon_fotograflarinizi_sergileyebilirsini"><Value Lang="tr">Galeri boş. Public sayfanızda salon fotoğraflarınızı sergileyebilirsiniz.</Value><Value Lang="en">Gallery is empty. You can display salon photos on your public page.</Value></Key>
     <Key Id="salon.pagesettings.auto.ekle" Module="pagesettings" Description="salon.pagesettings.auto.ekle"><Value Lang="tr">Ekle</Value><Value Lang="en">Ekle</Value></Key>
     <!-- REMAINING JS UI MESSAGES -->
     <Key Id="salon.clients.js.musteri_detaylari_yuklenemedi_listedeki_bilgilerle_devam_ediliyor" Module="clients" Description="salon.clients.js.musteri_detaylari_yuklenemedi_listedeki_bilgilerle_devam_ediliyor"><Value Lang="tr">Müşteri detayları yüklenemedi, listedeki bilgilerle devam ediliyor.</Value><Value Lang="en">Customer details could not be loaded; continuing with list data.</Value></Key>
@@ -1624,7 +1624,7 @@
     <Key Id="salon.winback.js.kural_durumu_degistirildi" Module="winback" Description="salon.winback.js.kural_durumu_degistirildi"><Value Lang="tr">Kural durumu degistirildi</Value><Value Lang="en">Kural durumu degistirildi</Value></Key>
     <Key Id="salon.winback.js.bu_kurali_silmek_istediginize_emin_misiniz" Module="winback" Description="salon.winback.js.bu_kurali_silmek_istediginize_emin_misiniz"><Value Lang="tr">Bu kuralı silmek istediğinize emin misiniz?</Value><Value Lang="en">Are you sure you want to delete this rule?</Value></Key>
     <Key Id="salon.winback.js.kural_silindi" Module="winback" Description="salon.winback.js.kural_silindi"><Value Lang="tr">Kural silindi</Value><Value Lang="en">Rule deleted</Value></Key>
-    <Key Id="salon.consentforms.js.baslik_ve_icerik_zorunludur" Module="consentforms" Description="salon.consentforms.js.baslik_ve_icerik_zorunludur"><Value Lang="tr">Baslik ve icerik zorunludur</Value><Value Lang="en">Baslik ve icerik zorunludur</Value></Key>
+    <Key Id="salon.consentforms.js.baslik_ve_icerik_zorunludur" Module="consentforms" Description="salon.consentforms.js.baslik_ve_icerik_zorunludur"><Value Lang="tr">Başlık ve içerik zorunludur</Value><Value Lang="en">Title and content are required</Value></Key>
     <Key Id="salon.consentforms.js.form_guncellendi" Module="consentforms" Description="salon.consentforms.js.form_guncellendi"><Value Lang="tr">Form güncellendi</Value><Value Lang="en">Form güncellendi</Value></Key>
     <Key Id="salon.consentforms.js.form_olusturuldu" Module="consentforms" Description="salon.consentforms.js.form_olusturuldu"><Value Lang="tr">Form oluşturuldu</Value><Value Lang="en">Form oluşturuldu</Value></Key>
     <Key Id="salon.consentforms.js.bu_formu_silmek_istediginize_emin_misiniz" Module="consentforms" Description="salon.consentforms.js.bu_formu_silmek_istediginize_emin_misiniz"><Value Lang="tr">Bu formu silmek istediğinize emin misiniz?</Value><Value Lang="en">Are you sure you want to delete this form?</Value></Key>
@@ -1810,5 +1810,98 @@
     <Key Id="salon.phone.country.plus86" Module="phone" Description="salon.phone.country.plus86"><Value Lang="tr">Çin</Value><Value Lang="en">China</Value></Key>
     <Key Id="salon.phone.country.plus82" Module="phone" Description="salon.phone.country.plus82"><Value Lang="tr">Güney Kore</Value><Value Lang="en">South Korea</Value></Key>
     <Key Id="salon.phone.country.plus55" Module="phone" Description="salon.phone.country.plus55"><Value Lang="tr">Brezilya</Value><Value Lang="en">Brazil</Value></Key>
+    <Key Id="salon.account.no_account" Module="account" Description="salon.account.no_account"><Value Lang="tr">Hesabınız yok mu?</Value><Value Lang="en">Don't have an account?</Value></Key>
+    <Key Id="salon.publicsalon.discover_salons" Module="public" Description="salon.publicsalon.discover_salons"><Value Lang="tr">Salonları Keşfet</Value><Value Lang="en">Discover Salons</Value></Key>
+    <Key Id="salon.common.address" Module="common" Description="salon.common.address"><Value Lang="tr">Adres</Value><Value Lang="en">Address</Value></Key>
+    <Key Id="salon.common.phone" Module="common" Description="salon.common.phone"><Value Lang="tr">Telefon</Value><Value Lang="en">Phone</Value></Key>
+    <Key Id="salon.common.manager" Module="common" Description="salon.common.manager"><Value Lang="tr">Müdür</Value><Value Lang="en">Manager</Value></Key>
+    <Key Id="salon.common.city" Module="common" Description="salon.common.city"><Value Lang="tr">İl</Value><Value Lang="en">City</Value></Key>
+    <Key Id="salon.common.district" Module="common" Description="salon.common.district"><Value Lang="tr">İlçe</Value><Value Lang="en">District</Value></Key>
+    <Key Id="salon.common.year" Module="common" Description="salon.common.year"><Value Lang="tr">Yıl</Value><Value Lang="en">Year</Value></Key>
+    <Key Id="salon.common.select" Module="common" Description="salon.common.select"><Value Lang="tr">Seçiniz</Value><Value Lang="en">Select</Value></Key>
+    <Key Id="salon.status.active" Module="common" Description="salon.status.active"><Value Lang="tr">Aktif</Value><Value Lang="en">Active</Value></Key>
+    <Key Id="salon.status.passive" Module="common" Description="salon.status.passive"><Value Lang="tr">Pasif</Value><Value Lang="en">Passive</Value></Key>
+    <Key Id="salon.branches.general_info" Module="branches" Description="salon.branches.general_info"><Value Lang="tr">Genel Bilgiler</Value><Value Lang="en">General Information</Value></Key>
+    <Key Id="salon.branches.profile_slug" Module="branches" Description="salon.branches.profile_slug"><Value Lang="tr">Profil Adresi (slug)</Value><Value Lang="en">Profile Address (slug)</Value></Key>
+    <Key Id="salon.branches.map_location" Module="branches" Description="salon.branches.map_location"><Value Lang="tr">Harita Konumu</Value><Value Lang="en">Map Location</Value></Key>
+    <Key Id="salon.branches.find_from_address" Module="branches" Description="salon.branches.find_from_address"><Value Lang="tr">Adresten Bul</Value><Value Lang="en">Find From Address</Value></Key>
+    <Key Id="salon.branches.closed" Module="branches" Description="salon.branches.closed"><Value Lang="tr">Kapalı</Value><Value Lang="en">Closed</Value></Key>
+    <Key Id="salon.branches.js.load_failed" Module="branches" Description="salon.branches.js.load_failed"><Value Lang="tr">Şubeler yüklenemedi</Value><Value Lang="en">Branches could not be loaded</Value></Key>
+    <Key Id="salon.modules.back_to_modules" Module="modules" Description="salon.modules.back_to_modules"><Value Lang="tr">Modüllere Dön</Value><Value Lang="en">Back to Modules</Value></Key>
+    <Key Id="salon.modules.monthly_fee" Module="modules" Description="salon.modules.monthly_fee"><Value Lang="tr">Aylık Ücret</Value><Value Lang="en">Monthly Fee</Value></Key>
+    <Key Id="salon.modules.request_received" Module="modules" Description="salon.modules.request_received"><Value Lang="tr">Talep Alındı</Value><Value Lang="en">Request Received</Value></Key>
+    <Key Id="salon.modules.activated" Module="modules" Description="salon.modules.activated"><Value Lang="tr">Modülünüz aktif edildi.</Value><Value Lang="en">Your module has been activated.</Value></Key>
+    <Key Id="salon.payment.card_holder" Module="payment" Description="salon.payment.card_holder"><Value Lang="tr">Kart Üzerindeki İsim *</Value><Value Lang="en">Name on Card *</Value></Key>
+    <Key Id="salon.payment.card_number" Module="payment" Description="salon.payment.card_number"><Value Lang="tr">Kart Numarası *</Value><Value Lang="en">Card Number *</Value></Key>
+    <Key Id="salon.payment.single_payment" Module="payment" Description="salon.payment.single_payment"><Value Lang="tr">Tek Çekim</Value><Value Lang="en">Single Payment</Value></Key>
+    <Key Id="salon.payment.pay_prefix" Module="payment" Description="salon.payment.pay_prefix"><Value Lang="tr">Öde</Value><Value Lang="en">Pay</Value></Key>
+    <Key Id="salon.modules.bank_transfer_hint" Module="modules" Description="salon.modules.bank_transfer_hint"><Value Lang="tr">Aşağıdaki hesaba havale yaptıktan sonra "Havale Yaptım" butonuna tıklayınız.</Value><Value Lang="en">After sending the bank transfer to the account below, click "I Sent the Transfer".</Value></Key>
+    <Key Id="salon.profile.description" Module="profile" Description="Profile description label"><Value Lang="tr">Açıklama</Value><Value Lang="en">Description</Value></Key>
+    <Key Id="salon.profile.description_placeholder" Module="profile" Description="Profile description placeholder"><Value Lang="tr">Salonunuz hakkında kısa bilgi...</Value><Value Lang="en">Short information about your salon...</Value></Key>
+    <Key Id="salon.profile.website" Module="profile" Description="Profile website label"><Value Lang="tr">Web Sitesi</Value><Value Lang="en">Website</Value></Key>
+    <Key Id="salon.common.status" Module="common" Description="Status label"><Value Lang="tr">Durum</Value><Value Lang="en">Status</Value></Key>
+    <Key Id="salon.status.published" Module="common" Description="Published status"><Value Lang="tr">Yayında</Value><Value Lang="en">Published</Value></Key>
+    <Key Id="salon.status.draft" Module="common" Description="Draft status"><Value Lang="tr">Taslak</Value><Value Lang="en">Draft</Value></Key>
+    <Key Id="salon.profile.social_media" Module="profile" Description="Social media header"><Value Lang="tr">Sosyal Medya</Value><Value Lang="en">Social Media</Value></Key>
+    <Key Id="salon.profile.billing" Module="profile" Description="Billing header"><Value Lang="tr">Faturalama</Value><Value Lang="en">Billing</Value></Key>
+    <Key Id="salon.profile.billing_preference" Module="profile" Description="Billing preference label"><Value Lang="tr">Faturalama Tercihi</Value><Value Lang="en">Billing Preference</Value></Key>
+    <Key Id="salon.profile.branch_managed_info" Module="profile" Description="Branch managed info prefix"><Value Lang="tr">Adres, telefon, çalışma saatleri ve fatura bilgileri</Value><Value Lang="en">Address, phone, working hours and billing information</Value></Key>
+    <Key Id="salon.profile.branch_managed_suffix" Module="profile" Description="Branch managed info suffix"><Value Lang="tr">sayfasından yönetilir.</Value><Value Lang="en">are managed from this page.</Value></Key>
+    <Key Id="salon.common.remove" Module="common" Description="Remove button"><Value Lang="tr">Kaldır</Value><Value Lang="en">Remove</Value></Key>
+    <Key Id="salon.pagesettings.title" Module="pagesettings" Description="Page settings title"><Value Lang="tr">Sayfa Ayarları</Value><Value Lang="en">Page Settings</Value></Key>
+    <Key Id="salon.pagesettings.create_profile_prefix" Module="pagesettings" Description="Create profile warning prefix"><Value Lang="tr">Önce</Value><Value Lang="en">First create a profile on the</Value></Key>
+    <Key Id="salon.pagesettings.create_profile_suffix" Module="pagesettings" Description="Create profile warning suffix"><Value Lang="tr">sayfasından profil oluşturun.</Value><Value Lang="en">page.</Value></Key>
+    <Key Id="salon.pagesettings.public_page" Module="pagesettings" Description="Public page label"><Value Lang="tr">Public sayfa</Value><Value Lang="en">Public page</Value></Key>
+    <Key Id="salon.pagesettings.logo" Module="pagesettings" Description="Logo header"><Value Lang="tr">Logo</Value><Value Lang="en">Logo</Value></Key>
+    <Key Id="salon.pagesettings.favicon" Module="pagesettings" Description="Favicon header"><Value Lang="tr">Favicon</Value><Value Lang="en">Favicon</Value></Key>
+    <Key Id="salon.pagesettings.logo_not_uploaded" Module="pagesettings" Description="Logo not uploaded"><Value Lang="tr">Logo yüklenmemiş</Value><Value Lang="en">Logo has not been uploaded</Value></Key>
+    <Key Id="salon.pagesettings.favicon_not_uploaded" Module="pagesettings" Description="Favicon not uploaded"><Value Lang="tr">Favicon yüklenmemiş</Value><Value Lang="en">Favicon has not been uploaded</Value></Key>
+    <Key Id="salon.pagesettings.cover_image" Module="pagesettings" Description="Cover image header"><Value Lang="tr">Kapak Görseli</Value><Value Lang="en">Cover Image</Value></Key>
+    <Key Id="salon.pagesettings.cover_not_uploaded" Module="pagesettings" Description="Cover image not uploaded"><Value Lang="tr">Kapak görseli yüklenmemiş</Value><Value Lang="en">Cover image has not been uploaded</Value></Key>
+    <Key Id="salon.pagesettings.cover_recommendation" Module="pagesettings" Description="Cover image recommendation"><Value Lang="tr">Önerilen: 1200x400 piksel, max 5 MB</Value><Value Lang="en">Recommended: 1200x400 pixels, max 5 MB</Value></Key>
+    <Key Id="salon.pagesettings.gallery" Module="pagesettings" Description="Gallery header"><Value Lang="tr">Galeri</Value><Value Lang="en">Gallery</Value></Key>
+    <Key Id="salon.pagesettings.gallery_empty" Module="pagesettings" Description="Gallery empty message"><Value Lang="tr">Galeri boş. Public sayfanızda salon fotoğraflarınızı sergileyebilirsiniz.</Value><Value Lang="en">Gallery is empty. You can display salon photos on your public page.</Value></Key>
+    <Key Id="salon.pagesettings.sections" Module="pagesettings" Description="Page sections header"><Value Lang="tr">Sayfa Bölümleri</Value><Value Lang="en">Page Sections</Value></Key>
+    <Key Id="salon.pagesettings.sections_hint" Module="pagesettings" Description="Page sections hint"><Value Lang="tr">Public sayfanızda hangi bölümlerin görüneceğini seçin. Sıralamak için sürükleyin.</Value><Value Lang="en">Choose which sections appear on your public page. Drag to reorder.</Value></Key>
+    <Key Id="salon.pagesettings.banner_images" Module="pagesettings" Description="Banner images header"><Value Lang="tr">Reklam Görselleri (Carousel)</Value><Value Lang="en">Banner Images (Carousel)</Value></Key>
+    <Key Id="salon.pagesettings.banners_empty" Module="pagesettings" Description="Banners empty message"><Value Lang="tr">Henüz görsel eklenmemiş. Public sayfanızda carousel/slider olarak gösterilir.</Value><Value Lang="en">No image has been added yet. It will be shown as a carousel/slider on your public page.</Value></Key>
+    <Key Id="salon.pagesettings.title_optional" Module="pagesettings" Description="Optional title placeholder"><Value Lang="tr">Başlık (opsiyonel)</Value><Value Lang="en">Title (optional)</Value></Key>
+    <Key Id="salon.pagesettings.link_optional" Module="pagesettings" Description="Optional link placeholder"><Value Lang="tr">Link (opsiyonel)</Value><Value Lang="en">Link (optional)</Value></Key>
+    <Key Id="salon.pagesettings.js.banner_images" Module="pagesettings" Description="Page settings JS banner section"><Value Lang="tr">Reklam Görselleri</Value><Value Lang="en">Banner Images</Value></Key>
+    <Key Id="salon.pagesettings.js.gallery" Module="pagesettings" Description="Page settings JS gallery section"><Value Lang="tr">Galeri</Value><Value Lang="en">Gallery</Value></Key>
+    <Key Id="salon.pagesettings.js.services" Module="pagesettings" Description="Page settings JS services section"><Value Lang="tr">Hizmetler</Value><Value Lang="en">Services</Value></Key>
+    <Key Id="salon.pagesettings.js.membership_plans" Module="pagesettings" Description="Page settings JS memberships section"><Value Lang="tr">Üyelik Planları</Value><Value Lang="en">Membership Plans</Value></Key>
+    <Key Id="salon.pagesettings.js.team" Module="pagesettings" Description="Page settings JS team section"><Value Lang="tr">Ekibimiz</Value><Value Lang="en">Our Team</Value></Key>
+    <Key Id="salon.pagesettings.js.working_hours" Module="pagesettings" Description="Page settings JS working hours section"><Value Lang="tr">Çalışma Saatleri</Value><Value Lang="en">Working Hours</Value></Key>
+    <Key Id="salon.pagesettings.js.map" Module="pagesettings" Description="Page settings JS map section"><Value Lang="tr">Harita</Value><Value Lang="en">Map</Value></Key>
+    <Key Id="salon.pagesettings.js.contact" Module="pagesettings" Description="Page settings JS contact section"><Value Lang="tr">İletişim</Value><Value Lang="en">Contact</Value></Key>
+    <Key Id="salon.pagesettings.js.image_uploaded" Module="pagesettings" Description="Image uploaded toastr"><Value Lang="tr">Görsel yüklendi.</Value><Value Lang="en">Image uploaded.</Value></Key>
+    <Key Id="salon.pagesettings.js.upload_error" Module="pagesettings" Description="Upload error toastr"><Value Lang="tr">Yükleme hatası.</Value><Value Lang="en">Upload error.</Value></Key>
+    <Key Id="salon.pagesettings.js.images_uploading" Module="pagesettings" Description="Images uploading suffix"><Value Lang="tr"> görsel yükleniyor...</Value><Value Lang="en"> images uploading...</Value></Key>
+    <Key Id="salon.pagesettings.js.file_too_large_suffix" Module="pagesettings" Description="File too large suffix"><Value Lang="tr"> 5 MB sınırını aşıyor.</Value><Value Lang="en"> exceeds the 5 MB limit.</Value></Key>
+    <Key Id="salon.pagesettings.js.file_upload_failed_suffix" Module="pagesettings" Description="File upload failed suffix"><Value Lang="tr"> yüklenemedi.</Value><Value Lang="en"> could not be uploaded.</Value></Key>
+    <Key Id="salon.pagesettings.js.gallery_images_uploaded" Module="pagesettings" Description="Gallery uploaded toastr"><Value Lang="tr">Galeri görselleri yüklendi.</Value><Value Lang="en">Gallery images uploaded.</Value></Key>
+    <Key Id="salon.pagesettings.js.file_too_large" Module="pagesettings" Description="File too large toastr"><Value Lang="tr">Dosya 5 MB dan büyük olamaz.</Value><Value Lang="en">File cannot be larger than 5 MB.</Value></Key>
+    <Key Id="salon.pagesettings.js.loading" Module="pagesettings" Description="Loading toastr"><Value Lang="tr">Yükleniyor...</Value><Value Lang="en">Loading...</Value></Key>
+    <Key Id="salon.pagesettings.js.saved" Module="pagesettings" Description="Page settings saved toastr"><Value Lang="tr">Sayfa ayarları kaydedildi.</Value><Value Lang="en">Page settings saved.</Value></Key>
+    <Key Id="salon.pagesettings.js.save_error" Module="pagesettings" Description="Page settings save error toastr"><Value Lang="tr">Kaydetme hatası.</Value><Value Lang="en">Save error.</Value></Key>
+    <Key Id="salon.recipes.empty" Module="recipes" Description="Recipes empty message"><Value Lang="tr">Henüz reçete oluşturulmamış</Value><Value Lang="en">No recipe has been created yet</Value></Key>
+    <Key Id="salon.recipes.empty_hint" Module="recipes" Description="Recipes empty hint"><Value Lang="tr">Reçeteler, hizmetler için gereken malzeme ve miktarları tanımlamanızı sağlar.</Value><Value Lang="en">Recipes help you define the materials and quantities required for services.</Value></Key>
+    <Key Id="salon.common.title" Module="common" Description="Title label"><Value Lang="tr">Başlık</Value><Value Lang="en">Title</Value></Key>
+    <Key Id="salon.consentforms.signature_required" Module="consentforms" Description="Signature required column"><Value Lang="tr">İmza Gerekli</Value><Value Lang="en">Signature Required</Value></Key>
+    <Key Id="salon.consentforms.html_content" Module="consentforms" Description="HTML content label"><Value Lang="tr">HTML İçerik</Value><Value Lang="en">HTML Content</Value></Key>
+    <Key Id="salon.staff.role" Module="staff" Description="Staff role label"><Value Lang="tr">Rol</Value><Value Lang="en">Role</Value></Key>
+    <Key Id="salon.staff.role_select" Module="staff" Description="Staff role select placeholder"><Value Lang="tr">Rol seçiniz</Value><Value Lang="en">Select role</Value></Key>
+    <Key Id="salon.common.upload" Module="common" Description="Upload button"><Value Lang="tr">Yükle</Value><Value Lang="en">Upload</Value></Key>
+    <Key Id="salon.branches.decor.title" Module="branches" Description="Branch decoration section title"><Value Lang="tr">Şube Dekorasyonu</Value><Value Lang="en">Branch Decoration</Value></Key>
+    <Key Id="salon.branches.decor.photo" Module="branches" Description="Branch profile image label"><Value Lang="tr">Şube Profil Görseli</Value><Value Lang="en">Branch Profile Image</Value></Key>
+    <Key Id="salon.branches.decor.photo_empty" Module="branches" Description="Branch profile image empty state"><Value Lang="tr">Görsel yok</Value><Value Lang="en">No image</Value></Key>
+    <Key Id="salon.branches.decor.cover" Module="branches" Description="Branch cover image label"><Value Lang="tr">Kapak Görseli</Value><Value Lang="en">Cover Image</Value></Key>
+    <Key Id="salon.branches.decor.cover_empty" Module="branches" Description="Branch cover image empty state"><Value Lang="tr">Kapak görseli yok</Value><Value Lang="en">No cover image</Value></Key>
+    <Key Id="salon.branches.decor.cover_upload" Module="branches" Description="Branch cover upload button"><Value Lang="tr">Kapak Yükle</Value><Value Lang="en">Upload Cover</Value></Key>
+    <Key Id="salon.branches.decor.gallery" Module="branches" Description="Branch decoration gallery label"><Value Lang="tr">Dekorasyon Galerisi</Value><Value Lang="en">Decoration Gallery</Value></Key>
+    <Key Id="salon.branches.decor.gallery_empty" Module="branches" Description="Branch decoration gallery empty state"><Value Lang="tr">Henüz dekorasyon görseli eklenmemiş.</Value><Value Lang="en">No decoration image has been added yet.</Value></Key>
+    <Key Id="salon.profile.gallery.title" Module="public" Description="Public gallery section title"><Value Lang="tr">Salon Atmosferi</Value><Value Lang="en">Salon Atmosphere</Value></Key>
+    <Key Id="salon.profile.gallery.image_alt" Module="public" Description="Public gallery image alt"><Value Lang="tr">Salon görseli</Value><Value Lang="en">Salon image</Value></Key>
   </Keys>
 </Translations>

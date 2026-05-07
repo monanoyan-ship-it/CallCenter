@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Sayfa Ayarlari";
+    ViewData["Title"] = Translation.T("salon.pagesettings.title", "Sayfa Ayarları");
 }
 
 <div id="pagesettings-vm">
@@ -12,7 +12,7 @@
         <!-- ko if: !profileExists() -->
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Once <a href="/Profile"><t key="salon.pagesettings.auto.salon_profili">Salon Profili</t></a> sayfasindan profil olusturun.
+            <t key="salon.pagesettings.create_profile_prefix">Önce</t> <a href="/Profile"><t key="salon.pagesettings.auto.salon_profili">Salon Profili</t></a> <t key="salon.pagesettings.create_profile_suffix">sayfasından profil oluşturun.</t>
         </div>
         <!-- /ko -->
 
@@ -20,10 +20,10 @@
         <!-- Onizleme Linki -->
         <div class="alert alert-info py-2 d-flex justify-content-between align-items-center">
             <small>
-                <i class="bi bi-globe me-1"></i>Public sayfa:
+                <i class="bi bi-globe me-1"></i><t key="salon.pagesettings.public_page">Public sayfa</t>:
                 <a data-bind="attr: { href: salonT('salon.pagesettings.auto.salon', '/salon/') + slug() }, text: salonT('salon.pagesettings.auto.salon', '/salon/') + slug()" target="_blank" class="fw-semibold"></a>
             </small>
-            <span class="badge" data-bind="text: isPublished() ? 'Yayinda' : 'Taslak', css: isPublished() ? 'bg-success' : 'bg-secondary'"></span>
+            <span class="badge" data-bind="text: isPublished() ? salonT('salon.status.published', 'Yayında') : salonT('salon.status.draft', 'Taslak'), css: isPublished() ? 'bg-success' : 'bg-secondary'"></span>
         </div>
 
         <!-- Logo & Favicon -->
@@ -31,18 +31,18 @@
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-white py-2">
-                        <h6 class="mb-0 small"><i class="bi bi-image me-1"></i>Logo</h6>
+                        <h6 class="mb-0 small"><i class="bi bi-image me-1"></i><t key="salon.pagesettings.logo">Logo</t></h6>
                     </div>
                     <div class="card-body text-center">
                         <!-- ko if: logoUrl() -->
                         <img data-bind="attr: { src: logoUrl }" style="max-height:80px;max-width:200px;object-fit:contain;" class="mb-2 d-block mx-auto" />
-                        <button class="btn btn-outline-danger btn-sm me-1" data-bind="click: function() { removeSingleImage('logo'); }"><i class="bi bi-trash me-1"></i>Kaldir</button>
+                        <button class="btn btn-outline-danger btn-sm me-1" data-bind="click: function() { removeSingleImage('logo'); }"><i class="bi bi-trash me-1"></i><t key="salon.common.remove">Kaldır</t></button>
                         <!-- /ko -->
                         <!-- ko if: !logoUrl() -->
-                        <div class="py-3 text-muted"><i class="bi bi-image fs-1 d-block mb-1 opacity-25"></i><small>Logo yuklenmemis</small></div>
+                        <div class="py-3 text-muted"><i class="bi bi-image fs-1 d-block mb-1 opacity-25"></i><small><t key="salon.pagesettings.logo_not_uploaded">Logo yüklenmemiş</t></small></div>
                         <!-- /ko -->
                         <label class="btn btn-outline-primary btn-sm mt-1">
-                            <i class="bi bi-upload me-1"></i><t key="salon.pagesettings.auto.logo_sec"><t key="salon.pagesettings.auto.logo_sec">Logo Seç</t></t>
+                            <i class="bi bi-upload me-1"></i><t key="salon.pagesettings.auto.logo_sec">Logo Seç</t>
                             <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingle('logo', e); } }" />
                         </label>
                     </div>
@@ -51,18 +51,18 @@
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-white py-2">
-                        <h6 class="mb-0 small"><i class="bi bi-bookmark-star me-1"></i>Favicon</h6>
+                        <h6 class="mb-0 small"><i class="bi bi-bookmark-star me-1"></i><t key="salon.pagesettings.favicon">Favicon</t></h6>
                     </div>
                     <div class="card-body text-center">
                         <!-- ko if: faviconUrl() -->
                         <img data-bind="attr: { src: faviconUrl }" style="width:48px;height:48px;object-fit:contain;" class="mb-2 d-block mx-auto" />
-                        <button class="btn btn-outline-danger btn-sm me-1" data-bind="click: function() { removeSingleImage('favicon'); }"><i class="bi bi-trash me-1"></i>Kaldir</button>
+                        <button class="btn btn-outline-danger btn-sm me-1" data-bind="click: function() { removeSingleImage('favicon'); }"><i class="bi bi-trash me-1"></i><t key="salon.common.remove">Kaldır</t></button>
                         <!-- /ko -->
                         <!-- ko if: !faviconUrl() -->
-                        <div class="py-3 text-muted"><i class="bi bi-bookmark-star fs-1 d-block mb-1 opacity-25"></i><small>Favicon yuklenmemis</small></div>
+                        <div class="py-3 text-muted"><i class="bi bi-bookmark-star fs-1 d-block mb-1 opacity-25"></i><small><t key="salon.pagesettings.favicon_not_uploaded">Favicon yüklenmemiş</t></small></div>
                         <!-- /ko -->
                         <label class="btn btn-outline-primary btn-sm mt-1">
-                            <i class="bi bi-upload me-1"></i><t key="salon.pagesettings.auto.favicon_sec"><t key="salon.pagesettings.auto.favicon_sec">Favicon Seç</t></t>
+                            <i class="bi bi-upload me-1"></i><t key="salon.pagesettings.auto.favicon_sec">Favicon Seç</t>
                             <input type="file" accept="image/jpeg,image/png,image/webp,image/x-icon" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingle('favicon', e); } }" />
                         </label>
                     </div>
@@ -73,38 +73,38 @@
         <!-- Kapak Gorseli -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2">
-                <h6 class="mb-0 small"><i class="bi bi-card-image me-1"></i>Kapak Gorseli</h6>
+                <h6 class="mb-0 small"><i class="bi bi-card-image me-1"></i><t key="salon.pagesettings.cover_image">Kapak Görseli</t></h6>
             </div>
             <div class="card-body text-center">
                 <!-- ko if: coverImageUrl() -->
                 <img data-bind="attr: { src: coverImageUrl }" style="max-height:200px;width:100%;object-fit:cover;border-radius:8px;" class="mb-2" />
                 <div>
-                    <button class="btn btn-outline-danger btn-sm" data-bind="click: function() { removeSingleImage('cover'); }"><i class="bi bi-trash me-1"></i>Kaldir</button>
+                    <button class="btn btn-outline-danger btn-sm" data-bind="click: function() { removeSingleImage('cover'); }"><i class="bi bi-trash me-1"></i><t key="salon.common.remove">Kaldır</t></button>
                 </div>
                 <!-- /ko -->
                 <!-- ko if: !coverImageUrl() -->
-                <div class="py-4 text-muted"><i class="bi bi-card-image fs-1 d-block mb-1 opacity-25"></i><small>Kapak gorseli yuklenmemis</small></div>
+                <div class="py-4 text-muted"><i class="bi bi-card-image fs-1 d-block mb-1 opacity-25"></i><small><t key="salon.pagesettings.cover_not_uploaded">Kapak görseli yüklenmemiş</t></small></div>
                 <!-- /ko -->
                 <label class="btn btn-outline-primary btn-sm mt-1">
-                    <i class="bi bi-upload me-1"></i><t key="salon.pagesettings.auto.kapak_gorseli_sec"><t key="salon.pagesettings.auto.kapak_gorseli_sec">Kapak Görseli Seç</t></t>
+                    <i class="bi bi-upload me-1"></i><t key="salon.pagesettings.auto.kapak_gorseli_sec">Kapak Görseli Seç</t>
                     <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingle('cover', e); } }" />
                 </label>
-                <small class="text-muted d-block mt-1">Onerilen: 1200x400 piksel, max 5 MB</small>
+                <small class="text-muted d-block mt-1"><t key="salon.pagesettings.cover_recommendation">Önerilen: 1200x400 piksel, max 5 MB</t></small>
             </div>
         </div>
 
         <!-- Galeri -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 small"><i class="bi bi-images me-1"></i>Galeri</h6>
+                <h6 class="mb-0 small"><i class="bi bi-images me-1"></i><t key="salon.pagesettings.gallery">Galeri</t></h6>
                 <label class="btn btn-outline-primary btn-sm py-0 mb-0">
-                    <i class="bi bi-plus-lg me-1"></i><t key="salon.pagesettings.auto.gorsel_ekle"><t key="salon.pagesettings.auto.gorsel_ekle">Görsel Ekle</t></t>
+                    <i class="bi bi-plus-lg me-1"></i><t key="salon.pagesettings.auto.gorsel_ekle">Görsel Ekle</t>
                     <input type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" data-bind="event: { change: uploadGalleryImages }" />
                 </label>
             </div>
             <div class="card-body">
                 <!-- ko if: galleryImages().length === 0 -->
-                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.auto.galeri_bos_public_sayfanizda_salon_fotograflarinizi_sergileyebilirsini">Galeri bos. Public sayfanizda salon fotograflarinizi sergileyebilirsiniz.</t></p>
+                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.gallery_empty">Galeri boş. Public sayfanızda salon fotoğraflarınızı sergileyebilirsiniz.</t></p>
                 <!-- /ko -->
                 <div class="row g-2" data-bind="foreach: galleryImages">
                     <div class="col-4 col-md-3 col-lg-2 position-relative">
@@ -121,10 +121,10 @@
         <!-- Bolum Toggle'lari -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2">
-                <h6 class="mb-0 small"><i class="bi bi-layout-text-sidebar me-1"></i>Sayfa Bolumleri</h6>
+                <h6 class="mb-0 small"><i class="bi bi-layout-text-sidebar me-1"></i><t key="salon.pagesettings.sections">Sayfa Bölümleri</t></h6>
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3">Public sayfanizda hangi bolumlerin gorunecegini secin. Siralamak icin surukleyin.</p>
+                <p class="text-muted small mb-3"><t key="salon.pagesettings.sections_hint">Public sayfanızda hangi bölümlerin görüneceğini seçin. Sıralamak için sürükleyin.</t></p>
 
                 <div id="sectionList" class="list-group">
                     <!-- ko foreach: sections -->
@@ -146,14 +146,14 @@
         <!-- Banner Gorselleri -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 small"><i class="bi bi-collection-play me-1"></i>Reklam Gorselleri (Carousel)</h6>
+                <h6 class="mb-0 small"><i class="bi bi-collection-play me-1"></i><t key="salon.pagesettings.banner_images">Reklam Görselleri (Carousel)</t></h6>
                 <button class="btn btn-outline-primary btn-sm py-0" data-bind="click: addBanner">
-                    <i class="bi bi-plus-lg me-1"></i><t key="salon.common.add"><t key="salon.pagesettings.auto.ekle">Ekle</t></t>
+                    <i class="bi bi-plus-lg me-1"></i><t key="salon.common.add">Ekle</t>
                 </button>
             </div>
             <div class="card-body">
                 <!-- ko if: banners().length === 0 -->
-                <p class="text-muted small text-center mb-0">Henuz gorsel eklenmemis. Public sayfanizda carousel/slider olarak gosterilir.</p>
+                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.banners_empty">Henüz görsel eklenmemiş. Public sayfanızda carousel/slider olarak gösterilir.</t></p>
                 <!-- /ko -->
                 <div data-bind="foreach: banners">
                     <div class="d-flex align-items-center gap-2 mb-2 p-2 border rounded">
@@ -166,11 +166,11 @@
                         </div>
                         <!-- /ko -->
                         <div class="flex-fill">
-                            <input type="text" class="form-control form-control-sm mb-1" placeholder="Baslik (opsiyonel)" data-bind="value: title" />
-                            <input type="text" class="form-control form-control-sm" placeholder="Link (opsiyonel)" data-bind="value: link" />
+                            <input type="text" class="form-control form-control-sm mb-1" placeholder="@Translation.T("salon.pagesettings.title_optional", "Başlık (opsiyonel)")" data-bind="value: title" />
+                            <input type="text" class="form-control form-control-sm" placeholder="@Translation.T("salon.pagesettings.link_optional", "Link (opsiyonel)")" data-bind="value: link" />
                         </div>
                         <div class="d-flex flex-column gap-1">
-                            <label class="btn btn-outline-secondary btn-sm py-0 px-1 mb-0" title="@(Translation.T("salon.pagesettings.auto.gorsel_sec", "Gorsel Sec"))">
+                            <label class="btn btn-outline-secondary btn-sm py-0 px-1 mb-0" title="@(Translation.T("salon.pagesettings.auto.gorsel_sec", "Görsel Seç"))">
                                 <i class="bi bi-upload"></i>
                                 <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: function(d,e) { $parent.uploadBanner($index(), e); } }" />
                             </label>
@@ -186,7 +186,7 @@
         <!-- Kaydet -->
         <button class="btn btn-primary w-100" data-bind="click: save, disable: isSaving">
             <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-            <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save"><t key="salon.common.btn.save">Kaydet</t></t>
+            <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
         </button>
         <!-- /ko -->
     </div>

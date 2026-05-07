@@ -345,6 +345,8 @@ public class SlnSalonProfileDto
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public string SalonName { get; set; } = string.Empty;
+    public string? BranchName { get; set; }
+    public bool IsHeadquarter { get; set; }
     public string? Description { get; set; }
     public string? Website { get; set; }
     public string? InstagramHandle { get; set; }
@@ -1054,6 +1056,8 @@ public class SlnBranchDto
     public string? GoogleMapsUrl { get; set; }
     public string? WorkingHoursJson { get; set; }
     public string? PhotoUrl { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? GalleryImagesJson { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public int? ManagerPersonnelId { get; set; }
@@ -1081,6 +1085,9 @@ public class SlnBranchCreateDto
     public string? Email { get; set; }
     public string? GoogleMapsUrl { get; set; }
     public string? WorkingHoursJson { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? GalleryImagesJson { get; set; }
     public int? ManagerPersonnelId { get; set; }
     public bool IsHeadquarter { get; set; }
     public bool IsActive { get; set; } = true;

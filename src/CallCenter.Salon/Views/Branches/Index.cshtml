@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Subeler";
+    ViewData["Title"] = Translation.T("salon.branches.title", "Şubeler");
 }
 
 <div id="branches-vm">
@@ -21,9 +21,9 @@
                         <tr>
                             <th><t key="salon.common.branch">Şube</t></th>
                             <th>Slug</th>
-                            <th>Adres</th>
-                            <th>Telefon</th>
-                            <th>Mudur</th>
+                            <th><t key="salon.common.address">Adres</t></th>
+                            <th><t key="salon.common.phone">Telefon</t></th>
+                            <th><t key="salon.common.manager">Müdür</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
                             <th style="width:100px;"></th>
                         </tr>
@@ -31,6 +31,9 @@
                     <tbody data-bind="foreach: branches">
                         <tr>
                             <td class="fw-semibold small">
+                                <!-- ko if: photoUrl -->
+                                <img data-bind="attr: { src: photoUrl, alt: name }" class="me-2" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+                                <!-- /ko -->
                                 <span data-bind="text: name"></span>
                                 <!-- ko if: isHeadquarter -->
                                 <span class="badge bg-primary ms-1" style="font-size:0.65rem;">Merkez</span>
@@ -41,7 +44,7 @@
                             <td class="small" data-bind="text: phone || '-'"></td>
                             <td class="small" data-bind="text: managerName || '-'"></td>
                             <td class="small">
-                                <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                                <span class="badge" data-bind="text: isActive ? salonT('salon.status.active', 'Aktif') : salonT('salon.status.passive', 'Pasif'), css: isActive ? 'bg-success' : 'bg-secondary'"></span>
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
@@ -108,35 +111,35 @@
                 </div>
                 <div class="modal-body">
                     <!-- Genel Bilgiler -->
-                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-building me-1"></i>Genel Bilgiler</h6>
+                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-building me-1"></i><t key="salon.branches.general_info">Genel Bilgiler</t></h6>
                     <div class="row g-3 mb-4">
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.branches.auto.sube_adi_2">Şube Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Profil Adresi (slug)</label>
+                            <label class="form-label small"><t key="salon.branches.profile_slug">Profil Adresi (slug)</t></label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">corplynk.com/salon/</span>
                                 <input type="text" class="form-control" data-bind="value: form.slug" placeholder="@(Translation.T("salon.branches.auto.sube_adi", "şube-adi"))" />
                             </div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Adres</label>
+                            <label class="form-label small"><t key="salon.common.address">Adres</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Il</label>
+                            <label class="form-label small"><t key="salon.common.city">İl</t></label>
                             <input type="text" class="form-control form-control-sm" list="tr-cities-list"
                                    data-bind="value: form.city, event: { blur: function(d,e){ if (window.normalizeTrCity) form.city(window.normalizeTrCity(e.target.value)); } }" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Ilce</label>
+                            <label class="form-label small"><t key="salon.common.district">İlçe</t></label>
                             <input type="text" class="form-control form-control-sm"
                                    data-bind="value: form.district, event: { blur: function(d,e){ if (window.normalizeTrCity) form.district(window.normalizeTrCity(e.target.value)); } }" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Telefon</label>
+                            <label class="form-label small"><t key="salon.common.phone">Telefon</t></label>
                             <div data-bind="phoneInput: form.phone"></div>
                         </div>
                         <div class="col-4">
@@ -145,33 +148,33 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small d-flex align-items-center justify-content-between">
-                                <span><i class="bi bi-geo-alt me-1"></i>Harita Konumu</span>
+                                <span><i class="bi bi-geo-alt me-1"></i><t key="salon.branches.map_location">Harita Konumu</t></span>
                                 <button type="button" class="btn btn-outline-primary btn-sm py-0" data-bind="click: geocodeAddress, disable: isGeocoding">
                                     <span data-bind="visible: isGeocoding" class="spinner-border spinner-border-sm me-1"></span>
                                     <i class="bi bi-search me-1" data-bind="visible: !isGeocoding()"></i>
-                                    <span data-bind="text: isGeocoding() ? salonT('salon.branches.auto.araniyor', 'Aranıyor...') : 'Adresten Bul'"></span>
+                                    <span data-bind="text: isGeocoding() ? salonT('salon.branches.auto.araniyor', 'Aranıyor...') : salonT('salon.branches.find_from_address', 'Adresten Bul')"></span>
                                 </button>
                             </label>
                             <div id="branch-map-picker" style="height:220px;border-radius:8px;border:1px solid #dee2e6;"></div>
                             <div class="d-flex gap-2 mt-1">
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text">Enlem</span>
+                                    <span class="input-group-text"><t key="salon.branches.latitude">Enlem</t></span>
                                     <input type="number" step="0.000001" class="form-control" data-bind="value: form.latitude, event: { change: onLatLonManualChange }" placeholder="41.034" />
                                 </div>
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text">Boylam</span>
+                                    <span class="input-group-text"><t key="salon.branches.longitude">Boylam</t></span>
                                     <input type="number" step="0.000001" class="form-control" data-bind="value: form.longitude, event: { change: onLatLonManualChange }" placeholder="29.179" />
                                 </div>
                             </div>
-                            <div class="text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>Haritada tiklayin veya pini surukleyerek tam konumu ayarlayin. Google Maps linki otomatik dolar.</div>
+                            <div class="text-muted small mt-1"><i class="bi bi-info-circle me-1"></i><t key="salon.branches.map_hint">Haritada tıklayın veya pini sürükleyerek tam konumu ayarlayın. Google Maps linki otomatik dolar.</t></div>
                         </div>
                         <div class="col-8">
-                            <label class="form-label small">Google Maps Linki</label>
-                            <input type="url" class="form-control form-control-sm" data-bind="value: form.googleMapsUrl" placeholder="Haritadan secilince otomatik dolar" readonly style="background:#f8f9fa;" />
+                            <label class="form-label small"><t key="salon.branches.google_maps_link">Google Maps Linki</t></label>
+                            <input type="url" class="form-control form-control-sm" data-bind="value: form.googleMapsUrl" placeholder="@(Translation.T("salon.branches.map_selected_auto", "Haritadan seçilince otomatik dolar"))" readonly style="background:#f8f9fa;" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small"><t key="salon.branches.auto.sube_muduru">Şube Muduru</t></label>
-                            <select class="form-select form-select-sm" data-bind="value: form.managerPersonnelId, options: staffList, optionsText: 'title', optionsValue: 'id', optionsCaption: 'Seciniz'"></select>
+                            <label class="form-label small"><t key="salon.branches.auto.sube_muduru">Şube Müdürü</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: form.managerPersonnelId, options: staffList, optionsText: 'title', optionsValue: 'id', optionsCaption: salonT('salon.common.select', 'Seçiniz')"></select>
                         </div>
                         <div class="col-4">
                             <div class="form-check form-switch mt-4">
@@ -187,8 +190,82 @@
                         </div>
                     </div>
 
-                    <!-- Calisma Saatleri -->
-                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-clock me-1"></i>Calisma Saatleri</h6>
+                    <!-- Dekorasyon Gorselleri -->
+                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-images me-1"></i><t key="salon.branches.decor.title">Şube Dekorasyonu</t></h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label small"><t key="salon.branches.decor.photo">Şube Profil Görseli</t></label>
+                            <div class="border rounded p-2 text-center">
+                                <!-- ko if: form.photoUrl() -->
+                                <img data-bind="attr: { src: form.photoUrl }" style="width:96px;height:96px;border-radius:50%;object-fit:cover;" class="mb-2" />
+                                <div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm py-0" data-bind="click: function() { removeSingleImage('photo'); }">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                <!-- /ko -->
+                                <!-- ko ifnot: form.photoUrl() -->
+                                <div class="py-3 text-muted">
+                                    <i class="bi bi-shop fs-2 d-block mb-1 opacity-25"></i>
+                                    <small><t key="salon.branches.decor.photo_empty">Görsel yok</t></small>
+                                </div>
+                                <!-- /ko -->
+                                <label class="btn btn-outline-primary btn-sm mt-2">
+                                    <i class="bi bi-upload me-1"></i><t key="salon.common.upload">Yükle</t>
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingleImage('photo', e); } }" />
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small"><t key="salon.branches.decor.cover">Kapak Görseli</t></label>
+                            <div class="border rounded p-2 text-center">
+                                <!-- ko if: form.coverImageUrl() -->
+                                <img data-bind="attr: { src: form.coverImageUrl }" style="height:150px;width:100%;object-fit:cover;border-radius:6px;" class="mb-2" />
+                                <div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm py-0" data-bind="click: function() { removeSingleImage('cover'); }">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                <!-- /ko -->
+                                <!-- ko ifnot: form.coverImageUrl() -->
+                                <div class="py-4 text-muted">
+                                    <i class="bi bi-card-image fs-2 d-block mb-1 opacity-25"></i>
+                                    <small><t key="salon.branches.decor.cover_empty">Kapak görseli yok</t></small>
+                                </div>
+                                <!-- /ko -->
+                                <label class="btn btn-outline-primary btn-sm mt-2">
+                                    <i class="bi bi-upload me-1"></i><t key="salon.branches.decor.cover_upload">Kapak Yükle</t>
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: function(d,e) { uploadSingleImage('cover', e); } }" />
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small mb-0"><t key="salon.branches.decor.gallery">Dekorasyon Galerisi</t></label>
+                                <label class="btn btn-outline-primary btn-sm py-0 mb-0">
+                                    <i class="bi bi-plus-lg me-1"></i><t key="salon.common.add">Ekle</t>
+                                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" data-bind="event: { change: uploadGalleryImages }" />
+                                </label>
+                            </div>
+                            <div class="border rounded p-2">
+                                <!-- ko if: form.galleryImages().length === 0 -->
+                                <p class="text-muted small text-center mb-0"><t key="salon.branches.decor.gallery_empty">Henüz dekorasyon görseli eklenmemiş.</t></p>
+                                <!-- /ko -->
+                                <div class="row g-2" data-bind="foreach: form.galleryImages">
+                                    <div class="col-4 col-md-3 col-lg-2 position-relative">
+                                        <img data-bind="attr: { src: $data }" style="width:100%;height:96px;object-fit:cover;border-radius:6px;" />
+                                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 py-0 px-1" style="font-size:.7rem;"
+                                                data-bind="click: function() { $parent.removeGalleryImage($index()); }">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Çalışma Saatleri -->
+                    <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-clock me-1"></i><t key="salon.branches.working_hours">Çalışma Saatleri</t></h6>
                     <div class="mb-4">
                         <!-- ko foreach: workingDays -->
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -202,7 +279,7 @@
                             <input type="time" class="form-control form-control-sm" style="max-width:110px;" data-bind="value: close" />
                             <!-- /ko -->
                             <!-- ko ifnot: isOpen() -->
-                            <span class="text-muted small">Kapali</span>
+                            <span class="text-muted small" data-bind="text: salonT('salon.branches.closed', 'Kapalı')"></span>
                             <!-- /ko -->
                         </div>
                         <!-- /ko -->
@@ -212,15 +289,15 @@
                     <h6 class="text-muted small fw-bold mb-2"><i class="bi bi-receipt me-1"></i><t key="salon.branches.auto.fatura_bilgileri">Fatura Bilgileri</t></h6>
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Ticari Unvan</label>
+                            <label class="form-label small"><t key="salon.branches.company_title">Ticari Unvan</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.companyTitle" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Vergi Dairesi</label>
+                            <label class="form-label small"><t key="salon.branches.tax_office">Vergi Dairesi</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.taxOffice" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Vergi No</label>
+                            <label class="form-label small"><t key="salon.branches.tax_number">Vergi No</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.taxNumber" />
                         </div>
                         <div class="col-6">

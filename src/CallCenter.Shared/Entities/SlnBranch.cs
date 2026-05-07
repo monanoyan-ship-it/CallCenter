@@ -31,6 +31,12 @@ public class SlnBranch
     /// <summary>Sube logosu/fotografi</summary>
     public string? PhotoUrl { get; set; }
 
+    /// <summary>Subeye ozel public sayfa kapak gorseli</summary>
+    public string? CoverImageUrl { get; set; }
+
+    /// <summary>Subeye ozel dekorasyon/galeri gorselleri JSON</summary>
+    public string? GalleryImagesJson { get; set; }
+
     /// <summary>Ana sube mi? (firma basina bir tane)</summary>
     public bool IsHeadquarter { get; set; }
 

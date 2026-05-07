@@ -33,8 +33,8 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Baslik</th>
-                                    <th>Imza Gerekli</th>
+                                    <th><t key="salon.common.title">Başlık</t></th>
+                                    <th><t key="salon.consentforms.signature_required">İmza Gerekli</t></th>
                                     <th>Imzalayan</th>
                                     <th>Durum</th>
                                     <th>Olusturma</th>
@@ -69,7 +69,7 @@
                     <!-- ko if: forms().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-file-earmark-text" style="font-size:2rem;"></i>
-                        <p class="mt-2 small"><t key="salon.consentforms.auto.henuz_form_tanimlanmamis">Henuz form tanimlanmamis</t></p>
+                        <p class="mt-2 small"><t key="salon.consentforms.auto.henuz_form_tanimlanmamis">Henüz form tanımlanmamış</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -103,7 +103,7 @@
                     <!-- ko if: signedConsents().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-pen" style="font-size:2rem;"></i>
-                        <p class="mt-2 small"><t key="salon.consentforms.auto.henuz_imzalanmis_form_yok">Henuz imzalanmis form yok</t></p>
+                        <p class="mt-2 small"><t key="salon.consentforms.auto.henuz_imzalanmis_form_yok">Henüz imzalanmış form yok</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -122,11 +122,11 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Baslik *</label>
+                            <label class="form-label small"><t key="salon.common.title">Başlık</t> *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">HTML Icerik *</label>
+                            <label class="form-label small"><t key="salon.consentforms.html_content">HTML İçerik</t> *</label>
                             <textarea class="form-control form-control-sm" rows="8" data-bind="value: form.htmlContent"></textarea>
                         </div>
                         <div class="col-6">

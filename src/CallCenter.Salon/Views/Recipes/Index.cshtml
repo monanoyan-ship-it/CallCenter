@@ -60,8 +60,8 @@
     <!-- ko if: filteredRecipes().length === 0 -->
     <div class="text-center text-muted py-5">
         <i class="bi bi-journal-text" style="font-size: 3rem; opacity:.3;"></i>
-        <p class="mt-2 small">Henuz recete olusturulmamis</p>
-        <p class="small">Receteler, hizmetler icin gereken malzeme ve miktarlari tanimlamanizi saglar.</p>
+        <p class="mt-2 small"><t key="salon.recipes.empty">Henüz reçete oluşturulmamış</t></p>
+        <p class="small"><t key="salon.recipes.empty_hint">Reçeteler, hizmetler için gereken malzeme ve miktarları tanımlamanızı sağlar.</t></p>
     </div>
     <!-- /ko -->
 
@@ -114,7 +114,7 @@
                             <label class="form-label small"><t key="salon.recipes.auto.hizmet_opsiyonel">Hizmet (opsiyonel)</t></label>
                             <div class="position-relative" data-bind="with: serviceAutocomplete">
                                 <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control" placeholder="@(Translation.T("salon.recipes.auto.hizmet_secin", "Hizmet secin..."))"
+                                    <input type="text" class="form-control" placeholder="@(Translation.T("salon.recipes.auto.hizmet_secin", "Hizmet seçin..."))"
                                            data-bind="value: query, valueUpdate: 'afterkeydown',
                                                       event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                     <!-- ko if: selectedName() -->

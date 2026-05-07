@@ -64,7 +64,7 @@ function ConsentFormsViewModel() {
         };
 
         if (!data.title || !data.htmlContent) {
-            toastr.warning(slnJsT('salon.consentforms.js.baslik_ve_icerik_zorunludur', 'Baslik ve icerik zorunludur'));
+            toastr.warning(slnJsT('salon.consentforms.js.baslik_ve_icerik_zorunludur', 'Başlık ve içerik zorunludur'));
             return;
         }
 

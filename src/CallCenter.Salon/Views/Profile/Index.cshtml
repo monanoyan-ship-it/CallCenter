@@ -11,18 +11,18 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Aciklama</label>
-                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description" placeholder="Salonunuz hakkinda kisa bilgi..."></textarea>
+                            <label class="form-label small"><t key="salon.profile.description">Açıklama</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description" placeholder="@Translation.T("salon.profile.description_placeholder", "Salonunuz hakkında kısa bilgi...")"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Web Sitesi</label>
+                            <label class="form-label small"><t key="salon.profile.website">Web Sitesi</t></label>
                             <input type="url" class="form-control form-control-sm" data-bind="value: form.website" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Durum</label>
+                            <label class="form-label small"><t key="salon.common.status">Durum</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.isPublished">
-                                <option value="true">Yayinda</option>
-                                <option value="false">Taslak</option>
+                                <option value="true"><t key="salon.status.published">Yayında</t></option>
+                                <option value="false"><t key="salon.status.draft">Taslak</t></option>
                             </select>
                         </div>
                     </div>
@@ -30,7 +30,7 @@
             </div>
 
             <div class="card border-0 shadow-sm mt-3">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-globe me-2"></i>Sosyal Medya</div>
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-globe me-2"></i><t key="salon.profile.social_media">Sosyal Medya</t></div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-6">
@@ -48,9 +48,9 @@
 
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-receipt me-2"></i>Faturalama</div>
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-receipt me-2"></i><t key="salon.profile.billing">Faturalama</t></div>
                 <div class="card-body">
-                    <label class="form-label small">Faturalama Tercihi</label>
+                    <label class="form-label small"><t key="salon.profile.billing_preference">Faturalama Tercihi</t></label>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="radio" name="billingType" id="bt1" value="1" data-bind="checked: form.billingType" />
                         <label class="form-check-label small" for="bt1">
@@ -70,14 +70,14 @@
 
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-body text-center text-muted small">
-                    <i class="bi bi-info-circle me-1"></i><t key="salon.profile.auto.adres_telefon_calisma_saatleri_ve_fatura_bilgileri"><t key="salon.profile.auto.adres_telefon_calisma_saatleri_ve_fatura_bilgileri">Adres, telefon, calisma saatleri ve fatura bilgileri</t></t>
-                    <a href="/Branches"><strong>Subeler</strong></a> sayfasindan yonetilir.
+                    <i class="bi bi-info-circle me-1"></i><t key="salon.profile.branch_managed_info">Adres, telefon, çalışma saatleri ve fatura bilgileri</t>
+                    <a href="/Branches"><strong><t key="salon.branches.title">Şubeler</t></strong></a> <t key="salon.profile.branch_managed_suffix">sayfasından yönetilir.</t>
                 </div>
             </div>
 
             <button class="btn btn-primary w-100 mt-3" data-bind="click: save, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.profile.auto.profili_kaydet"><t key="salon.profile.auto.profili_kaydet">Profili Kaydet</t></t>
+                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.profile.auto.profili_kaydet">Profili Kaydet</t>
             </button>
         </div>
     </div>

@@ -47,6 +47,8 @@ public class SlnProfileFactory : ISlnProfileFactory
             Id = profile.Id,
             CustomerId = profile.CustomerId,
             SalonName = customer.Name,
+            BranchName = hqBranch?.Name,
+            IsHeadquarter = hqBranch?.IsHeadquarter ?? true,
             Description = profile.Description,
             Website = profile.Website,
             InstagramHandle = profile.InstagramHandle,

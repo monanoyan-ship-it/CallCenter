@@ -75,6 +75,7 @@ public class PlatformSalonDto
 {
     public int Id { get; set; }
     public int CustomerId { get; set; }
+    public string? Slug { get; set; }
     public string SalonName { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
     public string? City { get; set; }

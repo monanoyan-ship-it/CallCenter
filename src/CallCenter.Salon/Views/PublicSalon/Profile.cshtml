@@ -67,6 +67,8 @@
         .accordion-button:not(.collapsed) { background: #f8f5fb; color: #4a1a6b; box-shadow: none; }
         .accordion-button:focus { box-shadow: none; }
         .accordion-button::after { width: .9rem; height: .9rem; background-size: .9rem; }
+        .gallery-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; }
+        .branch-kicker { font-size: .8rem; letter-spacing: 0; opacity: .8; }
     </style>
 </head>
 <body>
@@ -89,7 +91,10 @@
                         <!-- /ko -->
                     </div>
                     <div>
-                        <h1 class="mb-1 fw-bold" data-bind="text: salon().salonName"></h1>
+                        <!-- ko if: salon().branchName && salon().branchName !== salon().salonName && !salon().isHeadquarter -->
+                        <div class="branch-kicker mb-1" data-bind="text: salon().salonName"></div>
+                        <!-- /ko -->
+                        <h1 class="mb-1 fw-bold" data-bind="text: (salon().branchName && salon().branchName !== salon().salonName && !salon().isHeadquarter) ? salon().branchName : salon().salonName"></h1>
                         <!-- ko if: salon().description -->
                         <p class="mb-2 opacity-75" data-bind="text: salon().description"></p>
                         <!-- /ko -->
@@ -180,6 +185,18 @@
                             </button>
                         </div>
                         <!-- /ko -->
+                    </div>
+                    <!-- /ko -->
+
+                    <!-- Galeri -->
+                    <!-- ko if: key === 'gallery' && $parent.galleryImages().length > 0 -->
+                    <div class="mb-4" id="section-gallery">
+                        <h4 class="mb-3"><i class="bi bi-images me-2"></i><t key="salon.profile.gallery.title">Salon Atmosferi</t></h4>
+                        <div class="row g-2" data-bind="foreach: $parent.galleryImages">
+                            <div class="col-6 col-md-4">
+                                <img class="gallery-photo shadow-sm" data-bind="attr: { src: $data, alt: $root.t('salon.profile.gallery.image_alt', 'Salon görseli') }" loading="lazy" />
+                            </div>
+                        </div>
                     </div>
                     <!-- /ko -->
 
@@ -591,6 +608,7 @@
             self.workingHours = ko.observableArray([]);
             self.membershipPlans = ko.observableArray([]);
             self.banners = ko.observableArray([]);
+            self.galleryImages = ko.observableArray([]);
             self.teamMembers = ko.observableArray([]);
             self.reviews = ko.observableArray([]);
             self.reviewStats = ko.observable({});
@@ -641,13 +659,21 @@
             var signupModal;
 
             // Bolum siralama
-            var defaultOrder = ['banners', 'services', 'memberships', 'team', 'reviews', 'map'];
+            var defaultOrder = ['banners', 'gallery', 'services', 'memberships', 'team', 'reviews', 'map'];
             self.orderedSections = ko.computed(function () {
                 var s = self.salon();
                 if (!s || !s.slug) return [];
-                var order = defaultOrder;
+                var order = defaultOrder.slice();
                 if (s.sectionOrderJson) {
-                    try { order = JSON.parse(s.sectionOrderJson); } catch (e) {}
+                    try {
+                        var savedOrder = JSON.parse(s.sectionOrderJson);
+                        if (Array.isArray(savedOrder)) {
+                            order = savedOrder.filter(function (key) { return defaultOrder.indexOf(key) >= 0; });
+                            defaultOrder.forEach(function (key) {
+                                if (order.indexOf(key) < 0) order.push(key);
+                            });
+                        }
+                    } catch (e) {}
                 }
                 return order.map(function (key) { return { key: key }; });
             });
@@ -688,6 +714,15 @@
                         try {
                             var banners = JSON.parse(data.bannersJson);
                             self.banners(banners.filter(function (b) { return b.url; }));
+                        } catch (e) {}
+                    }
+
+                    if (data.galleryImagesJson) {
+                        try {
+                            var gallery = JSON.parse(data.galleryImagesJson);
+                            self.galleryImages((Array.isArray(gallery) ? gallery : []).map(function (item) {
+                                return typeof item === 'string' ? item : (item && item.url);
+                            }).filter(Boolean));
                         } catch (e) {}
                     }
 

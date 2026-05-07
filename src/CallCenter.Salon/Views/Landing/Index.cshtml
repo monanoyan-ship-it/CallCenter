@@ -102,7 +102,7 @@
                 <a href="/Account/Login" class="nav-btn"><t key="salon.landing.nav.sign_in">Giriş Yap</t></a>
                 @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
                 {
-                    <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();" class="nav-btn" style="margin-left:4px;@(lang.Code == currentCulture ? "background:var(--accent);color:#fff;" : "")">@lang.Label</a>
+                    <a href="/@(lang.Code)" class="nav-btn" style="margin-left:4px;@(lang.Code == currentCulture ? "background:var(--accent);color:#fff;" : "")">@lang.Label</a>
                 }
             </div>
         </nav>

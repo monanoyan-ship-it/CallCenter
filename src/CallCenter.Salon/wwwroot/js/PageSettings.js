@@ -18,16 +18,16 @@ function PageSettingsViewModel() {
     self.galleryImages = ko.observableArray([]);
 
     var allSections = [
-        { key: 'banners', label: 'Reklam Gorselleri', icon: 'bi bi-collection-play', field: 'showBanners' },
-        { key: 'gallery', label: 'Galeri', icon: 'bi bi-images', field: 'showGallery' },
-        { key: 'services', label: 'Hizmetler', icon: 'bi bi-list-check', field: 'showServices' },
-        { key: 'memberships', label: 'Uyelik Planlari', icon: 'bi bi-award', field: 'showMemberships' },
+        { key: 'banners', label: slnJsT('salon.pagesettings.js.banner_images', 'Reklam Görselleri'), icon: 'bi bi-collection-play', field: 'showBanners' },
+        { key: 'gallery', label: slnJsT('salon.pagesettings.js.gallery', 'Galeri'), icon: 'bi bi-images', field: 'showGallery' },
+        { key: 'services', label: slnJsT('salon.pagesettings.js.services', 'Hizmetler'), icon: 'bi bi-list-check', field: 'showServices' },
+        { key: 'memberships', label: slnJsT('salon.pagesettings.js.membership_plans', 'Üyelik Planları'), icon: 'bi bi-award', field: 'showMemberships' },
         { key: 'booking', label: slnJsT('salon.pagesettings.js.online_randevu', 'Online Randevu'), icon: 'bi bi-calendar-check', field: 'showBooking' },
-        { key: 'team', label: 'Ekibimiz', icon: 'bi bi-people', field: 'showTeam' },
+        { key: 'team', label: slnJsT('salon.pagesettings.js.team', 'Ekibimiz'), icon: 'bi bi-people', field: 'showTeam' },
         { key: 'reviews', label: slnJsT('salon.pagesettings.js.musteri_yorumlari', 'Müşteri Yorumları'), icon: 'bi bi-chat-square-text', field: 'showReviews' },
-        { key: 'hours', label: 'Calisma Saatleri', icon: 'bi bi-clock', field: 'showHours' },
-        { key: 'map', label: 'Harita', icon: 'bi bi-geo-alt', field: 'showMap' },
-        { key: 'contact', label: 'Iletisim', icon: 'bi bi-telephone', field: 'showContact' }
+        { key: 'hours', label: slnJsT('salon.pagesettings.js.working_hours', 'Çalışma Saatleri'), icon: 'bi bi-clock', field: 'showHours' },
+        { key: 'map', label: slnJsT('salon.pagesettings.js.map', 'Harita'), icon: 'bi bi-geo-alt', field: 'showMap' },
+        { key: 'contact', label: slnJsT('salon.pagesettings.js.contact', 'İletişim'), icon: 'bi bi-telephone', field: 'showContact' }
     ];
 
     self.sections = ko.observableArray([]);
@@ -147,9 +147,9 @@ function PageSettingsViewModel() {
             if (type === 'logo') self.logoUrl(result.url);
             else if (type === 'cover') self.coverImageUrl(result.url);
             else if (type === 'favicon') self.faviconUrl(result.url);
-            toastr.success('Gorsel yuklendi.');
+            toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Görsel yüklendi.'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Yukleme hatasi.');
+            toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yükleme hatası.'));
         });
 
         // Input'u sifirla (ayni dosyayi tekrar secebilsin)
@@ -168,11 +168,11 @@ function PageSettingsViewModel() {
         if (!files || files.length === 0) return;
 
         var remaining = files.length;
-        toastr.info(files.length + slnJsT('salon.pagesettings.js.gorsel_yukleniyor', ' gorsel yukleniyor...'));
+        toastr.info(files.length + slnJsT('salon.pagesettings.js.images_uploading', ' görsel yükleniyor...'));
 
         for (var i = 0; i < files.length; i++) {
             (function (file) {
-                if (file.size > 5 * 1024 * 1024) { toastr.warning(file.name + ' 5 MB sinirini asiyor.'); remaining--; return; }
+                if (file.size > 5 * 1024 * 1024) { toastr.warning(file.name + slnJsT('salon.pagesettings.js.file_too_large_suffix', ' 5 MB sınırını aşıyor.')); remaining--; return; }
 
                 var formData = new FormData();
                 formData.append('file', file);
@@ -186,10 +186,10 @@ function PageSettingsViewModel() {
                 }).done(function (result) {
                     self.galleryImages.push(result.url);
                 }).fail(function () {
-                    toastr.error(file.name + ' yuklenemedi.');
+                    toastr.error(file.name + slnJsT('salon.pagesettings.js.file_upload_failed_suffix', ' yüklenemedi.'));
                 }).always(function () {
                     remaining--;
-                    if (remaining <= 0) toastr.success('Galeri gorselleri yuklendi.');
+                    if (remaining <= 0) toastr.success(slnJsT('salon.pagesettings.js.gallery_images_uploaded', 'Galeri görselleri yüklendi.'));
                 });
             })(files[i]);
         }
@@ -213,12 +213,12 @@ function PageSettingsViewModel() {
     self.uploadBanner = function (index, event) {
         var file = event.target.files[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { toastr.warning('Dosya 5 MB dan buyuk olamaz.'); return; }
+        if (file.size > 5 * 1024 * 1024) { toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB dan büyük olamaz.')); return; }
 
         var formData = new FormData();
         formData.append('file', file);
 
-        toastr.info(slnJsT('salon.pagesettings.js.yukleniyor', 'Yukleniyor...'));
+        toastr.info(slnJsT('salon.pagesettings.js.loading', 'Yükleniyor...'));
         $.ajax({
             url: '/proxy/sln-profile/upload-image?type=banner',
             method: 'POST',
@@ -227,9 +227,9 @@ function PageSettingsViewModel() {
             contentType: false
         }).done(function (result) {
             self.banners()[index].url(result.url);
-            toastr.success('Gorsel yuklendi.');
+            toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Görsel yüklendi.'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Yukleme hatasi.');
+            toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yükleme hatası.'));
         });
 
         event.target.value = '';
@@ -272,9 +272,9 @@ function PageSettingsViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         }).done(function () {
-            toastr.success(slnJsT('salon.pagesettings.js.sayfa_ayarlari_kaydedildi', 'Sayfa ayarlari kaydedildi.'));
+            toastr.success(slnJsT('salon.pagesettings.js.saved', 'Sayfa ayarları kaydedildi.'));
         }).fail(function () {
-            toastr.error('Kaydetme hatasi.');
+            toastr.error(slnJsT('salon.pagesettings.js.save_error', 'Kaydetme hatası.'));
         }).always(function () { self.isSaving(false); });
     };
 

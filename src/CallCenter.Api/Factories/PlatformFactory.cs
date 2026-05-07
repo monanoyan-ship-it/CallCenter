@@ -18,6 +18,7 @@ public class PlatformFactory : IPlatformFactory
     private readonly ISlnAppointmentServiceEntityService _appointmentServiceEs;
     private readonly ISlnServiceEntityService _serviceEs;
     private readonly ISlnSalonProfileEntityService _profileEs;
+    private readonly ISlnBranchEntityService _branchEs;
     private readonly ISlnClientMembershipEntityService _membershipEs;
     private readonly ISlnClientLoyaltyEntityService _loyaltyEs;
     private readonly ISlnGiftCardEntityService _giftCardEs;
@@ -34,6 +35,7 @@ public class PlatformFactory : IPlatformFactory
         ISlnAppointmentServiceEntityService appointmentServiceEs,
         ISlnServiceEntityService serviceEs,
         ISlnSalonProfileEntityService profileEs,
+        ISlnBranchEntityService branchEs,
         ISlnClientMembershipEntityService membershipEs,
         ISlnClientLoyaltyEntityService loyaltyEs,
         ISlnGiftCardEntityService giftCardEs,
@@ -49,6 +51,7 @@ public class PlatformFactory : IPlatformFactory
         _appointmentServiceEs = appointmentServiceEs;
         _serviceEs = serviceEs;
         _profileEs = profileEs;
+        _branchEs = branchEs;
         _membershipEs = membershipEs;
         _loyaltyEs = loyaltyEs;
         _giftCardEs = giftCardEs;
@@ -61,31 +64,118 @@ public class PlatformFactory : IPlatformFactory
 
     public async Task<List<PlatformSalonDto>> GetMySalonsAsync(int platformUserId)
     {
-        return await _userSalonEs.GetAllQueryable()
+        var links = await _userSalonEs.GetAllQueryable()
             .Where(s => s.PlatformUserId == platformUserId && s.IsActive)
             .Include(s => s.Customer)
-            .Select(s => new PlatformSalonDto
-            {
-                Id = s.Id,
-                CustomerId = s.CustomerId,
-                SalonName = s.Customer.Name,
-                LogoUrl = _profileEs.GetAllQueryable().Where(p => p.CustomerId == s.CustomerId).Select(p => p.LogoUrl).FirstOrDefault(),
-                City = _profileEs.GetAllQueryable().Where(p => p.CustomerId == s.CustomerId).Select(p => p.City).FirstOrDefault(),
-                District = _profileEs.GetAllQueryable().Where(p => p.CustomerId == s.CustomerId).Select(p => p.District).FirstOrDefault(),
-                IsFavorite = s.IsFavorite,
-                JoinedAt = s.JoinedAt
-            })
             .ToListAsync();
+
+        var linkCustomerIds = links.Select(s => s.CustomerId).Distinct().ToHashSet();
+        var derivedCustomerIds = new HashSet<int>();
+        var derivedJoinedAt = new Dictionary<int, DateTime>();
+
+        var phone = await _platformUserEs.GetAllQueryable()
+            .Where(u => u.Id == platformUserId)
+            .Select(u => u.Phone)
+            .FirstOrDefaultAsync();
+
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            var matchingClients = await _clientEs.GetAllQueryable()
+                .Where(c => c.Phone == phone && c.IsActive)
+                .Select(c => new { c.Id, c.CustomerId, c.CreatedAt })
+                .ToListAsync();
+
+            var clientIds = matchingClients.Select(c => c.Id).ToList();
+            var appointmentCustomerIds = clientIds.Count == 0
+                ? new HashSet<int>()
+                : (await _appointmentEs.GetAllQueryable()
+                    .Where(a => clientIds.Contains(a.SlnClientId))
+                    .Select(a => a.CustomerId)
+                    .Distinct()
+                    .ToListAsync()).ToHashSet();
+
+            foreach (var client in matchingClients.Where(c => appointmentCustomerIds.Contains(c.CustomerId)))
+            {
+                if (linkCustomerIds.Contains(client.CustomerId)) continue;
+                derivedCustomerIds.Add(client.CustomerId);
+                if (!derivedJoinedAt.TryGetValue(client.CustomerId, out var current) || client.CreatedAt < current)
+                    derivedJoinedAt[client.CustomerId] = client.CreatedAt;
+            }
+        }
+
+        var allCustomerIds = linkCustomerIds.Concat(derivedCustomerIds).Distinct().ToList();
+        if (allCustomerIds.Count == 0)
+            return new List<PlatformSalonDto>();
+
+        var customers = await _customerEs.GetAllQueryable()
+            .Where(c => allCustomerIds.Contains(c.Id) && c.IsActive)
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync();
+        var customerMap = customers.ToDictionary(c => c.Id);
+
+        var profiles = await _profileEs.GetAllQueryable()
+            .Where(p => allCustomerIds.Contains(p.CustomerId))
+            .Select(p => new { p.CustomerId, p.Slug, p.LogoUrl, p.City, p.District })
+            .ToListAsync();
+        var profileMap = profiles
+            .GroupBy(p => p.CustomerId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var branches = await _branchEs.GetAllQueryable()
+            .Where(b => allCustomerIds.Contains(b.CustomerId) && b.IsHeadquarter && b.IsActive)
+            .Select(b => new { b.CustomerId, b.Slug, b.City, b.District })
+            .ToListAsync();
+        var branchMap = branches
+            .GroupBy(b => b.CustomerId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var result = new List<PlatformSalonDto>();
+        foreach (var link in links)
+        {
+            if (!customerMap.TryGetValue(link.CustomerId, out var customer)) continue;
+            profileMap.TryGetValue(link.CustomerId, out var profile);
+            branchMap.TryGetValue(link.CustomerId, out var branch);
+            result.Add(new PlatformSalonDto
+            {
+                Id = link.Id,
+                CustomerId = link.CustomerId,
+                Slug = branch?.Slug ?? profile?.Slug,
+                SalonName = customer.Name,
+                LogoUrl = profile?.LogoUrl,
+                City = branch?.City ?? profile?.City,
+                District = branch?.District ?? profile?.District,
+                IsFavorite = link.IsFavorite,
+                JoinedAt = link.JoinedAt
+            });
+        }
+
+        foreach (var customerId in derivedCustomerIds)
+        {
+            if (!customerMap.TryGetValue(customerId, out var customer)) continue;
+            profileMap.TryGetValue(customerId, out var profile);
+            branchMap.TryGetValue(customerId, out var branch);
+            result.Add(new PlatformSalonDto
+            {
+                Id = 0,
+                CustomerId = customerId,
+                Slug = branch?.Slug ?? profile?.Slug,
+                SalonName = customer.Name,
+                LogoUrl = profile?.LogoUrl,
+                City = branch?.City ?? profile?.City,
+                District = branch?.District ?? profile?.District,
+                IsFavorite = false,
+                JoinedAt = derivedJoinedAt.GetValueOrDefault(customerId, DateTime.UtcNow)
+            });
+        }
+
+        return result
+            .OrderByDescending(s => s.IsFavorite)
+            .ThenBy(s => s.SalonName)
+            .ToList();
     }
 
     public async Task<(bool Success, string? Error)> JoinSalonAsync(int platformUserId, int customerId)
     {
-        // Zaten uye mi?
-        var exists = await _userSalonEs.GetAllQueryable()
-            .AnyAsync(s => s.PlatformUserId == platformUserId && s.CustomerId == customerId);
-        if (exists)
-            return (false, "Bu salona zaten üyesiniz.");
-
         // Salon var mi?
         var salon = await _customerEs.GetByIdAsync(customerId);
         if (salon == null || !salon.IsActive)
@@ -95,16 +185,42 @@ public class PlatformFactory : IPlatformFactory
         var platformUser = await _platformUserEs.GetByIdAsync(platformUserId);
         if (platformUser == null) return (false, null);
 
-        // SlnClient olustur (salonun kendi musteri karti)
-        var slnClient = new SlnClient
+        var slnClient = await _clientEs.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Phone == platformUser.Phone);
+        if (slnClient == null)
         {
-            CustomerId = customerId,
-            FullName = platformUser.FullName,
-            Phone = platformUser.Phone,
-            Email = platformUser.Email
-        };
-        _clientEs.Add(slnClient);
-        await _uow.SaveChangesAsync();
+            slnClient = new SlnClient
+            {
+                CustomerId = customerId,
+                FullName = platformUser.FullName,
+                Phone = platformUser.Phone,
+                Email = platformUser.Email
+            };
+            _clientEs.Add(slnClient);
+            await _uow.SaveChangesAsync();
+        }
+        else
+        {
+            slnClient.IsActive = true;
+            if (string.IsNullOrWhiteSpace(slnClient.FullName)) slnClient.FullName = platformUser.FullName;
+            if (string.IsNullOrWhiteSpace(slnClient.Email)) slnClient.Email = platformUser.Email;
+            slnClient.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Zaten uye mi?
+        var existing = await _userSalonEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.PlatformUserId == platformUserId && s.CustomerId == customerId);
+        if (existing != null)
+        {
+            if (existing.IsActive)
+                return (false, "Bu salona zaten üyesiniz.");
+
+            existing.IsActive = true;
+            existing.JoinedAt = DateTime.UtcNow;
+            existing.SlnClientId ??= slnClient.Id;
+            await _uow.SaveChangesAsync();
+            return (true, null);
+        }
 
         // Baglanti olustur
         var link = new PlatformUserSalon

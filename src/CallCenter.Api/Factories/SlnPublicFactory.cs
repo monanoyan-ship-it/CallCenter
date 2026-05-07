@@ -108,6 +108,8 @@ public class SlnPublicFactory : ISlnPublicFactory
             CustomerId = customerId,
             Slug = branch?.Slug ?? profile?.Slug ?? "",
             SalonName = branch?.Customer?.Name ?? profile?.Customer?.Name ?? "",
+            BranchName = branch?.Name,
+            IsHeadquarter = branch?.IsHeadquarter ?? true,
             Description = profile?.Description,
             Address = branch?.Address ?? profile?.Address,
             City = branch?.City ?? profile?.City,
@@ -116,10 +118,10 @@ public class SlnPublicFactory : ISlnPublicFactory
             Email = branch?.Email ?? profile?.Email,
             Website = profile?.Website,
             GoogleMapsUrl = branch?.GoogleMapsUrl ?? profile?.GoogleMapsUrl,
-            LogoUrl = profile?.LogoUrl,
-            CoverImageUrl = profile?.CoverImageUrl,
+            LogoUrl = PreferBranchMedia(branch?.PhotoUrl, profile?.LogoUrl),
+            CoverImageUrl = PreferBranchMedia(branch?.CoverImageUrl, profile?.CoverImageUrl),
             FaviconUrl = profile?.FaviconUrl,
-            GalleryImagesJson = profile?.GalleryImagesJson,
+            GalleryImagesJson = PreferBranchMedia(branch?.GalleryImagesJson, profile?.GalleryImagesJson),
             WorkingHoursJson = branch?.WorkingHoursJson ?? profile?.WorkingHoursJson,
             IsPublished = profile?.IsPublished ?? true,
             ShowServices = profile?.ShowServices ?? true,
@@ -161,21 +163,24 @@ public class SlnPublicFactory : ISlnPublicFactory
     public async Task<object> GetAllPublishedAsync()
     {
         var profiles = await _profiles.GetAllQueryable()
-            .Where(p => p.IsPublished)
             .Include(p => p.Customer)
             .ToListAsync();
 
-        if (profiles.Count == 0) return new List<object>();
+        var profileMap = profiles
+            .GroupBy(p => p.CustomerId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.IsPublished).First());
 
-        var customerIds = profiles.Select(p => p.CustomerId).ToList();
-
-        // Tum aktif subeler (her sube ayri kart olarak gosterilecek)
         var allBranches = await _branches.GetAllQueryable()
-            .Where(b => customerIds.Contains(b.CustomerId) && b.IsActive)
+            .Where(b => b.IsActive)
+            .Include(b => b.Customer)
             .ToListAsync();
 
-        // Profil bilgilerini customerId'ye gore map'le
-        var profileMap = profiles.ToDictionary(p => p.CustomerId);
+        var discoverBranches = allBranches
+            .Where(b => !profileMap.TryGetValue(b.CustomerId, out var p) || p.IsPublished)
+            .ToList();
+        if (discoverBranches.Count == 0) return new List<object>();
+
+        var customerIds = discoverBranches.Select(b => b.CustomerId).Distinct().ToList();
 
         // Yorumlar — onaylı (StatusId=2) ortalama + sayı
         var reviewStats = await _reviews.GetAllQueryable()
@@ -191,9 +196,9 @@ public class SlnPublicFactory : ISlnPublicFactory
             .Select(g => new { CustomerId = g.Key, Min = g.Min(x => x.Price), Max = g.Max(x => x.Price) })
             .ToDictionaryAsync(x => x.CustomerId);
 
-        return allBranches
+        return discoverBranches
             .OrderBy(b => b.IsHeadquarter ? 0 : 1)
-            .ThenBy(b => profileMap.TryGetValue(b.CustomerId, out var pr) ? pr.Customer?.Name : "")
+            .ThenBy(b => profileMap.TryGetValue(b.CustomerId, out var pr) ? pr.Customer?.Name : b.Customer?.Name)
             .Select(b =>
             {
                 profileMap.TryGetValue(b.CustomerId, out var profile);
@@ -208,12 +213,12 @@ public class SlnPublicFactory : ISlnPublicFactory
                 return new
                 {
                     Slug = b.Slug ?? profile?.Slug ?? "",
-                    SalonName = profile?.Customer?.Name ?? "",
+                    SalonName = profile?.Customer?.Name ?? b.Customer?.Name ?? "",
                     BranchName = b.Name,
                     b.IsHeadquarter,
                     b.City,
                     b.District,
-                    LogoUrl = profile?.LogoUrl,
+                    LogoUrl = PreferBranchMedia(b.PhotoUrl, profile?.LogoUrl),
                     Description = profile?.Description,
                     b.Latitude,
                     b.Longitude,
@@ -227,20 +232,22 @@ public class SlnPublicFactory : ISlnPublicFactory
     /// <summary>Discover harita için tüm yayınlanan salonların aktif şubelerini koordinatlarıyla döner</summary>
     public async Task<object> GetAllBranchesForMapAsync()
     {
-        var publishedCustomerIds = await _profiles.GetAllQueryable()
-            .Where(p => p.IsPublished)
-            .Select(p => p.CustomerId)
+        var profiles = await _profiles.GetAllQueryable()
+            .Select(p => new { p.CustomerId, p.IsPublished })
             .ToListAsync();
-
-        if (publishedCustomerIds.Count == 0)
-            return new List<object>();
+        var profileMap = profiles
+            .GroupBy(p => p.CustomerId)
+            .ToDictionary(g => g.Key, g => g.Any(x => x.IsPublished));
 
         var branches = await _branches.GetAllQueryable()
-            .Where(b => publishedCustomerIds.Contains(b.CustomerId)
-                     && b.IsActive
+            .Where(b => b.IsActive
                      && b.Latitude != null && b.Longitude != null)
             .Include(b => b.Customer)
             .ToListAsync();
+
+        branches = branches
+            .Where(b => !profileMap.TryGetValue(b.CustomerId, out var isPublished) || isPublished)
+            .ToList();
 
         return branches.Select(b => new
         {
@@ -382,12 +389,15 @@ public class SlnPublicFactory : ISlnPublicFactory
             {
                 b.Id, b.Name, b.Address, b.City, b.District,
                 b.Phone, b.IsHeadquarter, b.Latitude, b.Longitude,
-                b.PhotoUrl, b.WorkingHoursJson
+                b.PhotoUrl, b.CoverImageUrl, b.GalleryImagesJson, b.WorkingHoursJson
             })
             .ToListAsync();
 
         return branches;
     }
+
+    private static string? PreferBranchMedia(string? branchValue, string? profileValue)
+        => string.IsNullOrWhiteSpace(branchValue) ? profileValue : branchValue;
 
     /// <summary>Salonun aktif uyelik planlarini getir</summary>
     public async Task<object?> GetMembershipPlansAsync(string slug)

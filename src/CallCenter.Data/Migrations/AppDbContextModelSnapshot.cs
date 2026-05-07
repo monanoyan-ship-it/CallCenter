@@ -4307,6 +4307,9 @@ namespace CallCenter.Data.Migrations
                     b.Property<string>("CompanyTitle")
                         .HasColumnType("text");
 
+                    b.Property<string>("CoverImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -4323,6 +4326,9 @@ namespace CallCenter.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("GoogleMapsUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GalleryImagesJson")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")

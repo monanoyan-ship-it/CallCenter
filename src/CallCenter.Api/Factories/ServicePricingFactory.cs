@@ -61,12 +61,18 @@ public class ServicePricingFactory
             // Sifir DB degeri enum varsayilanini ezmesin (taslak/bos kalemler tahakkuku 0 yapmasin)
             foreach (var item in activePeriod.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue))
             {
-                if (item.MonthlyPrice > 0m)
+                if (item.MonthlyPrice > 0m && !IsLegacySalonPackagePlaceholder(item.PackageGroupId!.Value, item.MonthlyPrice))
                     result[item.PackageGroupId!.Value] = item.MonthlyPrice;
             }
         }
 
         return result;
+    }
+
+    private static bool IsLegacySalonPackagePlaceholder(int packageGroupId, decimal monthlyPrice)
+    {
+        var group = SalonModuleGroups.GetById(packageGroupId);
+        return monthlyPrice == 20m && group != null && group.MonthlyPrice != 20m;
     }
 
     /// <summary>

@@ -42,6 +42,13 @@
         .btn-purple { background: #7b1fa2; border: none; color: #fff; }
         .btn-purple:hover { background: #6a1b9a; color: #fff; }
         .policy-info { background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px; }
+        .book-hero { position: relative; overflow: hidden; border-radius: 8px; background: #fff; color: #212529; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075); }
+        .book-hero.has-cover { color: #fff; background: #3b2250; }
+        .book-hero-cover { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .32; }
+        .book-hero-content { position: relative; z-index: 1; padding: 1rem; display: flex; gap: .85rem; align-items: center; }
+        .book-logo { width: 56px; height: 56px; border-radius: 50%; background: rgba(123,31,162,.12); display: flex; align-items: center; justify-content: center; overflow: hidden; flex: 0 0 auto; }
+        .book-hero.has-cover .book-logo { background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.35); }
+        .book-logo img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
 <body>
@@ -62,8 +69,25 @@
     </div>
     <div class="container py-4" style="max-width: 640px;" id="book-vm">
         <a href="/salon/@slug" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i><t key="salon.book.back">Salon Profiline Dön</t></a>
-        <h4 class="mt-2 mb-3"><i class="bi bi-calendar-check me-2" style="color:#7b1fa2;"></i><t key="salon.book.title">Online Randevu</t></h4>
-        <div class="text-muted small mb-3" data-bind="text: salonName"></div>
+        <div class="book-hero mt-2 mb-3" data-bind="css: { 'has-cover': !!coverImageUrl() }">
+            <!-- ko if: coverImageUrl() -->
+            <div class="book-hero-cover" data-bind="style: { backgroundImage: 'url(' + coverImageUrl() + ')' }"></div>
+            <!-- /ko -->
+            <div class="book-hero-content">
+                <div class="book-logo">
+                    <!-- ko if: logoUrl() -->
+                    <img data-bind="attr: { src: logoUrl(), alt: salonName() }" />
+                    <!-- /ko -->
+                    <!-- ko ifnot: logoUrl() -->
+                    <i class="bi bi-calendar-check" style="font-size:1.5rem;color:#7b1fa2;"></i>
+                    <!-- /ko -->
+                </div>
+                <div>
+                    <h4 class="mb-1"><t key="salon.book.title">Online Randevu</t></h4>
+                    <div class="small" data-bind="text: displaySalonName"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- Adimlar -->
         <div class="step-indicator">
@@ -402,6 +426,16 @@
         function BookViewModel() {
             var self = this;
             self.salonName = ko.observable('');
+            self.branchName = ko.observable('');
+            self.isHeadquarter = ko.observable(true);
+            self.logoUrl = ko.observable('');
+            self.coverImageUrl = ko.observable('');
+            self.displaySalonName = ko.computed(function () {
+                if (self.branchName() && self.branchName() !== self.salonName() && !self.isHeadquarter()) {
+                    return self.branchName() + ' - ' + self.salonName();
+                }
+                return self.salonName();
+            });
             self.customerId = ko.observable(null);
             self.categories = ko.observableArray([]);
             self.expandedCategoryId = ko.observable(null);
@@ -602,7 +636,7 @@
                         .catch(function () {});
                     return;
                 }
-                fetch('/public-proxy/platform/salons', {
+                fetch('/public-proxy/platform/salons/join', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ customerId: cid })
@@ -614,6 +648,10 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     self.salonName(data.salonName);
+                    self.branchName(data.branchName || '');
+                    self.isHeadquarter(data.isHeadquarter !== false);
+                    self.logoUrl(data.logoUrl || '');
+                    self.coverImageUrl(data.coverImageUrl || '');
                     self.customerId(data.customerId || data.CustomerId || null);
                     self.categories(data.serviceCategories || []);
                 document.title = '@T("salon.book.document_title_prefix", "Randevu") - ' + data.salonName;

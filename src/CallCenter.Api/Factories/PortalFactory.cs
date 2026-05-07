@@ -146,7 +146,10 @@ public class PortalFactory : IPortalFactory
             .Where(p => p.CustomerId == customerId);
         if (isEkipLideri && teamMemberIds != null)
             query = query.Where(p => teamMemberIds.Contains(p.Id));
-        if (callerBranchId.HasValue)
+        var shouldApplyBranchScope = callerBranchId.HasValue
+            && callerRoleId != SalonRoles.Ids.SalonOwner
+            && callerRoleId != CustomerRoles.Ids.FirmaAdmin;
+        if (shouldApplyBranchScope)
             query = query.Where(p => p.BranchId == callerBranchId.Value);
 
         var personnel = await query

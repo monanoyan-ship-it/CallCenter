@@ -43,7 +43,7 @@ public static class LocalizationExtensions
 
     /// <summary>
     /// Lokalizasyon middleware'ini ekler ve ScopedTranslationService'i her request icin yukler.
-    /// UseRouting'den ONCE cagrilmali.
+    /// Route value tabanli kultur icin UseRouting'den sonra cagrilmali.
     /// </summary>
     public static IApplicationBuilder UseAppLocalization(this IApplicationBuilder app)
     {
