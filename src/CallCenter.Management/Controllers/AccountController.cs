@@ -11,7 +11,10 @@ public class AccountController : MgmtBaseController
     public IActionResult Login()
     {
         if (string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal))
+        {
             HttpContext.ClearAuthCookie();
+            return View(); // logout sonrasi dogrudan login formu — IsAuthenticated kontrolu yapma (cookie response'ta silindi ama request'te hala var)
+        }
 
         if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");

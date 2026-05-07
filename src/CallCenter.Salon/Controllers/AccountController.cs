@@ -11,7 +11,13 @@ public class AccountController : SlnBaseController
     public IActionResult Login()
     {
         if (string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal))
+        {
             HttpContext.ClearAuthCookie();
+            var opt = new CookieOptions { Path = "/" };
+            Response.Cookies.Delete("SlnPanelOk", opt);
+            Response.Cookies.Delete("SlnSubStrict", opt);
+            return View(); // logout sonrasi dogrudan login formu — IsAuthenticated kontrolu yapma (cookie response'ta silindi ama request'te hala var)
+        }
 
         if (HttpContext.GetJwtIdentity().IsAuthenticated)
             return RedirectToAction("Index", "Home");
