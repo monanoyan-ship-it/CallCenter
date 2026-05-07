@@ -52,6 +52,7 @@ public class UserFactory : IUserFactory
                 RoleId = u.RoleId,
                 Extension = u.Extension,
                 IsActive = u.IsActive,
+                IsEmailVerified = u.IsEmailVerified,
                 CreatedAt = u.CreatedAt,
                 LastLoginAt = u.LastLoginAt
             })
@@ -99,9 +100,22 @@ public class UserFactory : IUserFactory
             RoleName = UserRoles.GetById(u.RoleId)?.SystemName ?? "Unknown",
             Extension = u.Extension,
             IsActive = u.IsActive,
+            IsEmailVerified = u.IsEmailVerified,
             CreatedAt = u.CreatedAt,
             LastLoginAt = u.LastLoginAt
         };
+    }
+
+    public async Task<(bool Success, string? Error)> VerifyEmailManuallyAsync(int userId)
+    {
+        var user = await _users.GetByIdAsync(userId);
+        if (user == null) return (false, "Kullanıcı bulunamadı.");
+
+        user.IsEmailVerified = true;
+        user.EmailVerificationToken = null;
+        user.EmailVerificationSentAt = null;
+        await _uow.SaveChangesAsync();
+        return (true, null);
     }
 
     public async Task<(bool Success, int? Id, string? Error)> CreateAsync(UserCreateDto dto)

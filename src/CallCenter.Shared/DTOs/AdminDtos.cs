@@ -79,6 +79,7 @@ public class UserListDto
     public string? CustomerName { get; set; }
     public string? Extension { get; set; }
     public bool IsActive { get; set; }
+    public bool IsEmailVerified { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
 }

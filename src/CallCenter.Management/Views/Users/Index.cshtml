@@ -62,12 +62,20 @@
                             <tr>
                                 <td data-bind="text: userName"></td>
                                 <td class="fw-medium" data-bind="text: fullName"></td>
-                                <td class="text-muted small" data-bind="text: email || '-'"></td>
+                                <td class="text-muted small">
+                                    <span data-bind="text: email || '-'"></span>
+                                    <!-- ko if: email -->
+                                    <span class="badge ms-1" data-bind="text: isEmailVerified ? 'Onaylı' : 'Bekliyor', css: isEmailVerified ? 'bg-success' : 'bg-warning text-dark'"></span>
+                                    <!-- /ko -->
+                                </td>
                                 <td><span class="badge bg-info" data-bind="text: roleName"></span></td>
                                 <td class="small" data-bind="text: customerName || '-'"></td>
                                 <td data-bind="text: extension || '-'"></td>
                                 <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
                                 <td>
+                                    <!-- ko if: !isEmailVerified && email -->
+                                    <button class="btn btn-outline-success btn-sm me-1" title="Email manuel doğrula" data-bind="click: $parent.confirmVerify"><i class="bi bi-envelope-check"></i></button>
+                                    <!-- /ko -->
                                     <button class="btn btn-outline-secondary btn-sm me-1" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
                                     <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.confirmDelete"><i class="bi bi-trash"></i></button>
                                 </td>
@@ -140,6 +148,22 @@
                     <button class="btn btn-primary btn-sm" data-bind="click: saveUser, disable: isSaving">
                         <i class="bi bi-check-lg me-1"></i>Kaydet
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Manuel Onay Modal -->
+    <div class="modal fade" id="verifyEmailModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-envelope-check text-success fs-1 d-block mb-2"></i>
+                    <p>Bu kullanicinin email adresini <b>manuel olarak doğrulanmis</b> isaretlemek istediginize emin misiniz?</p>
+                </div>
+                <div class="modal-footer py-2 justify-content-center">
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-success btn-sm" data-bind="click: executeVerify">Onayla</button>
                 </div>
             </div>
         </div>

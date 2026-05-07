@@ -68,6 +68,23 @@ public class UsersController : AuditableControllerBase
         return NoContent();
     }
 
+    /// <summary>Email adresini manuel olarak dogrulanmis isaretle (admin)</summary>
+    [HttpPost("{id}/verify-email-manual")]
+    public async Task<ActionResult> VerifyEmailManually(int id)
+    {
+        var (success, error) = await _userFactory.VerifyEmailManuallyAsync(id);
+        if (!success)
+        {
+            if (error == "Kullanıcı bulunamadı.") return NotFound(new { message = error });
+            return BadRequest(new { message = error });
+        }
+
+        await AuditCrudAsync("VerifyEmailManual", "User", id.ToString(),
+            $"Email manuel dogrulandi: ID={id}");
+
+        return NoContent();
+    }
+
     /// <summary>Kullanici sil (soft delete — IsActive=false)</summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)

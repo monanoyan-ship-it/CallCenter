@@ -79,6 +79,24 @@ function UsersViewModel() {
         });
     };
 
+    self.verifyTarget = ko.observable(null);
+    self.confirmVerify = function (u) {
+        self.verifyTarget(u);
+        new bootstrap.Modal('#verifyEmailModal').show();
+    };
+    self.executeVerify = function () {
+        if (!self.verifyTarget()) return;
+        $.ajax({
+            url: '/proxy/users/' + self.verifyTarget().id + '/verify-email-manual', method: 'POST',
+            success: function () {
+                toastr.success('Email doğrulandı olarak işaretlendi.');
+                bootstrap.Modal.getInstance(document.getElementById('verifyEmailModal')).hide();
+                self.loadData();
+            },
+            error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'İşlem başarısız.'); }
+        });
+    };
+
     self.confirmDelete = function (u) {
         self.deleteTarget(u);
         new bootstrap.Modal('#deleteUserModal').show();
