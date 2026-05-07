@@ -71,6 +71,9 @@ builder.Services
 // SignalR
 builder.Services.AddSignalR();
 
+// In-memory cache (auth rate limit, kisa surel cache senaryolari)
+builder.Services.AddMemoryCache();
+
 // Background jobs (PAY.5 trial expiry, abonelik askıya alma)
 builder.Services.AddHostedService<CallCenter.Api.Services.SubscriptionExpiryHostedService>();
 
@@ -166,6 +169,9 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
     var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SalonSeed");
     try
     {
+        // Platform email event ve sablonlari (idempotent)
+        await CallCenter.Api.Helpers.PlatformEmailSeedHelper.SeedAsync(seedDb);
+
         var salonCustomerIds = await seedDb.CustomerProducts
             .Where(cp => cp.ProductTypeId == ProductTypes.Ids.Salon && cp.IsActive)
             .Select(cp => cp.CustomerId)

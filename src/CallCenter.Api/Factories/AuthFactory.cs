@@ -1,5 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Helpers;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
@@ -8,6 +9,7 @@ using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CallCenter.Api.Factories;
 
@@ -24,11 +26,13 @@ public class AuthFactory : IAuthFactory
     private readonly IHubContext<CallCenterHub> _hubContext;
     private readonly IUnitOfWork _uow;
     private readonly IPlatformEmailService _email;
+    private readonly IMemoryCache _cache;
 
     private const int MaxFailedAttempts = 5;
     private const int LockoutMinutes = 15;
     private const int PasswordResetTokenHours = 1;
     private const int VerificationResendCooldownMinutes = 5;
+    private const int DailyEmailLimit = 10;
     private static readonly HashSet<string> SupportedLanguages = new(StringComparer.OrdinalIgnoreCase) { "tr", "en", "de", "ar", "ru" };
 
     public AuthFactory(
@@ -42,7 +46,8 @@ public class AuthFactory : IAuthFactory
         IConfiguration config,
         IHubContext<CallCenterHub> hubContext,
         IUnitOfWork uow,
-        IPlatformEmailService email)
+        IPlatformEmailService email,
+        IMemoryCache cache)
     {
         _users = users;
         _refreshTokens = refreshTokens;
@@ -55,6 +60,16 @@ public class AuthFactory : IAuthFactory
         _hubContext = hubContext;
         _uow = uow;
         _email = email;
+        _cache = cache;
+    }
+
+    private bool TryIncrementDailyEmailCount(string userName, string scope)
+    {
+        var key = $"auth_email_count:{scope}:{userName.ToLowerInvariant()}:{DateTime.UtcNow:yyyyMMdd}";
+        var current = _cache.Get<int?>(key) ?? 0;
+        if (current >= DailyEmailLimit) return false;
+        _cache.Set(key, current + 1, TimeSpan.FromHours(24));
+        return true;
     }
 
     public async Task<(bool Success, LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
@@ -329,6 +344,9 @@ public class AuthFactory : IAuthFactory
             return (false, $"Lütfen {VerificationResendCooldownMinutes} dakika içinde tekrar deneyin.");
         }
 
+        if (!TryIncrementDailyEmailCount(user.UserName, "verify"))
+            return (false, "Günlük doğrulama mail limiti aşıldı. Lütfen yarın tekrar deneyin.");
+
         var token = Guid.NewGuid().ToString("N");
         user.EmailVerificationToken = token;
         user.EmailVerificationSentAt = DateTime.UtcNow;
@@ -337,9 +355,18 @@ public class AuthFactory : IAuthFactory
         var baseUrl = (_config["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
         var link = $"{baseUrl}/Account/VerifyEmail?token={token}";
         var lang = NormalizeLanguage(user.PreferredLanguage);
-        var (subject, html) = BuildVerificationEmailBody(user.FullName, link, lang);
+        var placeholders = new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["VerifyUrl"] = link
+        };
 
-        var ok = await _email.SendAsync(user.Email, user.FullName, subject, html);
+        var ok = await _email.SendTemplatedAsync(user.Email, PlatformEmailSeedHelper.EventUserEmailVerify, placeholders, lang);
+        if (!ok)
+        {
+            var (subject, html) = BuildVerificationEmailBody(user.FullName, link, lang);
+            ok = await _email.SendAsync(user.Email, user.FullName, subject, html);
+        }
         return ok ? (true, null) : (false, "Email gönderilemedi.");
     }
 
@@ -375,6 +402,9 @@ public class AuthFactory : IAuthFactory
             return (true, null);
         }
 
+        if (!TryIncrementDailyEmailCount(user.UserName, "reset"))
+            return (true, null); // Sızdırma yok: limit asilirsa da basari don
+
         var token = Guid.NewGuid().ToString("N");
         user.PasswordResetToken = token;
         user.PasswordResetSentAt = DateTime.UtcNow;
@@ -383,9 +413,18 @@ public class AuthFactory : IAuthFactory
         var baseUrl = (_config["Salon:BaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
         var link = $"{baseUrl}/Account/ResetPassword?token={token}";
         var lang = NormalizeLanguage(user.PreferredLanguage);
-        var (subject, html) = BuildPasswordResetEmailBody(user.FullName, link, lang);
+        var placeholders = new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ResetUrl"] = link
+        };
 
-        await _email.SendAsync(user.Email, user.FullName, subject, html);
+        var ok = await _email.SendTemplatedAsync(user.Email, PlatformEmailSeedHelper.EventUserPasswordReset, placeholders, lang);
+        if (!ok)
+        {
+            var (subject, html) = BuildPasswordResetEmailBody(user.FullName, link, lang);
+            await _email.SendAsync(user.Email, user.FullName, subject, html);
+        }
         return (true, null);
     }
 
