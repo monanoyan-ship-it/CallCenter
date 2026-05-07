@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = Translation.T("salon.account.auto.giris", "Giriş");
     Layout = null;
+    var registeredFlag = string.Equals(Context.Request.Query["registered"], "1", StringComparison.Ordinal);
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -30,6 +31,13 @@
             <small class="text-muted"><t key="salon.account.auto.salon_yonetim_sistemi">Salon Yonetim Sistemi</t></small>
         </div>
 
+        @if (registeredFlag)
+        {
+            <div class="alert alert-info py-2 small">
+                <i class="bi bi-envelope-check me-1"></i>
+                <t key="salon.account.register.email_sent">Kayıt başarılı. Doğrulama bağlantısı email adresine gönderildi. Giriş yapmadan önce mail kutunu kontrol et.</t>
+            </div>
+        }
         @if (ViewBag.Error != null)
         {
             <div class="alert alert-danger py-2 small">@ViewBag.Error</div>
@@ -50,6 +58,11 @@
             </div>
             <button type="submit" class="btn btn-salon w-100"><t key="salon.account.auto.giris_yap">Giriş Yap</t></button>
         </form>
+
+        <div class="d-flex justify-content-between mt-3 small">
+            <a href="/Account/ForgotPassword" class="text-decoration-none text-muted"><t key="salon.account.forgot_link">Şifremi unuttum</t></a>
+            <a href="/Account/ResendVerification" class="text-decoration-none text-muted"><t key="salon.account.resend_link">Doğrulama maili gelmedi</t></a>
+        </div>
 
         <div class="text-center mt-3">
             <small class="text-muted"><t key="salon.account.no_account">Hesabınız yok mu?</t> <a href="/Account/Register" class="text-decoration-none" style="color:#7b1fa2"><t key="salon.account.auto.ucretsiz_kayit_ol">Ücretsiz Kayıt Ol</t></a></small>

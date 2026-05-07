@@ -759,23 +759,22 @@ public class CustomerFactory : ICustomerFactory
         }
         catch { /* trial olusturulamazsa kayit akisini bozma */ }
 
-        // Otomatik login
-        var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest
+        // Email doğrulama maili gönder. Hata kayıt akışını bozmasın - kullanıcı "tekrar gönder" ile manuel tetikleyebilir.
+        try
         {
-            UserName = userName,
-            Password = request.Password
-        });
-
-        if (!success)
-            return new SlnRegisterResponse { Success = true, Error = "Kayit basarili ama otomatik giris yapilamadi. Lutfen giris yapin." };
+            await _authFactory.SendVerificationEmailAsync(userName);
+        }
+        catch
+        {
+            /* mail gönderilemezse kayıt akışını bozma; kullanıcı tekrar gönder akışı ile alabilir */
+        }
 
         return new SlnRegisterResponse
         {
             Success = true,
-            Token = loginResponse!.Token,
-            RefreshToken = loginResponse.RefreshToken,
-            FullName = loginResponse.FullName,
-            Role = loginResponse.Role
+            FullName = user.FullName,
+            Email = user.Email,
+            EmailVerificationRequired = true
         };
     }
 

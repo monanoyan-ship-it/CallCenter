@@ -67,6 +67,9 @@ public class AuthFactory : IAuthFactory
         if (!user.IsActive)
             return (false, null, "Kullanıcı hesabı aktif değil.");
 
+        if (!user.IsEmailVerified && !string.IsNullOrWhiteSpace(user.Email))
+            return (false, null, "Email adresinizi doğrulayın. Mail kutunuza gönderilen bağlantı üzerinden hesabınızı aktif edin.");
+
         if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
         {
             var remaining = (int)(user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;

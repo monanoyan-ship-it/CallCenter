@@ -281,7 +281,11 @@
                 });
                 var data = await resp.json();
                 if (data.success) {
-                    window.location.href = '/';
+                    if (data.emailVerificationRequired) {
+                        window.location.href = '/Account/Login?registered=1';
+                    } else {
+                        window.location.href = '/';
+                    }
                 } else {
                     errDiv.textContent = data.error || '@T("salon.account.register.failed", "Kayıt sırasında bir hata oluştu.")';
                     errDiv.classList.remove('d-none');

@@ -26,13 +26,15 @@ public class AccountController : SlnBaseController
         var response = await client.PostAsync("api/auth/login",
             new StringContent(payload, Encoding.UTF8, "application/json"));
 
+        var json = await response.Content.ReadAsStringAsync();
+
         if (!response.IsSuccessStatusCode)
         {
-            ViewBag.Error = "Kullanici adi veya sifre hatali.";
+            ViewBag.Error = ExtractMessage(json, "Kullanıcı adı veya şifre hatalı.");
+            ViewBag.Username = username;
             return View();
         }
 
-        var json = await response.Content.ReadAsStringAsync();
         SetAuthFromLoginResponse(json, rememberMe ? 30 : 1);
         return RedirectToAction("Index", "Home");
     }
@@ -81,7 +83,10 @@ public class AccountController : SlnBaseController
             SetAuthFromLoginResponse(json, 1);
         }
 
-        return Json(new { success = true });
+        var emailVerificationRequired = root.TryGetProperty("emailVerificationRequired", out var ev) && ev.GetBoolean();
+        var email = root.TryGetProperty("email", out var em) ? em.GetString() : null;
+
+        return Json(new { success = true, emailVerificationRequired, email });
     }
 
     [HttpGet]
@@ -93,6 +98,123 @@ public class AccountController : SlnBaseController
         Response.Cookies.Delete("SlnPanelOk", opt);
         Response.Cookies.Delete("SlnSubStrict", opt);
         return RedirectToAction("Login", "Account", new { loggedOut = 1 });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> VerifyEmail(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            ViewBag.Success = false;
+            ViewBag.Message = "Doğrulama bağlantısı geçersiz.";
+            return View();
+        }
+
+        using var client = CreateApiClient();
+        var response = await client.GetAsync($"api/auth/verify-email?token={Uri.EscapeDataString(token)}");
+        var json = await response.Content.ReadAsStringAsync();
+
+        ViewBag.Success = response.IsSuccessStatusCode;
+        ViewBag.Message = ExtractMessage(json, response.IsSuccessStatusCode
+            ? "Email başarıyla doğrulandı."
+            : "Doğrulama başarısız.");
+        return View();
+    }
+
+    [HttpGet]
+    public IActionResult ResendVerification() => View();
+
+    [HttpPost]
+    public async Task<IActionResult> ResendVerification(string username)
+    {
+        using var client = CreateApiClient();
+        var payload = JsonSerializer.Serialize(new { userName = username });
+        var response = await client.PostAsync("api/auth/send-verification-email",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+        var json = await response.Content.ReadAsStringAsync();
+
+        ViewBag.Success = response.IsSuccessStatusCode;
+        ViewBag.Message = ExtractMessage(json, response.IsSuccessStatusCode
+            ? "Doğrulama maili tekrar gönderildi."
+            : "Doğrulama maili gönderilemedi.");
+        ViewBag.Username = username;
+        return View();
+    }
+
+    [HttpGet]
+    public IActionResult ForgotPassword() => View();
+
+    [HttpPost]
+    public async Task<IActionResult> ForgotPassword(string username)
+    {
+        using var client = CreateApiClient();
+        var payload = JsonSerializer.Serialize(new { userName = username });
+        var response = await client.PostAsync("api/auth/forgot-password",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+
+        ViewBag.Submitted = true;
+        ViewBag.Success = response.IsSuccessStatusCode;
+        ViewBag.Message = "Eğer hesap kayıtlıysa, şifre sıfırlama bağlantısı email adresine gönderildi.";
+        return View();
+    }
+
+    [HttpGet]
+    public IActionResult ResetPassword(string? token)
+    {
+        ViewBag.Token = token ?? "";
+        if (string.IsNullOrWhiteSpace(token))
+            ViewBag.Error = "Sıfırlama bağlantısı geçersiz.";
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
+    {
+        ViewBag.Token = token;
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            ViewBag.Error = "Sıfırlama bağlantısı geçersiz.";
+            return View();
+        }
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+        {
+            ViewBag.Error = "Şifre en az 6 karakter olmalı.";
+            return View();
+        }
+        if (newPassword != confirmPassword)
+        {
+            ViewBag.Error = "Şifreler eşleşmiyor.";
+            return View();
+        }
+
+        using var client = CreateApiClient();
+        var payload = JsonSerializer.Serialize(new { token, newPassword });
+        var response = await client.PostAsync("api/auth/reset-password",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+        var json = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            ViewBag.Error = ExtractMessage(json, "Şifre sıfırlama başarısız.");
+            return View();
+        }
+
+        ViewBag.Success = true;
+        ViewBag.Message = "Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz.";
+        return View();
+    }
+
+    private static string ExtractMessage(string json, string fallback)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("message", out var m) && m.GetString() is { } msg)
+                return msg;
+        }
+        catch { }
+        return fallback;
     }
 
     /// <summary>Abonelik/modul odemesi sonrasi JWT modul claim'i ve panel cache yenileme.</summary>
