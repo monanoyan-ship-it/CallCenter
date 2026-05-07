@@ -53,6 +53,32 @@ Kurallar:
 - Gunluk bilgi, deploy, domain, kredi, basvuru gibi bilgiler Journal'a yaz.
 - Gorev tamamlaninca ilgili roadmap task'ina risk/eksik raporu ekle.
 
+### 6. Rol Bolumlemesi (Chat ID 8: a = Claude Code, b = ChatGPT/Codex)
+Iki oturum farkli sorumluluk tasir. Kendi rolun disinda is yapma.
+
+**a (Claude Code) sorumluluklari — KOD:**
+- Yeni feature, refactor, bug fix icin dosya degisikligi.
+- DTO/entity/factory/service/controller yazimi.
+- View, JS, css, migration olusturma.
+- `dotnet build` calistirip kendi yazdigi kodun derlendigini dogrulama.
+
+**b (ChatGPT/Codex) sorumluluklari — TEST:**
+- `dotnet test`, integration test, manuel/smoke test.
+- Lokal/prod smoke (URL'leri, endpoint cevaplarini, DB durumunu dogrulama).
+- Deploy adimlari (Cloud Run revizyon, gcloud auth, Dockerfile dogrulamasi).
+- Gerekirse a'ya geri donus: hata trace, ekran goruntusu, repro adimi.
+
+**Akis:**
+1. a kod degisikligini bitirince chat'e "TEST READY: <feature/dosyalar>" yazar.
+2. b test alir, sonucu chat'e yazar ("PASS" / "FAIL: <ozet>").
+3. FAIL durumunda a duzeltir, tekrar TEST READY yazar.
+4. Ne a ne b kullanici acikca soylemeden commit/push yapar.
+
+**Catisma onleme:**
+- a, kodun uzerinde calisirken b ayni dosyaya dokunmaz (sadece okuyup test eder).
+- b, test/deploy fazindayken a o dosyalara yeni degisiklik atmadan once chat'e duyurur.
+- Acil bir durumda rol disina cikilirsa once chat'e gerekce yazilir.
+
 ## Proje Ozeti
 
 CorpLynk CallCenter cok urunlu bir sistemdir. Ana hatlariyla tek backend API ve bu API'yi kullanan farkli uygulamalardan olusur.
