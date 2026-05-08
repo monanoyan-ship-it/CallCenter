@@ -293,10 +293,8 @@ public class PaymentService
         var amount = invoice.TotalAmount;
         if (amount <= 0) return PaymentResult.Fail("Odenecek tutar 0.");
 
-        // Mobil/musteri tahsilati: Pazaryeri kayit ZORUNLU — komisyon corplynk'a, kalan salonun sub-merchant hesabina.
-        var split = await GetMarketplaceSplitAsync(customerId, amount, requireSplit: true);
-        if (!split.Success)
-            return PaymentResult.Fail(split.Error ?? "Salon Pazaryeri kaydi tamamlanmamis.");
+        // Pazaryeri OPSIYONEL: salon kayitli ise split (komisyon ayrismasi), degilse direkt-merchant akisi.
+        var split = await GetMarketplaceSplitAsync(customerId, amount);
 
         var tx = new PaymentTransaction
         {
@@ -311,13 +309,14 @@ public class PaymentService
         };
 
         var gatewayResult = await ExecutePaymentAsync(tx, card,
-            subMerchantKey: split.SubMerchantKey,
-            subMerchantPrice: split.SubMerchantPrice);
+            subMerchantKey: split.UseSplit ? split.SubMerchantKey : null,
+            subMerchantPrice: split.UseSplit ? split.SubMerchantPrice : null);
 
         if (gatewayResult.Success)
         {
             invoice.StatusId = 3; // Paid
-            tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit", $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
+            if (split.UseSplit)
+                tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit", $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
             _logger.LogInformation("Adisyon odemesi basarili: InvoiceId={InvoiceId}, Amount={Amount}, TxId={TxId}",
                 invoiceId, amount, tx.ProviderTransactionId);
         }
