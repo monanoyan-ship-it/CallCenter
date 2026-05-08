@@ -73,10 +73,18 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         _userEs.Add(user);
         await _uow.SaveChangesAsync();
 
-        // Email girilmisse dogrulama maili tetikle (best-effort, kayit akisini bozma)
-        if (!string.IsNullOrWhiteSpace(user.Email))
+        // Email doğrulama zorunlu mu? Default false → mail tetikleme + token döndür (eski davranış).
+        var requireEmailVerify = _config.GetValue<bool>("Auth:RequireEmailVerification:PlatformUser", false);
+
+        if (requireEmailVerify && !string.IsNullOrWhiteSpace(user.Email))
         {
+            // Mail tetikle, token DÖNDÜRME — kullanıcı önce email doğrulasın, sonra login olsun.
             try { await SendVerificationEmailAsync(user.Email); } catch { /* sessiz */ }
+            return (new PlatformAuthResponse
+            {
+                Token = null!,
+                User = MapToDto(user)
+            }, null);
         }
 
         var token = _tokenService.GeneratePlatformToken(user);
@@ -100,8 +108,9 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         if (!user.IsActive)
             return (null, "Hesabınız devre dışı bırakılmış.");
 
-        // Email kayitliysa dogrulanmis olmali. Email yoksa engelleme yok (telefon bazli akis).
-        if (!string.IsNullOrWhiteSpace(user.Email) && !user.IsEmailVerified)
+        // Auth:RequireEmailVerification:PlatformUser=true ise mail doğrulaması zorunlu. Default false.
+        var requireEmailVerify = _config.GetValue<bool>("Auth:RequireEmailVerification:PlatformUser", false);
+        if (requireEmailVerify && !string.IsNullOrWhiteSpace(user.Email) && !user.IsEmailVerified)
             return (null, "Email adresinizi doğrulayın. Mail kutunuza gönderilen bağlantı üzerinden hesabınızı aktif edin.");
 
         user.LastLoginAt = DateTime.UtcNow;

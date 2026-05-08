@@ -1007,35 +1007,46 @@
             var token = localStorage.getItem('platformToken');
             if (!token) { window.location.href = '/user/login'; return; }
 
-            confirmModal(
-                profileT('salon.profile.join.confirm_title', 'Salona Katıl'),
-                profileT('salon.profile.join.confirm_body', 'Bu salonun müşterisi olarak kaydolmak ve bilgilerinizi paylaşmak istiyor musunuz?'),
-                function () {
-                    // customerId'yi salon verisinden al
-                    var vm = ko.dataFor(document.getElementById('public-salon-vm'));
-                    var customerId = vm?.salon()?.customerId;
+            // customerId çek: önce KO binding'den, fail olursa fetch ile salon endpoint'inden
+            var vm = ko.dataFor(document.getElementById('public-salon-vm'));
+            var customerId = vm && vm.salon && vm.salon() ? vm.salon().customerId : null;
 
-                    if (!customerId) { toastr.error(profileT('salon.profile.join.salon_missing', 'Salon bilgisi alınamadı.')); return; }
+            var doJoin = function (cid) {
+                if (!cid) { toastr.error(profileT('salon.profile.join.salon_missing', 'Salon bilgisi alınamadı.')); return; }
+                var btn = document.getElementById('btnJoinSalon');
+                if (btn) btn.disabled = true;
 
-                    fetch('/public-proxy/platform/salons/join', {
-                        method: 'POST',
-                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ customerId: customerId })
-                    })
-                    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-                    .then(function (res) {
-                        if (res.ok) {
-                            toastr.success(profileT('salon.profile.join.success', 'Salona üye oldunuz!'));
-                            setJoinAreaDisplay('btnJoinSalon', 'none');
-                            setJoinAreaDisplay('alreadyMember', '');
-                        } else {
-                            toastr.error(res.data.message || profileT('salon.profile.join.failed', 'İşlem başarısız.'));
-                        }
-                    })
-                    .catch(function () { toastr.error(profileT('salon.book.error.connection', 'Bağlantı hatası')); });
-                },
-                { confirmText: profileT('salon.profile.join.confirm_button', 'Katıl'), confirmClass: 'btn-book' }
-            );
+                fetch('/public-proxy/platform/salons/join', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId: cid })
+                })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                .then(function (res) {
+                    if (res.ok) {
+                        toastr.success(profileT('salon.profile.join.success', 'Salona üye oldunuz!'));
+                        setJoinAreaDisplay('btnJoinSalon', 'none');
+                        setJoinAreaDisplay('alreadyMember', '');
+                    } else {
+                        if (btn) btn.disabled = false;
+                        toastr.error(res.data && res.data.message ? res.data.message : profileT('salon.profile.join.failed', 'İşlem başarısız.'));
+                    }
+                })
+                .catch(function () {
+                    if (btn) btn.disabled = false;
+                    toastr.error(profileT('salon.book.error.connection', 'Bağlantı hatası'));
+                });
+            };
+
+            if (customerId) {
+                doJoin(customerId);
+            } else {
+                // Fallback: slug üzerinden public proxy ile salon profilini çek
+                fetch('/public-proxy/salon/' + encodeURIComponent('@slug'))
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (data) { doJoin(data && data.customerId); })
+                    .catch(function () { doJoin(null); });
+            }
         }
     </script>
 </body>

@@ -29,6 +29,7 @@ public class CustomerFactory : ICustomerFactory
     private readonly IAuthFactory _authFactory;
     private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly IUnitOfWork _uow;
+    private readonly IConfiguration _config;
 
     public CustomerFactory(
         ICustomerEntityService customerEs,
@@ -47,7 +48,8 @@ public class CustomerFactory : ICustomerFactory
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
         ISubscriptionFactory subscriptionFactory,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IConfiguration config)
     {
         _customerEs = customerEs;
         _personnelEs = personnelEs;
@@ -66,6 +68,7 @@ public class CustomerFactory : ICustomerFactory
         _authFactory = authFactory;
         _subscriptionFactory = subscriptionFactory;
         _uow = uow;
+        _config = config;
     }
 
     // CUSTOMERS
@@ -759,22 +762,40 @@ public class CustomerFactory : ICustomerFactory
         }
         catch { /* trial olusturulamazsa kayit akisini bozma */ }
 
-        // Email doğrulama maili gönder. Hata kayıt akışını bozmasın - kullanıcı "tekrar gönder" ile manuel tetikleyebilir.
-        try
+        // Auth:RequireEmailVerification:User flag'ine göre davran:
+        // false (default) → otomatik login + mail tetikleme yok (eski davranış)
+        // true → mail tetikle, otomatik login yapma, EmailVerificationRequired=true
+        var requireEmailVerify = _config.GetValue<bool>("Auth:RequireEmailVerification:User", false);
+
+        if (requireEmailVerify)
         {
-            await _authFactory.SendVerificationEmailAsync(userName);
+            try { await _authFactory.SendVerificationEmailAsync(userName); } catch { /* sessiz */ }
+
+            return new SlnRegisterResponse
+            {
+                Success = true,
+                FullName = user.FullName,
+                Email = user.Email,
+                EmailVerificationRequired = true
+            };
         }
-        catch
+
+        // Default: otomatik login (eski davranış)
+        var (success, loginResponse, error) = await _authFactory.LoginAsync(new LoginRequest
         {
-            /* mail gönderilemezse kayıt akışını bozma; kullanıcı tekrar gönder akışı ile alabilir */
-        }
+            UserName = userName,
+            Password = request.Password
+        });
+        if (!success)
+            return new SlnRegisterResponse { Success = true, Error = "Kayıt başarılı ama otomatik giriş yapılamadı. Lütfen giriş yapın." };
 
         return new SlnRegisterResponse
         {
             Success = true,
-            FullName = user.FullName,
-            Email = user.Email,
-            EmailVerificationRequired = true
+            Token = loginResponse!.Token,
+            RefreshToken = loginResponse.RefreshToken,
+            FullName = loginResponse.FullName,
+            Role = loginResponse.Role
         };
     }
 
