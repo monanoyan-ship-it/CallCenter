@@ -278,6 +278,21 @@ public class IyzicoGateway : IPaymentGateway
     {
         var priceTxt = req.Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
+        // Sub-merchant split: PS.6/PS.7 — basketItem'a subMerchantKey + subMerchantPrice eklenir.
+        var basketItem = new Dictionary<string, object?>
+        {
+            ["id"] = "SUB01",
+            ["name"] = req.Description ?? "Abonelik Odemesi",
+            ["category1"] = "Abonelik",
+            ["itemType"] = "VIRTUAL",
+            ["price"] = priceTxt
+        };
+        if (!string.IsNullOrWhiteSpace(req.SubMerchantKey) && req.SubMerchantPrice.HasValue)
+        {
+            basketItem["subMerchantKey"] = req.SubMerchantKey;
+            basketItem["subMerchantPrice"] = req.SubMerchantPrice.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         var body = new
         {
             locale = "tr",
@@ -303,10 +318,7 @@ public class IyzicoGateway : IPaymentGateway
             },
             shippingAddress = new { contactName = req.BuyerName ?? "Musteri", city = "Istanbul", country = "Turkey", address = "Turkiye" },
             billingAddress = new { contactName = req.BuyerName ?? "Musteri", city = "Istanbul", country = "Turkey", address = "Turkiye" },
-            basketItems = new[]
-            {
-                new { id = "SUB01", name = req.Description ?? "Abonelik Odemesi", category1 = "Abonelik", itemType = "VIRTUAL", price = priceTxt }
-            }
+            basketItems = new[] { basketItem }
         };
 
         var json = JsonSerializer.Serialize(body);
@@ -381,6 +393,11 @@ public class CheckoutFormRequest
     public string? BuyerEmail { get; set; }
     public string? BuyerIp { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>iyzico Pazaryeri sub-merchant key. Null ise normal direkt-merchant akisi.</summary>
+    public string? SubMerchantKey { get; set; }
+    /// <summary>Sub-merchant'a aktarilacak tutar (komisyon dusulmus). SubMerchantKey set edildiyse zorunlu.</summary>
+    public decimal? SubMerchantPrice { get; set; }
 }
 
 public class CheckoutFormResult

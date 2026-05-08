@@ -1041,6 +1041,16 @@ public class PaymentService
                 ? platformUser.Email
                 : slnClient.Email ?? "noreply@corplynk.com";
 
+            // PS.7 — Pazaryeri split: salon sub-merchant'i tamamlanmissa komisyon hesapla
+            var split = await GetMarketplaceSplitAsync(plan.CustomerId, plan.Price);
+            if (!split.Success)
+            {
+                tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+                tx.ErrorMessage = split.Error;
+                await _db.SaveChangesAsync();
+                return CheckoutFormResult.Fail(split.Error!);
+            }
+
             var req = new CheckoutFormRequest
             {
                 Amount = plan.Price,
@@ -1050,13 +1060,16 @@ public class PaymentService
                 BuyerName = buyerName,
                 BuyerEmail = buyerEmail,
                 BuyerIp = buyerIp,
-                Description = $"Salon musteri uyeligi - {plan.Name}"
+                Description = $"Salon musteri uyeligi - {plan.Name}",
+                SubMerchantKey = split.SubMerchantKey,
+                SubMerchantPrice = split.SubMerchantPrice
             };
 
             var result = await iyzicoGw.InitCheckoutFormAsync(req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;
+                tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit", $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
                 await _db.SaveChangesAsync();
             }
 
@@ -1694,6 +1707,16 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             if (gateway is not IyzicoGateway iyzicoGw)
                 return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
 
+            // PS.6 — Pazaryeri split: depozito tutari salonun sub-merchant hesabina, komisyon corplynk'a
+            var split = await GetMarketplaceSplitAsync(customerId, amount);
+            if (!split.Success)
+            {
+                tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+                tx.ErrorMessage = split.Error;
+                await _db.SaveChangesAsync();
+                return CheckoutFormResult.Fail(split.Error!);
+            }
+
             var req = new CheckoutFormRequest
             {
                 Amount = amount,
@@ -1703,13 +1726,16 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 BuyerName = string.IsNullOrWhiteSpace(buyerFullName) ? "Musteri" : buyerFullName,
                 BuyerEmail = string.IsNullOrWhiteSpace(buyerEmail) ? "noreply@corplynk.com" : buyerEmail,
                 BuyerIp = buyerIp,
-                Description = $"Randevu Depozitosu - {amount:N2} TL"
+                Description = $"Randevu Depozitosu - {amount:N2} TL",
+                SubMerchantKey = split.SubMerchantKey,
+                SubMerchantPrice = split.SubMerchantPrice
             };
 
             var result = await iyzicoGw.InitCheckoutFormAsync(req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;
+                tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit", $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
                 await _db.SaveChangesAsync();
             }
             return result;
@@ -1849,6 +1875,40 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
     }
 
     /// <summary>
+    /// PS.6/PS.7 yardimcisi: salonun sub-merchant onboarding durumunu ve komisyon hesabini doner.
+    /// Onboarding tamamlanmadiysa Error doludur, salon online tahsilat alamaz.
+    /// </summary>
+    public async Task<MarketplaceSplitContext> GetMarketplaceSplitAsync(int customerId, decimal grossAmount)
+    {
+        var profile = await _db.Set<SlnSalonProfile>()
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId);
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId);
+
+        if (profile == null || string.IsNullOrEmpty(profile.IyzicoSubMerchantKey) || profile.IyzicoOnboardingStatus != 2)
+        {
+            return new MarketplaceSplitContext
+            {
+                Success = false,
+                Error = "Online tahsilat icin once Odeme Bilgileri sayfasindan iyzico Pazaryeri kaydinizi tamamlayin."
+            };
+        }
+
+        var commissionPct = customer?.MarketplaceCommissionPercent ?? 5m;
+        var commission = Math.Round(grossAmount * commissionPct / 100m, 2, MidpointRounding.AwayFromZero);
+        var subMerchantPrice = Math.Round(grossAmount - commission, 2, MidpointRounding.AwayFromZero);
+        if (subMerchantPrice < 0m) subMerchantPrice = 0m;
+
+        return new MarketplaceSplitContext
+        {
+            Success = true,
+            SubMerchantKey = profile.IyzicoSubMerchantKey,
+            SubMerchantPrice = subMerchantPrice,
+            CommissionAmount = commission,
+            CommissionPercent = commissionPct
+        };
+    }
+
+    /// <summary>
     /// PS.4 yardimcisi: salon onboarding'de iyzico'ya gonderilecek genel bilgileri (firma adi/email/telefon/adres) toplar.
     /// </summary>
     public async Task<SalonOnboardingContext?> GetCustomerOnboardingContextAsync(int customerId)
@@ -1957,4 +2017,14 @@ public class SalonOnboardingContext
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+}
+
+public class MarketplaceSplitContext
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+    public string? SubMerchantKey { get; set; }
+    public decimal SubMerchantPrice { get; set; }
+    public decimal CommissionAmount { get; set; }
+    public decimal CommissionPercent { get; set; }
 }
