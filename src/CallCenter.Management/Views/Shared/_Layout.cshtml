@@ -168,10 +168,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="~/js/confirm-modal.js" asp-append-version="true"></script>
     <script>
+        var _redirecting = false;
         $.ajaxSetup({
             dataType: 'json',
             error: function(xhr) {
-                if (xhr.status === 401) window.location.href = '/Account/Login';
+                if (xhr.status === 401 && !_redirecting && !location.pathname.match(/^\/Account\/Login/i)) {
+                    _redirecting = true;
+                    window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(location.pathname + location.search);
+                }
             }
         });
         toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3000 };

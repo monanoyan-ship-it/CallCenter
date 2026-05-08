@@ -10,13 +10,18 @@ public class AccountController : SlnBaseController
     [HttpGet]
     public IActionResult Login()
     {
-        if (string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal))
+        // 1) Manuel logout veya 2) AJAX 401 -> Layout handler /Account/Login?returnUrl=... ile yonlendirdi.
+        // Iki durumda da kullanici login formunu gormeli; cookie'yi temizle ve IsAuthenticated kontrolunu atla.
+        // (Aksi halde cookie'deki token UI tarafinda parse OK gorulup Home'a redirect, oradan AJAX 401, sonsuz dongu olur.)
+        var loggedOut = string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal);
+        var hasReturnUrl = !string.IsNullOrEmpty(Request.Query["returnUrl"]);
+        if (loggedOut || hasReturnUrl)
         {
             HttpContext.ClearAuthCookie();
             var opt = new CookieOptions { Path = "/" };
             Response.Cookies.Delete("SlnPanelOk", opt);
             Response.Cookies.Delete("SlnSubStrict", opt);
-            return View(); // logout sonrasi dogrudan login formu — IsAuthenticated kontrolu yapma (cookie response'ta silindi ama request'te hala var)
+            return View();
         }
 
         if (HttpContext.GetJwtIdentity().IsAuthenticated)

@@ -10,10 +10,14 @@ public class AccountController : MgmtBaseController
     [HttpGet]
     public IActionResult Login()
     {
-        if (string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal))
+        // Manuel logout (?loggedOut=1) veya AJAX 401 -> Layout handler ?returnUrl ile yonlendirdi.
+        // Iki durumda da kullanici login formunu gormeli; cookie'yi temizle ve IsAuthenticated kontrolunu atla.
+        var loggedOut = string.Equals(Request.Query["loggedOut"], "1", StringComparison.Ordinal);
+        var hasReturnUrl = !string.IsNullOrEmpty(Request.Query["returnUrl"]);
+        if (loggedOut || hasReturnUrl)
         {
             HttpContext.ClearAuthCookie();
-            return View(); // logout sonrasi dogrudan login formu — IsAuthenticated kontrolu yapma (cookie response'ta silindi ama request'te hala var)
+            return View();
         }
 
         if (HttpContext.GetJwtIdentity().IsAuthenticated)
