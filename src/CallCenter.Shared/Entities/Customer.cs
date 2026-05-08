@@ -27,6 +27,12 @@ public class Customer
     public bool IsCallbackManagementEnabled { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // ─── Pazaryeri Komisyon Yapilandirmasi (PS.8) ───
+    /// <summary>Corplynk araciligiyla yapilan tahsilatlardan kesilen komisyon yuzdesi (default %5).</summary>
+    public decimal MarketplaceCommissionPercent { get; set; } = 5m;
+    /// <summary>%1 e-ticaret aracilik stopaji veya benzeri firma-bazli vergi (default 0).</summary>
+    public decimal MarketplaceWithholdingPercent { get; set; }
+
     public ICollection<CustomerPersonnel> Personnel { get; set; } = new List<CustomerPersonnel>();
 
     // Müşteriye açık portal modülleri

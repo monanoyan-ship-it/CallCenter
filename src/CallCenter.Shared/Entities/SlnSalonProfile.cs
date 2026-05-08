@@ -58,4 +58,23 @@ public class SlnSalonProfile
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+
+    // ─── iyzico Pazaryeri Sub-Merchant Onboarding (PS.1) ───
+    /// <summary>iyzico'dan donen sub-merchant key (onboarded ise dolu).</summary>
+    public string? IyzicoSubMerchantKey { get; set; }
+    /// <summary>"PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY"</summary>
+    public string? IyzicoSubMerchantType { get; set; }
+    public string? IyzicoIban { get; set; }
+    public string? IyzicoLegalCompanyTitle { get; set; }
+    public string? IyzicoTaxOffice { get; set; }
+    public string? IyzicoTaxNumber { get; set; }
+    /// <summary>Sahis (PERSONAL) icin TC kimlik no.</summary>
+    public string? IyzicoIdentityNumber { get; set; }
+    public string? IyzicoContactName { get; set; }
+    public string? IyzicoContactSurname { get; set; }
+    /// <summary>0=NotStarted, 1=Pending, 2=Approved, 3=Rejected</summary>
+    public int IyzicoOnboardingStatus { get; set; }
+    public DateTime? IyzicoOnboardedAt { get; set; }
+    /// <summary>Red veya bekleme aciklamasi (iyzico API hatasi).</summary>
+    public string? IyzicoOnboardingError { get; set; }
 }
