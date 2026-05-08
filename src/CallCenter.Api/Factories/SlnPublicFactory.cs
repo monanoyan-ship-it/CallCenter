@@ -888,6 +888,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         // ── ADIM 5: Randevu kaydet ──────────────────────────────────────────
+        // Online odeme alindiysa otomatik onaylanir (StatusId=2 Onaylandi).
+        // Odeme yoksa salon admin onayi bekler (StatusId=1 Planlanmis).
         var appointment = new SlnAppointment
         {
             CustomerId = cid,
@@ -897,7 +899,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             ServiceId = dto.ServiceId,
             StartTime = start,
             EndTime = end,
-            StatusId = 1,
+            StatusId = requireDeposit ? 2 : 1,
             Notes = dto.Notes,
             DepositAmount = depositAmount,
             IsPrepaid = requireDeposit,

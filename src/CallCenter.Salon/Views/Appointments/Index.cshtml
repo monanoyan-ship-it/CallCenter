@@ -197,7 +197,12 @@
                                 <span class="text-muted">-</span>
                                 <!-- /ko -->
                             </td>
-                            <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
+                            <td>
+                                <span class="badge" data-bind="text: statusText, css: statusCss"></span>
+                                <!-- ko if: statusId === 1 && !isPrepaid && (!depositAmount || depositAmount === 0) -->
+                                <span class="badge bg-warning text-dark ms-1" title="@(Translation.T("salon.appointments.pending_approval_tooltip", "Online randevu — ödeme alınmadı, sizin onayınız ya da saat değişikliğiniz bekleniyor"))"><i class="bi bi-hourglass-split me-1"></i><t key="salon.appointments.pending_approval">Onay Bekliyor</t></span>
+                                <!-- /ko -->
+                            </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <!-- Planlanmis (1): once Onayla -->
