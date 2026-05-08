@@ -18,6 +18,9 @@ public class CustomerPersonnel
     public bool PublicShowTitle { get; set; } = true;      // Unvan gorunsun mu
     public bool PublicShowSpecialty { get; set; } = true;   // Uzmanlik gorunsun mu
 
+    /// <summary>Personelin haftalik calisma saatleri (JSON: { "mon":"09:00-18:00","tue":"closed",... }). Null = sube saatleri kullanilir.</summary>
+    public string? WorkingHoursJson { get; set; }
+
     // Her CustomerPersonnel bir User'a bağlı (login için)
     public int UserId { get; set; }
     public User User { get; set; } = null!;

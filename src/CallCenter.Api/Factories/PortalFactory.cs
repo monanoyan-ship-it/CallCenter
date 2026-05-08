@@ -175,7 +175,8 @@ public class PortalFactory : IPortalFactory
                 PublicShowFullName = p.PublicShowFullName,
                 PublicShowPhoto = p.PublicShowPhoto,
                 PublicShowTitle = p.PublicShowTitle,
-                PublicShowSpecialty = p.PublicShowSpecialty
+                PublicShowSpecialty = p.PublicShowSpecialty,
+                WorkingHoursJson = p.WorkingHoursJson
             })
             .OrderBy(p => p.FullName)
             .ToListAsync();
@@ -259,7 +260,8 @@ public class PortalFactory : IPortalFactory
             PublicShowFullName = dto.PublicShowFullName,
             PublicShowPhoto = dto.PublicShowPhoto,
             PublicShowTitle = dto.PublicShowTitle,
-            PublicShowSpecialty = dto.PublicShowSpecialty
+            PublicShowSpecialty = dto.PublicShowSpecialty,
+            WorkingHoursJson = dto.WorkingHoursJson
         };
         _personnelEs.Add(personnelEntity);
         await _uow.SaveChangesAsync();
@@ -374,6 +376,9 @@ public class PortalFactory : IPortalFactory
         personnel.PublicShowPhoto = dto.PublicShowPhoto;
         personnel.PublicShowTitle = dto.PublicShowTitle;
         personnel.PublicShowSpecialty = dto.PublicShowSpecialty;
+
+        // Personel calisma saatleri (null/bos = sube saatleri kullanilir)
+        personnel.WorkingHoursJson = dto.WorkingHoursJson;
 
         // Hizmet yetenekleri guncelle
         if (dto.SkillServiceIds != null)

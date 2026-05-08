@@ -37,6 +37,60 @@ function StaffViewModel() {
         publicShowSpecialty: ko.observable(true)
     };
 
+    // Personel calisma saatleri (null/bos -> sube saatleri kullanilir)
+    var dayLabels = [
+        { key: 'mon', label: 'Pazartesi' }, { key: 'tue', label: 'Salı' },
+        { key: 'wed', label: 'Çarşamba' }, { key: 'thu', label: 'Perşembe' },
+        { key: 'fri', label: 'Cuma' }, { key: 'sat', label: 'Cumartesi' },
+        { key: 'sun', label: 'Pazar' }
+    ];
+    self.workingHoursOverride = ko.observable(false);
+    self.workingDays = dayLabels.map(function (d) {
+        return {
+            key: d.key,
+            label: d.label,
+            isOpen: ko.observable(d.key !== 'sun'),
+            open: ko.observable('09:00'),
+            close: ko.observable('19:00')
+        };
+    });
+
+    function buildPersonnelWorkingHoursJson() {
+        if (!self.workingHoursOverride()) return null;
+        var hours = {};
+        self.workingDays.forEach(function (d) {
+            if (d.isOpen() && d.open() && d.close()) hours[d.key] = d.open() + '-' + d.close();
+            else hours[d.key] = 'closed';
+        });
+        return JSON.stringify(hours);
+    }
+
+    function parsePersonnelWorkingHours(json) {
+        self.workingDays.forEach(function (d) {
+            d.isOpen(d.key !== 'sun'); d.open('09:00'); d.close('19:00');
+        });
+        if (!json) {
+            self.workingHoursOverride(false);
+            return;
+        }
+        self.workingHoursOverride(true);
+        try {
+            var hours = JSON.parse(json);
+            self.workingDays.forEach(function (d) {
+                if (hours[d.key]) {
+                    if (hours[d.key] === 'closed') d.isOpen(false);
+                    else {
+                        d.isOpen(true);
+                        var parts = hours[d.key].split('-');
+                        if (parts.length === 2) { d.open(parts[0]); d.close(parts[1]); }
+                    }
+                }
+            });
+        } catch (e) {}
+    }
+    self.buildPersonnelWorkingHoursJson = buildPersonnelWorkingHoursJson;
+    self.parsePersonnelWorkingHours = parsePersonnelWorkingHours;
+
     self.isUploadingPhoto = ko.observable(false);
 
     self.uploadPhoto = function (data, event) {
@@ -154,6 +208,7 @@ function StaffViewModel() {
         self.form.publicShowPhoto(true);
         self.form.publicShowTitle(true);
         self.form.publicShowSpecialty(true);
+        parsePersonnelWorkingHours(null);
         self.isEditing(false);
         self.isOwnerEdit(false);
         self.editingId(null);
@@ -184,6 +239,7 @@ function StaffViewModel() {
         self.form.publicShowPhoto(read(staff, 'publicShowPhoto', 'PublicShowPhoto') !== false);
         self.form.publicShowTitle(read(staff, 'publicShowTitle', 'PublicShowTitle') !== false);
         self.form.publicShowSpecialty(read(staff, 'publicShowSpecialty', 'PublicShowSpecialty') !== false);
+        parsePersonnelWorkingHours(read(staff, 'workingHoursJson', 'WorkingHoursJson') || null);
         formModal.show();
     };
 
@@ -209,7 +265,8 @@ function StaffViewModel() {
             publicShowFullName: self.form.publicShowFullName(),
             publicShowPhoto: self.form.publicShowPhoto(),
             publicShowTitle: self.form.publicShowTitle(),
-            publicShowSpecialty: self.form.publicShowSpecialty()
+            publicShowSpecialty: self.form.publicShowSpecialty(),
+            workingHoursJson: buildPersonnelWorkingHoursJson()
         };
 
         if (!data.fullName || !data.email) {

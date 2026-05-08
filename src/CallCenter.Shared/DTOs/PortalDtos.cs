@@ -33,6 +33,9 @@ public class PortalPersonnelListDto
     public bool PublicShowPhoto { get; set; }
     public bool PublicShowTitle { get; set; }
     public bool PublicShowSpecialty { get; set; }
+
+    /// <summary>JSON: { "mon":"09:00-18:00","tue":"closed",... }. Null/bos -> sube saatleri kullanilir.</summary>
+    public string? WorkingHoursJson { get; set; }
 }
 
 public class PortalPersonnelCreateDto
@@ -70,6 +73,8 @@ public class PortalPersonnelCreateDto
     public bool PublicShowPhoto { get; set; } = true;
     public bool PublicShowTitle { get; set; } = true;
     public bool PublicShowSpecialty { get; set; } = true;
+
+    public string? WorkingHoursJson { get; set; }
 }
 
 public class PortalPersonnelUpdateDto
@@ -108,6 +113,8 @@ public class PortalPersonnelUpdateDto
     public bool PublicShowPhoto { get; set; } = true;
     public bool PublicShowTitle { get; set; } = true;
     public bool PublicShowSpecialty { get; set; } = true;
+
+    public string? WorkingHoursJson { get; set; }
 }
 
 // ═══════════════════════════════════════════════════════════════

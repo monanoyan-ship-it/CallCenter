@@ -373,7 +373,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null)
     {
-        // Subenin calisma saatlerini al
+        // Personel kendi calisma saati varsa onu kullan, yoksa subeye dus.
+        var personnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == personnelId);
         var branch = branchId.HasValue
             ? await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.Id == branchId.Value)
             : await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
@@ -387,11 +388,16 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         var openHour = 9; var openMin = 0;
         var closeHour = 19; var closeMin = 0;
-        if (branch?.WorkingHoursJson != null)
+
+        var hoursJson = !string.IsNullOrWhiteSpace(personnel?.WorkingHoursJson)
+            ? personnel!.WorkingHoursJson
+            : branch?.WorkingHoursJson;
+
+        if (hoursJson != null)
         {
             try
             {
-                var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(branch.WorkingHoursJson);
+                var hours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(hoursJson);
                 if (hours != null && hours.TryGetValue(dayKey, out var val))
                 {
                     if (val == "closed") return new List<object>();
