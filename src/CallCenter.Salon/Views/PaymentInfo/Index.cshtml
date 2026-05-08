@@ -1,0 +1,135 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    ViewData["Title"] = Translation.T("salon.paymentinfo.title", "Ödeme Bilgileri");
+}
+
+<div id="paymentinfo-vm">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="bi bi-bank me-2"></i><t key="salon.paymentinfo.heading">iyzico Pazaryeri Hesap Bilgileri</t></h5>
+            <small class="text-muted"><t key="salon.paymentinfo.subtitle">Online ödeme alabilmek için iyzico Pazaryeri sub-merchant kaydı gerekiyor. IBAN'ınız onaylandığında müşteri ödemeleri doğrudan hesabınıza geçer (corplynk komisyonu kesilir).</t></small>
+        </div>
+        <div class="card-body">
+            <!-- Onboarding durumu -->
+            <div class="mb-4" data-bind="visible: !isLoading()">
+                <!-- ko if: status() === 0 -->
+                <div class="alert alert-secondary py-2 small"><i class="bi bi-info-circle me-2"></i><t key="salon.paymentinfo.status_notstarted">Henüz Pazaryeri kaydınız yok. Aşağıdaki formu doldurarak başlayabilirsiniz.</t></div>
+                <!-- /ko -->
+                <!-- ko if: status() === 1 -->
+                <div class="alert alert-warning py-2 small"><i class="bi bi-hourglass-split me-2"></i><t key="salon.paymentinfo.status_pending">Pazaryeri kaydınız iyzico tarafından inceleniyor.</t></div>
+                <!-- /ko -->
+                <!-- ko if: status() === 2 -->
+                <div class="alert alert-success py-2 small">
+                    <i class="bi bi-check-circle me-2"></i><t key="salon.paymentinfo.status_approved">Pazaryeri kaydınız onaylandı. Online tahsilat aktif.</t>
+                    <span data-bind="visible: onboardedAt" class="ms-2 text-muted"><span data-bind="text: onboardedAtFormatted"></span></span>
+                </div>
+                <!-- /ko -->
+                <!-- ko if: status() === 3 -->
+                <div class="alert alert-danger py-2 small">
+                    <i class="bi bi-x-circle me-2"></i><t key="salon.paymentinfo.status_rejected">Pazaryeri kaydı başarısız.</t>
+                    <div class="mt-1" data-bind="visible: onboardingError" data-bind-text="onboardingError"></div>
+                    <div class="mt-1" data-bind="text: onboardingError"></div>
+                </div>
+                <!-- /ko -->
+            </div>
+
+            <!-- Komisyon bilgisi -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <div class="border rounded p-2 small">
+                        <div class="text-muted"><t key="salon.paymentinfo.commission_label">Corplynk Komisyon Oranı</t></div>
+                        <strong data-bind="text: commissionPercent() + ' %'"></strong>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="border rounded p-2 small">
+                        <div class="text-muted"><t key="salon.paymentinfo.withholding_label">Stopaj Oranı</t></div>
+                        <strong data-bind="text: withholdingPercent() + ' %'"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <div data-bind="visible: !isLoading()">
+                <h6 class="text-muted small fw-bold mb-2 mt-3"><i class="bi bi-pencil-square me-1"></i><t key="salon.paymentinfo.form_heading">Hesap Bilgileri</t></h6>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label small"><t key="salon.paymentinfo.subMerchantType">Hesap Tipi</t> *</label>
+                        <div class="d-flex gap-3 flex-wrap">
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="subType" value="PERSONAL" id="subTypePersonal" data-bind="checked: form.subMerchantType" />
+                                <label class="form-check-label small" for="subTypePersonal"><t key="salon.paymentinfo.type_personal">Şahıs</t></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="subType" value="PRIVATE_COMPANY" id="subTypePrivate" data-bind="checked: form.subMerchantType" />
+                                <label class="form-check-label small" for="subTypePrivate"><t key="salon.paymentinfo.type_private">Şahıs Şirketi</t></label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="subType" value="LIMITED_OR_JOINT_STOCK_COMPANY" id="subTypeLtd" data-bind="checked: form.subMerchantType" />
+                                <label class="form-check-label small" for="subTypeLtd"><t key="salon.paymentinfo.type_ltd">Limited / A.Ş.</t></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small"><t key="salon.paymentinfo.iban">IBAN</t> *</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="TR..." data-bind="value: form.iban" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small"><t key="salon.paymentinfo.contactName">Yetkili Ad</t> *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: form.contactName" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small"><t key="salon.paymentinfo.contactSurname">Yetkili Soyad</t> *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: form.contactSurname" />
+                    </div>
+                </div>
+
+                <!-- ko if: form.subMerchantType() === 'PERSONAL' -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small"><t key="salon.paymentinfo.identityNumber">TC Kimlik No</t> *</label>
+                        <input type="text" maxlength="11" class="form-control form-control-sm" data-bind="value: form.identityNumber" />
+                    </div>
+                </div>
+                <!-- /ko -->
+
+                <!-- ko if: form.subMerchantType() !== 'PERSONAL' -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small"><t key="salon.paymentinfo.legalCompanyTitle">Ticari Ünvan</t> *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: form.legalCompanyTitle" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small"><t key="salon.paymentinfo.taxOffice">Vergi Dairesi</t> *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: form.taxOffice" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small"><t key="salon.paymentinfo.taxNumber">Vergi No</t> *</label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: form.taxNumber" />
+                    </div>
+                </div>
+                <!-- /ko -->
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-primary btn-sm" data-bind="click: submit, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>
+                        <span data-bind="text: status() === 2 ? salonT('salon.paymentinfo.btn_update', 'Bilgileri Güncelle') : salonT('salon.paymentinfo.btn_submit', 'Pazaryeri Kaydı Yap')"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center py-4" data-bind="visible: isLoading">
+                <div class="spinner-border text-primary"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/PaymentInfo.js" asp-append-version="true"></script>
+}

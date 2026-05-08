@@ -83,6 +83,7 @@ public static class SalonRolePermissions
         "EmailSettings",    // E-posta entegrasyonu
         "PageSettings",     // Public sayfa ayarlari
         "Modules",          // Modul yonetimi ve talep
+        "PaymentInfo",      // iyzico Pazaryeri sub-merchant onboarding (PS.5)
     };
 
     // ═══════════════════════════════════════════════════════════════
