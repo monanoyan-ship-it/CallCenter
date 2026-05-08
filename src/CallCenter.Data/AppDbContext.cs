@@ -182,6 +182,7 @@ public class AppDbContext : DbContext
     // ─── Platform User ───
     public DbSet<PlatformUser> PlatformUsers => Set<PlatformUser>();
     public DbSet<PlatformUserSalon> PlatformUserSalons => Set<PlatformUserSalon>();
+    public DbSet<PlatformPushToken> PlatformPushTokens => Set<PlatformPushToken>();
 
     // ─── Salon Role Permissions ───
     public DbSet<SalonRolePermission> SalonRolePermissions => Set<SalonRolePermission>();

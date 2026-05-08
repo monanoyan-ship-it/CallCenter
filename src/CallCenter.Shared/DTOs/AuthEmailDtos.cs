@@ -50,3 +50,19 @@ public class PlatformReviewDto
     public int StatusId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+public class PlatformPushTokenRequest
+{
+    public string Token { get; set; } = string.Empty;
+    public string Platform { get; set; } = string.Empty;
+    public string? DeviceId { get; set; }
+}
+
+public class PlatformPushTokenDto
+{
+    public int Id { get; set; }
+    public string Platform { get; set; } = string.Empty;
+    public string? DeviceId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+}
