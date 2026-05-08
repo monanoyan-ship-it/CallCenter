@@ -1710,9 +1710,8 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             if (gateway is not IyzicoGateway iyzicoGw)
                 return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
 
-            // PS.6 — Pazaryeri split (opsiyonel): salon sub-merchant kayitliysa komisyon ayrisir, yoksa direkt-merchant.
-            var split = await GetMarketplaceSplitAsync(customerId, amount);
-
+            // PS.6 — Booking-time deposit PLATFORM geliridir, sub-merchant split YOK.
+            // (Karar journal #361: booking depozitosu doğrudan corplynk iyzico hesabına gider.)
             var req = new CheckoutFormRequest
             {
                 Amount = amount,
@@ -1722,17 +1721,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 BuyerName = string.IsNullOrWhiteSpace(buyerFullName) ? "Musteri" : buyerFullName,
                 BuyerEmail = string.IsNullOrWhiteSpace(buyerEmail) ? "noreply@corplynk.com" : buyerEmail,
                 BuyerIp = buyerIp,
-                Description = $"Randevu Depozitosu - {amount:N2} TL",
-                SubMerchantKey = split.UseSplit ? split.SubMerchantKey : null,
-                SubMerchantPrice = split.UseSplit ? split.SubMerchantPrice : null
+                Description = $"Randevu Depozitosu - {amount:N2} TL"
             };
 
             var result = await iyzicoGw.InitCheckoutFormAsync(req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;
-                if (split.UseSplit)
-                    tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit", $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
                 await _db.SaveChangesAsync();
             }
             return result;
