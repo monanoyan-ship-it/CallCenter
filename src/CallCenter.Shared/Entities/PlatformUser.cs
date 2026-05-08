@@ -28,6 +28,14 @@ public class PlatformUser
     public bool IsPhoneVerified { get; set; }
     public bool IsEmailVerified { get; set; }
 
+    // Email dogrulama
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationSentAt { get; set; }
+
+    // Sifre sifirlama
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetSentAt { get; set; }
+
     // ─── Fatura Bilgileri ───
     /// <summary>Fatura tipi: 1=Bireysel, 2=Kurumsal</summary>
     public int BillingType { get; set; } = 1;

@@ -75,6 +75,41 @@ public class PlatformAuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Email dogrulama maili gonder (kayitli email).</summary>
+    [HttpPost("send-verification-email")]
+    public async Task<ActionResult> SendVerificationEmail([FromBody] PlatformSendVerificationEmailRequest request)
+    {
+        var (ok, error) = await _factory.SendVerificationEmailAsync(request.Email);
+        if (!ok) return BadRequest(new { message = error });
+        return Ok(new { message = "Doğrulama maili gönderildi." });
+    }
+
+    /// <summary>Token ile email dogrula.</summary>
+    [HttpGet("verify-email")]
+    public async Task<ActionResult> VerifyEmail([FromQuery] string token)
+    {
+        var (ok, error) = await _factory.VerifyEmailAsync(token);
+        if (!ok) return BadRequest(new { message = error });
+        return Ok(new { message = "Email başarıyla doğrulandı." });
+    }
+
+    /// <summary>Sifre sifirlama maili iste.</summary>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] PlatformForgotPasswordRequest request)
+    {
+        await _factory.SendPasswordResetEmailAsync(request.Email);
+        return Ok(new { message = "Eğer hesap mevcutsa, şifre sıfırlama maili gönderildi." });
+    }
+
+    /// <summary>Token ile sifreyi sifirla.</summary>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] PlatformResetPasswordRequest request)
+    {
+        var (ok, error) = await _factory.ResetPasswordAsync(request.Token, request.NewPassword);
+        if (!ok) return BadRequest(new { message = error });
+        return Ok(new { message = "Şifre başarıyla güncellendi." });
+    }
+
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
 }

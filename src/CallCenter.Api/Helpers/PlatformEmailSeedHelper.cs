@@ -12,6 +12,8 @@ public static class PlatformEmailSeedHelper
 {
     public const string EventUserEmailVerify = "user_email_verify";
     public const string EventUserPasswordReset = "user_password_reset";
+    public const string EventPlatformUserEmailVerify = "platform_user_email_verify";
+    public const string EventPlatformUserPasswordReset = "platform_user_password_reset";
 
     public static async Task SeedAsync(AppDbContext db)
     {
@@ -26,6 +28,24 @@ public static class PlatformEmailSeedHelper
 
         await EnsureEventAsync(db, EventUserPasswordReset,
             description: "Sifre sifirlama maili",
+            placeholders: "[\"FullName\",\"ResetUrl\"]",
+            templates: new[]
+            {
+                ("tr", "CorpLynk şifre sıfırlama", BuildResetHtmlTr()),
+                ("en", "Reset your CorpLynk password", BuildResetHtmlEn())
+            });
+
+        await EnsureEventAsync(db, EventPlatformUserEmailVerify,
+            description: "Salon musteri (PlatformUser) email dogrulama maili",
+            placeholders: "[\"FullName\",\"VerifyUrl\"]",
+            templates: new[]
+            {
+                ("tr", "CorpLynk hesabını doğrula", BuildVerifyHtmlTr()),
+                ("en", "Verify your CorpLynk account", BuildVerifyHtmlEn())
+            });
+
+        await EnsureEventAsync(db, EventPlatformUserPasswordReset,
+            description: "Salon musteri (PlatformUser) sifre sifirlama maili",
             placeholders: "[\"FullName\",\"ResetUrl\"]",
             templates: new[]
             {

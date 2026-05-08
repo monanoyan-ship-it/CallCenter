@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -119,5 +121,123 @@ public class PublicSalonController : Controller
     public IActionResult Panel()
     {
         return View();
+    }
+
+    [HttpGet("user/verify-email")]
+    public async Task<IActionResult> VerifyEmail(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            ViewBag.Success = false;
+            ViewBag.Message = "Doğrulama bağlantısı geçersiz.";
+            return View();
+        }
+
+        using var client = CreateApi();
+        var response = await client.GetAsync($"api/platform/verify-email?token={Uri.EscapeDataString(token)}");
+        var json = await response.Content.ReadAsStringAsync();
+        ViewBag.Success = response.IsSuccessStatusCode;
+        ViewBag.Message = ExtractMessage(json, response.IsSuccessStatusCode
+            ? "Email başarıyla doğrulandı."
+            : "Doğrulama başarısız.");
+        return View();
+    }
+
+    [HttpGet("user/resend-verification")]
+    public IActionResult ResendVerification() => View();
+
+    [HttpPost("user/resend-verification")]
+    public async Task<IActionResult> ResendVerification(string email)
+    {
+        using var client = CreateApi();
+        var payload = JsonSerializer.Serialize(new { email });
+        var response = await client.PostAsync("api/platform/send-verification-email",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+        var json = await response.Content.ReadAsStringAsync();
+        ViewBag.Success = response.IsSuccessStatusCode;
+        ViewBag.Message = ExtractMessage(json, response.IsSuccessStatusCode
+            ? "Doğrulama maili tekrar gönderildi."
+            : "Doğrulama maili gönderilemedi.");
+        ViewBag.Email = email;
+        return View();
+    }
+
+    [HttpGet("user/forgot-password")]
+    public IActionResult ForgotPassword() => View();
+
+    [HttpPost("user/forgot-password")]
+    public async Task<IActionResult> ForgotPassword(string email)
+    {
+        using var client = CreateApi();
+        var payload = JsonSerializer.Serialize(new { email });
+        await client.PostAsync("api/platform/forgot-password",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+        ViewBag.Submitted = true;
+        ViewBag.Message = "Eğer hesap kayıtlıysa, şifre sıfırlama bağlantısı email adresine gönderildi.";
+        return View();
+    }
+
+    [HttpGet("user/reset-password")]
+    public IActionResult ResetPassword(string? token)
+    {
+        ViewBag.Token = token ?? "";
+        if (string.IsNullOrWhiteSpace(token))
+            ViewBag.Error = "Sıfırlama bağlantısı geçersiz.";
+        return View();
+    }
+
+    [HttpPost("user/reset-password")]
+    public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
+    {
+        ViewBag.Token = token;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            ViewBag.Error = "Sıfırlama bağlantısı geçersiz.";
+            return View();
+        }
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+        {
+            ViewBag.Error = "Şifre en az 6 karakter olmalı.";
+            return View();
+        }
+        if (newPassword != confirmPassword)
+        {
+            ViewBag.Error = "Şifreler eşleşmiyor.";
+            return View();
+        }
+
+        using var client = CreateApi();
+        var payload = JsonSerializer.Serialize(new { token, newPassword });
+        var response = await client.PostAsync("api/platform/reset-password",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+        var json = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            ViewBag.Error = ExtractMessage(json, "Şifre sıfırlama başarısız.");
+            return View();
+        }
+
+        ViewBag.Success = true;
+        ViewBag.Message = "Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz.";
+        return View();
+    }
+
+    private HttpClient CreateApi()
+    {
+        var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+        return factory.CreateClient("SalonApi");
+    }
+
+    private static string ExtractMessage(string json, string fallback)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("message", out var m) && m.GetString() is { } msg)
+                return msg;
+        }
+        catch { }
+        return fallback;
     }
 }
