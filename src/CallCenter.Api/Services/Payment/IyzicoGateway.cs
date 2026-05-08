@@ -171,6 +171,68 @@ public class IyzicoGateway : IPaymentGateway
         }
     }
 
+    /// <summary>
+    /// iyzico Pazaryeri sub-merchant olustur (PS.3).
+    /// Endpoint: POST /onboarding/submerchant
+    /// </summary>
+    public async Task<IyzicoSubMerchantOnboardResult> CreateSubMerchantAsync(IyzicoSubMerchantOnboardRequest req, CancellationToken ct = default)
+    {
+        // Subscriber type'a gore alan zorunlulugu
+        var bodyObj = new Dictionary<string, object?>
+        {
+            ["locale"] = "tr",
+            ["conversationId"] = Guid.NewGuid().ToString("N"),
+            ["name"] = req.Name,
+            ["email"] = req.Email,
+            ["gsmNumber"] = req.GsmNumber,
+            ["address"] = req.Address,
+            ["iban"] = req.Iban,
+            ["contactName"] = req.ContactName,
+            ["contactSurname"] = req.ContactSurname,
+            ["currency"] = req.Currency,
+            ["subMerchantExternalId"] = req.SubMerchantExternalId,
+            ["subMerchantType"] = req.SubMerchantType
+        };
+
+        if (string.Equals(req.SubMerchantType, "PERSONAL", StringComparison.OrdinalIgnoreCase))
+        {
+            bodyObj["identityNumber"] = req.IdentityNumber ?? "";
+        }
+        else
+        {
+            bodyObj["taxOffice"] = req.TaxOffice ?? "";
+            bodyObj["taxNumber"] = req.TaxNumber ?? "";
+            bodyObj["legalCompanyTitle"] = req.LegalCompanyTitle ?? "";
+        }
+
+        var json = JsonSerializer.Serialize(bodyObj);
+        var httpRequest = CreateRequest(HttpMethod.Post, "/onboarding/submerchant", json);
+
+        try
+        {
+            var response = await _http.SendAsync(httpRequest, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            var status = root.TryGetProperty("status", out var s) ? s.GetString() : null;
+            if (status == "success")
+            {
+                var key = root.TryGetProperty("subMerchantKey", out var k) ? k.GetString() : null;
+                return string.IsNullOrEmpty(key)
+                    ? IyzicoSubMerchantOnboardResult.Fail("subMerchantKey döndü ama boş.")
+                    : IyzicoSubMerchantOnboardResult.Ok(key);
+            }
+
+            var error = root.TryGetProperty("errorMessage", out var e) ? e.GetString() : "Iyzico sub-merchant olusturma hatasi";
+            return IyzicoSubMerchantOnboardResult.Fail(error ?? "Bilinmeyen hata");
+        }
+        catch (Exception ex)
+        {
+            return IyzicoSubMerchantOnboardResult.Fail($"Iyzico baglanti hatasi: {ex.Message}");
+        }
+    }
+
     // ─── Iyzico Auth Header Olusturma (IYZWSv2 — HMACSHA256) ───
     // BUG2.19: Eski v1 SHA1+PKI string hesabi yanlistı (raw JSON kullanarak "Gecersiz imza" 400).
     // Iyzico v2 spec: signature = HMACSHA256(randomKey + uriPath + jsonBody, secretKey).hex
@@ -330,4 +392,36 @@ public class CheckoutFormResult
 
     public static CheckoutFormResult Ok(string html, string token) => new() { Success = true, HtmlContent = html, Token = token };
     public static CheckoutFormResult Fail(string error) => new() { Success = false, Error = error };
+}
+
+// ─── Sub-Merchant (Pazaryeri) onboarding ───
+public class IyzicoSubMerchantOnboardRequest
+{
+    /// <summary>"PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY"</summary>
+    public string SubMerchantType { get; set; } = "PERSONAL";
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string GsmNumber { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string Iban { get; set; } = string.Empty;
+    public string ContactName { get; set; } = string.Empty;
+    public string ContactSurname { get; set; } = string.Empty;
+    public string Currency { get; set; } = "TRY";
+    public string SubMerchantExternalId { get; set; } = string.Empty;
+    /// <summary>PERSONAL icin gerekli (TC kimlik).</summary>
+    public string? IdentityNumber { get; set; }
+    /// <summary>PRIVATE_COMPANY/LIMITED_OR_JOINT_STOCK_COMPANY icin gerekli.</summary>
+    public string? TaxOffice { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? LegalCompanyTitle { get; set; }
+}
+
+public class IyzicoSubMerchantOnboardResult
+{
+    public bool Success { get; set; }
+    public string? SubMerchantKey { get; set; }
+    public string? Error { get; set; }
+
+    public static IyzicoSubMerchantOnboardResult Ok(string key) => new() { Success = true, SubMerchantKey = key };
+    public static IyzicoSubMerchantOnboardResult Fail(string error) => new() { Success = false, Error = error };
 }

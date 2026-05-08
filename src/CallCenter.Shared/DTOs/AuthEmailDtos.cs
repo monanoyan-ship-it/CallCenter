@@ -66,3 +66,18 @@ public class PlatformPushTokenDto
     public DateTime CreatedAt { get; set; }
     public DateTime? LastUsedAt { get; set; }
 }
+
+/// <summary>PS.4 — Salon iyzico Pazaryeri sub-merchant onboarding request</summary>
+public class SubMerchantOnboardRequest
+{
+    /// <summary>"PERSONAL" | "PRIVATE_COMPANY" | "LIMITED_OR_JOINT_STOCK_COMPANY"</summary>
+    public string SubMerchantType { get; set; } = "PERSONAL";
+    public string Iban { get; set; } = string.Empty;
+    public string ContactName { get; set; } = string.Empty;
+    public string ContactSurname { get; set; } = string.Empty;
+    /// <summary>PERSONAL icin zorunlu (TC kimlik).</summary>
+    public string? IdentityNumber { get; set; }
+    public string? LegalCompanyTitle { get; set; }
+    public string? TaxOffice { get; set; }
+    public string? TaxNumber { get; set; }
+}

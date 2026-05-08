@@ -432,6 +432,61 @@ public class PaymentController : ControllerBase
         return File(bytes!, "text/html; charset=utf-8", fileName);
     }
 
+    /// <summary>PS.4 — Salon iyzico Pazaryeri sub-merchant onboarding (yeni kayit veya mevcut profili guncelle).</summary>
+    [HttpPost("sub-merchant")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> OnboardSubMerchant([FromBody] CallCenter.Shared.DTOs.SubMerchantOnboardRequest request)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        if (request == null) return BadRequest(new { message = "İstek gövdesi boş." });
+
+        // Sadece SalonOwner onboard edebilir
+        var roleId = User.FindFirstValue("CustomerRoleId");
+        if (!int.TryParse(roleId, out var rid) || rid != SalonRoles.Ids.SalonOwner)
+            return Forbid();
+
+        var subType = (request.SubMerchantType ?? "PERSONAL").ToUpperInvariant();
+        if (subType != "PERSONAL" && subType != "PRIVATE_COMPANY" && subType != "LIMITED_OR_JOINT_STOCK_COMPANY")
+            return BadRequest(new { message = "Sub-merchant tipi geçersiz." });
+        if (string.IsNullOrWhiteSpace(request.Iban))
+            return BadRequest(new { message = "IBAN zorunlu." });
+        if (string.IsNullOrWhiteSpace(request.ContactName) || string.IsNullOrWhiteSpace(request.ContactSurname))
+            return BadRequest(new { message = "Yetkili ad ve soyad zorunlu." });
+        if (subType == "PERSONAL" && string.IsNullOrWhiteSpace(request.IdentityNumber))
+            return BadRequest(new { message = "Şahıs için TC kimlik no zorunlu." });
+        if (subType != "PERSONAL" && (string.IsNullOrWhiteSpace(request.LegalCompanyTitle) || string.IsNullOrWhiteSpace(request.TaxOffice) || string.IsNullOrWhiteSpace(request.TaxNumber)))
+            return BadRequest(new { message = "Şirket için ünvan, vergi dairesi ve vergi numarası zorunlu." });
+
+        // Customer ve SlnSalonProfile bilgilerinden gsm/email/address al
+        var customerData = await _paymentService.GetCustomerOnboardingContextAsync(customerId);
+        if (customerData == null)
+            return NotFound(new { message = "Salon bulunamadı." });
+
+        var iyzReq = new CallCenter.Api.Services.Payment.IyzicoSubMerchantOnboardRequest
+        {
+            SubMerchantType = subType,
+            Name = customerData.Name,
+            Email = customerData.Email,
+            GsmNumber = customerData.Phone,
+            Address = customerData.Address,
+            Iban = request.Iban.Trim(),
+            ContactName = request.ContactName.Trim(),
+            ContactSurname = request.ContactSurname.Trim(),
+            IdentityNumber = request.IdentityNumber?.Trim(),
+            LegalCompanyTitle = request.LegalCompanyTitle?.Trim(),
+            TaxOffice = request.TaxOffice?.Trim(),
+            TaxNumber = request.TaxNumber?.Trim(),
+            Currency = "TRY",
+            SubMerchantExternalId = $"corplynk-salon-{customerId}"
+        };
+
+        var (success, error, subMerchantKey) = await _paymentService.OnboardSubMerchantAsync(customerId, iyzReq);
+        if (!success) return BadRequest(new { message = error });
+
+        return Ok(new { message = "Pazaryeri kaydı başarılı.", subMerchantKey });
+    }
+
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
 

@@ -1847,6 +1847,83 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             return PaymentResult.Fail(tx.ErrorMessage);
         }
     }
+
+    /// <summary>
+    /// PS.4 yardimcisi: salon onboarding'de iyzico'ya gonderilecek genel bilgileri (firma adi/email/telefon/adres) toplar.
+    /// </summary>
+    public async Task<SalonOnboardingContext?> GetCustomerOnboardingContextAsync(int customerId)
+    {
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId);
+        if (customer == null) return null;
+
+        var hqBranch = await _db.Set<SlnBranch>()
+            .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+
+        var profile = await _db.Set<SlnSalonProfile>()
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId);
+
+        return new SalonOnboardingContext
+        {
+            Name = customer.Name,
+            Email = customer.Email ?? hqBranch?.Email ?? profile?.Email ?? "noreply@corplynk.com",
+            Phone = customer.Phone ?? hqBranch?.Phone ?? profile?.Phone ?? "",
+            Address = hqBranch?.Address ?? profile?.Address ?? customer.Address ?? "Türkiye"
+        };
+    }
+
+    /// <summary>
+    /// PS.3 — Salonu iyzico Pazaryeri sub-merchant olarak kaydeder ve sonucu SlnSalonProfile'a yazar.
+    /// </summary>
+    public async Task<(bool Success, string? Error, string? SubMerchantKey)> OnboardSubMerchantAsync(int customerId, IyzicoSubMerchantOnboardRequest req)
+    {
+        var profile = await _db.Set<SlnSalonProfile>()
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId);
+        if (profile == null)
+            return (false, "Salon profili bulunamadı.", null);
+
+        // Aktif iyzico config'i bul (Pazaryeri ayni hesaba bagli)
+        var config = await _db.Set<PlatformPaymentConfig>()
+            .Where(c => c.IsActive && c.ProviderTypeId == PaymentProviders.Ids.Iyzico)
+            .OrderByDescending(c => c.Id)
+            .FirstOrDefaultAsync();
+        if (config == null)
+            return (false, "Aktif iyzico ödeme yapılandırması bulunamadı (admin tanımlamalı).", null);
+
+        var gateway = _gatewayFactory.Create(config) as IyzicoGateway;
+        if (gateway == null)
+            return (false, "iyzico gateway oluşturulamadı.", null);
+
+        // External ID: corplynk customerId — idempotent
+        if (string.IsNullOrEmpty(req.SubMerchantExternalId))
+            req.SubMerchantExternalId = $"corplynk-salon-{customerId}";
+
+        var result = await gateway.CreateSubMerchantAsync(req);
+        if (!result.Success)
+        {
+            profile.IyzicoOnboardingStatus = 3; // Rejected
+            profile.IyzicoOnboardingError = result.Error;
+            await _db.SaveChangesAsync();
+            return (false, result.Error, null);
+        }
+
+        // Profile'a yaz
+        profile.IyzicoSubMerchantKey = result.SubMerchantKey;
+        profile.IyzicoSubMerchantType = req.SubMerchantType;
+        profile.IyzicoIban = req.Iban;
+        profile.IyzicoLegalCompanyTitle = req.LegalCompanyTitle;
+        profile.IyzicoTaxOffice = req.TaxOffice;
+        profile.IyzicoTaxNumber = req.TaxNumber;
+        profile.IyzicoIdentityNumber = req.IdentityNumber;
+        profile.IyzicoContactName = req.ContactName;
+        profile.IyzicoContactSurname = req.ContactSurname;
+        profile.IyzicoOnboardingStatus = 2; // Approved (iyzico key dondurdu = aktif)
+        profile.IyzicoOnboardedAt = DateTime.UtcNow;
+        profile.IyzicoOnboardingError = null;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return (true, null, result.SubMerchantKey);
+    }
 }
 
 public class PaymentCardInfo
@@ -1872,4 +1949,12 @@ public class PaymentResult
 
     public static PaymentResult Ok(Guid uid, string? providerTxId) => new() { Success = true, TransactionUid = uid, ProviderTransactionId = providerTxId };
     public static PaymentResult Fail(string error) => new() { Success = false, Error = error };
+}
+
+public class SalonOnboardingContext
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
 }
