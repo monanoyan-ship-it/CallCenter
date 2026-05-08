@@ -30,6 +30,21 @@ public class IyzicoGateway : IPaymentGateway
         var conversationId = request.ConversationId;
         var priceTxt = request.Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
+        // Pazaryeri split — basketItem'a subMerchantKey + subMerchantPrice (varsa).
+        var basketItem = new Dictionary<string, object?>
+        {
+            ["id"] = conversationId,
+            ["name"] = request.Description ?? "Odeme",
+            ["category1"] = "Hizmet",
+            ["itemType"] = "VIRTUAL",
+            ["price"] = priceTxt
+        };
+        if (!string.IsNullOrWhiteSpace(request.SubMerchantKey) && request.SubMerchantPrice.HasValue)
+        {
+            basketItem["subMerchantKey"] = request.SubMerchantKey;
+            basketItem["subMerchantPrice"] = request.SubMerchantPrice.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         var body = new
         {
             locale = "tr",
@@ -64,17 +79,7 @@ public class IyzicoGateway : IPaymentGateway
             },
             shippingAddress = new { contactName = request.BuyerName ?? "Musteri", city = "Istanbul", country = "Turkey", address = "Turkiye" },
             billingAddress = new { contactName = request.BuyerName ?? "Musteri", city = "Istanbul", country = "Turkey", address = "Turkiye" },
-            basketItems = new[]
-            {
-                new
-                {
-                    id = conversationId,
-                    name = request.Description ?? "Odeme",
-                    category1 = "Hizmet",
-                    itemType = "VIRTUAL",
-                    price = priceTxt
-                }
-            }
+            basketItems = new[] { basketItem }
         };
 
         var json = JsonSerializer.Serialize(body);

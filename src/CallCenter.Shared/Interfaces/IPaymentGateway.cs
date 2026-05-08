@@ -49,6 +49,11 @@ public class PaymentRequest
 
     /// <summary>3DS callback URL (PayTR/Iyzico 3D Secure icin)</summary>
     public string? CallbackUrl { get; set; }
+
+    /// <summary>iyzico Pazaryeri sub-merchant key. Null ise direkt-merchant.</summary>
+    public string? SubMerchantKey { get; set; }
+    /// <summary>Sub-merchant'a aktarilacak tutar (komisyon dusulmus). SubMerchantKey set ediliyse zorunlu.</summary>
+    public decimal? SubMerchantPrice { get; set; }
 }
 
 /// <summary>Odeme baslama sonucu</summary>

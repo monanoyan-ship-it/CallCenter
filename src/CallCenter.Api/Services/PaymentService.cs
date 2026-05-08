@@ -289,8 +289,14 @@ public class PaymentService
         var invoice = await _db.SlnInvoices.FirstOrDefaultAsync(i => i.Id == invoiceId && i.CustomerId == customerId);
         if (invoice == null) return PaymentResult.Fail("Adisyon bulunamadi.");
 
+        // Tutari adisyondan al — randevu sirasinda yazandan degil, salonun guncelledigi son tutardan.
         var amount = invoice.TotalAmount;
         if (amount <= 0) return PaymentResult.Fail("Odenecek tutar 0.");
+
+        // Mobil/musteri tahsilati: Pazaryeri kayit ZORUNLU — komisyon corplynk'a, kalan salonun sub-merchant hesabina.
+        var split = await GetMarketplaceSplitAsync(customerId, amount, requireSplit: true);
+        if (!split.Success)
+            return PaymentResult.Fail(split.Error ?? "Salon Pazaryeri kaydi tamamlanmamis.");
 
         var tx = new PaymentTransaction
         {
@@ -304,11 +310,14 @@ public class PaymentService
             CardLastFour = card.CardNumber?.Length >= 4 ? card.CardNumber[^4..] : null
         };
 
-        var gatewayResult = await ExecutePaymentAsync(tx, card);
+        var gatewayResult = await ExecutePaymentAsync(tx, card,
+            subMerchantKey: split.SubMerchantKey,
+            subMerchantPrice: split.SubMerchantPrice);
 
         if (gatewayResult.Success)
         {
             invoice.StatusId = 3; // Paid
+            tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit", $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
             _logger.LogInformation("Adisyon odemesi basarili: InvoiceId={InvoiceId}, Amount={Amount}, TxId={TxId}",
                 invoiceId, amount, tx.ProviderTransactionId);
         }
@@ -1794,7 +1803,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
     // ─── Private: Gateway uzerinden odeme calistir ───
 
-    private async Task<PaymentResult> ExecutePaymentAsync(PaymentTransaction tx, PaymentCardInfo card, string? buyerIp = null)
+    private async Task<PaymentResult> ExecutePaymentAsync(PaymentTransaction tx, PaymentCardInfo card, string? buyerIp = null, string? subMerchantKey = null, decimal? subMerchantPrice = null)
     {
         // Aktif gateway config'i al
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
@@ -1828,7 +1837,9 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 BuyerEmail = card.BuyerEmail,
                 BuyerPhone = card.BuyerPhone,
                 BuyerIp = buyerIp,
-                Description = $"Odeme #{tx.Uid:N}"
+                Description = $"Odeme #{tx.Uid:N}",
+                SubMerchantKey = subMerchantKey,
+                SubMerchantPrice = subMerchantPrice
             };
 
             var result = await gateway.InitiatePaymentAsync(request);
