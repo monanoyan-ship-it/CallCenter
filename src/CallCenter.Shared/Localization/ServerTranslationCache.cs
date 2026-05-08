@@ -12,7 +12,7 @@ public class ServerTranslationCache
     private readonly HttpClient _http;
     private readonly string? _module;
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(1);
 
     public ServerTranslationCache(HttpClient httpClient, string? module = null)
     {
