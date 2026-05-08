@@ -12,6 +12,10 @@ public class SlnReview
     public int? SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }
 
+    /// <summary>Yorumu yazan platform kullanicisi (mobil/public musteri). Null ise admin tarafindan girilmis.</summary>
+    public int? PlatformUserId { get; set; }
+    public PlatformUser? PlatformUser { get; set; }
+
     public string? ClientName { get; set; }
     public int Rating { get; set; }
     public string? Comment { get; set; }

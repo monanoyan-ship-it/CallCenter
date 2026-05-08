@@ -31,3 +31,22 @@ public class PlatformResetPasswordRequest
     public string Token { get; set; } = string.Empty;
     public string NewPassword { get; set; } = string.Empty;
 }
+
+public class PlatformReviewCreateRequest
+{
+    public string SalonSlug { get; set; } = string.Empty;
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public string? DisplayName { get; set; }
+}
+
+public class PlatformReviewDto
+{
+    public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public string SalonName { get; set; } = string.Empty;
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public int StatusId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
