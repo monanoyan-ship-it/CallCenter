@@ -168,6 +168,12 @@
                             <td class="small fw-semibold" data-bind="text: startTimeFormatted || '-'"></td>
                             <td class="small">
                                 <a data-bind="text: clientName, attr: { href: '/Clients/Detail/' + slnClientId }" class="text-decoration-none"></a>
+                                <!-- ko if: clientIsBlacklisted -->
+                                <span class="badge bg-danger ms-1" title="@(Translation.T("salon.appointments.client_blocked_tooltip", "Müşteri engelli"))"><i class="bi bi-slash-circle me-1"></i><t key="salon.appointments.client_blocked">Engelli</t></span>
+                                <!-- /ko -->
+                                <!-- ko if: !clientIsBlacklisted && clientNoShowCount >= 2 -->
+                                <span class="badge bg-warning text-dark ms-1" data-bind="attr: { title: salonT('salon.appointments.client_noshow_tooltip', 'Bu müşterinin gelmedigi randevu sayısı') }"><i class="bi bi-exclamation-triangle me-1"></i><span data-bind="text: clientNoShowCount"></span> <t key="salon.appointments.noshow_short">no-show</t></span>
+                                <!-- /ko -->
                             </td>
                             <td class="small" data-bind="text: serviceNamesText"></td>
                             <td class="small" data-bind="text: personnelName"></td>

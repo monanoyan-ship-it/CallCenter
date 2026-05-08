@@ -329,7 +329,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             Notes = a.Notes,
             IsPrepaid = a.IsPrepaid,
             PrepaidAmount = a.PrepaidAmount,
-            DepositAmount = a.DepositAmount
+            DepositAmount = a.DepositAmount,
+            ClientNoShowCount = a.SlnClient?.NoShowCount ?? 0,
+            ClientIsBlacklisted = a.SlnClient?.IsBlacklisted ?? false
         };
     }
 

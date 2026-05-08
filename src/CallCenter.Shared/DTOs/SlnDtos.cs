@@ -143,6 +143,8 @@ public class SlnAppointmentDto
     public bool IsPrepaid { get; set; }
     public decimal PrepaidAmount { get; set; }
     public decimal DepositAmount { get; set; }
+    public int ClientNoShowCount { get; set; }
+    public bool ClientIsBlacklisted { get; set; }
 }
 
 public class SlnAppointmentCreateDto
