@@ -63,7 +63,32 @@ public class PaymentService
             .OrderByDescending(s => s.StatusId == SubscriptionStatuses.Ids.Active)
             .ThenByDescending(s => s.CreatedAt)
             .FirstOrDefaultAsync();
-        if (subscription == null) return;
+
+        if (subscription == null)
+        {
+            // Grandfather: yeni kayit akisi oncesinde olusan ve aboneligi hic olmayan salon
+            // musterisi tahakkuk odeyince default plan ile aktif abonelik olustur. PeriodPrice/
+            // MonthlyPrice asagidaki "PeriodPrice <= 0" blogunda donem tutarlarindan kalibre olur.
+            var fallbackPlan = await _db.SubscriptionPlans
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.IntervalMonths)
+                .FirstOrDefaultAsync();
+            if (fallbackPlan == null) return;
+
+            subscription = new CustomerSubscription
+            {
+                CustomerId = period.CustomerId,
+                PlanId = fallbackPlan.Id,
+                Plan = fallbackPlan,
+                StartDate = DateTime.SpecifyKind(period.PeriodStartDate, DateTimeKind.Utc),
+                BillingDay = period.PeriodStartDate.Day,
+                MonthlyPrice = 0m,
+                PeriodPrice = 0m,
+                StatusId = SubscriptionStatuses.Ids.Active,
+                PaymentGraceDays = 5
+            };
+            _db.CustomerSubscriptions.Add(subscription);
+        }
 
         if (subscription.PeriodPrice <= 0m)
         {
