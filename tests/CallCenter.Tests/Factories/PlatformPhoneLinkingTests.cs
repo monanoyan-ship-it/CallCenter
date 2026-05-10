@@ -7,6 +7,7 @@ using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CallCenter.Tests.Factories;
 
@@ -156,7 +157,7 @@ public class PlatformPhoneLinkingTests : IDisposable
             new SlnClientLoyaltyEntityService(_db),
             new SlnGiftCardEntityService(_db),
             new SlnNoShowPolicyEntityService(_db),
-            null!,
+            CreatePaymentService(),
             new UnitOfWork(_db));
 
     private SlnPublicFactory CreatePublicFactory()
@@ -177,8 +178,11 @@ public class PlatformPhoneLinkingTests : IDisposable
             new SlnWaitlistEntryEntityService(_db),
             new PlatformUserEntityService(_db),
             new PlatformUserSalonEntityService(_db),
-            null!,
+            CreatePaymentService(),
             new UnitOfWork(_db));
+
+    private PaymentService CreatePaymentService()
+        => new(_db, null!, null!, NullLogger<PaymentService>.Instance);
 
     private void SeedBaseData()
     {
