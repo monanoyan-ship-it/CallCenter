@@ -23,6 +23,25 @@ public class PaymentController : ControllerBase
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// PS.9 — iyzico webhook payload (server-to-server async event).
+    /// Iyzico panel: API Anahtarlari → Webhook URL ayarlanmali.
+    /// </summary>
+    public class IyzicoWebhookPayload
+    {
+        public string? IyziEventType { get; set; }
+        public long? IyziEventTime { get; set; }
+        public string? IyziPaymentId { get; set; }
+        public string? PaymentConversationId { get; set; }
+        public string? Status { get; set; }
+        public string? PaymentTransactionId { get; set; }
+        public decimal? Amount { get; set; }
+        public string? Currency { get; set; }
+        public string? Reason { get; set; }
+        /// <summary>Sub-merchant settlement event-lerinde gelen submerchant key</summary>
+        public string? SubMerchantKey { get; set; }
+    }
+
     /// <summary>Salon adisyon odemesi (platform kullanicisi odiyor)</summary>
     [HttpPost("invoice")]
     [Authorize(Roles = "PlatformUser")]
@@ -223,6 +242,29 @@ public class PaymentController : ControllerBase
         var topLevelReturn = await BuildIyzicoTopLevelReturnUrlAsync(token, result.Success, result.Error);
         var html = BuildIyzicoCallbackHtmlPage(result.Success, result.Error, token, topLevelReturn);
         return Content(html, "text/html; charset=utf-8");
+    }
+
+    /// <summary>
+    /// PS.9 — iyzico webhook server-to-server async event handler. Sub-merchant
+    /// settlement, refund, balance-funded, marketplace gibi event-leri yakalar
+    /// ve ilgili PaymentTransaction.Notes alanina event log yazar. Asil tutar
+    /// hesabi yapmaz (settlement raporu iyzico panelden cekilir); bu endpoint
+    /// hak edis takibinde audit trail olarak kullanilir.
+    ///
+    /// Iyzico webhook URL: https://api.corplynk.com/api/payments/iyzico-webhook
+    /// (Merchant panel → API Anahtarlari → Webhook URL)
+    /// </summary>
+    [HttpPost("iyzico-webhook")]
+    [AllowAnonymous]
+    public async Task<ActionResult> IyzicoWebhook([FromBody] IyzicoWebhookPayload? payload)
+    {
+        if (payload == null || string.IsNullOrEmpty(payload.IyziEventType))
+            return BadRequest(new { message = "Webhook payload bos veya event type eksik." });
+
+        var (handled, message) = await _paymentService.HandleIyzicoWebhookAsync(payload);
+        // Iyzico, 200 OK haricinde retry yapar — handle edilemese bile 200 don
+        // (manual review icin loglanir, retry gurultusu olusturmamak icin).
+        return Ok(new { received = true, handled, message });
     }
 
     /// <summary>

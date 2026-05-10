@@ -1935,6 +1935,82 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         return result;
     }
 
+    /// <summary>
+    /// PS.9 — iyzico webhook event handler. Sub-merchant settlement, refund, balance-funded
+    /// gibi server-to-server async event-leri yakalar ve ilgili PaymentTransaction.Notes
+    /// alanina audit log yazar. Asil tutar hesabi yapmaz; iyzico panelinden cekilen
+    /// raporlar otoritedir. Bu metod sadece webhook eventlerini transaction-a baglar.
+    /// </summary>
+    public async Task<(bool Handled, string Message)> HandleIyzicoWebhookAsync(
+        Controllers.PaymentController.IyzicoWebhookPayload payload)
+    {
+        var eventType = (payload.IyziEventType ?? string.Empty).ToUpperInvariant();
+        var eventTime = payload.IyziEventTime.HasValue
+            ? DateTimeOffset.FromUnixTimeMilliseconds(payload.IyziEventTime.Value).UtcDateTime
+            : DateTime.UtcNow;
+
+        // ProviderPaymentId veya ConversationId ile transaction'i bul
+        PaymentTransaction? tx = null;
+        if (!string.IsNullOrEmpty(payload.IyziPaymentId))
+        {
+            tx = await _db.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.ProviderPaymentId == payload.IyziPaymentId);
+        }
+        if (tx == null && !string.IsNullOrEmpty(payload.PaymentConversationId))
+        {
+            tx = await _db.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.Uid.ToString("N") == payload.PaymentConversationId);
+        }
+
+        if (tx == null)
+        {
+            _logger.LogWarning("Iyzico webhook: matching transaction yok. Event={Event}, PaymentId={PaymentId}, Conv={Conv}",
+                eventType, payload.IyziPaymentId, payload.PaymentConversationId);
+            return (false, "Eslesen transaction yok.");
+        }
+
+        // Event detayini Notes log alanina ekle
+        var detail = $"Event={eventType}, EventTime={eventTime:O}, Status={payload.Status ?? "-"}, " +
+                     $"Amount={payload.Amount?.ToString("F2") ?? "-"}, " +
+                     $"SubMerchantKey={payload.SubMerchantKey ?? "-"}, Reason={payload.Reason ?? "-"}";
+        tx.Notes = AddNoteEvent(tx.Notes, $"IyzicoWebhook:{eventType}", detail);
+
+        // Bilinen event-lere ozel davranis
+        switch (eventType)
+        {
+            case "REFUND":
+            case "MARKETPLACE_REFUND":
+                // Refund event-i: status'a gore PaymentStatuses.Iade
+                if (tx.StatusId == PaymentStatuses.Ids.Basarili)
+                {
+                    tx.StatusId = PaymentStatuses.Ids.Iade;
+                    tx.Notes = AddNoteEvent(tx.Notes, "RefundApplied",
+                        $"Iyzico webhook ile iade isleme alindi. Tutar={payload.Amount?.ToString("F2") ?? "-"}");
+                }
+                break;
+
+            case "MARKETPLACE_SETTLEMENT_RECEIVED":
+            case "BALANCE_FUNDED":
+                // Salon hak edisi gerceklesti — log only (rapor iyzico panelden)
+                tx.Notes = AddNoteEvent(tx.Notes, "SettlementReceived",
+                    $"Sub-merchant hesabina yatirildi. Amount={payload.Amount?.ToString("F2") ?? "-"} " +
+                    $"SubMerchantKey={payload.SubMerchantKey ?? "-"}");
+                break;
+
+            case "MARKETPLACE_SETTLEMENT_FAILED":
+            case "PAYMENT_FAILED":
+                tx.Notes = AddNoteEvent(tx.Notes, "SettlementFailed",
+                    $"Reason={payload.Reason ?? "-"}");
+                _logger.LogWarning("Iyzico webhook FAILED: TxId={TxId}, Reason={Reason}", tx.Id, payload.Reason);
+                break;
+
+            // Diger event-ler sadece loglandi, davranis yok
+        }
+
+        await _db.SaveChangesAsync();
+        return (true, $"Event {eventType} TxId={tx.Id} icin loglandi.");
+    }
+
     /// <summary>Bir salon icin online tahsilat acik mi (sub-merchant onboarded). Phase 9 GetMyAppointments yardimcisi.</summary>
     public async Task<HashSet<int>> GetCustomersWithActiveSubMerchantAsync(IEnumerable<int> customerIds)
     {
