@@ -962,6 +962,34 @@ public class SettlementBreakdownDto
     public decimal CommissionPercent { get; set; }
 }
 
+/// <summary>
+/// PS.13 — salon hak edis rapor satiri. Her basarili tx icin brut + komisyon
+/// + stopaj + net dagilim. PaymentTransaction.Notes'tan turetilen ek bilgiler:
+/// transferDate (settlement event-i loglandi ise), source (booking/uyelik/adisyon).
+/// </summary>
+public class SettlementEntryDto
+{
+    public Guid Uid { get; set; }
+    public int TransactionId { get; set; }
+    public DateTime TransactionDate { get; set; }
+    /// <summary>SalonAdisyon / RandevuOnOdemesi / UyelikOdemesi vs.</summary>
+    public string Source { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public SettlementBreakdownDto Breakdown { get; set; } = new();
+    /// <summary>Sub-merchant settlement event'i loglandi mi (webhook'tan)</summary>
+    public bool SettlementReceived { get; set; }
+    public DateTime? SettlementDate { get; set; }
+}
+
+public class SettlementReportDto
+{
+    public DateTime From { get; set; }
+    public DateTime To { get; set; }
+    public List<SettlementEntryDto> Entries { get; set; } = [];
+    /// <summary>Aggregate: tum entry-lerin toplami</summary>
+    public SettlementBreakdownDto Total { get; set; } = new();
+}
+
 public class SlnFinanceReportDto
 {
     public decimal TotalIncome { get; set; }

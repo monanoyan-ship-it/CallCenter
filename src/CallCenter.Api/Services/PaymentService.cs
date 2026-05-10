@@ -1937,6 +1937,79 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
     }
 
     /// <summary>
+    /// PS.13 — salon hak edis raporu. Belirli tarih araliginda customer'a ait
+    /// basarili sub-merchant tx-leri brut/komisyon/stopaj/net seklinde grupla.
+    /// PS.10 CalculateSettlementBreakdown helper'i ile her satir hesaplanir.
+    /// </summary>
+    public async Task<SettlementReportDto> GetSettlementReportAsync(int customerId, DateTime from, DateTime to)
+    {
+        var commissionPct = (await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId))?.MarketplaceCommissionPercent ?? 5m;
+
+        var txs = await _db.PaymentTransactions
+            .Where(t => t.CustomerId == customerId
+                        && t.StatusId == PaymentStatuses.Ids.Basarili
+                        && t.CompletedAt != null
+                        && t.CompletedAt >= from && t.CompletedAt < to
+                        // Sadece sub-merchant split olan tx-ler hak edis kapsaminda:
+                        // SalonAdisyon (post-pay) + UyelikOdemesi (membership)
+                        && (t.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon
+                            || t.PaymentTypeId == PaymentTypes.Ids.UyelikOdemesi))
+            .OrderBy(t => t.CompletedAt)
+            .ToListAsync();
+
+        var entries = new List<SettlementEntryDto>();
+        foreach (var tx in txs)
+        {
+            var source = PaymentTypes.GetById(tx.PaymentTypeId)?.SystemName ?? $"Type:{tx.PaymentTypeId}";
+            var breakdown = CalculateSettlementBreakdown(tx.Amount, commissionPct, tx.CompletedAt);
+
+            // Webhook ile settlement loglandi mi?
+            var settlementReceived = tx.Notes != null && tx.Notes.Contains("SettlementReceived");
+            DateTime? settlementDate = null;
+            if (settlementReceived && tx.Notes != null)
+            {
+                var idx = tx.Notes.IndexOf("SettlementReceived", StringComparison.Ordinal);
+                if (idx >= 0)
+                {
+                    // "[2026-01-15T10:30:00Z] SettlementReceived: ..." formati
+                    var startBracket = tx.Notes.LastIndexOf('[', idx);
+                    var endBracket = tx.Notes.IndexOf(']', startBracket >= 0 ? startBracket : 0);
+                    if (startBracket >= 0 && endBracket > startBracket)
+                    {
+                        var ts = tx.Notes.Substring(startBracket + 1, endBracket - startBracket - 1);
+                        if (DateTime.TryParse(ts, out var parsed)) settlementDate = parsed;
+                    }
+                }
+            }
+
+            entries.Add(new SettlementEntryDto
+            {
+                Uid = tx.Uid,
+                TransactionId = tx.Id,
+                TransactionDate = tx.CompletedAt ?? DateTime.UtcNow,
+                Source = source,
+                Description = tx.Notes?.Split('\n').FirstOrDefault(),
+                Breakdown = breakdown,
+                SettlementReceived = settlementReceived,
+                SettlementDate = settlementDate
+            });
+        }
+
+        // Aggregate
+        var total = new SettlementBreakdownDto
+        {
+            GrossAmount = entries.Sum(e => e.Breakdown.GrossAmount),
+            WithholdingTax = entries.Sum(e => e.Breakdown.WithholdingTax),
+            PlatformCommission = entries.Sum(e => e.Breakdown.PlatformCommission),
+            NetSettlement = entries.Sum(e => e.Breakdown.NetSettlement),
+            WithholdingApplied = entries.Any(e => e.Breakdown.WithholdingApplied),
+            CommissionPercent = commissionPct
+        };
+
+        return new SettlementReportDto { From = from, To = to, Entries = entries, Total = total };
+    }
+
+    /// <summary>
     /// PS.10 — iyzico Pazaryeri settlement icin brut/stopaj/komisyon/net hak edis hesabi.
     /// 1 Ocak 2025 sonrasi 1% e-ticaret aracilik stopaji iyzico tarafindan otomatik
     /// kesilir; salon-a gosterilen rapor bu kesintiyi de yansitmali (KDV beyani icin).

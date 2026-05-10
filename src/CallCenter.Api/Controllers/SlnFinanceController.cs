@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -304,6 +305,22 @@ public class SlnFinanceController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
         return Ok(await _financeFactory.GetTaxReportAsync(cid, startDate, endDate, GetBranchId()));
+    }
+
+    /// <summary>
+    /// PS.13 — salon hak edis raporu (sub-merchant settlement detay). Tarih araligindaki
+    /// basarili tx-ler brut/komisyon/stopaj/net seklinde donulur. Sadece SalonAdisyon
+    /// (post-pay) ve UyelikOdemesi (membership) sub-merchant split kapsamindadir.
+    /// </summary>
+    [HttpGet("reports/settlements")]
+    public async Task<ActionResult<SettlementReportDto>> GetSettlementReport(
+        [FromQuery] DateTime startDate, [FromQuery] DateTime endDate,
+        [FromServices] PaymentService paymentService)
+    {
+        var cid = GetCustomerId();
+        if (cid == 0) return Unauthorized();
+        var report = await paymentService.GetSettlementReportAsync(cid, startDate, endDate);
+        return Ok(report);
     }
 }
 
