@@ -226,7 +226,9 @@ function BranchesViewModel() {
     };
 
     self.remove = function (branch) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), branch.name + ' subesini silmek istediginize emin misiniz?', function() {
+        var confirmText = slnJsT('salon.branches.js.delete_confirm', '{name} şubesini silmek istediğinize emin misiniz?')
+            .replace('{name}', branch.name || '');
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), confirmText, function() {
             $.ajax({
                 url: '/proxy/sln-branches/' + branch.id,
                 method: 'DELETE'
@@ -234,14 +236,14 @@ function BranchesViewModel() {
                 self.loadData();
                 toastr.success(slnJsT('salon.branches.js.sube_silindi', 'Şube silindi'));
             }).fail(function () {
-                toastr.error('Silinemedi');
+                toastr.error(slnJsT('salon.branches.js.delete_failed', 'Silinemedi'));
             });
         });
     };
 
     function uploadImage(file, type, done, always) {
         if (file.size > 5 * 1024 * 1024) {
-            toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB dan buyuk olamaz.'));
+            toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB dan büyük olamaz.'));
             if (always) always();
             return;
         }
@@ -258,7 +260,7 @@ function BranchesViewModel() {
         }).done(function (result) {
             if (result && result.url) done(result.url);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yukleme hatasi.'));
+            toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yükleme hatası.'));
         }).always(function () {
             if (always) always();
         });
@@ -268,11 +270,11 @@ function BranchesViewModel() {
         var file = event.target.files[0];
         if (!file) return;
 
-        toastr.info(slnJsT('salon.pagesettings.js.loading', 'Yukleniyor...'));
+        toastr.info(slnJsT('salon.pagesettings.js.loading', 'Yükleniyor...'));
         uploadImage(file, type === 'photo' ? 'branch-photo' : 'branch-cover', function (url) {
             if (type === 'photo') self.form.photoUrl(url);
             else self.form.coverImageUrl(url);
-            toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Gorsel yuklendi.'));
+            toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Görsel yüklendi.'));
         });
 
         event.target.value = '';
@@ -288,7 +290,7 @@ function BranchesViewModel() {
         if (!files || files.length === 0) return;
 
         var remaining = files.length;
-        toastr.info(files.length + slnJsT('salon.pagesettings.js.images_uploading', ' gorsel yukleniyor...'));
+        toastr.info(files.length + slnJsT('salon.pagesettings.js.images_uploading', ' görsel yükleniyor...'));
 
         for (var i = 0; i < files.length; i++) {
             (function (file) {
@@ -297,7 +299,7 @@ function BranchesViewModel() {
                 }, function () {
                     remaining--;
                     if (remaining <= 0) {
-                        toastr.success(slnJsT('salon.pagesettings.js.gallery_images_uploaded', 'Galeri gorselleri yuklendi.'));
+                        toastr.success(slnJsT('salon.pagesettings.js.gallery_images_uploaded', 'Galeri görselleri yüklendi.'));
                     }
                 });
             })(files[i]);
@@ -390,7 +392,7 @@ function BranchesViewModel() {
         ].filter(function (p) { return p && p.trim(); });
 
         if (parts.length < 2) {
-            toastr.warning('Koordinat bulmak icin en az adres ve sehir giriniz.');
+            toastr.warning(slnJsT('salon.branches.js.geocode_need_address_city', 'Koordinat bulmak için en az adres ve şehir giriniz.'));
             return;
         }
 
@@ -405,12 +407,12 @@ function BranchesViewModel() {
                 var r = results[0];
                 updateFromLatLng(parseFloat(r.lat), parseFloat(r.lon));
                 if (_map) setMapPin(parseFloat(r.lat), parseFloat(r.lon));
-                toastr.success('Konum bulundu. Pini surukleyerek hassasiyeti ayarlayabilirsiniz.');
+                toastr.success(slnJsT('salon.branches.js.geocode_found', 'Konum bulundu. Pini sürükleyerek hassasiyeti ayarlayabilirsiniz.'));
             } else {
-                toastr.warning('Adres bulunamadi. Haritada manuel secebilirsiniz.');
+                toastr.warning(slnJsT('salon.branches.js.geocode_not_found', 'Adres bulunamadı. Haritada manuel seçebilirsiniz.'));
             }
         }).fail(function () {
-            toastr.error('Konum servisi yanitlamadi.');
+            toastr.error(slnJsT('salon.branches.js.geocode_service_failed', 'Konum servisi yanıtlamadı.'));
         }).always(function () {
             self.isGeocoding(false);
         });
@@ -425,7 +427,7 @@ function BranchesViewModel() {
 
     self.showQr = function (branch) {
         if (!branch.slug) {
-            toastr.warning('Bu subenin URL (slug) tanimlanmamis. Once duzenleyip slug atayin.');
+            toastr.warning(slnJsT('salon.branches.js.qr_slug_missing', 'Bu şubenin URL (slug) tanımlanmamış. Önce düzenleyip slug atayın.'));
             return;
         }
         qrCurrentBranch = branch;
