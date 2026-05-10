@@ -225,6 +225,13 @@ forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 
 // CORS, redirect/auth'dan once (OPTIONS ve tarayıcı istekleri için tutarlı sıra)
+app.Use(async (context, next) =>
+{
+    if (context.Request.Headers.ContainsKey("Access-Control-Request-Private-Network"))
+        context.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
+
+    await next();
+});
 app.UseCors("AllowBlazor");
 
 // HTTPS redirect — sadece Development ortaminda

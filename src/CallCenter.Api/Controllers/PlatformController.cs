@@ -16,8 +16,13 @@ namespace CallCenter.Api.Controllers;
 public class PlatformController : ControllerBase
 {
     private readonly IPlatformFactory _factory;
+    private readonly IConfiguration _configuration;
 
-    public PlatformController(IPlatformFactory factory) => _factory = factory;
+    public PlatformController(IPlatformFactory factory, IConfiguration configuration)
+    {
+        _factory = factory;
+        _configuration = configuration;
+    }
 
     // ═══ SALON ÜYELİK ═══
 
@@ -100,8 +105,9 @@ public class PlatformController : ControllerBase
         int id, [FromBody] PlatformPayAppointmentRequest? body)
     {
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
         var resp = await _factory.PayAppointmentCheckoutAsync(
-            GetPlatformUserId(), id, body?.CallbackUrl, buyerIp);
+            GetPlatformUserId(), id, callbackUrl, buyerIp);
         if (!resp.Success) return BadRequest(resp);
         return Ok(resp);
     }
@@ -129,4 +135,12 @@ public class PlatformController : ControllerBase
 
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
+
+    private string GetApiBaseUrl()
+    {
+        var configured = _configuration["ApiBaseUrl"];
+        if (!string.IsNullOrWhiteSpace(configured))
+            return configured.TrimEnd('/');
+        return $"{Request.Scheme}://{Request.Host}";
+    }
 }

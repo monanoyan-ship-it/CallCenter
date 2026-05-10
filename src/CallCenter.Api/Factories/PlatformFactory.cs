@@ -339,15 +339,18 @@ public class PlatformFactory : IPlatformFactory
                 totalPrice = legacyService.Price;
             }
 
+            var awaitingDepositPayment = a.StatusId == 6 && a.DepositAmount > 0m && !a.IsPrepaid;
             var alreadyPaid = paidByApt.GetValueOrDefault(a.Id, 0m);
-            var remaining = totalPrice - alreadyPaid;
+            var remaining = awaitingDepositPayment ? a.DepositAmount : totalPrice - alreadyPaid;
             if (remaining < 0m) remaining = 0m;
 
-            // Iptal/NoShow disinda + tutar > 0 + salon online tahsilat acik + kalan bakiye var.
-            var canPay = remaining > 0m
-                         && totalPrice > 0m
-                         && a.StatusId != 4 && a.StatusId != 5
-                         && subMerchantCustomerIds.Contains(a.CustomerId);
+            // StatusId=6 randevu depozitosu yarim kalmis checkout'tur; retry platform odeme
+            // akisini kullanir ve salon sub-merchant kaydina bagli degildir.
+            var canPay = awaitingDepositPayment
+                         || (remaining > 0m
+                             && totalPrice > 0m
+                             && a.StatusId != 4 && a.StatusId != 5 && a.StatusId != 6
+                             && subMerchantCustomerIds.Contains(a.CustomerId));
 
             return new PlatformAppointmentDto
             {
@@ -361,6 +364,7 @@ public class PlatformFactory : IPlatformFactory
                 ServiceNames = serviceNames,
                 TotalPrice = totalPrice,
                 StatusId = a.StatusId,
+                StatusName = GetAppointmentStatusName(a.StatusId),
                 IsPrepaid = a.IsPrepaid,
                 PrepaidAmount = a.PrepaidAmount,
                 CanPay = canPay,
@@ -383,6 +387,37 @@ public class PlatformFactory : IPlatformFactory
         if (apt.StatusId == 4 || apt.StatusId == 5)
             return new PlatformPayAppointmentResponse { Success = false, Error = "Iptal veya gelinmedi durumundaki randevu icin tahsilat yapilamaz." };
 
+        var platformUser = await _platformUserEs.GetAllQueryable()
+            .FirstOrDefaultAsync(u => u.Id == platformUserId);
+        if (platformUser == null)
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Platform kullanicisi bulunamadi." };
+
+        var fallbackCallback = string.IsNullOrWhiteSpace(callbackUrl)
+            ? "corplynk-salon://payment/callback"
+            : callbackUrl!;
+
+        if (apt.StatusId == 6 && apt.DepositAmount > 0m && !apt.IsPrepaid)
+        {
+            var slug = await GetAppointmentPublicSlugAsync(apt);
+            var depositCheckout = await _paymentService.InitBookingDepositCheckoutAsync(
+                customerId: apt.CustomerId,
+                appointmentId: apt.Id,
+                slug: slug,
+                amount: apt.DepositAmount,
+                buyerFullName: platformUser.FullName ?? "Musteri",
+                buyerEmail: platformUser.Email ?? "noreply@corplynk.com",
+                callbackUrl: fallbackCallback,
+                buyerIp: buyerIp);
+
+            return new PlatformPayAppointmentResponse
+            {
+                Success = depositCheckout.Success,
+                HtmlContent = depositCheckout.HtmlContent,
+                Token = depositCheckout.Token,
+                Error = depositCheckout.Error
+            };
+        }
+
         var totalPrice = apt.Services?.Sum(s => s.SlnService?.Price ?? 0) ?? 0;
         if (totalPrice <= 0m && apt.ServiceId.HasValue)
         {
@@ -397,15 +432,6 @@ public class PlatformFactory : IPlatformFactory
         var remaining = totalPrice - alreadyPaid;
         if (remaining <= 0m)
             return new PlatformPayAppointmentResponse { Success = false, Error = "Bu randevu icin odenecek tutar kalmadi." };
-
-        var platformUser = await _platformUserEs.GetAllQueryable()
-            .FirstOrDefaultAsync(u => u.Id == platformUserId);
-        if (platformUser == null)
-            return new PlatformPayAppointmentResponse { Success = false, Error = "Platform kullanicisi bulunamadi." };
-
-        var fallbackCallback = string.IsNullOrWhiteSpace(callbackUrl)
-            ? "corplynk-salon://payment/callback"
-            : callbackUrl!;
 
         var result = await _paymentService.InitPayAppointmentCheckoutAsync(
             customerId: apt.CustomerId,
@@ -619,6 +645,46 @@ public class PlatformFactory : IPlatformFactory
     }
 
     // ═══ HELPERS ═══
+
+    private static string GetAppointmentStatusName(int statusId) => statusId switch
+    {
+        1 => "Planlandı",
+        2 => "Onaylandı",
+        3 => "Tamamlandı",
+        4 => "İptal",
+        5 => "Gelmedi",
+        6 => "Ödeme bekliyor",
+        _ => "Bilinmiyor"
+    };
+
+    private async Task<string> GetAppointmentPublicSlugAsync(SlnAppointment appointment)
+    {
+        if (appointment.BranchId.HasValue)
+        {
+            var branchSlug = await _branchEs.GetAllQueryable()
+                .Where(b => b.Id == appointment.BranchId.Value && b.Slug != null && b.Slug != "")
+                .Select(b => b.Slug)
+                .FirstOrDefaultAsync();
+            if (!string.IsNullOrWhiteSpace(branchSlug))
+                return branchSlug!;
+        }
+
+        var headquarterSlug = await _branchEs.GetAllQueryable()
+            .Where(b => b.CustomerId == appointment.CustomerId
+                        && b.IsHeadquarter
+                        && b.Slug != null
+                        && b.Slug != "")
+            .Select(b => b.Slug)
+            .FirstOrDefaultAsync();
+        if (!string.IsNullOrWhiteSpace(headquarterSlug))
+            return headquarterSlug!;
+
+        return await _profileEs.GetAllQueryable()
+            .Where(p => p.CustomerId == appointment.CustomerId)
+            .Select(p => p.Slug)
+            .FirstOrDefaultAsync()
+            ?? string.Empty;
+    }
 
     private async Task<List<int>> GetMyClientIds(int platformUserId)
     {
