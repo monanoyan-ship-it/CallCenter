@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Urunler";
+    ViewData["Title"] = Translation.T("salon.products.auto.title", "Ürünler");
 }
 
 <div id="products-vm">
@@ -27,10 +27,10 @@
                         <tr>
                             <th><t key="salon.products.auto.urun_adi">Ürün Adı</t></th>
                             <th><t key="salon.reports.category">Kategori</t></th>
-                            <th>Marka</th>
-                            <th>Barkod</th>
-                            <th>Stok</th>
-                            <th>Alis Fiyati</th>
+                            <th><t key="salon.products.auto.marka">Marka</t></th>
+                            <th><t key="salon.products.auto.barkod">Barkod</t></th>
+                            <th><t key="salon.products.auto.stok">Stok</t></th>
+                            <th><t key="salon.products.auto.alis_fiyati">Alış Fiyatı</t></th>
                             <th><t key="salon.products.auto.satis_fiyati">Satış Fiyatı</t></th>
                             <th style="width: 170px;"></th>
                         </tr>
@@ -44,7 +44,7 @@
                             <td class="small">
                                 <span data-bind="text: stockQuantity, css: { 'text-danger fw-bold': stockQuantity <= minStockLevel && minStockLevel > 0 }"></span>
                                 <!-- ko if: stockQuantity <= minStockLevel && minStockLevel > 0 -->
-                                <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Dusuk stok"></i>
+                                <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="@(Translation.T("salon.products.auto.title_dusuk_stok", "Düşük stok"))"></i>
                                 <!-- /ko -->
                             </td>
                             <td class="small" data-bind="text: (purchasePrice || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
@@ -57,10 +57,10 @@
                                     <button class="btn btn-outline-success" title="@(Translation.T("salon.products.auto.alis_ekle", "Alış Ekle"))" data-bind="click: $parent.openPurchase">
                                         <i class="bi bi-cart-plus"></i>
                                     </button>
-                                    <button class="btn btn-outline-primary" title="Transfer" data-bind="click: $parent.openStockTransfer">
+                                    <button class="btn btn-outline-primary" title="@(Translation.T("salon.products.auto.title_transfer", "Transfer"))" data-bind="click: $parent.openStockTransfer">
                                         <i class="bi bi-arrow-left-right"></i>
                                     </button>
-                                    <button class="btn btn-outline-warning" title="Sayim" data-bind="click: $parent.openStockCount">
+                                    <button class="btn btn-outline-warning" title="@(Translation.T("salon.products.auto.title_sayim", "Sayım"))" data-bind="click: $parent.openStockCount">
                                         <i class="bi bi-clipboard-check"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
@@ -118,16 +118,16 @@
                                                   event: { mousedown: function(){ $parent.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Marka</label>
+                            <label class="form-label small"><t key="salon.products.auto.marka_2">Marka</t></label>
                             <div class="position-relative" data-bind="with: brandAutocomplete">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="Marka yazin..."
+                                       placeholder="@(Translation.T("salon.products.auto.placeholder_marka_yazin", "Marka yazın..."))"
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
@@ -146,29 +146,29 @@
                                                   event: { mousedown: function(){ $parent.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Barkod</label>
+                            <label class="form-label small"><t key="salon.products.auto.barkod_2">Barkod</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.barcode" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Birim</label>
+                            <label class="form-label small"><t key="salon.products.auto.birim">Birim</t></label>
                             <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.products.auto.adet_litre_kutu", "Adet, Litre, Kutu..."))" data-bind="value: form.unit" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Stok</label>
+                            <label class="form-label small"><t key="salon.products.auto.stok_2">Stok</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: form.stockQuantity" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Min Stok</label>
+                            <label class="form-label small"><t key="salon.products.auto.min_stok">Min Stok</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: form.minStockLevel" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Alis Fiyati (TL) *</label>
+                            <label class="form-label small"><t key="salon.products.auto.alis_fiyati_tl_required">Alış Fiyatı (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.purchasePrice" />
                         </div>
                         <div class="col-6">
@@ -193,7 +193,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Alis Kaydi</h6>
+                    <h6 class="modal-title"><t key="salon.products.auto.alis_kaydi">Alış Kaydı</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -215,7 +215,7 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">
-                                Miktar
+                                <t key="salon.products.auto.miktar">Miktar</t>
                                 <!-- ko if: purchaseProduct -->
                                 <span class="text-muted" data-bind="text: '(' + purchaseProduct().unit + ')'"></span>
                                 <!-- /ko -->
@@ -223,7 +223,7 @@
                             <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: purchaseForm.quantity, valueUpdate: 'afterkeydown'" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Birim Alis Fiyati (TL)</label>
+                            <label class="form-label small"><t key="salon.products.auto.birim_alis_fiyati_tl">Birim Alış Fiyatı (TL)</t></label>
                             <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: purchaseForm.unitPrice, valueUpdate: 'afterkeydown'" />
                         </div>
                         <div class="col-12">
@@ -262,7 +262,7 @@
                     <div class="mb-3">
                         <div class="small text-muted"><t key="salon.sidebar.products">Ürün</t></div>
                         <div class="fw-semibold" data-bind="text: stockOperationProduct().name"></div>
-                        <div class="small text-muted">Mevcut global stok: <span data-bind="text: stockOperationProduct().stockQuantity"></span></div>
+                        <div class="small text-muted"><t key="salon.products.auto.mevcut_global_stok">Mevcut global stok:</t> <span data-bind="text: stockOperationProduct().stockQuantity"></span></div>
                     </div>
                     <!-- /ko -->
 
@@ -287,7 +287,7 @@
                                                    optionsCaption: salonT('salon.products.auto.sube_secin', 'Şube seçin')"></select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small">Miktar</label>
+                                <label class="form-label small"><t key="salon.products.auto.miktar">Miktar</t></label>
                                 <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: stockOperationForm.quantity" />
                             </div>
                             <div class="col-md-6">

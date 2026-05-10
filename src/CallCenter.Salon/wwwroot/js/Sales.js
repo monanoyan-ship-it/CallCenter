@@ -274,7 +274,7 @@ function SalesViewModel() {
         if (existing) {
             var nextQuantity = existing.quantity() + 1;
             if (nextQuantity > stock) {
-                toastr.warning('Yetersiz stok: ' + product.name);
+                toastr.warning(slnJsT('salon.sales.js.insufficient_stock_prefix', 'Yetersiz stok: ') + product.name);
                 return;
             }
             existing.quantity(nextQuantity);
@@ -322,7 +322,7 @@ function SalesViewModel() {
 
     self.increaseQty = function (item) {
         if (item.productId && item.quantity() + 1 > item.stockQuantity) {
-            toastr.warning('Yetersiz stok: ' + item.name);
+            toastr.warning(slnJsT('salon.sales.js.insufficient_stock_prefix', 'Yetersiz stok: ') + item.name);
             return;
         }
         if (item.usePackageSession === true && item.quantity() + 1 > item.packageRemainingSessions) {
@@ -413,12 +413,12 @@ function SalesViewModel() {
 
     self.checkout = function () {
         if (self.cartItems().length === 0) {
-            toastr.warning('Sepet bos');
+            toastr.warning(slnJsT('salon.sales.js.cart_empty', 'Sepet boş'));
             return;
         }
 
         if (parseInt(self.paymentMethodId()) === 5 && !(self.giftCardCode() || '').trim()) {
-            toastr.warning('Hediye karti kodu girilmelidir');
+            toastr.warning(slnJsT('salon.sales.js.gift_card_code_required', 'Hediye kartı kodu girilmelidir'));
             return;
         }
 

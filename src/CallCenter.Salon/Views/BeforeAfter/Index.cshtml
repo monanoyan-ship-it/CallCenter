@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Once/Sonra Fotograflari";
+    ViewData["Title"] = Translation.T("salon.beforeafter.auto.title", "Önce/Sonra Fotoğrafları");
 }
 
 <div id="beforeafter-vm">
@@ -28,7 +28,7 @@
                     </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6 text-center">
-                            <small class="text-muted d-block mb-1">Once</small>
+                            <small class="text-muted d-block mb-1"><t key="salon.beforeafter.auto.once">Önce</t></small>
                             <!-- ko if: beforePhotoUrl -->
                             <img data-bind="attr: { src: beforePhotoUrl }" class="img-fluid rounded" style="max-height:120px;" />
                             <!-- /ko -->
@@ -39,7 +39,7 @@
                             <!-- /ko -->
                         </div>
                         <div class="col-6 text-center">
-                            <small class="text-muted d-block mb-1">Sonra</small>
+                            <small class="text-muted d-block mb-1"><t key="salon.beforeafter.auto.sonra">Sonra</t></small>
                             <!-- ko if: afterPhotoUrl -->
                             <img data-bind="attr: { src: afterPhotoUrl }" class="img-fluid rounded" style="max-height:120px;" />
                             <!-- /ko -->
@@ -70,7 +70,7 @@
     <!-- ko if: filteredPhotos().length === 0 -->
     <div class="text-center text-muted py-5">
         <i class="bi bi-images" style="font-size: 3rem; opacity:.3;"></i>
-        <p class="mt-2 small">Henuz fotograf eklenmemis</p>
+        <p class="mt-2 small"><t key="salon.beforeafter.auto.henuz_fotograf_eklenmemis">Henüz fotoğraf eklenmemiş</t></p>
     </div>
     <!-- /ko -->
 
@@ -93,11 +93,11 @@
                             <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Once Foto URL</label>
+                            <label class="form-label small"><t key="salon.beforeafter.auto.once_foto_url">Önce Foto URL</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.beforePhotoUrl" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Sonra Foto URL</label>
+                            <label class="form-label small"><t key="salon.beforeafter.auto.sonra_foto_url">Sonra Foto URL</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.afterPhotoUrl" />
                         </div>
                         <div class="col-12">
@@ -107,7 +107,7 @@
                         <div class="col-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="isPublic" data-bind="checked: form.isPublic" />
-                                <label class="form-check-label small" for="isPublic">Profilde Goster</label>
+                                <label class="form-check-label small" for="isPublic"><t key="salon.beforeafter.auto.profilde_goster">Profilde Göster</t></label>
                             </div>
                         </div>
                     </div>

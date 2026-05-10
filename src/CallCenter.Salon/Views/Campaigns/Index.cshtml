@@ -1,16 +1,16 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Kampanyalar";
+    ViewData["Title"] = Translation.T("salon.campaigns.auto.title", "Kampanyalar");
 }
 
 <div id="campaigns-vm">
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
-            <a class="nav-link active" data-bs-toggle="tab" href="#campaigns-tab">Kampanyalar</a>
+            <a class="nav-link active" data-bs-toggle="tab" href="#campaigns-tab"><t key="salon.campaigns.auto.kampanyalar">Kampanyalar</t></a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#reminders-tab">Oto-Hatirlatmalar</a>
+            <a class="nav-link" data-bs-toggle="tab" href="#reminders-tab"><t key="salon.campaigns.auto.oto_hatirlatmalar">Oto-Hatırlatmalar</t></a>
         </li>
     </ul>
 
@@ -18,7 +18,7 @@
         <!-- Kampanyalar Tab -->
         <div class="tab-pane fade show active" id="campaigns-tab">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">SMS Kampanyalari</h6>
+                <h6 class="mb-0"><t key="salon.campaigns.auto.sms_kampanyalari">SMS Kampanyaları</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewCampaign">
                     <i class="bi bi-plus-lg me-1"></i><t key="salon.campaigns.auto.yeni_kampanya">Yeni Kampanya</t>
                 </button>
@@ -30,12 +30,12 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Kampanya Adi</th>
+                                    <th><t key="salon.campaigns.auto.kampanya_adi">Kampanya Adı</t></th>
                                     <th><t key="salon.appointments.status">Durum</t></th>
-                                    <th>Alici</th>
-                                    <th>Gonderilen</th>
-                                    <th>Zamanlama</th>
-                                    <th>Olusturma</th>
+                                    <th><t key="salon.campaigns.auto.alici">Alıcı</t></th>
+                                    <th><t key="salon.campaigns.auto.gonderilen">Gönderilen</t></th>
+                                    <th><t key="salon.campaigns.auto.zamanlama">Zamanlama</t></th>
+                                    <th><t key="salon.campaigns.auto.olusturma">Oluşturma</t></th>
                                     <th style="width:120px;"></th>
                                 </tr>
                             </thead>
@@ -73,7 +73,7 @@
                     <!-- ko if: campaigns().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-megaphone" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Henuz kampanya eklenmemis</p>
+                        <p class="mt-2 small"><t key="salon.campaigns.auto.henuz_kampanya_eklenmemis">Henüz kampanya eklenmemiş</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -83,7 +83,7 @@
         <!-- Oto-Hatirlatmalar Tab -->
         <div class="tab-pane fade" id="reminders-tab">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">Otomatik Hatirlatmalar</h6>
+                <h6 class="mb-0"><t key="salon.campaigns.auto.otomatik_hatirlatmalar">Otomatik Hatırlatmalar</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewReminder">
                     <i class="bi bi-plus-lg me-1"></i><t key="salon.campaigns.auto.yeni_hatirlatma">Yeni Hatirlatma</t>
                 </button>
@@ -95,10 +95,10 @@
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Tip</th>
-                                    <th>Mesaj Sablonu</th>
-                                    <th>Gun Oncesi</th>
-                                    <th>Pasif Gun Esigi</th>
+                                    <th><t key="salon.campaigns.auto.tip">Tip</t></th>
+                                    <th><t key="salon.campaigns.auto.mesaj_sablonu">Mesaj Şablonu</t></th>
+                                    <th><t key="salon.campaigns.auto.gun_oncesi">Gün Öncesi</t></th>
+                                    <th><t key="salon.campaigns.auto.pasif_gun_esigi">Pasif Gün Eşiği</t></th>
                                     <th><t key="salon.appointments.status">Durum</t></th>
                                     <th style="width:120px;"></th>
                                 </tr>
@@ -131,7 +131,7 @@
                     <!-- ko if: reminders().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-bell" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Henuz hatirlatma tanimlanmamis</p>
+                        <p class="mt-2 small"><t key="salon.campaigns.auto.henuz_hatirlatma_tanimlanmamis">Henüz hatırlatma tanımlanmamış</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -150,38 +150,38 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Kampanya Adi *</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.kampanya_adi_required">Kampanya Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: campaignForm.name" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Mesaj Sablonu *</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.mesaj_sablonu_required">Mesaj Şablonu *</t></label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: campaignForm.messageTemplate"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Zamanlama (bos birakilirsa taslak)</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.zamanlama_bos_birakilirsa_taslak">Zamanlama (boş bırakılırsa taslak)</t></label>
                             <input type="datetime-local" class="form-control form-control-sm" data-bind="value: campaignForm.scheduledAt" />
                         </div>
                         <div class="col-6 d-flex align-items-end">
                             <button class="btn btn-outline-info btn-sm" data-bind="click: previewSegment">
-                                <i class="bi bi-eye me-1"></i>Onizle
+                                <i class="bi bi-eye me-1"></i><t key="salon.campaigns.auto.onizle">Önizle</t>
                             </button>
                         </div>
                         <div class="col-12">
                             <div class="d-flex flex-wrap gap-2 small text-muted">
-                                <span>Hedef: <strong data-bind="text: segmentPreviewCount"></strong></span>
-                                <span>SMS uygun: <strong data-bind="text: segmentSmsReachableCount"></strong></span>
-                                <span>E-posta uygun: <strong data-bind="text: segmentEmailReachableCount"></strong></span>
-                                <span>Telefon eksik: <strong data-bind="text: segmentMissingPhoneCount"></strong></span>
-                                <span>Gonderim disi: <strong data-bind="text: segmentExcludedCount"></strong></span>
-                                <span>Tahmini SMS: <strong data-bind="text: formatMoney(segmentEstimatedSmsCost())"></strong></span>
+                                <span><t key="salon.campaigns.auto.hedef">Hedef:</t> <strong data-bind="text: segmentPreviewCount"></strong></span>
+                                <span><t key="salon.campaigns.auto.sms_uygun">SMS uygun:</t> <strong data-bind="text: segmentSmsReachableCount"></strong></span>
+                                <span><t key="salon.campaigns.auto.e_posta_uygun">E-posta uygun:</t> <strong data-bind="text: segmentEmailReachableCount"></strong></span>
+                                <span><t key="salon.campaigns.auto.telefon_eksik">Telefon eksik:</t> <strong data-bind="text: segmentMissingPhoneCount"></strong></span>
+                                <span><t key="salon.campaigns.auto.gonderim_disi">Gönderim dışı:</t> <strong data-bind="text: segmentExcludedCount"></strong></span>
+                                <span><t key="salon.campaigns.auto.tahmini_sms">Tahmini SMS:</t> <strong data-bind="text: formatMoney(segmentEstimatedSmsCost())"></strong></span>
                             </div>
                         </div>
 
                         <div class="col-12">
-                            <h6 class="mt-2 mb-2">Segment Filtreleri</h6>
+                            <h6 class="mt-2 mb-2"><t key="salon.campaigns.auto.segment_filtreleri">Segment Filtreleri</t></h6>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Hazir Segmentler</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.hazir_segmentler">Hazır Segmentler</t></label>
                             <div class="d-flex flex-wrap gap-2" data-bind="foreach: segmentPresets">
                                 <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">
                                     <span class="fw-semibold" data-bind="text: name"></span>
@@ -190,55 +190,55 @@
                             </div>
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Cinsiyet</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.cinsiyet">Cinsiyet</t></label>
                             <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.genderId">
-                                <option value="">Tumu</option>
-                                <option value="1">Kadin</option>
-                                <option value="2">Erkek</option>
+                                <option value=""><t key="salon.campaigns.auto.tumu">Tümü</t></option>
+                                <option value="1"><t key="salon.campaigns.auto.kadin">Kadın</t></option>
+                                <option value="2"><t key="salon.campaigns.auto.erkek">Erkek</t></option>
                             </select>
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Min Yas</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.min_yas">Min Yaş</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: campaignForm.filter.minAge" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Max Yas</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.maks_yas">Maks Yaş</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: campaignForm.filter.maxAge" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Sehir</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.sehir">Şehir</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: campaignForm.filter.city" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Son Ziyaret (gun)</label>
-                            <input type="number" class="form-control form-control-sm" placeholder="orn: 30" data-bind="value: campaignForm.filter.lastVisitDays" />
+                            <label class="form-label small"><t key="salon.campaigns.auto.son_ziyaret_gun">Son Ziyaret (gün)</t></label>
+                            <input type="number" class="form-control form-control-sm" placeholder="@(Translation.T("salon.campaigns.auto.placeholder_orn_30", "örn: 30"))" data-bind="value: campaignForm.filter.lastVisitDays" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Pasif Gun Esigi</label>
-                            <input type="number" class="form-control form-control-sm" placeholder="orn: 60" data-bind="value: campaignForm.filter.inactiveDays" />
+                            <label class="form-label small"><t key="salon.campaigns.auto.pasif_gun_esigi_2">Pasif Gün Eşiği</t></label>
+                            <input type="number" class="form-control form-control-sm" placeholder="@(Translation.T("salon.campaigns.auto.placeholder_orn_60", "örn: 60"))" data-bind="value: campaignForm.filter.inactiveDays" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Dogum Gunu (gun)</label>
-                            <input type="number" class="form-control form-control-sm" placeholder="orn: 30" data-bind="value: campaignForm.filter.birthdayInDays" />
+                            <label class="form-label small"><t key="salon.campaigns.auto.dogum_gunu_gun">Doğum Günü (gün)</t></label>
+                            <input type="number" class="form-control form-control-sm" placeholder="@(Translation.T("salon.campaigns.auto.placeholder_orn_30", "örn: 30"))" data-bind="value: campaignForm.filter.birthdayInDays" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Min Harcama (TL)</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.min_harcama_tl">Min Harcama (TL)</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: campaignForm.filter.minSpent" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Uyelik Durumu</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.uyelik_durumu">Üyelik Durumu</t></label>
                             <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.hasActiveMembership">
-                                <option value="">Tumu</option>
-                                <option value="true">Aktif uyeligi olan</option>
-                                <option value="false">Aktif uyeligi olmayan</option>
+                                <option value=""><t key="salon.campaigns.auto.tumu_2">Tümü</t></option>
+                                <option value="true"><t key="salon.campaigns.auto.aktif_uyeligi_olan">Aktif üyeliği olan</t></option>
+                                <option value="false"><t key="salon.campaigns.auto.aktif_uyeligi_olmayan">Aktif üyeliği olmayan</t></option>
                             </select>
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Paket Durumu</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.paket_durumu">Paket Durumu</t></label>
                             <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.hasActivePackage">
-                                <option value="">Tumu</option>
-                                <option value="true">Aktif paketi olan</option>
-                                <option value="false">Aktif paketi olmayan</option>
+                                <option value=""><t key="salon.campaigns.auto.tumu_3">Tümü</t></option>
+                                <option value="true"><t key="salon.campaigns.auto.aktif_paketi_olan">Aktif paketi olan</t></option>
+                                <option value="false"><t key="salon.campaigns.auto.aktif_paketi_olmayan">Aktif paketi olmayan</t></option>
                             </select>
                         </div>
                     </div>
@@ -265,31 +265,31 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Hatirlatma Tipi *</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.hatirlatma_tipi_required">Hatırlatma Tipi *</t></label>
                             <select class="form-select form-select-sm" data-bind="value: reminderForm.reminderTypeId">
-                                <option value="1">Dogum Gunu</option>
-                                <option value="2">Yildonumu</option>
+                                <option value="1"><t key="salon.campaigns.auto.dogum_gunu">Doğum Günü</t></option>
+                                <option value="2"><t key="salon.campaigns.auto.yildonumu">Yıldönümü</t></option>
                                 <option value="3"><t key="salon.campaigns.auto.randevu_hatirlatma">Randevu Hatirlatma</t></option>
                                 <option value="4"><t key="salon.campaigns.auto.pasif_musteri">Pasif Müşteri</t></option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Mesaj Sablonu *</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.mesaj_sablonu_required_2">Mesaj Şablonu *</t></label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: reminderForm.messageTemplate"></textarea>
-                            <small class="text-muted">Degiskenler: {ad}, {tarih}, {gun}</small>
+                            <small class="text-muted"><t key="salon.campaigns.auto.degiskenler_ad_tarih_gun">Değişkenler: {ad}, {tarih}, {gün}</t></small>
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.campaigns.auto.gun_oncesi_randevu_icin">Gun Oncesi (randevu icin)</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.daysBefore" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Pasif Gun Esigi</label>
+                            <label class="form-label small"><t key="salon.campaigns.auto.pasif_gun_esigi_3">Pasif Gün Eşiği</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.inactiveDaysThreshold" />
                         </div>
                         <div class="col-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="reminderActive" data-bind="checked: reminderForm.isActive" />
-                                <label class="form-check-label small" for="reminderActive">Aktif</label>
+                                <label class="form-check-label small" for="reminderActive"><t key="salon.common.status_active">Aktif</t></label>
                             </div>
                         </div>
                     </div>

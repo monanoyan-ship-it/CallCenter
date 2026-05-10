@@ -131,7 +131,7 @@ function PageSettingsViewModel() {
     self.uploadSingle = function (type, event) {
         var file = event.target.files[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { toastr.warning('Dosya 5 MB dan buyuk olamaz.'); return; }
+        if (file.size > 5 * 1024 * 1024) { toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB’dan büyük olamaz.')); return; }
 
         var formData = new FormData();
         formData.append('file', file);

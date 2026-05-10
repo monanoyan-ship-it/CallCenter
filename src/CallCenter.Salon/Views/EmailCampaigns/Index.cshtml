@@ -1,11 +1,11 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "E-posta Kampanyalari";
+    ViewData["Title"] = Translation.T("salon.emailcampaigns.auto.title", "E-posta Kampanyaları");
 }
 
 <div id="emailcampaigns-vm">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0">E-posta Kampanyalari</h6>
+        <h6 class="mb-0"><t key="salon.emailcampaigns.auto.e_posta_kampanyalari">E-posta Kampanyaları</t></h6>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
             <i class="bi bi-plus-lg me-1"></i><t key="salon.emailcampaigns.auto.yeni_kampanya"><t key="salon.emailcampaigns.auto.yeni_kampanya">Yeni Kampanya</t></t>
         </button>
@@ -17,13 +17,13 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Konu</th>
-                            <th>Durum</th>
-                            <th>Alici</th>
-                            <th>Gonderilen</th>
-                            <th>Acilma</th>
-                            <th>Tiklama</th>
-                            <th>Zamanlama</th>
+                            <th><t key="salon.emailcampaigns.auto.konu">Konu</t></th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
+                            <th><t key="salon.emailcampaigns.auto.alici">Alıcı</t></th>
+                            <th><t key="salon.emailcampaigns.auto.gonderilen">Gönderilen</t></th>
+                            <th><t key="salon.emailcampaigns.auto.acilma">Açılma</t></th>
+                            <th><t key="salon.emailcampaigns.auto.tiklama">Tıklama</t></th>
+                            <th><t key="salon.emailcampaigns.auto.zamanlama">Zamanlama</t></th>
                             <th style="width:120px;"></th>
                         </tr>
                     </thead>
@@ -62,7 +62,7 @@
             <!-- ko if: campaigns().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-envelope" style="font-size:2rem;"></i>
-                <p class="mt-2 small">Henuz e-posta kampanyasi olusturulmamis</p>
+                <p class="mt-2 small"><t key="salon.emailcampaigns.auto.henuz_e_posta_kampanyasi_olusturulmamis">Henüz e-posta kampanyası oluşturulmamış</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -79,28 +79,28 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Konu *</label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.konu_required">Konu *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.subject" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">HTML Icerik *</label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.html_icerik_required">HTML İçerik *</t></label>
                             <textarea class="form-control form-control-sm" rows="8" data-bind="value: form.htmlBody"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Segment Filtresi (JSON)</label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.segment_filtresi_json">Segment Filtresi (JSON)</t></label>
                             <input type="text" class="form-control form-control-sm" placeholder='{"genderId":1}' data-bind="value: form.segmentFilter" />
                         </div>
                         <div class="col-3">
-                            <label class="form-label small">Zamanlama (bos = taslak)</label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.zamanlama_bos_taslak">Zamanlama (boş = taslak)</t></label>
                             <input type="datetime-local" class="form-control form-control-sm" data-bind="value: form.scheduledAt" />
                         </div>
                         <div class="col-3 d-flex align-items-end">
                             <button type="button" class="btn btn-outline-info btn-sm" data-bind="click: previewSegment">
-                                <i class="bi bi-eye me-1"></i>Onizle
+                                <i class="bi bi-eye me-1"></i><t key="salon.emailcampaigns.auto.onizle">Önizle</t>
                             </button>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Hazir Segmentler</label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.hazir_segmentler">Hazır Segmentler</t></label>
                             <div class="d-flex flex-wrap gap-2" data-bind="foreach: segmentPresets">
                                 <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">
                                     <span class="fw-semibold" data-bind="text: name"></span>
@@ -110,10 +110,10 @@
                         </div>
                         <div class="col-12">
                             <div class="d-flex flex-wrap gap-2 small text-muted">
-                                <span>Hedef: <strong data-bind="text: segmentPreviewCount"></strong></span>
-                                <span>E-posta uygun: <strong data-bind="text: segmentEmailReachableCount"></strong></span>
-                                <span>E-posta eksik: <strong data-bind="text: segmentMissingEmailCount"></strong></span>
-                                <span>Gonderim disi: <strong data-bind="text: segmentExcludedCount"></strong></span>
+                                <span><t key="salon.emailcampaigns.auto.hedef">Hedef:</t> <strong data-bind="text: segmentPreviewCount"></strong></span>
+                                <span><t key="salon.emailcampaigns.auto.e_posta_uygun">E-posta uygun:</t> <strong data-bind="text: segmentEmailReachableCount"></strong></span>
+                                <span><t key="salon.emailcampaigns.auto.e_posta_eksik">E-posta eksik:</t> <strong data-bind="text: segmentMissingEmailCount"></strong></span>
+                                <span><t key="salon.emailcampaigns.auto.gonderim_disi">Gönderim dışı:</t> <strong data-bind="text: segmentExcludedCount"></strong></span>
                             </div>
                         </div>
                     </div>

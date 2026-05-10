@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Hediye Kartlari";
+    ViewData["Title"] = Translation.T("salon.giftcards.auto.title", "Hediye Kartları");
 }
 
 <div id="giftcards-vm">
@@ -52,7 +52,7 @@
     <!-- ko if: filteredCards().length === 0 -->
     <div class="text-center text-muted py-5">
         <i class="bi bi-gift" style="font-size: 3rem; opacity:.3;"></i>
-        <p class="mt-2 small">Henuz hediye karti olusturulmamis</p>
+        <p class="mt-2 small"><t key="salon.giftcards.auto.henuz_hediye_karti_olusturulmamis">Henüz hediye kartı oluşturulmamış</t></p>
     </div>
     <!-- /ko -->
 
@@ -71,31 +71,31 @@
                             <input type="number" class="form-control" step="1" min="1" data-bind="value: form.amount" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Son Kullanma Tarihi</label>
+                            <label class="form-label small"><t key="salon.giftcards.auto.son_kullanma_tarihi">Son Kullanma Tarihi</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.expiresAt" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.giftcards.auto.odeme_yontemi">Ödeme Yöntemi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
-                                <option value="1">Nakit</option>
-                                <option value="2">Kredi Karti</option>
-                                <option value="4">Havale/EFT</option>
+                                <option value="1"><t key="salon.giftcards.auto.nakit">Nakit</t></option>
+                                <option value="2"><t key="salon.giftcards.auto.kredi_karti">Kredi Kartı</t></option>
+                                <option value="4"><t key="salon.giftcards.auto.havale_eft">Havale/EFT</t></option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Alici Adi</label>
+                            <label class="form-label small"><t key="salon.giftcards.auto.alici_adi">Alıcı Adı</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Alici Telefon</label>
+                            <label class="form-label small"><t key="salon.giftcards.auto.alici_telefon">Alıcı Telefon</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientPhone" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Gonderen Adi</label>
+                            <label class="form-label small"><t key="salon.giftcards.auto.gonderen_adi">Gönderen Adı</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.senderName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Mesaj</label>
+                            <label class="form-label small"><t key="salon.giftcards.auto.mesaj">Mesaj</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.message" />
                         </div>
                     </div>
@@ -104,7 +104,7 @@
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-gift me-1" data-bind="visible: !isSaving()"></i>Olustur
+                        <i class="bi bi-gift me-1" data-bind="visible: !isSaving()"></i><t key="salon.giftcards.auto.olustur">Oluştur</t>
                     </button>
                 </div>
             </div>

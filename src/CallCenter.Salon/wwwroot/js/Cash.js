@@ -285,7 +285,7 @@ function CashViewModel() {
         }).done(function () {
             closingModal.hide();
             self.loadRegisters();
-            toastr.success('Gun sonu kapama yapildi');
+            toastr.success(slnJsT('salon.cash.js.day_close_success', 'Gün sonu kapama yapıldı'));
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || 'Kapama yapilamadi');

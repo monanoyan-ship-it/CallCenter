@@ -12,7 +12,7 @@
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-signed">
-                <i class="bi bi-pen me-1"></i>Imzalanan Formlar
+                <i class="bi bi-pen me-1"></i><t key="salon.consentforms.auto.imzalanan_formlar">İmzalanan Formlar</t>
             </button>
         </li>
     </ul>
@@ -35,9 +35,9 @@
                                 <tr>
                                     <th><t key="salon.common.title">Başlık</t></th>
                                     <th><t key="salon.consentforms.signature_required">İmza Gerekli</t></th>
-                                    <th>Imzalayan</th>
-                                    <th>Durum</th>
-                                    <th>Olusturma</th>
+                                    <th><t key="salon.consentforms.auto.imzalayan">Imzalayan</t></th>
+                                    <th><t key="salon.appointments.status">Durum</t></th>
+                                    <th><t key="salon.consentforms.auto.olusturma">Oluşturma</t></th>
                                     <th style="width:120px;"></th>
                                 </tr>
                             </thead>
@@ -86,8 +86,8 @@
                                 <tr>
                                     <th><t key="salon.consentforms.auto.form">Form</t></th>
                                     <th><t key="salon.panel.payments.customer">Müşteri</t></th>
-                                    <th>IP Adresi</th>
-                                    <th>Imza Tarihi</th>
+                                    <th><t key="salon.consentforms.auto.ip_adresi">IP Adresi</t></th>
+                                    <th><t key="salon.consentforms.auto.imza_tarihi">Imza Tarihi</t></th>
                                 </tr>
                             </thead>
                             <tbody data-bind="foreach: signedConsents">
@@ -132,13 +132,13 @@
                         <div class="col-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="reqSign" data-bind="checked: form.requireSignature" />
-                                <label class="form-check-label small" for="reqSign">Imza Gerekli</label>
+                                <label class="form-check-label small" for="reqSign"><t key="salon.consentforms.auto.imza_gerekli">Imza Gerekli</t></label>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="formActive" data-bind="checked: form.isActive" />
-                                <label class="form-check-label small" for="formActive">Aktif</label>
+                                <label class="form-check-label small" for="formActive"><t key="salon.common.status_active">Aktif</t></label>
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Bekleme Listesi";
+    ViewData["Title"] = Translation.T("salon.waitlist.auto.title", "Bekleme Listesi");
 }
 
 <div id="waitlist-vm">
@@ -8,13 +8,13 @@
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
             <a class="nav-link active" data-bs-toggle="tab" href="#tab-appointments">
-                <i class="bi bi-calendar-check me-1"></i>Bugunun Randevulari
+                <i class="bi bi-calendar-check me-1"></i><t key="salon.waitlist.auto.bugunun_randevulari">Bugünün Randevuları</t>
                 <span class="badge bg-primary ms-1" data-bind="text: todayAppointments().length, visible: todayAppointments().length > 0"></span>
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="tab" href="#tab-waitlist">
-                <i class="bi bi-clock-history me-1"></i>Bekleme Listesi
+                <i class="bi bi-clock-history me-1"></i><t key="salon.sidebar.waitlist">Bekleme Listesi</t>
                 <span class="badge bg-warning text-dark ms-1" data-bind="text: waitlistEntries().length, visible: waitlistEntries().length > 0"></span>
             </a>
         </li>
@@ -49,9 +49,9 @@
                                 <tr>
                                     <th style="width:60px;"><t key="salon.reports.hour">Saat</t></th>
                                     <th><t key="salon.panel.payments.customer">Müşteri</t></th>
-                                    <th>Hizmetler</th>
+                                    <th><t key="salon.sidebar.services">Hizmetler</t></th>
                                     <th><t key="salon.sidebar.staff">Personel</t></th>
-                                    <th class="text-center" style="width:60px;">Sure</th>
+                                    <th class="text-center" style="width:60px;"><t key="salon.waitlist.auto.sure">Süre</t></th>
                                     <th style="width:100px;"><t key="salon.appointments.status">Durum</t></th>
                                     <th style="width:140px;"></th>
                                 </tr>
@@ -70,11 +70,11 @@
                                         <div class="btn-group btn-group-sm">
                                             <!-- Planlanmis/Onaylandi -> Gerceklesti -->
                                             <!-- ko if: statusId === 1 || statusId === 2 -->
-                                            <button class="btn btn-outline-success py-0 px-1" title="Gerceklesti"
+                                            <button class="btn btn-outline-success py-0 px-1" title="@(Translation.T("salon.waitlist.auto.title_gerceklesti", "Gerçekleşti"))"
                                                 data-bind="click: $parent.apptComplete">
                                                 <i class="bi bi-check-circle"></i>
                                             </button>
-                                            <button class="btn btn-outline-secondary py-0 px-1" title="Gelmedi"
+                                            <button class="btn btn-outline-secondary py-0 px-1" title="@(Translation.T("salon.waitlist.auto.title_gelmedi", "Gelmedi"))"
                                                 data-bind="click: $parent.apptNoShow">
                                                 <i class="bi bi-person-x"></i>
                                             </button>
@@ -85,14 +85,14 @@
                                             <!-- /ko -->
                                             <!-- Tamamlandi -> geri al -->
                                             <!-- ko if: statusId === 3 -->
-                                            <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>Tamam</span>
+                                            <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i><t key="salon.appointments.status.completed">Tamam</t></span>
                                             <!-- /ko -->
                                             <!-- Iptal/Gelmedi bilgi -->
                                             <!-- ko if: statusId === 4 -->
                                             <span class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i><t key="salon.common.btn.cancel">İptal</t></span>
                                             <!-- /ko -->
                                             <!-- ko if: statusId === 5 -->
-                                            <span class="text-secondary small"><i class="bi bi-person-x-fill me-1"></i>Gelmedi</span>
+                                            <span class="text-secondary small"><i class="bi bi-person-x-fill me-1"></i><t key="salon.appointments.status.no_show">Gelmedi</t></span>
                                             <!-- /ko -->
                                         </div>
                                     </td>
@@ -150,12 +150,12 @@
                                     <td>
                                         <div class="btn-group btn-group-sm">
                                             <!-- ko if: statusId === 1 -->
-                                            <button class="btn btn-outline-info py-0 px-1" title="Bildir" data-bind="click: $parent.notifyEntry">
+                                            <button class="btn btn-outline-info py-0 px-1" title="@(Translation.T("salon.waitlist.auto.title_bildir", "Bildir"))" data-bind="click: $parent.notifyEntry">
                                                 <i class="bi bi-bell"></i>
                                             </button>
                                             <!-- /ko -->
                                             <!-- ko if: statusId <= 2 -->
-                                            <button class="btn btn-outline-primary py-0 px-1" title="Randevuya Donustur" data-bind="click: $parent.openConvert">
+                                            <button class="btn btn-outline-primary py-0 px-1" title="@(Translation.T("salon.waitlist.auto.title_randevuya_donustur", "Randevuya Dönüştür"))" data-bind="click: $parent.openConvert">
                                                 <i class="bi bi-calendar-plus"></i>
                                             </button>
                                             <button class="btn btn-outline-success py-0 px-1" title="@(Translation.T("salon.waitlist.auto.randevu_alindi_manuel", "Randevu Alindi (Manuel)"))" data-bind="click: $parent.appointmentMade">
@@ -163,7 +163,7 @@
                                             </button>
                                             <!-- /ko -->
                                             <!-- ko if: statusId === 3 -->
-                                            <button class="btn btn-outline-primary py-0 px-1" title="Gerceklesti" data-bind="click: $parent.markCompleted">
+                                            <button class="btn btn-outline-primary py-0 px-1" title="@(Translation.T("salon.waitlist.auto.title_gerceklesti", "Gerçekleşti"))" data-bind="click: $parent.markCompleted">
                                                 <i class="bi bi-check-circle"></i>
                                             </button>
                                             <!-- /ko -->
@@ -181,7 +181,7 @@
                     <!-- ko if: filteredEntries().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-clock-history" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Bekleme listesinde kayit yok</p>
+                        <p class="mt-2 small"><t key="salon.waitlist.auto.bekleme_listesinde_kayit_yok">Bekleme listesinde kayıt yok</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -194,7 +194,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Bekleme Kaydini Randevuya Donustur</h6>
+                    <h6 class="modal-title"><i class="bi bi-calendar-plus me-2"></i><t key="salon.waitlist.auto.bekleme_kaydini_randevuya_donustur">Bekleme Kaydını Randevuya Dönüştür</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -202,7 +202,7 @@
                         <strong data-bind="text: convertCtx.clientName"></strong> &mdash;
                         <span data-bind="text: convertCtx.serviceName"></span>
                         <span class="text-muted" data-bind="visible: convertCtx.preferredPersonnelName">
-                            (Tercih: <span data-bind="text: convertCtx.preferredPersonnelName"></span>)
+                            <t key="salon.waitlist.auto.tercih">(Tercih:</t> <span data-bind="text: convertCtx.preferredPersonnelName"></span>)
                         </span>
                     </div>
                     <div class="row g-3">
@@ -265,10 +265,10 @@
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.waitlist.auto.saat_dilimi">Saat Dilimi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.preferredTimeSlot">
-                                <option value="">Farketmez</option>
-                                <option value="Sabah">Sabah (09-12)</option>
-                                <option value="Ogle">Ogle (12-15)</option>
-                                <option value="Aksam">Aksam (15-19)</option>
+                                <option value=""><t key="salon.waitlist.auto.farketmez">Farketmez</t></option>
+                                <option value="Sabah"><t key="salon.waitlist.auto.sabah_09_12">Sabah (09-12)</t></option>
+                                <option value="Ogle"><t key="salon.waitlist.auto.ogle_12_15">Öğle (12-15)</t></option>
+                                <option value="Aksam"><t key="salon.waitlist.auto.aksam_15_19">Akşam (15-19)</t></option>
                             </select>
                         </div>
                         <div class="col-12">

@@ -93,7 +93,7 @@ function ClientsViewModel() {
             self.clients(items);
             if (data.totalCount !== undefined) self.totalCount(data.totalCount);
         }).fail(function () {
-            toastr.error('Musteriler yuklenemedi');
+            toastr.error(slnJsT('salon.clients.js.load_failed', 'Müşteriler yüklenemedi'));
         });
     };
 
@@ -192,7 +192,7 @@ function ClientsViewModel() {
                 self.loadData();
                 toastr.success(slnJsT('salon.clients.js.musteri_silindi', 'Müşteri silindi'));
             }).fail(function () {
-                toastr.error('Silinemedi');
+                toastr.error(slnJsT('salon.clients.js.delete_failed', 'Silinemedi'));
             });
         });
     };

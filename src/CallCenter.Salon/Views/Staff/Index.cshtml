@@ -28,10 +28,10 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Ad Soyad</th>
-                            <th>Kullanici Adi</th>
-                            <th>E-posta</th>
-                            <th>Unvan</th>
+                            <th><t key="salon.staff.auto.ad_soyad">Ad Soyad</t></th>
+                            <th><t key="salon.account.username">Kullanıcı Adı</t></th>
+                            <th><t key="salon.account.email">E-posta</t></th>
+                            <th><t key="salon.staff.auto.unvan">Unvan</t></th>
                             <th><t key="salon.common.branch">Şube</t></th>
                             <th><t key="salon.staff.role">Rol</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
@@ -59,7 +59,7 @@
                                         <button class="btn btn-outline-secondary" title="@(Translation.T("salon.staff.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button class="btn btn-outline-warning" title="Sifre Sifirla" data-bind="click: $parent.resetPassword">
+                                        <button class="btn btn-outline-warning" title="@(Translation.T("salon.staff.auto.title_sifre_sifirla", "Şifre Sıfırla"))" data-bind="click: $parent.resetPassword">
                                             <i class="bi bi-key"></i>
                                         </button>
                                         <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
@@ -114,7 +114,7 @@
                         <!-- ko if: isOwnerEdit() -->
                         <div class="col-12">
                             <div class="alert alert-info py-2 small mb-0">
-                                <i class="bi bi-shop me-1"></i><strong>Salon Sahibi</strong><t key="salon.staff.auto.ad_soyad_e_posta_ve_sifre_guncellenebilir">— Ad soyad, e-posta ve sifre guncellenebilir.</t>
+                                <i class="bi bi-shop me-1"></i><strong><t key="salon.staff.auto.salon_sahibi">Salon Sahibi</t></strong><t key="salon.staff.auto.ad_soyad_e_posta_ve_sifre_guncellenebilir">— Ad soyad, e-posta ve sifre guncellenebilir.</t>
                             </div>
                         </div>
                         <!-- /ko -->
@@ -138,36 +138,36 @@
                                     <span data-bind="text: isUploadingPhoto() ? salonT('salon.common.loading', 'Yükleniyor...') : salonT('salon.staff.auto.fotograf_sec', 'Fotoğraf Seç')"></span>
                                     <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none;" data-bind="event: { change: uploadPhoto }, disable: isUploadingPhoto" />
                                 </label>
-                                <small class="text-muted">Max 3 MB, JPEG/PNG/WebP</small>
+                                <small class="text-muted"><t key="salon.staff.auto.max_3_mb_jpeg_png_webp">Max 3 MB, JPEG/PNG/WebP</t></small>
                             </div>
                         </div>
                         <!-- /ko -->
 
                         <div class="col-12">
-                            <label class="form-label small">Ad Soyad *</label>
+                            <label class="form-label small"><t key="salon.staff.auto.ad_soyad_required">Ad Soyad *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">E-posta *</label>
+                            <label class="form-label small"><t key="salon.account.email">E-posta *</t></label>
                             <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
                         <div class="col-6" data-bind="visible: !isOwnerEdit()">
-                            <label class="form-label small">Unvan</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="Orn: Kuafor, Guzellik Uzmani..." data-bind="value: form.title" />
+                            <label class="form-label small"><t key="salon.staff.auto.unvan_2">Unvan</t></label>
+                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.staff.auto.placeholder_orn_kuafor_guzellik_uzmani", "Örn: Kuaför, Güzellik Uzmanı..."))" data-bind="value: form.title" />
                         </div>
                         <!-- ko if: !isEditing() -->
                         <div class="col-6">
-                            <label class="form-label small">Kullanici Adi *</label>
+                            <label class="form-label small"><t key="salon.account.username">Kullanıcı Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.userName, valueUpdate: 'afterkeydown',
                                 css: { 'is-valid': usernameAvailable() === true, 'is-invalid': usernameAvailable() === false }" />
                             <!-- ko if: usernameChecking() -->
-                            <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Kontrol ediliyor...</small>
+                            <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span><t key="salon.staff.auto.kontrol_ediliyor">Kontrol ediliyor...</t></small>
                             <!-- /ko -->
                             <!-- ko if: usernameAvailable() === false -->
-                            <small class="text-danger">Bu kullanici adi zaten kullaniliyor</small>
+                            <small class="text-danger"><t key="salon.staff.auto.bu_kullanici_adi_zaten_kullaniliyor">Bu kullanici adi zaten kullaniliyor</t></small>
                             <!-- /ko -->
                             <!-- ko if: usernameAvailable() === true -->
-                            <small class="text-success">Kullanilabilir</small>
+                            <small class="text-success"><t key="salon.staff.auto.kullanilabilir">Kullanılabilir</t></small>
                             <!-- /ko -->
                         </div>
                         <!-- /ko -->
@@ -191,8 +191,8 @@
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.isActive">
-                                <option value="true">Aktif</option>
-                                <option value="false">Pasif</option>
+                                <option value="true"><t key="salon.common.status_active">Aktif</t></option>
+                                <option value="false"><t key="salon.common.status_inactive">Pasif</t></option>
                             </select>
                         </div>
                         <!-- Hizmet Yetenekleri -->
@@ -219,30 +219,30 @@
                         <!-- Public Gorunurluk Ayarlari -->
                         <div class="col-12 mt-3">
                             <label class="form-label small fw-semibold">
-                                <i class="bi bi-eye me-1"></i>Site Gorunurluk Ayarlari
+                                <i class="bi bi-eye me-1"></i><t key="salon.staff.auto.site_gorunurluk_ayarlari">Site Görünürlük Ayarları</t>
                         <small class="text-muted fw-normal d-block"><t key="salon.staff.public_display_hint">Bu personelin online randevu ve ekibimiz sayfasında nasıl görüneceğini belirleyin</t></small>
                             </label>
                             <div class="bg-light rounded p-2">
                                 <div class="form-check form-switch mb-1">
                                     <input class="form-check-input" type="checkbox" data-bind="checked: form.publicVisible" id="chkPublicVisible" />
-                                    <label class="form-check-label small" for="chkPublicVisible">Sitede gorunsun</label>
+                                    <label class="form-check-label small" for="chkPublicVisible"><t key="salon.staff.auto.sitede_gorunsun">Sitede görünsün</t></label>
                                 </div>
                                 <!-- ko if: form.publicVisible() -->
                                 <div class="form-check form-switch mb-1 ms-3">
                                     <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowFullName" id="chkFullName" />
-                                    <label class="form-check-label small" for="chkFullName">Tam ad soyad gosterilsin <small class="text-muted">(kapaliysa sadece on ad)</small></label>
+                                    <label class="form-check-label small" for="chkFullName"><t key="salon.staff.auto.tam_ad_soyad_gosterilsin">Tam ad soyad gösterilsin</t> <small class="text-muted"><t key="salon.staff.auto.kapaliysa_sadece_on_ad">(kapaliysa sadece on ad)</t></small></label>
                                 </div>
                                 <div class="form-check form-switch mb-1 ms-3">
                                     <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowPhoto" id="chkPhoto" />
-                                    <label class="form-check-label small" for="chkPhoto">Fotograf gosterilsin</label>
+                                    <label class="form-check-label small" for="chkPhoto"><t key="salon.staff.auto.fotograf_gosterilsin">Fotoğraf gösterilsin</t></label>
                                 </div>
                                 <div class="form-check form-switch mb-1 ms-3">
                                     <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowTitle" id="chkTitle" />
-                                    <label class="form-check-label small" for="chkTitle">Unvan gosterilsin</label>
+                                    <label class="form-check-label small" for="chkTitle"><t key="salon.staff.auto.unvan_gosterilsin">Unvan gösterilsin</t></label>
                                 </div>
                                 <div class="form-check form-switch ms-3">
                                     <input class="form-check-input" type="checkbox" data-bind="checked: form.publicShowSpecialty" id="chkSpecialty" />
-                                    <label class="form-check-label small" for="chkSpecialty">Uzmanlik alani gosterilsin</label>
+                                    <label class="form-check-label small" for="chkSpecialty"><t key="salon.staff.auto.uzmanlik_alani_gosterilsin">Uzmanlık alanı gösterilsin</t></label>
                                 </div>
                                 <!-- /ko -->
                             </div>

@@ -76,7 +76,7 @@ function ProductsViewModel() {
         $.ajax({ url: '/proxy/sln-products', method: 'GET' }).done(function (data) {
             self.products(data.items || data);
         }).fail(function () {
-            toastr.error('Urunler yuklenemedi');
+            toastr.error(slnJsT('salon.products.js.load_failed', 'Ürünler yüklenemedi'));
         });
     };
 
@@ -333,7 +333,7 @@ function ProductsViewModel() {
             }).done(function () {
                 stockOperationModal.hide();
                 self.loadData();
-                toastr.success('Stok transfer audit kaydi olusturuldu');
+                toastr.success(slnJsT('salon.products.js.transfer_audit_created', 'Stok transfer audit kaydı oluşturuldu'));
             }).fail(function (xhr) {
                 toastr.error(getErrorMessage(xhr, 'Stok transferi kaydedilemedi'));
             }).always(function () {
@@ -344,7 +344,7 @@ function ProductsViewModel() {
 
         var countedQuantity = parseFloat(self.stockOperationForm.countedQuantity());
         if (isNaN(countedQuantity) || countedQuantity < 0) {
-            toastr.warning('Sayilan stok negatif olamaz');
+            toastr.warning(slnJsT('salon.products.js.counted_stock_negative', 'Sayılan stok negatif olamaz'));
             self.isStockOperationSaving(false);
             return;
         }
@@ -370,7 +370,7 @@ function ProductsViewModel() {
     };
 
     self.remove = function (product) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + product.name + "' urununu silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.products.js.delete_confirm', "'{name}' ürününü silmek istediğinize emin misiniz?").replace('{name}', product.name || ''), function() {
             $.ajax({ url: '/proxy/sln-products/' + product.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.products.js.urun_silindi', 'Ürün silindi'));

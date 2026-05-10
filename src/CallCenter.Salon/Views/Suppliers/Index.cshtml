@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Tedarikciler";
+    ViewData["Title"] = Translation.T("salon.suppliers.auto.title", "Tedarikçiler");
 }
 
 <div id="suppliers-vm">
@@ -22,11 +22,11 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Firma Adi</th>
-                            <th>Yetkili</th>
-                            <th>Telefon</th>
-                            <th>E-posta</th>
-                            <th>Bakiye</th>
+                            <th><t key="salon.suppliers.auto.firma_adi">Firma Adı</t></th>
+                            <th><t key="salon.suppliers.auto.yetkili">Yetkili</t></th>
+                            <th><t key="salon.account.phone">Telefon</t></th>
+                            <th><t key="salon.account.email">E-posta</t></th>
+                            <th><t key="salon.suppliers.auto.bakiye">Bakiye</t></th>
                             <th style="width: 80px;"></th>
                         </tr>
                     </thead>
@@ -63,7 +63,7 @@
     <!-- Cari Ozet -->
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white fw-semibold">
-            <i class="bi bi-bank me-2"></i>Cari Hesap Ozeti
+            <i class="bi bi-bank me-2"></i><t key="salon.suppliers.auto.cari_hesap_ozeti">Cari Hesap Özeti</t>
         </div>
         <div class="card-body">
             <div class="row g-3">
@@ -86,27 +86,27 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Firma Adi *</label>
+                            <label class="form-label small"><t key="salon.suppliers.auto.firma_adi_required">Firma Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Yetkili Kisi</label>
+                            <label class="form-label small"><t key="salon.suppliers.auto.yetkili_kisi">Yetkili Kişi</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.contactPerson" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Telefon *</label>
+                            <label class="form-label small"><t key="salon.account.phone">Telefon *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.phone" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">E-posta</label>
+                            <label class="form-label small"><t key="salon.account.email">E-posta</t></label>
                             <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Vergi No</label>
+                            <label class="form-label small"><t key="salon.suppliers.auto.vergi_no">Vergi No</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.taxNumber" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Adres</label>
+                            <label class="form-label small"><t key="salon.suppliers.auto.adres">Adres</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
                         </div>
                         <div class="col-12">

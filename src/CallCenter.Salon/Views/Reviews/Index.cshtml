@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Yorumlar";
+    ViewData["Title"] = Translation.T("salon.reviews.auto.title", "Yorumlar");
 }
 
 <div id="reviews-vm">
@@ -14,25 +14,25 @@
         </div>
         <div class="col-md-2">
             <div class="card border-0 shadow-sm text-center py-2">
-                <div class="small text-muted">Bekleyen</div>
+                <div class="small text-muted"><t key="salon.reviews.auto.bekleyen">Bekleyen</t></div>
                 <div class="fw-bold text-warning" data-bind="text: stats().pendingCount"></div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="card border-0 shadow-sm text-center py-2">
-                <div class="small text-muted">Onaylanan</div>
+                <div class="small text-muted"><t key="salon.reviews.auto.onaylanan">Onaylanan</t></div>
                 <div class="fw-bold text-success" data-bind="text: stats().approvedCount"></div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="card border-0 shadow-sm text-center py-2">
-                <div class="small text-muted">Reddedilen</div>
+                <div class="small text-muted"><t key="salon.reviews.auto.reddedilen">Reddedilen</t></div>
                 <div class="fw-bold text-danger" data-bind="text: stats().rejectedCount"></div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="card border-0 shadow-sm text-center py-2">
-                <div class="small text-muted">Ort. Puan</div>
+                <div class="small text-muted"><t key="salon.reviews.auto.ort_puan">Ort. Puan</t></div>
                 <div class="fw-bold text-primary">
                     <i class="bi bi-star-fill text-warning me-1"></i><span data-bind="text: stats().averageRating.toFixed(1)"></span>
                 </div>
@@ -46,10 +46,10 @@
     <!-- Filtre -->
     <div class="mb-3">
         <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" data-bind="click: function() { filterStatus(0); }, css: { active: filterStatus() === 0 }">Tumu</button>
-            <button class="btn btn-outline-warning" data-bind="click: function() { filterStatus(1); }, css: { active: filterStatus() === 1 }">Bekleyen</button>
-            <button class="btn btn-outline-success" data-bind="click: function() { filterStatus(2); }, css: { active: filterStatus() === 2 }">Onaylanan</button>
-            <button class="btn btn-outline-danger" data-bind="click: function() { filterStatus(3); }, css: { active: filterStatus() === 3 }">Reddedilen</button>
+            <button class="btn btn-outline-secondary" data-bind="click: function() { filterStatus(0); }, css: { active: filterStatus() === 0 }"><t key="salon.reviews.auto.tumu">Tümü</t></button>
+            <button class="btn btn-outline-warning" data-bind="click: function() { filterStatus(1); }, css: { active: filterStatus() === 1 }"><t key="salon.reviews.auto.bekleyen">Bekleyen</t></button>
+            <button class="btn btn-outline-success" data-bind="click: function() { filterStatus(2); }, css: { active: filterStatus() === 2 }"><t key="salon.reviews.auto.onaylanan">Onaylanan</t></button>
+            <button class="btn btn-outline-danger" data-bind="click: function() { filterStatus(3); }, css: { active: filterStatus() === 3 }"><t key="salon.reviews.auto.reddedilen">Reddedilen</t></button>
         </div>
     </div>
 
@@ -61,9 +61,9 @@
                     <thead class="table-light">
                         <tr>
                             <th><t key="salon.panel.payments.customer">Müşteri</t></th>
-                            <th>Puan</th>
-                            <th>Yorum</th>
-                            <th>Kaynak</th>
+                            <th><t key="salon.reviews.auto.puan">Puan</t></th>
+                            <th><t key="salon.reviews.auto.yorum">Yorum</t></th>
+                            <th><t key="salon.reviews.auto.kaynak">Kaynak</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
                             <th><t key="salon.panel.payments.date">Tarih</t></th>
                             <th style="width:150px;"></th>
@@ -86,10 +86,10 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <!-- ko if: statusId === 1 -->
-                                    <button class="btn btn-outline-success" title="Onayla" data-bind="click: function() { $parent.updateStatus($data, 2); }">
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.common.btn.confirm", "Onayla"))" data-bind="click: function() { $parent.updateStatus($data, 2); }">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Reddet" data-bind="click: function() { $parent.updateStatus($data, 3); }">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.reviews.auto.title_reddet", "Reddet"))" data-bind="click: function() { $parent.updateStatus($data, 3); }">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                     <!-- /ko -->
@@ -105,7 +105,7 @@
             <!-- ko if: filteredReviews().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-chat-square-text" style="font-size:2rem;"></i>
-                <p class="mt-2 small">Henuz yorum yok</p>
+                <p class="mt-2 small"><t key="salon.reviews.auto.henuz_yorum_yok">Henüz yorum yok</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -126,30 +126,30 @@
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.clientName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Puan *</label>
+                            <label class="form-label small"><t key="salon.reviews.auto.puan_required">Puan *</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.rating">
-                                <option value="5">5 - Mukemmel</option>
-                                <option value="4">4 - Iyi</option>
-                                <option value="3">3 - Orta</option>
-                                <option value="2">2 - Kotu</option>
-                                <option value="1">1 - Cok Kotu</option>
+                                <option value="5"><t key="salon.reviews.auto.5_mukemmel">5 - Mükemmel</t></option>
+                                <option value="4"><t key="salon.reviews.auto.4_iyi">4 - İyi</t></option>
+                                <option value="3"><t key="salon.reviews.auto.3_orta">3 - Orta</t></option>
+                                <option value="2"><t key="salon.reviews.auto.2_kotu">2 - Kötü</t></option>
+                                <option value="1"><t key="salon.reviews.auto.1_cok_kotu">1 - Çok Kötü</t></option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kaynak</label>
+                            <label class="form-label small"><t key="salon.reviews.auto.kaynak_2">Kaynak</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.sourceId">
-                                <option value="1">Dahili</option>
+                                <option value="1"><t key="salon.reviews.auto.dahili">Dahili</t></option>
                                 <option value="2">Google</option>
                                 <option value="3">Instagram</option>
                                 <option value="4">Facebook</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Yorum</label>
+                            <label class="form-label small"><t key="salon.reviews.auto.yorum_2">Yorum</t></label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.comment"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Harici URL</label>
+                            <label class="form-label small"><t key="salon.reviews.auto.harici_url">Harici URL</t></label>
                             <input type="text" class="form-control form-control-sm" placeholder="https://..." data-bind="value: form.externalUrl" />
                         </div>
                     </div>

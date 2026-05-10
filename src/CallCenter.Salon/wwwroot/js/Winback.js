@@ -111,7 +111,7 @@ function WinbackViewModel() {
             .done(function () { toastr.success(slnJsT('salon.winback.js.kural_durumu_degistirildi', 'Kural durumu degistirildi')); })
             .fail(function () {
                 rule.isActiveObs(!ko.unwrap(rule.isActiveObs));
-                toastr.error('Durum degistirilemedi');
+                toastr.error(slnJsT('salon.common.status_change_failed', 'Durum değiştirilemedi'));
             });
         return true;
     };
@@ -120,7 +120,7 @@ function WinbackViewModel() {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.winback.js.bu_kurali_silmek_istediginize_emin_misiniz', 'Bu kuralı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-winback/' + rule.id, method: 'DELETE' })
                 .done(function () { self.loadData(); toastr.success(slnJsT('salon.winback.js.kural_silindi', 'Kural silindi')); })
-                .fail(function () { toastr.error('Silinemedi'); });
+                .fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
         });
     };
 
@@ -135,9 +135,9 @@ function WinbackViewModel() {
     };
 
     self.createCampaign = function (rule) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + rule.name + "' kuralindan kampanya olusturulsun mu?", function () {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.winback.js.create_campaign_confirm', "'{name}' kuralından kampanya oluşturulsun mu?").replace('{name}', rule.name || ''), function () {
             $.ajax({ url: '/proxy/sln-winback/' + rule.id + '/create-campaign', method: 'POST' })
-                .done(function () { toastr.success('Winback kampanyasi olusturuldu'); })
+                .done(function () { toastr.success(slnJsT('salon.winback.js.campaign_created', 'Winback kampanyası oluşturuldu')); })
                 .fail(function (xhr) { toastr.error(readError(xhr)); });
         });
     };

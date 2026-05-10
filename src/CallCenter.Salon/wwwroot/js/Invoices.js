@@ -189,9 +189,9 @@ function InvoicesViewModel() {
         }).done(function () {
             refundModal.hide();
             self.loadData();
-            toastr.success('Iade islemi tamamlandi');
+            toastr.success(slnJsT('salon.invoices.js.refund_success', 'İade işlemi tamamlandı'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || 'Iade yapilamadi');
+            toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || slnJsT('salon.invoices.js.refund_failed', 'İade yapılamadı'));
         }).always(function () { self.isSaving(false); });
     };
 
@@ -345,7 +345,7 @@ function InvoicesViewModel() {
             });
         });
 
-        if (items.length === 0) { toastr.warning('En az bir kalem ekleyiniz'); return; }
+        if (items.length === 0) { toastr.warning(slnJsT('salon.invoices.js.item_required', 'En az bir kalem ekleyiniz')); return; }
 
         var data = {
             slnClientId: self.form.slnClientId() ? parseInt(self.form.slnClientId()) : null,
@@ -363,7 +363,7 @@ function InvoicesViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success('Adisyon olusturuldu');
+            toastr.success(slnJsT('salon.invoices.js.created', 'Adisyon oluşturuldu'));
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
         }).always(function () { self.isSaving(false); });

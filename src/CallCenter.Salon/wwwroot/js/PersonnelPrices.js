@@ -96,7 +96,7 @@ function PersonnelPricesViewModel() {
     };
 
     self.removePrice = function (price) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu fiyati silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.personnelprices.js.delete_price_confirm', 'Bu fiyatı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-personnel-prices/' + price.id, method: 'DELETE' })
                 .done(function () { self.loadPrices(); toastr.success(slnJsT('salon.personnelprices.js.fiyat_silindi', 'Fiyat silindi')); });
         });
@@ -145,7 +145,7 @@ function PersonnelPricesViewModel() {
     };
 
     self.removeRevenue = function (share) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu hasilat paylasimini silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.personnelprices.js.delete_share_confirm', 'Bu hasılat paylaşımını silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-personnel-prices/revenue-shares/' + share.id, method: 'DELETE' })
                 .done(function () { self.loadRevenueShares(); toastr.success(slnJsT('salon.personnelprices.js.hasilat_paylasimi_silindi', 'Hasilat paylasimi silindi')); });
         });

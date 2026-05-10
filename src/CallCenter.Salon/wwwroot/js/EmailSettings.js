@@ -163,7 +163,7 @@ function EmailSettingsViewModel() {
             data: JSON.stringify({ toAddress: email })
         }).done(function (result) {
             testModal.hide();
-            if (result.success) toastr.success('Test e-postasi gonderildi!');
+            if (result.success) toastr.success(slnJsT('salon.emailsettings.js.test_email_sent', 'Test e-postası gönderildi!'));
             else toastr.error(result.error || slnJsT('salon.emailsettings.js.gonderim_basarisiz', 'Gonderim basarisiz.'));
             self.loadData();
         }).fail(function () {
@@ -178,7 +178,7 @@ function EmailSettingsViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({ isDefault: true })
         }).done(function () {
-            toastr.success('Varsayilan olarak ayarlandi.');
+            toastr.success(slnJsT('salon.emailsettings.js.set_default_success', 'Varsayılan olarak ayarlandı.'));
             self.loadData();
         });
     };
@@ -189,7 +189,7 @@ function EmailSettingsViewModel() {
                 url: '/proxy/sln-email-integrations/' + item.uid,
                 method: 'DELETE'
             }).done(function () {
-                toastr.success('Hesap kaldirildi.');
+                toastr.success(slnJsT('salon.emailsettings.js.account_removed', 'Hesap kaldırıldı.'));
                 self.loadData();
             });
         });
@@ -203,13 +203,13 @@ function EmailSettingsViewModel() {
         var error = params.get('error');
 
         if (error) {
-            toastr.error('OAuth hatasi: ' + error);
+            toastr.error(slnJsT('salon.emailsettings.js.oauth_error_prefix', 'OAuth hatası: ') + error);
             history.replaceState(null, '', window.location.pathname);
             return;
         }
 
         if (provider && code) {
-            toastr.info(provider.toUpperCase() + ' hesabi baglaniyor...');
+            toastr.info(slnJsT('salon.emailsettings.js.provider_connecting', '{provider} hesabı bağlanıyor...').replace('{provider}', provider.toUpperCase()));
             $.ajax({
                 url: '/proxy/sln-email-integrations/' + provider + '/exchange-code',
                 method: 'POST',
@@ -217,7 +217,7 @@ function EmailSettingsViewModel() {
                 data: JSON.stringify({ code: code, isDefault: true })
             }).done(function (result) {
                 if (result.success) {
-                    toastr.success(result.email + ' hesabi basariyla baglandi!');
+                    toastr.success(slnJsT('salon.emailsettings.js.provider_connected', '{email} hesabı başarıyla bağlandı!').replace('{email}', result.email));
                     self.loadData();
                 } else {
                     toastr.error(result.error || slnJsT('salon.emailsettings.js.baglanti_hatasi', 'Baglanti hatasi.'));

@@ -1,13 +1,13 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Sadakat Programi";
+    ViewData["Title"] = Translation.T("salon.loyalty.auto.title", "Sadakat Programı");
 }
 
 <div id="loyalty-vm">
     <ul class="nav nav-tabs mb-3" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-config">
-                <i class="bi bi-gear me-1"></i>Ayarlar
+                <i class="bi bi-gear me-1"></i><t key="salon.loyalty.auto.ayarlar">Ayarlar</t>
             </button>
         </li>
         <li class="nav-item">
@@ -24,24 +24,24 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Her 1 TL = Puan</label>
+                            <label class="form-label small"><t key="salon.loyalty.auto.her_1_tl_puan">Her 1 TL = Puan</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.1" data-bind="value: config.pointsPerTL" />
-                            <small class="text-muted">100 TL harcama = <span data-bind="text: (100 * (parseFloat(config.pointsPerTL()) || 1))"></span> puan</small>
+                            <small class="text-muted">100 TL harcama = <span data-bind="text: (100 * (parseFloat(config.pointsPerTL()) || 1))"></span> <t key="salon.loyalty.auto.puan">puan</t></small>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">1 Puan = TL</label>
+                            <label class="form-label small"><t key="salon.loyalty.auto.1_puan_tl">1 Puan = TL</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: config.pointValue" />
                             <small class="text-muted">100 puan = <span data-bind="text: (100 * (parseFloat(config.pointValue()) || 0.1)).toFixed(2)"></span> TL</small>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Min. Kullanim Puani</label>
+                            <label class="form-label small"><t key="salon.loyalty.auto.min_kullanim_puani">Min. Kullanım Puanı</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: config.minRedeemPoints" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Durum</label>
+                            <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
                             <select class="form-select form-select-sm" data-bind="value: config.isActive">
-                                <option value="true">Aktif</option>
-                                <option value="false">Pasif</option>
+                                <option value="true"><t key="salon.common.status_active">Aktif</t></option>
+                                <option value="false"><t key="salon.common.status_inactive">Pasif</t></option>
                             </select>
                         </div>
                     </div>
@@ -57,7 +57,7 @@
             <div class="table-responsive">
                 <table class="table table-hover table-sm">
                     <thead class="table-light">
-                        <tr><th><t key="salon.panel.payments.customer">Müşteri</t></th><th><t key="salon.loyalty.auto.toplam_kazanilan">Toplam Kazanılan</t></th><th>Kulllanilan</th><th><t key="salon.loyalty.auto.mevcut_bakiye">Mevcut Bakiye</t></th><th>TL Degeri</th></tr>
+                        <tr><th><t key="salon.panel.payments.customer">Müşteri</t></th><th><t key="salon.loyalty.auto.toplam_kazanilan">Toplam Kazanılan</t></th><th><t key="salon.loyalty.auto.kullanilan">Kullanılan</t></th><th><t key="salon.loyalty.auto.mevcut_bakiye">Mevcut Bakiye</t></th><th><t key="salon.loyalty.auto.tl_degeri">TL Değeri</t></th></tr>
                     </thead>
                     <tbody data-bind="foreach: clientLoyalties">
                         <tr>
@@ -71,7 +71,7 @@
                 </table>
             </div>
             <!-- ko if: clientLoyalties().length === 0 -->
-            <div class="text-center text-muted py-4 small">Henuz puan kazanilmamis. Musteriler alisveris yaptikca otomatik puan kazanir.</div>
+            <div class="text-center text-muted py-4 small"><t key="salon.loyalty.auto.henuz_puan_kazanilmamis_musteriler_alisveris_yaptikca_otomatik_puan_ka">Henüz puan kazanılmamış. Müşteriler alışveriş yaptıkça otomatik puan kazanır.</t></div>
             <!-- /ko -->
         </div>
     </div>

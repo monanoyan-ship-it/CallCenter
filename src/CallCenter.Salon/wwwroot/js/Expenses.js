@@ -169,7 +169,7 @@ function ExpensesViewModel() {
     };
 
     self.approveExpense = function (expense) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu masrafi onaylamak istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.expenses.js.approve_confirm', 'Bu masrafı onaylamak istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-finance/expenses/' + expense.id,
                 method: 'PUT',
@@ -179,13 +179,13 @@ function ExpensesViewModel() {
                 self.loadData();
                 toastr.success(slnJsT('salon.expenses.js.masraf_onaylandi', 'Masraf onaylandi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.error || 'Onaylama basarisiz');
+                toastr.error(xhr.responseJSON?.error || slnJsT('salon.expenses.js.approve_failed', 'Onaylama başarısız'));
             });
         });
     };
 
     self.rejectExpense = function (expense) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu masrafi reddetmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.expenses.js.reject_confirm', 'Bu masrafı reddetmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-finance/expenses/' + expense.id,
                 method: 'PUT',
@@ -195,13 +195,13 @@ function ExpensesViewModel() {
                 self.loadData();
                 toastr.success(slnJsT('salon.expenses.js.masraf_reddedildi', 'Masraf reddedildi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.error || 'Reddetme basarisiz');
+                toastr.error(xhr.responseJSON?.error || slnJsT('salon.expenses.js.reject_failed', 'Reddetme başarısız'));
             });
         });
     };
 
     self.remove = function (expense) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu masrafi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.expenses.js.delete_confirm', 'Bu masrafı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-finance/expenses/' + expense.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.expenses.js.masraf_silindi', 'Masraf silindi'));

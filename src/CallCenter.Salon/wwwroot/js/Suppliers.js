@@ -44,7 +44,7 @@ function SuppliersViewModel() {
             // balance API'den hazir gelir
             self.suppliers(items);
         }).fail(function () {
-            toastr.error('Tedarikciler yuklenemedi');
+            toastr.error(slnJsT('salon.suppliers.js.load_failed', 'Tedarikçiler yüklenemedi'));
         });
     };
 
@@ -128,7 +128,7 @@ function SuppliersViewModel() {
     };
 
     self.remove = function (supplier) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + supplier.name + "' tedarikcisini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.suppliers.js.delete_confirm', "'{name}' tedarikçisini silmek istediğinize emin misiniz?").replace('{name}', supplier.name || ''), function() {
             $.ajax({ url: '/proxy/sln-products/suppliers/' + supplier.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.suppliers.js.tedarikci_silindi', 'Tedarikçi silindi'));

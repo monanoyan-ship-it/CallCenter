@@ -29,11 +29,11 @@
                 <div class="card-body py-2">
                     <div class="row text-center">
                         <div class="col-4">
-                            <div class="text-muted" style="font-size: .7rem;">Bakiye</div>
+                            <div class="text-muted" style="font-size: .7rem;"><t key="salon.cash.auto.bakiye">Bakiye</t></div>
                             <div class="fw-bold" data-bind="text: (balance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></div>
                         </div>
                         <div class="col-4">
-                            <div class="text-muted" style="font-size: .7rem;">Tur</div>
+                            <div class="text-muted" style="font-size: .7rem;"><t key="salon.cash.auto.tur">Tür</t></div>
                             <div class="small" data-bind="text: typeName"></div>
                         </div>
                         <div class="col-4">
@@ -45,19 +45,19 @@
                 <div class="card-footer bg-white border-top-0 py-2">
                     <div class="btn-group btn-group-sm w-100">
                         <button class="btn btn-outline-primary" data-bind="click: $parent.viewTransactions">
-                            <i class="bi bi-list-ul me-1"></i>Hareketler
+                            <i class="bi bi-list-ul me-1"></i><t key="salon.cash.auto.hareketler">Hareketler</t>
                         </button>
                         <button class="btn btn-outline-success" data-bind="click: $parent.openNewTransaction">
-                            <i class="bi bi-plus-lg me-1"></i>Islem
+                            <i class="bi bi-plus-lg me-1"></i><t key="salon.cash.auto.islem">İşlem</t>
                         </button>
                         <button class="btn btn-outline-info" data-bind="click: $parent.openCashRegister">
                             <i class="bi bi-unlock me-1"></i><t key="salon.cash.auto.kasa_ac">Kasa Aç</t>
                         </button>
                         <button class="btn btn-outline-secondary" data-bind="click: $parent.openZReport">
-                            <i class="bi bi-file-earmark-bar-graph me-1"></i>Z Raporu
+                            <i class="bi bi-file-earmark-bar-graph me-1"></i><t key="salon.cash.auto.z_raporu">Z Raporu</t>
                         </button>
                         <button class="btn btn-outline-warning" data-bind="click: $parent.openClosing">
-                            <i class="bi bi-lock me-1"></i>Gun Sonu
+                            <i class="bi bi-lock me-1"></i><t key="salon.cash.auto.gun_sonu">Gün Sonu</t>
                         </button>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
         <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
             <h6 class="mb-0">
                 <i class="bi bi-arrow-left-circle me-1" style="cursor:pointer;" data-bind="click: clearSelection"></i>
-                <span data-bind="text: selectedRegister().name"></span> - Hareketler
+                <span data-bind="text: selectedRegister().name"></span> <t key="salon.cash.auto.hareketler_2">- Hareketler</t>
             </h6>
             <button class="btn btn-success btn-sm" data-bind="click: function() { openNewTransaction(selectedRegister()); }">
                 <i class="bi bi-plus-lg me-1"></i><t key="salon.cash.auto.yeni_islem">Yeni İşlem</t>
@@ -92,7 +92,7 @@
                     <thead class="table-light">
                         <tr>
                             <th><t key="salon.panel.payments.date">Tarih</t></th>
-                            <th>Tur</th>
+                            <th><t key="salon.panel.payments.type">Tür</t></th>
                             <th><t key="salon.common.description">Açıklama</t></th>
                             <th><t key="salon.panel.payments.amount">Tutar</t></th>
                         </tr>
@@ -112,7 +112,7 @@
             <!-- ko if: transactions().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-arrow-left-right" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Bu kasada henuz hareket yok</p>
+                <p class="mt-2 small"><t key="salon.cash.auto.bu_kasada_henuz_hareket_yok">Bu kasada henüz hareket yok</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -147,7 +147,7 @@
                         <div class="col-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="regIsActive" data-bind="checked: registerForm.isActive" />
-                                <label class="form-check-label small" for="regIsActive">Aktif</label>
+                                <label class="form-check-label small" for="regIsActive"><t key="salon.common.status_active">Aktif</t></label>
                             </div>
                         </div>
                         <!-- /ko -->
@@ -167,13 +167,13 @@
     <!-- Gun Sonu Kapama Gecmisi -->
     <div class="card border-0 shadow-sm mt-3" data-bind="visible: closings().length > 0">
         <div class="card-header bg-white fw-semibold py-2">
-            <i class="bi bi-lock me-2"></i>Gun Sonu Kapama Gecmisi
+            <i class="bi bi-lock me-2"></i><t key="salon.cash.auto.gun_sonu_kapama_gecmisi">Gün Sonu Kapama Geçmişi</t>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
-                        <tr><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.cash.auto.kasa">Kasa</t></th><th>Sistem</th><th>Sayilan</th><th>Fark</th><th><t key="salon.appointments.notes">Not</t></th></tr>
+                        <tr><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.cash.auto.kasa">Kasa</t></th><th><t key="salon.cash.auto.sistem">Sistem</t></th><th><t key="salon.cash.auto.sayilan">Sayılan</t></th><th><t key="salon.cash.auto.fark">Fark</t></th><th><t key="salon.appointments.notes">Not</t></th></tr>
                     </thead>
                     <tbody data-bind="foreach: closings">
                         <tr>
@@ -202,15 +202,15 @@
                     <!-- ko if: dailySummary() -->
                     <div class="row g-3 mb-3">
                         <div class="col-4 text-center">
-                            <div class="text-muted small">Gelir</div>
+                            <div class="text-muted small"><t key="salon.cash.auto.gelir">Gelir</t></div>
                             <div class="fw-bold text-success" data-bind="text: dailySummary().income.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                         </div>
                         <div class="col-4 text-center">
-                            <div class="text-muted small">Gider</div>
+                            <div class="text-muted small"><t key="salon.cash.auto.gider">Gider</t></div>
                             <div class="fw-bold text-danger" data-bind="text: dailySummary().expense.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                         </div>
                         <div class="col-4 text-center">
-                            <div class="text-muted small">Sistem Net</div>
+                            <div class="text-muted small"><t key="salon.cash.auto.sistem_net">Sistem Net</t></div>
                             <div class="fw-bold text-primary" data-bind="text: dailySummary().net.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                         </div>
                     </div>
@@ -231,7 +231,7 @@
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-warning btn-sm" data-bind="click: saveClosing, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-lock me-1" data-bind="visible: !isSaving()"></i>Kapamayi Tamamla
+                        <i class="bi bi-lock me-1" data-bind="visible: !isSaving()"></i><t key="salon.cash.auto.kapamayi_tamamla">Kapamayı Tamamla</t>
                     </button>
                 </div>
             </div>
@@ -248,30 +248,30 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Acilis Bakiyesi</label>
+                        <label class="form-label small fw-semibold"><t key="salon.cash.auto.acilis_bakiyesi">Açılış Bakiyesi</t></label>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="openBalanceType" id="openBalanceAuto" value="auto"
                                    data-bind="checked: openRegisterForm.balanceType" />
                             <label class="form-check-label small" for="openBalanceAuto">
-                                Onceki kapanistan otomatik tasi
+                                <t key="salon.cash.auto.onceki_kapanistan_otomatik_tasi">Önceki kapanıştan otomatik taşı</t>
                             </label>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="openBalanceType" id="openBalanceManual" value="manual"
                                    data-bind="checked: openRegisterForm.balanceType" />
                             <label class="form-check-label small" for="openBalanceManual">
-                                Manuel bakiye gir
+                                <t key="salon.cash.auto.manuel_bakiye_gir">Manuel bakiye gir</t>
                             </label>
                         </div>
                         <!-- ko if: openRegisterForm.balanceType() === 'manual' -->
                         <div class="mt-2">
-                            <label class="form-label small">Bakiye (TL)</label>
+                            <label class="form-label small"><t key="salon.cash.auto.bakiye_tl">Bakiye (TL)</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: openRegisterForm.openingBalance" />
                         </div>
                         <!-- /ko -->
                         <!-- ko if: openRegisterForm.balanceType() === 'auto' && openRegisterForm.lastClosingBalance() !== null -->
                         <div class="alert alert-info py-2 mt-2 small">
-                            <i class="bi bi-info-circle me-1"></i>Son kapanistan tasinacak bakiye:
+                            <i class="bi bi-info-circle me-1"></i><t key="salon.cash.auto.son_kapanistan_tasinacak_bakiye">Son kapanıştan taşınacak bakiye:</t>
                             <strong data-bind="text: (openRegisterForm.lastClosingBalance() || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></strong>
                         </div>
                         <!-- /ko -->
@@ -281,7 +281,7 @@
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-info btn-sm" data-bind="click: saveOpenRegister, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-unlock me-1" data-bind="visible: !isSaving()"></i>Kasayi Ac
+                        <i class="bi bi-unlock me-1" data-bind="visible: !isSaving()"></i><t key="salon.cash.auto.kasayi_ac">Kasayı Aç</t>
                     </button>
                 </div>
             </div>
@@ -293,7 +293,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-file-earmark-bar-graph me-2"></i>Z Raporu</h6>
+                    <h6 class="modal-title"><i class="bi bi-file-earmark-bar-graph me-2"></i><t key="salon.cash.auto.z_raporu">Z Raporu</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -308,7 +308,7 @@
                         <div class="col-6">
                             <div class="card bg-light border-0">
                                 <div class="card-body py-2 text-center">
-                                    <div class="text-muted" style="font-size:.7rem;">Acilis Bakiyesi</div>
+                                    <div class="text-muted" style="font-size:.7rem;"><t key="salon.cash.auto.acilis_bakiyesi">Açılış Bakiyesi</t></div>
                                     <div class="fw-bold" data-bind="text: (zReport().openingBalance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                                 </div>
                             </div>
@@ -316,7 +316,7 @@
                         <div class="col-6">
                             <div class="card bg-light border-0">
                                 <div class="card-body py-2 text-center">
-                                    <div class="text-muted" style="font-size:.7rem;">Kapanis Bakiyesi</div>
+                                    <div class="text-muted" style="font-size:.7rem;"><t key="salon.cash.auto.kapanis_bakiyesi">Kapanış Bakiyesi</t></div>
                                     <div class="fw-bold" data-bind="text: (zReport().closingBalance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                                 </div>
                             </div>
@@ -324,16 +324,16 @@
                     </div>
                     <table class="table table-sm table-bordered mb-0">
                         <thead class="table-light">
-                            <tr><th></th><th class="text-end">Gelir</th><th class="text-end">Gider</th></tr>
+                            <tr><th></th><th class="text-end"><t key="salon.cash.auto.gelir">Gelir</t></th><th class="text-end"><t key="salon.cash.auto.gider">Gider</t></th></tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="small fw-semibold">Nakit</td>
+                                <td class="small fw-semibold"><t key="salon.cash.auto.nakit">Nakit</t></td>
                                 <td class="small text-end text-success" data-bind="text: (zReport().cashIncome || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                                 <td class="small text-end text-danger" data-bind="text: (zReport().cashExpense || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             </tr>
                             <tr>
-                                <td class="small fw-semibold">Kredi Karti</td>
+                                <td class="small fw-semibold"><t key="salon.cash.auto.kredi_karti">Kredi Kartı</t></td>
                                 <td class="small text-end text-success" data-bind="text: (zReport().creditCardIncome || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                                 <td class="small text-end text-danger" data-bind="text: (zReport().creditCardExpense || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             </tr>
@@ -370,10 +370,10 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Islem Turu *</label>
+                            <label class="form-label small"><t key="salon.cash.auto.islem_turu_required">İşlem Türü *</t></label>
                             <select class="form-select form-select-sm" data-bind="value: transactionForm.transactionTypeId">
-                                <option value="1">Gelir</option>
-                                <option value="2">Gider</option>
+                                <option value="1"><t key="salon.cash.auto.gelir_2">Gelir</t></option>
+                                <option value="2"><t key="salon.cash.auto.gider_2">Gider</t></option>
                             </select>
                         </div>
                         <div class="col-6">
@@ -383,8 +383,8 @@
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.cash.auto.odeme_yontemi">Ödeme Yontemi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: transactionForm.paymentMethodId">
-                                <option value="1">Nakit</option>
-                                <option value="2">Kredi Karti</option>
+                                <option value="1"><t key="salon.cash.auto.nakit">Nakit</t></option>
+                                <option value="2"><t key="salon.cash.auto.kredi_karti">Kredi Kartı</t></option>
                             </select>
                         </div>
                         <div class="col-6">

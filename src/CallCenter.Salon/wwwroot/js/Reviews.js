@@ -92,14 +92,14 @@ function ReviewsViewModel() {
     self.updateStatus = function (review, statusId) {
         $.ajax({ url: '/proxy/sln-reviews/' + review.id + '/status/' + statusId, method: 'PUT' })
             .done(function () { self.loadData(); toastr.success(slnJsT('salon.reviews.js.yorum_durumu_guncellendi', 'Yorum durumu güncellendi')); })
-            .fail(function () { toastr.error('Guncellenemedi'); });
+            .fail(function () { toastr.error(slnJsT('salon.reviews.js.update_failed', 'Güncellenemedi')); });
     };
 
     self.remove = function (review) {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.reviews.js.bu_yorumu_silmek_istediginize_emin_misiniz', 'Bu yorumu silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-reviews/' + review.id, method: 'DELETE' })
                 .done(function () { self.loadData(); toastr.success(slnJsT('salon.reviews.js.yorum_silindi', 'Yorum silindi')); })
-                .fail(function () { toastr.error('Silinemedi'); });
+                .fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
         });
     };
 

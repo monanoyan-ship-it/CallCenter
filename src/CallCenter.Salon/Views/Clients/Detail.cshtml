@@ -31,7 +31,7 @@
                 </div>
                 <div class="text-end">
                     <a href="/Clients" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-arrow-left me-1"></i>Listeye Don
+                        <i class="bi bi-arrow-left me-1"></i><t key="salon.clients.auto.listeye_don">Listeye Dön</t>
                     </a>
                 </div>
             </div>
@@ -59,7 +59,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Son Ziyaret</div>
+                    <div class="text-muted" style="font-size: .7rem;"><t key="salon.clients.auto.son_ziyaret">Son Ziyaret</t></div>
                     <div class="fw-bold text-info" data-bind="text: lastVisit() || '-'">-</div>
                 </div>
             </div>
@@ -67,7 +67,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Fotograf</div>
+                    <div class="text-muted" style="font-size: .7rem;"><t key="salon.clients.auto.fotograf">Fotoğraf</t></div>
                     <div class="fw-bold text-warning" data-bind="text: photos().length">0</div>
                 </div>
             </div>
@@ -78,27 +78,27 @@
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-info">
-                <i class="bi bi-person me-1"></i>Bilgiler
+                <i class="bi bi-person me-1"></i><t key="salon.clients.auto.bilgiler">Bilgiler</t>
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-formulas">
-                <i class="bi bi-card-text me-1"></i>Formuller
+                <i class="bi bi-card-text me-1"></i><t key="salon.clients.auto.formuller">Formüller</t>
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-photos">
-                <i class="bi bi-image me-1"></i>Fotograflar
+                <i class="bi bi-image me-1"></i><t key="salon.clients.auto.fotograflar">Fotoğraflar</t>
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-appointments">
-                <i class="bi bi-calendar-check me-1"></i>Randevular
+                <i class="bi bi-calendar-check me-1"></i><t key="salon.clients.auto.randevular">Randevular</t>
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-invoices">
-                <i class="bi bi-receipt me-1"></i>Harcamalar
+                <i class="bi bi-receipt me-1"></i><t key="salon.clients.auto.harcamalar">Harcamalar</t>
             </button>
         </li>
     </ul>
@@ -111,23 +111,23 @@
                     <div class="row">
                         <div class="col-md-6">
                             <table class="table table-sm table-borderless">
-                                <tr><td class="text-muted small" style="width:120px;">Ad Soyad</td><td class="small" data-bind="text: client().fullName"></td></tr>
-                                <tr><td class="text-muted small">Telefon</td><td class="small" data-bind="text: client().phone"></td></tr>
-                                <tr><td class="text-muted small">E-posta</td><td class="small" data-bind="text: client().email || '-'"></td></tr>
+                                <tr><td class="text-muted small" style="width:120px;"><t key="salon.clients.auto.ad_soyad">Ad Soyad</t></td><td class="small" data-bind="text: client().fullName"></td></tr>
+                                <tr><td class="text-muted small"><t key="salon.account.phone">Telefon</t></td><td class="small" data-bind="text: client().phone"></td></tr>
+                                <tr><td class="text-muted small"><t key="salon.account.email">E-posta</t></td><td class="small" data-bind="text: client().email || '-'"></td></tr>
                             </table>
                         </div>
                         <div class="col-md-6">
                             <table class="table table-sm table-borderless">
-                                <tr><td class="text-muted small" style="width:120px;">Cinsiyet</td><td class="small" data-bind="text: client().genderText || '-'"></td></tr>
-                                <tr><td class="text-muted small">Dogum Tarihi</td><td class="small" data-bind="text: client().birthDate ? new Date(client().birthDate).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td></tr>
-                                <tr><td class="text-muted small">Adres</td><td class="small" data-bind="text: client().address || '-'"></td></tr>
+                                <tr><td class="text-muted small" style="width:120px;"><t key="salon.clients.auto.cinsiyet">Cinsiyet</t></td><td class="small" data-bind="text: client().genderText || '-'"></td></tr>
+                                <tr><td class="text-muted small"><t key="salon.clients.auto.dogum_tarihi">Doğum Tarihi</t></td><td class="small" data-bind="text: client().birthDate ? new Date(client().birthDate).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td></tr>
+                                <tr><td class="text-muted small"><t key="salon.clients.auto.adres">Adres</t></td><td class="small" data-bind="text: client().address || '-'"></td></tr>
                                 <tr><td class="text-muted small"><t key="salon.clients.auto.kayit_tarihi">Kayıt Tarihi</t></td><td class="small" data-bind="text: client().createdAt ? new Date(client().createdAt).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td></tr>
                             </table>
                         </div>
                     </div>
                     <!-- ko if: client().notes -->
                     <div class="mt-2">
-                        <small class="text-muted">Not:</small>
+                        <small class="text-muted"><t key="salon.clients.auto.not">Not:</t></small>
                         <p class="small mb-0" data-bind="text: client().notes"></p>
                     </div>
                     <!-- /ko -->
@@ -140,7 +140,7 @@
             <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Uygulanan Formuller</h6>
+                        <h6 class="mb-0"><t key="salon.clients.auto.uygulanan_formuller">Uygulanan Formüller</t></h6>
                         <button class="btn btn-primary btn-sm" data-bind="click: openNewFormula">
                             <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.auto.yeni_formul"><t key="salon.clients.auto.yeni_formul">Yeni Formül</t></t>
                         </button>
@@ -168,7 +168,7 @@
                         </div>
                     </div>
                     <!-- ko if: formulas().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Henuz formul girilmemis</div>
+                    <div class="text-center text-muted py-3 small"><t key="salon.clients.auto.henuz_formul_girilmemis">Henüz formül girilmemiş</t></div>
                     <!-- /ko -->
                 </div>
             </div>
@@ -179,9 +179,9 @@
             <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Fotograflar</h6>
+                        <h6 class="mb-0"><t key="salon.clients.auto.fotograflar">Fotoğraflar</t></h6>
                         <button class="btn btn-primary btn-sm" data-bind="click: openPhotoUpload">
-                            <i class="bi bi-upload me-1"></i>Fotograf Yukle
+                            <i class="bi bi-upload me-1"></i><t key="salon.clients.auto.fotograf_yukle">Fotoğraf Yükle</t>
                         </button>
                     </div>
                     <div class="row g-2" data-bind="foreach: photos">
@@ -198,7 +198,7 @@
                         </div>
                     </div>
                     <!-- ko if: photos().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Henuz fotograf yuklenmemis</div>
+                    <div class="text-center text-muted py-3 small"><t key="salon.clients.auto.henuz_fotograf_yuklenmemis">Henüz fotoğraf yüklenmemiş</t></div>
                     <!-- /ko -->
                 </div>
             </div>
@@ -211,7 +211,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Tarih</th><th>Saat</th><th><t key="salon.book.summary.service">Hizmet</t></th><th><t key="salon.sidebar.staff">Personel</t></th><th>Durum</th></tr>
+                                <tr><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.reports.hour">Saat</t></th><th><t key="salon.book.summary.service">Hizmet</t></th><th><t key="salon.sidebar.staff">Personel</t></th><th><t key="salon.appointments.status">Durum</t></th></tr>
                             </thead>
                             <tbody data-bind="foreach: appointments">
                                 <tr>
@@ -238,7 +238,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Tarih</th><th>Adisyon No</th><th>Hizmetler</th><th><t key="salon.panel.payments.amount">Tutar</t></th><th>Durum</th></tr>
+                                <tr><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.clients.auto.adisyon_no">Adisyon No</t></th><th><t key="salon.sidebar.services">Hizmetler</t></th><th><t key="salon.panel.payments.amount">Tutar</t></th><th><t key="salon.appointments.status">Durum</t></th></tr>
                             </thead>
                             <tbody data-bind="foreach: invoices">
                                 <tr>
@@ -252,7 +252,7 @@
                         </table>
                     </div>
                     <!-- ko if: invoices().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Adisyon bulunamadi</div>
+                    <div class="text-center text-muted py-3 small"><t key="salon.clients.auto.adisyon_bulunamadi">Adisyon bulunamadı</t></div>
                     <!-- /ko -->
                 </div>
             </div>
@@ -269,21 +269,21 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small">Formul Metni *</label>
+                        <label class="form-label small"><t key="salon.clients.auto.formul_metni_required">Formül Metni *</t></label>
                         <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.formulaText" />
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-6">
-                            <label class="form-label small">Renk Kodu</label>
+                            <label class="form-label small"><t key="salon.clients.auto.renk_kodu">Renk Kodu</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.colorCode" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Oksidan Orani</label>
+                            <label class="form-label small"><t key="salon.clients.auto.oksidan_orani">Oksidan Oranı</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: formulaForm.oxidantRatio" />
                         </div>
                     </div>
                     <div>
-                        <label class="form-label small">Uygulama Notlari</label>
+                        <label class="form-label small"><t key="salon.clients.auto.uygulama_notlari">Uygulama Notları</t></label>
                         <textarea class="form-control form-control-sm" rows="3" data-bind="value: formulaForm.applicationNotes"></textarea>
                     </div>
                 </div>
@@ -302,17 +302,17 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Fotograf Yukle</h6>
+                    <h6 class="modal-title"><t key="salon.clients.auto.fotograf_yukle">Fotoğraf Yükle</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="file" class="form-control form-control-sm" id="photoFile" accept="image/*" />
-                    <small class="text-muted">Maksimum 5MB, JPG/PNG desteklenir.</small>
+                    <small class="text-muted"><t key="salon.clients.auto.maksimum_5mb_jpg_png_desteklenir">Maksimum 5MB, JPG/PNG desteklenir.</t></small>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: uploadPhoto, disable: isSaving">
-                        <i class="bi bi-upload me-1"></i>Yukle
+                        <i class="bi bi-upload me-1"></i><t key="salon.clients.auto.yukle">Yükle</t>
                     </button>
                 </div>
             </div>

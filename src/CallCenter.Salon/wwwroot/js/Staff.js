@@ -96,10 +96,10 @@ function StaffViewModel() {
     self.uploadPhoto = function (data, event) {
         var file = event.target.files[0];
         if (!file) return;
-        if (file.size > 3 * 1024 * 1024) { toastr.warning('Dosya 3 MB den buyuk olamaz.'); return; }
+        if (file.size > 3 * 1024 * 1024) { toastr.warning(slnJsT('salon.staff.js.photo_too_large', 'Dosya 3 MB’den büyük olamaz.')); return; }
 
         var staffId = self.editingId();
-        if (!staffId) { toastr.warning('Once personeli kaydedin, sonra fotograf yukleyin.'); return; }
+        if (!staffId) { toastr.warning(slnJsT('salon.staff.js.save_before_photo', 'Önce personeli kaydedin, sonra fotoğraf yükleyin.')); return; }
 
         var formData = new FormData();
         formData.append('file', file);
@@ -113,9 +113,9 @@ function StaffViewModel() {
             contentType: false
         }).done(function (result) {
             self.form.photoUrl(result.url);
-            toastr.success('Fotograf yuklendi.');
+            toastr.success(slnJsT('salon.staff.js.photo_uploaded', 'Fotoğraf yüklendi.'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Yukleme hatasi.');
+            toastr.error(xhr.responseJSON?.message || slnJsT('salon.staff.js.upload_error', 'Yükleme hatası.'));
         }).always(function () {
             self.isUploadingPhoto(false);
             event.target.value = '';
@@ -245,10 +245,10 @@ function StaffViewModel() {
 
     function validatePassword(pwd) {
         var errors = [];
-        if (pwd.length < 8) errors.push('En az 8 karakter');
-        if (!/[A-Z]/.test(pwd)) errors.push('En az 1 buyuk harf');
-        if (!/[a-z]/.test(pwd)) errors.push('En az 1 kucuk harf');
-        if (!/[0-9]/.test(pwd)) errors.push('En az 1 rakam');
+        if (pwd.length < 8) errors.push(slnJsT('salon.staff.password.min_length', 'En az 8 karakter'));
+        if (!/[A-Z]/.test(pwd)) errors.push(slnJsT('salon.staff.password.uppercase', 'En az 1 büyük harf'));
+        if (!/[a-z]/.test(pwd)) errors.push(slnJsT('salon.staff.password.lowercase', 'En az 1 küçük harf'));
+        if (!/[0-9]/.test(pwd)) errors.push(slnJsT('salon.staff.password.digit', 'En az 1 rakam'));
         return errors;
     }
 
@@ -270,7 +270,7 @@ function StaffViewModel() {
         };
 
         if (!data.fullName || !data.email) {
-            toastr.warning('Ad soyad ve e-posta zorunludur');
+            toastr.warning(slnJsT('salon.staff.js.name_email_required', 'Ad soyad ve e-posta zorunludur'));
             return;
         }
 
@@ -282,10 +282,10 @@ function StaffViewModel() {
         if (!self.isEditing()) {
             data.userName = self.form.userName();
             data.password = self.form.password();
-            if (!data.userName) { toastr.warning('Kullanici adi zorunludur'); return; }
-            if (self.usernameAvailable() === false) { toastr.warning('Bu kullanici adi zaten kullaniliyor'); return; }
+            if (!data.userName) { toastr.warning(slnJsT('salon.staff.js.username_required', 'Kullanıcı adı zorunludur')); return; }
+            if (self.usernameAvailable() === false) { toastr.warning(slnJsT('salon.staff.js.username_taken', 'Bu kullanıcı adı zaten kullanılıyor')); return; }
             if (!data.password) { toastr.warning(slnJsT('salon.staff.js.sifre_zorunludur', 'Şifre zorunludur')); return; }
-            if (data.userName.length < 3) { toastr.warning('Kullanici adi en az 3 karakter olmali'); return; }
+            if (data.userName.length < 3) { toastr.warning(slnJsT('salon.staff.js.username_min_length', 'Kullanıcı adı en az 3 karakter olmalı')); return; }
 
             var pwdErrors = validatePassword(data.password);
             if (pwdErrors.length > 0) {
@@ -325,8 +325,8 @@ function StaffViewModel() {
             var msg = xhr.responseJSON?.message || xhr.responseJSON?.error || xhr.responseJSON;
             if (typeof msg === 'string') {
                 // Backend hata mesajlarini kullanici dostu hale getir
-                if (msg.indexOf('kullanici adi') >= 0) toastr.error('Bu kullanici adi zaten kullaniliyor. Farkli bir isim deneyin.');
-                else if (msg.indexOf('e-posta') >= 0) toastr.error('Bu e-posta adresi zaten kullaniliyor.');
+                if (msg.indexOf('kullanici adi') >= 0) toastr.error(slnJsT('salon.staff.js.username_taken_try_another', 'Bu kullanıcı adı zaten kullanılıyor. Farklı bir isim deneyin.'));
+                else if (msg.indexOf('e-posta') >= 0) toastr.error(slnJsT('salon.staff.js.email_taken', 'Bu e-posta adresi zaten kullanılıyor.'));
                 else if (msg.indexOf(slnJsT('salon.staff.js.limit', 'limit')) >= 0) toastr.error(slnJsT('salon.staff.js.maksimum_personel_limitine_ulasildi', 'Maksimum personel limitine ulaşıldı.'));
                 else toastr.error(msg);
             } else {
@@ -370,7 +370,7 @@ function StaffViewModel() {
     };
 
     self.remove = function (staff) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + staff.fullName + "' personelini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.staff.js.delete_confirm', "'{name}' personelini silmek istediğinize emin misiniz?").replace('{name}', staff.fullName || ''), function() {
             $.ajax({ url: '/proxy/portal/personnel/' + staff.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.staff.js.personel_silindi', 'Personel silindi'));

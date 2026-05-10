@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Musteriler";
+    ViewData["Title"] = Translation.T("salon.clients.auto.title", "Müşteriler");
 }
 
 <div id="clients-vm">
@@ -22,12 +22,12 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Ad Soyad</th>
-                            <th>Telefon</th>
-                            <th>E-posta</th>
-                            <th>Cinsiyet</th>
+                            <th><t key="salon.clients.auto.ad_soyad">Ad Soyad</t></th>
+                            <th><t key="salon.account.phone">Telefon</t></th>
+                            <th><t key="salon.account.email">E-posta</t></th>
+                            <th><t key="salon.clients.auto.cinsiyet">Cinsiyet</t></th>
                             <th><t key="salon.clients.auto.randevu">Randevu</t></th>
-                            <th>Harcama</th>
+                            <th><t key="salon.clients.auto.harcama">Harcama</t></th>
                             <th style="width: 80px;"></th>
                         </tr>
                     </thead>
@@ -70,7 +70,7 @@
         <nav>
             <ul class="pagination pagination-sm mb-0">
                 <li class="page-item" data-bind="css: { disabled: currentPage() <= 1 }">
-                    <a class="page-link" href="#" data-bind="click: prevPage">Onceki</a>
+                    <a class="page-link" href="#" data-bind="click: prevPage"><t key="salon.common.pagination.prev">Önceki</t></a>
                 </li>
                 <!-- ko foreach: pageNumbers -->
                 <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
@@ -78,7 +78,7 @@
                 </li>
                 <!-- /ko -->
                 <li class="page-item" data-bind="css: { disabled: currentPage() >= totalPages() }">
-                    <a class="page-link" href="#" data-bind="click: nextPage">Sonraki</a>
+                    <a class="page-link" href="#" data-bind="click: nextPage"><t key="salon.common.pagination.next">Sonraki</t></a>
                 </li>
             </ul>
         </nav>
@@ -95,46 +95,46 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Ad Soyad *</label>
+                            <label class="form-label small"><t key="salon.clients.auto.ad_soyad_required">Ad Soyad *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Telefon *</label>
+                            <label class="form-label small"><t key="salon.account.phone">Telefon *</t></label>
                             <div data-bind="phoneInput: form.phone"></div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Telefon 2</label>
+                            <label class="form-label small"><t key="salon.clients.auto.telefon_2">Telefon 2</t></label>
                             <div data-bind="phoneInput: form.phone2"></div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">E-posta</label>
+                            <label class="form-label small"><t key="salon.account.email">E-posta</t></label>
                             <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Cinsiyet</label>
+                            <label class="form-label small"><t key="salon.clients.auto.cinsiyet_2">Cinsiyet</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.genderId">
-                                <option value="">Seciniz</option>
-                                <option value="1">Erkek</option>
-                                <option value="2">Kadin</option>
+                                <option value=""><t key="salon.clients.auto.seciniz">Seçiniz</t></option>
+                                <option value="1"><t key="salon.clients.auto.erkek">Erkek</t></option>
+                                <option value="2"><t key="salon.clients.auto.kadin">Kadın</t></option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Dogum Tarihi</label>
+                            <label class="form-label small"><t key="salon.clients.auto.dogum_tarihi">Dogum Tarihi</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.birthDate" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Sehir</label>
+                            <label class="form-label small"><t key="salon.clients.auto.sehir">Şehir</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.city" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Adres</label>
+                            <label class="form-label small"><t key="salon.clients.auto.adres">Adres</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Sac Rengi</label>
+                            <label class="form-label small"><t key="salon.clients.auto.sac_rengi">Saç Rengi</t></label>
                             <div class="position-relative" data-bind="with: hairColorAc">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="Orn: Siyah, Kahverengi..."
+                                       placeholder="@(Translation.T("salon.clients.auto.placeholder_orn_siyah_kahverengi", "Örn: Siyah, Kahverengi..."))"
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
@@ -149,10 +149,10 @@
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Cilt Tipi</label>
+                            <label class="form-label small"><t key="salon.clients.auto.cilt_tipi">Cilt Tipi</t></label>
                             <div class="position-relative" data-bind="with: skinTypeAc">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="Orn: Kuru, Yagli, Karma..."
+                                       placeholder="@(Translation.T("salon.clients.auto.placeholder_orn_kuru_yagli_karma", "Örn: Kuru, Yağlı, Karma..."))"
                                        autocomplete="off"
                                        data-bind="value: query, valueUpdate: 'afterkeydown',
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />

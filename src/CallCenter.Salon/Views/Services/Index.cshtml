@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Hizmetler";
+    ViewData["Title"] = Translation.T("salon.services.auto.title", "Hizmetler");
 }
 
 <div id="services-vm">
@@ -43,8 +43,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
-                                <th>Sure (dk)</th>
-                                <th>Fiyat</th>
+                                <th><t key="salon.services.auto.sure_dk">Süre (dk)</t></th>
+                                <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
                                 <th><t key="salon.appointments.status">Durum</t></th>
                                 <th style="width: 80px;"></th>
                             </tr>
@@ -82,7 +82,7 @@
     <!-- ko if: uncategorizedServices().length > 0 -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white">
-            <h6 class="mb-0 text-muted"><i class="bi bi-folder me-2"></i>Kategorisiz</h6>
+            <h6 class="mb-0 text-muted"><i class="bi bi-folder me-2"></i><t key="salon.services.auto.kategorisiz">Kategorisiz</t></h6>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -90,8 +90,8 @@
                     <thead class="table-light">
                         <tr>
                             <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
-                            <th>Sure (dk)</th>
-                            <th>Fiyat</th>
+                            <th><t key="salon.services.auto.sure_dk_2">Süre (dk)</t></th>
+                            <th><t key="salon.services.auto.fiyat_2">Fiyat</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
                             <th style="width: 80px;"></th>
                         </tr>
@@ -143,7 +143,7 @@
                         <input type="text" class="form-control form-control-sm" data-bind="value: categoryForm.name" />
                     </div>
                     <div>
-                        <label class="form-label small">Sira No</label>
+                        <label class="form-label small"><t key="salon.services.auto.sira_no">Sıra No</t></label>
                         <input type="number" class="form-control form-control-sm" data-bind="value: categoryForm.sortOrder" />
                     </div>
                 </div>
@@ -194,24 +194,24 @@
                                                   event: { mousedown: function(){ $parent.categoryAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: categoryAutocomplete.filteredItems().length === 0 && categoryAutocomplete.query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Sure (dk) *</label>
+                            <label class="form-label small"><t key="salon.services.auto.sure_dk_required">Süre (dk) *</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: serviceForm.durationMinutes" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Fiyat (TL) *</label>
+                            <label class="form-label small"><t key="salon.services.auto.fiyat_tl_required">Fiyat (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: serviceForm.price" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
                             <select class="form-select form-select-sm" data-bind="value: serviceForm.isActive">
-                                <option value="true">Aktif</option>
-                                <option value="false">Pasif</option>
+                                <option value="true"><t key="salon.common.status_active">Aktif</t></option>
+                                <option value="false"><t key="salon.common.status_inactive">Pasif</t></option>
                             </select>
                         </div>
                     </div>

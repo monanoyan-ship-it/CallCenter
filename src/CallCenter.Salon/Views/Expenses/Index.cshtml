@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Masraflar";
+    ViewData["Title"] = Translation.T("salon.expenses.auto.title", "Masraflar");
 }
 
 <div id="expenses-vm">
@@ -34,7 +34,7 @@
         <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Bu Ayin Masrafi</div>
+                    <div class="text-muted" style="font-size: .7rem;"><t key="salon.expenses.auto.bu_ayin_masrafi">Bu Ayın Masrafı</t></div>
                     <div class="fw-bold text-warning" data-bind="text: (monthlyExpense() || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
                 </div>
             </div>
@@ -42,7 +42,7 @@
         <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Kayit Sayisi</div>
+                    <div class="text-muted" style="font-size: .7rem;"><t key="salon.expenses.auto.kayit_sayisi">Kayıt Sayısı</t></div>
                     <div class="fw-bold" data-bind="text: filteredExpenses().length"></div>
                 </div>
             </div>
@@ -78,10 +78,10 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <!-- ko if: statusId === 1 -->
-                                    <button class="btn btn-outline-success" title="Onayla" data-bind="click: $parent.approveExpense">
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.common.btn.confirm", "Onayla"))" data-bind="click: $parent.approveExpense">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" title="Reddet" data-bind="click: $parent.rejectExpense">
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.expenses.auto.title_reddet", "Reddet"))" data-bind="click: $parent.rejectExpense">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                     <!-- /ko -->
@@ -100,7 +100,7 @@
             <!-- ko if: filteredExpenses().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-credit-card" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Masraf kaydi bulunamadi</p>
+                <p class="mt-2 small"><t key="salon.expenses.auto.masraf_kaydi_bulunamadi">Masraf kaydı bulunamadı</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -143,7 +143,7 @@
                                                   event: { mousedown: function(){ $parent.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted">Sonuc bulunamadi</span>
+                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>
                             </div>
@@ -159,9 +159,9 @@
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.expenses.auto.odeme_yontemi">Ödeme Yontemi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
-                                <option value="1">Nakit</option>
-                                <option value="2">Kredi Karti</option>
-                                <option value="3">Havale/EFT</option>
+                                <option value="1"><t key="salon.expenses.auto.nakit">Nakit</t></option>
+                                <option value="2"><t key="salon.expenses.auto.kredi_karti">Kredi Kartı</t></option>
+                                <option value="3"><t key="salon.expenses.auto.havale_eft">Havale/EFT</t></option>
                             </select>
                         </div>
                     </div>

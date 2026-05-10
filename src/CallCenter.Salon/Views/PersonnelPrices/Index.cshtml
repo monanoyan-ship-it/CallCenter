@@ -12,7 +12,7 @@
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-revenue">
-                <i class="bi bi-pie-chart me-1"></i>Hasilat Paylasimi
+                <i class="bi bi-pie-chart me-1"></i><t key="salon.personnelprices.auto.hasilat_paylasimi">Hasılat Paylaşımı</t>
             </button>
         </li>
     </ul>
@@ -35,7 +35,7 @@
                                 <tr>
                                     <th><t key="salon.sidebar.staff">Personel</t></th>
                                     <th><t key="salon.book.summary.service">Hizmet</t></th>
-                                    <th>Ozel Fiyat (TL)</th>
+                                    <th><t key="salon.personnelprices.auto.ozel_fiyat_tl">Özel Fiyat (TL)</t></th>
                                     <th style="width:80px;"></th>
                                 </tr>
                             </thead>
@@ -66,7 +66,7 @@
         <!-- Hasilat Paylasimi -->
         <div class="tab-pane fade" id="tab-revenue">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">Hasilat Paylasimi</h6>
+                <h6 class="mb-0"><t key="salon.personnelprices.auto.hasilat_paylasimi">Hasılat Paylaşımı</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewRevenue">
                     <i class="bi bi-plus-lg me-1"></i><t key="salon.personnelprices.auto.paylasim_ekle">Paylaşım Ekle</t>
                 </button>
@@ -79,10 +79,10 @@
                             <thead class="table-light">
                                 <tr>
                                     <th><t key="salon.sidebar.staff">Personel</t></th>
-                                    <th>Model</th>
-                                    <th>Pay %</th>
-                                    <th>Aylik Kira</th>
-                                    <th>Min Garanti</th>
+                                    <th><t key="salon.personnelprices.auto.model">Model</t></th>
+                                    <th><t key="salon.personnelprices.auto.pay">Pay %</t></th>
+                                    <th><t key="salon.personnelprices.auto.aylik_kira">Aylık Kira</t></th>
+                                    <th><t key="salon.personnelprices.auto.min_garanti">Min Garanti</t></th>
                                     <th><t key="salon.appointments.status">Durum</t></th>
                                     <th style="width:80px;"></th>
                                 </tr>
@@ -109,7 +109,7 @@
                     <!-- ko if: revenueShares().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-pie-chart" style="font-size:2rem;"></i>
-                        <p class="mt-2 small">Henuz hasilat paylasimi tanimlanmamis</p>
+                        <p class="mt-2 small"><t key="salon.personnelprices.auto.henuz_hasilat_paylasimi_tanimlanmamis">Henüz hasılat paylaşımı tanımlanmamış</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -136,7 +136,7 @@
                             <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: priceForm.serviceId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Ozel Fiyat (TL) *</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.ozel_fiyat_tl_required">Özel Fiyat (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: priceForm.price" />
                         </div>
                     </div>
@@ -157,7 +157,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Hasilat Paylasimi Tanimla</h6>
+                    <h6 class="modal-title"><t key="salon.personnelprices.auto.hasilat_paylasimi_tanimla">Hasılat Paylaşımı Tanımla</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -167,10 +167,10 @@
                             <select class="form-select form-select-sm" data-bind="options: staff, optionsText: 'fullName', optionsValue: 'id', value: revenueForm.personnelId, optionsCaption: 'Secin...'"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Model Tipi *</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.model_tipi_required">Model Tipi *</t></label>
                             <select class="form-select form-select-sm" data-bind="value: revenueForm.modelTypeId">
-                                <option value="1">Yuzde</option>
-                                <option value="2">Sabit Kira</option>
+                                <option value="1"><t key="salon.personnelprices.auto.yuzde">Yüzde</t></option>
+                                <option value="2"><t key="salon.personnelprices.auto.sabit_kira">Sabit Kira</t></option>
                                 <option value="3">Hibrit (Kira+Yuzde)</option>
                             </select>
                         </div>
@@ -179,17 +179,17 @@
                             <input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: revenueForm.personnelSharePercent" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Aylik Kira (TL)</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.aylik_kira_tl">Aylık Kira (TL)</t></label>
                             <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: revenueForm.monthlyRent" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Min Garanti (TL)</label>
+                            <label class="form-label small"><t key="salon.personnelprices.auto.min_garanti_tl">Min Garanti (TL)</t></label>
                             <input type="number" class="form-control form-control-sm" step="1" min="0" data-bind="value: revenueForm.minimumGuarantee" />
                         </div>
                         <div class="col-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="revActive" data-bind="checked: revenueForm.isActive" />
-                                <label class="form-check-label small" for="revActive">Aktif</label>
+                                <label class="form-check-label small" for="revActive"><t key="salon.common.status_active">Aktif</t></label>
                             </div>
                         </div>
                     </div>

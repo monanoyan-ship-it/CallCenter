@@ -204,8 +204,8 @@ function RecipesViewModel() {
             items: items
         };
 
-        if (!data.name) { toastr.warning('Recete adi zorunludur'); return; }
-        if (items.length === 0) { toastr.warning('En az bir malzeme ekleyiniz'); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.recipes.js.name_required', 'Reçete adı zorunludur')); return; }
+        if (items.length === 0) { toastr.warning(slnJsT('salon.recipes.js.item_required', 'En az bir malzeme ekleyiniz')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-recipes';
@@ -222,7 +222,7 @@ function RecipesViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Recete guncellendi' : 'Recete olusturuldu');
+            toastr.success(self.isEditing() ? slnJsT('salon.recipes.js.updated', 'Reçete güncellendi') : slnJsT('salon.recipes.js.created', 'Reçete oluşturuldu'));
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
@@ -249,7 +249,7 @@ function RecipesViewModel() {
     };
 
     self.remove = function (recipe) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + recipe.name + "' recetesini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.recipes.js.delete_confirm', "'{name}' reçetesini silmek istediğinize emin misiniz?").replace('{name}', recipe.name || ''), function() {
             $.ajax({ url: '/proxy/sln-recipes/' + recipe.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.recipes.js.recete_silindi', 'Recete silindi'));

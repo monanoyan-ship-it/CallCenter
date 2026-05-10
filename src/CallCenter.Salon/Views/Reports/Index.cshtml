@@ -29,7 +29,7 @@
                 </div>
                 <div class="col-auto">
                     <button class="btn btn-sm btn-primary" data-bind="click: refreshReports">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+                        <i class="bi bi-arrow-clockwise me-1"></i><t key="salon.reports.auto.yenile">Yenile</t>
                     </button>
                 </div>
                 <div class="col-auto ms-auto">
@@ -44,7 +44,7 @@
                             <i class="bi bi-filetype-pdf me-1"></i>PDF
                         </button>
                         <button type="button" class="btn btn-outline-secondary" data-bind="click: openEmailModal, enable: !isLoading()">
-                            <i class="bi bi-envelope me-1"></i>E-posta
+                            <i class="bi bi-envelope me-1"></i><t key="salon.account.email">E-posta</t>
                         </button>
                     </div>
                 </div>
@@ -574,7 +574,7 @@
                                 <tbody>
                                     <tr><td class="small"><t key="salon.reports.stock_cost">Stok Maliyeti</t></td><td class="small text-end" data-bind="text: formatMoney(finance().stockValue)"></td></tr>
                                     <tr><td class="small"><t key="salon.reports.retail_value">Raf Satış Değeri</t></td><td class="small text-end" data-bind="text: formatMoney(finance().retailStockValue)"></td></tr>
-                                    <tr><td class="small">Tahmini Stok KDV</td><td class="small text-end" data-bind="text: formatMoney(finance().estimatedStockVat)"></td></tr>
+                                    <tr><td class="small"><t key="salon.reports.auto.tahmini_stok_kdv">Tahmini Stok KDV</t></td><td class="small text-end" data-bind="text: formatMoney(finance().estimatedStockVat)"></td></tr>
                                 </tbody>
                             </table>
                         </div>

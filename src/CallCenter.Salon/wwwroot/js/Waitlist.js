@@ -63,7 +63,7 @@ function WaitlistViewModel() {
         }).done(function () {
             self.loadTodayAppointments();
             toastr.success(msg);
-        }).fail(function () { toastr.error('Islem hatasi'); });
+        }).fail(function () { toastr.error(slnJsT('salon.waitlist.js.operation_failed', 'İşlem hatası')); });
     }
 
     self.apptComplete = function (a) { updateApptStatus(a.id, 3, slnJsT('salon.waitlist.js.randevu_tamamlandi', 'Randevu tamamlandi')); };
@@ -180,7 +180,7 @@ function WaitlistViewModel() {
         }).done(function () {
             formModal.hide();
             self.loadWaitlist();
-            toastr.success('Bekleme listesine eklendi');
+            toastr.success(slnJsT('salon.waitlist.js.added', 'Bekleme listesine eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));

@@ -98,7 +98,7 @@ function ClientDetailViewModel() {
             oxidantRatio: self.formulaForm.oxidantRatio(),
             applicationNotes: self.formulaForm.applicationNotes()
         };
-        if (!data.formulaText) { toastr.warning('Formul metni zorunludur'); return; }
+        if (!data.formulaText) { toastr.warning(slnJsT('salon.clientdetail.js.formula_required', 'Formül metni zorunludur')); return; }
 
         self.isSaving(true);
         $.ajax({
@@ -112,13 +112,13 @@ function ClientDetailViewModel() {
             toastr.success(slnJsT('salon.clientdetail.js.formul_kaydedildi', 'Formül kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Formul kaydedilemedi');
+            toastr.error(slnJsT('salon.clientdetail.js.formula_save_failed', 'Formül kaydedilemedi'));
             self.isSaving(false);
         });
     };
 
     self.removeFormula = function (formula) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu formulu silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.clientdetail.js.formula_delete_confirm', 'Bu formülü silmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-clients/formulas/' + formula.id,
                 method: 'DELETE'
@@ -138,7 +138,7 @@ function ClientDetailViewModel() {
     self.uploadPhoto = function () {
         var fileInput = document.getElementById('photoFile');
         if (!fileInput.files || !fileInput.files[0]) {
-            toastr.warning('Lutfen bir fotograf seciniz');
+            toastr.warning(slnJsT('salon.clientdetail.js.photo_required', 'Lütfen bir fotoğraf seçiniz'));
             return;
         }
 
@@ -155,16 +155,16 @@ function ClientDetailViewModel() {
         }).done(function () {
             photoModal.hide();
             self.loadClient();
-            toastr.success('Fotograf yuklendi');
+            toastr.success(slnJsT('salon.clientdetail.js.photo_uploaded', 'Fotoğraf yüklendi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Fotograf yuklenemedi');
+            toastr.error(slnJsT('salon.clientdetail.js.photo_upload_failed', 'Fotoğraf yüklenemedi'));
             self.isSaving(false);
         });
     };
 
     self.removePhoto = function (photo) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu fotografi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.clientdetail.js.photo_delete_confirm', 'Bu fotoğrafı silmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-clients/' + id + '/photos/' + photo.id,
                 method: 'DELETE'

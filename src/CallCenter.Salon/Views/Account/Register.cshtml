@@ -36,7 +36,7 @@
 <body>
     <div class="register-card">
         <a href="/" class="text-decoration-none small text-muted d-inline-flex align-items-center mb-3">
-            <i class="bi bi-arrow-left me-1"></i>Geri
+            <i class="bi bi-arrow-left me-1"></i><t key="salon.account.back_to_login">Geri</t>
         </a>
         <div class="text-center mb-4">
             <div class="brand"><i class="bi bi-scissors me-2"></i>CorpLynk <span><t key="salon.account.auto.salon">Salon</t></span></div>
@@ -51,19 +51,19 @@
             </div>
             <div class="mb-3">
                 <label class="form-label small"><t key="salon.account.auto.salon_firma_adi">Salon / Firma Adı</t></label>
-                <input type="text" name="salonName" class="form-control" placeholder="Ornek: Guzellik Merkezi" required />
+                <input type="text" name="salonName" class="form-control" placeholder="@(Translation.T("salon.account.auto.placeholder_ornek_guzellik_merkezi", "Örnek: Güzellik Merkezi"))" required />
             </div>
             <div class="mb-3">
-                <label class="form-label small">Ad Soyad</label>
+                <label class="form-label small"><t key="salon.account.auto.ad_soyad">Ad Soyad</t></label>
                 <input type="text" name="ownerFullName" class="form-control" required />
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label small">E-posta</label>
+                    <label class="form-label small"><t key="salon.account.email">E-posta</t></label>
                     <input type="email" name="email" class="form-control" required />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label small">Telefon</label>
+                    <label class="form-label small"><t key="salon.account.phone">Telefon</t></label>
                     <div class="input-group">
                         <select id="phoneCountry" class="form-select" style="max-width:120px;">
                             <option value="+90" selected>🇹🇷 +90</option>
@@ -84,20 +84,20 @@
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label small">Platform Aboneligi *</label>
+                <label class="form-label small"><t key="salon.account.auto.platform_aboneligi_required">Platform Aboneliği *</t></label>
                 <div id="planLoading" class="border rounded-3 p-3 small text-muted">
                     <span class="spinner-border spinner-border-sm me-1"></span><t key="salon.account.auto.planlar_yukleniyor"><t key="salon.account.auto.planlar_yukleniyor">Planlar yukleniyor...</t></t>
                 </div>
                 <div id="planList" class="subscription-grid d-none"></div>
                 <input type="hidden" name="subscriptionPlanId" id="subscriptionPlanId" />
                 <div id="trialInfo" class="alert alert-light border py-2 small mt-2 mb-0 d-none">
-                    <div><strong>Demo:</strong> <span id="trialText"></span></div>
-                    <div><strong>Ilk tahsilat:</strong> <span id="firstBillingText"></span></div>
+                    <div><strong><t key="salon.account.auto.demo">Demo:</t></strong> <span id="trialText"></span></div>
+                    <div><strong><t key="salon.account.auto.ilk_tahsilat">İlk tahsilat:</t></strong> <span id="firstBillingText"></span></div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label small">Kullanici Adi</label>
+                    <label class="form-label small"><t key="salon.account.username">Kullanıcı Adı</t></label>
                     <input type="text" name="userName" class="form-control" required autocomplete="off" />
                 </div>
                 <div class="col-md-6 mb-3">

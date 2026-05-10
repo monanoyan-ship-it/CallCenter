@@ -89,7 +89,7 @@ function EmailCampaignsViewModel() {
         }).done(function (data) {
             setSegmentPreview(data);
         }).fail(function () {
-            toastr.error('Segment onizlemesi alinamadi');
+            toastr.error(slnJsT('salon.emailcampaigns.js.segment_preview_failed', 'Segment önizlemesi alınamadı'));
         });
     };
 
@@ -138,7 +138,7 @@ function EmailCampaignsViewModel() {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.emailcampaigns.js.bu_kampanyayi_silmek_istediginize_emin_misiniz', 'Bu kampanyayı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id, method: 'DELETE' })
                 .done(function () { self.loadData(); toastr.success(slnJsT('salon.emailcampaigns.js.kampanya_silindi', 'Kampanya silindi')); })
-                .fail(function () { toastr.error('Silinemedi'); });
+                .fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
         });
     };
 
@@ -147,7 +147,7 @@ function EmailCampaignsViewModel() {
             $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id + '/send', method: 'POST' })
                 .done(function () {
                     self.loadData();
-                    toastr.success('E-posta kampanyasi gonderildi');
+                    toastr.success(slnJsT('salon.emailcampaigns.js.sent', 'E-posta kampanyası gönderildi'));
                 })
                 .fail(function (xhr) {
                     toastr.error(xhr.responseJSON || 'Gonderilemedi');

@@ -1,12 +1,12 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "E-posta Ayarlari";
+    ViewData["Title"] = Translation.T("salon.emailsettings.auto.title", "E-posta Ayarları");
 }
 
 <div id="emailsettings-vm">
     <!-- Bagli Hesaplar -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0"><i class="bi bi-envelope-at me-2"></i>Bagli E-posta Hesaplari</h6>
+        <h6 class="mb-0"><i class="bi bi-envelope-at me-2"></i><t key="salon.emailsettings.auto.bagli_e_posta_hesaplari">Bağlı E-posta Hesapları</t></h6>
     </div>
 
     <div class="text-center py-3" data-bind="visible: isLoading">
@@ -23,7 +23,7 @@
                         <div class="fw-semibold small">
                             <span data-bind="text: displayName"></span>
                             <!-- ko if: isDefault -->
-                            <span class="badge bg-primary ms-1" style="font-size:.65rem;">Varsayilan</span>
+                            <span class="badge bg-primary ms-1" style="font-size:.65rem;"><t key="salon.emailsettings.auto.varsayilan">Varsayılan</t></span>
                             <!-- /ko -->
                         </div>
                         <div class="text-muted" style="font-size:.8rem;" data-bind="text: senderEmail"></div>
@@ -32,13 +32,13 @@
                 <div class="d-flex align-items-center gap-1">
                     <!-- Test durumu -->
                     <!-- ko if: lastTestSuccess === true -->
-                    <span class="badge bg-success" style="font-size:.65rem;"><i class="bi bi-check-circle me-1"></i>Calisiyor</span>
+                    <span class="badge bg-success" style="font-size:.65rem;"><i class="bi bi-check-circle me-1"></i><t key="salon.emailsettings.auto.calisiyor">Çalışıyor</t></span>
                     <!-- /ko -->
                     <!-- ko if: lastTestSuccess === false -->
                     <span class="badge bg-danger" style="font-size:.65rem;"><i class="bi bi-x-circle me-1"></i><t key="salon.emailsettings.auto.hata">Hata</t></span>
                     <!-- /ko -->
                     <!-- ko if: lastTestSuccess === null || lastTestSuccess === undefined -->
-                    <span class="badge bg-secondary" style="font-size:.65rem;">Test edilmedi</span>
+                    <span class="badge bg-secondary" style="font-size:.65rem;"><t key="salon.emailsettings.auto.test_edilmedi">Test edilmedi</t></span>
                     <!-- /ko -->
 
                     <button class="btn btn-outline-primary btn-sm py-0 px-1" title="@(Translation.T("salon.emailsettings.auto.test_gonder", "Test Gönder"))"
@@ -46,12 +46,12 @@
                         <i class="bi bi-send"></i>
                     </button>
                     <!-- ko if: !isDefault -->
-                    <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Varsayilan Yap"
+                    <button class="btn btn-outline-warning btn-sm py-0 px-1" title="@(Translation.T("salon.emailsettings.auto.title_varsayilan_yap", "Varsayılan Yap"))"
                         data-bind="click: $parent.setDefault">
                         <i class="bi bi-star"></i>
                     </button>
                     <!-- /ko -->
-                    <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Kaldir"
+                    <button class="btn btn-outline-danger btn-sm py-0 px-1" title="@(Translation.T("salon.emailsettings.auto.title_kaldir", "Kaldır"))"
                         data-bind="click: $parent.remove">
                         <i class="bi bi-trash"></i>
                     </button>
@@ -63,14 +63,14 @@
     <!-- ko if: !isLoading() && integrations().length === 0 -->
     <div class="text-center text-muted py-4">
         <i class="bi bi-envelope-x" style="font-size:2rem;"></i>
-        <p class="mt-2 small">Henuz e-posta hesabi baglanmamis.</p>
+        <p class="mt-2 small"><t key="salon.emailsettings.auto.henuz_e_posta_hesabi_baglanmamis">Henüz e-posta hesabı bağlanmamış.</t></p>
     </div>
     <!-- /ko -->
 
     <!-- Yeni Hesap Bagla -->
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white py-2">
-            <h6 class="mb-0 small"><i class="bi bi-plus-circle me-1"></i>E-posta Hesabi Bagla</h6>
+            <h6 class="mb-0 small"><i class="bi bi-plus-circle me-1"></i><t key="salon.emailsettings.auto.e_posta_hesabi_bagla">E-posta Hesabı Bağla</t></h6>
         </div>
         <div class="card-body">
             <div class="row g-2">
@@ -108,21 +108,21 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">
-                        <label class="form-label small">E-posta *</label>
+                        <label class="form-label small"><t key="salon.account.email">E-posta *</t></label>
                         <input type="email" class="form-control form-control-sm" placeholder="salon@yandex.com" data-bind="value: yandexForm.email" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Uygulama Sifresi *</label>
+                        <label class="form-label small"><t key="salon.emailsettings.auto.uygulama_sifresi_required">Uygulama Şifresi *</t></label>
                         <input type="password" class="form-control form-control-sm" data-bind="value: yandexForm.appPassword" />
-                        <div class="form-text" style="font-size:.7rem;">Yandex hesap ayarlarindan "Uygulama sifreleri" bolumunde olusturun.</div>
+                        <div class="form-text" style="font-size:.7rem;"><t key="salon.emailsettings.auto.yandex_hesap_ayarlarindan_uygulama_sifreleri_bolumunde_olusturun">Yandex hesap ayarlarından "Uygulama şifreleri" bölümünde oluşturun.</t></div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Gorunen Ad</label>
-                        <input type="text" class="form-control form-control-sm" placeholder="Salon Adi" data-bind="value: yandexForm.senderName" />
+                        <label class="form-label small"><t key="salon.emailsettings.auto.gorunen_ad">Görünen Ad</t></label>
+                        <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.emailsettings.auto.placeholder_salon_adi", "Salon Adı"))" data-bind="value: yandexForm.senderName" />
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" data-bind="checked: yandexForm.isDefault" />
-                        <label class="form-check-label small">Varsayilan olarak ayarla</label>
+                        <label class="form-check-label small"><t key="salon.emailsettings.auto.varsayilan_olarak_ayarla">Varsayılan olarak ayarla</t></label>
                     </div>
                 </div>
                 <div class="modal-footer py-1">
@@ -140,45 +140,45 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header py-2">
-                    <h6 class="modal-title"><i class="bi bi-envelope-fill me-2"></i>SMTP Ayarlari</h6>
+                    <h6 class="modal-title"><i class="bi bi-envelope-fill me-2"></i><t key="salon.emailsettings.auto.smtp_ayarlari">SMTP Ayarları</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-2">
                         <div class="col-8">
-                            <label class="form-label small">SMTP Sunucu *</label>
+                            <label class="form-label small"><t key="salon.emailsettings.auto.smtp_sunucu_required">SMTP Sunucu *</t></label>
                             <input type="text" class="form-control form-control-sm" placeholder="mail.example.com" data-bind="value: smtpForm.host" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small">Port *</label>
+                            <label class="form-label small"><t key="salon.emailsettings.auto.port_required">Port *</t></label>
                             <input type="number" class="form-control form-control-sm" placeholder="587" data-bind="value: smtpForm.port" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">E-posta / Kullanici Adi *</label>
+                            <label class="form-label small"><t key="salon.emailsettings.auto.e_posta_kullanici_adi_required">E-posta / Kullanici Adi *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: smtpForm.username" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Sifre *</label>
+                            <label class="form-label small"><t key="salon.account.password">Şifre *</t></label>
                             <input type="password" class="form-control form-control-sm" data-bind="value: smtpForm.password" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Gonderici E-posta</label>
-                            <input type="email" class="form-control form-control-sm" placeholder="Bos birakirsaniz kullanici adi kullanilir" data-bind="value: smtpForm.senderEmail" />
+                            <label class="form-label small"><t key="salon.emailsettings.auto.gonderici_e_posta">Gönderici E-posta</t></label>
+                            <input type="email" class="form-control form-control-sm" placeholder="@(Translation.T("salon.emailsettings.auto.placeholder_bos_birakirsaniz_kullanici_adi_kullanilir", "Boş bırakırsanız kullanıcı adı kullanılır"))" data-bind="value: smtpForm.senderEmail" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Gorunen Ad</label>
-                            <input type="text" class="form-control form-control-sm" placeholder="Salon Adi" data-bind="value: smtpForm.senderName" />
+                            <label class="form-label small"><t key="salon.emailsettings.auto.gorunen_ad_2">Görünen Ad</t></label>
+                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.emailsettings.auto.placeholder_salon_adi", "Salon Adı"))" data-bind="value: smtpForm.senderName" />
                         </div>
                         <div class="col-6">
                             <div class="form-check mt-2">
                                 <input class="form-check-input" type="checkbox" data-bind="checked: smtpForm.useSsl" />
-                                <label class="form-check-label small">SSL/TLS</label>
+                                <label class="form-check-label small"><t key="salon.emailsettings.auto.ssl_tls">SSL/TLS</t></label>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-check mt-2">
                                 <input class="form-check-input" type="checkbox" data-bind="checked: smtpForm.isDefault" />
-                                <label class="form-check-label small">Varsayilan</label>
+                                <label class="form-check-label small"><t key="salon.emailsettings.auto.varsayilan_2">Varsayılan</t></label>
                             </div>
                         </div>
                     </div>
@@ -202,7 +202,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label small">Alici E-posta *</label>
+                    <label class="form-label small"><t key="salon.emailsettings.auto.alici_e_posta_required">Alıcı E-posta *</t></label>
                     <input type="email" class="form-control form-control-sm" data-bind="value: testEmail" placeholder="test@example.com" />
                 </div>
                 <div class="modal-footer py-1">

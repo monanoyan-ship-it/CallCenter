@@ -66,7 +66,7 @@
                             <input type="radio" class="btn-check" name="payMethod" id="pmKK" value="kk" data-bind="checked: paymentMethod" />
                             <label class="btn btn-outline-primary" for="pmKK"><i class="bi bi-credit-card me-1"></i><t key="salon.payment.credit_card">Kredi Kartı</t></label>
                             <input type="radio" class="btn-check" name="payMethod" id="pmHavale" value="havale" data-bind="checked: paymentMethod" />
-                            <label class="btn btn-outline-primary" for="pmHavale"><i class="bi bi-bank me-1"></i>Havale/EFT</label>
+                            <label class="btn btn-outline-primary" for="pmHavale"><i class="bi bi-bank me-1"></i><t key="salon.modules.auto.havale_eft">Havale/EFT</t></label>
                         </div>
 
                         <!-- KK Formu -->
@@ -81,9 +81,9 @@
                             </div>
                             <div class="row g-2 mb-2">
                                 <div class="col-4">
-                                    <label class="form-label small">Ay *</label>
+                                    <label class="form-label small"><t key="salon.modules.auto.ay_required">Ay *</t></label>
                                     <select class="form-select form-select-sm" data-bind="value: card.expMonth">
-                                        <option value="">Ay</option>
+                                        <option value=""><t key="salon.modules.auto.ay">Ay</t></option>
                                         <option value="01">01</option><option value="02">02</option><option value="03">03</option>
                                         <option value="04">04</option><option value="05">05</option><option value="06">06</option>
                                         <option value="07">07</option><option value="08">08</option><option value="09">09</option>
@@ -95,19 +95,19 @@
                                     <select class="form-select form-select-sm" data-bind="value: card.expYear, options: yearOptions"></select>
                                 </div>
                                 <div class="col-4">
-                                    <label class="form-label small">CVV *</label>
+                                    <label class="form-label small"><t key="salon.modules.auto.cvv_required">CVV *</t></label>
                                     <input class="form-control form-control-sm" data-bind="value: card.cvc" maxlength="4" placeholder="***" type="password" />
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small">Taksit</label>
+                                <label class="form-label small"><t key="salon.modules.auto.taksit">Taksit</t></label>
                                 <select class="form-select form-select-sm" data-bind="value: card.installment">
                                     <option value="1"><t key="salon.payment.single_payment">Tek Çekim</t></option>
-                                    <option value="2">2 Taksit</option>
-                                    <option value="3">3 Taksit</option>
-                                    <option value="6">6 Taksit</option>
-                                    <option value="9">9 Taksit</option>
-                                    <option value="12">12 Taksit</option>
+                                    <option value="2"><t key="salon.modules.auto.2_taksit">2 Taksit</t></option>
+                                    <option value="3"><t key="salon.modules.auto.3_taksit">3 Taksit</t></option>
+                                    <option value="6"><t key="salon.modules.auto.6_taksit">6 Taksit</t></option>
+                                    <option value="9"><t key="salon.modules.auto.9_taksit">9 Taksit</t></option>
+                                    <option value="12"><t key="salon.modules.auto.12_taksit">12 Taksit</t></option>
                                 </select>
                             </div>
                             <button class="btn btn-primary w-100" data-bind="click: payWithCard, disable: isProcessing">
@@ -129,13 +129,13 @@
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-sm table-bordered mb-3">
-                                        <tr><th class="bg-light" style="width:35%">Banka</th><td data-bind="text: bankInfo() ? bankInfo().bankName : ''"></td></tr>
-                                        <tr><th class="bg-light">Hesap Sahibi</th><td data-bind="text: bankInfo() ? bankInfo().accountHolder : ''"></td></tr>
+                                        <tr><th class="bg-light" style="width:35%"><t key="salon.modules.auto.banka">Banka</t></th><td data-bind="text: bankInfo() ? bankInfo().bankName : ''"></td></tr>
+                                        <tr><th class="bg-light"><t key="salon.modules.auto.hesap_sahibi">Hesap Sahibi</t></th><td data-bind="text: bankInfo() ? bankInfo().accountHolder : ''"></td></tr>
                                         <tr>
                                             <th class="bg-light">IBAN</th>
                                             <td>
                                                 <code data-bind="text: bankInfo() ? bankInfo().iban || bankInfo().IBAN : ''"></code>
-                                                <button class="btn btn-outline-secondary btn-sm ms-2" data-bind="click: copyIban" title="Kopyala"><i class="bi bi-clipboard"></i></button>
+                                                <button class="btn btn-outline-secondary btn-sm ms-2" data-bind="click: copyIban" title="@(Translation.T("salon.common.copy", "Kopyala"))"><i class="bi bi-clipboard"></i></button>
                                             </td>
                                         </tr>
                                         <tr><th class="bg-light"><t key="salon.panel.payments.amount">Tutar</t></th><td class="fw-bold" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : ''"></td></tr>
@@ -143,26 +143,26 @@
                                     </table>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label small">Havale aciklamasi / referans no</label>
-                                    <input class="form-control form-control-sm" maxlength="120" placeholder="Dekont no, banka referansi veya aciklama" data-bind="value: havale.referenceNote" />
+                                    <label class="form-label small"><t key="salon.modules.auto.havale_aciklamasi_referans_no">Havale açıklaması / referans no</t></label>
+                                    <input class="form-control form-control-sm" maxlength="120" placeholder="@(Translation.T("salon.modules.auto.placeholder_dekont_no_banka_referansi_veya_aciklama", "Dekont no, banka referansı veya açıklama"))" data-bind="value: havale.referenceNote" />
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label small">Dekont yukle</label>
+                                    <label class="form-label small"><t key="salon.modules.auto.dekont_yukle">Dekont yükle</t></label>
                                     <input type="file" class="form-control form-control-sm" accept=".pdf,image/png,image/jpeg,image/webp" data-bind="event: { change: onReceiptSelected }" />
                                     <div class="form-text small">
-                                        PDF/JPG/PNG/WEBP, en fazla 5 MB.
-                                        <span data-bind="visible: havale.receiptFileName">Secilen: <span data-bind="text: havale.receiptFileName"></span></span>
+                                        <t key="salon.modules.auto.pdf_jpg_png_webp_en_fazla_5_mb">PDF/JPG/PNG/WEBP, en fazla 5 MB.</t>
+                                        <span data-bind="visible: havale.receiptFileName"><t key="salon.modules.auto.secilen">Seçilen:</t> <span data-bind="text: havale.receiptFileName"></span></span>
                                     </div>
                                 </div>
                                 <button class="btn btn-primary w-100" data-bind="click: submitHavale, disable: isProcessing">
                                     <span data-bind="visible: isProcessing" class="spinner-border spinner-border-sm me-1"></span>
                                     <span data-bind="visible: havale.isReadingReceipt" class="spinner-border spinner-border-sm me-1"></span>
-                                    <i class="bi bi-check-lg me-1" data-bind="visible: !isProcessing() && !havale.isReadingReceipt()"></i>Havale Yaptim
+                                    <i class="bi bi-check-lg me-1" data-bind="visible: !isProcessing() && !havale.isReadingReceipt()"></i><t key="salon.modules.auto.havale_yaptim">Havale Yaptım</t>
                                 </button>
                             </div>
                             <div class="text-center text-muted py-4" data-bind="visible: !bankInfo()">
                                 <i class="bi bi-bank fs-1 d-block mb-2 opacity-25"></i>
-                                Havale banka bilgisi tanimlanmamis. Lutfen yoneticinizle iletisime gecin.
+                                <t key="salon.modules.auto.havale_banka_bilgisi_tanimlanmamis_lutfen_yoneticinizle_iletisime_geci">Havale banka bilgisi tanımlanmamış. Lütfen yöneticinizle iletişime geçin.</t>
                             </div>
                         </div>
                     </div>

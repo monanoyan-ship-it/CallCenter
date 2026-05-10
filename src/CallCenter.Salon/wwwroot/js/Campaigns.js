@@ -187,7 +187,7 @@ function CampaignsViewModel() {
                 self.campaignForm.filter.hasActiveMembership(f.hasActiveMembership === true ? 'true' : (f.hasActiveMembership === false ? 'false' : ''));
                 self.campaignForm.filter.hasActivePackage(f.hasActivePackage === true ? 'true' : (f.hasActivePackage === false ? 'false' : ''));
             } catch (e) {
-                toastr.error('Segment filtresi okunamadi');
+                toastr.error(slnJsT('salon.campaigns.js.segment_filter_read_failed', 'Segment filtresi okunamadı'));
             }
         }
 
@@ -254,7 +254,7 @@ function CampaignsViewModel() {
     };
 
     self.sendCampaign = function (campaign) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), campaign.name + ' kampanyasini gondermek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.campaigns.js.send_confirm', '{name} kampanyasını göndermek istediğinize emin misiniz?').replace('{name}', campaign.name || ''), function() {
             $.ajax({
                 url: '/proxy/sln-marketing/campaigns/' + campaign.id + '/send',
                 method: 'POST'
@@ -262,18 +262,18 @@ function CampaignsViewModel() {
                 self.loadCampaigns();
                 toastr.success(slnJsT('salon.campaigns.js.kampanya_gonderildi', 'Kampanya gonderildi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || 'Gonderilemedi');
+                toastr.error(xhr.responseJSON || slnJsT('salon.campaigns.js.send_failed', 'Gönderilemedi'));
             });
         });
     };
 
     self.removeCampaign = function (campaign) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu kampanyayi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.campaigns.js.delete_confirm', 'Bu kampanyayı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-marketing/campaigns/' + campaign.id, method: 'DELETE' })
                 .done(function () {
                     self.loadCampaigns();
                     toastr.success(slnJsT('salon.campaigns.js.kampanya_silindi', 'Kampanya silindi'));
-                }).fail(function () { toastr.error('Silinemedi'); });
+                }).fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
         });
     };
 
@@ -286,7 +286,7 @@ function CampaignsViewModel() {
             });
             self.reminders(data || []);
         }).fail(function () {
-            toastr.error('Hatirlatmalar yuklenemedi');
+            toastr.error(slnJsT('salon.campaigns.js.reminders_load_failed', 'Hatırlatmalar yüklenemedi'));
         });
     };
 
@@ -326,7 +326,7 @@ function CampaignsViewModel() {
         };
 
         if (!data.messageTemplate) {
-            toastr.warning('Mesaj sablonu zorunludur');
+            toastr.warning(slnJsT('salon.campaigns.js.message_template_required', 'Mesaj şablonu zorunludur'));
             return;
         }
 
@@ -358,18 +358,18 @@ function CampaignsViewModel() {
             toastr.success(slnJsT('salon.campaigns.js.hatirlatma_durumu_degistirildi', 'Hatirlatma durumu degistirildi'));
         }).fail(function () {
             reminder.isActive(!ko.unwrap(reminder.isActive));
-            toastr.error('Durum degistirilemedi');
+            toastr.error(slnJsT('salon.common.status_change_failed', 'Durum değiştirilemedi'));
         });
         return true; // checkbox binding icin
     };
 
     self.removeReminder = function (reminder) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), 'Bu hatirlatmayi silmek istediginize emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.campaigns.js.reminder_delete_confirm', 'Bu hatırlatmayı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-marketing/reminders/' + reminder.id, method: 'DELETE' })
                 .done(function () {
                     self.loadReminders();
                     toastr.success(slnJsT('salon.campaigns.js.hatirlatma_silindi', 'Hatirlatma silindi'));
-                }).fail(function () { toastr.error('Silinemedi'); });
+                }).fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
         });
     };
 

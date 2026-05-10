@@ -309,9 +309,9 @@
                     <!-- Ekibimiz -->
                     <!-- ko if: key === 'team' && $parent.salon().showTeam !== false -->
                     <div class="mb-4" id="section-team">
-                        <h4 class="mb-3"><i class="bi bi-people me-2"></i>Ekibimiz</h4>
+                        <h4 class="mb-3"><i class="bi bi-people me-2"></i><t key="salon.public.profile.auto.ekibimiz">Ekibimiz</t></h4>
                         <!-- ko if: $parent.teamMembers().length === 0 -->
-                        <p class="text-muted small">Ekip bilgisi henuz eklenmemis.</p>
+                        <p class="text-muted small"><t key="salon.public.profile.auto.ekip_bilgisi_henuz_eklenmemis">Ekip bilgisi henüz eklenmemiş.</t></p>
                         <!-- /ko -->
                         <div class="row g-3" data-bind="foreach: $parent.teamMembers">
                             <div class="col-6 col-md-4 col-lg-3">

@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Adisyonlar";
+    ViewData["Title"] = Translation.T("salon.invoices.auto.title", "Adisyonlar");
 }
 
 <div id="invoices-vm">
@@ -12,9 +12,9 @@
                 <input type="text" class="form-control" placeholder="@(Translation.T("salon.invoices.auto.adisyon_veya_musteri_ara", "Adisyon veya müşteri ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width:140px;" data-bind="value: filterStatus">
-                <option value="">Tum Durumlar</option>
-                <option value="1">Acik</option>
-                <option value="2">Odendi</option>
+                <option value=""><t key="salon.invoices.auto.tum_durumlar">Tüm Durumlar</t></option>
+                <option value="1"><t key="salon.invoices.auto.acik">Açık</t></option>
+                <option value="2"><t key="salon.invoices.auto.odendi">Ödendi</t></option>
                 <option value="3"><t key="salon.common.btn.cancel">İptal</t></option>
             </select>
             <input type="date" class="form-control form-control-sm" style="width:150px;" data-bind="value: filterStartDate" />
@@ -42,13 +42,13 @@
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm"><div class="card-body py-2 text-center">
-                <div class="text-muted" style="font-size:.7rem;">Acik Adisyon</div>
+                <div class="text-muted" style="font-size:.7rem;"><t key="salon.invoices.auto.acik_adisyon">Açık Adisyon</t></div>
                 <div class="fw-bold text-warning" data-bind="text: summary().openCount || 0"></div>
             </div></div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm"><div class="card-body py-2 text-center">
-                <div class="text-muted" style="font-size:.7rem;">Ortalama</div>
+                <div class="text-muted" style="font-size:.7rem;"><t key="salon.invoices.auto.ortalama">Ortalama</t></div>
                 <div class="fw-bold text-info" data-bind="text: (summary().averageAmount || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
             </div></div>
         </div>
@@ -61,7 +61,7 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Adisyon No</th><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.panel.payments.customer">Müşteri</t></th>
+                            <th><t key="salon.invoices.auto.adisyon_no">Adisyon No</t></th><th><t key="salon.panel.payments.date">Tarih</t></th><th><t key="salon.panel.payments.customer">Müşteri</t></th>
                             <th><t key="salon.invoices.services_products">Hizmetler / Ürünler</t></th><th><t key="salon.panel.payments.amount">Tutar</t></th><th><t key="salon.modules.payment_method">Ödeme</t></th><th><t key="salon.appointments.status">Durum</t></th><th style="width:80px;"></th>
                         </tr>
                     </thead>
@@ -76,8 +76,8 @@
                             <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Detay" data-bind="click: $parent.openDetail"><i class="bi bi-eye"></i></button>
-                                    <button class="btn btn-outline-warning" title="Iade" data-bind="click: $parent.openRefund, visible: statusId === 2"><i class="bi bi-arrow-return-left"></i></button>
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.common.detail", "Detay"))" data-bind="click: $parent.openDetail"><i class="bi bi-eye"></i></button>
+                                    <button class="btn btn-outline-warning" title="@(Translation.T("salon.invoices.auto.title_iade", "İade"))" data-bind="click: $parent.openRefund, visible: statusId === 2"><i class="bi bi-arrow-return-left"></i></button>
                                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.cancel", "İptal"))" data-bind="click: $parent.cancelInvoice, visible: statusId === 1"><i class="bi bi-x-lg"></i></button>
                                 </div>
                             </td>
@@ -86,7 +86,7 @@
                 </table>
             </div>
             <!-- ko if: filteredInvoices().length === 0 -->
-            <div class="text-center text-muted py-4"><i class="bi bi-receipt" style="font-size:2rem;"></i><p class="mt-2 small">Adisyon bulunamadi</p></div>
+            <div class="text-center text-muted py-4"><i class="bi bi-receipt" style="font-size:2rem;"></i><p class="mt-2 small"><t key="salon.invoices.auto.adisyon_bulunamadi">Adisyon bulunamadı</t></p></div>
             <!-- /ko -->
         </div>
     </div>
@@ -96,32 +96,32 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning bg-opacity-10">
-                    <h6 class="modal-title"><i class="bi bi-arrow-return-left me-2"></i>Iade</h6>
+                    <h6 class="modal-title"><i class="bi bi-arrow-return-left me-2"></i><t key="salon.invoices.auto.iade">İade</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <!-- ko if: refundInvoice() -->
                     <div class="alert alert-info py-2 small mb-3">
-                        Adisyon: <strong data-bind="text: refundInvoice().invoiceNo"></strong> |
+                        <t key="salon.invoices.auto.adisyon">Adisyon:</t> <strong data-bind="text: refundInvoice().invoiceNo"></strong> |
                         <t key="salon.panel.payments.amount">Tutar</t>: <strong data-bind="text: (refundInvoice().totalAmount || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></strong>
                     </div>
                     <!-- /ko -->
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Iade Tutari (TL) *</label>
+                            <label class="form-label small"><t key="salon.invoices.auto.iade_tutari_tl_required">İade Tutarı (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: refundForm.amount" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Iade Yontemi *</label>
+                            <label class="form-label small"><t key="salon.invoices.auto.iade_yontemi_required">İade Yöntemi *</t></label>
                             <select class="form-select form-select-sm" data-bind="value: refundForm.paymentMethodId">
-                                <option value="1">Nakit</option>
-                                <option value="2">Kredi Karti</option>
-                                <option value="4">Havale</option>
+                                <option value="1"><t key="salon.invoices.auto.nakit">Nakit</t></option>
+                                <option value="2"><t key="salon.invoices.auto.kredi_karti">Kredi Kartı</t></option>
+                                <option value="4"><t key="salon.invoices.auto.havale">Havale</t></option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Iade Sebebi *</label>
-                            <textarea class="form-control form-control-sm" rows="2" placeholder="Iade sebebini yaziniz..." data-bind="value: refundForm.reason"></textarea>
+                            <label class="form-label small"><t key="salon.invoices.auto.iade_sebebi_required">İade Sebebi *</t></label>
+                            <textarea class="form-control form-control-sm" rows="2" placeholder="@(Translation.T("salon.invoices.auto.placeholder_iade_sebebini_yaziniz", "İade sebebini yazınız..."))" data-bind="value: refundForm.reason"></textarea>
                         </div>
                     </div>
                 </div>
@@ -129,7 +129,7 @@
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-warning btn-sm" data-bind="click: saveRefund, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-arrow-return-left me-1" data-bind="visible: !isSaving()"></i>Iade Yap
+                        <i class="bi bi-arrow-return-left me-1" data-bind="visible: !isSaving()"></i><t key="salon.invoices.auto.iade_yap">İade Yap</t>
                     </button>
                 </div>
             </div>
@@ -180,7 +180,7 @@
 
                     <!-- Hizmet Sec (tikla ekle) -->
                     <div class="mb-2">
-                        <label class="form-label small fw-semibold"><t key="salon.invoices.auto.hizmet_ekle">Hizmet Ekle</t> <small class="text-muted fw-normal">(tikla)</small></label>
+                        <label class="form-label small fw-semibold"><t key="salon.invoices.auto.hizmet_ekle">Hizmet Ekle</t> <small class="text-muted fw-normal"><t key="salon.invoices.auto.tikla">(tikla)</t></small></label>
                         <!-- ko foreach: serviceCategories -->
                         <div class="mb-1">
                             <small class="text-muted" data-bind="text: name" style="font-size:.7rem;"></small>
@@ -201,7 +201,7 @@
                     <!-- Urun Ekle (tikla) -->
                     <!-- ko if: productList().length > 0 -->
                     <div class="mb-2">
-                        <label class="form-label small fw-semibold"><t key="salon.invoices.auto.urun_ekle">Ürün Ekle</t> <small class="text-muted fw-normal">(tikla)</small></label>
+                        <label class="form-label small fw-semibold"><t key="salon.invoices.auto.urun_ekle">Ürün Ekle</t> <small class="text-muted fw-normal"><t key="salon.invoices.auto.tikla_2">(tikla)</t></small></label>
                         <div class="d-flex flex-wrap gap-1">
                             <!-- ko foreach: productList -->
                             <button class="btn btn-sm py-0 px-2" style="font-size:.78rem;"
@@ -220,7 +220,7 @@
                     <div class="mb-3 mt-3">
                         <table class="table table-sm table-bordered mb-0">
                             <thead class="table-light">
-                                <tr><th><t key="salon.invoices.auto.hizmet_urun">Hizmet/Ürün</t></th><th style="width:90px;">Fiyat</th><th style="width:80px;">Iskonto</th><th style="width:60px;">KDV%</th><th style="width:70px;">KDV</th><th style="width:130px;"><t key="salon.sidebar.staff">Personel</t></th><th style="width:80px;"><t key="salon.invoices.auto.toplam_2">Toplam</t></th><th style="width:30px;"></th></tr>
+                                <tr><th><t key="salon.invoices.auto.hizmet_urun">Hizmet/Ürün</t></th><th style="width:90px;"><t key="salon.invoices.auto.fiyat">Fiyat</t></th><th style="width:80px;"><t key="salon.invoices.auto.iskonto">İskonto</t></th><th style="width:60px;"><t key="salon.invoices.auto.kdv">KDV%</t></th><th style="width:70px;"><t key="salon.invoices.auto.kdv_2">KDV</t></th><th style="width:130px;"><t key="salon.sidebar.staff">Personel</t></th><th style="width:80px;"><t key="salon.invoices.auto.toplam_2">Toplam</t></th><th style="width:30px;"></th></tr>
                             </thead>
                             <tbody data-bind="foreach: form.items">
                                 <tr>
@@ -254,10 +254,10 @@
                         <div class="col-5">
                             <label class="form-label small fw-semibold"><t key="salon.modules.payment_method">Ödeme</t></label>
                             <div class="btn-group w-100">
-                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(1); }, css: form.paymentMethodId() == 1 ? 'btn-success' : 'btn-outline-secondary'"><i class="bi bi-cash me-1"></i>Nakit</button>
-                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(2); }, css: form.paymentMethodId() == 2 ? 'btn-primary' : 'btn-outline-secondary'"><i class="bi bi-credit-card me-1"></i>Kart</button>
-                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(4); }, css: form.paymentMethodId() == 4 ? 'btn-info' : 'btn-outline-secondary'"><i class="bi bi-bank me-1"></i>Havale</button>
-                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(3); }, css: form.paymentMethodId() == 3 ? 'btn-warning' : 'btn-outline-secondary'"><i class="bi bi-shuffle me-1"></i>Karma</button>
+                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(1); }, css: form.paymentMethodId() == 1 ? 'btn-success' : 'btn-outline-secondary'"><i class="bi bi-cash me-1"></i><t key="salon.cash.auto.nakit">Nakit</t></button>
+                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(2); }, css: form.paymentMethodId() == 2 ? 'btn-primary' : 'btn-outline-secondary'"><i class="bi bi-credit-card me-1"></i><t key="salon.invoices.auto.kart">Kart</t></button>
+                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(4); }, css: form.paymentMethodId() == 4 ? 'btn-info' : 'btn-outline-secondary'"><i class="bi bi-bank me-1"></i><t key="salon.invoices.auto.havale">Havale</t></button>
+                                <button class="btn btn-sm" data-bind="click: function() { form.paymentMethodId(3); }, css: form.paymentMethodId() == 3 ? 'btn-warning' : 'btn-outline-secondary'"><i class="bi bi-shuffle me-1"></i><t key="salon.invoices.auto.karma">Karma</t></button>
                             </div>
                         </div>
                         <!-- Karma Odeme Detay -->
@@ -268,15 +268,15 @@
                                     <div class="small fw-semibold mb-2"><i class="bi bi-shuffle me-1"></i><t key="salon.invoices.auto.karma_odeme_detay">Karma Ödeme Detay</t></div>
                                     <div class="row g-2">
                                         <div class="col-4">
-                                            <label class="form-label small">Nakit (TL)</label>
+                                            <label class="form-label small"><t key="salon.invoices.auto.nakit_tl">Nakit (TL)</t></label>
                                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.splitCash" />
                                         </div>
                                         <div class="col-4">
-                                            <label class="form-label small">Kredi Karti (TL)</label>
+                                            <label class="form-label small"><t key="salon.invoices.auto.kredi_karti_tl">Kredi Kartı (TL)</t></label>
                                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.splitCreditCard" />
                                         </div>
                                         <div class="col-4">
-                                            <label class="form-label small">Havale (TL)</label>
+                                            <label class="form-label small"><t key="salon.invoices.auto.havale_tl">Havale (TL)</t></label>
                                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: form.splitTransfer" />
                                         </div>
                                     </div>
@@ -286,11 +286,11 @@
                         </div>
                         <!-- /ko -->
                         <div class="col-2">
-                            <label class="form-label small">Indirim</label>
+                            <label class="form-label small"><t key="salon.invoices.auto.indirim">İndirim</t></label>
                             <input type="number" class="form-control form-control-sm" step="1" data-bind="value: form.discountAmount" />
                         </div>
                         <div class="col-2">
-                            <label class="form-label small">Bahsis</label>
+                            <label class="form-label small"><t key="salon.invoices.auto.bahsis">Bahşiş</t></label>
                             <input type="number" class="form-control form-control-sm" step="1" data-bind="value: form.tipAmount" />
                         </div>
                         <div class="col-3">

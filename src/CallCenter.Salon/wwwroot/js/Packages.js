@@ -104,7 +104,7 @@ function PackagesViewModel() {
     };
 
     self.removeDef = function (def) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + def.name + "' paketini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.packages.js.delete_def_confirm', "'{name}' paketini silmek istediğinize emin misiniz?").replace('{name}', def.name || ''), function() {
             $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.packages.js.paket_tanimi_silindi', 'Paket tanımı silindi'));
@@ -150,14 +150,14 @@ function PackagesViewModel() {
 
     // Seans Kullan
     self.useSession = function (pkg) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), '1 seans kullanilacak. Emin misiniz?', function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.packages.js.use_session_confirm', '1 seans kullanılacak. Emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-packages/use', method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ clientPackageId: pkg.id, notes: 'Manuel paket kullanim' })
             }).done(function () {
                 self.loadData();
-                toastr.success('1 seans kullanildi');
+                toastr.success(slnJsT('salon.packages.js.session_used', '1 seans kullanıldı'));
             }).fail(function (xhr) {
                 toastr.error(readError(xhr));
             });

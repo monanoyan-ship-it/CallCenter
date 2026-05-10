@@ -92,7 +92,7 @@ function ConsentFormsViewModel() {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.consentforms.js.bu_formu_silmek_istediginize_emin_misiniz', 'Bu formu silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-consent-forms/' + form.id, method: 'DELETE' })
                 .done(function () { self.loadForms(); toastr.success(slnJsT('salon.consentforms.js.form_silindi', 'Form silindi')); })
-                .fail(function () { toastr.error('Silinemedi'); });
+                .fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
         });
     };
 

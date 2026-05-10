@@ -116,7 +116,7 @@ function ServicesViewModel() {
     };
 
     self.removeCategory = function (cat) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + cat.name + "' kategorisini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.category_delete_confirm', "'{name}' kategorisini silmek istediğinize emin misiniz?").replace('{name}', cat.name || ''), function() {
             $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.services.js.kategori_silindi', 'Kategori silindi'));
@@ -183,7 +183,7 @@ function ServicesViewModel() {
     };
 
     self.removeService = function (svc) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), "'" + svc.name + "' hizmetini silmek istediginize emin misiniz?", function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.service_delete_confirm', "'{name}' hizmetini silmek istediğinize emin misiniz?").replace('{name}', svc.name || ''), function() {
             $.ajax({ url: '/proxy/sln-services/' + svc.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.services.js.hizmet_silindi', 'Hizmet silindi'));
