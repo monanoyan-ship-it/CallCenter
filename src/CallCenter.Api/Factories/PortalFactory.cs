@@ -149,8 +149,8 @@ public class PortalFactory : IPortalFactory
         var shouldApplyBranchScope = callerBranchId.HasValue
             && callerRoleId != SalonRoles.Ids.SalonOwner
             && callerRoleId != CustomerRoles.Ids.FirmaAdmin;
-        if (shouldApplyBranchScope)
-            query = query.Where(p => p.BranchId == callerBranchId.Value);
+        if (shouldApplyBranchScope && callerBranchId is int scopedBranchId)
+            query = query.Where(p => p.BranchId == scopedBranchId);
 
         var personnel = await query
             .Include(p => p.User)

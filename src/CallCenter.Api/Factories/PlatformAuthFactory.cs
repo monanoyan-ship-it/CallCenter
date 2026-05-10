@@ -82,7 +82,8 @@ public class PlatformAuthFactory : IPlatformAuthFactory
             try { await SendVerificationEmailAsync(user.Email); } catch { /* sessiz */ }
             return (new PlatformAuthResponse
             {
-                Token = null!,
+                Token = string.Empty,
+                RequiresEmailVerification = true,
                 User = MapToDto(user)
             }, null);
         }
@@ -91,6 +92,7 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         return (new PlatformAuthResponse
         {
             Token = token,
+            RequiresEmailVerification = false,
             User = MapToDto(user)
         }, null);
     }
@@ -120,6 +122,7 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         return (new PlatformAuthResponse
         {
             Token = token,
+            RequiresEmailVerification = false,
             User = MapToDto(user)
         }, null);
     }
@@ -384,6 +387,7 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         FullName = u.FullName,
         Phone = u.Phone,
         Email = u.Email,
+        IsEmailVerified = u.IsEmailVerified,
         AvatarUrl = u.AvatarUrl,
         SalonCount = u.Salons?.Count(s => s.IsActive) ?? 0,
         BillingType = u.BillingType,

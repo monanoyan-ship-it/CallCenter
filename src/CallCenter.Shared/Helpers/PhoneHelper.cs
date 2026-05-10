@@ -7,19 +7,17 @@ namespace CallCenter.Shared.Helpers;
 public static class PhoneHelper
 {
     /// <summary>
-    /// Numarayi temizler: bosluk, tire, parantez, nokta kaldirilir.
-    /// Sadece rakamlar, +, * ve # kalir.
+    /// Numarayi temizler. Sadece rakamlar, +, * ve # kalir.
     /// </summary>
     public static string Sanitize(string? number)
     {
         if (string.IsNullOrEmpty(number)) return string.Empty;
 
-        // Sadece gecerli SIP/PSTN karakterlerini birak
         var span = number.AsSpan();
         var result = new char[span.Length];
-        int pos = 0;
+        var pos = 0;
 
-        for (int i = 0; i < span.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
             var c = span[i];
             if (c is (>= '0' and <= '9') or '+' or '*' or '#')
@@ -32,10 +30,11 @@ public static class PhoneHelper
     }
 
     /// <summary>
-    /// Telefon numarasini normalize et: "+905XXXXXXXXX" formatina cevirir.
+    /// Telefon numarasini normalize eder.
     /// "+90 532 123 45 67" -> "+905321234567"
     /// "0532 123 45 67"    -> "+905321234567"
     /// "532 123 4567"      -> "+905321234567"
+    /// "905321234567"      -> "+905321234567"
     /// </summary>
     public static string? Normalize(string? phone, string defaultCountryCode = "+90")
     {
@@ -44,20 +43,61 @@ public static class PhoneHelper
         var cleaned = Sanitize(phone);
         if (string.IsNullOrEmpty(cleaned)) return null;
 
-        // + ile basliyorsa ulke kodu var — zaten normalize
+        var digits = DigitsOnly(cleaned);
+        if (string.IsNullOrEmpty(digits)) return null;
+
         if (cleaned.StartsWith('+'))
-            return cleaned;
+            return "+" + digits;
 
-        // 00 ile basliyorsa uluslararasi format
         if (cleaned.StartsWith("00"))
-            return "+" + cleaned[2..];
+            return digits.Length > 2 ? "+" + digits[2..] : null;
 
-        // 0 ile basliyorsa yerel format — default ulke kodu ekle
+        var countryDigits = DigitsOnly(defaultCountryCode);
+        if (string.IsNullOrEmpty(countryDigits)) countryDigits = "90";
+
         if (cleaned.StartsWith('0'))
-            return defaultCountryCode + cleaned[1..];
+            return digits.Length > 1 ? "+" + countryDigits + digits[1..] : null;
 
-        // Hicbir prefix yok — default ulke kodu ekle
-        return defaultCountryCode + cleaned;
+        if (digits.StartsWith(countryDigits, StringComparison.Ordinal) && digits.Length > countryDigits.Length)
+            return "+" + digits;
+
+        return "+" + countryDigits + digits;
+    }
+
+    /// <summary>
+    /// Eski ve yeni kayitlari ayni sorguda yakalamak icin telefon varyantlarini dondurur.
+    /// </summary>
+    public static IReadOnlyList<string> GetLookupVariants(string? phone, string defaultCountryCode = "+90")
+    {
+        var variants = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var cleaned = Sanitize(phone);
+        if (!string.IsNullOrWhiteSpace(cleaned))
+            variants.Add(cleaned);
+
+        var digits = DigitsOnly(cleaned);
+        if (!string.IsNullOrWhiteSpace(digits))
+            variants.Add(digits);
+
+        var normalized = Normalize(phone, defaultCountryCode);
+        if (!string.IsNullOrWhiteSpace(normalized))
+        {
+            variants.Add(normalized);
+            variants.Add(normalized.TrimStart('+'));
+
+            var countryDigits = DigitsOnly(defaultCountryCode);
+            if (!string.IsNullOrEmpty(countryDigits) && normalized.StartsWith("+" + countryDigits, StringComparison.Ordinal))
+            {
+                var national = normalized[("+" + countryDigits).Length..];
+                if (!string.IsNullOrEmpty(national))
+                {
+                    variants.Add(national);
+                    variants.Add("0" + national);
+                }
+            }
+        }
+
+        return variants.Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
     }
 
     /// <summary>Telefon numarasi gecerli mi? (en az 7 rakam)</summary>
@@ -67,5 +107,20 @@ public static class PhoneHelper
         var sanitized = Sanitize(phone);
         var digitCount = sanitized.Count(c => c is >= '0' and <= '9');
         return digitCount >= 7;
+    }
+
+    private static string DigitsOnly(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        var result = new char[value.Length];
+        var pos = 0;
+        foreach (var c in value)
+        {
+            if (c is >= '0' and <= '9')
+                result[pos++] = c;
+        }
+
+        return new string(result, 0, pos);
     }
 }

@@ -4,6 +4,7 @@ using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -24,6 +25,8 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnPersonnelSkillEntityService _skills;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
     private readonly ISlnWaitlistEntryEntityService _waitlist;
+    private readonly IPlatformUserEntityService _platformUsers;
+    private readonly IPlatformUserSalonEntityService _platformUserSalons;
     private readonly PaymentService _paymentService;
     private readonly IUnitOfWork _uow;
 
@@ -42,6 +45,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnPersonnelSkillEntityService skills,
         ISlnNoShowPolicyEntityService noShowPolicies,
         ISlnWaitlistEntryEntityService waitlist,
+        IPlatformUserEntityService platformUsers,
+        IPlatformUserSalonEntityService platformUserSalons,
         PaymentService paymentService,
         IUnitOfWork uow)
     {
@@ -59,6 +64,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         _skills = skills;
         _noShowPolicies = noShowPolicies;
         _waitlist = waitlist;
+        _platformUsers = platformUsers;
+        _platformUserSalons = platformUserSalons;
         _paymentService = paymentService;
         _uow = uow;
     }
@@ -399,6 +406,124 @@ public class SlnPublicFactory : ISlnPublicFactory
     private static string? PreferBranchMedia(string? branchValue, string? profileValue)
         => string.IsNullOrWhiteSpace(branchValue) ? profileValue : branchValue;
 
+    private async Task<SlnClient> FindOrCreatePublicClientAsync(int customerId, string fullName, string? phone, string? email)
+    {
+        var phoneVariants = PhoneHelper.GetLookupVariants(phone);
+        var normalizedPhone = PhoneHelper.Normalize(phone) ?? PhoneHelper.Sanitize(phone);
+        var normalizedEmail = NormalizeEmail(email);
+
+        var client = phoneVariants.Count == 0
+            ? null
+            : await _clients.GetAllQueryable()
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Phone != null && phoneVariants.Contains(c.Phone));
+
+        if (client == null)
+        {
+            client = new SlnClient
+            {
+                CustomerId = customerId,
+                FullName = fullName.Trim(),
+                Phone = string.IsNullOrWhiteSpace(normalizedPhone) ? phone?.Trim() : normalizedPhone,
+                Email = normalizedEmail
+            };
+            _clients.Add(client);
+            await _uow.SaveChangesAsync();
+            return client;
+        }
+
+        var changed = false;
+        if (!client.IsActive && !client.IsBlacklisted)
+        {
+            client.IsActive = true;
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fullName) && string.IsNullOrWhiteSpace(client.FullName))
+        {
+            client.FullName = fullName.Trim();
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedPhone) && client.Phone != normalizedPhone)
+        {
+            client.Phone = normalizedPhone;
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedEmail) && string.IsNullOrWhiteSpace(client.Email))
+        {
+            client.Email = normalizedEmail;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            client.UpdatedAt = DateTime.UtcNow;
+            await _uow.SaveChangesAsync();
+        }
+
+        return client;
+    }
+
+    private async Task LinkPlatformUserToSalonAsync(int customerId, SlnClient client, string? phone, string? email)
+    {
+        var platformUser = await FindPlatformUserAsync(phone ?? client.Phone, email ?? client.Email);
+        if (platformUser == null || !platformUser.IsActive) return;
+
+        var link = await _platformUserSalons.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.PlatformUserId == platformUser.Id && s.CustomerId == customerId);
+
+        if (link == null)
+        {
+            _platformUserSalons.Add(new PlatformUserSalon
+            {
+                PlatformUserId = platformUser.Id,
+                CustomerId = customerId,
+                SlnClientId = client.Id,
+                IsActive = true
+            });
+            await _uow.SaveChangesAsync();
+            return;
+        }
+
+        var changed = false;
+        if (!link.IsActive)
+        {
+            link.IsActive = true;
+            link.JoinedAt = DateTime.UtcNow;
+            changed = true;
+        }
+
+        if (link.SlnClientId == null)
+        {
+            link.SlnClientId = client.Id;
+            changed = true;
+        }
+
+        if (changed)
+            await _uow.SaveChangesAsync();
+    }
+
+    private async Task<PlatformUser?> FindPlatformUserAsync(string? phone, string? email)
+    {
+        var phoneVariants = PhoneHelper.GetLookupVariants(phone);
+        if (phoneVariants.Count > 0)
+        {
+            var byPhone = await _platformUsers.GetAllQueryable()
+                .FirstOrDefaultAsync(u => phoneVariants.Contains(u.Phone));
+            if (byPhone != null) return byPhone;
+        }
+
+        var normalizedEmail = NormalizeEmail(email);
+        if (string.IsNullOrWhiteSpace(normalizedEmail)) return null;
+
+        return await _platformUsers.GetAllQueryable()
+            .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == normalizedEmail);
+    }
+
+    private static string? NormalizeEmail(string? email)
+        => string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
+
     /// <summary>Salonun aktif uyelik planlarini getir</summary>
     public async Task<object?> GetMembershipPlansAsync(string slug)
     {
@@ -449,29 +574,13 @@ public class SlnPublicFactory : ISlnPublicFactory
             return (false, "Ad ve telefon zorunludur.", null);
 
         // Musteri bul veya olustur
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
 
-        if (client == null)
-        {
-            client = new SlnClient
-            {
-                CustomerId = cid,
-                FullName = dto.FullName,
-                Phone = dto.Phone,
-                Email = dto.Email
-            };
-            _clients.Add(client);
-            await _uow.SaveChangesAsync();
-        }
-        else
-        {
-            // Mevcut musterinin zaten aktif uyeligi var mi?
-            var existing = await _clientMemberships.GetAllQueryable()
-                .AnyAsync(m => m.SlnClientId == client.Id && m.CustomerId == cid && m.StatusId == 1);
-            if (existing)
-                return (false, "Bu telefon numarasina ait zaten aktif bir uyelik bulunmaktadir.", null);
-        }
+        // Mevcut musterinin zaten aktif uyeligi var mi?
+        var existing = await _clientMemberships.GetAllQueryable()
+            .AnyAsync(m => m.SlnClientId == client.Id && m.CustomerId == cid && m.StatusId == 1);
+        if (existing)
+            return (false, "Bu telefon numarasina ait zaten aktif bir uyelik bulunmaktadir.", null);
 
         if (plan.Price > 0m)
         {
@@ -502,6 +611,7 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         _clientMemberships.Add(membership);
         await _uow.SaveChangesAsync();
+        await LinkPlatformUserToSalonAsync(cid, client, dto.Phone, dto.Email);
 
         return (true, null, new
         {
@@ -844,22 +954,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         // ── ADIM 3: Müşteri bul / oluştur ──────────────────────────────────
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
-
-        if (client == null)
-        {
-            client = new SlnClient
-            {
-                CustomerId = cid,
-                FullName = dto.FullName,
-                Phone = dto.Phone,
-                Email = dto.Email
-            };
-            _clients.Add(client);
-            await _uow.SaveChangesAsync();
-        }
-        else if (client.IsBlacklisted)
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        if (client.IsBlacklisted)
         {
             return (false, "Gecmis randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen salonu arayiniz.", null);
         }
@@ -915,6 +1011,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             SortOrder = 0
         });
         await _uow.SaveChangesAsync();
+        await LinkPlatformUserToSalonAsync(cid, client, dto.Phone, dto.Email);
 
         return (true, null, new
         {
@@ -1029,22 +1126,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
 
         // Müşteri bul / oluştur
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
-
-        if (client == null)
-        {
-            client = new SlnClient
-            {
-                CustomerId = cid,
-                FullName = dto.FullName,
-                Phone = dto.Phone,
-                Email = dto.Email
-            };
-            _clients.Add(client);
-            await _uow.SaveChangesAsync();
-        }
-        else if (client.IsBlacklisted)
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        if (client.IsBlacklisted)
         {
             return (false, "Daha onceki randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen bu subeden randevu almak icin dogrudan salonla iletisime gecin.", null);
         }
@@ -1076,6 +1159,7 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         if (!requireDeposit)
         {
+            await LinkPlatformUserToSalonAsync(cid, client, dto.Phone, dto.Email);
             return (true, null, new
             {
                 success = true,
@@ -1131,20 +1215,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (service == null) return (false, "Hizmet bulunamadi", null);
 
         // Telefonla mevcut musteri var mi? Yoksa hizli olustur (lead).
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Phone == dto.Phone && c.CustomerId == cid);
-        if (client == null)
-        {
-            client = new SlnClient
-            {
-                CustomerId = cid,
-                FullName = dto.FullName,
-                Phone = dto.Phone,
-                Email = dto.Email
-            };
-            _clients.Add(client);
-            await _uow.SaveChangesAsync();
-        }
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
 
         // Ayni telefon + tarih + hizmet icin acik (StatusId=1) waitlist varsa cogaltma
         var preferredDate = DateTime.SpecifyKind(dto.PreferredDate.Date, DateTimeKind.Utc);
@@ -1171,6 +1242,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         };
         _waitlist.Add(entry);
         await _uow.SaveChangesAsync();
+        await LinkPlatformUserToSalonAsync(cid, client, dto.Phone, dto.Email);
 
         return (true, null, new
         {
