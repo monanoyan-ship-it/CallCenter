@@ -90,6 +90,22 @@ public class PlatformController : ControllerBase
         return Ok(new { message });
     }
 
+    /// <summary>
+    /// Phase 9 — Tamamlanmis/onayli randevunun salon-tarafi tahsilati. Salon iyzico Pazaryeri kayitliysa
+    /// sub-merchant split ile checkout form baslatir; kayitli degilse hata doner. Booking depozitosu
+    /// burada hesaba katilmaz (depozito = platform geliri, post-pay = salon geliri).
+    /// </summary>
+    [HttpPost("appointments/{id}/pay-checkout")]
+    public async Task<ActionResult<PlatformPayAppointmentResponse>> PayAppointmentCheckout(
+        int id, [FromBody] PlatformPayAppointmentRequest? body)
+    {
+        var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var resp = await _factory.PayAppointmentCheckoutAsync(
+            GetPlatformUserId(), id, body?.CallbackUrl, buyerIp);
+        if (!resp.Success) return BadRequest(resp);
+        return Ok(resp);
+    }
+
     // ═══ SADAKAt ═══
 
     /// <summary>Sadakat bilgilerim (salon bazlı)</summary>

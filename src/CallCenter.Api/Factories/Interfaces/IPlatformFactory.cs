@@ -15,6 +15,9 @@ public interface IPlatformFactory
     Task<(int? AppointmentId, string? Error)> CreateAppointmentAsync(int platformUserId, PlatformCreateAppointmentDto dto);
     Task<(bool Success, string? Error, string? Message)> CancelAppointmentAsync(int platformUserId, int appointmentId);
 
+    /// <summary>Phase 9: tamamlanmis/onayli randevu icin salona online tahsilat (sub-merchant split).</summary>
+    Task<PlatformPayAppointmentResponse> PayAppointmentCheckoutAsync(int platformUserId, int appointmentId, string? callbackUrl, string? buyerIp);
+
     // Sadakat
     Task<List<PlatformLoyaltyDto>> GetMyLoyaltyAsync(int platformUserId);
 

@@ -46,6 +46,27 @@ public class PaymentService
         }
     }
 
+    private async Task EnsurePlatformUserSalonLinkAsync(int platformUserId, int customerId, int slnClientId)
+    {
+        var link = await _db.PlatformUserSalons
+            .FirstOrDefaultAsync(s => s.PlatformUserId == platformUserId && s.CustomerId == customerId);
+
+        if (link == null)
+        {
+            _db.PlatformUserSalons.Add(new PlatformUserSalon
+            {
+                PlatformUserId = platformUserId,
+                CustomerId = customerId,
+                SlnClientId = slnClientId,
+                IsActive = true
+            });
+            return;
+        }
+
+        link.IsActive = true;
+        link.SlnClientId ??= slnClientId;
+    }
+
     private static int GetEffectiveSubscriptionIntervalMonths(SubscriptionPlan? plan)
     {
         var interval = plan?.IntervalMonths ?? 0;
@@ -1008,6 +1029,7 @@ public class PaymentService
                 PaidAmount = plan.Price,
                 StatusId = 1 // Active
             });
+            await EnsurePlatformUserSalonLinkAsync(platformUserId, plan.CustomerId, slnClientId);
 
             _logger.LogInformation("Uyelik odemesi basarili: PlanId={PlanId}, PlatformUserId={UserId}", planId, platformUserId);
         }
@@ -1661,6 +1683,28 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             if (tx.PaymentTypeId == PaymentTypes.Ids.UyelikOdemesi && TryReadMembershipPlanId(tx.Notes).HasValue)
                 await ActivateSalonCustomerMembershipAfterPaymentAsync(tx);
 
+            // Phase 9 — Post-appointment payment (salon adisyonu, sub-merchant split): notes "PayAppointment:{id}".
+            // Booking depozitosundan farkli: amount randevu hizmet bedeline aittir, salonun gelirine yazilir.
+            if (tx.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon && tx.Notes?.StartsWith("PayAppointment:") == true)
+            {
+                var firstSep = tx.Notes.IndexOfAny(new[] { '|', '\n' });
+                var head = firstSep >= 0 ? tx.Notes.Substring(0, firstSep) : tx.Notes;
+                if (int.TryParse(head.Substring("PayAppointment:".Length), out var aptId))
+                {
+                    var apt = await _db.SlnAppointments.FirstOrDefaultAsync(a => a.Id == aptId);
+                    if (apt != null)
+                    {
+                        // Online odeme yapildi isaretle. PrepaidAmount toplam odenen (deposit + post-pay) olmasin
+                        // diye PaymentTransaction kayitlari uzerinden ayri sorgulanir (GetAppointmentPaidAmountAsync).
+                        // Burada sadece IsPrepaid=true kalir; depozito mantigini bozmamak icin PrepaidAmount yazilmaz.
+                        apt.IsPrepaid = true;
+                        apt.UpdatedAt = DateTime.UtcNow;
+                        tx.Notes = AddNoteEvent(tx.Notes, "AppointmentPaymentApplied",
+                            $"AppointmentId={aptId} salon adisyonu olarak isleme alindi.");
+                    }
+                }
+            }
+
             // Randevu depozitosu ise randevuyu onayli yap (StatusId 6 = AwaitingPayment → 2 = Confirmed)
             if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
             {
@@ -1680,13 +1724,16 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
                     if (tx.PlatformUserId == null && apt?.SlnClient?.Phone != null)
                     {
-                        var norm = PhoneHelper.Normalize(apt.SlnClient.Phone);
-                        if (!string.IsNullOrEmpty(norm))
+                        var phoneVariants = PhoneHelper.GetLookupVariants(apt.SlnClient.Phone);
+                        if (phoneVariants.Count > 0)
                         {
-                            var pu = await _db.PlatformUsers.FirstOrDefaultAsync(u => u.Phone == norm);
+                            var pu = await _db.PlatformUsers.FirstOrDefaultAsync(u => phoneVariants.Contains(u.Phone));
                             if (pu != null) tx.PlatformUserId = pu.Id;
                         }
                     }
+
+                    if (tx.PlatformUserId.HasValue && tx.CustomerId.HasValue && apt?.SlnClient != null)
+                        await EnsurePlatformUserSalonLinkAsync(tx.PlatformUserId.Value, tx.CustomerId.Value, apt.SlnClient.Id);
                 }
             }
 
@@ -1764,6 +1811,143 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             await _db.SaveChangesAsync();
             return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Phase 9 — Tamamlanmis/onayli randevunun salon-tarafi tahsilati (post-appointment).
+    /// Booking depozitosundan farkli: ZORUNLU sub-merchant split (salon iyzico Pazaryeri kayitli olmali).
+    /// PaymentTypeId = SalonAdisyon (1) — bu salon adisyonudur, platform geliri komisyon olarak ayrisir.
+    /// </summary>
+    public async Task<CheckoutFormResult> InitPayAppointmentCheckoutAsync(
+        int customerId, int appointmentId, decimal amount,
+        int platformUserId, string buyerFullName, string buyerEmail,
+        string callbackUrl, string? buyerIp = null)
+    {
+        if (amount <= 0)
+            return CheckoutFormResult.Fail("Odenecek tutar gecerli degil.");
+
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        // Salon Pazaryeri kaydi ZORUNLU — yoksa Salon online tahsilat alamaz.
+        var split = await GetMarketplaceSplitAsync(customerId, amount, requireSplit: true);
+        if (!split.Success)
+            return CheckoutFormResult.Fail(split.Error ?? "Salon online tahsilat icin hazir degil.");
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.SalonAdisyon,
+            CustomerId = customerId,
+            PlatformUserId = platformUserId,
+            Amount = amount,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Provider = PaymentProviders.GetById(config.ProviderTypeId)?.SystemName ?? "Iyzico",
+            Notes = $"PayAppointment:{appointmentId}"
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var gateway = _gatewayFactory.Create(config);
+            if (gateway is not IyzicoGateway iyzicoGw)
+                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
+
+            var req = new CheckoutFormRequest
+            {
+                Amount = amount,
+                ConversationId = tx.Uid.ToString("N"),
+                CallbackUrl = callbackUrl,
+                BuyerId = $"pu-{platformUserId}",
+                BuyerName = string.IsNullOrWhiteSpace(buyerFullName) ? "Musteri" : buyerFullName,
+                BuyerEmail = string.IsNullOrWhiteSpace(buyerEmail) ? "noreply@corplynk.com" : buyerEmail,
+                BuyerIp = buyerIp,
+                Description = $"Randevu Odemesi - {amount:N2} TL",
+                SubMerchantKey = split.SubMerchantKey,
+                SubMerchantPrice = split.SubMerchantPrice
+            };
+
+            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            if (result.Success)
+            {
+                tx.ProviderTransactionId = result.Token;
+                tx.Notes = AddNoteEvent(tx.Notes, "MarketplaceSplit",
+                    $"Komisyon={split.CommissionAmount:F2} ({split.CommissionPercent}%), SubMerchantPrice={split.SubMerchantPrice:F2}");
+                await _db.SaveChangesAsync();
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = ex.Message;
+            await _db.SaveChangesAsync();
+            return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Phase 9 yardimcisi — bir randevu icin online tahsilat yoluyla salona odenmis toplam (basarili tx Sum).
+    /// Notes "PayAppointment:{id}" prefiksi ile match edilir.
+    /// </summary>
+    public async Task<decimal> GetAppointmentPaidAmountAsync(int appointmentId)
+    {
+        var prefix = $"PayAppointment:{appointmentId}";
+        var sum = await _db.PaymentTransactions
+            .Where(t => t.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon
+                        && t.StatusId == PaymentStatuses.Ids.Basarili
+                        && t.Notes != null
+                        && (t.Notes == prefix || t.Notes.StartsWith(prefix + "|") || t.Notes.StartsWith(prefix + "\n")))
+            .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+        return sum;
+    }
+
+    /// <summary>
+    /// Phase 9 toplu yardimcisi — coklu randevu icin Notes prefix bazli odenmis toplamlari toplar (Map<aptId, paid>).
+    /// </summary>
+    public async Task<Dictionary<int, decimal>> GetAppointmentPaidAmountsAsync(IEnumerable<int> appointmentIds)
+    {
+        var ids = appointmentIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, decimal>();
+
+        var prefixes = ids.Select(id => $"PayAppointment:{id}").ToList();
+        // EF translatable degil — once aday tx'leri filtrele, sonra in-memory grupla.
+        var candidates = await _db.PaymentTransactions
+            .Where(t => t.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon
+                        && t.StatusId == PaymentStatuses.Ids.Basarili
+                        && t.Notes != null
+                        && t.Notes.StartsWith("PayAppointment:"))
+            .Select(t => new { t.Notes, t.Amount })
+            .ToListAsync();
+
+        var result = ids.ToDictionary(id => id, _ => 0m);
+        foreach (var c in candidates)
+        {
+            var notes = c.Notes ?? string.Empty;
+            // Notes formati: "PayAppointment:{id}" + opsiyonel "|..." veya "\n..."
+            var firstSep = notes.IndexOfAny(new[] { '|', '\n' });
+            var head = firstSep >= 0 ? notes.Substring(0, firstSep) : notes;
+            if (!head.StartsWith("PayAppointment:")) continue;
+            if (!int.TryParse(head.Substring("PayAppointment:".Length), out var aptId)) continue;
+            if (result.ContainsKey(aptId)) result[aptId] += c.Amount;
+        }
+        return result;
+    }
+
+    /// <summary>Bir salon icin online tahsilat acik mi (sub-merchant onboarded). Phase 9 GetMyAppointments yardimcisi.</summary>
+    public async Task<HashSet<int>> GetCustomersWithActiveSubMerchantAsync(IEnumerable<int> customerIds)
+    {
+        var ids = customerIds.Distinct().ToList();
+        if (ids.Count == 0) return new HashSet<int>();
+
+        return (await _db.Set<SlnSalonProfile>()
+            .Where(p => ids.Contains(p.CustomerId)
+                        && p.IyzicoSubMerchantKey != null
+                        && p.IyzicoSubMerchantKey != ""
+                        && p.IyzicoOnboardingStatus == 2)
+            .Select(p => p.CustomerId)
+            .ToListAsync()).ToHashSet();
     }
 
     /// <summary>Randevu depozitosu iadesi. PaymentTransaction.ProviderPaymentId ile Iyzico'ya iade isteği gönderir.</summary>

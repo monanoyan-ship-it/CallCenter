@@ -18,7 +18,8 @@ public class PlatformLoginDto
 
 public class PlatformAuthResponse
 {
-    public string Token { get; set; } = string.Empty;
+    public string? Token { get; set; }
+    public bool RequiresEmailVerification { get; set; }
     public PlatformUserDto User { get; set; } = null!;
 }
 
@@ -30,6 +31,7 @@ public class PlatformUserDto
     public string FullName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string? Email { get; set; }
+    public bool IsEmailVerified { get; set; }
     public string? AvatarUrl { get; set; }
     public int SalonCount { get; set; }
     public int BillingType { get; set; }
@@ -106,6 +108,25 @@ public class PlatformAppointmentDto
     public string? StatusName { get; set; }
     public bool IsPrepaid { get; set; }
     public decimal PrepaidAmount { get; set; }
+
+    /// <summary>Salon icin online tahsilat acik (sub-merchant onboarded) ve kalan bakiye var.</summary>
+    public bool CanPay { get; set; }
+    /// <summary>Mobilden online tahsilat ile salona odenebilecek kalan tutar.</summary>
+    public decimal RemainingAmount { get; set; }
+}
+
+public class PlatformPayAppointmentRequest
+{
+    /// <summary>Iyzico Checkout Form 3DS callback (mobil deep-link / web url).</summary>
+    public string? CallbackUrl { get; set; }
+}
+
+public class PlatformPayAppointmentResponse
+{
+    public bool Success { get; set; }
+    public string? HtmlContent { get; set; }
+    public string? Token { get; set; }
+    public string? Error { get; set; }
 }
 
 public class PlatformCreateAppointmentDto

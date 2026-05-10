@@ -4,6 +4,7 @@ using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -78,10 +79,11 @@ public class PlatformFactory : IPlatformFactory
             .Select(u => u.Phone)
             .FirstOrDefaultAsync();
 
-        if (!string.IsNullOrWhiteSpace(phone))
+        var phoneVariants = PhoneHelper.GetLookupVariants(phone);
+        if (phoneVariants.Count > 0)
         {
             var matchingClients = await _clientEs.GetAllQueryable()
-                .Where(c => c.Phone == phone && c.IsActive)
+                .Where(c => c.Phone != null && phoneVariants.Contains(c.Phone) && c.IsActive)
                 .Select(c => new { c.Id, c.CustomerId, c.CreatedAt })
                 .ToListAsync();
 
@@ -185,15 +187,20 @@ public class PlatformFactory : IPlatformFactory
         var platformUser = await _platformUserEs.GetByIdAsync(platformUserId);
         if (platformUser == null) return (false, null);
 
-        var slnClient = await _clientEs.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Phone == platformUser.Phone);
+        var phoneVariants = PhoneHelper.GetLookupVariants(platformUser.Phone);
+        var normalizedPhone = PhoneHelper.Normalize(platformUser.Phone) ?? platformUser.Phone;
+
+        var slnClient = phoneVariants.Count == 0
+            ? null
+            : await _clientEs.GetAllQueryable()
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Phone != null && phoneVariants.Contains(c.Phone));
         if (slnClient == null)
         {
             slnClient = new SlnClient
             {
                 CustomerId = customerId,
                 FullName = platformUser.FullName,
-                Phone = platformUser.Phone,
+                Phone = normalizedPhone,
                 Email = platformUser.Email
             };
             _clientEs.Add(slnClient);
@@ -204,6 +211,7 @@ public class PlatformFactory : IPlatformFactory
             slnClient.IsActive = true;
             if (string.IsNullOrWhiteSpace(slnClient.FullName)) slnClient.FullName = platformUser.FullName;
             if (string.IsNullOrWhiteSpace(slnClient.Email)) slnClient.Email = platformUser.Email;
+            if (!string.IsNullOrWhiteSpace(normalizedPhone) && slnClient.Phone != normalizedPhone) slnClient.Phone = normalizedPhone;
             slnClient.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -213,7 +221,11 @@ public class PlatformFactory : IPlatformFactory
         if (existing != null)
         {
             if (existing.IsActive)
-                return (false, "Bu salona zaten üyesiniz.");
+            {
+                existing.SlnClientId ??= slnClient.Id;
+                await _uow.SaveChangesAsync();
+                return (true, null);
+            }
 
             existing.IsActive = true;
             existing.JoinedAt = DateTime.UtcNow;
@@ -306,6 +318,10 @@ public class PlatformFactory : IPlatformFactory
                 .Where(s => legacyServiceIds.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id);
 
+        // Phase 9 — CanPay + RemainingAmount: salonun sub-merchant durumu + bu randevu icin yapilmis post-pay toplami.
+        var subMerchantCustomerIds = await _paymentService.GetCustomersWithActiveSubMerchantAsync(customerIds);
+        var paidByApt = await _paymentService.GetAppointmentPaidAmountsAsync(appointments.Select(a => a.Id));
+
         return appointments.Select(a =>
         {
             var serviceNames = a.Services?
@@ -323,6 +339,16 @@ public class PlatformFactory : IPlatformFactory
                 totalPrice = legacyService.Price;
             }
 
+            var alreadyPaid = paidByApt.GetValueOrDefault(a.Id, 0m);
+            var remaining = totalPrice - alreadyPaid;
+            if (remaining < 0m) remaining = 0m;
+
+            // Iptal/NoShow disinda + tutar > 0 + salon online tahsilat acik + kalan bakiye var.
+            var canPay = remaining > 0m
+                         && totalPrice > 0m
+                         && a.StatusId != 4 && a.StatusId != 5
+                         && subMerchantCustomerIds.Contains(a.CustomerId);
+
             return new PlatformAppointmentDto
             {
                 Id = a.Id,
@@ -336,9 +362,68 @@ public class PlatformFactory : IPlatformFactory
                 TotalPrice = totalPrice,
                 StatusId = a.StatusId,
                 IsPrepaid = a.IsPrepaid,
-                PrepaidAmount = a.PrepaidAmount
+                PrepaidAmount = a.PrepaidAmount,
+                CanPay = canPay,
+                RemainingAmount = remaining
             };
         }).ToList();
+    }
+
+    public async Task<PlatformPayAppointmentResponse> PayAppointmentCheckoutAsync(
+        int platformUserId, int appointmentId, string? callbackUrl, string? buyerIp)
+    {
+        var clientIds = await GetMyClientIds(platformUserId);
+
+        var apt = await _appointmentEs.GetAllQueryable()
+            .Include(a => a.Services).ThenInclude(s => s.SlnService)
+            .FirstOrDefaultAsync(a => a.Id == appointmentId && clientIds.Contains(a.SlnClientId));
+        if (apt == null)
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Randevu bulunamadi." };
+
+        if (apt.StatusId == 4 || apt.StatusId == 5)
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Iptal veya gelinmedi durumundaki randevu icin tahsilat yapilamaz." };
+
+        var totalPrice = apt.Services?.Sum(s => s.SlnService?.Price ?? 0) ?? 0;
+        if (totalPrice <= 0m && apt.ServiceId.HasValue)
+        {
+            var legacy = await _serviceEs.GetAllQueryable()
+                .FirstOrDefaultAsync(s => s.Id == apt.ServiceId.Value);
+            if (legacy != null) totalPrice = legacy.Price;
+        }
+        if (totalPrice <= 0m)
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Bu randevuda tutar tanimli degil." };
+
+        var alreadyPaid = await _paymentService.GetAppointmentPaidAmountAsync(apt.Id);
+        var remaining = totalPrice - alreadyPaid;
+        if (remaining <= 0m)
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Bu randevu icin odenecek tutar kalmadi." };
+
+        var platformUser = await _platformUserEs.GetAllQueryable()
+            .FirstOrDefaultAsync(u => u.Id == platformUserId);
+        if (platformUser == null)
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Platform kullanicisi bulunamadi." };
+
+        var fallbackCallback = string.IsNullOrWhiteSpace(callbackUrl)
+            ? "corplynk-salon://payment/callback"
+            : callbackUrl!;
+
+        var result = await _paymentService.InitPayAppointmentCheckoutAsync(
+            customerId: apt.CustomerId,
+            appointmentId: apt.Id,
+            amount: remaining,
+            platformUserId: platformUserId,
+            buyerFullName: platformUser.FullName ?? "Musteri",
+            buyerEmail: platformUser.Email ?? "noreply@corplynk.com",
+            callbackUrl: fallbackCallback,
+            buyerIp: buyerIp);
+
+        return new PlatformPayAppointmentResponse
+        {
+            Success = result.Success,
+            HtmlContent = result.HtmlContent,
+            Token = result.Token,
+            Error = result.Error
+        };
     }
 
     public async Task<(int? AppointmentId, string? Error)> CreateAppointmentAsync(int platformUserId, PlatformCreateAppointmentDto dto)
@@ -469,10 +554,11 @@ public class PlatformFactory : IPlatformFactory
 
             var phone = await _platformUserEs.GetAllQueryable()
                 .Where(u => u.Id == platformUserId).Select(u => u.Phone).FirstOrDefaultAsync();
+            var phoneVariants = PhoneHelper.GetLookupVariants(phone);
 
             var giftCards = await _giftCardEs.GetAllQueryable()
                 .Where(g => g.CustomerId == link.CustomerId && g.IsActive && g.RemainingBalance > 0
-                    && g.RecipientPhone == phone)
+                    && g.RecipientPhone != null && phoneVariants.Contains(g.RecipientPhone))
                 .Select(g => new PlatformGiftCardDto
                 {
                     Code = g.Code,
@@ -548,10 +634,11 @@ public class PlatformFactory : IPlatformFactory
             .Select(u => u.Phone)
             .FirstOrDefaultAsync();
 
-        if (!string.IsNullOrEmpty(phone))
+        var phoneVariants = PhoneHelper.GetLookupVariants(phone);
+        if (phoneVariants.Count > 0)
         {
             var byPhone = await _clientEs.GetAllQueryable()
-                .Where(c => c.Phone == phone)
+                .Where(c => c.Phone != null && phoneVariants.Contains(c.Phone))
                 .Select(c => c.Id)
                 .ToListAsync();
             linked.AddRange(byPhone);
