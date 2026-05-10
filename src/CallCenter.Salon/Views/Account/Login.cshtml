@@ -1,15 +1,18 @@
+@using System.Globalization
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("salon.account.auto.giris", "Giriş");
+    ViewData["Title"] = Translation.T("salon.account.login_title", "Giriş");
     Layout = null;
     var registeredFlag = string.Equals(Context.Request.Query["registered"], "1", StringComparison.Ordinal);
+    var pageLang = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    string T(string key, string fallback) => Translation.T(key, fallback);
 }
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@pageLang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title><t key="salon.account.auto.corplynk_salon_giris">CorpLynk Salon - Giriş</t></title>
+    <title>@T("salon.account.auto.corplynk_salon_giris", "CorpLynk Salon - Giriş")</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
@@ -19,34 +22,43 @@
         .brand span { color: #ce93d8; }
         .btn-salon { background: #7b1fa2; border: none; color: #fff; }
         .btn-salon:hover { background: #6a1b9a; color: #fff; }
+        .language-holder { position: absolute; top: 10px; right: 10px; }
     </style>
 </head>
 <body>
+    <div class="language-holder">
+        @await Html.PartialAsync("_LanguageMenu", "auth")
+    </div>
+
     <div class="login-card">
         <a href="/" class="text-decoration-none small text-muted d-inline-flex align-items-center mb-3">
-            <i class="bi bi-arrow-left me-1"></i>Geri
+            <i class="bi bi-arrow-left me-1"></i><t key="salon.book.btn.back">Geri</t>
         </a>
         <div class="text-center mb-4">
             <div class="brand"><i class="bi bi-scissors me-2"></i>CorpLynk <span><t key="salon.account.auto.salon">Salon</t></span></div>
-            <small class="text-muted"><t key="salon.account.auto.salon_yonetim_sistemi">Salon Yonetim Sistemi</t></small>
+            <small class="text-muted"><t key="salon.account.auto.salon_yonetim_sistemi">Salon Yönetim Sistemi</t></small>
         </div>
 
         @if (registeredFlag)
         {
             <div class="alert alert-info py-2 small">
                 <i class="bi bi-envelope-check me-1"></i>
-                <t key="salon.account.register.email_sent">Kayıt başarılı. Doğrulama bağlantısı email adresine gönderildi. Giriş yapmadan önce mail kutunu kontrol et.</t>
+                <t key="salon.account.register.email_sent">Kayıt başarılı. Doğrulama bağlantısı e-posta adresine gönderildi. Giriş yapmadan önce mail kutunu kontrol et.</t>
             </div>
         }
-        @if (ViewBag.Error != null)
+        @if (ViewBag.ErrorKey != null)
+        {
+            <div class="alert alert-danger py-2 small"><t key="@ViewBag.ErrorKey">@ViewBag.ErrorFallback</t></div>
+        }
+        else if (ViewBag.Error != null)
         {
             <div class="alert alert-danger py-2 small">@ViewBag.Error</div>
         }
 
         <form method="post">
             <div class="mb-3">
-                <label class="form-label small">Kullanici Adi</label>
-                <input type="text" name="username" class="form-control" required autofocus />
+                <label class="form-label small"><t key="salon.account.username">Kullanıcı Adı</t></label>
+                <input type="text" name="username" class="form-control" value="@ViewBag.Username" required autofocus />
             </div>
             <div class="mb-3">
                 <label class="form-label small"><t key="salon.account.password">Şifre</t></label>
@@ -54,9 +66,12 @@
             </div>
             <div class="mb-3 form-check">
                 <input type="checkbox" name="rememberMe" value="true" class="form-check-input" id="rememberMe" />
-                <label class="form-check-label small" for="rememberMe"><t key="salon.account.auto.beni_hatirla">Beni hatırla</t><span class="text-muted"><t key="salon.account.auto.30_gun">(30 gün)</t></span></label>
+                <label class="form-check-label small" for="rememberMe">
+                    <t key="salon.account.auto.beni_hatirla">Beni hatırla</t>
+                    <span class="text-muted"><t key="salon.account.auto.30_gun">(30 gün)</t></span>
+                </label>
             </div>
-            <button type="submit" class="btn btn-salon w-100"><t key="salon.account.auto.giris_yap">Giriş Yap</t></button>
+            <button type="submit" class="btn btn-salon w-100"><t key="salon.account.btn.login">Giriş Yap</t></button>
         </form>
 
         <div class="d-flex justify-content-between mt-3 small">
@@ -65,7 +80,10 @@
         </div>
 
         <div class="text-center mt-3">
-            <small class="text-muted"><t key="salon.account.no_account">Hesabınız yok mu?</t> <a href="/Account/Register" class="text-decoration-none" style="color:#7b1fa2"><t key="salon.account.auto.ucretsiz_kayit_ol">Ücretsiz Kayıt Ol</t></a></small>
+            <small class="text-muted">
+                <t key="salon.account.no_account">Hesabınız yok mu?</t>
+                <a href="/Account/Register" class="text-decoration-none" style="color:#7b1fa2"><t key="salon.account.auto.ucretsiz_kayit_ol">Ücretsiz Kayıt Ol</t></a>
+            </small>
         </div>
     </div>
 </body>

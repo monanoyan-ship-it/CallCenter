@@ -50,8 +50,8 @@ public class PlatformReviewController : ControllerBase
         if (comment.Length > 1000)
             return BadRequest(new { message = "Yorum en fazla 1000 karakter olabilir." });
 
-        var customerId = await ResolveCustomerIdAsync(request.SalonSlug);
-        if (customerId == null)
+        var target = await ResolveSalonTargetAsync(request.SalonSlug);
+        if (target == null)
             return NotFound(new { message = "Salon bulunamadı." });
 
         var platformUserId = GetPlatformUserId();
@@ -59,7 +59,7 @@ public class PlatformReviewController : ControllerBase
 
         // Mevcut yorum var mi? (Ayni salon + ayni PlatformUser)
         var existing = await _reviewEs.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.CustomerId == customerId.Value && r.PlatformUserId == platformUserId);
+            .FirstOrDefaultAsync(r => r.CustomerId == target.CustomerId && r.PlatformUserId == platformUserId);
 
         if (existing != null)
         {
@@ -68,12 +68,12 @@ public class PlatformReviewController : ControllerBase
             existing.StatusId = 1; // Bekliyor (admin tekrar onaylasin)
             existing.CreatedAt = DateTime.UtcNow;
             await _uow.SaveChangesAsync();
-            return Ok(MapDto(existing));
+            return Ok(MapDto(existing, target.SalonName));
         }
 
         var review = new SlnReview
         {
-            CustomerId = customerId.Value,
+            CustomerId = target.CustomerId,
             PlatformUserId = platformUserId,
             ClientName = request.DisplayName,
             Rating = request.Rating,
@@ -83,7 +83,7 @@ public class PlatformReviewController : ControllerBase
         };
         _reviewEs.Add(review);
         await _uow.SaveChangesAsync();
-        return Ok(MapDto(review));
+        return Ok(MapDto(review, target.SalonName));
     }
 
     /// <summary>PlatformUser'in yazdigi tum yorumlar.</summary>
@@ -115,24 +115,33 @@ public class PlatformReviewController : ControllerBase
     private int GetPlatformUserId()
         => int.Parse(User.FindFirst("PlatformUserId")?.Value ?? "0");
 
-    private async Task<int?> ResolveCustomerIdAsync(string slug)
+    private async Task<ReviewSalonTarget?> ResolveSalonTargetAsync(string slug)
     {
         var s = slug.Trim();
-        var branch = await _branchEs.GetAllQueryable().FirstOrDefaultAsync(b => b.Slug == s);
-        if (branch != null) return branch.CustomerId;
+        var branch = await _branchEs.GetAllQueryable()
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b => b.Slug == s);
+        if (branch != null)
+            return new ReviewSalonTarget(branch.CustomerId, branch.Customer?.Name ?? branch.Name);
 
-        var profile = await _profileEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Slug == s);
-        return profile?.CustomerId;
+        var profile = await _profileEs.GetAllQueryable()
+            .Include(p => p.Customer)
+            .FirstOrDefaultAsync(p => p.Slug == s);
+        if (profile == null) return null;
+
+        return new ReviewSalonTarget(profile.CustomerId, profile.Customer?.Name ?? profile.Slug);
     }
 
-    private static PlatformReviewDto MapDto(SlnReview r) => new()
+    private static PlatformReviewDto MapDto(SlnReview r, string? salonName = null) => new()
     {
         Id = r.Id,
         CustomerId = r.CustomerId,
-        SalonName = r.Customer?.Name ?? "",
+        SalonName = salonName ?? r.Customer?.Name ?? "",
         Rating = r.Rating,
         Comment = r.Comment,
         StatusId = r.StatusId,
         CreatedAt = r.CreatedAt
     };
+
+    private sealed record ReviewSalonTarget(int CustomerId, string SalonName);
 }

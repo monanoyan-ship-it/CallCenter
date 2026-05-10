@@ -20,14 +20,21 @@
     @{
         var salonName = ViewData["SalonName"] as string ?? "Salon";
         var salonDesc = ViewData["SalonDescription"] as string ?? Translation.T("salon.profile.meta.default_desc", "Online randevu al");
-        var salonCity = ViewData["SalonCity"] as string;
-        var salonDistrict = ViewData["SalonDistrict"] as string;
+        var salonCity = (ViewData["SalonCity"] as string)?.Trim();
+        var salonDistrict = (ViewData["SalonDistrict"] as string)?.Trim();
         var salonLogo = ViewData["SalonLogo"] as string;
-        var location = salonDistrict != null && salonCity != null ? $"{salonDistrict}, {salonCity}" : salonCity;
+        var location = "";
+        if (!string.IsNullOrWhiteSpace(salonDistrict) && !string.IsNullOrWhiteSpace(salonCity))
+            location = $"{salonDistrict}, {salonCity}";
+        else if (!string.IsNullOrWhiteSpace(salonCity))
+            location = salonCity;
+        else if (!string.IsNullOrWhiteSpace(salonDistrict))
+            location = salonDistrict;
+        var hasLocation = !string.IsNullOrWhiteSpace(location);
         var titleSuffix = Translation.T("salon.profile.meta.title_suffix", "Online Randevu");
         var metaAction = Translation.T("salon.profile.meta.action", "CorpLynk Salon ile online randevu al.");
-        var pageTitle = location != null ? $"{salonName} - {location} | {titleSuffix}" : $"{salonName} | {titleSuffix}";
-        var metaDesc = location != null ? $"{salonName} - {location}. {salonDesc}. {metaAction}" : $"{salonName}. {salonDesc}. {metaAction}";
+        var pageTitle = hasLocation ? $"{salonName} - {location} | {titleSuffix}" : $"{salonName} | {titleSuffix}";
+        var metaDesc = hasLocation ? $"{salonName} - {location}. {salonDesc}. {metaAction}" : $"{salonName}. {salonDesc}. {metaAction}";
     }
     <title>@pageTitle</title>
     <meta name="description" content="@metaDesc" />
@@ -870,7 +877,7 @@
 
                 var price = self.signupPlanPrice();
                 if (price > 0) {
-                    var token = localStorage.getItem('platformToken');
+                    var token = getStoredPlatformToken();
                     if (!token) {
                         toastr.warning(profileT('salon.profile.membership.login_required', 'Ücretli salon üyeliği için müşteri girişi gereklidir.'));
                         var returnUrl = window.location.pathname + window.location.search + '#section-memberships';
@@ -892,7 +899,13 @@
                         email: self.signupForm.email() || null
                     })
                 })
-                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                .then(function (r) {
+                    return r.text().then(function (text) {
+                        var data = {};
+                        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
+                })
                 .then(function (res) {
                     if (!res.ok || !res.data.success) {
                         self.isSubmitting(false);
@@ -902,7 +915,7 @@
 
                     // Ucretli plan ise guvenli checkout formunu baslat
                     if (price > 0 && res.data.slnClientId) {
-                        var token = localStorage.getItem('platformToken');
+                        var token = getStoredPlatformToken();
                         fetch('/public-proxy/payments/membership-checkout', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -960,6 +973,16 @@
             if (el) el.style.display = value;
         }
 
+        function getStoredPlatformToken() {
+            var token = localStorage.getItem('platformToken');
+            if (!token || token === 'null' || token === 'undefined') {
+                localStorage.removeItem('platformToken');
+                localStorage.removeItem('platformUser');
+                return '';
+            }
+            return token;
+        }
+
         (function () {
             var qs = new URLSearchParams(window.location.search);
             if (qs.get('paid') === 'true') toastr.success(profileT('salon.profile.membership.payment_success', 'Ödeme başarılı. Salon üyeliğiniz aktif edildi.'));
@@ -969,21 +992,35 @@
 
         // ═══ Platform User: Salon Müşterisi Ol ═══
         (function () {
-            var token = localStorage.getItem('platformToken');
+            var token = getStoredPlatformToken();
             var salonSlug = '@slug';
 
             if (!token) {
+                var loginJoin = document.getElementById('btnLoginToJoin');
+                if (loginJoin) loginJoin.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
                 setJoinAreaDisplay('btnLoginToJoin', '');
                 return;
             }
 
             // Login olmuş — bu salona üye mi kontrol et
             fetch('/public-proxy/platform/salons', { headers: { 'Authorization': 'Bearer ' + token } })
-                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (r) {
+                    if (r.status === 401 || r.status === 403) {
+                        localStorage.removeItem('platformToken');
+                        localStorage.removeItem('platformUser');
+                        var loginJoin = document.getElementById('btnLoginToJoin');
+                        if (loginJoin) loginJoin.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                        setJoinAreaDisplay('btnLoginToJoin', '');
+                        return null;
+                    }
+                    return r.ok ? r.json() : [];
+                })
                 .then(function (salons) {
+                    if (!Array.isArray(salons)) return;
                     // customerId'yi salon profil verisinden al
-                    var profileData = document.getElementById('public-salon-vm').__ko_bindingContext?.$data?.salon();
-                    var customerId = profileData?.customerId;
+                    var vm = ko.dataFor(document.getElementById('public-salon-vm'));
+                    var profileData = vm && vm.salon ? vm.salon() : null;
+                    var customerId = profileData && profileData.customerId;
 
                     if (!customerId) {
                         // customerId'yi DOM'dan alamadıysak slug ile proxy'den alalım
@@ -1004,8 +1041,8 @@
         })();
 
         function joinThisSalon() {
-            var token = localStorage.getItem('platformToken');
-            if (!token) { window.location.href = '/user/login'; return; }
+            var token = getStoredPlatformToken();
+            if (!token) { window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search); return; }
 
             // customerId çek: önce KO binding'den, fail olursa fetch ile salon endpoint'inden
             var vm = ko.dataFor(document.getElementById('public-salon-vm'));
@@ -1021,13 +1058,25 @@
                     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ customerId: cid })
                 })
-                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                .then(function (r) {
+                    return r.text().then(function (text) {
+                        var data = {};
+                        try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
+                })
                 .then(function (res) {
                     if (res.ok) {
                         toastr.success(profileT('salon.profile.join.success', 'Salona üye oldunuz!'));
                         setJoinAreaDisplay('btnJoinSalon', 'none');
                         setJoinAreaDisplay('alreadyMember', '');
                     } else {
+                        if (res.status === 401 || res.status === 403) {
+                            localStorage.removeItem('platformToken');
+                            localStorage.removeItem('platformUser');
+                            window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                            return;
+                        }
                         if (btn) btn.disabled = false;
                         toastr.error(res.data && res.data.message ? res.data.message : profileT('salon.profile.join.failed', 'İşlem başarısız.'));
                     }

@@ -24,8 +24,13 @@ public class AccountController : SlnBaseController
             return View();
         }
 
-        if (HttpContext.GetJwtIdentity().IsAuthenticated)
+        var identity = HttpContext.GetJwtIdentity();
+        if (IsSalonPanelIdentity(identity))
             return RedirectToAction("Index", "Home");
+
+        if (identity.IsAuthenticated)
+            HttpContext.ClearAuthCookie();
+
         return View();
     }
 
@@ -46,15 +51,31 @@ public class AccountController : SlnBaseController
             return View();
         }
 
-        SetAuthFromLoginResponse(json, rememberMe ? 30 : 1);
+        var token = ExtractToken(json);
+        var loginIdentity = string.IsNullOrEmpty(token) ? new JwtIdentity() : JwtIdentity.Parse(token);
+        if (!IsSalonPanelIdentity(loginIdentity))
+        {
+            HttpContext.ClearAuthCookie();
+            ViewBag.ErrorKey = "salon.account.error.not_salon_user";
+            ViewBag.ErrorFallback = "Bu hesap Salon paneli kullanıcısı değil.";
+            ViewBag.Username = username;
+            return View();
+        }
+
+        HttpContext.SetAuthCookie(token!, rememberMe ? 30 : 1);
         return RedirectToAction("Index", "Home");
     }
 
     [HttpGet]
     public IActionResult Register()
     {
-        if (HttpContext.GetJwtIdentity().IsAuthenticated)
+        var identity = HttpContext.GetJwtIdentity();
+        if (IsSalonPanelIdentity(identity))
             return RedirectToAction("Index", "Home");
+
+        if (identity.IsAuthenticated)
+            HttpContext.ClearAuthCookie();
+
         return View();
     }
 
@@ -253,10 +274,26 @@ public class AccountController : SlnBaseController
 
     private void SetAuthFromLoginResponse(string json, int days)
     {
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-        var token = root.GetProperty("token").GetString() ?? "";
+        var token = ExtractToken(json) ?? "";
         if (!string.IsNullOrEmpty(token))
             HttpContext.SetAuthCookie(token, days);
     }
+
+    private static string? ExtractToken(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("token", out var token) ? token.GetString() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsSalonPanelIdentity(JwtIdentity identity)
+        => identity.IsAuthenticated
+           && string.Equals(identity.Role, "CustomerUser", StringComparison.OrdinalIgnoreCase)
+           && identity.CustomerRoleId > 0;
 }
