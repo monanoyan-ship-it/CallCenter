@@ -50,7 +50,7 @@
         var custOpen = ctrl is "Customers" or "Users" or "Organizations" or "Personnel";
         var modOpen = ctrl is "Modules";
         // SIP & Cagri Yonetimi kaldirildi — musteri tarafinda yonetiliyor
-        var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig" or "EmailTemplates" or "PaymentConfig";
+        var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig" or "EmailTemplates" or "PaymentConfig" or "SubMerchants";
         var finOpen = ctrl is "ServiceManagement" or "BillingReport";
         var kvkkOpen = ctrl is "Kvkk";
         var advOpen = ctrl is "Licensing" or "Notifications";
@@ -101,6 +101,7 @@
                 <a class="nav-link @(ctrl == "AuditLogs" ? "active" : "")" href="/AuditLogs"><i class="bi bi-journal-text me-2"></i>Denetim Kayitlari</a>
                 <a class="nav-link @(ctrl == "StorageConfig" ? "active" : "")" href="/StorageConfig"><i class="bi bi-cloud me-2"></i>Depolama</a>
                 <a class="nav-link @(ctrl == "PaymentConfig" ? "active" : "")" href="/PaymentConfig"><i class="bi bi-credit-card me-2"></i>Odeme Ayarlari</a>
+                <a class="nav-link @(ctrl == "SubMerchants" ? "active" : "")" href="/SubMerchants"><i class="bi bi-bank me-2"></i>Sub-Merchants</a>
                 <a class="nav-link @(ctrl == "EmailTemplates" ? "active" : "")" href="/EmailTemplates"><i class="bi bi-envelope-paper me-2"></i>Email Taslaklari</a>
             </div>
 

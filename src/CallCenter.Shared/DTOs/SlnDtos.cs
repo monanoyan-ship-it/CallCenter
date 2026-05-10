@@ -941,6 +941,29 @@ public class SlnSupplierDebtBreakdownDto
 }
 
 /// <summary>
+/// PS.12 — Management sub-merchant listesi satiri. Tum salonlarin onboarding
+/// durumu + iletisim + IBAN. KYC pending/active/rejected filtreleme icin.
+/// </summary>
+public class AdminSubMerchantDto
+{
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? Slug { get; set; }
+    public string? IyzicoSubMerchantKey { get; set; }
+    public string? IyzicoSubMerchantType { get; set; }
+    public string? ContactName { get; set; }
+    public string? ContactSurname { get; set; }
+    public string? Iban { get; set; }
+    public string? GsmNumber { get; set; }
+    /// <summary>0=NotStarted, 1=Pending, 2=Approved, 3=Rejected</summary>
+    public int OnboardingStatusId { get; set; }
+    public string OnboardingStatus { get; set; } = string.Empty;
+    public DateTime? OnboardedAt { get; set; }
+    public string? OnboardingError { get; set; }
+    public decimal? CommissionPercentOverride { get; set; }
+}
+
+/// <summary>
 /// PS.10 — iyzico Pazaryeri sub-merchant settlement breakdown.
 /// 1 Ocak 2025 sonrasi 1% e-ticaret aracilik stopaji iyzico tarafindan
 /// otomatik kesilir; bu DTO salon-a aylik hak edis raporunda gosterilir.
