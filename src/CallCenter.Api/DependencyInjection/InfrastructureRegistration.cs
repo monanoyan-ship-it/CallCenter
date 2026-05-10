@@ -58,7 +58,9 @@ public static class InfrastructureRegistration
         var ttsCredPath = configuration["Tts:GoogleCredentialsPath"];
         if (!string.IsNullOrEmpty(ttsCredPath) && File.Exists(ttsCredPath))
         {
-            var credential = Google.Apis.Auth.OAuth2.GoogleCredential.FromFile(ttsCredPath);
+            var credential = Google.Apis.Auth.OAuth2.CredentialFactory
+                .FromFile<Google.Apis.Auth.OAuth2.ServiceAccountCredential>(ttsCredPath)
+                .ToGoogleCredential();
             var ttsClient = new TextToSpeechClientBuilder { GoogleCredential = credential }.Build();
             services.AddSingleton(ttsClient);
         }

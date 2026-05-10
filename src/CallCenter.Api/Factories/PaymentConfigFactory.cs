@@ -191,9 +191,9 @@ public class PaymentConfigFactory : IPaymentConfigFactory
         return PaymentProviders.All.Select(p => new PaymentProviderInfoDto
         {
             Id = p.Id,
-            Name = p.Description,
-            Icon = p.Icon,
-            Css = p.CssClass,
+            Name = p.Description ?? p.SystemName,
+            Icon = p.Icon ?? "",
+            Css = p.CssClass ?? "",
             RequiredFields = GetRequiredFields(p.Id)
         }).ToList();
     }
