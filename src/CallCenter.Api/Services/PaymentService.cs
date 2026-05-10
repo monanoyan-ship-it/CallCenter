@@ -1,6 +1,7 @@
 using CallCenter.Api.Services.Payment;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Data;
+using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using CallCenter.Shared.Helpers;
@@ -1933,6 +1934,40 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             if (result.ContainsKey(aptId)) result[aptId] += c.Amount;
         }
         return result;
+    }
+
+    /// <summary>
+    /// PS.10 — iyzico Pazaryeri settlement icin brut/stopaj/komisyon/net hak edis hesabi.
+    /// 1 Ocak 2025 sonrasi 1% e-ticaret aracilik stopaji iyzico tarafindan otomatik
+    /// kesilir; salon-a gosterilen rapor bu kesintiyi de yansitmali (KDV beyani icin).
+    /// </summary>
+    public const decimal WithholdingTaxRate = 0.01m; // 1% e-ticaret aracilik stopaji
+    public static readonly DateTime WithholdingEffectiveDate = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    public SettlementBreakdownDto CalculateSettlementBreakdown(
+        decimal grossAmount,
+        decimal commissionPercent,
+        DateTime? transactionDate = null)
+    {
+        var date = transactionDate ?? DateTime.UtcNow;
+        var withholdingApplied = date >= WithholdingEffectiveDate;
+
+        var commission = Math.Round(grossAmount * commissionPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        var withholding = withholdingApplied
+            ? Math.Round(grossAmount * WithholdingTaxRate, 2, MidpointRounding.AwayFromZero)
+            : 0m;
+        var net = grossAmount - commission - withholding;
+        if (net < 0m) net = 0m;
+
+        return new SettlementBreakdownDto
+        {
+            GrossAmount = grossAmount,
+            WithholdingTax = withholding,
+            PlatformCommission = commission,
+            NetSettlement = net,
+            WithholdingApplied = withholdingApplied,
+            CommissionPercent = commissionPercent
+        };
     }
 
     /// <summary>

@@ -940,6 +940,28 @@ public class SlnSupplierDebtBreakdownDto
     public DateTime? LastTransactionDate { get; set; }
 }
 
+/// <summary>
+/// PS.10 — iyzico Pazaryeri sub-merchant settlement breakdown.
+/// 1 Ocak 2025 sonrasi 1% e-ticaret aracilik stopaji iyzico tarafindan
+/// otomatik kesilir; bu DTO salon-a aylik hak edis raporunda gosterilir.
+/// PS.13 hak edis raporu bu DTO'yu kullanir.
+/// </summary>
+public class SettlementBreakdownDto
+{
+    /// <summary>Brut tahsilat tutari (musteri odedigi)</summary>
+    public decimal GrossAmount { get; set; }
+    /// <summary>%1 e-ticaret aracilik stopaji (iyzico kesintisi, 1.1.2025 sonrasi)</summary>
+    public decimal WithholdingTax { get; set; }
+    /// <summary>Platform komisyonu (corplynk, 5% default)</summary>
+    public decimal PlatformCommission { get; set; }
+    /// <summary>Salon hak edisi: gross - stopaj - komisyon</summary>
+    public decimal NetSettlement { get; set; }
+    /// <summary>Stopaj orani uygulandi mi (1.1.2025 sonrasi tarihler icin true)</summary>
+    public bool WithholdingApplied { get; set; }
+    /// <summary>Komisyon orani (informational)</summary>
+    public decimal CommissionPercent { get; set; }
+}
+
 public class SlnFinanceReportDto
 {
     public decimal TotalIncome { get; set; }
