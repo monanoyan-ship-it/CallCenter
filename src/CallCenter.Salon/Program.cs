@@ -23,7 +23,7 @@ builder.Services.AddHttpClient("SalonApi", client =>
     client.BaseAddress = new Uri(apiBaseUrl);
 });
 
-builder.Services.AddAppLocalization(apiBaseUrl, module: "salon");
+builder.Services.AddAppLocalization(apiBaseUrl, module: "salon", useAcceptLanguageHeader: false);
 
 builder.Services.Configure<JwtAuthCookieOptions>(o => o.CookieName = "CorpLynk.Salon.Auth");
 

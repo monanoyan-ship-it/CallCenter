@@ -1,15 +1,15 @@
 namespace CallCenter.Shared.Enums;
 
 /// <summary>
-/// Desteklenen çeviri dilleri.
+/// Desteklenen ceviri dilleri.
 /// </summary>
 public static class TranslationLanguages
 {
-    public static readonly TypeItem Turkish = new(1, "tr", "Language.Turkish", "Türkçe", "🇹🇷", "", 1, isDefault: true);
-    public static readonly TypeItem English = new(2, "en", "Language.English", "English", "🇬🇧", "", 2);
-    public static readonly TypeItem German = new(3, "de", "Language.German", "Deutsch", "🇩🇪", "", 3);
-    public static readonly TypeItem Arabic = new(4, "ar", "Language.Arabic", "العربية", "🇸🇦", "", 4);
-    public static readonly TypeItem Russian = new(5, "ru", "Language.Russian", "Русский", "🇷🇺", "", 5);
+    public static readonly TypeItem Turkish = new(1, "tr", "Language.Turkish", "Türkçe", "TR", "", 1, isDefault: true);
+    public static readonly TypeItem English = new(2, "en", "Language.English", "English", "EN", "", 2);
+    public static readonly TypeItem German = new(3, "de", "Language.German", "Deutsch", "DE", "", 3);
+    public static readonly TypeItem Arabic = new(4, "ar", "Language.Arabic", "العربية", "AR", "", 4);
+    public static readonly TypeItem Russian = new(5, "ru", "Language.Russian", "Русский", "RU", "", 5);
 
     public static IEnumerable<TypeItem> All => new[] { Turkish, English, German, Arabic, Russian };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);

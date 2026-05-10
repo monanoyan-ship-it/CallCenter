@@ -2,6 +2,8 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CallCenter.Api.Controllers;
 
@@ -21,6 +23,15 @@ public class TranslationsController : AuditableControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetAll(string languageCode, [FromQuery] string? module = null, [FromQuery] int? platformId = null)
     {
+        var version = await _translationFactory.GetTranslationsVersionAsync(languageCode, module, platformId);
+        var etag = $"\"{version}\"";
+        Response.Headers.ETag = etag;
+        Response.Headers["X-Translation-Version"] = version;
+        Response.Headers.CacheControl = "public,max-age=60";
+
+        if (Request.Headers.IfNoneMatch.Any(value => string.Equals(value, etag, StringComparison.Ordinal)))
+            return StatusCode(StatusCodes.Status304NotModified);
+
         return Ok(await _translationFactory.GetAllTranslationsAsync(languageCode, module, platformId));
     }
 
@@ -66,9 +77,20 @@ public class TranslationsController : AuditableControllerBase
     }
 
     [HttpGet("languages")]
+    [AllowAnonymous]
     public async Task<ActionResult<List<LanguageDto>>> GetLanguages()
     {
-        return Ok(await _translationFactory.GetLanguagesAsync());
+        var languages = await _translationFactory.GetLanguagesAsync();
+        var version = CreateLanguagesVersion(languages);
+        var etag = $"\"{version}\"";
+        Response.Headers.ETag = etag;
+        Response.Headers["X-Translation-Languages-Version"] = version;
+        Response.Headers.CacheControl = "public,max-age=300";
+
+        if (Request.Headers.IfNoneMatch.Any(value => string.Equals(value, etag, StringComparison.Ordinal)))
+            return StatusCode(StatusCodes.Status304NotModified);
+
+        return Ok(languages);
     }
 
     [HttpGet("keys")]
@@ -116,5 +138,14 @@ public class TranslationsController : AuditableControllerBase
             $"Ceviri key'i silindi: ID={id}");
 
         return NoContent();
+    }
+
+    private static string CreateLanguagesVersion(IEnumerable<LanguageDto> languages)
+    {
+        var source = string.Join("|", languages
+            .OrderBy(l => l.Code)
+            .Select(l => $"{l.Code}:{l.Name}:{l.Label}:{l.IsDefault}:{l.IsActive}"));
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source)));
     }
 }

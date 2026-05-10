@@ -204,7 +204,17 @@
             return (window.salonTranslations && window.salonTranslations[key]) || fallback || key;
         };
 
-        var TOKEN = localStorage.getItem('platformToken');
+        function getStoredPlatformToken() {
+            var token = localStorage.getItem('platformToken');
+            if (!token || token === 'null' || token === 'undefined') {
+                localStorage.removeItem('platformToken');
+                localStorage.removeItem('platformUser');
+                return '';
+            }
+            return token;
+        }
+
+        var TOKEN = getStoredPlatformToken();
         if (!TOKEN) window.location.href = '/user/login';
 
         var user = JSON.parse(localStorage.getItem('platformUser') || '{}');

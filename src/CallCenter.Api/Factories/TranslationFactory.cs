@@ -49,6 +49,33 @@ public class TranslationFactory : ITranslationFactory
         return all;
     }
 
+    public async Task<string> GetTranslationsVersionAsync(string languageCode, string? module = null, int? platformId = null)
+    {
+        var query = _translationEs.GetTranslationsQueryable()
+            .Where(t => t.LanguageCode == languageCode);
+
+        if (platformId.HasValue)
+            query = query.Where(t => t.TranslationKey.PlatformId == platformId.Value);
+        else if (!string.IsNullOrWhiteSpace(module))
+        {
+            var prefix = module + ".";
+            query = query.Where(t => t.TranslationKey.Key.StartsWith(prefix));
+        }
+
+        var snapshot = await query
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Count = g.Count(),
+                MaxUpdatedAt = g.Max(t => (DateTime?)t.UpdatedAt)
+            })
+            .FirstOrDefaultAsync();
+
+        var ticks = snapshot?.MaxUpdatedAt?.ToUniversalTime().Ticks ?? 0;
+        var count = snapshot?.Count ?? 0;
+        return $"{languageCode.ToLowerInvariant()}:{module ?? "all"}:{platformId?.ToString() ?? "all"}:{count}:{ticks}";
+    }
+
     public async Task<byte[]> ExportXmlAsync()
     {
         var languages = TranslationLanguages.All.ToList();
@@ -179,8 +206,9 @@ public class TranslationFactory : ITranslationFactory
         {
             Code = l.SystemName,
             Name = l.Description ?? l.SystemName,
+            Label = string.IsNullOrWhiteSpace(l.Icon) ? l.SystemName.ToUpperInvariant() : l.Icon,
             IsDefault = l.IsDefault,
-            IsActive = true
+            IsActive = l.IsActive
         }).ToList();
 
         return Task.FromResult(languages);

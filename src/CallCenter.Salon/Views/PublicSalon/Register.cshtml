@@ -20,18 +20,7 @@
 </head>
 <body>
     <div style="position:absolute;top:10px;right:10px;">
-        <div style="display:inline-block;position:relative;">
-            <span style="cursor:pointer;color:#6f42c1;font-size:.85rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-                <i class="bi bi-translate"></i>
-            </span>
-            <div style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px 0;min-width:140px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);">
-                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=tr|uic=tr;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;"><t key="salon.publicsalon.auto.tr_turkce">TR — Türkçe</t></a>
-                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=en|uic=en;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">EN — English</a>
-                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=de|uic=de;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">DE — Deutsch</a>
-                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ar|uic=ar;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">AR — العربية</a>
-                <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ru|uic=ru;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">RU — Русский</a>
-            </div>
-        </div>
+        @await Html.PartialAsync("_LanguageMenu", "auth")
     </div>
     <div class="auth-card">
         <div class="text-center mb-4">
@@ -80,6 +69,7 @@
                 </label>
             </div>
             <div id="error-msg" class="alert alert-danger py-1 small d-none"></div>
+            <div id="success-msg" class="alert alert-success py-1 small d-none"></div>
             <button class="btn btn-primary w-100" id="regBtn" onclick="doRegister()">
                 <i class="bi bi-person-plus me-1"></i><t key="salon.register.btn">Sign Up</t>
             </button>
@@ -93,7 +83,16 @@
     </div>
     <script>
         var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/user/panel';
-        if (localStorage.getItem('platformToken')) window.location.href = _returnUrl;
+        function getStoredPlatformToken() {
+            var token = localStorage.getItem('platformToken');
+            if (!token || token === 'null' || token === 'undefined') {
+                localStorage.removeItem('platformToken');
+                localStorage.removeItem('platformUser');
+                return '';
+            }
+            return token;
+        }
+        if (getStoredPlatformToken()) window.location.href = _returnUrl;
 
         function normalizePhoneValue() {
             var code = document.getElementById('phoneCountry').value;
@@ -111,6 +110,7 @@
             var btn = document.getElementById('regBtn');
             btn.disabled = true;
             document.getElementById('error-msg').classList.add('d-none');
+            document.getElementById('success-msg').classList.add('d-none');
 
             try {
                 var resp = await fetch('/public-proxy/platform/register', {
@@ -124,6 +124,13 @@
                     })
                 });
                 var data = await resp.json();
+                if (resp.ok && (data.requiresEmailVerification || !data.token)) {
+                    localStorage.removeItem('platformToken');
+                    localStorage.removeItem('platformUser');
+                    document.getElementById('success-msg').textContent = '@T("salon.register.verify_required", "Kaydınız alındı. Paneli açmadan önce e-posta adresinize gönderilen doğrulama bağlantısını onaylayın.")';
+                    document.getElementById('success-msg').classList.remove('d-none');
+                    return;
+                }
                 if (!resp.ok) throw new Error(data.message || '@T("salon.publicsalon.register_failed", "Kayıt başarısız.")');
                 localStorage.setItem('platformToken', data.token);
                 localStorage.setItem('platformUser', JSON.stringify(data.user));

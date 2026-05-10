@@ -12,7 +12,7 @@ public static class LocalizationExtensions
     /// <summary>
     /// MVC/RazorPages uygulamalari icin lokalizasyon servislerini register eder.
     /// </summary>
-    public static IServiceCollection AddAppLocalization(this IServiceCollection services, string apiBaseUrl, string? module = null)
+    public static IServiceCollection AddAppLocalization(this IServiceCollection services, string apiBaseUrl, string? module = null, bool useAcceptLanguageHeader = true)
     {
         services.AddSingleton(sp =>
         {
@@ -35,7 +35,8 @@ public static class LocalizationExtensions
             options.RequestCultureProviders.Clear();
             options.RequestCultureProviders.Add(new RouteValueCultureProvider());
             options.RequestCultureProviders.Add(new CookieRequestCultureProvider());
-            options.RequestCultureProviders.Add(new AcceptLanguageHeaderRequestCultureProvider());
+            if (useAcceptLanguageHeader)
+                options.RequestCultureProviders.Add(new AcceptLanguageHeaderRequestCultureProvider());
         });
 
         return services;

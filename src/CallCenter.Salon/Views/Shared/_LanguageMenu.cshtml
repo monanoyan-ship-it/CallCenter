@@ -1,0 +1,29 @@
+@model string
+@inject CallCenter.Shared.Localization.ServerTranslationCache TranslationCache
+@{
+    var theme = (Model ?? "light").ToLowerInvariant();
+    var current = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var languages = await TranslationCache.GetLanguagesAsync();
+    var isDark = theme == "dark" || theme == "landing";
+    var triggerColor = theme == "auth" ? "#6f42c1" : (isDark ? "#ce93d8" : "#7b1fa2");
+    var menuBg = isDark ? "#2d1b3d" : "#fff";
+    var menuBorder = isDark ? "#4a1a6b" : "#ddd";
+    var linkColor = isDark ? "#ddd" : "#333";
+    var activeBg = isDark ? "#7b1fa2" : "#f3e5f5";
+    var activeColor = isDark ? "#fff" : "#6f42c1";
+}
+<div class="lang-dropdown" style="display:inline-block;position:relative;">
+    <span style="cursor:pointer;color:@triggerColor;font-size:.85rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+        <i class="bi bi-translate"></i> @current.ToUpperInvariant()
+    </span>
+    <div style="display:none;position:absolute;right:0;top:100%;background:@menuBg;border:1px solid @menuBorder;border-radius:8px;padding:4px 0;min-width:150px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);">
+        @foreach (var lang in languages)
+        {
+            var isActive = string.Equals(lang.Code, current, StringComparison.OrdinalIgnoreCase);
+            var activeStyle = isActive ? $"background:{activeBg};color:{activeColor};" : "";
+            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:@linkColor;text-decoration:none;font-size:.85rem;white-space:nowrap;@activeStyle">
+                @lang.Label - @lang.Name
+            </a>
+        }
+    </div>
+</div>

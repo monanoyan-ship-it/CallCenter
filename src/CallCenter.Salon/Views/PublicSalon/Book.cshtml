@@ -53,19 +53,7 @@
 </head>
 <body>
     <div style="position:absolute;top:10px;right:10px;">
-        <div style="display:inline-block;position:relative;">
-            <span style="cursor:pointer;color:#7b1fa2;font-size:.85rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-                <i class="bi bi-translate"></i>
-            </span>
-            <div style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px 0;min-width:140px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);">
-                @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
-                {
-                    <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=@(lang.Code)|uic=@(lang.Code);path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">
-                        @lang.Label - @lang.Name
-                    </a>
-                }
-            </div>
-        </div>
+        @await Html.PartialAsync("_LanguageMenu", "light")
     </div>
     <div class="container py-4" style="max-width: 640px;" id="book-vm">
         <a href="/salon/@slug" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i><t key="salon.book.back">Salon Profiline Dön</t></a>
@@ -417,9 +405,18 @@
         function bookT(key, fallback) {
             return bookTexts[key] || fallback || key;
         }
+        function getStoredPlatformToken() {
+            var token = localStorage.getItem('platformToken');
+            if (!token || token === 'null' || token === 'undefined') {
+                localStorage.removeItem('platformToken');
+                localStorage.removeItem('platformUser');
+                return '';
+            }
+            return token;
+        }
 
         // Ahmet: randevu icin login zorunlu (kimlik gerek). Bekleme listesi profil sayfasindan anonim alinir.
-        if (!localStorage.getItem('platformToken')) {
+        if (!getStoredPlatformToken()) {
             window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname);
         }
 
@@ -622,7 +619,7 @@
             }
 
             self.ensureSalonLink = function () {
-                var token = localStorage.getItem('platformToken');
+                var token = getStoredPlatformToken();
                 var cid = self.customerId();
                 if (!token) return;
                 if (!cid) {

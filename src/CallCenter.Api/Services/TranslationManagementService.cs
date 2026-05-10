@@ -148,8 +148,9 @@ public class TranslationManagementService : ITranslationManagementService
         {
             Code = l.SystemName,
             Name = l.Description ?? l.SystemName,
+            Label = string.IsNullOrWhiteSpace(l.Icon) ? l.SystemName.ToUpperInvariant() : l.Icon,
             IsDefault = l.IsDefault,
-            IsActive = true
+            IsActive = l.IsActive
         }).ToList();
 
         return Task.FromResult(languages);

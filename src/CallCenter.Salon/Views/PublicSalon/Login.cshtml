@@ -20,19 +20,8 @@
 </head>
 <body>
     <div style="position:absolute;top:10px;right:10px;">
-    <div class="lang-dropdown" style="display:inline-block;position:relative;">
-        <span style="cursor:pointer;color:#6f42c1;font-size:.85rem;" onclick="this.nextElementSibling.classList.toggle('show')">
-            <i class="bi bi-translate"></i>
-        </span>
-        <div class="lang-menu" style="display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid #ddd;border-radius:8px;padding:4px 0;min-width:140px;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.15);">
-            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=tr|uic=tr;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;"><t key="salon.publicsalon.auto.tr_turkce">TR — Türkçe</t></a>
-            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=en|uic=en;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">EN — English</a>
-            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=de|uic=de;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">DE — Deutsch</a>
-            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ar|uic=ar;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">AR — العربية</a>
-            <a href="javascript:void(0)" onclick="document.cookie='.AspNetCore.Culture=c=ru|uic=ru;path=/;max-age=31536000';location.reload();" style="display:block;padding:4px 12px;color:#333;text-decoration:none;font-size:.85rem;">RU — Русский</a>
-        </div>
+        @await Html.PartialAsync("_LanguageMenu", "auth")
     </div>
-</div>
     <div class="auth-card">
         <div class="text-center mb-4">
             <i class="bi bi-scissors" style="font-size:2rem; color:#6f42c1;"></i>
@@ -82,7 +71,16 @@
     </div>
     <script>
         var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/user/panel';
-        if (localStorage.getItem('platformToken')) window.location.href = _returnUrl;
+        function getStoredPlatformToken() {
+            var token = localStorage.getItem('platformToken');
+            if (!token || token === 'null' || token === 'undefined') {
+                localStorage.removeItem('platformToken');
+                localStorage.removeItem('platformUser');
+                return '';
+            }
+            return token;
+        }
+        if (getStoredPlatformToken()) window.location.href = _returnUrl;
 
         function normalizePhoneValue() {
             var code = document.getElementById('phoneCountry').value;
@@ -107,6 +105,7 @@
                     })
                 });
                 var data = await resp.json();
+                if (resp.ok && !data.token) throw new Error(data.message || '@T("salon.publicsalon.login_failed", "Giriş başarısız.")');
                 if (!resp.ok) throw new Error(data.message || '@T("salon.publicsalon.login_failed", "Giriş başarısız.")');
                 localStorage.setItem('platformToken', data.token);
                 localStorage.setItem('platformUser', JSON.stringify(data.user));

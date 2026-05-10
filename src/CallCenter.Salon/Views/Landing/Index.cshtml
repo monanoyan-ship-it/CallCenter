@@ -100,10 +100,7 @@
                     <i class="bi bi-calendar-plus me-1"></i><t key="salon.landing.nav.book_now">Randevu Al</t>
                 </a>
                 <a href="/Account/Login" class="nav-btn"><t key="salon.landing.nav.sign_in">Giriş Yap</t></a>
-                @foreach (var lang in CallCenter.Shared.Localization.LocalizationConstants.Languages.Values)
-                {
-                    <a href="/@(lang.Code)" class="nav-btn" style="margin-left:4px;@(lang.Code == currentCulture ? "background:var(--accent);color:#fff;" : "")">@lang.Label</a>
-                }
+                @await Html.PartialAsync("_LanguageMenu", "landing")
             </div>
         </nav>
 
