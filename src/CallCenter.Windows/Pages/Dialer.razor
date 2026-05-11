@@ -417,6 +417,9 @@
     private List<SipGatewaySummaryDto> _gateways = new();
     private int _selectedGatewayId;
     private bool _isSwitchingGateway;
+    private const int MaxOutboundLineAttempts = 2;
+    private bool _suppressCallFailedUi;
+    private string? _lastCallFailure;
     private string sideTab = "contacts";
     private string contactSearch = "";
     private List<CrmContactSimpleDto>? contactResults;
@@ -495,7 +498,7 @@
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "CallCenter", "Data", "sip-connection.json");
 
-    private async Task InitializeSip()
+    private async Task<bool> InitializeSip(bool forceApi = false, int? excludeLineId = null, bool forceNewLine = false)
     {
         try
         {
@@ -504,7 +507,7 @@
             // 1. Lokal dosyadan hizli yukle
             try
             {
-                if (File.Exists(SipCachePath))
+                if (!forceApi && !excludeLineId.HasValue && !forceNewLine && File.Exists(SipCachePath))
                 {
                     var json = await File.ReadAllTextAsync(SipCachePath);
                     sipInfo = System.Text.Json.JsonSerializer.Deserialize<SipConnectionInfoDto>(json);
@@ -527,9 +530,16 @@
                 sipStatusText = "API'den hat isteniyor...";
                 StateHasChanged();
 
-                var connUrl = _selectedGatewayId > 0
-                    ? $"api/sipaccounts/my/connection?gatewayId={_selectedGatewayId}"
-                    : "api/sipaccounts/my/connection";
+                var query = new List<string>();
+                if (_selectedGatewayId > 0)
+                    query.Add($"gatewayId={_selectedGatewayId}");
+                if (excludeLineId.HasValue)
+                    query.Add($"excludeLineId={excludeLineId.Value}");
+                if (forceNewLine)
+                    query.Add("forceNewLine=true");
+
+                var connUrl = "api/sipaccounts/my/connection" +
+                    (query.Count > 0 ? "?" + string.Join("&", query) : "");
                 var response = await Http.GetAsync(connUrl);
                 if (response.IsSuccessStatusCode)
                 {
@@ -548,6 +558,11 @@
                 else
                 {
                     Console.WriteLine($"[Dialer] API hat istegi basarisiz: {response.StatusCode}");
+                    if (forceApi)
+                    {
+                        var errorText = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"[Dialer] API hat istegi hata detayi: {errorText}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -561,18 +576,19 @@
                 sipStatusText = "SIP Yok";
                 statusMessage = "Gateway tanimli degil. Portal SIP Ayarlarindan ekleyin.";
                 statusClass = "text-warning";
-                return;
+                return false;
             }
 
             _activeSipInfo = sipInfo;
             if (_selectedGatewayId == 0)
                 _selectedGatewayId = sipInfo.SipAccountId;
             sipStatusText = $"Kayit olunuyor... ({sipInfo.AuthUsername}@{sipInfo.SipUri?.Split('@').LastOrDefault()})";
-            statusMessage = $"Transport: {sipInfo.Transport}";
+            statusMessage = $"Transport: {sipInfo.Transport}, Kanal: {sipInfo.ChannelNumber}";
             StateHasChanged();
 
             Console.WriteLine($"[Dialer] SIP register baslatiliyor: {sipInfo.AuthUsername} -> {sipInfo.SipUri} (Transport={sipInfo.Transport})");
             await SipService.InitializeAsync(sipInfo);
+            return true;
         }
         catch (Exception ex)
         {
@@ -580,6 +596,7 @@
             statusMessage = "SIP baglanti hatasi: " + ex.Message;
             statusClass = "text-danger";
             DiagLog($"InitializeSip HATA: {ex}");
+            return false;
         }
     }
 
@@ -856,6 +873,10 @@
 
     private async Task HandleCallFailed(string error)
     {
+        _lastCallFailure = error;
+        if (_suppressCallFailedUi)
+            return;
+
         await InvokeAsync(async () =>
         {
             StopTimer();
@@ -921,43 +942,155 @@
         statusClass = "text-info";
         StateHasChanged();
 
+        var destination = phoneNumber;
+        var attempt = 0;
+
         try
         {
-            // Cift yazim: hem lokal DB'ye hem backend'e yazar
-            var callerNum = _activeSipInfo?.AuthUsername ?? "unknown";
-            var syncResult = await CallSync.StartCallAsync(callerNum, phoneNumber);
-            currentCallUid = syncResult.Uid;
-            currentCallId = syncResult.BackendCallId;
-            notesCallUid = syncResult.Uid;
-            notesCallId = syncResult.BackendCallId;
-
             await HubService.UpdateStatusAsync(AgentStatuses.Ids.InCall);
-            var success = await SipService.MakeCallAsync(phoneNumber);
-            StateHasChanged();
-            if (!success)
+
+            while (attempt < MaxOutboundLineAttempts)
             {
-                // SIP basarisiz → cagriyi "missed" olarak isaretle
+                attempt++;
+
+                // Cift yazim: her SIP denemesi kendi caller/line bilgisiyle kayda girer.
+                var callerNum = _activeSipInfo?.AuthUsername ?? "unknown";
+                var syncResult = await CallSync.StartCallAsync(callerNum, destination);
+                currentCallUid = syncResult.Uid;
+                currentCallId = syncResult.BackendCallId;
+                notesCallUid = syncResult.Uid;
+                notesCallId = syncResult.BackendCallId;
+
+                _lastCallFailure = null;
+                _suppressCallFailedUi = true;
+                var sipDestination = BuildOutboundSipDestination(destination);
+                var success = await SipService.MakeCallAsync(sipDestination);
+                _suppressCallFailedUi = false;
+                StateHasChanged();
+                if (success)
+                    return;
+
+                var failure = _lastCallFailure ?? "Arama baglanamiyor";
+
                 if (currentCallUid.HasValue)
                 {
                     await CallSync.MissCallAsync(currentCallUid.Value, currentCallId);
                 }
                 currentCallId = null;
                 currentCallUid = null;
+
+                if (attempt < MaxOutboundLineAttempts && ShouldTryAnotherSipLine(failure))
+                {
+                    var switched = await TrySwitchToAlternateSipLineAsync(failure);
+                    if (switched)
+                    {
+                        statusMessage = $"{destination} yeni kanal uzerinden araniyor...";
+                        statusClass = "text-info";
+                        StateHasChanged();
+                        continue;
+                    }
+                }
+
                 isCallStarting = false;
-                statusMessage = "Arama baslatilamadi";
+                statusMessage = GetFriendlyCallFailure(failure);
                 statusClass = "text-danger";
-                Toast.ShowError("Arama baslatilamadi. GoIP cihazi aramayi reddetti veya codec uyumsuzlugu var.");
+                Toast.ShowError(statusMessage);
                 await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+                return;
             }
+
+            isCallStarting = false;
+            statusMessage = "Arama baslatilamadi";
+            statusClass = "text-danger";
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
         }
         catch (Exception ex)
         {
+            _suppressCallFailedUi = false;
             isCallStarting = false;
             statusMessage = "Arama hatasi: " + ex.Message;
             statusClass = "text-danger";
             Toast.ShowError($"Arama hatasi: {ex.Message}");
             currentCallId = null;
             currentCallUid = null;
+            await HubService.UpdateStatusAsync(AgentStatuses.Ids.Available);
+        }
+    }
+
+
+    private string BuildOutboundSipDestination(string displayNumber)
+    {
+        var prefix = _activeSipInfo?.UseChannelRoutingPrefix == true
+            ? _activeSipInfo.OutboundDialPrefix
+            : null;
+
+        if (string.IsNullOrWhiteSpace(prefix))
+            return displayNumber;
+
+        var normalizedPrefix = PhoneHelper.Sanitize(prefix);
+        if (string.IsNullOrWhiteSpace(normalizedPrefix) || displayNumber.StartsWith(normalizedPrefix, StringComparison.Ordinal))
+            return displayNumber;
+
+        var numberForGateway = displayNumber.StartsWith('+') ? displayNumber[1..] : displayNumber;
+        return normalizedPrefix + numberForGateway;
+    }
+
+    private static bool ShouldTryAnotherSipLine(string error)
+    {
+        return error.Contains("Busy Here", StringComparison.OrdinalIgnoreCase) ||
+               error.Contains("486", StringComparison.OrdinalIgnoreCase) ||
+               error.Contains("Service Unavailable", StringComparison.OrdinalIgnoreCase) ||
+               error.Contains("503", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetFriendlyCallFailure(string error)
+    {
+        if (error.Contains("Busy Here", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("486", StringComparison.OrdinalIgnoreCase))
+            return "Hat mesgul veya GoIP kanali aramayi reddetti.";
+
+        if (error.Contains("Service Unavailable", StringComparison.OrdinalIgnoreCase) ||
+            error.Contains("503", StringComparison.OrdinalIgnoreCase))
+            return "Uygun GoIP kanali bulunamadi veya gateway gecici olarak musait degil.";
+
+        return "Arama basarisiz: " + error;
+    }
+
+    private async Task<bool> TrySwitchToAlternateSipLineAsync(string reason)
+    {
+        var current = _activeSipInfo;
+        if (current == null || _selectedGatewayId <= 0)
+            return false;
+
+        statusMessage = $"Kanal {current.ChannelNumber} mesgul, baska kanal deneniyor...";
+        statusClass = "text-warning";
+        StateHasChanged();
+
+        try
+        {
+            await SipService.DisposeAsync();
+            var initialized = await InitializeSip(forceApi: true, excludeLineId: current.SipLineId, forceNewLine: true);
+            if (!initialized || _activeSipInfo == null)
+                return false;
+
+            if (_activeSipInfo.SipLineId == current.SipLineId)
+                return false;
+
+            if (_activeSipInfo.AuthUsername == current.AuthUsername &&
+                _activeSipInfo.UseChannelRoutingPrefix != true)
+            {
+                statusMessage = "Tum kanallar ayni SIP hesabinda; GoIP routing prefix ayari olmadan kanal degistirilemez.";
+                statusClass = "text-warning";
+                return false;
+            }
+
+            DiagLog($"Outbound failover: reason={reason}, oldLine={current.SipLineId}, newLine={_activeSipInfo.SipLineId}, prefix={_activeSipInfo.OutboundDialPrefix}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DiagLog($"Outbound failover hatasi: {ex.Message}");
+            return false;
         }
     }
 

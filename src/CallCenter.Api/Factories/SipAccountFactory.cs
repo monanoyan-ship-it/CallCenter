@@ -31,18 +31,32 @@ public class SipAccountFactory : ISipAccountFactory
     // OPERATOR HAT TAHSISI
     // ═══════════════════════════════════════════════════════════════
 
-    public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName, int? gatewayId = null)
+    public async Task<SipConnectionInfoDto?> GetMyConnectionAsync(
+        int customerId,
+        int? personnelId,
+        string displayName,
+        int? gatewayId = null,
+        int? excludeLineId = null,
+        bool forceNewLine = false)
     {
         SipLine? line = null;
+        SipLine? releasedLine = null;
+        var effectiveExcludeLineId = excludeLineId;
 
         // 1. Bu personele zaten tahsis edilmis hat var mi? (idempotent)
         if (personnelId.HasValue)
         {
             line = await _lineEs.GetByPersonnelAsync(personnelId.Value);
+            if (line != null && forceNewLine && !effectiveExcludeLineId.HasValue)
+                effectiveExcludeLineId = line.Id;
 
-            // Farkli gateway istendiyse mevcut hatti serbest birak
-            if (line != null && gatewayId.HasValue && line.SipAccountId != gatewayId.Value)
+            // Farkli gateway/yeni kanal istendiyse mevcut hatti serbest birak.
+            if (line != null &&
+                (forceNewLine ||
+                 (gatewayId.HasValue && line.SipAccountId != gatewayId.Value) ||
+                 (effectiveExcludeLineId.HasValue && line.Id == effectiveExcludeLineId.Value)))
             {
+                releasedLine = line;
                 line.AssignedPersonnelId = null;
                 line.AssignedAt = null;
                 await _uow.SaveChangesAsync();
@@ -54,8 +68,8 @@ public class SipAccountFactory : ISipAccountFactory
         if (line == null && personnelId.HasValue)
         {
             line = gatewayId.HasValue
-                ? await _lineEs.AcquireUnassignedAsync(customerId, gatewayId.Value)
-                : await _lineEs.AcquireUnassignedAsync(customerId);
+                ? await _lineEs.AcquireUnassignedAsync(customerId, gatewayId.Value, effectiveExcludeLineId)
+                : await _lineEs.AcquireUnassignedAsync(customerId, effectiveExcludeLineId);
 
             if (line != null)
             {
@@ -63,12 +77,19 @@ public class SipAccountFactory : ISipAccountFactory
                 line.AssignedAt = DateTime.UtcNow;
                 await _uow.SaveChangesAsync();
             }
+            else if (releasedLine != null)
+            {
+                releasedLine.AssignedPersonnelId = personnelId.Value;
+                releasedLine.AssignedAt = DateTime.UtcNow;
+                await _uow.SaveChangesAsync();
+                line = releasedLine;
+            }
         }
 
         // 3. Hat bulunamadiysa — tum hatlar dolu (fallback YOK)
         if (line == null) return null;
 
-        return BuildConnectionDto(line, displayName);
+        return await BuildConnectionDtoAsync(line, displayName);
     }
 
     public async Task<List<SipGatewaySummaryDto>> GetMyGatewaysAsync(int customerId)
@@ -94,10 +115,16 @@ public class SipAccountFactory : ISipAccountFactory
         await _uow.SaveChangesAsync();
     }
 
-    private SipConnectionInfoDto BuildConnectionDto(SipLine line, string displayName)
+    private async Task<SipConnectionInfoDto> BuildConnectionDtoAsync(SipLine line, string displayName)
     {
         var gw = line.SipAccount;
         var domain = gw.Domain ?? gw.Server;
+        var sameUsernameLineCount = await _lineEs.GetAllQueryable()
+            .CountAsync(l =>
+                l.SipAccountId == line.SipAccountId &&
+                l.IsActive &&
+                l.Username == line.Username);
+        var useChannelRoutingPrefix = sameUsernameLineCount > 1 && line.ChannelNumber > 0;
 
         string wsUri;
         if (!string.IsNullOrWhiteSpace(gw.WsUri))
@@ -130,7 +157,10 @@ public class SipAccountFactory : ISipAccountFactory
                 : null,
             PreferredCodecs = gw.PreferredCodecs,
             JitterBufferMinMs = gw.JitterBufferMinMs,
-            JitterBufferMaxMs = gw.JitterBufferMaxMs
+            JitterBufferMaxMs = gw.JitterBufferMaxMs,
+            ChannelNumber = line.ChannelNumber,
+            UseChannelRoutingPrefix = useChannelRoutingPrefix,
+            OutboundDialPrefix = useChannelRoutingPrefix ? line.ChannelNumber.ToString() : null
         };
     }
 

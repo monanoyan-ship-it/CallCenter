@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
+using CallCenter.Shared.Services;
 using CallCenter.Windows.LocalData;
 using CallCenter.Windows.LocalData.Entities;
 using CallCenter.Windows.Services.CloudStorage;
@@ -12,16 +13,8 @@ using Microsoft.Extensions.Logging;
 namespace CallCenter.Windows.Services;
 
 /// <summary>
-/// Lokal ses kayitlarini (.enc) musteri config'ine gore yukler/kopyalar.
-/// Musteri config'inde:
-///   - Cloud provider (GoogleDrive, S3, vb.) varsa → cloud'a yukle
-///   - BasePath (klasor yolu) doluysa → o klasore kopyala
-///   - Ikisi de varsa → ikisini de yap
-///   - Ikisi de yoksa → dosya AppData'da kalir
-///
-/// Takip:
-///   IsUploadedToCloud = cloud upload tamamlandi
-///   IsUploadedToPlatform = lokal klasor kopyasi tamamlandi (BasePath)
+/// Lokal ses kayitlarini aktif upload hedeflerine yukler.
+/// CustomerStorage -> musteri deposu (CloudFileId), PlatformStorage -> platform deposu (PlatformFileId).
 /// </summary>
 public class RecordingUploadService
 {
@@ -37,6 +30,12 @@ public class RecordingUploadService
     private DateTime _lastTargetsFetch = DateTime.MinValue;
     private static readonly TimeSpan TargetsCacheExpiry = TimeSpan.FromMinutes(30);
 
+    private enum UploadTargetKind
+    {
+        CustomerStorage,
+        PlatformStorage
+    }
+
     public RecordingUploadService(
         ILocalRepository localRepo,
         HttpClient http,
@@ -50,78 +49,65 @@ public class RecordingUploadService
     }
 
     /// <summary>
-    /// Bekleyen ses kayitlarini musteri config'ine gore yukle/kopyala.
+    /// Eksik metadata'yi onarir, sonra bekleyen kayitlari platform ve/veya musteri deposuna yollar.
     /// </summary>
     public async Task UploadPendingRecordingsAsync(CancellationToken ct = default)
     {
-        var targets = await GetUploadTargetsAsync(ct);
-        var config = targets?.CustomerConfig;
+        await RepairMissingRecordingMetadataAsync(ct);
 
-        if (targets == null || !targets.UploadToCustomerStorage || config == null)
+        var targets = await GetUploadTargetsAsync(ct);
+        if (targets == null)
         {
-            UploadLog($"Musteri storage config yok/inaktif. targets={targets != null}, customer={targets?.UploadToCustomerStorage}");
+            UploadLog("Upload hedefleri alinamadi; kayitlar korunacak ve sonra tekrar denenecek.");
             return;
         }
 
-        // Cloud upload gerekli mi? (provider LocalDisk degilse)
-        bool needsCloudUpload = config.ProviderTypeId != StorageProviders.Ids.LocalDisk;
-        // Lokal klasor kopyasi gerekli mi? (BasePath doluysa)
-        bool needsLocalCopy = !string.IsNullOrWhiteSpace(config.BasePath);
+        var needsCustomerUpload = targets.UploadToCustomerStorage && targets.CustomerConfig != null;
+        var needsPlatformUpload = targets.UploadToPlatform && targets.PlatformConfig != null;
 
-        if (!needsCloudUpload && !needsLocalCopy)
+        if (!needsCustomerUpload && !needsPlatformUpload)
         {
-            UploadLog("Ne cloud ne lokal hedef tanimli — atlaniyor.");
+            UploadLog($"Upload hedefi yok. platform={targets.UploadToPlatform}, customer={targets.UploadToCustomerStorage}");
             return;
         }
 
         var recordings = await _localRepo.GetUnuploadedRecordingsAsync(10);
-        UploadLog($"Bekleyen kayit: {recordings.Count} (cloud={needsCloudUpload}, localCopy={needsLocalCopy}, basePath={config.BasePath})");
+        UploadLog($"Bekleyen kayit: {recordings.Count} (platform={needsPlatformUpload}, customer={needsCustomerUpload})");
         if (recordings.Count == 0) return;
 
-        _logger.LogInformation("{Count} ses kaydi isleniyor (cloud={Cloud}, localCopy={Local})",
-            recordings.Count, needsCloudUpload, needsLocalCopy);
+        _logger.LogInformation("{Count} ses kaydi isleniyor (platform={Platform}, customer={Customer})",
+            recordings.Count, needsPlatformUpload, needsCustomerUpload);
 
         foreach (var recording in recordings)
         {
             ct.ThrowIfCancellationRequested();
-            UploadLog($"Isleniyor: {recording.FilePath} (cloud={recording.IsUploadedToCloud}, localCopy={recording.IsUploadedToPlatform})");
+            UploadLog($"Isleniyor: {recording.FilePath} (customer={recording.IsUploadedToCloud}, platform={recording.IsUploadedToPlatform})");
 
             if (!File.Exists(recording.FilePath))
             {
                 UploadLog($"Dosya bulunamadi: {recording.FilePath}");
-                if (needsCloudUpload) await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
-                if (needsLocalCopy) await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+                if (needsCustomerUpload && !recording.IsUploadedToCloud)
+                    await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
+                if (needsPlatformUpload && !recording.IsUploadedToPlatform)
+                    await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
                 continue;
             }
 
-            // 1. Cloud upload (provider LocalDisk degilse)
-            if (needsCloudUpload && !recording.IsUploadedToCloud && recording.CloudUploadAttemptCount < MaxRetries)
-            {
-                UploadLog($"Cloud upload basliyor: provider={config.ProviderTypeId}");
-                await UploadToCloudAsync(config, recording, ct);
-            }
+            if (needsCustomerUpload && !recording.IsUploadedToCloud && recording.CloudUploadAttemptCount < MaxRetries)
+                await UploadToTargetAsync(targets.CustomerConfig!, recording, UploadTargetKind.CustomerStorage, ct);
 
-            // 2. Lokal klasor kopyasi (BasePath doluysa)
-            if (needsLocalCopy && !recording.IsUploadedToPlatform && recording.PlatformUploadAttemptCount < MaxRetries)
-            {
-                UploadLog($"Lokal kopya basliyor: basePath={config.BasePath}");
-                await CopyToLocalPathAsync(config.BasePath!, recording);
-            }
+            if (needsPlatformUpload && !recording.IsUploadedToPlatform && recording.PlatformUploadAttemptCount < MaxRetries)
+                await UploadToTargetAsync(targets.PlatformConfig!, recording, UploadTargetKind.PlatformStorage, ct);
 
-            // Tum hedefler tamamlandiysa orijinal dosyayi sil
-            bool cloudDone = !needsCloudUpload || recording.IsUploadedToCloud;
-            bool localDone = !needsLocalCopy || recording.IsUploadedToPlatform;
-            UploadLog($"cloudDone={cloudDone}, localDone={localDone}");
-
-            if (cloudDone && localDone)
+            if (IsCompleteForTargets(recording, targets))
             {
                 try
                 {
                     if (File.Exists(recording.FilePath))
                         File.Delete(recording.FilePath);
-                    // Metadata silinmez — BackgroundSync CloudFileId'yi backend'e gondermek icin kullanir.
-                    // Metadata RetentionDate'e gore temizlenir (RecordingCleanupService).
-                    UploadLog($"Tamamlandi — orijinal dosya silindi: {recording.FilePath}");
+
+                    // Metadata silinmez; BackgroundSync CloudFileId/PlatformFileId degerlerini backend'e gonderir.
+                    UploadLog($"Tamamlandi; orijinal dosya silindi: {recording.FilePath}");
                 }
                 catch (Exception ex)
                 {
@@ -132,12 +118,109 @@ public class RecordingUploadService
     }
 
     /// <summary>
-    /// Cloud provider'a yukle (GoogleDrive, S3, OneDrive, vb.)
-    /// IsUploadedToCloud ile takip edilir.
+    /// Lokal cagri kaydinda dosya yolu oldugu halde recordings.json metadata'si yoksa yeniden olusturur.
     /// </summary>
+    public async Task RepairMissingRecordingMetadataAsync(CancellationToken ct = default)
+    {
+        if (!_localRepo.IsConfigured) return;
+
+        try
+        {
+            var callRecords = await _localRepo.GetCallRecordsAsync(null, null, 1, 1000);
+            var recordings = await _localRepo.GetRecordingsAsync(null, 1, 5000);
+            var knownPaths = recordings
+                .Where(r => !string.IsNullOrWhiteSpace(r.FilePath))
+                .Select(r => Path.GetFullPath(r.FilePath))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var repaired = 0;
+            foreach (var call in callRecords)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                if (string.IsNullOrWhiteSpace(call.RecordingFilePath))
+                    continue;
+
+                var fullPath = Path.GetFullPath(call.RecordingFilePath);
+                if (knownPaths.Contains(fullPath) || !File.Exists(fullPath))
+                    continue;
+
+                var fileInfo = new FileInfo(fullPath);
+                string? fileHash = null;
+                try
+                {
+                    fileHash = await FileEncryptionService.ComputeFileHashAsync(fullPath);
+                }
+                catch { }
+
+                await _localRepo.SaveRecordingMetadataAsync(new LocalRecording
+                {
+                    CallRecordUid = call.Uid,
+                    FilePath = fullPath,
+                    FileSize = fileInfo.Length,
+                    Format = fileInfo.Extension.TrimStart('.').ToLowerInvariant(),
+                    DurationSeconds = call.DurationSeconds,
+                    CreatedAt = fileInfo.CreationTimeUtc,
+                    FileHash = fileHash,
+                    IsEncrypted = fileInfo.Extension.Equals(".enc", StringComparison.OrdinalIgnoreCase),
+                    RetentionDate = DateTime.UtcNow.AddYears(10)
+                });
+
+                knownPaths.Add(fullPath);
+                repaired++;
+            }
+
+            if (repaired > 0)
+                UploadLog($"Eksik recording metadata onarildi: {repaired}");
+        }
+        catch (Exception ex)
+        {
+            UploadLog($"Recording metadata onarim hatasi: {ex.Message}");
+            _logger.LogWarning(ex, "Recording metadata onarim hatasi");
+        }
+    }
+
+    /// <summary>
+    /// Bu cagriya ait dosya varsa ve gerekli upload hedefleri tamamlanmamissa true doner.
+    /// Hedefler gecici olarak alinamazsa dosya kaybolmasin diye pending kabul edilir.
+    /// </summary>
+    public async Task<bool> HasPendingRequiredUploadsAsync(Guid callRecordUid, CancellationToken ct = default)
+    {
+        var recordings = await _localRepo.GetRecordingsAsync(callRecordUid, 1, 100);
+        if (recordings.Count == 0) return false;
+
+        var targets = await GetUploadTargetsAsync(ct);
+        foreach (var recording in recordings)
+        {
+            if (!File.Exists(recording.FilePath))
+                continue;
+
+            if (targets == null || !IsCompleteForTargets(recording, targets))
+                return true;
+        }
+
+        return false;
+    }
+
+    private async Task UploadToTargetAsync(
+        CloudConfigForClientDto config,
+        LocalRecording recording,
+        UploadTargetKind target,
+        CancellationToken ct)
+    {
+        if (config.ProviderTypeId == StorageProviders.Ids.LocalDisk)
+        {
+            await CopyToLocalPathAsync(config.BasePath, recording, target);
+            return;
+        }
+
+        await UploadToCloudAsync(config, recording, target, ct);
+    }
+
     private async Task UploadToCloudAsync(
         CloudConfigForClientDto config,
         LocalRecording recording,
+        UploadTargetKind target,
         CancellationToken ct)
     {
         try
@@ -150,32 +233,34 @@ public class RecordingUploadService
 
             if (success && fileId != null)
             {
-                UploadLog($"Cloud BASARILI: {fileName} → {fileId}");
-                await _localRepo.MarkRecordingAsUploadedAsync(recording.Uid, fileId);
-                recording.IsUploadedToCloud = true;
-                recording.CloudFileId = fileId;
+                UploadLog($"{TargetLabel(target)} cloud BASARILI: {fileName} -> {fileId}");
+                await MarkUploadedAsync(recording, target, fileId);
+                await MarkCallRecordForResyncAsync(recording.CallRecordUid);
             }
             else
             {
-                UploadLog($"Cloud BASARISIZ: {error}");
-                await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
+                UploadLog($"{TargetLabel(target)} cloud BASARISIZ: {error}");
+                await UpdateAttemptAsync(recording.Uid, target);
             }
         }
         catch (Exception ex)
         {
-            UploadLog($"Cloud HATA: {ex.Message}");
-            await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
+            UploadLog($"{TargetLabel(target)} cloud HATA: {ex.Message}");
+            await UpdateAttemptAsync(recording.Uid, target);
         }
     }
 
-    /// <summary>
-    /// Dosyayi BasePath klasorune kopyala.
-    /// IsUploadedToPlatform ile takip edilir (lokal kopya = "platform" alani).
-    /// </summary>
-    private async Task CopyToLocalPathAsync(string targetDir, LocalRecording recording)
+    private async Task CopyToLocalPathAsync(string? targetDir, LocalRecording recording, UploadTargetKind target)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(targetDir))
+            {
+                UploadLog($"{TargetLabel(target)} LocalDisk hedef klasoru bos.");
+                await UpdateAttemptAsync(recording.Uid, target);
+                return;
+            }
+
             if (!Directory.Exists(targetDir))
             {
                 try
@@ -185,7 +270,7 @@ public class RecordingUploadService
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Lokal hedef klasor olusturulamadi: {Path}", targetDir);
-                    await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+                    await UpdateAttemptAsync(recording.Uid, target);
                     return;
                 }
             }
@@ -201,18 +286,74 @@ public class RecordingUploadService
             }
 
             File.Copy(recording.FilePath, targetPath);
-            UploadLog($"Lokal KOPYALANDI: {recording.FilePath} → {targetPath}");
+            UploadLog($"{TargetLabel(target)} LocalDisk KOPYALANDI: {recording.FilePath} -> {targetPath}");
 
-            await _localRepo.MarkRecordingAsUploadedToPlatformAsync(recording.Uid, targetPath);
-            recording.IsUploadedToPlatform = true;
-            recording.PlatformFileId = targetPath;
+            await MarkUploadedAsync(recording, target, targetPath);
+            await MarkCallRecordForResyncAsync(recording.CallRecordUid);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Lokal kopyalama hatasi: {Uid}", recording.Uid);
-            await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
+            await UpdateAttemptAsync(recording.Uid, target);
         }
     }
+
+    private async Task MarkUploadedAsync(LocalRecording recording, UploadTargetKind target, string fileId)
+    {
+        if (target == UploadTargetKind.CustomerStorage)
+        {
+            await _localRepo.MarkRecordingAsUploadedAsync(recording.Uid, fileId);
+            recording.IsUploadedToCloud = true;
+            recording.CloudFileId = fileId;
+            recording.LastCloudUploadAttempt = DateTime.UtcNow;
+        }
+        else
+        {
+            await _localRepo.MarkRecordingAsUploadedToPlatformAsync(recording.Uid, fileId);
+            recording.IsUploadedToPlatform = true;
+            recording.PlatformFileId = fileId;
+            recording.LastPlatformUploadAttempt = DateTime.UtcNow;
+        }
+    }
+
+    private Task UpdateAttemptAsync(Guid recordingUid, UploadTargetKind target)
+    {
+        return target == UploadTargetKind.CustomerStorage
+            ? _localRepo.UpdateRecordingUploadAttemptAsync(recordingUid)
+            : _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recordingUid);
+    }
+
+    private async Task MarkCallRecordForResyncAsync(Guid callRecordUid)
+    {
+        try
+        {
+            var record = await _localRepo.GetCallRecordByUidAsync(callRecordUid);
+            if (record == null) return;
+
+            record.IsSyncedToBackend = false;
+            await _localRepo.UpdateCallRecordAsync(record);
+        }
+        catch (Exception ex)
+        {
+            UploadLog($"Call record re-sync isaretleme hatasi: {ex.Message}");
+        }
+    }
+
+    private static bool IsCompleteForTargets(LocalRecording recording, RecordingUploadTargetsDto targets)
+    {
+        var needsCustomer = targets.UploadToCustomerStorage && targets.CustomerConfig != null;
+        var needsPlatform = targets.UploadToPlatform && targets.PlatformConfig != null;
+
+        // Hic hedef yoksa dosyayi ve metadata'yi koru; ileride hedef acilinca upload edilebilir.
+        if (!needsCustomer && !needsPlatform)
+            return false;
+
+        return (!needsCustomer || recording.IsUploadedToCloud)
+            && (!needsPlatform || recording.IsUploadedToPlatform);
+    }
+
+    private static string TargetLabel(UploadTargetKind target)
+        => target == UploadTargetKind.CustomerStorage ? "CustomerStorage" : "PlatformStorage";
 
     private static void UploadLog(string msg)
     {
@@ -227,21 +368,15 @@ public class RecordingUploadService
         catch { }
     }
 
-    // ═══════════════════════════════════════
-    // UPLOAD TARGETS CACHE
-    // ═══════════════════════════════════════
-
     /// <summary>
     /// Upload hedeflerini once bellekten, sonra SecureStorage'dan, en son API'den al.
     /// 30 dakikada bir API'den taze hedefler cekilir.
     /// </summary>
     private async Task<RecordingUploadTargetsDto?> GetUploadTargetsAsync(CancellationToken ct)
     {
-        // 1. Bellek cache'i kontrol
         if (_cachedTargets != null && DateTime.UtcNow - _lastTargetsFetch < TargetsCacheExpiry)
             return _cachedTargets;
 
-        // 2. API'den cek (online ise)
         try
         {
             var response = await _http.GetAsync("api/recordings/upload-targets", ct);
@@ -262,10 +397,9 @@ public class RecordingUploadService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Upload targets API'den alinamadi — cache'e bakilacak");
+            _logger.LogDebug(ex, "Upload targets API'den alinamadi; cache'e bakilacak");
         }
 
-        // 3. SecureStorage'dan oku (offline mod)
         try
         {
             var cached = await _secureStorage.GetAsync(UploadTargetsCacheKey);

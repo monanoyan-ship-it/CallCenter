@@ -68,6 +68,15 @@ public class SipConnectionInfoDto
     /// <summary>Tahsis edilen hat ID'si (release icin)</summary>
     public int SipLineId { get; set; }
 
+    /// <summary>Gateway kanal numarasi (GoIP line/channel)</summary>
+    public int ChannelNumber { get; set; }
+
+    /// <summary>Ayni SIP kullanicisiyle coklu GoIP kanal secimi icin numaranin basina eklenecek routing prefix.</summary>
+    public string? OutboundDialPrefix { get; set; }
+
+    /// <summary>OutboundDialPrefix SIP'e giden hedefte kullanilsin mi?</summary>
+    public bool UseChannelRoutingPrefix { get; set; }
+
     /// <summary>Gateway ID'si</summary>
     public int SipAccountId { get; set; }
 

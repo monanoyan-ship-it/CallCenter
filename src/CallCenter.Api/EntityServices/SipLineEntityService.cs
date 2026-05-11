@@ -26,40 +26,48 @@ public class SipLineEntityService : ISipLineEntityService
             .FirstOrDefaultAsync(l => l.AssignedPersonnelId == personnelId && l.IsActive);
 
     /// <summary>Bos hat tahsisi: gateway'in default hattini tercih et, yoksa herhangi bir aktif bos hat</summary>
-    public async Task<SipLine?> AcquireUnassignedAsync(int customerId)
+    public async Task<SipLine?> AcquireUnassignedAsync(int customerId, int? excludeLineId = null)
     {
         // Oncelikle default gateway'in bos hattini al
         var line = await _db.SipLines
             .Include(l => l.SipAccount)
+            .OrderBy(l => l.ChannelNumber)
             .FirstOrDefaultAsync(l =>
                 l.SipAccount.CustomerId == customerId &&
                 l.SipAccount.IsActive &&
                 l.SipAccount.IsDefault &&
                 l.IsActive &&
+                (!excludeLineId.HasValue || l.Id != excludeLineId.Value) &&
                 l.AssignedPersonnelId == null);
 
         // Default gateway'de bos hat yoksa, herhangi bir gateway'in bos hatti
         line ??= await _db.SipLines
             .Include(l => l.SipAccount)
+            .OrderByDescending(l => l.SipAccount.IsDefault)
+            .ThenBy(l => l.SipAccount.Name)
+            .ThenBy(l => l.ChannelNumber)
             .FirstOrDefaultAsync(l =>
                 l.SipAccount.CustomerId == customerId &&
                 l.SipAccount.IsActive &&
                 l.IsActive &&
+                (!excludeLineId.HasValue || l.Id != excludeLineId.Value) &&
                 l.AssignedPersonnelId == null);
 
         return line;
     }
 
     /// <summary>Belirli bir gateway'den bos hat tahsisi</summary>
-    public async Task<SipLine?> AcquireUnassignedAsync(int customerId, int gatewayId)
+    public async Task<SipLine?> AcquireUnassignedAsync(int customerId, int gatewayId, int? excludeLineId = null)
     {
         return await _db.SipLines
             .Include(l => l.SipAccount)
+            .OrderBy(l => l.ChannelNumber)
             .FirstOrDefaultAsync(l =>
                 l.SipAccount.CustomerId == customerId &&
                 l.SipAccountId == gatewayId &&
                 l.SipAccount.IsActive &&
                 l.IsActive &&
+                (!excludeLineId.HasValue || l.Id != excludeLineId.Value) &&
                 l.AssignedPersonnelId == null);
     }
 

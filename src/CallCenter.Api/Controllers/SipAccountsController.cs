@@ -23,7 +23,10 @@ public class SipAccountsController : AuditableControllerBase
     // ═══════════════════════════════════════════════════════════════
 
     [HttpGet("my/connection")]
-    public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection([FromQuery] int? gatewayId = null)
+    public async Task<ActionResult<SipConnectionInfoDto>> GetMyConnection(
+        [FromQuery] int? gatewayId = null,
+        [FromQuery] int? excludeLineId = null,
+        [FromQuery] bool forceNewLine = false)
     {
         var customerIdClaim = User.FindFirstValue("CustomerId");
         if (string.IsNullOrEmpty(customerIdClaim) || !int.TryParse(customerIdClaim, out var customerId))
@@ -37,10 +40,16 @@ public class SipAccountsController : AuditableControllerBase
             personnelId = pid;
 
         var displayName = User.FindFirstValue(ClaimTypes.GivenName) ?? "User";
-        var result = await _sipFactory.GetMyConnectionAsync(customerId, personnelId, displayName, gatewayId);
+        var result = await _sipFactory.GetMyConnectionAsync(
+            customerId,
+            personnelId,
+            displayName,
+            gatewayId,
+            excludeLineId,
+            forceNewLine);
 
         if (result == null)
-            return NotFound(new { message = "Firmaniza ait bos hat bulunamadi. Tum hatlar dolu veya gateway tanimli degil." });
+            return NotFound(new { message = "Firmaniza ait bos hat bulunamadi. Tum hatlar dolu, secilen kanal mesgul veya gateway tanimli degil." });
 
         return Ok(result);
     }

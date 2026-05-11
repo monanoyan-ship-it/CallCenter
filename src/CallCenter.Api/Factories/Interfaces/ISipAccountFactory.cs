@@ -5,7 +5,13 @@ namespace CallCenter.Api.Factories.Interfaces;
 public interface ISipAccountFactory
 {
     // ─── Operator hat tahsisi ───
-    Task<SipConnectionInfoDto?> GetMyConnectionAsync(int customerId, int? personnelId, string displayName, int? gatewayId = null);
+    Task<SipConnectionInfoDto?> GetMyConnectionAsync(
+        int customerId,
+        int? personnelId,
+        string displayName,
+        int? gatewayId = null,
+        int? excludeLineId = null,
+        bool forceNewLine = false);
     Task<List<SipGatewaySummaryDto>> GetMyGatewaysAsync(int customerId);
     Task ReleaseLineAsync(int personnelId);
 

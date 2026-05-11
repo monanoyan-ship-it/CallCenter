@@ -108,7 +108,8 @@ public class BackgroundSyncService
         {
             try
             {
-                // ONCE upload (CloudFileId set edilsin), SONRA sync (CloudFileId backend'e gitsin)
+                // ONCE metadata repair + upload (CloudFileId/PlatformFileId set edilsin),
+                // SONRA sync (dosya id'leri backend'e gitsin).
                 await _recordingUpload.UploadPendingRecordingsAsync(ct);
                 await SyncUnsyncedRecordsAsync(ct);
                 await SyncUnsyncedContactsAsync(ct);
@@ -167,10 +168,18 @@ public class BackgroundSyncService
 
                 if (backendCallId.HasValue)
                 {
+                    if (await _recordingUpload.HasPendingRequiredUploadsAsync(record.Uid, ct))
+                    {
+                        await _localRepo.MarkAsSyncedAsync(record.Uid, backendCallId);
+                        _logger.LogInformation("Cagri sync edildi ama recording upload bekliyor: {Uid}", record.Uid);
+                        successCount++;
+                        continue;
+                    }
+
                     // Sync basarili → call record + recording metadata lokalden sil
                     await _localRepo.DeleteCallRecordAsync(record.Uid);
                     // Recording metadata artik gerekli degil (CloudFileId backend'e gitti)
-                    var recs = await _localRepo.GetRecordingsAsync(record.Uid, 1, 1);
+                    var recs = await _localRepo.GetRecordingsAsync(record.Uid, 1, 100);
                     foreach (var rec in recs)
                         await _localRepo.DeleteRecordingAsync(rec.Uid);
                     successCount++;
@@ -499,6 +508,12 @@ public class BackgroundSyncService
 
             foreach (var record in toDelete)
             {
+                if (await _recordingUpload.HasPendingRequiredUploadsAsync(record.Uid))
+                {
+                    _logger.LogInformation("Sync edilmis cagri kaydi recording upload bekledigi icin korunuyor: {Uid}", record.Uid);
+                    continue;
+                }
+
                 await _localRepo.DeleteCallRecordAsync(record.Uid);
             }
 
