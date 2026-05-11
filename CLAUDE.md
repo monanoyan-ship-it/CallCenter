@@ -18,66 +18,41 @@ curl -s http://127.0.0.1:41847/api/projects/15/roadmap/summary
 
 ClaudeManager okunamazsa kullaniciyi bilgilendir ve onay almadan devam etme.
 
-### 2. Oturum Koordinasyonu ZORUNLU (Chat ID 8)
-Birden fazla Claude/Codex oturumu ayni anda calisabilir. Cakismayi onlemek icin ClaudeManager rehberinden sonra mutlaka chat oku, okundu isaretle ve claim birak.
+### 2. Oturum Koordinasyonu
+Birden fazla Claude/Codex oturumu ayni anda calisabilir. Cakismayi onlemek icin:
+- Once `git status --short` ile kirli worktree gor.
+- Dokunacagin dosyalari dar kapsamda tut; ilgisiz degisikliklere dokunma.
+- Ayni dosyaya paralel oturum dokunuyorsa kullanicidan yonlendirme al.
+- Kalici planlar ve gorev durumlari ClaudeManager roadmap endpoint'lerine yazilir.
 
-```
-curl -s http://127.0.0.1:41847/api/ai-chat/8/unread/a
-curl -s -X POST http://127.0.0.1:41847/api/ai-chat/8/read/a
-curl -s -X POST http://127.0.0.1:41847/api/ai-chat/8/message \
-  -H "Content-Type: application/json" \
-  -d '{"role":"a","content":"BUG.XX uzerinde calisiyorum. Dosyalar: X.js, Y.cshtml"}'
-```
+### 3. Workspace Siniri
+- Kullanici acikca hedef klasor soylemedikce acilan repo kokunun disina cikma.
+- PC genelinde arama/kurcalama yapma; sadece bu repo ve kullanicinin acikca verdigi hedef klasorler uzerinde calis.
 
-Kurallar:
-- Mesaj okumadan kod yazma.
-- Calisacagin dosyalari chat'e yaz.
-- Fix bitince sonuc mesajini chat'e yaz.
-- Ayni dosyaya iki oturum ayni anda dokunmaz.
-
-### 3. Git Kurallari
+### 4. Git Kurallari
 - Kullanici acikca "commit et" demeden commit yapma.
 - Kullanici acikca "push et" demeden push yapma. Commit onayi push onayi degildir.
 - Kullanici degisikliklerini asla revert etme.
 - Kirli worktree varsa once `git status --short` ile gor, ilgisiz degisikliklere dokunma.
 
-### 4. Calistirma Kurallari
+### 5. Calistirma Kurallari
 - `dotnet run`, `dotnet watch` ve benzeri debug/run komutlari yasak. Debug Visual Studio ile yapilir.
 - `dotnet build` serbest.
 - `dotnet test` serbest.
 - Basit dosya aramalarinda once `rg` kullan.
 
-### 5. ClaudeManager'a Yazma Zorunlulugu
+### 6. ClaudeManager'a Yazma Zorunlulugu
 - Yeni kalici kural/hata/tercih ogrenilirse Pattern olarak kaydet.
 - Yeni hesap/API key/sifre/config olusturulursa Notes'a yaz.
 - Gunluk bilgi, deploy, domain, kredi, basvuru gibi bilgiler Journal'a yaz.
 - Gorev tamamlaninca ilgili roadmap task'ina risk/eksik raporu ekle.
 
-### 6. Rol Bolumlemesi (Chat ID 8: a = Claude Code, b = ChatGPT/Codex)
-Iki oturum farkli sorumluluk tasir. Kendi rolun disinda is yapma.
-
-**a (Claude Code) sorumluluklari — KOD:**
-- Yeni feature, refactor, bug fix icin dosya degisikligi.
-- DTO/entity/factory/service/controller yazimi.
-- View, JS, css, migration olusturma.
-- `dotnet build` calistirip kendi yazdigi kodun derlendigini dogrulama.
-
-**b (ChatGPT/Codex) sorumluluklari — TEST:**
-- `dotnet test`, integration test, manuel/smoke test.
-- Lokal/prod smoke (URL'leri, endpoint cevaplarini, DB durumunu dogrulama).
-- Deploy adimlari (Cloud Run revizyon, gcloud auth, Dockerfile dogrulamasi).
-- Gerekirse a'ya geri donus: hata trace, ekran goruntusu, repro adimi.
-
-**Akis:**
-1. a kod degisikligini bitirince chat'e "TEST READY: <feature/dosyalar>" yazar.
-2. b test alir, sonucu chat'e yazar ("PASS" / "FAIL: <ozet>").
-3. FAIL durumunda a duzeltir, tekrar TEST READY yazar.
-4. Ne a ne b kullanici acikca soylemeden commit/push yapar.
-
-**Catisma onleme:**
-- a, kodun uzerinde calisirken b ayni dosyaya dokunmaz (sadece okuyup test eder).
-- b, test/deploy fazindayken a o dosyalara yeni degisiklik atmadan once chat'e duyurur.
-- Acil bir durumda rol disina cikilirsa once chat'e gerekce yazilir.
+### 7. Paralel Calisma ve Sorumluluk
+Birden fazla oturum ayni repo uzerinde calisirken her oturum kendi degisiklik alanindan sorumludur.
+- Kod degisikligi yapan oturum kendi diff'ini kontrol eder ve build/test durumunu raporlar.
+- Test/deploy yapan oturum kodu izinsiz refactor etmez; buldugu hatayi kullaniciya net ozetler.
+- Ayni dosyaya paralel degisiklik gerekiyorsa once kullanicidan yonlendirme alinir.
+- Ne Claude ne Codex kullanici acikca soylemeden commit/push yapar.
 
 ## Proje Ozeti
 

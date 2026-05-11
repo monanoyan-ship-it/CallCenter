@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="140" viewBox="0 0 180 140" role="img" aria-label="Burger">
+  <rect width="180" height="140" rx="18" fill="#f1f5f9"/>
+  <path d="M43 66c5-25 89-25 94 0z" fill="#818cf8"/>
+  <rect x="39" y="70" width="102" height="13" rx="6" fill="#7d4a34"/>
+  <path d="M43 86h94v11H43z" fill="#8fcf9f"/>
+  <rect x="43" y="100" width="94" height="18" rx="9" fill="#818cf8"/>
+  <g fill="#fff6da"><circle cx="68" cy="54" r="3"/><circle cx="90" cy="48" r="3"/><circle cx="112" cy="55" r="3"/></g>
+</svg>

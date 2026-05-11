@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Musteriler";
+}
+
+<section class="panel-card" id="menuCustomersApp">
+    <div class="panel-card-header">
+        <div>
+            <h2>Isletmenin musterileri</h2>
+            <p>Sonraki fazda QR menu kullanicilari, yorumlar, siparis gecmisi ve izinler burada tutulacak.</p>
+        </div>
+        <button class="btn btn-outline-dark" type="button" data-bind="click: exportCustomers"><i class="bi bi-download me-1"></i>Disa aktar</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Musteri</th>
+                    <th>Telefon</th>
+                    <th>Son ziyaret</th>
+                    <th>Harcama</th>
+                    <th>Izin</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: customers">
+                <tr>
+                    <td data-bind="text: name"></td>
+                    <td data-bind="text: phone"></td>
+                    <td data-bind="text: lastVisit"></td>
+                    <td data-bind="text: spend"></td>
+                    <td><span class="badge" data-bind="text: consent, css: badge"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/MenuCustomers.js" asp-append-version="true"></script>
+}

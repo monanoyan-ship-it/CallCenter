@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="140" viewBox="0 0 180 140" role="img" aria-label="Bowl">
+  <rect width="180" height="140" rx="18" fill="#eef2ff"/>
+  <ellipse cx="90" cy="82" rx="58" ry="34" fill="#ffffff" stroke="#d1ddcf" stroke-width="4"/>
+  <circle cx="70" cy="72" r="16" fill="#818cf8"/>
+  <circle cx="101" cy="68" r="17" fill="#8fcf9f"/>
+  <path d="M54 92c18 14 58 17 79-1" fill="none" stroke="#9f6f52" stroke-width="10" stroke-linecap="round"/>
+</svg>

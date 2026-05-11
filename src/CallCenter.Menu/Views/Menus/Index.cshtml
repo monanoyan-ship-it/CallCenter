@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Menuler";
+}
+
+<div id="menuMenusApp">
+    <section class="panel-card">
+        <div class="panel-card-header">
+            <div>
+                <h2 data-bind="text: menuName"></h2>
+                <p>Isletme kullanicisinin musterileri bu public link uzerinden menuyu gorur.</p>
+            </div>
+            <a class="btn btn-dark" data-bind="attr: { href: publicUrl }" target="_blank" rel="noreferrer">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Ac
+            </a>
+        </div>
+        <div class="menu-publish-row">
+            <div>
+                <span class="eyebrow">Public URL</span>
+                <strong data-bind="text: publicUrl"></strong>
+            </div>
+            <div>
+                <span class="eyebrow">Dil</span>
+                <strong data-bind="text: language"></strong>
+            </div>
+            <div>
+                <span class="eyebrow">Durum</span>
+                <strong data-bind="text: status"></strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel-card">
+        <div class="panel-card-header">
+            <h2>Kategoriler</h2>
+            <button class="btn btn-outline-dark" type="button" data-bind="click: addCategory"><i class="bi bi-plus-lg me-1"></i>Kategori</button>
+        </div>
+        <div class="category-list" data-bind="foreach: categories">
+            <div><strong data-bind="text: name"></strong><span data-bind="text: productCountText"></span></div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/MenuMenus.js" asp-append-version="true"></script>
+}

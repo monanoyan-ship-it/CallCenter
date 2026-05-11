@@ -1,0 +1,89 @@
+@{
+    ViewData["Title"] = "Masadan Odeme";
+}
+
+<div id="menuPaymentsApp">
+    <section class="panel-grid" data-bind="foreach: metrics">
+        <article class="metric-card">
+            <span data-bind="text: label"></span>
+            <strong data-bind="text: value"></strong>
+            <small data-bind="text: hint"></small>
+        </article>
+    </section>
+
+    <section class="panel-columns">
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <div>
+                    <h2>Masadan odeme akisi</h2>
+                    <p>Musteri QR ile hesap ozetini gorur, odeme baslatir; isletme paneli durumu izler.</p>
+                </div>
+                <span class="badge text-bg-primary">Opsiyonel modul</span>
+            </div>
+            <div class="payment-flow">
+                <div><i class="bi bi-qr-code"></i><strong>Masa QR</strong><span>Masa ve adisyon eslesir</span></div>
+                <div><i class="bi bi-receipt"></i><strong>Hesap ozeti</strong><span>Kalemler ve servis ucreti gorunur</span></div>
+                <div><i class="bi bi-credit-card"></i><strong>Odeme</strong><span>Kart/iyzico benzeri checkout baslar</span></div>
+                <div><i class="bi bi-check2-circle"></i><strong>Kapanis</strong><span>Adisyon ve siparis odendi olur</span></div>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h2>Odeme ayarlari</h2>
+            </div>
+            <div class="payment-settings">
+                <label class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" data-bind="checked: tablePaymentEnabled" />
+                    <span class="form-check-label">Masadan odeme aktif</span>
+                </label>
+                <label class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" data-bind="checked: tipEnabled" />
+                    <span class="form-check-label">Bahsis secimi aktif</span>
+                </label>
+                <label class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" data-bind="checked: splitPaymentEnabled" />
+                    <span class="form-check-label">Hesap bolme aktif</span>
+                </label>
+                <button class="btn btn-dark w-100" type="button" data-bind="click: saveSettings">
+                    <i class="bi bi-save me-1"></i>Ayarlari Kaydet
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel-card">
+        <div class="panel-card-header">
+            <h2>Odeme denemeleri</h2>
+            <button class="btn btn-outline-dark" type="button" data-bind="click: refresh">
+                <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Masa</th>
+                        <th>Tutar</th>
+                        <th>Yontem</th>
+                        <th>Durum</th>
+                        <th>Saat</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: payments">
+                    <tr>
+                        <td data-bind="text: table"></td>
+                        <td data-bind="text: amount"></td>
+                        <td data-bind="text: method"></td>
+                        <td><span class="badge" data-bind="text: status, css: badge"></span></td>
+                        <td data-bind="text: time"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/MenuPayments.js" asp-append-version="true"></script>
+}

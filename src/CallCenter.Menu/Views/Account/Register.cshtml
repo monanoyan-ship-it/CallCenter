@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Menu Hesabi Olustur";
+}
+
+<section class="auth-page">
+    <div class="auth-card auth-card-wide">
+        <div class="auth-intro">
+            <span class="eyebrow">14 gun deneme</span>
+            <h1>Isletmenizi dijital menuye tasiyin</h1>
+            <p>Once isletme kullanicisi olusur; sonraki fazda bu isletmenin kendi musterileri ve QR menu akisi baglanir.</p>
+        </div>
+        @if (ViewBag.Success == true)
+        {
+            <div class="alert alert-success">@ViewBag.Message</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(ViewBag.Error as string))
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+        <form method="post" class="auth-form">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label>
+                        Menu / isletme adi
+                        <input class="form-control" name="businessName" value="@ViewBag.BusinessName" placeholder="Orn: Cicek Kafe - FSM" required />
+                    </label>
+                </div>
+                <div class="col-md-6">
+                    <label>
+                        Ad soyad
+                        <input class="form-control" name="fullName" value="@ViewBag.FullName" autocomplete="name" required />
+                    </label>
+                </div>
+                <div class="col-md-6">
+                    <label>
+                        E-posta
+                        <input class="form-control" name="email" type="email" value="@ViewBag.Email" autocomplete="email" required />
+                    </label>
+                </div>
+                <div class="col-md-6">
+                    <label>
+                        Telefon
+                        <input class="form-control" name="phone" value="@ViewBag.Phone" placeholder="05*********" autocomplete="tel" required />
+                    </label>
+                </div>
+                <div class="col-12">
+                    <label>
+                        Sifre
+                        <input class="form-control" name="password" type="password" autocomplete="new-password" required />
+                    </label>
+                </div>
+            </div>
+            <button class="btn btn-dark w-100 mt-3" type="submit">
+                <i class="bi bi-shop-window me-2"></i>Hesap Olustur
+            </button>
+        </form>
+        <div class="auth-alt">
+            Zaten hesabiniz var mi? <a asp-controller="Account" asp-action="Login">Giris yapin</a>
+        </div>
+    </div>
+</section>

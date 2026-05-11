@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="620" viewBox="0 0 860 620" role="img" aria-labelledby="title desc">
+  <title id="title">CorpLynk Menu interface preview</title>
+  <desc id="desc">Dashboard and mobile QR menu preview.</desc>
+  <rect width="860" height="620" rx="32" fill="#f8fafc"/>
+  <rect x="58" y="62" width="480" height="420" rx="18" fill="#ffffff" stroke="#d8deea"/>
+  <rect x="84" y="92" width="120" height="20" rx="10" fill="#0d0f14"/>
+  <rect x="84" y="136" width="136" height="72" rx="12" fill="#e0e7ff"/>
+  <rect x="238" y="136" width="136" height="72" rx="12" fill="#dcfce7"/>
+  <rect x="392" y="136" width="110" height="72" rx="12" fill="#f1f5f9"/>
+  <rect x="84" y="244" width="392" height="22" rx="11" fill="#0d0f14"/>
+  <rect x="84" y="286" width="392" height="44" rx="10" fill="#f8fafc" stroke="#d8deea"/>
+  <rect x="84" y="346" width="392" height="44" rx="10" fill="#f8fafc" stroke="#d8deea"/>
+  <rect x="84" y="406" width="392" height="44" rx="10" fill="#f8fafc" stroke="#d8deea"/>
+  <rect x="586" y="94" width="216" height="430" rx="32" fill="#07080a"/>
+  <rect x="606" y="126" width="176" height="364" rx="22" fill="#ffffff"/>
+  <rect x="626" y="150" width="94" height="16" rx="8" fill="#0d0f14"/>
+  <rect x="626" y="182" width="136" height="22" rx="11" fill="#6366f1"/>
+  <rect x="626" y="226" width="136" height="74" rx="14" fill="#f8fafc"/>
+  <circle cx="664" cy="263" r="24" fill="#10b981"/>
+  <rect x="626" y="316" width="136" height="74" rx="14" fill="#f8fafc"/>
+  <circle cx="664" cy="353" r="24" fill="#818cf8"/>
+  <rect x="626" y="406" width="136" height="40" rx="14" fill="#0d0f14"/>
+  <path d="M131 520h164v34H131zM323 520h92v34h-92zM444 520h160v34H444z" fill="#cbd5e1"/>
+</svg>

@@ -1,0 +1,103 @@
+@{
+    ViewData["Title"] = "Dijital QR Menu";
+}
+
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-copy">
+            <span class="eyebrow">QR menu, masadan siparis ve odeme</span>
+            <h1>CorpLynk Menu</h1>
+            <p>
+                Restoran menunuzu dakikalar icinde QR ile yayina alin. Isletme paneli,
+                public menu sayfasi, alerjen bilgisi, coklu dil, masadan siparis ve masadan odeme tek uygulamada baslar.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-dark btn-lg" asp-controller="Account" asp-action="Register">
+                    <i class="bi bi-shop-window me-2"></i>Hesap Olustur
+                </a>
+                <a class="btn btn-outline-dark btn-lg" href="/m/demo-kafe">
+                    <i class="bi bi-qr-code me-2"></i>Ornek Menu
+                </a>
+            </div>
+            <div class="hero-metrics">
+                <div><strong>14 gun</strong><span>deneme akisi</span></div>
+                <div><strong>3 adim</strong><span>kurulum</span></div>
+                <div><strong>Odeme</strong><span>masadan tahsilat</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="section-band">
+    <div class="container">
+        <div class="section-heading">
+            <span class="eyebrow">Urun kapsami</span>
+            <h2>MenuCebimde benzeri akisi CorpLynk mimarisine tasiyoruz.</h2>
+        </div>
+        <div class="feature-grid">
+            <article class="feature-card">
+                <i class="bi bi-translate"></i>
+                <h3>Coklu dil</h3>
+                <p>Turkce ile baslar; Ingilizce, Arapca ve diger diller icin menu cevirileri eklenebilir.</p>
+            </article>
+            <article class="feature-card">
+                <i class="bi bi-exclamation-triangle"></i>
+                <h3>Alerjen bilgisi</h3>
+                <p>Urun kartlarinda alerjen, porsiyon ve hazirlanma notlari musteriye acik gosterilir.</p>
+            </article>
+            <article class="feature-card">
+                <i class="bi bi-phone"></i>
+                <h3>Public menu</h3>
+                <p>Musteri QR okuttugunda indirme zorunlulugu olmadan mobil uyumlu menuyu gorur.</p>
+            </article>
+            <article class="feature-card">
+                <i class="bi bi-receipt"></i>
+                <h3>Masadan siparis</h3>
+                <p>Ilk iskelet paneli buna hazir; siparis API ve masa modeli sonraki adimda eklenir.</p>
+            </article>
+            <article class="feature-card">
+                <i class="bi bi-credit-card-2-front"></i>
+                <h3>Masadan odeme</h3>
+                <p>Musteri QR uzerinden hesabini gorur, kart veya cuzdan akisiyle odeme baslatir.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section id="process" class="section-band section-muted">
+    <div class="container">
+        <div class="section-heading">
+            <span class="eyebrow">3 adim</span>
+            <h2>Isletme kullanicisi once panelini kurar, sonra kendi musterileri QR menuyu kullanir.</h2>
+        </div>
+        <div class="process-row">
+            <div class="process-step"><strong>1</strong><h3>Hesap</h3><p>Isletme sahibi kayit olur ve panel hesabini alir.</p></div>
+            <div class="process-step"><strong>2</strong><h3>Menu</h3><p>Kategori, urun, fiyat, gorsel ve alerjen bilgileri girilir.</p></div>
+            <div class="process-step"><strong>3</strong><h3>QR + Odeme</h3><p>Musteri menuyu acar, siparis verir ve hesabini masadan odeyebilir.</p></div>
+        </div>
+    </div>
+</section>
+
+<section id="pricing" class="section-band">
+    <div class="container">
+        <div class="pricing-grid">
+            <div class="section-heading">
+                <span class="eyebrow">Baslangic</span>
+                <h2>Ilk faz web projesi ve panel zeminidir.</h2>
+                <p>Fiyat ve paket semantigi daha sonra Management uzerinden platform planlarina baglanabilir.</p>
+            </div>
+            <article class="pricing-card">
+                <span>QR Menu</span>
+                <strong>Yillik plan</strong>
+                <ul>
+                    <li>Public menu slug</li>
+                    <li>Kategori ve urun yonetimi</li>
+                    <li>Alerjen ve dil hazirligi</li>
+                    <li>Siparis modulu icin altyapi</li>
+                    <li>Masadan odeme altyapisi</li>
+                </ul>
+                <a class="btn btn-dark w-100" asp-controller="Account" asp-action="Register">14 Gun Dene</a>
+            </article>
+        </div>
+    </div>
+</section>

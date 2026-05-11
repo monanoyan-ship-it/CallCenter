@@ -1,0 +1,74 @@
+@{
+    ViewData["Title"] = "Menu Paneli";
+}
+
+<div id="menuDashboardApp">
+    <section class="panel-grid" data-bind="foreach: metrics">
+        <article class="metric-card">
+            <span data-bind="text: label"></span>
+            <strong data-bind="text: value"></strong>
+            <small data-bind="text: hint"></small>
+        </article>
+    </section>
+
+    <section class="panel-columns">
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h2>Kurulum durumu</h2>
+                <a class="btn btn-sm btn-outline-dark" asp-controller="Menus" asp-action="Index">
+                    <i class="bi bi-pencil-square me-1"></i>Duzenle
+                </a>
+            </div>
+            <div class="setup-list" data-bind="foreach: setupItems">
+                <div class="setup-item" data-bind="css: status">
+                    <i class="bi" data-bind="css: icon"></i><span data-bind="text: label"></span>
+                </div>
+            </div>
+        </div>
+        <div class="panel-card">
+            <div class="panel-card-header">
+                <h2>Hizli aksiyonlar</h2>
+            </div>
+            <div class="quick-actions">
+                <a asp-controller="Products" asp-action="Index"><i class="bi bi-plus-circle"></i><span>Urun ekle</span></a>
+                <a asp-controller="Menus" asp-action="Index"><i class="bi bi-menu-button-wide"></i><span>Menu yayini</span></a>
+                <a asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i><span>Siparisleri ac</span></a>
+                <a asp-controller="Payments" asp-action="Index"><i class="bi bi-credit-card-2-front"></i><span>Odemeler</span></a>
+                <a href="/m/demo-kafe" target="_blank" rel="noreferrer"><i class="bi bi-phone"></i><span>Public onizle</span></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel-card">
+        <div class="panel-card-header">
+            <h2>Bugunku siparis hareketi</h2>
+            <span class="badge text-bg-success">Canli onizleme</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Masa</th>
+                        <th>Musteri</th>
+                        <th>Tutar</th>
+                        <th>Durum</th>
+                        <th>Saat</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="foreach: orders">
+                    <tr>
+                        <td data-bind="text: table"></td>
+                        <td data-bind="text: customer"></td>
+                        <td data-bind="text: total"></td>
+                        <td><span class="badge" data-bind="text: status, css: badge"></span></td>
+                        <td data-bind="text: time"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/MenuDashboard.js" asp-append-version="true"></script>
+}

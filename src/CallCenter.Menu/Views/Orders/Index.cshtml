@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Siparisler";
+}
+
+<section class="kanban-board" id="menuOrdersApp" data-bind="foreach: columns">
+    <div class="order-column">
+        <h2 data-bind="text: title"></h2>
+        <div data-bind="foreach: orders">
+            <article class="order-card">
+                <strong data-bind="text: table"></strong>
+                <span data-bind="text: summary"></span>
+                <small data-bind="text: items"></small>
+                <button class="btn btn-sm btn-outline-dark mt-2" type="button" data-bind="click: $root.advanceOrder">
+                    <i class="bi bi-arrow-right me-1"></i>Durumu Ilerle
+                </button>
+            </article>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/MenuOrders.js" asp-append-version="true"></script>
+}

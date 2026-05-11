@@ -1,0 +1,37 @@
+@{
+    ViewData["Title"] = "Panel Girisi";
+}
+
+<section class="auth-page">
+    <div class="auth-card">
+        <div class="auth-intro">
+            <span class="eyebrow">Isletme paneli</span>
+            <h1>Menu yonetimine giris</h1>
+            <p>Bu ekran gelecekte Menu API login ucuna bagli calisacak. Ilk fazda web kabugu hazir.</p>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(ViewBag.Error as string))
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+        <form method="post" class="auth-form">
+            <label>
+                Kullanici adi veya e-posta
+                <input class="form-control" name="username" value="@ViewBag.Username" autocomplete="username" required />
+            </label>
+            <label>
+                Sifre
+                <input class="form-control" name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="rememberMe" value="true" id="rememberMe" />
+                <label class="form-check-label" for="rememberMe">Beni hatirla</label>
+            </div>
+            <button class="btn btn-dark w-100" type="submit">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Giris Yap
+            </button>
+        </form>
+        <div class="auth-alt">
+            Hesabiniz yok mu? <a asp-controller="Account" asp-action="Register">Hesap olusturun</a>
+        </div>
+    </div>
+</section>

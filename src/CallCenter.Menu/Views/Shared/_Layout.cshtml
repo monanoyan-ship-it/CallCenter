@@ -1,0 +1,111 @@
+@{
+    var jwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var panelShell = jwt.IsAuthenticated && controller is not "Home" and not "Account" and not "PublicMenu";
+    var title = ViewData["Title"]?.ToString() ?? "CorpLynk Menu";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - CorpLynk Menu</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/lib/toastr/toastr.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/CallCenter.Menu.styles.css" asp-append-version="true" />
+</head>
+<body class="@(panelShell ? "menu-panel-body" : "")">
+    @if (panelShell)
+    {
+        <aside class="menu-sidebar">
+            <a class="menu-brand" asp-controller="Dashboard" asp-action="Index">
+                <span class="menu-brand-mark">CL</span>
+                <span>CorpLynk Menu</span>
+            </a>
+            <nav class="menu-sidebar-nav">
+                <a class="menu-nav-link @(controller == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                    <i class="bi bi-speedometer2"></i><span>Panel</span>
+                </a>
+                <a class="menu-nav-link @(controller == "Menus" ? "active" : "")" asp-controller="Menus" asp-action="Index">
+                    <i class="bi bi-menu-button-wide"></i><span>Menuler</span>
+                </a>
+                <a class="menu-nav-link @(controller == "Products" ? "active" : "")" asp-controller="Products" asp-action="Index">
+                    <i class="bi bi-cup-hot"></i><span>Urunler</span>
+                </a>
+                <a class="menu-nav-link @(controller == "Orders" ? "active" : "")" asp-controller="Orders" asp-action="Index">
+                    <i class="bi bi-receipt-cutoff"></i><span>Siparisler</span>
+                </a>
+                <a class="menu-nav-link @(controller == "Payments" ? "active" : "")" asp-controller="Payments" asp-action="Index">
+                    <i class="bi bi-credit-card-2-front"></i><span>Odemeler</span>
+                </a>
+                <a class="menu-nav-link @(controller == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                    <i class="bi bi-people"></i><span>Musteriler</span>
+                </a>
+            </nav>
+            <div class="menu-sidebar-footer">
+                <small>@(jwt.FullName ?? "Menu kullanicisi")</small>
+                <a asp-controller="Account" asp-action="Logout" title="Cikis"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </aside>
+        <main class="menu-panel-main">
+            <header class="menu-topbar">
+                <button class="menu-icon-button d-lg-none" type="button" data-menu-toggle>
+                    <i class="bi bi-list"></i>
+                </button>
+                <div>
+                    <h1>@title</h1>
+                    <span>QR menu, masadan siparis ve masadan odeme</span>
+                </div>
+                <a class="btn btn-sm btn-outline-dark" href="/m/demo-kafe" target="_blank" rel="noreferrer">
+                    <i class="bi bi-qr-code me-1"></i>Public Menu
+                </a>
+            </header>
+            @RenderBody()
+        </main>
+    }
+    else
+    {
+        <header class="public-header">
+            <nav class="navbar navbar-expand-lg">
+                <div class="container">
+                    <a class="navbar-brand public-brand" asp-controller="Home" asp-action="Index">
+                        <span class="menu-brand-mark">CL</span>
+                        <span>CorpLynk Menu</span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav" aria-controls="publicNav" aria-expanded="false" aria-label="Menu">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="publicNav">
+                        <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                            <li class="nav-item"><a class="nav-link" href="/#features">Ozellikler</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/#process">Surec</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/#pricing">Fiyat</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login">Giris</a></li>
+                            <li class="nav-item"><a class="btn btn-dark btn-sm" asp-controller="Account" asp-action="Register">Hesap Olustur</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <main>
+            @RenderBody()
+        </main>
+        <footer class="public-footer">
+            <div class="container d-flex flex-column flex-md-row justify-content-between gap-2">
+                <span>CorpLynk Menu</span>
+                <span>Restoran, kafe ve oteller icin dijital menu platformu.</span>
+            </div>
+        </footer>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/knockout/knockout-latest.min.js"></script>
+    <script src="~/lib/toastr/toastr.min.js"></script>
+    <script src="~/js/confirm-modal.js" asp-append-version="true"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

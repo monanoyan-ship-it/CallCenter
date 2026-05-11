@@ -1,0 +1,63 @@
+@{
+    Layout = null;
+    var slug = ViewBag.Slug as string ?? "demo-kafe";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo Kafe - QR Menu</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/lib/toastr/toastr.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="qr-menu-body">
+    <main class="qr-menu-shell" id="publicMenuApp" data-slug="@slug">
+        <header class="qr-venue-header">
+            <div>
+                <span class="eyebrow" data-bind="text: '/' + slug()"></span>
+                <h1 data-bind="text: venueName"></h1>
+                <p data-bind="text: venueDescription"></p>
+            </div>
+            <span class="venue-status" data-bind="text: status"></span>
+        </header>
+
+        <nav class="qr-category-tabs" aria-label="Menu kategorileri" data-bind="foreach: categories">
+            <a data-bind="attr: { href: '#' + id() }, text: name"></a>
+        </nav>
+
+        <section class="qr-section" data-bind="foreach: categories">
+            <h2 data-bind="attr: { id: id }, text: name"></h2>
+            <div data-bind="foreach: products">
+                <article class="qr-product-card">
+                    <img data-bind="attr: { src: image, alt: name }" />
+                    <div>
+                        <h3 data-bind="text: name"></h3>
+                        <p data-bind="text: description"></p>
+                        <div class="qr-product-meta"><span data-bind="text: price"></span><small data-bind="text: allergens"></small></div>
+                    </div>
+                    <button type="button" aria-label="Sepete ekle" data-bind="click: $root.addToCart"><i class="bi bi-plus-lg"></i></button>
+                </article>
+            </div>
+        </section>
+
+        <aside class="qr-order-bar">
+            <div>
+                <strong>Sepet</strong>
+                <span data-bind="text: cartSummary"></span>
+            </div>
+            <div class="qr-order-actions">
+                <button type="button" data-bind="click: goToOrder">Siparis Ver</button>
+                <button type="button" class="pay" data-bind="click: payAtTable">Masadan Ode</button>
+            </div>
+        </aside>
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/knockout/knockout-latest.min.js"></script>
+    <script src="~/lib/toastr/toastr.min.js"></script>
+    <script src="~/js/PublicMenu.js" asp-append-version="true"></script>
+</body>
+</html>
