@@ -8,6 +8,7 @@
 @inject CallCenter.Windows.Services.ToastService Toast
 @inject CallCenter.Windows.Services.CallSyncService CallSync
 @inject CallCenter.Windows.Services.WindowsPermissionService PermService
+@inject CallCenter.Windows.Services.WindowsAuthService AuthService
 @inject CallCenter.Windows.Services.SecureStorage Storage
 @inject NavigationManager NavigationManager
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
@@ -448,6 +449,14 @@
         if (!PermService.HasModule(PortalModules.Ids.Calls))
         {
             NavigationManager.NavigateTo("/dashboard");
+            return;
+        }
+
+        if (!await AuthService.IsCurrentSessionActiveAsync())
+        {
+            sipStatusText = "Oturum kapatildi";
+            statusMessage = "Bu oturum artik aktif degil. Lutfen tekrar giris yapin.";
+            statusClass = "text-warning";
             return;
         }
 
@@ -930,6 +939,16 @@
     private async Task StartCall()
     {
         if (string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered) return;
+
+        if (!await AuthService.IsCurrentSessionActiveAsync())
+        {
+            isCallStarting = false;
+            statusMessage = "Oturum kapatildi. Lutfen tekrar giris yapin.";
+            statusClass = "text-warning";
+            Toast.ShowWarning(statusMessage);
+            StateHasChanged();
+            return;
+        }
 
         isCallStarting = true;
         _callEndProcessing = false;

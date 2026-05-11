@@ -14,18 +14,25 @@ public class WindowsAuthService
     private readonly SecureStorage _storage;
     private readonly WindowsAuthStateProvider _authStateProvider;
     private readonly WindowsPermissionService _permService;
+    private readonly WindowsSessionEvents _sessionEvents;
 
     private const string TokenKey = "auth_token";
     private const string RefreshTokenKey = "auth_refresh_token";
     private const string FullNameKey = "auth_fullname";
     private const string RoleKey = "auth_role";
 
-    public WindowsAuthService(HttpClient http, SecureStorage storage, WindowsAuthStateProvider authStateProvider, WindowsPermissionService permService)
+    public WindowsAuthService(
+        HttpClient http,
+        SecureStorage storage,
+        WindowsAuthStateProvider authStateProvider,
+        WindowsPermissionService permService,
+        WindowsSessionEvents sessionEvents)
     {
         _http = http;
         _storage = storage;
         _authStateProvider = authStateProvider;
         _permService = permService;
+        _sessionEvents = sessionEvents;
     }
 
     public async Task<LoginResult> LoginAsync(LoginRequest request)
@@ -59,6 +66,7 @@ public class WindowsAuthService
             await _storage.SetAsync(RoleKey, loginResponse.Role);
 
             // Auth state'i guncelle
+            _sessionEvents.MarkSessionActive();
             _authStateProvider.NotifyUserAuthentication(loginResponse.Token);
 
             // MustChangePassword flag'ini kaydet
@@ -105,6 +113,7 @@ public class WindowsAuthService
             await _storage.SetAsync(RefreshTokenKey, result.RefreshToken);
 
             // Auth state'i guncelle
+            _sessionEvents.MarkSessionActive();
             _authStateProvider.NotifyUserAuthentication(result.Token);
 
             return true;
@@ -143,7 +152,54 @@ public class WindowsAuthService
         await _storage.RemoveAsync(RoleKey);
 
         _permService.Reset();
+        _sessionEvents.MarkSessionEnded();
         _authStateProvider.NotifyUserLogout();
+    }
+
+    public async Task<bool> IsCurrentSessionActiveAsync()
+    {
+        try
+        {
+            var refreshToken = await _storage.GetAsync(RefreshTokenKey);
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                await _sessionEvents.InvalidateAsync("Oturum bilgisi bulunamadi.");
+                return false;
+            }
+
+            var response = await _http.PostAsJsonAsync("api/auth/session-active", new RefreshTokenRequest { RefreshToken = refreshToken });
+            if (!response.IsSuccessStatusCode)
+            {
+                await _sessionEvents.InvalidateAsync("Oturum dogrulanamadi. Lutfen tekrar giris yapin.");
+                return false;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<SessionActiveResponse>();
+            if (result?.IsActive == true)
+                return true;
+
+            var latestRefreshToken = await _storage.GetAsync(RefreshTokenKey);
+            if (!string.IsNullOrWhiteSpace(latestRefreshToken) &&
+                !string.Equals(latestRefreshToken, refreshToken, StringComparison.Ordinal))
+            {
+                var retry = await _http.PostAsJsonAsync("api/auth/session-active", new RefreshTokenRequest { RefreshToken = latestRefreshToken });
+                if (retry.IsSuccessStatusCode)
+                {
+                    result = await retry.Content.ReadFromJsonAsync<SessionActiveResponse>();
+                    if (result?.IsActive == true)
+                        return true;
+                }
+            }
+
+            await _sessionEvents.InvalidateAsync(result?.Message ?? "Bu oturum artik aktif degil.");
+            return false;
+        }
+        catch
+        {
+            // Ag kisa sureli kopuksa aramayi sadece token yoksa engelle; API/SignalR 401-403 zaten oturumu dusurecek.
+            var token = await _storage.GetAsync(TokenKey);
+            return !string.IsNullOrWhiteSpace(token) && !_sessionEvents.IsInvalidated;
+        }
     }
 
     public async Task<string?> GetTokenAsync()

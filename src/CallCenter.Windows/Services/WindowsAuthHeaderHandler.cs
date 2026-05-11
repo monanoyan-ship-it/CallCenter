@@ -12,15 +12,17 @@ namespace CallCenter.Windows.Services;
 public class WindowsAuthHeaderHandler : DelegatingHandler
 {
     private readonly SecureStorage _storage;
+    private readonly WindowsSessionEvents _sessionEvents;
     private const string TokenKey = "auth_token";
     private const string RefreshTokenKey = "auth_refresh_token";
 
     // Sonsuz refresh dongusu engelleme
     private bool _isRefreshing;
 
-    public WindowsAuthHeaderHandler(SecureStorage storage)
+    public WindowsAuthHeaderHandler(SecureStorage storage, WindowsSessionEvents sessionEvents)
     {
         _storage = storage;
+        _sessionEvents = sessionEvents;
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(
@@ -30,11 +32,12 @@ public class WindowsAuthHeaderHandler : DelegatingHandler
 
         var response = await base.SendAsync(request, cancellationToken);
 
+        var authEndpoint = IsAuthEndpoint(request);
+
         // 401 donerse ve refresh endpoint'ine gitmiyorsak, otomatik refresh dene
         if (response.StatusCode == HttpStatusCode.Unauthorized
             && !_isRefreshing
-            && request.RequestUri?.AbsolutePath?.Contains("/auth/refresh") != true
-            && request.RequestUri?.AbsolutePath?.Contains("/auth/login") != true)
+            && !authEndpoint)
         {
             _isRefreshing = true;
             try
@@ -54,7 +57,21 @@ public class WindowsAuthHeaderHandler : DelegatingHandler
             }
         }
 
+        if (!authEndpoint &&
+            (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
+        {
+            await _sessionEvents.InvalidateAsync("Oturum yetkisi reddedildi. Lutfen tekrar giris yapin.");
+        }
+
         return response;
+    }
+
+    private static bool IsAuthEndpoint(HttpRequestMessage request)
+    {
+        var path = request.RequestUri?.AbsolutePath ?? "";
+        return path.Contains("/auth/login", StringComparison.OrdinalIgnoreCase) ||
+               path.Contains("/auth/refresh", StringComparison.OrdinalIgnoreCase) ||
+               path.Contains("/auth/revoke", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task AttachTokenAsync(HttpRequestMessage request)

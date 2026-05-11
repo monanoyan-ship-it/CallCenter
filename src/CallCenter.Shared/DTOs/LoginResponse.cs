@@ -29,6 +29,12 @@ public class RefreshTokenResponse
     public DateTime ExpiresAt { get; set; }
 }
 
+public class SessionActiveResponse
+{
+    public bool IsActive { get; set; }
+    public string? Message { get; set; }
+}
+
 public class UpdateLanguageRequest
 {
     public string LanguageCode { get; set; } = string.Empty;

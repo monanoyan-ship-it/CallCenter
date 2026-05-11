@@ -2,11 +2,14 @@
 @inject WindowsAuthService AuthService
 @inject WindowsHubService HubService
 @inject WindowsPermissionService PermService
+@inject CallCenter.Windows.Services.ISipService SipService
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject SecureStorage Storage
 @inject UpdateService UpdateSvc
 @inject AuthenticationStateProvider AuthStateProvider
+@inject WindowsSessionEvents SessionEvents
+@inject ToastService Toast
 @implements IAsyncDisposable
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -135,6 +138,7 @@
     private bool isDownloading;
     private int downloadProgress;
     private string? downloadedPath;
+    private bool isEndingSession;
 
     // Durum adlarini Turkce goster
     private static readonly Dictionary<string, string> StatusDisplayNames = new()
@@ -181,6 +185,7 @@
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
             HubService.OnConnectionStateChanged += HandleConnectionStateChanged;
             HubService.OnForceLogout += HandleForceLogout;
+            SessionEvents.SessionInvalidated += HandleSessionInvalidated;
 
             // Guncelleme event'lerini dinle
             UpdateSvc.UpdateAvailable += OnUpdateAvailable;
@@ -240,15 +245,44 @@
 
     private async Task HandleForceLogout()
     {
-        await AuthService.ForceLogoutAsync();
-        await InvokeAsync(() => NavigationManager.NavigateTo("/login", forceLoad: true));
+        await EndAuthenticatedSessionAsync("Bu kullanici baska bir cihazda oturum acti.", revokeServerToken: false);
     }
 
     private async Task HandleLogout()
     {
-        await HubService.DisconnectAsync();
-        await AuthService.LogoutAsync();
-        NavigationManager.NavigateTo("/login", forceLoad: false);
+        await EndAuthenticatedSessionAsync("Cikis yapildi.", revokeServerToken: true);
+    }
+
+    private Task HandleSessionInvalidated(string reason)
+    {
+        return EndAuthenticatedSessionAsync(reason, revokeServerToken: false);
+    }
+
+    private async Task EndAuthenticatedSessionAsync(string reason, bool revokeServerToken)
+    {
+        if (isEndingSession)
+            return;
+
+        isEndingSession = true;
+
+        try { await Http.PostAsync("api/sipaccounts/my/release", null); }
+        catch { /* best effort */ }
+
+        try { await SipService.DisposeAsync(); }
+        catch { /* best effort */ }
+
+        try { await HubService.DisconnectAsync(); }
+        catch { /* best effort */ }
+
+        if (revokeServerToken)
+            await AuthService.LogoutAsync();
+        else
+            await AuthService.ForceLogoutAsync();
+
+        if (!revokeServerToken && !string.IsNullOrWhiteSpace(reason))
+            Toast.ShowWarning(reason);
+
+        await InvokeAsync(() => NavigationManager.NavigateTo("/login", forceLoad: true));
     }
 
     // ═══ GUNCELLEME ═══
@@ -297,6 +331,7 @@
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
         HubService.OnForceLogout -= HandleForceLogout;
+        SessionEvents.SessionInvalidated -= HandleSessionInvalidated;
         UpdateSvc.UpdateAvailable -= OnUpdateAvailable;
         UpdateSvc.DownloadProgressChanged -= OnDownloadProgress;
         UpdateSvc.DownloadCompleted -= OnDownloadCompleted;

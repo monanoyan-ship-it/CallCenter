@@ -16,6 +16,7 @@ public class WindowsHubService : IAsyncDisposable
 {
     private readonly IConfiguration _config;
     private readonly WindowsAuthService _auth;
+    private readonly WindowsSessionEvents _sessionEvents;
     private HubConnection? _connection;
 
     // ─── Events ───
@@ -31,10 +32,11 @@ public class WindowsHubService : IAsyncDisposable
     // ─── Force Logout Event ───
     public event Func<Task>? OnForceLogout;
 
-    public WindowsHubService(IConfiguration config, WindowsAuthService auth)
+    public WindowsHubService(IConfiguration config, WindowsAuthService auth, WindowsSessionEvents sessionEvents)
     {
         _config = config;
         _auth = auth;
+        _sessionEvents = sessionEvents;
     }
 
     public HubConnectionState State => _connection?.State ?? HubConnectionState.Disconnected;
@@ -118,15 +120,23 @@ public class WindowsHubService : IAsyncDisposable
             OnCallEnded?.Invoke(callId);
         });
 
-        _connection.On<string>("ForceLogout", async reason =>
+        _connection.On("ForceLogout", async () =>
         {
+            await _sessionEvents.InvalidateAsync("Bu kullanici baska bir cihazda oturum acti.");
             if (OnForceLogout != null) await OnForceLogout.Invoke();
         });
 
-        _connection.Closed += (error) =>
+        _connection.On<string>("ForceLogout", async reason =>
+        {
+            await _sessionEvents.InvalidateAsync(string.IsNullOrWhiteSpace(reason) ? "Oturum sonlandirildi." : reason);
+            if (OnForceLogout != null) await OnForceLogout.Invoke();
+        });
+
+        _connection.Closed += async (error) =>
         {
             OnConnectionStateChanged?.Invoke(HubConnectionState.Disconnected);
-            return Task.CompletedTask;
+            if (IsAuthFailure(error))
+                await _sessionEvents.InvalidateAsync("SignalR oturumu yetkisiz kaldi. Lutfen tekrar giris yapin.");
         };
 
         _connection.Reconnecting += (error) =>
@@ -141,8 +151,16 @@ public class WindowsHubService : IAsyncDisposable
             return Task.CompletedTask;
         };
 
-        await _connection.StartAsync();
-        OnConnectionStateChanged?.Invoke(HubConnectionState.Connected);
+        try
+        {
+            await _connection.StartAsync();
+            OnConnectionStateChanged?.Invoke(HubConnectionState.Connected);
+        }
+        catch (Exception ex) when (IsAuthFailure(ex))
+        {
+            await _sessionEvents.InvalidateAsync("SignalR oturumu yetkisiz kaldi. Lutfen tekrar giris yapin.");
+            throw;
+        }
     }
 
     public async Task DisconnectAsync()
@@ -197,5 +215,15 @@ public class WindowsHubService : IAsyncDisposable
             await _connection.DisposeAsync();
             _connection = null;
         }
+    }
+
+    private static bool IsAuthFailure(Exception? error)
+    {
+        if (error == null) return false;
+        var message = error.Message;
+        return message.Contains("401", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("403", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("Forbidden", StringComparison.OrdinalIgnoreCase);
     }
 }

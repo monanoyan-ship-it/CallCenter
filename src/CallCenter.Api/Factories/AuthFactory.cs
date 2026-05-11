@@ -136,6 +136,7 @@ public class AuthFactory : IAuthFactory
             old.RevokedAt = DateTime.UtcNow;
 
         await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ForceLogout");
+        await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ForceLogout", "Bu kullanici baska bir cihazda oturum acti.");
 
         var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
         _refreshTokens.Add(refreshToken);
@@ -278,6 +279,17 @@ public class AuthFactory : IAuthFactory
             RefreshToken = newRefreshToken.Token,
             ExpiresAt = DateTime.UtcNow.AddMinutes(expireMinutes)
         }, null);
+    }
+
+    public async Task<bool> IsRefreshTokenActiveAsync(int userId, string refreshToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return false;
+
+        var existingToken = await _refreshTokens.GetByTokenAsync(refreshToken);
+        return existingToken != null &&
+               existingToken.UserId == userId &&
+               existingToken.IsActive;
     }
 
     public async Task RevokeAsync(string refreshToken)

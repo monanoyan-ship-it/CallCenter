@@ -82,6 +82,21 @@ public class AuthController : AuditableControllerBase
         return Ok(response);
     }
 
+    [Authorize]
+    [HttpPost("session-active")]
+    public async Task<ActionResult<SessionActiveResponse>> SessionActive(RefreshTokenRequest request)
+    {
+        if (CurrentUserId == null)
+            return Unauthorized();
+
+        var isActive = await _authFactory.IsRefreshTokenActiveAsync(CurrentUserId.Value, request.RefreshToken);
+        return Ok(new SessionActiveResponse
+        {
+            IsActive = isActive,
+            Message = isActive ? null : "Bu oturum artik aktif degil. Kullanici baska bir cihazda oturum acmis olabilir."
+        });
+    }
+
     [HttpPost("revoke")]
     public async Task<ActionResult> Revoke(RefreshTokenRequest request)
     {

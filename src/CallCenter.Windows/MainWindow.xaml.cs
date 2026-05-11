@@ -54,6 +54,7 @@ public partial class MainWindow : Window
         services.AddSingleton(secureStorageInstance);
 
         // Auth
+        services.AddSingleton<Services.WindowsSessionEvents>();
         services.AddSingleton<Services.WindowsAuthStateProvider>();
         services.AddSingleton<AuthenticationStateProvider>(sp =>
             sp.GetRequiredService<Services.WindowsAuthStateProvider>());
