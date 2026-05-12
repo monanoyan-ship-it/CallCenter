@@ -73,18 +73,6 @@ function ServicesViewModel() {
         });
     }
 
-    function readModalValue(modalSelector, selector, fallback) {
-        var $field = $(modalSelector).find(selector).first();
-        var value = $field.length ? $field.val() : null;
-        return value !== null && value !== undefined ? value : fallback;
-    }
-
-    function readModalValues(modalSelector, selector) {
-        return $(modalSelector).find(selector).map(function () {
-            return $(this).val();
-        }).get();
-    }
-
     function ajaxErrorMessage(xhr, fallback) {
         if (xhr && typeof xhr.responseJSON === 'string' && xhr.responseJSON.trim()) {
             return xhr.responseJSON.trim();
@@ -283,7 +271,6 @@ function ServicesViewModel() {
     };
 
     self.saveService = function () {
-        var resourceQuantityValues = readModalValues('#serviceModal', '[data-bind*="quantityRequired"]');
         var data = {
             name: self.serviceForm.name(),
             categoryId: parseInt(self.serviceForm.categoryId()) || 0,
@@ -298,9 +285,8 @@ function ServicesViewModel() {
             requiresPatchTest: !!self.serviceForm.requiresPatchTest(),
             prerequisiteNotes: self.serviceForm.prerequisiteNotes(),
             resourceRequirements: self.serviceResourceSelections()
-                .map(function (r, idx) {
-                    var quantity = resourceQuantityValues.length > idx ? resourceQuantityValues[idx] : r.quantityRequired();
-                    return { resourceId: r.resourceId, quantityRequired: parseInt(quantity) || 0 };
+                .map(function (r) {
+                    return { resourceId: r.resourceId, quantityRequired: parseInt(r.quantityRequired()) || 0 };
                 })
                 .filter(function (r) { return r.resourceId && r.quantityRequired > 0; }),
             isActive: self.serviceForm.isActive() === 'true'
@@ -348,18 +334,13 @@ function ServicesViewModel() {
 
     self.saveResource = function () {
         var selectedBranch = window.slnGetBranch ? parseInt(window.slnGetBranch()) : null;
-        var modalName = readModalValue('#resourceModal', '[data-bind*="resourceForm.name"]', self.resourceForm.name());
-        var modalKind = readModalValue('#resourceModal', '[data-bind*="resourceForm.resourceKind"]', self.resourceForm.resourceKind());
-        var modalQuantity = readModalValue('#resourceModal', '[data-bind*="resourceForm.quantity"]', self.resourceForm.quantity());
-        var modalNotes = readModalValue('#resourceModal', '[data-bind*="resourceForm.notes"]', self.resourceForm.notes());
-        var modalActive = readModalValue('#resourceModal', '[data-bind*="resourceForm.isActive"]', self.resourceForm.isActive());
         var data = {
             branchId: selectedBranch || null,
-            name: (modalName || '').trim(),
-            resourceKind: (modalKind || '').trim(),
-            quantity: parseInt(modalQuantity) || 1,
-            notes: modalNotes,
-            isActive: modalActive === 'true'
+            name: (self.resourceForm.name() || '').trim(),
+            resourceKind: (self.resourceForm.resourceKind() || '').trim(),
+            quantity: parseInt(self.resourceForm.quantity()) || 1,
+            notes: self.resourceForm.notes(),
+            isActive: self.resourceForm.isActive() === 'true'
         };
         if (!data.name) { toastr.warning(slnJsT('salon.services.resource_name_required', 'Kaynak adi zorunludur')); return; }
 
@@ -422,15 +403,11 @@ function ServicesViewModel() {
 
     self.saveCombo = function () {
         var selected = self.comboForm.serviceIds();
-        var modalName = readModalValue('#comboModal', '[data-bind*="comboForm.name"]', self.comboForm.name());
-        var modalDescription = readModalValue('#comboModal', '[data-bind*="comboForm.description"]', self.comboForm.description());
-        var modalPrice = readModalValue('#comboModal', '[data-bind*="comboForm.price"]', self.comboForm.price());
-        var modalActive = readModalValue('#comboModal', '[data-bind*="comboForm.isActive"]', self.comboForm.isActive());
         var data = {
-            name: (modalName || '').trim(),
-            description: modalDescription,
-            price: parseFloat(modalPrice) || 0,
-            isActive: modalActive === 'true',
+            name: (self.comboForm.name() || '').trim(),
+            description: self.comboForm.description(),
+            price: parseFloat(self.comboForm.price()) || 0,
+            isActive: self.comboForm.isActive() === 'true',
             items: selected.map(function (id, idx) { return { serviceId: id, sortOrder: idx + 1 }; })
         };
         if (!data.name) { toastr.warning(slnJsT('salon.services.combo_name_required', 'Combo adi zorunludur')); return; }

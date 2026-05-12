@@ -103,7 +103,7 @@
                     <button type="button"
                          class="card border-0 shadow-sm mb-2 service-option"
                          data-testid="booking-combo-option"
-                         data-bind="click: $root.selectCombo, css: { selected: $root.selectedComboId() === id }, attr: { role: 'button', tabindex: 0, 'aria-pressed': $root.selectedComboId() === id ? 'true' : 'false', 'data-combo-id': id, onclick: 'window.__bookSelectCombo && window.__bookSelectCombo(' + id + ')' }">
+                         data-bind="click: $root.selectCombo, css: { selected: $root.selectedComboId() === id }, attr: { 'aria-pressed': $root.selectedComboId() === id ? 'true' : 'false', 'data-combo-id': id }">
                         <div class="card-body py-2 px-3">
                             <div class="d-flex justify-content-between align-items-center gap-2">
                                 <div>
@@ -135,7 +135,7 @@
                     <button type="button"
                          class="card border-0 shadow-sm mb-2 service-option"
                          data-testid="booking-service-option"
-                         data-bind="click: $root.selectService, css: { selected: !$root.selectedComboId() && $root.selectedServiceId() === id }, attr: { role: 'button', tabindex: 0, 'aria-pressed': (!$root.selectedComboId() && $root.selectedServiceId() === id) ? 'true' : 'false', 'data-service-id': id, onclick: 'window.__bookSelectService && window.__bookSelectService(' + id + ')' }">
+                         data-bind="click: $root.selectService, css: { selected: !$root.selectedComboId() && $root.selectedServiceId() === id }, attr: { 'aria-pressed': (!$root.selectedComboId() && $root.selectedServiceId() === id) ? 'true' : 'false', 'data-service-id': id }">
                         <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-semibold small" data-bind="text: name"></span>
@@ -884,80 +884,6 @@
         var bookRoot = document.getElementById('book-vm');
         ko.applyBindings(bookVm, bookRoot);
 
-        function selectBookOptionFromCard(target) {
-            if (!bookRoot || !target) return false;
-
-            var comboCard = target.closest('[data-testid="booking-combo-option"]');
-            if (comboCard) {
-                var comboId = parseInt(comboCard.getAttribute('data-combo-id') || '', 10);
-                if (!isNaN(comboId)) {
-                    var combo = bookVm.serviceCombos().find(function (item) { return item.id === comboId; });
-                    if (combo) {
-                        bookVm.selectCombo(combo);
-                        return true;
-                    }
-                }
-            }
-
-            var serviceCard = target.closest('[data-testid="booking-service-option"]');
-            if (serviceCard) {
-                var serviceId = parseInt(serviceCard.getAttribute('data-service-id') || '', 10);
-                if (!isNaN(serviceId)) {
-                    var service = null;
-                    bookVm.categories().some(function (category) {
-                        var match = (category.services || []).find(function (item) { return item.id === serviceId; });
-                        if (match) {
-                            service = match;
-                            return true;
-                        }
-                        return false;
-                    });
-
-                    if (service) {
-                        bookVm.selectService(service);
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        if (bookRoot) {
-            bookRoot.addEventListener('click', function (event) {
-                selectBookOptionFromCard(event.target);
-            });
-
-            bookRoot.addEventListener('keydown', function (event) {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                if (selectBookOptionFromCard(event.target)) {
-                    event.preventDefault();
-                }
-            });
-        }
-
-        window.__bookSelectCombo = function (comboId) {
-            var combo = bookVm.serviceCombos().find(function (item) { return item.id === comboId; });
-            if (combo) {
-                bookVm.selectCombo(combo);
-            }
-        };
-
-        window.__bookSelectService = function (serviceId) {
-            var service = null;
-            bookVm.categories().some(function (category) {
-                var match = (category.services || []).find(function (item) { return item.id === serviceId; });
-                if (match) {
-                    service = match;
-                    return true;
-                }
-                return false;
-            });
-
-            if (service) {
-                bookVm.selectService(service);
-            }
-        };
 
         // Iyzico 3DS tam-sayfa yönlendirme dönüşü: /salon/{slug}/book?iyzicoToken=...&paid=true/false
         (function handleIyzicoReturn() {
