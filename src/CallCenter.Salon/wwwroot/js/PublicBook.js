@@ -44,6 +44,7 @@ var bookData = document.getElementById('book-data');
             self.serviceCombos = ko.observableArray([]);
             self.expandedCategoryId = ko.observable(null);
             self.selectedServiceId = ko.observable(null);
+            self.selectedServiceIds = ko.observableArray([]);
             self.selectedComboId = ko.observable(null);
 
             // Staff
@@ -112,7 +113,7 @@ var bookData = document.getElementById('book-data');
                     toastr.warning(bookT('salon.book.waitlist.required', 'Ad ve telefon zorunlu'));
                     return;
                 }
-                if (!self.selectedServiceId()) {
+                if (self.selectedServiceIds().length === 0) {
                     toastr.warning(bookT('salon.book.waitlist.service_required', 'Önce hizmet seçiniz'));
                     return;
                 }
@@ -121,7 +122,8 @@ var bookData = document.getElementById('book-data');
                     fullName: self.waitlist.fullName(),
                     phone: self.waitlist.phone(),
                     email: self.waitlist.email() || null,
-                    serviceId: self.selectedServiceId(),
+                    serviceId: self.selectedServiceIds()[0],
+                    serviceIds: self.selectedServiceIds(),
                     personnelId: self.selectedStaffId() || null,
                     preferredDate: self.selectedDate() + 'T00:00:00Z',
                     preferredTimeSlot: self.waitlist.timeSlot(),
@@ -162,16 +164,25 @@ var bookData = document.getElementById('book-data');
                 return names.length ? names.join(' + ') : '';
             };
 
+            self.allServices = ko.computed(function () {
+                var list = [];
+                self.categories().forEach(function (c) {
+                    (c.services || []).forEach(function (s) { list.push(s); });
+                });
+                return list;
+            });
+
+            self.selectedServices = ko.computed(function () {
+                var ids = self.selectedServiceIds();
+                return ids.map(function (id) {
+                    return self.allServices().find(function (s) { return s.id === id; });
+                }).filter(Boolean);
+            });
+
             self.selectedServiceName = ko.computed(function () {
                 var combo = self.selectedCombo();
                 if (combo) return combo.name || '';
-                var id = self.selectedServiceId();
-                if (!id) return '';
-                var found = '';
-                self.categories().forEach(function (c) {
-                    c.services.forEach(function (s) { if (s.id === id) found = s.name; });
-                });
-                return found;
+                return self.selectedServices().map(function (s) { return s.name; }).join(' + ');
             });
 
             self.selectedServicePrice = ko.computed(function () {
@@ -180,12 +191,7 @@ var bookData = document.getElementById('book-data');
                     var comboPrice = combo.price || 0;
                     return comboPrice > 0 ? comboPrice.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '';
                 }
-                var id = self.selectedServiceId();
-                if (!id) return '';
-                var price = 0;
-                self.categories().forEach(function (c) {
-                    c.services.forEach(function (s) { if (s.id === id) price = s.price; });
-                });
+                var price = self.selectedServices().reduce(function (total, s) { return total + (Number(s.price) || 0); }, 0);
                 return price > 0 ? price.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '';
             });
 
@@ -228,7 +234,7 @@ var bookData = document.getElementById('book-data');
 
             self.canProceed = ko.computed(function () {
                 var step = self.currentStep();
-                if (step === 1) return !!self.selectedServiceId() || !!self.selectedComboId();
+                if (step === 1) return self.selectedServiceIds().length > 0 || !!self.selectedComboId();
                 if (step === 2) return true; // null = fark etmez, her zaman gecerli
                 if (step === 3) return !!self.selectedSlot();
                 if (step === 4) return !!self.form.fullName() && !!self.form.phone();
@@ -297,26 +303,35 @@ var bookData = document.getElementById('book-data');
 
             self.selectService = function (svc) {
                 self.selectedComboId(null);
-                self.selectedServiceId(svc.id);
-                // Kategoriyi sec ve bir sonraki adima hazirla
+                var ids = self.selectedServiceIds().slice();
+                var index = ids.indexOf(svc.id);
+                if (index >= 0) ids.splice(index, 1);
+                else ids.push(svc.id);
+                self.selectedServiceIds(ids);
+                self.selectedServiceId(ids.length ? ids[0] : null);
+                self.availableStaff([]);
+                self.slots([]);
+                self.selectedStaffId(null);
+                self.selectedSlot(null);
             };
 
             self.selectCombo = function (combo) {
-                var first = (combo.items || [])[0];
+                var ids = (combo.items || []).map(function (item) { return item.serviceId; }).filter(Boolean);
                 self.selectedComboId(combo.id);
-                self.selectedServiceId(first ? first.serviceId : null);
+                self.selectedServiceIds(ids);
+                self.selectedServiceId(ids.length ? ids[0] : null);
             };
 
             self.selectStaff = function (staff) { self.selectedStaffId(staff.id); };
 
             // Load staff for selected service
             self.loadStaff = function () {
-                var sid = self.selectedServiceId();
-                if (!sid && !self.selectedComboId()) return;
+                var ids = self.selectedServiceIds();
+                if (!ids.length && !self.selectedComboId()) return;
                 self.staffLoading(true);
                 self.availableStaff([]);
                 self.selectedStaffId(null);
-                var url = '/proxy/salon/' + bookSlug + '/available-staff?serviceId=' + (sid || 0);
+                var url = '/proxy/salon/' + bookSlug + '/available-staff?serviceIds=' + ids.join(',');
                 if (self.selectedComboId()) url += '&comboId=' + self.selectedComboId();
                 fetch(url)
                     .then(function (r) { return r.json(); })
@@ -330,16 +345,16 @@ var bookData = document.getElementById('book-data');
             self.selectedDate.subscribe(function () { self.loadSlots(); });
 
             self.loadSlots = function () {
-                var sid = self.selectedServiceId();
+                var ids = self.selectedServiceIds();
                 var date = self.selectedDate();
-                if ((!sid && !self.selectedComboId()) || !date) return;
+                if ((!ids.length && !self.selectedComboId()) || !date) return;
                 self.slotsLoaded(false);
                 self.selectedSlot(null);
                 self.isDayClosed(false);
                 self.autoAssignedStaffId(null);
                 self.autoAssignedStaffName(null);
 
-                var url = '/proxy/salon/' + bookSlug + '/available-slots?serviceId=' + (sid || 0) + '&date=' + date;
+                var url = '/proxy/salon/' + bookSlug + '/available-slots?serviceIds=' + ids.join(',') + '&date=' + date;
                 if (self.selectedComboId()) {
                     url += '&comboId=' + self.selectedComboId();
                 }
@@ -394,7 +409,8 @@ var bookData = document.getElementById('book-data');
                     fullName: self.form.fullName(),
                     phone: self.form.phone(),
                     email: self.form.email(),
-                    serviceId: self.selectedServiceId(),
+                    serviceId: self.selectedServiceIds()[0],
+                    serviceIds: self.selectedServiceIds(),
                     comboId: self.selectedComboId(),
                     startTime: self.selectedSlot(),
                     notes: self.form.notes()

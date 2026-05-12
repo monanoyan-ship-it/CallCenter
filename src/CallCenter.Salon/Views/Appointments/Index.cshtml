@@ -312,23 +312,7 @@
                             </div>
                         </div>
                         <!-- Tarih/Saat asagida personel secildikten sonra slot olarak gosterilir -->
-                        <!-- ko if: comboList().length > 0 -->
-                        <div class="col-12">
-                            <label class="form-label small"><t key="salon.services.combos">Combos</t> <small class="text-muted fw-normal"><t key="salon.appointments.click_to_select">(tÄ±kla seÃ§)</t></small></label>
-                            <div class="d-flex flex-wrap gap-1" data-bind="foreach: comboList">
-                                <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"
-                                        data-bind="click: $root.selectCombo,
-                                                   css: $root.form.comboId() === id ? 'btn-success' : 'btn-outline-success'">
-                                    <span data-bind="text: name"></span>
-                                    <small class="ms-1 opacity-75" data-bind="text: durationMinutes + salonT('salon.common.minute_abbr', 'dk')"></small>
-                                </button>
-                            </div>
-                            <!-- ko if: form.comboId() -->
-                            <button type="button" class="btn btn-link btn-sm px-0" data-bind="click: clearCombo"><t key="salon.memberships.clear">Temizle</t></button>
-                            <!-- /ko -->
-                        </div>
-                        <!-- /ko -->
-                        <div class="col-12">
+<div class="col-12">
                             <label class="form-label small"><t key="salon.appointments.category">Kategori</t> <small class="text-muted fw-normal"><t key="salon.appointments.click_to_select">(tıkla seç)</t></small></label>
                             <div class="d-flex flex-wrap gap-1 mb-2" data-bind="foreach: serviceList">
                                 <button type="button" class="btn py-1 px-3" style="font-size:.85rem; min-height:36px;"

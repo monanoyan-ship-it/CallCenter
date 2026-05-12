@@ -92,36 +92,6 @@
 
         <!-- Adim 1: Hizmet Sec (Accordion) -->
         <div data-bind="visible: currentStep() === 1">
-            <!-- ko if: serviceCombos().length > 0 -->
-            <div class="mb-3">
-                <div class="category-header">
-                    <h6 class="mb-0" style="color:#7b1fa2;">
-                        <i class="bi bi-collection me-1"></i>
-                        <t key="salon.services.combos">Kombolar</t>
-                        <span class="badge bg-secondary ms-2" data-bind="text: serviceCombos().length" style="font-size:.7rem;"></span>
-                    </h6>
-                </div>
-                <div class="mt-1">
-                    <!-- ko foreach: serviceCombos -->
-                    <button type="button"
-                         class="card border-0 shadow-sm mb-2 service-option"
-                         data-testid="booking-combo-option"
-                         data-bind="click: $root.selectCombo, css: { selected: $root.selectedComboId() === id }, attr: { 'aria-pressed': $root.selectedComboId() === id ? 'true' : 'false', 'data-combo-id': id }">
-                        <div class="card-body py-2 px-3">
-                            <div class="d-flex justify-content-between align-items-center gap-2">
-                                <div>
-                                    <span class="fw-semibold small" data-bind="text: name"></span>
-                                    <small class="text-muted ms-2" data-bind="text: durationMinutes + ' dk'"></small>
-                                </div>
-                                <span class="fw-bold text-primary" data-bind="text: price.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></span>
-                            </div>
-                            <div class="text-muted mt-1" style="font-size:.75rem;" data-bind="text: $root.comboSummary($data)"></div>
-                        </div>
-                    </button>
-                    <!-- /ko -->
-                </div>
-            </div>
-            <!-- /ko -->
             <!-- ko foreach: categories -->
             <div class="mb-2">
                 <div class="category-header" data-bind="click: $root.toggleCategory">
@@ -138,7 +108,7 @@
                     <button type="button"
                          class="card border-0 shadow-sm mb-2 service-option"
                          data-testid="booking-service-option"
-                         data-bind="click: $root.selectService, css: { selected: !$root.selectedComboId() && $root.selectedServiceId() === id }, attr: { 'aria-pressed': (!$root.selectedComboId() && $root.selectedServiceId() === id) ? 'true' : 'false', 'data-service-id': id }">
+                         data-bind="click: $root.selectService, css: { selected: $root.selectedServiceIds().indexOf(id) >= 0 }, attr: { 'aria-pressed': $root.selectedServiceIds().indexOf(id) >= 0 ? 'true' : 'false', 'data-service-id': id }">
                         <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-semibold small" data-bind="text: name"></span>

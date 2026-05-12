@@ -398,6 +398,7 @@ public class SlnOnlineBookingDto
     public string FullName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string? Email { get; set; }
+    public List<int> ServiceIds { get; set; } = new();
     public int ServiceId { get; set; }
     public int? ComboId { get; set; }
     public int? PersonnelId { get; set; }

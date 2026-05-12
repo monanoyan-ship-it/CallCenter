@@ -215,25 +215,7 @@
                     <!-- ko if: key === 'services' && $parent.salon().showServices !== false -->
                     <div class="mb-4" id="section-services">
                         <h4 class="mb-3"><i class="bi bi-list-check me-2"></i><t key="salon.profile.services.title">Hizmetlerimiz</t></h4>
-                        <!-- ko if: $parent.serviceCombos().length > 0 -->
-                        <div class="row g-2 mb-3" data-bind="foreach: $parent.serviceCombos">
-                            <div class="col-md-6">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body py-2 px-3">
-                                        <div class="d-flex justify-content-between align-items-start gap-2">
-                                            <div>
-                                                <div class="fw-semibold small" data-bind="text: name"></div>
-                                                <small class="text-muted" data-bind="text: durationMinutes + ' ' + $root.t('salon.common.minute_abbr', 'dk')"></small>
-                                            </div>
-                                            <span class="fw-bold text-primary small" data-bind="text: price.toLocaleString(PROFILE_LANG || undefined) + ' ' + $root.t('salon.common.currency_abbr', 'TL')"></span>
-                                        </div>
-                                        <div class="text-muted mt-1" style="font-size:.75rem;" data-bind="text: $root.comboSummary($data)"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- /ko -->
-                        <!-- One Cikan 3 Hizmet (accordion acmadan) -->
+<!-- One Cikan 3 Hizmet (accordion acmadan) -->
                         <!-- ko if: $parent.featuredServices().length > 0 -->
                         <div class="row g-2 mb-3">
                             <!-- ko foreach: $parent.featuredServices -->

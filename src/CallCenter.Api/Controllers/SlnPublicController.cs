@@ -88,9 +88,9 @@ public class SlnPublicController : ControllerBase
 
     /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
     [HttpGet("{slug}/available-staff")]
-    public async Task<ActionResult> GetAvailableStaff(string slug, [FromQuery] int serviceId, [FromQuery] int? comboId = null)
+    public async Task<ActionResult> GetAvailableStaff(string slug, [FromQuery] int serviceId = 0, [FromQuery] string? serviceIds = null, [FromQuery] int? comboId = null)
     {
-        var result = await _publicFactory.GetAvailableStaffForServiceAsync(slug, serviceId, comboId);
+        var result = await _publicFactory.GetAvailableStaffForServiceAsync(slug, ParseServiceIds(serviceId, serviceIds), comboId);
         return result != null ? Ok(result) : NotFound();
     }
 
@@ -104,9 +104,9 @@ public class SlnPublicController : ControllerBase
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
     [HttpGet("{slug}/available-slots")]
-    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date, [FromQuery] int? personnelId = null, [FromQuery] int? comboId = null)
+    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId = 0, [FromQuery] DateTime date = default, [FromQuery] int? personnelId = null, [FromQuery] int? comboId = null, [FromQuery] string? serviceIds = null)
     {
-        var result = await _publicFactory.GetAvailableSlotsAsync(slug, serviceId, date, personnelId, comboId);
+        var result = await _publicFactory.GetAvailableSlotsAsync(slug, ParseServiceIds(serviceId, serviceIds), date, personnelId, comboId);
         if (result == null) return BadRequest("Hizmet bulunamadi");
         return Ok(result);
     }
@@ -148,5 +148,16 @@ public class SlnPublicController : ControllerBase
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
         return $"{Request.Scheme}://{Request.Host}";
+    }
+
+    private static List<int> ParseServiceIds(int serviceId, string? serviceIds)
+    {
+        var ids = (serviceIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+            .Where(id => id > 0)
+            .ToList();
+        if (serviceId > 0 && !ids.Contains(serviceId))
+            ids.Insert(0, serviceId);
+        return ids.Distinct().ToList();
     }
 }

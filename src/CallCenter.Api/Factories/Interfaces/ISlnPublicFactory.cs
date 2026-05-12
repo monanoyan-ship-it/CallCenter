@@ -12,8 +12,8 @@ public interface ISlnPublicFactory
     Task<object?> GetBranchesAsync(string slug);
     Task<object?> GetMembershipPlansAsync(string slug);
     Task<(bool Success, string? Error, object? Result)> MembershipSignupAsync(string slug, SlnMembershipSignupDto dto);
-    Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date, int? personnelId = null, int? comboId = null);
-    Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId, int? comboId = null);
+    Task<object?> GetAvailableSlotsAsync(string slug, IReadOnlyCollection<int> serviceIds, DateTime date, int? personnelId = null, int? comboId = null);
+    Task<object?> GetAvailableStaffForServiceAsync(string slug, IReadOnlyCollection<int> serviceIds, int? comboId = null);
     Task<object?> GetBookingPolicyAsync(string slug);
     Task<(bool Success, string? Error, object? Result)> BookAppointmentAsync(string slug, SlnOnlineBookingDto dto, string? buyerIp = null);
 

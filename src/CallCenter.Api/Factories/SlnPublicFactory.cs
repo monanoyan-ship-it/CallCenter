@@ -740,13 +740,13 @@ public class SlnPublicFactory : ISlnPublicFactory
     }
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
-    public async Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date, int? personnelId = null, int? comboId = null)
+    public async Task<object?> GetAvailableSlotsAsync(string slug, IReadOnlyCollection<int> requestedServiceIds, DateTime date, int? personnelId = null, int? comboId = null)
     {
         var scope = await ResolveSalonScopeAsync(slug);
         if (scope == null) return null;
         var cid = scope.CustomerId;
 
-        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, serviceId, comboId);
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, requestedServiceIds, comboId);
         if (resolvedServices.Error != null) return null;
         var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
 
@@ -792,19 +792,15 @@ public class SlnPublicFactory : ISlnPublicFactory
             return new { isClosed = true, slots = new List<object>() };
 
         // Hizmet icin yetenekli personelleri bul
-        var skilledIds = await _skills.GetAllQueryable()
-            .Where(s => serviceIds.Contains(s.ServiceId))
-            .Select(s => s.PersonnelId)
-            .Distinct()
-            .ToListAsync();
+        var skillScope = await GetSkillScopeAsync(serviceIds);
 
         var staffQuery = _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == cid && p.IsActive
                      && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
         staffQuery = ApplyPublicBranchScope(staffQuery, scope.BranchId);
 
-        if (skilledIds.Count > 0)
-            staffQuery = staffQuery.Where(p => skilledIds.Contains(p.Id));
+        if (skillScope.HasSkillDefinitions)
+            staffQuery = staffQuery.Where(p => skillScope.PersonnelIds.Contains(p.Id));
 
         // Belirli personel istendiyse sadece onu al
         if (personnelId.HasValue)
@@ -927,7 +923,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         }).ToList()
     };
 
-    private async Task<PublicBookingServices> ResolvePublicBookingServicesAsync(int customerId, int serviceId, int? comboId)
+    private async Task<PublicBookingServices> ResolvePublicBookingServicesAsync(int customerId, IReadOnlyCollection<int> requestedServiceIds, int? comboId)
     {
         if (comboId.HasValue && comboId.Value > 0)
         {
@@ -950,15 +946,39 @@ public class SlnPublicFactory : ISlnPublicFactory
                 : new(comboServices, combo, null);
         }
 
-        var service = await _services.GetAllQueryable()
-            .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == customerId && s.IsActive);
+        var serviceIds = requestedServiceIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
 
-        return service == null
-            ? new([], null, "Hizmet bulunamadi")
-            : new([service], null, null);
+        if (serviceIds.Count == 0)
+            return new([], null, "En az bir hizmet secilmeli");
+
+        var services = await _services.GetAllQueryable()
+            .Where(s => serviceIds.Contains(s.Id) && s.CustomerId == customerId && s.IsActive)
+            .ToListAsync();
+
+        if (services.Count != serviceIds.Count)
+            return new([], null, "Hizmet bulunamadi");
+
+        var orderedServices = serviceIds
+            .Select(id => services.First(s => s.Id == id))
+            .ToList();
+
+        return new(orderedServices, null, null);
     }
 
     private sealed record PublicBookingServices(List<SlnService> Services, SlnServiceCombo? Combo, string? Error);
+
+    private static List<int> ResolveBookingDtoServiceIds(SlnOnlineBookingDto dto)
+    {
+        var serviceIds = dto.ServiceIds
+            .Where(id => id > 0)
+            .ToList();
+        if (dto.ServiceId > 0 && !serviceIds.Contains(dto.ServiceId))
+            serviceIds.Insert(0, dto.ServiceId);
+        return serviceIds.Distinct().ToList();
+    }
 
     private async Task<(List<int> PersonnelIds, bool HasSkillDefinitions)> GetSkillScopeAsync(List<int> serviceIds)
     {
@@ -1042,13 +1062,13 @@ public class SlnPublicFactory : ISlnPublicFactory
     }
 
     /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
-    public async Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId, int? comboId = null)
+    public async Task<object?> GetAvailableStaffForServiceAsync(string slug, IReadOnlyCollection<int> requestedServiceIds, int? comboId = null)
     {
         var scope = await ResolveSalonScopeAsync(slug);
         if (scope == null) return null;
         var cid = scope.CustomerId;
 
-        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, serviceId, comboId);
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, requestedServiceIds, comboId);
         if (resolvedServices.Error != null) return null;
         var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
 
@@ -1109,7 +1129,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (scope == null) return (false, "Salon bulunamadi", null);
         var cid = scope.CustomerId;
 
-        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, dto.ServiceId, dto.ComboId);
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, ResolveBookingDtoServiceIds(dto), dto.ComboId);
         if (resolvedServices.Error != null) return (false, resolvedServices.Error, null);
         var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
         var primaryService = resolvedServices.Services.First();
@@ -1306,7 +1326,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (scope == null) return (false, "Salon bulunamadi", null);
         var cid = scope.CustomerId;
 
-        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, dto.ServiceId, dto.ComboId);
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, ResolveBookingDtoServiceIds(dto), dto.ComboId);
         if (resolvedServices.Error != null) return (false, resolvedServices.Error, null);
         var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
         var primaryService = resolvedServices.Services.First();
