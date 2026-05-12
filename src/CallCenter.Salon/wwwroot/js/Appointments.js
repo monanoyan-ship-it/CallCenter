@@ -8,6 +8,7 @@ function AppointmentsViewModel() {
     self.appointments = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
     self.serviceList = ko.observableArray([]);
+    self.comboList = ko.observableArray([]);
     self.staffList = ko.observableArray([]);
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
@@ -26,6 +27,7 @@ function AppointmentsViewModel() {
     self.form = {
         slnClientId: ko.observable(null),
         startTime: ko.observable(''),
+        comboId: ko.observable(null),
         serviceIds: ko.observableArray([]),
         personnelId: ko.observable(null),
         notes: ko.observable('')
@@ -69,11 +71,11 @@ function AppointmentsViewModel() {
         self.serviceList().forEach(function (cat) { (cat.services || []).forEach(function (s) { allSvcs.push(s); }); });
         serviceIds.forEach(function (id) {
             var svc = allSvcs.find(function (s) { return s.id === id; });
-            if (svc) totalDuration += (svc.durationMinutes || 30);
+            if (svc) totalDuration += Math.max((svc.durationMinutes || 30), (svc.processingMinutes || 0)) + (svc.bufferBeforeMinutes || 0) + (svc.bufferAfterMinutes || 0);
         });
 
         self.slotsLoading(true);
-        $.get('/proxy/sln-appointments/available-slots?personnelId=' + personnelId + '&date=' + dateStr + '&durationMinutes=' + totalDuration, function (data) {
+        $.get('/proxy/sln-appointments/available-slots?personnelId=' + personnelId + '&date=' + dateStr + '&durationMinutes=' + totalDuration + '&serviceIds=' + serviceIds.join(','), function (data) {
             var slots = data || [];
             self.availableSlots(slots);
             self.slotsLoading(false);
@@ -269,6 +271,9 @@ function AppointmentsViewModel() {
         $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
             self.serviceList(data.items || data);
         });
+        $.ajax({ url: '/proxy/sln-services/combos', method: 'GET' }).done(function (data) {
+            self.comboList((data && data.items) || data || []);
+        });
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
         });
@@ -306,6 +311,16 @@ function AppointmentsViewModel() {
         self.form.serviceIds(ids);
     };
 
+    self.selectCombo = function (combo) {
+        self.form.comboId(combo.id);
+        self.form.serviceIds((combo.items || []).map(function (i) { return i.serviceId; }));
+    };
+
+    self.clearCombo = function () {
+        self.form.comboId(null);
+        self.form.serviceIds([]);
+    };
+
     self.removeSelectedService = function (svc) {
         self.toggleService(svc.id);
     };
@@ -320,6 +335,7 @@ function AppointmentsViewModel() {
         self.slotDate('');
         self.availableSlots([]);
         self.availableStaffForService([]);
+        self.form.comboId(null);
         self.form.serviceIds([]);
         self.form.personnelId(null);
         self.form.notes('');
@@ -341,6 +357,7 @@ function AppointmentsViewModel() {
         self.form.slnClientId(appt.slnClientId);
         self.form.startTime(appt.startTime ? appt.startTime.substring(0, 16) : '');
         self.slotDate(appt.startTime ? appt.startTime.substring(0, 10) : '');
+        self.form.comboId(appt.comboId || null);
         self.form.serviceIds(appt.serviceIds || (appt.serviceId ? [appt.serviceId] : []));
         self.form.personnelId(appt.personnelId);
         self.form.notes(appt.notes || '');
@@ -364,6 +381,7 @@ function AppointmentsViewModel() {
         var data = {
             slnClientId: self.form.slnClientId(),
             personnelId: self.form.personnelId(),
+            comboId: self.form.comboId(),
             serviceIds: self.form.serviceIds(),
             startTime: startTimeVal,
             notes: self.form.notes()

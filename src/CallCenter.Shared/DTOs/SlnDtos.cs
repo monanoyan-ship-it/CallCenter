@@ -110,8 +110,17 @@ public class SlnServiceDto
     public string CategoryName { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int DurationMinutes { get; set; }
+    public int BufferBeforeMinutes { get; set; }
+    public int BufferAfterMinutes { get; set; }
+    public int ProcessingMinutes { get; set; }
     public decimal Price { get; set; }
+    public int? ParentServiceId { get; set; }
+    public bool IsAddOn { get; set; }
+    public bool RequiresConsultation { get; set; }
+    public bool RequiresPatchTest { get; set; }
+    public string? PrerequisiteNotes { get; set; }
     public bool IsActive { get; set; }
+    public List<SlnServiceResourceRequirementDto> ResourceRequirements { get; set; } = [];
 }
 
 public class SlnServiceCreateDto
@@ -119,7 +128,91 @@ public class SlnServiceCreateDto
     public int CategoryId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int DurationMinutes { get; set; } = 30;
+    public int BufferBeforeMinutes { get; set; }
+    public int BufferAfterMinutes { get; set; }
+    public int ProcessingMinutes { get; set; }
     public decimal Price { get; set; }
+    public int? ParentServiceId { get; set; }
+    public bool IsAddOn { get; set; }
+    public bool RequiresConsultation { get; set; }
+    public bool RequiresPatchTest { get; set; }
+    public string? PrerequisiteNotes { get; set; }
+    public List<SlnServiceResourceRequirementCreateDto> ResourceRequirements { get; set; } = [];
+}
+
+public class SlnResourceDto
+{
+    public int Id { get; set; }
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? ResourceKind { get; set; }
+    public int Quantity { get; set; }
+    public bool IsActive { get; set; }
+    public int SortOrder { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnResourceCreateDto
+{
+    public int? BranchId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? ResourceKind { get; set; }
+    public int Quantity { get; set; } = 1;
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnServiceResourceRequirementDto
+{
+    public int Id { get; set; }
+    public int ResourceId { get; set; }
+    public string ResourceName { get; set; } = string.Empty;
+    public int QuantityRequired { get; set; }
+}
+
+public class SlnServiceResourceRequirementCreateDto
+{
+    public int ResourceId { get; set; }
+    public int QuantityRequired { get; set; } = 1;
+}
+
+public class SlnServiceComboDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public decimal Price { get; set; }
+    public int DurationMinutes { get; set; }
+    public bool IsActive { get; set; }
+    public int SortOrder { get; set; }
+    public List<SlnServiceComboItemDto> Items { get; set; } = [];
+}
+
+public class SlnServiceComboItemDto
+{
+    public int Id { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int DurationMinutes { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class SlnServiceComboCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public decimal Price { get; set; }
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+    public List<SlnServiceComboItemCreateDto> Items { get; set; } = [];
+}
+
+public class SlnServiceComboItemCreateDto
+{
+    public int ServiceId { get; set; }
+    public int SortOrder { get; set; }
 }
 
 // ═══ SlnAppointment ═══
@@ -133,6 +226,8 @@ public class SlnAppointmentDto
     public string PersonnelName { get; set; } = string.Empty;
     public int? BranchId { get; set; }
     public string? BranchName { get; set; }
+    public int? ComboId { get; set; }
+    public string? ComboName { get; set; }
     public List<int> ServiceIds { get; set; } = new();
     public List<string> ServiceNames { get; set; } = new();
     public int DurationMinutes { get; set; }
@@ -151,6 +246,7 @@ public class SlnAppointmentCreateDto
 {
     public int SlnClientId { get; set; }
     public int PersonnelId { get; set; }
+    public int? ComboId { get; set; }
     public List<int> ServiceIds { get; set; } = new();
     public DateTime StartTime { get; set; }
     public string? Notes { get; set; }
@@ -303,6 +399,7 @@ public class SlnOnlineBookingDto
     public string Phone { get; set; } = string.Empty;
     public string? Email { get; set; }
     public int ServiceId { get; set; }
+    public int? ComboId { get; set; }
     public int? PersonnelId { get; set; }
     public DateTime StartTime { get; set; }
     public string? Notes { get; set; }
@@ -372,6 +469,7 @@ public class SlnSalonProfileDto
     public bool ShowMap { get; set; } = true;
     public string? BannersJson { get; set; }
     public List<SlnServiceCategoryDto> ServiceCategories { get; set; } = [];
+    public List<SlnServiceComboDto> ServiceCombos { get; set; } = [];
     // Geriye uyumluluk: Public sayfa slug'i merkez subeden alinir
     public string Slug { get; set; } = string.Empty;
     public string? Address { get; set; }

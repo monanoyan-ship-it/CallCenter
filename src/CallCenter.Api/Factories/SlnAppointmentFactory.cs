@@ -14,6 +14,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
     private readonly ISlnPersonnelSkillEntityService _skills;
+    private readonly ISlnServiceComboEntityService _combos;
+    private readonly ISlnServiceResourceRequirementEntityService _requirements;
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
@@ -25,6 +27,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         ISlnClientEntityService clients,
         ISlnNoShowPolicyEntityService noShowPolicies,
         ISlnPersonnelSkillEntityService skills,
+        ISlnServiceComboEntityService combos,
+        ISlnServiceResourceRequirementEntityService requirements,
         ICustomerPersonnelEntityService personnel,
         ISlnBranchEntityService branches,
         IUnitOfWork uow,
@@ -35,6 +39,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         _clients = clients;
         _noShowPolicies = noShowPolicies;
         _skills = skills;
+        _combos = combos;
+        _requirements = requirements;
         _personnel = personnel;
         _branches = branches;
         _uow = uow;
@@ -45,6 +51,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         .Include(a => a.SlnClient)
         .Include(a => a.Personnel).ThenInclude(p => p!.User)
         .Include(a => a.Branch)
+        .Include(a => a.Combo)
         .Include(a => a.Service)
         .Include(a => a.Services).ThenInclude(s => s.SlnService);
 
@@ -88,17 +95,22 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<(SlnAppointmentDto? Appointment, string? Error)> CreateAppointmentAsync(SlnAppointmentCreateDto dto, int userId, int customerId, int? branchId = null)
     {
-        if (dto.ServiceIds.Count == 0)
-            return (null, "En az bir hizmet secilmeli");
+        var resolved = await ResolveServiceIdsAsync(dto, customerId);
+        if (resolved.Error != null)
+            return (null, resolved.Error);
 
         var services = await _services.GetAllQueryable()
-            .Where(s => dto.ServiceIds.Contains(s.Id))
+            .Where(s => resolved.ServiceIds.Contains(s.Id) && s.CustomerId == customerId && s.IsActive)
             .ToListAsync();
 
-        if (services.Count != dto.ServiceIds.Count)
+        if (services.Count != resolved.ServiceIds.Count)
             return (null, "Bir veya daha fazla hizmet bulunamadi");
 
-        var totalMinutes = services.Sum(s => s.DurationMinutes);
+        var skillScope = await GetSkillScopeAsync(resolved.ServiceIds);
+        if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(dto.PersonnelId))
+            return (null, "Secilen personel bu hizmetler icin uygun degil");
+
+        var totalMinutes = CalculateBookableMinutes(services);
         var endTime = dto.StartTime.AddMinutes(totalMinutes);
 
         // Engelli musteri kontrolu
@@ -126,17 +138,22 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             branchId = hq?.Id;
         }
 
+        var resourceConflict = await FindResourceConflictAsync(customerId, branchId, resolved.ServiceIds, dto.StartTime, endTime);
+        if (resourceConflict != null)
+            return (null, resourceConflict);
+
         var appointment = new SlnAppointment
         {
             CustomerId = customerId,
             BranchId = branchId,
             SlnClientId = dto.SlnClientId,
             PersonnelId = dto.PersonnelId,
+            ComboId = resolved.Combo?.Id,
             StartTime = dto.StartTime,
             EndTime = endTime,
             Notes = dto.Notes,
             CreatedByPersonnelId = userId,
-            Services = dto.ServiceIds.Select((id, i) => new SlnAppointmentService
+            Services = resolved.ServiceIds.Select((id, i) => new SlnAppointmentService
             {
                 SlnServiceId = id,
                 SortOrder = i
@@ -147,7 +164,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         await _uow.SaveChangesAsync();
 
         _logger.LogInformation("Yeni randevu olusturuldu: {AppointmentId} - {StartTime} ({ServiceCount} hizmet)",
-            appointment.Id, appointment.StartTime, dto.ServiceIds.Count);
+            appointment.Id, appointment.StartTime, resolved.ServiceIds.Count);
 
         var created = await IncludeAll(_appointments.GetAllQueryable())
             .FirstAsync(a => a.Id == appointment.Id);
@@ -164,17 +181,22 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (appointment == null) return (false, "Randevu bulunamadi");
         if (appointment.StatusId == 4) return (false, "Iptal edilmis randevu guncellenemez");
 
-        if (dto.ServiceIds.Count == 0)
-            return (false, "En az bir hizmet secilmeli");
+        var resolved = await ResolveServiceIdsAsync(dto, customerId);
+        if (resolved.Error != null)
+            return (false, resolved.Error);
 
         var services = await _services.GetAllQueryable()
-            .Where(s => dto.ServiceIds.Contains(s.Id))
+            .Where(s => resolved.ServiceIds.Contains(s.Id) && s.CustomerId == customerId && s.IsActive)
             .ToListAsync();
 
-        if (services.Count != dto.ServiceIds.Count)
+        if (services.Count != resolved.ServiceIds.Count)
             return (false, "Bir veya daha fazla hizmet bulunamadi");
 
-        var totalMinutes = services.Sum(s => s.DurationMinutes);
+        var skillScope = await GetSkillScopeAsync(resolved.ServiceIds);
+        if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(dto.PersonnelId))
+            return (false, "Secilen personel bu hizmetler icin uygun degil");
+
+        var totalMinutes = CalculateBookableMinutes(services);
         var endTime = dto.StartTime.AddMinutes(totalMinutes);
 
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId, appointmentId);
@@ -187,8 +209,12 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             if (newPersonnel?.BranchId != null) appointment.BranchId = newPersonnel.BranchId;
         }
 
+        var resourceConflict = await FindResourceConflictAsync(customerId, appointment.BranchId, resolved.ServiceIds, dto.StartTime, endTime, appointmentId);
+        if (resourceConflict != null) return (false, resourceConflict);
+
         appointment.SlnClientId = dto.SlnClientId;
         appointment.PersonnelId = dto.PersonnelId;
+        appointment.ComboId = resolved.Combo?.Id;
         appointment.ServiceId = null;
         appointment.StartTime = dto.StartTime;
         appointment.EndTime = endTime;
@@ -197,7 +223,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         // Eski hizmetleri temizle, yenilerini ekle
         appointment.Services.Clear();
-        foreach (var (id, i) in dto.ServiceIds.Select((id, i) => (id, i)))
+        foreach (var (id, i) in resolved.ServiceIds.Select((id, i) => (id, i)))
             appointment.Services.Add(new SlnAppointmentService { SlnServiceId = id, SortOrder = i });
 
         await _uow.SaveChangesAsync();
@@ -297,6 +323,108 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return await query.AnyAsync();
     }
 
+    private async Task<AppointmentServiceResolution> ResolveServiceIdsAsync(SlnAppointmentCreateDto dto, int customerId)
+    {
+        var serviceIds = dto.ServiceIds.Where(id => id > 0).Distinct().ToList();
+        SlnServiceCombo? combo = null;
+
+        if (dto.ComboId.HasValue && dto.ComboId.Value > 0)
+        {
+            combo = await _combos.GetAllQueryable()
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.Id == dto.ComboId.Value && c.CustomerId == customerId && c.IsActive);
+
+            if (combo == null)
+                return new([], null, "Combo bulunamadi");
+
+            var comboServiceIds = combo.Items.OrderBy(i => i.SortOrder).Select(i => i.ServiceId).ToList();
+            if (comboServiceIds.Count == 0)
+                return new([], combo, "Combo icinde hizmet yok");
+
+            serviceIds = comboServiceIds
+                .Concat(serviceIds.Where(id => !comboServiceIds.Contains(id)))
+                .Distinct()
+                .ToList();
+        }
+
+        if (serviceIds.Count == 0)
+            return new([], combo, "En az bir hizmet secilmeli");
+
+        return new(serviceIds, combo, null);
+    }
+
+    private async Task<string?> FindResourceConflictAsync(int customerId, int? branchId, List<int> serviceIds, DateTime startTime, DateTime endTime, int? excludeAppointmentId = null)
+    {
+        if (serviceIds.Count == 0) return null;
+
+        var requirements = await _requirements.GetAllQueryable()
+            .Where(r => serviceIds.Contains(r.ServiceId))
+            .Include(r => r.Resource)
+            .ToListAsync();
+
+        var needed = requirements
+            .Where(r => r.Resource != null)
+            .GroupBy(r => r.ResourceId)
+            .Select(g => new
+            {
+                Resource = g.First().Resource!,
+                QuantityRequired = g.Max(x => Math.Max(1, x.QuantityRequired))
+            })
+            .ToList();
+
+        if (needed.Count == 0) return null;
+
+        var overlappingQuery = _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == customerId
+                && a.StatusId != 4
+                && a.StatusId != 5
+                && a.StartTime < endTime
+                && a.EndTime > startTime);
+
+        if (excludeAppointmentId.HasValue)
+            overlappingQuery = overlappingQuery.Where(a => a.Id != excludeAppointmentId.Value);
+
+        var overlapping = await overlappingQuery
+            .Include(a => a.Service)!.ThenInclude(s => s!.ResourceRequirements)
+            .Include(a => a.Services).ThenInclude(s => s.SlnService)!.ThenInclude(s => s!.ResourceRequirements)
+            .ToListAsync();
+
+        foreach (var item in needed)
+        {
+            var resource = item.Resource;
+            if (resource.CustomerId != customerId || !resource.IsActive)
+                return $"{resource.Name} kaynagi aktif degil";
+            if (resource.BranchId.HasValue && branchId.HasValue && resource.BranchId.Value != branchId.Value)
+                return $"{resource.Name} bu sube icin uygun degil";
+            if (resource.BranchId.HasValue && !branchId.HasValue)
+                return $"{resource.Name} icin sube secimi gerekli";
+
+            var used = 0;
+            foreach (var appointment in overlapping)
+            {
+                var appointmentRequirements = appointment.Services.Count > 0
+                    ? appointment.Services
+                        .Where(s => s.SlnService != null)
+                        .SelectMany(s => s.SlnService!.ResourceRequirements)
+                    : appointment.Service?.ResourceRequirements ?? [];
+
+                used += appointmentRequirements
+                    .Where(r => r.ResourceId == resource.Id)
+                    .Select(r => Math.Max(1, r.QuantityRequired))
+                    .DefaultIfEmpty(0)
+                    .Max();
+            }
+
+            if (used + item.QuantityRequired > resource.Quantity)
+                return $"{resource.Name} kapasitesi dolu";
+        }
+
+        return null;
+    }
+
+    private static int CalculateBookableMinutes(IEnumerable<SlnService> services)
+        => services.Sum(s => Math.Max(5, Math.Max(s.DurationMinutes, s.ProcessingMinutes) + s.BufferBeforeMinutes + s.BufferAfterMinutes));
+
     private static SlnAppointmentDto MapToDto(SlnAppointment a)
     {
         // Yeni kayitlar Services koleksiyonunu kullanir, eski kayitlar ServiceId FK'yi
@@ -320,6 +448,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             PersonnelName = a.Personnel?.User?.FullName ?? "",
             BranchId = a.BranchId,
             BranchName = a.Branch?.Name,
+            ComboId = a.ComboId,
+            ComboName = a.Combo?.Name,
             ServiceIds = serviceIds,
             ServiceNames = serviceNames,
             DurationMinutes = duration,
@@ -335,16 +465,39 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         };
     }
 
+    private sealed record AppointmentServiceResolution(List<int> ServiceIds, SlnServiceCombo? Combo, string? Error);
+
+    private async Task<(List<int> PersonnelIds, bool HasSkillDefinitions)> GetSkillScopeAsync(List<int> serviceIds)
+    {
+        var skillRows = await _skills.GetAllQueryable()
+            .Where(s => serviceIds.Contains(s.ServiceId))
+            .Select(s => new { s.ServiceId, s.PersonnelId })
+            .ToListAsync();
+
+        var serviceIdsWithSkills = skillRows.Select(s => s.ServiceId).Distinct().ToList();
+        var personnelIds = skillRows
+            .GroupBy(s => s.PersonnelId)
+            .Where(g => serviceIdsWithSkills.All(serviceId => g.Any(s => s.ServiceId == serviceId)))
+            .Select(g => g.Key)
+            .ToList();
+
+        return (personnelIds, serviceIdsWithSkills.Count > 0);
+    }
+
     public async Task<List<object>> GetAvailableStaffAsync(int customerId, List<int> serviceIds, int? branchId = null)
     {
         // Skill eslemesi olan personelleri bul
-        var skillQuery = _skills.GetAllQueryable()
-            .Where(s => serviceIds.Contains(s.ServiceId));
-
-        var skilledPersonnelIds = await skillQuery
-            .Select(s => s.PersonnelId)
-            .Distinct()
+        var skillRows = await _skills.GetAllQueryable()
+            .Where(s => serviceIds.Contains(s.ServiceId))
+            .Select(s => new { s.ServiceId, s.PersonnelId })
             .ToListAsync();
+
+        var serviceIdsWithSkills = skillRows.Select(s => s.ServiceId).Distinct().ToList();
+        var skilledPersonnelIds = skillRows
+            .GroupBy(s => s.PersonnelId)
+            .Where(g => serviceIdsWithSkills.All(serviceId => g.Any(s => s.ServiceId == serviceId)))
+            .Select(g => g.Key)
+            .ToList();
 
         var personnelQuery = _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == customerId && p.IsActive);
@@ -353,7 +506,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             personnelQuery = personnelQuery.Where(p => p.BranchId == branchId.Value || p.BranchId == null);
 
         // Skill tanimlanmissa filtrele, tanimlanmamissa tum aktif personelleri don
-        if (skilledPersonnelIds.Count > 0)
+        if (serviceIdsWithSkills.Count > 0)
             personnelQuery = personnelQuery.Where(p => skilledPersonnelIds.Contains(p.Id));
 
         return await personnelQuery
@@ -371,13 +524,14 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             .ToListAsync();
     }
 
-    public async Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null)
+    public async Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null, List<int>? serviceIds = null)
     {
         // Personel kendi calisma saati varsa onu kullan, yoksa subeye dus.
         var personnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == personnelId);
         var branch = branchId.HasValue
             ? await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.Id == branchId.Value)
             : await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+        var effectiveBranchId = branchId ?? personnel?.BranchId ?? branch?.Id;
 
         var dayKey = date.DayOfWeek switch
         {
@@ -436,12 +590,16 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         {
             var slotEnd = slotStart.AddMinutes(durationMinutes);
             var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
+            var resourceConflict = serviceIds is { Count: > 0 }
+                ? await FindResourceConflictAsync(customerId, effectiveBranchId, serviceIds, slotStart, slotEnd)
+                : null;
 
             slots.Add(new
             {
                 startTime = slotStart,
                 endTime = slotEnd,
-                available = !hasConflict,
+                available = !hasConflict && resourceConflict == null,
+                resourceConflict,
                 timeText = slotStart.ToString("HH:mm")
             });
 

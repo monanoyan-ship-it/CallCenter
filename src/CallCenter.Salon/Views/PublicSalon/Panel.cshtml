@@ -279,21 +279,97 @@
                     var date = dateOnly ? new Date(dateOnly).toLocaleDateString(PANEL_LANG || undefined) : '';
                     var time = a.startTime ? a.startTime.substring(0, 5) : '';
                     var canCancel = a.statusId === 1 || a.statusId === 2;
+                    var canPay = !!a.canPay;
+                    var payLabel = a.statusId === 6
+                        ? salonT('salon.panel.appointments.resume_payment', 'Ödemeye Devam Et')
+                        : salonT('salon.panel.appointments.pay_now', 'Öde');
                     var apptIso = dateOnly ? new Date(dateOnly + 'T' + (a.startTime || '00:00:00')).toISOString() : '';
                     var cancelBtn = canCancel && apptIso
                         ? '<button class="btn btn-sm btn-outline-danger" onclick="cancelAppt(' + a.id + ',' + (a.isPrepaid ? 'true' : 'false') + ',' + (a.prepaidAmount || 0) + ',\'' + apptIso + '\')"><i class="bi bi-x-lg"></i></button>'
+                        : '';
+                    var payBtn = canPay
+                        ? '<button class="btn btn-sm btn-primary" onclick="openAppointmentPayment(' + a.id + ')"><i class="bi bi-credit-card me-1"></i>' + payLabel + (a.remainingAmount > 0 ? ' (' + formatMoney(a.remainingAmount) + ')' : '') + '</button>'
                         : '';
                     return '<div class="card section-card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">' +
                         '<div><strong>' + a.salonName + '</strong>' + apptStatusBadge(a.statusId) +
                         '<div class="small text-muted">' + date + ' ' + time + '</div>' +
                         '<div class="small">' + (a.serviceNames || []).join(', ') + '</div></div>' +
-                        '<div>' + cancelBtn + '</div>' +
+                        '<div class="d-flex gap-2">' + payBtn + cancelBtn + '</div>' +
                         '</div></div>';
                 }).join('');
             });
         }
 
         var _cancelModal, _cancelToast;
+        var appointmentPaymentBusy = false;
+
+        function formatMoney(amount) {
+            var value = Number(amount || 0);
+            return value.toLocaleString(PANEL_LANG || undefined, { minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 }) + ' TL';
+        }
+
+        function activateAppointmentsTab() {
+            var trigger = document.querySelector('a[href="#tabAppointments"]');
+            if (!trigger) return;
+            bootstrap.Tab.getOrCreateInstance(trigger).show();
+        }
+
+        function handleAppointmentPaymentResult(success, error) {
+            activateAppointmentsTab();
+            if (success) {
+                showToast(salonT('salon.panel.payment.completed', 'Ödeme tamamlandı.'), true);
+            } else {
+                showToast(error || salonT('salon.panel.payment.failed', 'Ödeme tamamlanamadı. Lütfen tekrar deneyin.'), false);
+            }
+            loadAppointments(false);
+            loadPaymentHistory();
+        }
+
+        function openAppointmentPayment(id) {
+            if (appointmentPaymentBusy) return;
+            appointmentPaymentBusy = true;
+
+            fetch('/public-proxy/platform/appointments/' + id + '/pay-checkout', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+                body: '{}'
+            })
+            .then(function(r) {
+                if (r.status === 401) { logout(); return Promise.reject(); }
+                return r.json().then(function(data) {
+                    return { ok: r.ok, data: data || {} };
+                }, function() {
+                    return { ok: r.ok, data: {} };
+                });
+            })
+            .then(function(resp) {
+                appointmentPaymentBusy = false;
+                if (!resp.ok) {
+                    showToast(resp.data.error || resp.data.message || salonT('salon.panel.payment.failed', 'Ödeme tamamlanamadı. Lütfen tekrar deneyin.'), false);
+                    return;
+                }
+
+                if (!resp.data.htmlContent) {
+                    showToast(salonT('salon.panel.payment.failed', 'Ödeme tamamlanamadı. Lütfen tekrar deneyin.'), false);
+                    return;
+                }
+
+                var paymentWindow = window.open('', 'corplynkAppointmentPayment', 'width=520,height=860');
+                if (!paymentWindow) {
+                    showToast(salonT('salon.panel.payment.popup_blocked', 'Ödeme penceresi açılamadı. Tarayıcı açılır pencere izni verin.'), false);
+                    return;
+                }
+
+                paymentWindow.document.open();
+                paymentWindow.document.write(resp.data.htmlContent);
+                paymentWindow.document.close();
+                paymentWindow.focus();
+            })
+            .catch(function() {
+                appointmentPaymentBusy = false;
+                showToast(salonT('salon.panel.error.request_failed', 'İstek başarısız.'), false);
+            });
+        }
 
         function showToast(msg, success) {
             var el = document.getElementById('appToast');
@@ -403,6 +479,32 @@
         loadProfile();
         loadBilling();
         loadPaymentHistory();
+
+        window.addEventListener('message', function(e) {
+            if (e.data === 'payment-success' || (e.data && e.data.type === 'payment-success')) {
+                handleAppointmentPaymentResult(true);
+            } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
+                handleAppointmentPaymentResult(false, e.data && e.data.error);
+            }
+        });
+
+        (function handleIyzicoReturn() {
+            var p = new URLSearchParams(window.location.search);
+            var token = p.get('iyzicoToken');
+            if (!token) return;
+
+            var paid = p.get('paid') === 'true';
+            var payerr = p.get('payerr');
+
+            var u = new URL(window.location.href);
+            u.searchParams.delete('iyzicoToken');
+            u.searchParams.delete('paid');
+            u.searchParams.delete('payerr');
+            var q = u.searchParams.toString();
+            window.history.replaceState({}, '', u.pathname + (q ? '?' + q : '') + u.hash);
+
+            handleAppointmentPaymentResult(paid, payerr ? decodeURIComponent(payerr) : salonT('salon.panel.payment.not_completed', 'Ödeme tamamlanamadı. Lütfen tekrar deneyin.'));
+        })();
 
         // ═══ Fatura Bilgileri ═══
         function toggleBillingType() {

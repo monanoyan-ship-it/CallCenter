@@ -98,6 +98,10 @@ public class AppDbContext : DbContext
     public DbSet<SlnClientPhoto> SlnClientPhotos => Set<SlnClientPhoto>();
     public DbSet<SlnServiceCategory> SlnServiceCategories => Set<SlnServiceCategory>();
     public DbSet<SlnService> SlnServices => Set<SlnService>();
+    public DbSet<SlnResource> SlnResources => Set<SlnResource>();
+    public DbSet<SlnServiceResourceRequirement> SlnServiceResourceRequirements => Set<SlnServiceResourceRequirement>();
+    public DbSet<SlnServiceCombo> SlnServiceCombos => Set<SlnServiceCombo>();
+    public DbSet<SlnServiceComboItem> SlnServiceComboItems => Set<SlnServiceComboItem>();
     public DbSet<SlnPersonnelSkill> SlnPersonnelSkills => Set<SlnPersonnelSkill>();
     public DbSet<SlnPersonnelCommission> SlnPersonnelCommissions => Set<SlnPersonnelCommission>();
     public DbSet<SlnPayroll> SlnPayrolls => Set<SlnPayroll>();
@@ -376,6 +380,44 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnAppointment>(e =>
         {
             e.Property(a => a.PrepaidAmount).HasPrecision(18, 2);
+            e.HasOne(a => a.Combo).WithMany().HasForeignKey(a => a.ComboId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnResource>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => new { r.CustomerId, r.BranchId, r.Name }).IsUnique();
+            e.Property(r => r.Name).HasMaxLength(150).IsRequired();
+            e.Property(r => r.ResourceKind).HasMaxLength(80);
+            e.Property(r => r.Notes).HasMaxLength(500);
+            e.HasOne(r => r.Customer).WithMany().HasForeignKey(r => r.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Branch).WithMany().HasForeignKey(r => r.BranchId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnServiceResourceRequirement>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => new { r.ServiceId, r.ResourceId }).IsUnique();
+            e.HasOne(r => r.Service).WithMany(s => s.ResourceRequirements).HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Resource).WithMany(r => r.ServiceRequirements).HasForeignKey(r => r.ResourceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SlnServiceCombo>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => new { c.CustomerId, c.Name }).IsUnique();
+            e.Property(c => c.Name).HasMaxLength(150).IsRequired();
+            e.Property(c => c.Description).HasMaxLength(500);
+            e.Property(c => c.Price).HasPrecision(18, 2);
+            e.HasOne(c => c.Customer).WithMany().HasForeignKey(c => c.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SlnServiceComboItem>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.HasIndex(i => new { i.ComboId, i.ServiceId }).IsUnique();
+            e.HasOne(i => i.Combo).WithMany(c => c.Items).HasForeignKey(i => i.ComboId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Service).WithMany().HasForeignKey(i => i.ServiceId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // SlnClient (ayni salonda ayni telefon mukerrer olamaz)
@@ -453,6 +495,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnService>(e =>
         {
             e.Property(s => s.TaxRate).HasPrecision(5, 2);
+            e.Property(s => s.PrerequisiteNotes).HasMaxLength(1000);
+            e.HasOne(s => s.ParentService).WithMany(s => s.Variants).HasForeignKey(s => s.ParentServiceId).OnDelete(DeleteBehavior.SetNull);
         });
         modelBuilder.Entity<SlnProduct>(e =>
         {

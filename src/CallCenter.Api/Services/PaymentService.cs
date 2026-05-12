@@ -18,6 +18,8 @@ namespace CallCenter.Api.Services;
 /// </summary>
 public class PaymentService
 {
+    public static readonly TimeSpan PendingPaymentHoldTimeout = TimeSpan.FromMinutes(20);
+
     private readonly AppDbContext _db;
     private readonly PaymentGatewayFactory _gatewayFactory;
     private readonly ISubscriptionFactory _subscriptionFactory;

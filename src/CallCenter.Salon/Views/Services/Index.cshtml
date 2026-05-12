@@ -11,6 +11,12 @@
             <input type="text" class="form-control" placeholder="@(Translation.T("salon.services.auto.hizmet_ara", "Hizmet ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
         <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" data-bind="click: openResourceManager">
+                <i class="bi bi-boxes me-1"></i><t key="salon.services.resources">Kaynaklar</t>
+            </button>
+            <button class="btn btn-outline-success btn-sm" data-bind="click: openComboManager">
+                <i class="bi bi-collection me-1"></i><t key="salon.services.combos">Combos</t>
+            </button>
             <button class="btn btn-outline-primary btn-sm" data-bind="click: openNewCategory">
                 <i class="bi bi-folder-plus me-1"></i><t key="salon.services.auto.yeni_kategori">Yeni Kategori</t>
             </button>
@@ -44,6 +50,7 @@
                             <tr>
                                 <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
                                 <th><t key="salon.services.auto.sure_dk">Süre (dk)</t></th>
+                                <th><t key="salon.services.resources">Kaynaklar</t></th>
                                 <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
                                 <th><t key="salon.appointments.status">Durum</t></th>
                                 <th style="width: 80px;"></th>
@@ -53,6 +60,7 @@
                             <tr>
                                 <td class="small fw-semibold" data-bind="text: name"></td>
                                 <td class="small" data-bind="text: durationMinutes + ' dk'"></td>
+                                <td class="small text-muted" data-bind="text: $parents[1].resourceSummary($data)"></td>
                                 <td class="small" data-bind="text: (price || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                                 <td>
                                     <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
@@ -91,6 +99,7 @@
                         <tr>
                             <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
                             <th><t key="salon.services.auto.sure_dk_2">Süre (dk)</t></th>
+                            <th><t key="salon.services.resources">Kaynaklar</t></th>
                             <th><t key="salon.services.auto.fiyat_2">Fiyat</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
                             <th style="width: 80px;"></th>
@@ -100,6 +109,7 @@
                         <tr>
                             <td class="small fw-semibold" data-bind="text: name"></td>
                             <td class="small" data-bind="text: durationMinutes + ' dk'"></td>
+                            <td class="small text-muted" data-bind="text: $parent.resourceSummary($data)"></td>
                             <td class="small" data-bind="text: (price || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             <td>
                                 <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
@@ -208,11 +218,69 @@
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: serviceForm.price" />
                         </div>
                         <div class="col-6">
+                            <label class="form-label small"><t key="salon.services.parent_service">Ana hizmet / varyant</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: serviceForm.parentServiceId">
+                                <option value=""><t key="salon.common.none">Yok</t></option>
+                                <!-- ko foreach: parentServiceOptions -->
+                                <option data-bind="value: id, text: name"></option>
+                                <!-- /ko -->
+                            </select>
+                        </div>
+                        <div class="col-6"></div>
+                        <div class="col-4">
+                            <label class="form-label small"><t key="salon.services.buffer_before">Hazirlik (dk)</t></label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: serviceForm.bufferBeforeMinutes" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small"><t key="salon.services.processing">Islem/Bekleme (dk)</t></label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: serviceForm.processingMinutes" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small"><t key="salon.services.buffer_after">Toparlama (dk)</t></label>
+                            <input type="number" class="form-control form-control-sm" data-bind="value: serviceForm.bufferAfterMinutes" />
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
                             <select class="form-select form-select-sm" data-bind="value: serviceForm.isActive">
                                 <option value="true"><t key="salon.common.status_active">Aktif</t></option>
                                 <option value="false"><t key="salon.common.status_inactive">Pasif</t></option>
                             </select>
+                        </div>
+                        <div class="col-6 d-flex align-items-end">
+                            <div class="d-flex flex-wrap gap-3 small">
+                                <label class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: serviceForm.isAddOn" />
+                                    <span class="form-check-label"><t key="salon.services.addon">Ek hizmet</t></span>
+                                </label>
+                                <label class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: serviceForm.requiresConsultation" />
+                                    <span class="form-check-label"><t key="salon.services.requires_consultation">On gorusme</t></span>
+                                </label>
+                                <label class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: serviceForm.requiresPatchTest" />
+                                    <span class="form-check-label"><t key="salon.services.requires_patch_test">Patch test</t></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.services.prerequisite_notes">On kosul / uyarilar</t></label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: serviceForm.prerequisiteNotes"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.services.resource_requirements">Kaynak/oda/cihaz ihtiyaci</t></label>
+                            <!-- ko if: serviceResourceSelections().length > 0 -->
+                            <div class="row g-2" data-bind="foreach: serviceResourceSelections">
+                                <div class="col-md-6">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text flex-grow-1 text-start" data-bind="text: name"></span>
+                                        <input type="number" min="0" class="form-control" style="max-width:90px;" data-bind="value: quantityRequired" />
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- /ko -->
+                            <!-- ko if: serviceResourceSelections().length === 0 -->
+                            <div class="text-muted small"><t key="salon.services.no_resources_yet">Once Kaynaklar butonundan cihaz/oda ekleyin.</t></div>
+                            <!-- /ko -->
                         </div>
                     </div>
                 </div>
@@ -221,6 +289,152 @@
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveService, disable: isSaving">
                         <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="resourceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><t key="salon.services.resources">Kaynaklar</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small"><t key="salon.services.resource_name">Kaynak adi</t></label>
+                            <input class="form-control form-control-sm" data-bind="value: resourceForm.name" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small"><t key="salon.services.resource_kind">Tip</t></label>
+                            <input class="form-control form-control-sm" placeholder="Oda, cihaz, masa..." data-bind="value: resourceForm.resourceKind" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small"><t key="salon.services.quantity">Adet</t></label>
+                            <input type="number" min="1" class="form-control form-control-sm" data-bind="value: resourceForm.quantity" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: resourceForm.isActive">
+                                <option value="true"><t key="salon.common.status_active">Aktif</t></option>
+                                <option value="false"><t key="salon.common.status_inactive">Pasif</t></option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
+                            <input class="form-control form-control-sm" data-bind="value: resourceForm.notes" />
+                        </div>
+                        <div class="col-12 text-end">
+                            <button class="btn btn-primary btn-sm" data-bind="click: saveResource">
+                                <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><t key="salon.services.resource_name">Kaynak adi</t></th>
+                                    <th><t key="salon.services.resource_kind">Tip</t></th>
+                                    <th><t key="salon.services.quantity">Adet</t></th>
+                                    <th><t key="salon.appointments.status">Durum</t></th>
+                                    <th style="width:90px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: resources">
+                                <tr>
+                                    <td data-bind="text: name"></td>
+                                    <td data-bind="text: resourceKind || '-'"></td>
+                                    <td data-bind="text: quantity"></td>
+                                    <td><span class="badge" data-bind="text: isActive ? salonT('salon.common.status_active', 'Aktif') : salonT('salon.common.status_inactive', 'Pasif'), css: isActive ? 'bg-success' : 'bg-secondary'"></span></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary" data-bind="click: $parent.editResource"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-danger" data-bind="click: $parent.removeResource"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="comboModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><t key="salon.services.combos">Combos</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label small"><t key="salon.services.combo_name">Combo adi</t></label>
+                            <input class="form-control form-control-sm" data-bind="value: comboForm.name" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small"><t key="salon.services.auto.fiyat">Fiyat</t></label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" data-bind="value: comboForm.price" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small"><t key="salon.appointments.status">Durum</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: comboForm.isActive">
+                                <option value="true"><t key="salon.common.status_active">Aktif</t></option>
+                                <option value="false"><t key="salon.common.status_inactive">Pasif</t></option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.services.combo_description">Aciklama</t></label>
+                            <input class="form-control form-control-sm" data-bind="value: comboForm.description" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.appointments.services_required">Hizmetler *</t></label>
+                            <div class="d-flex flex-wrap gap-1" data-bind="foreach: allServicesFlat">
+                                <button type="button" class="btn btn-sm"
+                                        data-bind="click: function(){ $parent.toggleComboService(id); },
+                                                   css: $parent.comboForm.serviceIds().indexOf(id) >= 0 ? 'btn-success' : 'btn-outline-secondary'">
+                                    <span data-bind="text: name"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button class="btn btn-primary btn-sm" data-bind="click: saveCombo">
+                                <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><t key="salon.services.combo_name">Combo adi</t></th>
+                                    <th><t key="salon.appointments.services">Hizmetler</t></th>
+                                    <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
+                                    <th><t key="salon.services.auto.sure_dk">Sure (dk)</t></th>
+                                    <th style="width:90px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: combos">
+                                <tr>
+                                    <td data-bind="text: name"></td>
+                                    <td class="small text-muted" data-bind="text: $parent.comboSummary($data)"></td>
+                                    <td data-bind="text: (price || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                                    <td data-bind="text: durationMinutes"></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary" data-bind="click: $parent.editCombo"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-danger" data-bind="click: $parent.removeCombo"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

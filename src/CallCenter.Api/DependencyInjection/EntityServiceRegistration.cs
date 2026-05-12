@@ -189,6 +189,10 @@ public static class EntityServiceRegistration
 
         // Salon — Appointment Service
         services.AddScoped<ISlnAppointmentServiceEntityService, SlnAppointmentServiceEntityService>();
+        services.AddScoped<ISlnResourceEntityService, SlnResourceEntityService>();
+        services.AddScoped<ISlnServiceResourceRequirementEntityService, SlnServiceResourceRequirementEntityService>();
+        services.AddScoped<ISlnServiceComboEntityService, SlnServiceComboEntityService>();
+        services.AddScoped<ISlnServiceComboItemEntityService, SlnServiceComboItemEntityService>();
 
         // Salon — Finance (Cash Closing, Cash Opening, Client Ledger, Invoice Refund)
         services.AddScoped<ISlnCashClosingEntityService, SlnCashClosingEntityService>();

@@ -142,6 +142,61 @@ public class PlatformPhoneLinkingTests : IDisposable
         link.SlnClientId.Should().Be(client.Id);
     }
 
+    [Fact]
+    public async Task PublicBooking_WithCombo_CreatesOrderedAppointmentServices()
+    {
+        _db.SlnServices.Add(new SlnService
+        {
+            Id = 8,
+            CustomerId = 1,
+            CategoryId = 6,
+            Name = "Fon",
+            DurationMinutes = 45,
+            Price = 150m,
+            IsActive = true
+        });
+        _db.SlnServiceCombos.Add(new SlnServiceCombo
+        {
+            Id = 40,
+            CustomerId = 1,
+            Name = "Kesim + Fon",
+            Price = 225m,
+            IsActive = true,
+            Items =
+            [
+                new SlnServiceComboItem { Id = 41, ComboId = 40, ServiceId = 7, SortOrder = 1 },
+                new SlnServiceComboItem { Id = 42, ComboId = 40, ServiceId = 8, SortOrder = 2 }
+            ]
+        });
+        await _db.SaveChangesAsync();
+
+        var start = DateTime.UtcNow.Date.AddDays(1).AddHours(11);
+        var dto = new SlnOnlineBookingDto
+        {
+            FullName = "Combo Musteri",
+            Phone = "05060716729",
+            Email = "combo@test.local",
+            ComboId = 40,
+            StartTime = start
+        };
+
+        var (success, error, result) = await _publicFactory.BookAppointmentAsync("test-salon", dto);
+
+        success.Should().BeTrue(error);
+        result.Should().NotBeNull();
+
+        var appointment = await _db.SlnAppointments.SingleAsync();
+        appointment.ComboId.Should().Be(40);
+        appointment.ServiceId.Should().Be(7);
+        appointment.EndTime.Should().Be(start.AddMinutes(75));
+
+        var services = await _db.SlnAppointmentServices
+            .OrderBy(s => s.SortOrder)
+            .Select(s => s.SlnServiceId)
+            .ToListAsync();
+        services.Should().Equal(7, 8);
+    }
+
     private PlatformFactory CreatePlatformFactory()
         => new(
             new PlatformUserSalonEntityService(_db),
@@ -166,6 +221,7 @@ public class PlatformPhoneLinkingTests : IDisposable
             new SlnBranchEntityService(_db),
             new SlnServiceCategoryEntityService(_db),
             new SlnServiceEntityService(_db),
+            new SlnServiceComboEntityService(_db),
             new SlnReviewEntityService(_db),
             new CustomerPersonnelEntityService(_db),
             new SlnMembershipPlanEntityService(_db),
@@ -173,6 +229,7 @@ public class PlatformPhoneLinkingTests : IDisposable
             new SlnClientEntityService(_db),
             new SlnAppointmentEntityService(_db),
             new SlnAppointmentServiceEntityService(_db),
+            new SlnServiceResourceRequirementEntityService(_db),
             new SlnPersonnelSkillEntityService(_db),
             new SlnNoShowPolicyEntityService(_db),
             new SlnWaitlistEntryEntityService(_db),

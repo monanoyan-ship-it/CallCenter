@@ -22,8 +22,9 @@
         .step { flex: 1; text-align: center; padding: .4rem .2rem; border-radius: 8px; background: #e9ecef; font-size: .78rem; }
         .step.active { background: #7b1fa2; color: #fff; font-weight: 600; }
         .step.done { background: #4caf50; color: #fff; }
-        .service-option { cursor: pointer; border: 2px solid transparent; transition: .15s; }
+        .service-option { cursor: pointer; border: 2px solid transparent; transition: .15s; outline: none; }
         .service-option:hover { border-color: #ce93d8; }
+        .service-option:focus { border-color: #7b1fa2; box-shadow: 0 0 0 .2rem rgba(123,31,162,.12); }
         .service-option.selected { border-color: #7b1fa2; background: #f3e5f5; }
         .staff-card { cursor: pointer; border: 2px solid transparent; transition: .15s; text-align: center; }
         .staff-card:hover { border-color: #ce93d8; }
@@ -88,6 +89,35 @@
 
         <!-- Adim 1: Hizmet Sec (Accordion) -->
         <div data-bind="visible: currentStep() === 1">
+            <!-- ko if: serviceCombos().length > 0 -->
+            <div class="mb-3">
+                <div class="category-header">
+                    <h6 class="mb-0" style="color:#7b1fa2;">
+                        <i class="bi bi-collection me-1"></i>
+                        <t key="salon.services.combos">Kombolar</t>
+                        <span class="badge bg-secondary ms-2" data-bind="text: serviceCombos().length" style="font-size:.7rem;"></span>
+                    </h6>
+                </div>
+                <div class="mt-1">
+                    <!-- ko foreach: serviceCombos -->
+                    <div class="card border-0 shadow-sm mb-2 service-option"
+                         data-testid="booking-combo-option"
+                         data-bind="click: $root.selectCombo, css: { selected: $root.selectedComboId() === id }, attr: { role: 'button', tabindex: 0, 'aria-pressed': $root.selectedComboId() === id ? 'true' : 'false' }">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <div>
+                                    <span class="fw-semibold small" data-bind="text: name"></span>
+                                    <small class="text-muted ms-2" data-bind="text: durationMinutes + ' dk'"></small>
+                                </div>
+                                <span class="fw-bold text-primary" data-bind="text: price.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></span>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:.75rem;" data-bind="text: $root.comboSummary($data)"></div>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+            <!-- /ko -->
             <!-- ko foreach: categories -->
             <div class="mb-2">
                 <div class="category-header" data-bind="click: $root.toggleCategory">
@@ -101,7 +131,9 @@
                 <!-- ko if: $root.expandedCategoryId() === id -->
                 <div class="mt-1">
                     <!-- ko foreach: services -->
-                    <div class="card border-0 shadow-sm mb-2 service-option" data-bind="click: $root.selectService, css: { selected: $root.selectedServiceId() === id }">
+                    <div class="card border-0 shadow-sm mb-2 service-option"
+                         data-testid="booking-service-option"
+                         data-bind="click: $root.selectService, css: { selected: !$root.selectedComboId() && $root.selectedServiceId() === id }, attr: { role: 'button', tabindex: 0, 'aria-pressed': (!$root.selectedComboId() && $root.selectedServiceId() === id) ? 'true' : 'false' }">
                         <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-semibold small" data-bind="text: name"></span>
@@ -435,8 +467,10 @@
             });
             self.customerId = ko.observable(null);
             self.categories = ko.observableArray([]);
+            self.serviceCombos = ko.observableArray([]);
             self.expandedCategoryId = ko.observable(null);
             self.selectedServiceId = ko.observable(null);
+            self.selectedComboId = ko.observable(null);
 
             // Staff
             self.availableStaff = ko.observableArray([]);
@@ -543,7 +577,20 @@
             self.checkoutActive = ko.observable(false);
 
             // Computed
+            self.selectedCombo = ko.computed(function () {
+                var id = self.selectedComboId();
+                if (!id) return null;
+                return self.serviceCombos().find(function (c) { return c.id === id; }) || null;
+            });
+
+            self.comboSummary = function (combo) {
+                var names = (combo.items || []).map(function (i) { return i.serviceName; }).filter(Boolean);
+                return names.length ? names.join(' + ') : '';
+            };
+
             self.selectedServiceName = ko.computed(function () {
+                var combo = self.selectedCombo();
+                if (combo) return combo.name || '';
                 var id = self.selectedServiceId();
                 if (!id) return '';
                 var found = '';
@@ -554,6 +601,11 @@
             });
 
             self.selectedServicePrice = ko.computed(function () {
+                var combo = self.selectedCombo();
+                if (combo) {
+                    var comboPrice = combo.price || 0;
+                    return comboPrice > 0 ? comboPrice.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '';
+                }
                 var id = self.selectedServiceId();
                 if (!id) return '';
                 var price = 0;
@@ -602,7 +654,7 @@
 
             self.canProceed = ko.computed(function () {
                 var step = self.currentStep();
-                if (step === 1) return !!self.selectedServiceId();
+                if (step === 1) return !!self.selectedServiceId() || !!self.selectedComboId();
                 if (step === 2) return true; // null = fark etmez, her zaman gecerli
                 if (step === 3) return !!self.selectedSlot();
                 if (step === 4) return !!self.form.fullName() && !!self.form.phone();
@@ -651,6 +703,7 @@
                     self.coverImageUrl(data.coverImageUrl || '');
                     self.customerId(data.customerId || data.CustomerId || null);
                     self.categories(data.serviceCategories || []);
+                    self.serviceCombos(data.serviceCombos || []);
                 document.title = '@T("salon.book.document_title_prefix", "Randevu") - ' + data.salonName;
                     // Ilk kategoriyi ac
                     if (data.serviceCategories && data.serviceCategories.length > 0) {
@@ -669,8 +722,15 @@
             };
 
             self.selectService = function (svc) {
+                self.selectedComboId(null);
                 self.selectedServiceId(svc.id);
                 // Kategoriyi sec ve bir sonraki adima hazirla
+            };
+
+            self.selectCombo = function (combo) {
+                var first = (combo.items || [])[0];
+                self.selectedComboId(combo.id);
+                self.selectedServiceId(first ? first.serviceId : null);
             };
 
             self.selectStaff = function (staff) { self.selectedStaffId(staff.id); };
@@ -678,11 +738,13 @@
             // Load staff for selected service
             self.loadStaff = function () {
                 var sid = self.selectedServiceId();
-                if (!sid) return;
+                if (!sid && !self.selectedComboId()) return;
                 self.staffLoading(true);
                 self.availableStaff([]);
                 self.selectedStaffId(null);
-                fetch('/proxy/salon/' + bookSlug + '/available-staff?serviceId=' + sid)
+                var url = '/proxy/salon/' + bookSlug + '/available-staff?serviceId=' + (sid || 0);
+                if (self.selectedComboId()) url += '&comboId=' + self.selectedComboId();
+                fetch(url)
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         self.availableStaff(data || []);
@@ -696,14 +758,17 @@
             self.loadSlots = function () {
                 var sid = self.selectedServiceId();
                 var date = self.selectedDate();
-                if (!sid || !date) return;
+                if ((!sid && !self.selectedComboId()) || !date) return;
                 self.slotsLoaded(false);
                 self.selectedSlot(null);
                 self.isDayClosed(false);
                 self.autoAssignedStaffId(null);
                 self.autoAssignedStaffName(null);
 
-                var url = '/proxy/salon/' + bookSlug + '/available-slots?serviceId=' + sid + '&date=' + date;
+                var url = '/proxy/salon/' + bookSlug + '/available-slots?serviceId=' + (sid || 0) + '&date=' + date;
+                if (self.selectedComboId()) {
+                    url += '&comboId=' + self.selectedComboId();
+                }
                 if (self.selectedStaffId() !== null) {
                     url += '&personnelId=' + self.selectedStaffId();
                 }
@@ -756,6 +821,7 @@
                     phone: self.form.phone(),
                     email: self.form.email(),
                     serviceId: self.selectedServiceId(),
+                    comboId: self.selectedComboId(),
                     startTime: self.selectedSlot(),
                     notes: self.form.notes()
                 };

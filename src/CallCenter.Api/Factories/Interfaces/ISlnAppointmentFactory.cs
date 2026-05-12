@@ -16,7 +16,7 @@ public interface ISlnAppointmentFactory
     Task<List<object>> GetAvailableStaffAsync(int customerId, List<int> serviceIds, int? branchId = null);
 
     /// <summary>Personelin belirtilen gundeki musait saat slotlari</summary>
-    Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null);
+    Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null, List<int>? serviceIds = null);
 
     /// <summary>BranchId NULL olan randevulari merkez subeye bagla (multi-sube gecis oncesi veri temizligi).</summary>
     Task<object> NormalizeBranchesAsync(int customerId);

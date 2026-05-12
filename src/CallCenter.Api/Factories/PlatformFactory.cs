@@ -286,6 +286,7 @@ public class PlatformFactory : IPlatformFactory
     public async Task<List<PlatformAppointmentDto>> GetMyAppointmentsAsync(int platformUserId, bool past)
     {
         var clientIds = await GetMyClientIds(platformUserId);
+        await ExpireStalePendingAppointmentsAsync(clientIds);
 
         var now = DateTime.UtcNow;
         var baseQuery = _appointmentEs.GetAllQueryable()
@@ -386,6 +387,16 @@ public class PlatformFactory : IPlatformFactory
 
         if (apt.StatusId == 4 || apt.StatusId == 5)
             return new PlatformPayAppointmentResponse { Success = false, Error = "Iptal veya gelinmedi durumundaki randevu icin tahsilat yapilamaz." };
+
+        if (apt.StatusId == 6
+            && !apt.IsPrepaid
+            && apt.CreatedAt <= DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout)
+        {
+            apt.StatusId = 4;
+            apt.UpdatedAt = DateTime.UtcNow;
+            await _uow.SaveChangesAsync();
+            return new PlatformPayAppointmentResponse { Success = false, Error = "Odeme suresi doldu. Lutfen randevunuzu yeniden olusturun." };
+        }
 
         var platformUser = await _platformUserEs.GetAllQueryable()
             .FirstOrDefaultAsync(u => u.Id == platformUserId);
@@ -684,6 +695,30 @@ public class PlatformFactory : IPlatformFactory
             .Select(p => p.Slug)
             .FirstOrDefaultAsync()
             ?? string.Empty;
+    }
+
+    private async Task ExpireStalePendingAppointmentsAsync(IReadOnlyCollection<int> clientIds)
+    {
+        if (clientIds.Count == 0) return;
+
+        var cutoff = DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout;
+        var staleAppointments = await _appointmentEs.GetAllQueryable()
+            .Where(a => clientIds.Contains(a.SlnClientId)
+                     && a.StatusId == 6
+                     && !a.IsPrepaid
+                     && a.CreatedAt <= cutoff)
+            .ToListAsync();
+
+        if (staleAppointments.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        foreach (var stale in staleAppointments)
+        {
+            stale.StatusId = 4;
+            stale.UpdatedAt = now;
+        }
+
+        await _uow.SaveChangesAsync();
     }
 
     private async Task<List<int>> GetMyClientIds(int platformUserId)

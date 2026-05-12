@@ -211,6 +211,24 @@
                     <!-- ko if: key === 'services' && $parent.salon().showServices !== false -->
                     <div class="mb-4" id="section-services">
                         <h4 class="mb-3"><i class="bi bi-list-check me-2"></i><t key="salon.profile.services.title">Hizmetlerimiz</t></h4>
+                        <!-- ko if: $parent.serviceCombos().length > 0 -->
+                        <div class="row g-2 mb-3" data-bind="foreach: $parent.serviceCombos">
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between align-items-start gap-2">
+                                            <div>
+                                                <div class="fw-semibold small" data-bind="text: name"></div>
+                                                <small class="text-muted" data-bind="text: durationMinutes + ' ' + $root.t('salon.common.minute_abbr', 'dk')"></small>
+                                            </div>
+                                            <span class="fw-bold text-primary small" data-bind="text: price.toLocaleString(PROFILE_LANG || undefined) + ' ' + $root.t('salon.common.currency_abbr', 'TL')"></span>
+                                        </div>
+                                        <div class="text-muted mt-1" style="font-size:.75rem;" data-bind="text: $root.comboSummary($data)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /ko -->
                         <!-- One Cikan 3 Hizmet (accordion acmadan) -->
                         <!-- ko if: $parent.featuredServices().length > 0 -->
                         <div class="row g-2 mb-3">
@@ -479,7 +497,6 @@
             </div>
         </div>
         <!-- /ko -->
-    </div>
 
     <!-- Bekleme Listesi Modali (anonim) -->
     <div class="modal fade" id="waitlistModal" tabindex="-1">
@@ -500,7 +517,7 @@
                         </div>
                         <div class="col-7">
                             <label class="form-label small"><t key="salon.book.phone">Telefon *</t></label>
-                            <div data-bind="phoneInput: waitlist.phone"></div>
+                            <input type="tel" class="form-control form-control-sm" placeholder="5XX XXX XX XX" data-bind="value: waitlist.phone" />
                         </div>
                         <div class="col-5">
                             <label class="form-label small"><t key="salon.book.waitlist.time_preference">Saat Tercihi</t></label>
@@ -554,7 +571,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small"><t key="salon.book.phone">Telefon *</t></label>
-                        <div data-bind="phoneInput: signupForm.phone"></div>
+                        <input type="tel" class="form-control form-control-sm" placeholder="5XX XXX XX XX" data-bind="value: signupForm.phone" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label small"><t key="salon.book.email">E-posta</t></label>
@@ -583,6 +600,8 @@
                 </div>
             </div>
         </div>
+    </div>
+
     </div>
 
     <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -620,6 +639,10 @@
             self.reviews = ko.observableArray([]);
             self.reviewStats = ko.observable({});
             self.selectedPlanId = ko.observable(null);
+            self.serviceCombos = ko.computed(function () {
+                var s = self.salon();
+                return s && Array.isArray(s.serviceCombos) ? s.serviceCombos : [];
+            });
 
             // One cikan ilk 3 hizmet (kategorilerden flatten, fiyati > 0)
             self.featuredServices = ko.computed(function () {
@@ -631,6 +654,12 @@
                 });
                 return all.slice(0, 3);
             });
+            self.comboSummary = function (combo) {
+                return (combo.items || [])
+                    .map(function (item) { return item.serviceName; })
+                    .filter(Boolean)
+                    .join(' + ');
+            };
 
             // Signup
             self.signupPlanId = ko.observable(null);
@@ -661,6 +690,19 @@
                 var formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
                 self.signupForm.cardNumber(formatted);
                 return true;
+            };
+
+            self.normalizePublicPhone = function (raw) {
+                if (typeof normalizePhone === 'function' && typeof formatFullPhone === 'function') {
+                    var parsed = normalizePhone(raw || '', '+90');
+                    return formatFullPhone(parsed.countryCode, parsed.national);
+                }
+
+                var digits = String(raw || '').replace(/\D/g, '');
+                if (digits.startsWith('00')) digits = digits.substring(2);
+                if (digits.startsWith('90')) return '+' + digits;
+                if (digits.startsWith('0')) digits = digits.substring(1);
+                return digits ? '+90' + digits : '';
             };
 
             var signupModal;
@@ -812,7 +854,8 @@
             };
 
             self.submitWaitlist = function () {
-                if (!self.waitlist.fullName() || !self.waitlist.phone()) {
+                var normalizedWaitlistPhone = self.normalizePublicPhone(self.waitlist.phone());
+                if (!self.waitlist.fullName() || !normalizedWaitlistPhone) {
                     toastr.warning(profileT('salon.book.waitlist.required', 'Ad ve telefon zorunlu')); return;
                 }
                 if (!self.waitlist.serviceId()) {
@@ -821,7 +864,7 @@
                 self.waitlistSaving(true);
                 var payload = {
                     fullName: self.waitlist.fullName(),
-                    phone: self.waitlist.phone(),
+                    phone: normalizedWaitlistPhone,
                     serviceId: parseInt(self.waitlist.serviceId()),
                     preferredDate: self.waitlist.date() + 'T00:00:00Z',
                     preferredTimeSlot: self.waitlist.timeSlot(),
@@ -872,7 +915,7 @@
 
             self.submitSignup = function () {
                 var name = self.signupForm.fullName();
-                var phone = self.signupForm.phone();
+                var phone = self.normalizePublicPhone(self.signupForm.phone());
                 if (!name || !phone) { toastr.warning(profileT('salon.profile.membership.required', 'Ad ve telefon zorunludur.')); return; }
 
                 var price = self.signupPlanPrice();
@@ -966,7 +1009,19 @@
             });
         }
 
-        ko.applyBindings(new PublicSalonViewModel(), document.getElementById('public-salon-vm'));
+        var publicSalonVm = new PublicSalonViewModel();
+        var publicSalonRoot = document.getElementById('public-salon-vm');
+        ko.applyBindings(publicSalonVm, publicSalonRoot);
+
+        function bindStandaloneModal(id) {
+            var el = document.getElementById(id);
+            if (!el || !publicSalonRoot || publicSalonRoot.contains(el)) return;
+            if (ko.dataFor(el)) return;
+            ko.applyBindings(publicSalonVm, el);
+        }
+
+        bindStandaloneModal('waitlistModal');
+        bindStandaloneModal('signupModal');
 
         function setJoinAreaDisplay(id, value) {
             var el = document.getElementById(id);

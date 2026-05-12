@@ -117,12 +117,17 @@ public class SlnAppointmentController : ControllerBase
 
     /// <summary>Personelin belirtilen gundeki musait saat slotlari</summary>
     [HttpGet("available-slots")]
-    public async Task<ActionResult> GetAvailableSlots([FromQuery] int personnelId, [FromQuery] DateTime date, [FromQuery] int durationMinutes = 30)
+    public async Task<ActionResult> GetAvailableSlots([FromQuery] int personnelId, [FromQuery] DateTime date, [FromQuery] int durationMinutes = 30, [FromQuery] string? serviceIds = null)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, GetBranchId());
+        var ids = (serviceIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+            .Where(id => id > 0)
+            .ToList();
+
+        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, GetBranchId(), ids);
         return Ok(slots);
     }
 

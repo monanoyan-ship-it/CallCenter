@@ -16,6 +16,9 @@ public class SlnAppointment
     public int PersonnelId { get; set; }
     public CustomerPersonnel? Personnel { get; set; }
 
+    public int? ComboId { get; set; }
+    public SlnServiceCombo? Combo { get; set; }
+
     /// <summary>Eski tek hizmet FK (geriye uyumluluk). Yeni kayitlarda null, Services koleksiyonu kullanilir.</summary>
     public int? ServiceId { get; set; }
     public SlnService? Service { get; set; }

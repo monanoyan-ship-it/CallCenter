@@ -281,6 +281,8 @@ public class PaymentController : ControllerBase
 
         if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
             return BuildBookingReturnUrl(tx, salon, t, paymentSuccess, error);
+        if (tx.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon && tx.Notes?.StartsWith("PayAppointment:") == true)
+            return BuildPlatformPanelReturnUrl(salon, t, paymentSuccess, error);
 
         return tx.PaymentTypeId switch
         {
@@ -303,6 +305,14 @@ public class PaymentController : ControllerBase
             return $"{salonBase}/Modules?iyzicoToken={t}";
 
         var url = $"{salonBase}/salon/{slug}/book?iyzicoToken={t}&paid={success.ToString().ToLower()}";
+        if (!success && !string.IsNullOrEmpty(error))
+            url += $"&payerr={Uri.EscapeDataString(error)}";
+        return url;
+    }
+
+    private static string BuildPlatformPanelReturnUrl(string salonBase, string t, bool success, string? error)
+    {
+        var url = $"{salonBase}/user/panel?iyzicoToken={t}&paid={success.ToString().ToLower()}";
         if (!success && !string.IsNullOrEmpty(error))
             url += $"&payerr={Uri.EscapeDataString(error)}";
         return url;

@@ -15,6 +15,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnServiceCategoryEntityService _serviceCategories;
     private readonly ISlnServiceEntityService _services;
+    private readonly ISlnServiceComboEntityService _combos;
     private readonly ISlnReviewEntityService _reviews;
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ISlnMembershipPlanEntityService _membershipPlans;
@@ -22,6 +23,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnAppointmentServiceEntityService _appointmentServices;
+    private readonly ISlnServiceResourceRequirementEntityService _requirements;
     private readonly ISlnPersonnelSkillEntityService _skills;
     private readonly ISlnNoShowPolicyEntityService _noShowPolicies;
     private readonly ISlnWaitlistEntryEntityService _waitlist;
@@ -35,6 +37,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnBranchEntityService branches,
         ISlnServiceCategoryEntityService serviceCategories,
         ISlnServiceEntityService services,
+        ISlnServiceComboEntityService combos,
         ISlnReviewEntityService reviews,
         ICustomerPersonnelEntityService personnel,
         ISlnMembershipPlanEntityService membershipPlans,
@@ -42,6 +45,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         ISlnClientEntityService clients,
         ISlnAppointmentEntityService appointments,
         ISlnAppointmentServiceEntityService appointmentServices,
+        ISlnServiceResourceRequirementEntityService requirements,
         ISlnPersonnelSkillEntityService skills,
         ISlnNoShowPolicyEntityService noShowPolicies,
         ISlnWaitlistEntryEntityService waitlist,
@@ -54,6 +58,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         _branches = branches;
         _serviceCategories = serviceCategories;
         _services = services;
+        _combos = combos;
         _reviews = reviews;
         _personnel = personnel;
         _membershipPlans = membershipPlans;
@@ -61,6 +66,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         _clients = clients;
         _appointments = appointments;
         _appointmentServices = appointmentServices;
+        _requirements = requirements;
         _skills = skills;
         _noShowPolicies = noShowPolicies;
         _waitlist = waitlist;
@@ -107,6 +113,12 @@ public class SlnPublicFactory : ISlnPublicFactory
             .Where(c => c.CustomerId == customerId && c.IsActive)
             .Include(c => c.Services.Where(s => s.IsActive))
             .OrderBy(c => c.SortOrder)
+            .ToListAsync();
+
+        var combos = await _combos.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId && c.IsActive)
+            .Include(c => c.Items).ThenInclude(i => i.Service)
+            .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
             .ToListAsync();
 
         return new SlnSalonProfileDto
@@ -162,7 +174,11 @@ public class SlnPublicFactory : ISlnPublicFactory
                     Price = s.Price,
                     IsActive = s.IsActive
                 }).ToList()
-            }).ToList()
+            }).ToList(),
+            ServiceCombos = combos
+                .Where(c => c.Items.Any(i => i.Service?.IsActive == true))
+                .Select(MapPublicComboToDto)
+                .ToList()
         };
     }
 
@@ -465,6 +481,106 @@ public class SlnPublicFactory : ISlnPublicFactory
         return client;
     }
 
+    private async Task<SlnClient?> FindPublicClientAsync(int customerId, string? phone, string? email)
+    {
+        var phoneVariants = PhoneHelper.GetLookupVariants(phone);
+        if (phoneVariants.Count > 0)
+        {
+            var byPhone = await _clients.GetAllQueryable()
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Phone != null && phoneVariants.Contains(c.Phone));
+            if (byPhone != null) return byPhone;
+        }
+
+        var normalizedEmail = NormalizeEmail(email);
+        if (string.IsNullOrWhiteSpace(normalizedEmail)) return null;
+
+        return await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.CustomerId == customerId && c.Email != null && c.Email.ToLower() == normalizedEmail);
+    }
+
+    private static IQueryable<SlnAppointment> ApplyAppointmentBranchScope(IQueryable<SlnAppointment> query, int? branchId)
+        => branchId.HasValue
+            ? query.Where(a => a.BranchId == branchId.Value)
+            : query.Where(a => a.BranchId == null);
+
+    private async Task ExpireStalePendingAppointmentsAsync(int customerId, int? branchId)
+    {
+        var cutoff = DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout;
+        var staleAppointments = await ApplyAppointmentBranchScope(
+                _appointments.GetAllQueryable()
+                    .Where(a => a.CustomerId == customerId
+                             && a.StatusId == 6
+                             && !a.IsPrepaid
+                             && a.CreatedAt <= cutoff),
+                branchId)
+            .ToListAsync();
+
+        if (staleAppointments.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        foreach (var stale in staleAppointments)
+        {
+            stale.StatusId = 4;
+            stale.UpdatedAt = now;
+        }
+
+        await _uow.SaveChangesAsync();
+    }
+
+    private static bool PendingAppointmentMatchesServices(SlnAppointment appointment, int? comboId, IReadOnlyCollection<int> serviceIds)
+    {
+        if (comboId.HasValue && appointment.ComboId == comboId.Value)
+            return true;
+
+        var expected = serviceIds.OrderBy(id => id).ToList();
+        var actual = (appointment.Services?.Select(s => s.SlnServiceId).ToList() ?? new List<int>())
+            .OrderBy(id => id)
+            .ToList();
+
+        if (actual.Count == 0 && appointment.ServiceId.HasValue)
+            actual = new List<int> { appointment.ServiceId.Value };
+
+        return actual.Count == expected.Count && actual.SequenceEqual(expected);
+    }
+
+    private async Task<SlnAppointment?> FindMatchingPendingPaymentAppointmentAsync(
+        int customerId,
+        int clientId,
+        int? branchId,
+        DateTime startTime,
+        DateTime endTime,
+        int? comboId,
+        IReadOnlyCollection<int> serviceIds)
+    {
+        var candidates = await ApplyAppointmentBranchScope(
+                _appointments.GetAllQueryable()
+                    .Where(a => a.CustomerId == customerId
+                             && a.SlnClientId == clientId
+                             && a.StatusId == 6
+                             && !a.IsPrepaid
+                             && a.StartTime == startTime
+                             && a.EndTime == endTime),
+                branchId)
+            .Include(a => a.Services)
+            .ToListAsync();
+
+        return candidates.FirstOrDefault(a => PendingAppointmentMatchesServices(a, comboId, serviceIds));
+    }
+
+    private async Task<bool> HasActivePendingPaymentAppointmentAsync(int customerId, int clientId, int? branchId)
+    {
+        var now = DateTime.UtcNow;
+        return await ApplyAppointmentBranchScope(
+                _appointments.GetAllQueryable()
+                    .Where(a => a.CustomerId == customerId
+                             && a.SlnClientId == clientId
+                             && a.StatusId == 6
+                             && !a.IsPrepaid
+                             && a.EndTime >= now),
+                branchId)
+            .AnyAsync();
+    }
+
     private async Task LinkPlatformUserToSalonAsync(int customerId, SlnClient client, string? phone, string? email)
     {
         var platformUser = await FindPlatformUserAsync(phone ?? client.Phone, email ?? client.Email);
@@ -624,15 +740,15 @@ public class SlnPublicFactory : ISlnPublicFactory
     }
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
-    public async Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date, int? personnelId = null)
+    public async Task<object?> GetAvailableSlotsAsync(string slug, int serviceId, DateTime date, int? personnelId = null, int? comboId = null)
     {
         var scope = await ResolveSalonScopeAsync(slug);
         if (scope == null) return null;
         var cid = scope.CustomerId;
 
-        var service = await _services.GetAllQueryable()
-            .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == cid && s.IsActive);
-        if (service == null) return null;
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, serviceId, comboId);
+        if (resolvedServices.Error != null) return null;
+        var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
 
         // Calisma saatleri (branch'ten al) + Customer.TimeZone
         var branch = await _branches.GetAllQueryable().Include(b => b.Customer).FirstOrDefaultAsync(b => b.Slug == slug && b.IsActive)
@@ -677,7 +793,7 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         // Hizmet icin yetenekli personelleri bul
         var skilledIds = await _skills.GetAllQueryable()
-            .Where(s => s.ServiceId == serviceId)
+            .Where(s => serviceIds.Contains(s.ServiceId))
             .Select(s => s.PersonnelId)
             .Distinct()
             .ToListAsync();
@@ -708,6 +824,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (allStaff.Count == 0)
             return new { isClosed = false, slots = new List<object>() };
 
+        await ExpireStalePendingAppointmentsAsync(cid, branch?.Id ?? scope.BranchId);
+
         // Gunun randevularini personel bazinda yukle
         var dayStart = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
         var dayEnd = dayStart.AddDays(1);
@@ -728,7 +846,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         var nowForCompare = DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, salonTz), DateTimeKind.Utc);
 
         var slots = new List<object>();
-        var slotDuration = service.DurationMinutes;
+        var slotDuration = CalculateBookableMinutes(resolvedServices.Services);
 
         for (var hour = openHour; hour < closeHour; hour++)
         {
@@ -739,6 +857,9 @@ public class SlnPublicFactory : ISlnPublicFactory
 
                 if (slotEnd > dayStart.AddHours(closeHour)) break;
                 if (slotStart < nowForCompare) continue;
+
+                var resourceConflict = await FindResourceConflictAsync(cid, branch?.Id ?? scope.BranchId, serviceIds, slotStart, slotEnd);
+                if (resourceConflict != null) continue;
 
                 // Bu slotta hangi personeller musait?
                 var freeStaff = allStaff.Where(s =>
@@ -777,19 +898,162 @@ public class SlnPublicFactory : ISlnPublicFactory
         return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
     }
 
+    private static int CalculateBookableMinutes(SlnService service)
+        => Math.Max(5, Math.Max(service.DurationMinutes, service.ProcessingMinutes) + service.BufferBeforeMinutes + service.BufferAfterMinutes);
+
+    private static int CalculateBookableMinutes(IEnumerable<SlnService> services)
+        => services.Sum(CalculateBookableMinutes);
+
+    private static SlnServiceComboDto MapPublicComboToDto(SlnServiceCombo combo) => new()
+    {
+        Id = combo.Id,
+        Name = combo.Name,
+        Description = combo.Description,
+        Price = combo.Price,
+        DurationMinutes = CalculateBookableMinutes(combo.Items
+            .OrderBy(i => i.SortOrder)
+            .Select(i => i.Service)
+            .Where(s => s != null && s.IsActive)
+            .Select(s => s!)),
+        IsActive = combo.IsActive,
+        SortOrder = combo.SortOrder,
+        Items = combo.Items.OrderBy(i => i.SortOrder).Where(i => i.Service?.IsActive == true).Select(i => new SlnServiceComboItemDto
+        {
+            Id = i.Id,
+            ServiceId = i.ServiceId,
+            ServiceName = i.Service?.Name ?? "",
+            DurationMinutes = i.Service == null ? 0 : CalculateBookableMinutes(i.Service),
+            SortOrder = i.SortOrder
+        }).ToList()
+    };
+
+    private async Task<PublicBookingServices> ResolvePublicBookingServicesAsync(int customerId, int serviceId, int? comboId)
+    {
+        if (comboId.HasValue && comboId.Value > 0)
+        {
+            var combo = await _combos.GetAllQueryable()
+                .Include(c => c.Items).ThenInclude(i => i.Service)
+                .FirstOrDefaultAsync(c => c.Id == comboId.Value && c.CustomerId == customerId && c.IsActive);
+
+            if (combo == null)
+                return new([], null, "Combo bulunamadi");
+
+            var comboServices = combo.Items
+                .OrderBy(i => i.SortOrder)
+                .Select(i => i.Service)
+                .Where(s => s != null && s.CustomerId == customerId && s.IsActive)
+                .Select(s => s!)
+                .ToList();
+
+            return comboServices.Count == 0
+                ? new([], combo, "Combo icinde aktif hizmet yok")
+                : new(comboServices, combo, null);
+        }
+
+        var service = await _services.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == customerId && s.IsActive);
+
+        return service == null
+            ? new([], null, "Hizmet bulunamadi")
+            : new([service], null, null);
+    }
+
+    private sealed record PublicBookingServices(List<SlnService> Services, SlnServiceCombo? Combo, string? Error);
+
+    private async Task<(List<int> PersonnelIds, bool HasSkillDefinitions)> GetSkillScopeAsync(List<int> serviceIds)
+    {
+        var skillRows = await _skills.GetAllQueryable()
+            .Where(s => serviceIds.Contains(s.ServiceId))
+            .Select(s => new { s.ServiceId, s.PersonnelId })
+            .ToListAsync();
+
+        var serviceIdsWithSkills = skillRows.Select(s => s.ServiceId).Distinct().ToList();
+        var personnelIds = skillRows
+            .GroupBy(s => s.PersonnelId)
+            .Where(g => serviceIdsWithSkills.All(serviceId => g.Any(s => s.ServiceId == serviceId)))
+            .Select(g => g.Key)
+            .ToList();
+
+        return (personnelIds, serviceIdsWithSkills.Count > 0);
+    }
+
+    private async Task<string?> FindResourceConflictAsync(int customerId, int? branchId, List<int> serviceIds, DateTime startTime, DateTime endTime)
+    {
+        if (serviceIds.Count == 0) return null;
+
+        var requirements = await _requirements.GetAllQueryable()
+            .Where(r => serviceIds.Contains(r.ServiceId))
+            .Include(r => r.Resource)
+            .ToListAsync();
+
+        var needed = requirements
+            .Where(r => r.Resource != null)
+            .GroupBy(r => r.ResourceId)
+            .Select(g => new
+            {
+                Resource = g.First().Resource!,
+                QuantityRequired = g.Max(x => Math.Max(1, x.QuantityRequired))
+            })
+            .ToList();
+
+        if (needed.Count == 0) return null;
+
+        var overlapping = await _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == customerId
+                && a.StatusId != 4
+                && a.StatusId != 5
+                && a.StartTime < endTime
+                && a.EndTime > startTime)
+            .Include(a => a.Service)!.ThenInclude(s => s!.ResourceRequirements)
+            .Include(a => a.Services).ThenInclude(s => s.SlnService)!.ThenInclude(s => s!.ResourceRequirements)
+            .ToListAsync();
+
+        foreach (var item in needed)
+        {
+            var resource = item.Resource;
+            if (resource.CustomerId != customerId || !resource.IsActive)
+                return $"{resource.Name} kaynagi aktif degil";
+            if (resource.BranchId.HasValue && branchId.HasValue && resource.BranchId.Value != branchId.Value)
+                return $"{resource.Name} bu sube icin uygun degil";
+            if (resource.BranchId.HasValue && !branchId.HasValue)
+                return $"{resource.Name} icin sube secimi gerekli";
+
+            var used = 0;
+            foreach (var appointment in overlapping)
+            {
+                var appointmentRequirements = appointment.Services.Count > 0
+                    ? appointment.Services
+                        .Where(s => s.SlnService != null)
+                        .SelectMany(s => s.SlnService!.ResourceRequirements)
+                    : appointment.Service?.ResourceRequirements ?? [];
+
+                used += appointmentRequirements
+                    .Where(r => r.ResourceId == resource.Id)
+                    .Select(r => Math.Max(1, r.QuantityRequired))
+                    .DefaultIfEmpty(0)
+                    .Max();
+            }
+
+            if (used + item.QuantityRequired > resource.Quantity)
+                return $"{resource.Name} kapasitesi dolu";
+        }
+
+        return null;
+    }
+
     /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
-    public async Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId)
+    public async Task<object?> GetAvailableStaffForServiceAsync(string slug, int serviceId, int? comboId = null)
     {
         var scope = await ResolveSalonScopeAsync(slug);
         if (scope == null) return null;
         var cid = scope.CustomerId;
 
-        // Skill eslesmesi olan personelleri bul
-        var skilledPersonnelIds = await _skills.GetAllQueryable()
-            .Where(s => s.ServiceId == serviceId)
-            .Select(s => s.PersonnelId)
-            .Distinct()
-            .ToListAsync();
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, serviceId, comboId);
+        if (resolvedServices.Error != null) return null;
+        var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
+
+        // Skill tanimi olan hizmetlerde personel tum gerekli skill'lere sahip olmali.
+        var skillScope = await GetSkillScopeAsync(serviceIds);
 
         var query = _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == cid && p.IsActive && p.PublicVisible
@@ -797,8 +1061,8 @@ public class SlnPublicFactory : ISlnPublicFactory
         query = ApplyPublicBranchScope(query, scope.BranchId);
 
         // Skill tanimlanmissa filtrele, yoksa tum aktif personelleri don
-        if (skilledPersonnelIds.Count > 0)
-            query = query.Where(p => skilledPersonnelIds.Contains(p.Id));
+        if (skillScope.HasSkillDefinitions)
+            query = query.Where(p => skillScope.PersonnelIds.Contains(p.Id));
 
         return await query
             .Include(p => p.User)
@@ -845,15 +1109,16 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (scope == null) return (false, "Salon bulunamadi", null);
         var cid = scope.CustomerId;
 
-        var service = await _services.GetAllQueryable()
-            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
-        if (service == null) return (false, "Hizmet bulunamadi", null);
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, dto.ServiceId, dto.ComboId);
+        if (resolvedServices.Error != null) return (false, resolvedServices.Error, null);
+        var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
+        var primaryService = resolvedServices.Services.First();
 
         // ── ADIM 1: Zaman + müsaitlik doğrulaması ──────────────────────────
         // Kart çekilmeden ÖNCE tüm kontroller yapılır; slot müsait değilse
         // para tahsil edilmez.
         var start = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Utc);
-        var end = start.AddMinutes(service.DurationMinutes);
+        var end = start.AddMinutes(CalculateBookableMinutes(resolvedServices.Services));
 
         // Kapalı gün kontrolü
         var bookBranch = await _branches.GetAllQueryable()
@@ -882,19 +1147,15 @@ public class SlnPublicFactory : ISlnPublicFactory
         var resolvedPersonnelId = dto.PersonnelId ?? 0;
         if (resolvedPersonnelId == 0)
         {
-            var skilledForBook = await _skills.GetAllQueryable()
-                .Where(s => s.ServiceId == dto.ServiceId)
-                .Select(s => s.PersonnelId)
-                .Distinct()
-                .ToListAsync();
+            var skillScope = await GetSkillScopeAsync(serviceIds);
 
             var bookStaffQuery = _personnel.GetAllQueryable()
                 .Where(p => p.CustomerId == cid && p.IsActive
                          && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
             bookStaffQuery = ApplyPublicBranchScope(bookStaffQuery, scope.BranchId);
 
-            if (skilledForBook.Count > 0)
-                bookStaffQuery = bookStaffQuery.Where(p => skilledForBook.Contains(p.Id));
+            if (skillScope.HasSkillDefinitions)
+                bookStaffQuery = bookStaffQuery.Where(p => skillScope.PersonnelIds.Contains(p.Id));
 
             var busyPersonnelIds = await _appointments.GetAllQueryable()
                 .Where(a => a.CustomerId == cid
@@ -924,6 +1185,10 @@ public class SlnPublicFactory : ISlnPublicFactory
             if (!isBookableStaff)
                 return (false, "Secilen personel bu subede musait degil.", null);
 
+            var skillScope = await GetSkillScopeAsync(serviceIds);
+            if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(resolvedPersonnelId))
+                return (false, "Secilen personel bu hizmetler icin uygun degil.", null);
+
             var hasOverlap = await _appointments.GetAllQueryable()
                 .AnyAsync(a => a.PersonnelId == resolvedPersonnelId
                             && a.CustomerId == cid
@@ -934,6 +1199,10 @@ public class SlnPublicFactory : ISlnPublicFactory
             if (hasOverlap)
                 return (false, "Secilen personel bu saatte baska bir randevuya sahip. Lutfen baska bir saat secin.", null);
         }
+
+        var bookResourceConflict = await FindResourceConflictAsync(cid, bookBranch?.Id ?? scope.BranchId, serviceIds, start, end);
+        if (bookResourceConflict != null)
+            return (false, bookResourceConflict + ". Lutfen baska bir saat secin.", null);
 
         // ── ADIM 2: Politika + kart validasyonu ────────────────────────────
         var policy = await _noShowPolicies.GetAllQueryable()
@@ -992,7 +1261,8 @@ public class SlnPublicFactory : ISlnPublicFactory
             BranchId = scope.BranchId,
             SlnClientId = client.Id,
             PersonnelId = resolvedPersonnelId,
-            ServiceId = dto.ServiceId,
+            ServiceId = primaryService.Id,
+            ComboId = resolvedServices.Combo?.Id,
             StartTime = start,
             EndTime = end,
             StatusId = requireDeposit ? 2 : 1,
@@ -1004,12 +1274,16 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();
-        _appointmentServices.Add(new SlnAppointmentService
+        var sortOrder = 0;
+        foreach (var itemServiceId in serviceIds)
         {
-            SlnAppointmentId = appointment.Id,
-            SlnServiceId = dto.ServiceId,
-            SortOrder = 0
-        });
+            _appointmentServices.Add(new SlnAppointmentService
+            {
+                SlnAppointmentId = appointment.Id,
+                SlnServiceId = itemServiceId,
+                SortOrder = sortOrder++
+            });
+        }
         await _uow.SaveChangesAsync();
         await LinkPlatformUserToSalonAsync(cid, client, dto.Phone, dto.Email);
 
@@ -1032,12 +1306,13 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (scope == null) return (false, "Salon bulunamadi", null);
         var cid = scope.CustomerId;
 
-        var service = await _services.GetAllQueryable()
-            .FirstOrDefaultAsync(s => s.Id == dto.ServiceId && s.CustomerId == cid && s.IsActive);
-        if (service == null) return (false, "Hizmet bulunamadi", null);
+        var resolvedServices = await ResolvePublicBookingServicesAsync(cid, dto.ServiceId, dto.ComboId);
+        if (resolvedServices.Error != null) return (false, resolvedServices.Error, null);
+        var serviceIds = resolvedServices.Services.Select(s => s.Id).ToList();
+        var primaryService = resolvedServices.Services.First();
 
         var start = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Utc);
-        var end = start.AddMinutes(service.DurationMinutes);
+        var end = start.AddMinutes(CalculateBookableMinutes(resolvedServices.Services));
 
         // Kapalı gün kontrolü
         var bookBranch = await _branches.GetAllQueryable()
@@ -1063,22 +1338,85 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         // Personel belirle + overlap kontrolü
+        var existingPolicy = await _noShowPolicies.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == cid);
+        var existingDepositAmount = existingPolicy?.IsActive == true
+                                   && existingPolicy.RequireDeposit
+                                   && existingPolicy.DepositAmount > 0m
+            ? existingPolicy.DepositAmount
+            : 0m;
+
+        await ExpireStalePendingAppointmentsAsync(cid, bookBranch?.Id ?? scope.BranchId);
+
+        var existingClient = await FindPublicClientAsync(cid, dto.Phone, dto.Email);
+        if (existingClient?.IsBlacklisted == true)
+        {
+            return (false, "Daha onceki randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen bu subeden randevu almak icin dogrudan salonla iletisime gecin.", null);
+        }
+
+        if (existingClient != null)
+        {
+            var reusableAppointment = await FindMatchingPendingPaymentAppointmentAsync(
+                cid,
+                existingClient.Id,
+                bookBranch?.Id ?? scope.BranchId,
+                start,
+                end,
+                resolvedServices.Combo?.Id,
+                serviceIds);
+
+            if (reusableAppointment != null)
+            {
+                var reusableDepositAmount = reusableAppointment.DepositAmount > 0m
+                    ? reusableAppointment.DepositAmount
+                    : existingDepositAmount;
+
+                if (reusableDepositAmount <= 0m)
+                    return (false, "Bekleyen odeme tutari bulunamadi. Lutfen randevuyu yeniden olusturun.", null);
+
+                var checkoutRetry = await _paymentService.InitBookingDepositCheckoutAsync(
+                    cid,
+                    reusableAppointment.Id,
+                    slug,
+                    reusableDepositAmount,
+                    dto.FullName,
+                    dto.Email ?? "noreply@corplynk.com",
+                    callbackUrl,
+                    buyerIp);
+
+                if (!checkoutRetry.Success)
+                    return (false, "Odeme formu olusturulamadi: " + checkoutRetry.Error, null);
+
+                return (true, null, new
+                {
+                    success = true,
+                    requireDeposit = true,
+                    appointmentId = reusableAppointment.Id,
+                    depositAmount = reusableDepositAmount,
+                    htmlContent = checkoutRetry.HtmlContent,
+                    token = checkoutRetry.Token,
+                    message = $"Bekleyen odemeniz bulundu. {reusableDepositAmount:N2} TL depozito icin lutfen odemenizi tamamlayin."
+                });
+            }
+
+            if (await HasActivePendingPaymentAppointmentAsync(cid, existingClient.Id, bookBranch?.Id ?? scope.BranchId))
+            {
+                return (false, "Devam eden bir odeme sureciniz var. Panelim > Randevularim ekranindan odemenizi tamamlayin veya bekleme suresinin dolmasini bekleyin.", null);
+            }
+        }
+
         var resolvedPersonnelId = dto.PersonnelId ?? 0;
         if (resolvedPersonnelId == 0)
         {
-            var skilledForBook = await _skills.GetAllQueryable()
-                .Where(s => s.ServiceId == dto.ServiceId)
-                .Select(s => s.PersonnelId)
-                .Distinct()
-                .ToListAsync();
+            var skillScope = await GetSkillScopeAsync(serviceIds);
 
             var bookStaffQuery = _personnel.GetAllQueryable()
                 .Where(p => p.CustomerId == cid && p.IsActive
                          && p.CustomerRoleId != Shared.Enums.SalonRoles.Ids.SalonOwner);
             bookStaffQuery = ApplyPublicBranchScope(bookStaffQuery, scope.BranchId);
 
-            if (skilledForBook.Count > 0)
-                bookStaffQuery = bookStaffQuery.Where(p => skilledForBook.Contains(p.Id));
+            if (skillScope.HasSkillDefinitions)
+                bookStaffQuery = bookStaffQuery.Where(p => skillScope.PersonnelIds.Contains(p.Id));
 
             var busyPersonnelIds = await _appointments.GetAllQueryable()
                 .Where(a => a.CustomerId == cid
@@ -1108,6 +1446,10 @@ public class SlnPublicFactory : ISlnPublicFactory
             if (!isBookableStaff)
                 return (false, "Secilen personel bu subede musait degil.", null);
 
+            var skillScope = await GetSkillScopeAsync(serviceIds);
+            if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(resolvedPersonnelId))
+                return (false, "Secilen personel bu hizmetler icin uygun degil.", null);
+
             var hasOverlap = await _appointments.GetAllQueryable()
                 .AnyAsync(a => a.PersonnelId == resolvedPersonnelId
                             && a.CustomerId == cid
@@ -1120,13 +1462,17 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         // Depozito kontrolü — online randevu her zaman ödeme gerektirir
+        var checkoutResourceConflict = await FindResourceConflictAsync(cid, bookBranch?.Id ?? scope.BranchId, serviceIds, start, end);
+        if (checkoutResourceConflict != null)
+            return (false, checkoutResourceConflict + ". Lutfen baska bir saat secin.", null);
+
         var policy = await _noShowPolicies.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.CustomerId == cid);
         var requireDeposit = policy?.IsActive == true && policy.RequireDeposit && policy.DepositAmount > 0m;
         var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
 
         // Müşteri bul / oluştur
-        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        var client = existingClient ?? await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
         if (client.IsBlacklisted)
         {
             return (false, "Daha onceki randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen bu subeden randevu almak icin dogrudan salonla iletisime gecin.", null);
@@ -1139,7 +1485,8 @@ public class SlnPublicFactory : ISlnPublicFactory
             BranchId = scope.BranchId,
             SlnClientId = client.Id,
             PersonnelId = resolvedPersonnelId,
-            ServiceId = dto.ServiceId,
+            ServiceId = primaryService.Id,
+            ComboId = resolvedServices.Combo?.Id,
             StartTime = start,
             EndTime = end,
             StatusId = requireDeposit ? 6 : 1,
@@ -1149,12 +1496,16 @@ public class SlnPublicFactory : ISlnPublicFactory
 
         _appointments.Add(appointment);
         await _uow.SaveChangesAsync();
-        _appointmentServices.Add(new SlnAppointmentService
+        var sortOrder = 0;
+        foreach (var itemServiceId in serviceIds)
         {
-            SlnAppointmentId = appointment.Id,
-            SlnServiceId = dto.ServiceId,
-            SortOrder = 0
-        });
+            _appointmentServices.Add(new SlnAppointmentService
+            {
+                SlnAppointmentId = appointment.Id,
+                SlnServiceId = itemServiceId,
+                SortOrder = sortOrder++
+            });
+        }
         await _uow.SaveChangesAsync();
 
         if (!requireDeposit)

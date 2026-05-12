@@ -88,9 +88,9 @@ public class SlnPublicController : ControllerBase
 
     /// <summary>Hizmet icin musait personelleri getir (skill eslemesi)</summary>
     [HttpGet("{slug}/available-staff")]
-    public async Task<ActionResult> GetAvailableStaff(string slug, [FromQuery] int serviceId)
+    public async Task<ActionResult> GetAvailableStaff(string slug, [FromQuery] int serviceId, [FromQuery] int? comboId = null)
     {
-        var result = await _publicFactory.GetAvailableStaffForServiceAsync(slug, serviceId);
+        var result = await _publicFactory.GetAvailableStaffForServiceAsync(slug, serviceId, comboId);
         return result != null ? Ok(result) : NotFound();
     }
 
@@ -104,9 +104,9 @@ public class SlnPublicController : ControllerBase
 
     /// <summary>Belirli salon + tarih + hizmet icin musait saatleri getir</summary>
     [HttpGet("{slug}/available-slots")]
-    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date, [FromQuery] int? personnelId = null)
+    public async Task<ActionResult> GetAvailableSlots(string slug, [FromQuery] int serviceId, [FromQuery] DateTime date, [FromQuery] int? personnelId = null, [FromQuery] int? comboId = null)
     {
-        var result = await _publicFactory.GetAvailableSlotsAsync(slug, serviceId, date, personnelId);
+        var result = await _publicFactory.GetAvailableSlotsAsync(slug, serviceId, date, personnelId, comboId);
         if (result == null) return BadRequest("Hizmet bulunamadi");
         return Ok(result);
     }
