@@ -17,6 +17,7 @@ public class ManagementFactory : IManagementFactory
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly IModulePricingEntityService _pricing;
     private readonly IModuleRequestEntityService _requests;
+    private readonly ISlnSalonProfileEntityService _profiles;
     private readonly ISupervisorFactory? _supervisorFactory;
     private readonly IUnitOfWork _uow;
 
@@ -28,6 +29,7 @@ public class ManagementFactory : IManagementFactory
         ICustomerPersonnelEntityService personnel,
         IModulePricingEntityService pricing,
         IModuleRequestEntityService requests,
+        ISlnSalonProfileEntityService profiles,
         IUnitOfWork uow,
         IServiceProvider sp)
     {
@@ -38,6 +40,7 @@ public class ManagementFactory : IManagementFactory
         _personnel = personnel;
         _pricing = pricing;
         _requests = requests;
+        _profiles = profiles;
         _uow = uow;
         _supervisorFactory = sp.GetService<ISupervisorFactory>();
     }
@@ -118,6 +121,57 @@ public class ManagementFactory : IManagementFactory
         }
 
         return dto;
+    }
+
+    public async Task<List<AdminSubMerchantDto>> GetSubMerchantsAsync(int? statusId, string? search)
+    {
+        var query = from p in _profiles.GetAllQueryable()
+                    join c in _customers.GetAllQueryable() on p.CustomerId equals c.Id
+                    select new { p, c };
+
+        if (statusId.HasValue)
+            query = query.Where(x => x.p.IyzicoOnboardingStatus == statusId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalized = search.Trim().ToLower();
+            query = query.Where(x => x.c.Name.ToLower().Contains(normalized)
+                                     || (x.p.Slug != null && x.p.Slug.ToLower().Contains(normalized))
+                                     || (x.p.IyzicoSubMerchantKey != null && x.p.IyzicoSubMerchantKey.ToLower().Contains(normalized)));
+        }
+
+        var rows = await query
+            .OrderBy(x => x.p.IyzicoOnboardingStatus == 1 ? 0 : x.p.IyzicoOnboardingStatus == 3 ? 1 : 2)
+            .ThenBy(x => x.c.Name)
+            .ToListAsync();
+
+        static string StatusLabel(int status) => status switch
+        {
+            1 => "Beklemede",
+            2 => "Onaylandi",
+            3 => "Reddedildi",
+            _ => "Baslamadi"
+        };
+
+        return rows.Select(x => new AdminSubMerchantDto
+        {
+            CustomerId = x.c.Id,
+            CustomerName = x.c.Name,
+            Slug = x.p.Slug,
+            IyzicoSubMerchantKey = x.p.IyzicoSubMerchantKey,
+            IyzicoSubMerchantType = x.p.IyzicoSubMerchantType,
+            ContactName = x.p.IyzicoContactName,
+            ContactSurname = x.p.IyzicoContactSurname,
+            Iban = x.p.IyzicoIban,
+            GsmNumber = null,
+            OnboardingStatusId = x.p.IyzicoOnboardingStatus,
+            OnboardingStatus = StatusLabel(x.p.IyzicoOnboardingStatus),
+            OnboardedAt = x.p.IyzicoOnboardedAt,
+            OnboardingError = x.p.IyzicoOnboardingError,
+            CommissionPercentOverride = x.c.MarketplaceCommissionPercent != 5m
+                ? x.c.MarketplaceCommissionPercent
+                : null
+        }).ToList();
     }
 
     public async Task<List<ModulePricingDto>> GetModulePricingAsync()

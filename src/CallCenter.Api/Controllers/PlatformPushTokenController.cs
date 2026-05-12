@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using CallCenter.Data;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
-using CallCenter.Shared.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -17,9 +15,9 @@ namespace CallCenter.Api.Controllers;
 [Authorize(Roles = "PlatformUser")]
 public class PlatformPushTokenController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IPlatformPushTokenFactory _factory;
 
-    public PlatformPushTokenController(AppDbContext db) => _db = db;
+    public PlatformPushTokenController(IPlatformPushTokenFactory factory) => _factory = factory;
 
     /// <summary>Yeni token kaydet veya mevcut tokenin LastUsedAt'ini guncelle.</summary>
     [HttpPost]
@@ -36,50 +34,8 @@ public class PlatformPushTokenController : ControllerBase
         var platformUserId = GetPlatformUserId();
         if (platformUserId == 0) return Unauthorized();
 
-        var now = DateTime.UtcNow;
-
-        // Ayni token mevcutsa update (LastUsedAt + IsActive=true)
-        var existing = await _db.PlatformPushTokens
-            .FirstOrDefaultAsync(t => t.Token == request.Token);
-
-        if (existing != null)
-        {
-            // Token baska bir kullaniciya bagliysa devret (cihaz farkli kisi tarafindan kullaniliyor olabilir)
-            existing.PlatformUserId = platformUserId;
-            existing.Platform = platform;
-            existing.DeviceId = request.DeviceId;
-            existing.IsActive = true;
-            existing.LastUsedAt = now;
-            existing.UpdatedAt = now;
-        }
-        else
-        {
-            // Ayni cihaza eski tokenlari pasiflestir (varsa)
-            if (!string.IsNullOrEmpty(request.DeviceId))
-            {
-                var oldDeviceTokens = await _db.PlatformPushTokens
-                    .Where(t => t.PlatformUserId == platformUserId && t.DeviceId == request.DeviceId && t.IsActive)
-                    .ToListAsync();
-                foreach (var old in oldDeviceTokens)
-                {
-                    old.IsActive = false;
-                    old.UpdatedAt = now;
-                }
-            }
-
-            _db.PlatformPushTokens.Add(new PlatformPushToken
-            {
-                PlatformUserId = platformUserId,
-                Token = request.Token,
-                Platform = platform,
-                DeviceId = request.DeviceId,
-                IsActive = true,
-                CreatedAt = now,
-                LastUsedAt = now
-            });
-        }
-
-        await _db.SaveChangesAsync();
+        var (success, error) = await _factory.RegisterAsync(platformUserId, request);
+        if (!success) return BadRequest(new { message = error });
         return Ok(new { message = "Token kaydedildi." });
     }
 
@@ -93,13 +49,9 @@ public class PlatformPushTokenController : ControllerBase
         var platformUserId = GetPlatformUserId();
         if (platformUserId == 0) return Unauthorized();
 
-        var entry = await _db.PlatformPushTokens
-            .FirstOrDefaultAsync(t => t.Token == token && t.PlatformUserId == platformUserId);
-        if (entry == null) return NotFound();
-
-        entry.IsActive = false;
-        entry.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
+        var (success, error) = await _factory.UnregisterAsync(platformUserId, token);
+        if (!success && error == "Token bulunamadi.") return NotFound();
+        if (!success) return BadRequest(new { message = error });
         return NoContent();
     }
 
@@ -110,20 +62,7 @@ public class PlatformPushTokenController : ControllerBase
         var platformUserId = GetPlatformUserId();
         if (platformUserId == 0) return Unauthorized();
 
-        var list = await _db.PlatformPushTokens
-            .Where(t => t.PlatformUserId == platformUserId && t.IsActive)
-            .OrderByDescending(t => t.LastUsedAt)
-            .Select(t => new PlatformPushTokenDto
-            {
-                Id = t.Id,
-                Platform = t.Platform,
-                DeviceId = t.DeviceId,
-                CreatedAt = t.CreatedAt,
-                LastUsedAt = t.LastUsedAt
-            })
-            .ToListAsync();
-
-        return Ok(list);
+        return Ok(await _factory.ListAsync(platformUserId));
     }
 
     private int GetPlatformUserId()

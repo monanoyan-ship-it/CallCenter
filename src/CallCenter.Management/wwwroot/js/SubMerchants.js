@@ -66,3 +66,9 @@ function SubMerchantsViewModel() {
 
     self.load();
 }
+
+(function () {
+    var root = document.getElementById('submerchants-vm');
+    if (!root || typeof ko === 'undefined') return;
+    ko.applyBindings(new SubMerchantsViewModel(), root);
+})();

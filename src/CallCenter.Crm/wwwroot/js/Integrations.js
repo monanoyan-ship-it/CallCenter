@@ -69,15 +69,16 @@ function IntegrationsViewModel() {
     };
 
     self.removeConnection = function (conn) {
-        if (!confirm(conn.name + ' baglantisini silmek istediginize emin misiniz? Bu islem geri alinamaz.')) return;
-        $.ajax({
-            url: '/proxy/integrations/connections/' + conn.uid,
-            method: 'DELETE'
-        }).done(function () {
-            self.loadConnections();
-            toastr.success('Baglanti silindi');
-        }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Silinemedi');
+        confirmModal('Baglantiyi Sil', conn.name + ' baglantisini silmek istediginize emin misiniz? Bu islem geri alinamaz.', function () {
+            $.ajax({
+                url: '/proxy/integrations/connections/' + conn.uid,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadConnections();
+                toastr.success('Baglanti silindi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Silinemedi');
+            });
         });
     };
 

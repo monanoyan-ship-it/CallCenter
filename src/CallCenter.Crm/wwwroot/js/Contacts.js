@@ -119,15 +119,16 @@ function ContactsViewModel() {
     };
 
     self.remove = function(contact) {
-        if (!confirm('Bu kisiyi silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/crm/contacts/' + contact.id,
-            method: 'DELETE'
-        }).done(function() {
-            self.loadData();
-            toastr.success('Kisi silindi');
-        }).fail(function() {
-            toastr.error('Silinemedi');
+        confirmModal('Kisiyi Sil', 'Bu kisiyi silmek istediginize emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/crm/contacts/' + contact.id,
+                method: 'DELETE'
+            }).done(function() {
+                self.loadData();
+                toastr.success('Kisi silindi');
+            }).fail(function() {
+                toastr.error('Silinemedi');
+            });
         });
     };
 

@@ -27,6 +27,32 @@ public class SlnProfileFactory : ISlnProfileFactory
         _uow = uow;
     }
 
+    public async Task<SlnPaymentInfoDto?> GetPaymentInfoAsync(int customerId)
+    {
+        var profile = await _profiles.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId);
+        var customer = await _customers.GetByIdAsync(customerId);
+        if (customer == null) return null;
+
+        return new SlnPaymentInfoDto
+        {
+            SubMerchantType = profile?.IyzicoSubMerchantType,
+            Iban = profile?.IyzicoIban,
+            LegalCompanyTitle = profile?.IyzicoLegalCompanyTitle,
+            TaxOffice = profile?.IyzicoTaxOffice,
+            TaxNumber = profile?.IyzicoTaxNumber,
+            IdentityNumber = profile?.IyzicoIdentityNumber,
+            ContactName = profile?.IyzicoContactName,
+            ContactSurname = profile?.IyzicoContactSurname,
+            OnboardingStatus = profile?.IyzicoOnboardingStatus ?? 0,
+            OnboardedAt = profile?.IyzicoOnboardedAt,
+            OnboardingError = profile?.IyzicoOnboardingError,
+            SubMerchantKey = !string.IsNullOrEmpty(profile?.IyzicoSubMerchantKey),
+            CommissionPercent = customer.MarketplaceCommissionPercent,
+            WithholdingPercent = customer.MarketplaceWithholdingPercent
+        };
+    }
+
     public async Task<object?> GetProfileAsync(int customerId)
     {
         var customer = await _customers.GetByIdAsync(customerId);

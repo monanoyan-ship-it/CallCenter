@@ -5,6 +5,7 @@ namespace CallCenter.Api.Factories.Interfaces;
 public interface IManagementFactory
 {
     Task<ManagementDashboardDto> GetDashboardAsync();
+    Task<List<AdminSubMerchantDto>> GetSubMerchantsAsync(int? statusId, string? search);
     Task<List<ModulePricingDto>> GetModulePricingAsync();
     Task UpdateModulePricingAsync(int moduleId, decimal monthlyPrice);
     Task<int> BulkUpdateModulePricingAsync(List<UpdateModulePricingRequest> prices);

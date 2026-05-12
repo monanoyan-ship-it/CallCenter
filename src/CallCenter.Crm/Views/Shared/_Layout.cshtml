@@ -52,7 +52,7 @@
                 var reportOpen = ctrl is "Reports";
             }
 
-            <button class="nav-group-toggle mt-2" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-2" type="button" data-nav-group-toggle="1">
                 <span>CRM</span>
                 <i class="bi bi-chevron-down chevron @(crmOpen ? "open" : "")"></i>
             </button>
@@ -77,7 +77,7 @@
                 </a>
             </div>
 
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Takip</span>
                 <i class="bi bi-chevron-down chevron @(trackOpen ? "open" : "")"></i>
             </button>
@@ -96,7 +96,7 @@
                 </a>
             </div>
 
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Entegrasyonlar</span>
                 <i class="bi bi-chevron-down chevron @(integrationOpen ? "open" : "")"></i>
             </button>
@@ -109,7 +109,7 @@
                 </a>
             </div>
 
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Raporlar</span>
                 <i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
             </button>
@@ -152,37 +152,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.1/knockout-latest.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script>
-        // AJAX hata yonetimi (401 -> login)
-        $.ajaxSetup({
-            error: function(xhr) {
-                if (xhr.status === 401) window.location.href = '/Account/Login';
-            }
-        });
-
-        // Toastr ayarlari
-        toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3000 };
-
-        // Sidebar menu group toggle
-        function toggleGroup(btn) {
-            var items = btn.nextElementSibling;
-            var chevron = btn.querySelector('.chevron');
-            var isOpen = items.classList.contains('show');
-
-            // Diger gruplari kapat
-            document.querySelectorAll('.nav-group-items.show').forEach(function(el) {
-                el.classList.remove('show');
-                var ch = el.previousElementSibling.querySelector('.chevron');
-                if (ch) ch.classList.remove('open');
-            });
-
-            // Tiklanani ac/kapat
-            if (!isOpen) {
-                items.classList.add('show');
-                if (chevron) chevron.classList.add('open');
-            }
-        }
-    </script>
+    <script src="~/js/confirm-modal.js" asp-append-version="true"></script>
+    <script src="~/js/layout.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -3,7 +3,7 @@
     var uid = ViewData["CampaignUid"]?.ToString();
 }
 
-<div id="campaign-detail-vm">
+<div id="campaign-detail-vm" data-campaign-uid="@uid">
     <!-- ko if: isLoading() -->
     <div class="text-center py-5"><div class="spinner-border" role="status"></div></div>
     <!-- /ko -->
@@ -234,8 +234,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        var campaignUid = '@uid';
-    </script>
     <script src="~/js/CampaignDetail.js"></script>
 }

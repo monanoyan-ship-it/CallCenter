@@ -1061,6 +1061,24 @@ public class AdminSubMerchantDto
     public decimal? CommissionPercentOverride { get; set; }
 }
 
+public class SlnPaymentInfoDto
+{
+    public string? SubMerchantType { get; set; }
+    public string? Iban { get; set; }
+    public string? LegalCompanyTitle { get; set; }
+    public string? TaxOffice { get; set; }
+    public string? TaxNumber { get; set; }
+    public string? IdentityNumber { get; set; }
+    public string? ContactName { get; set; }
+    public string? ContactSurname { get; set; }
+    public int OnboardingStatus { get; set; }
+    public DateTime? OnboardedAt { get; set; }
+    public string? OnboardingError { get; set; }
+    public bool SubMerchantKey { get; set; }
+    public decimal CommissionPercent { get; set; }
+    public decimal WithholdingPercent { get; set; }
+}
+
 /// <summary>
 /// PS.10 — iyzico Pazaryeri sub-merchant settlement breakdown.
 /// 1 Ocak 2025 sonrasi 1% e-ticaret aracilik stopaji iyzico tarafindan

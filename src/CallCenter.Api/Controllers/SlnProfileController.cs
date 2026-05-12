@@ -2,13 +2,10 @@ using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
 using CallCenter.Api.Services;
-using CallCenter.Data;
 using CallCenter.Shared.DTOs;
-using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Controllers;
 
@@ -20,13 +17,11 @@ public class SlnProfileController : ControllerBase
 {
     private readonly ISlnProfileFactory _profileFactory;
     private readonly GcsUploadService _gcs;
-    private readonly AppDbContext _db;
 
-    public SlnProfileController(ISlnProfileFactory profileFactory, GcsUploadService gcs, AppDbContext db)
+    public SlnProfileController(ISlnProfileFactory profileFactory, GcsUploadService gcs)
     {
         _profileFactory = profileFactory;
         _gcs = gcs;
-        _db = db;
     }
 
     /// <summary>PS.5 — Salon iyzico Pazaryeri onboarding durumunu getirir.</summary>
@@ -37,26 +32,8 @@ public class SlnProfileController : ControllerBase
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var profile = await _db.Set<SlnSalonProfile>().FirstOrDefaultAsync(p => p.CustomerId == cid);
-        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == cid);
-
-        return Ok(new
-        {
-            subMerchantType = profile?.IyzicoSubMerchantType,
-            iban = profile?.IyzicoIban,
-            legalCompanyTitle = profile?.IyzicoLegalCompanyTitle,
-            taxOffice = profile?.IyzicoTaxOffice,
-            taxNumber = profile?.IyzicoTaxNumber,
-            identityNumber = profile?.IyzicoIdentityNumber,
-            contactName = profile?.IyzicoContactName,
-            contactSurname = profile?.IyzicoContactSurname,
-            onboardingStatus = profile?.IyzicoOnboardingStatus ?? 0,
-            onboardedAt = profile?.IyzicoOnboardedAt,
-            onboardingError = profile?.IyzicoOnboardingError,
-            subMerchantKey = !string.IsNullOrEmpty(profile?.IyzicoSubMerchantKey),
-            commissionPercent = customer?.MarketplaceCommissionPercent ?? 5m,
-            withholdingPercent = customer?.MarketplaceWithholdingPercent ?? 0m
-        });
+        var result = await _profileFactory.GetPaymentInfoAsync(cid);
+        return result != null ? Ok(result) : Unauthorized();
     }
 
     [HttpGet]

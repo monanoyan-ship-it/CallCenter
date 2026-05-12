@@ -1,6 +1,7 @@
 function ContactDetailViewModel() {
     var self = this;
-    var id = contactDetailId;
+    var root = document.getElementById('contact-detail-vm');
+    var id = root ? parseInt(root.getAttribute('data-contact-id') || '0', 10) : 0;
 
     self.contact = ko.observable({});
     self.tickets = ko.observableArray([]);
@@ -64,4 +65,8 @@ function ContactDetailViewModel() {
     });
 }
 
-ko.applyBindings(new ContactDetailViewModel(), document.getElementById('contact-detail-vm'));
+(function () {
+    var root = document.getElementById('contact-detail-vm');
+    if (!root || typeof ko === 'undefined') return;
+    ko.applyBindings(new ContactDetailViewModel(), root);
+})();

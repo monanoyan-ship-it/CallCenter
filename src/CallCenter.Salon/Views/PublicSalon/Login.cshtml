@@ -28,7 +28,7 @@
             <h5 class="mt-2">CorpLynk <span style="color:#ce93d8;"><t key="salon.publicsalon.auto.salon">Salon</t></span></h5>
             <p class="text-muted small"><t key="salon.login.subtitle">Sign in to your account</t></p>
         </div>
-        <div id="login-form">
+        <div id="login-form" data-login-failed="@T("salon.publicsalon.login_failed", "Giriş başarısız.")">
             <div class="mb-3">
                 <label class="form-label small"><t key="salon.login.phone">Phone</t></label>
                 <div class="input-group">
@@ -54,8 +54,10 @@
                 <input type="password" class="form-control" id="password" />
             </div>
             <div id="error-msg" class="alert alert-danger py-1 small d-none"></div>
-            <button class="btn btn-primary w-100" id="loginBtn" onclick="doLogin()">
-                <i class="bi bi-box-arrow-in-right me-1"></i><t key="salon.login.btn">Sign In</t>
+            <button class="btn btn-primary w-100" id="loginBtn" type="button"
+                    data-idle-text="@T("salon.publicsalon.auto.giris_yap", "Giriş Yap")"
+                    data-loading-text="@T("salon.publicsalon.auto.giris_yapiliyor", "Giriş yapılıyor...")">
+                <i class="bi bi-box-arrow-in-right me-1"></i><span class="btn-text"><t key="salon.login.btn">Sign In</t></span>
             </button>
             <div class="d-flex justify-content-between mt-3 small">
                 <a href="/user/forgot-password" class="text-decoration-none text-muted"><t key="salon.account.forgot_link">Şifremi unuttum</t></a>
@@ -69,59 +71,7 @@
             </div>
         </div>
     </div>
-    <script>
-        var _returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/user/panel';
-        function getStoredPlatformToken() {
-            var token = localStorage.getItem('platformToken');
-            if (!token || token === 'null' || token === 'undefined') {
-                localStorage.removeItem('platformToken');
-                localStorage.removeItem('platformUser');
-                return '';
-            }
-            return token;
-        }
-        if (getStoredPlatformToken()) window.location.href = _returnUrl;
-
-        function normalizePhoneValue() {
-            var code = document.getElementById('phoneCountry').value;
-            var raw = document.getElementById('phone').value.replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
-            if (raw.startsWith('0')) raw = raw.substring(1);
-            return code + raw;
-        }
-
-        async function doLogin() {
-            var btn = document.getElementById('loginBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>@T("salon.publicsalon.auto.giris_yapiliyor", "Giriş yapılıyor...")';
-            document.getElementById('error-msg').classList.add('d-none');
-
-            try {
-                var resp = await fetch('/public-proxy/platform/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: normalizePhoneValue(),
-                        password: document.getElementById('password').value
-                    })
-                });
-                var data = await resp.json();
-                if (resp.ok && !data.token) throw new Error(data.message || '@T("salon.publicsalon.login_failed", "Giriş başarısız.")');
-                if (!resp.ok) throw new Error(data.message || '@T("salon.publicsalon.login_failed", "Giriş başarısız.")');
-                localStorage.setItem('platformToken', data.token);
-                localStorage.setItem('platformUser', JSON.stringify(data.user));
-                window.location.href = _returnUrl;
-            } catch (e) {
-                document.getElementById('error-msg').textContent = e.message;
-                document.getElementById('error-msg').classList.remove('d-none');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>@T("salon.publicsalon.auto.giris_yap", "Giriş Yap")';
-            }
-        }
-    
-        // Kayıt ol linkine returnUrl aktar
-        var regLink = document.getElementById('registerLink');
-        if (regLink && _returnUrl !== '/user/panel') regLink.href = '/user/register?returnUrl=' + encodeURIComponent(_returnUrl);
-    </script>
+    <script src="~/js/PublicAuthCommon.js" asp-append-version="true"></script>
+    <script src="~/js/PublicLogin.js" asp-append-version="true"></script>
 </body>
 </html>

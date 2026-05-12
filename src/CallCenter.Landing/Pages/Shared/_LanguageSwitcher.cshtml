@@ -3,16 +3,16 @@
     var currentLabel = LocalizationConstants.Languages.GetValueOrDefault(culture)?.Label ?? culture.ToUpperInvariant();
 }
 <div class="lang-dropdown">
-    <span class="lang-toggle nav-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
-          onclick="this.nextElementSibling.classList.toggle('show')">
+    <button type="button" class="lang-toggle nav-btn" style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;border:0;background:none;"
+            data-lang-toggle="1">
         <i class="bi bi-translate"></i> @currentLabel
-    </span>
+    </button>
     <div class="lang-menu">
         @foreach (var lang in LocalizationConstants.Languages.Values)
         {
             <a class="@(lang.Code == culture ? "active" : "")"
-               href="javascript:void(0)" onclick="switchLanguage('@lang.Code')">
-                @lang.Label — @lang.Name
+               href="#" data-lang-code="@lang.Code">
+                @lang.Label â€” @lang.Name
             </a>
         }
     </div>

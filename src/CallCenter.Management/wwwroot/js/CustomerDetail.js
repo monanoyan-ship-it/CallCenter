@@ -1,5 +1,7 @@
 function DetailViewModel() {
     var self = this;
+    var root = document.getElementById('detail-vm');
+    var customerId = root ? parseInt(root.getAttribute('data-customer-id') || '0', 10) : 0;
     self.customer = ko.observable({});
     self.newPassword = ko.observable('');
 
@@ -74,7 +76,7 @@ function DetailViewModel() {
     };
 
     self.loadCustomer = function () {
-        $.get('/proxy/customers/' + CUSTOMER_ID, function (c) {
+        $.get('/proxy/customers/' + customerId, function (c) {
             self.customer(c);
             self.edit.name(c.name || '');
             self.edit.taxNumber(c.taxNumber || '');
@@ -101,19 +103,19 @@ function DetailViewModel() {
     };
 
     self.loadTabs = function () {
-        $.get('/proxy/portal/personnel?customerId=' + CUSTOMER_ID, function (d) {
+        $.get('/proxy/portal/personnel?customerId=' + customerId, function (d) {
             self.personnel(Array.isArray(d) ? d : (d.items || d.data || []));
         });
-        $.get('/proxy/organizations?customerId=' + CUSTOMER_ID, function (d) {
+        $.get('/proxy/organizations?customerId=' + customerId, function (d) {
             self.organizations(Array.isArray(d) ? d : (d.items || d.data || []));
         });
-        $.get('/proxy/queues?customerId=' + CUSTOMER_ID, function (d) {
+        $.get('/proxy/queues?customerId=' + customerId, function (d) {
             self.queues(Array.isArray(d) ? d : (d.items || d.data || []));
         });
-        $.get('/proxy/customers/' + CUSTOMER_ID + '/billing', function (d) {
+        $.get('/proxy/customers/' + customerId + '/billing', function (d) {
             self.billing(Array.isArray(d) ? d : (d.items || d.data || []));
         });
-        $.get('/proxy/customers/' + CUSTOMER_ID + '/modules', function (d) {
+        $.get('/proxy/customers/' + customerId + '/modules', function (d) {
             self.modules(Array.isArray(d) ? d : (d.items || d.data || []));
         });
         self.loadModuleRequests();
@@ -122,7 +124,7 @@ function DetailViewModel() {
     self.saveGeneral = function () {
         var activeProducts = self.edit.products().filter(function(p) { return p.active(); });
         $.ajax({
-            url: '/proxy/customers/' + CUSTOMER_ID, method: 'PUT',
+            url: '/proxy/customers/' + customerId, method: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({
                 name: self.edit.name(), taxNumber: self.edit.taxNumber(),
@@ -143,7 +145,7 @@ function DetailViewModel() {
 
     self.resetAdminPassword = function () {
         $.ajax({
-            url: '/proxy/customers/' + CUSTOMER_ID + '/reset-admin-password', method: 'POST',
+            url: '/proxy/customers/' + customerId + '/reset-admin-password', method: 'POST',
             success: function (data) {
                 self.newPassword(data.newPassword || data.password || '???');
                 toastr.success('Sifre sifirlandi.');
@@ -160,7 +162,7 @@ function DetailViewModel() {
         if (activate) {
             // Toplu aktif et
             $.ajax({
-                url: '/proxy/customers/' + CUSTOMER_ID + '/modules/assign',
+                url: '/proxy/customers/' + customerId + '/modules/assign',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ moduleIds: moduleIds, notes: group.groupName + ' grubu toplu aktif' }),
@@ -170,7 +172,7 @@ function DetailViewModel() {
         } else {
             // Toplu deaktif et
             $.ajax({
-                url: '/proxy/customers/' + CUSTOMER_ID + '/modules/deactivate-bulk',
+                url: '/proxy/customers/' + customerId + '/modules/deactivate-bulk',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(moduleIds),
@@ -182,7 +184,7 @@ function DetailViewModel() {
 
     self.syncModules = function () {
         $.ajax({
-            url: '/proxy/customers/' + CUSTOMER_ID + '/modules/sync',
+            url: '/proxy/customers/' + customerId + '/modules/sync',
             method: 'POST',
             success: function (data) {
                 var count = data.addedCount || 0;
@@ -201,7 +203,7 @@ function DetailViewModel() {
         // Core (IsDefault=true) modul ID leri — SalonPortalModules ile eslestirilmeli
         var defaultIds = [201, 202, 203, 204, 206, 207, 209, 213, 214, 215, 220, 228];
         $.ajax({
-            url: '/proxy/customers/' + CUSTOMER_ID + '/modules/assign',
+            url: '/proxy/customers/' + customerId + '/modules/assign',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ moduleIds: defaultIds, notes: 'Default moduller toplu aktif edildi' }),
@@ -215,7 +217,7 @@ function DetailViewModel() {
 
     self.toggleModule = function (mod) {
         var action = mod.isActive ? 'deactivate' : 'activate';
-        var url = '/proxy/customers/' + CUSTOMER_ID + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
+        var url = '/proxy/customers/' + customerId + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
         $.ajax({
             url: url, method: 'POST',
             success: function () { toastr.success('Modul guncellendi.'); self.loadTabs(); },
@@ -227,7 +229,7 @@ function DetailViewModel() {
         $.get('/proxy/management/module-requests', function (d) {
             var all = Array.isArray(d) ? d : [];
             // Sadece bu musterinin taleplerini filtrele
-            self.moduleRequests(all.filter(function (r) { return r.customerId === CUSTOMER_ID; }));
+            self.moduleRequests(all.filter(function (r) { return r.customerId === customerId; }));
         }).fail(function () { self.moduleRequests([]); });
     };
 
@@ -266,4 +268,8 @@ function DetailViewModel() {
     self.loadTabs();
 }
 
-ko.applyBindings(new DetailViewModel(), document.getElementById('detail-vm'));
+(function () {
+    var root = document.getElementById('detail-vm');
+    if (!root || typeof ko === 'undefined') return;
+    ko.applyBindings(new DetailViewModel(), root);
+})();

@@ -3,7 +3,7 @@
     var customerId = ViewData["CustomerId"];
 }
 
-<div id="detail-vm">
+<div id="detail-vm" data-customer-id="@customerId">
     <div class="d-flex align-items-center mb-3">
         <a href="/Customers" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-arrow-left"></i></a>
         <h5 class="mb-0" data-bind="text: customer().name || 'Yukleniyor...'"></h5>
@@ -347,6 +347,5 @@
 </div>
 
 @section Scripts {
-<script>var CUSTOMER_ID = @customerId;</script>
 <script src="~/js/CustomerDetail.js" asp-append-version="true"></script>
 }

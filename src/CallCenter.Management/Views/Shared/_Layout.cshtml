@@ -66,7 +66,7 @@
             </a>
 
             <!-- Musteri Yonetimi -->
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Musteri Yonetimi</span><i class="bi bi-chevron-down chevron @(custOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(custOpen ? "show" : "")">
@@ -77,7 +77,7 @@
             </div>
 
             <!-- Odeme Takibi -->
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Odeme Takibi</span><i class="bi bi-chevron-down chevron @(modOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(modOpen ? "show" : "")">
@@ -92,7 +92,7 @@
             </div>
 
             <!-- Sistem -->
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Sistem</span><i class="bi bi-chevron-down chevron @(sysOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(sysOpen ? "show" : "")">
@@ -106,7 +106,7 @@
             </div>
 
             <!-- Finans -->
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Finans</span><i class="bi bi-chevron-down chevron @(finOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(finOpen ? "show" : "")">
@@ -115,7 +115,7 @@
             </div>
 
             <!-- KVKK -->
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>KVKK</span><i class="bi bi-chevron-down chevron @(kvkkOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(kvkkOpen ? "show" : "")">
@@ -130,7 +130,7 @@
             </div>
 
             <!-- Gelismis -->
-            <button class="nav-group-toggle mt-1" onclick="toggleGroup(this)">
+            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
                 <span>Gelismis</span><i class="bi bi-chevron-down chevron @(advOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(advOpen ? "show" : "")">
@@ -168,25 +168,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="~/js/confirm-modal.js" asp-append-version="true"></script>
-    <script>
-        var _redirecting = false;
-        $.ajaxSetup({
-            dataType: 'json',
-            error: function(xhr) {
-                if (xhr.status === 401 && !_redirecting && !location.pathname.match(/^\/Account\/Login/i)) {
-                    _redirecting = true;
-                    window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(location.pathname + location.search);
-                }
-            }
-        });
-        toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3000 };
-        function toggleGroup(btn) {
-            var items = btn.nextElementSibling;
-            var chevron = btn.querySelector('.chevron');
-            items.classList.toggle('show');
-            chevron.classList.toggle('open');
-        }
-    </script>
+    <script src="~/js/layout.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

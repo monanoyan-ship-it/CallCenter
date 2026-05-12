@@ -3,7 +3,7 @@
     var contactId = (int)ViewData["ContactId"]!;
 }
 
-<div id="contact-detail-vm">
+<div id="contact-detail-vm" data-contact-id="@contactId">
     <!-- Ust Kart: Kisi Bilgisi -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
@@ -217,8 +217,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        var contactDetailId = @contactId;
-    </script>
     <script src="~/js/ContactDetail.js"></script>
 }

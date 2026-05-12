@@ -148,6 +148,7 @@ public static class EntityServiceRegistration
         // Platform
         services.AddScoped<IPlatformUserEntityService, PlatformUserEntityService>();
         services.AddScoped<IPlatformUserSalonEntityService, PlatformUserSalonEntityService>();
+        services.AddScoped<IPlatformPushTokenEntityService, PlatformPushTokenEntityService>();
 
         // Service Pricing
         services.AddScoped<IServicePricingPeriodEntityService, ServicePricingPeriodEntityService>();

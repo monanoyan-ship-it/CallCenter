@@ -1,6 +1,7 @@
 function IntegrationDetailViewModel() {
     var self = this;
-    var connectionUid = window.__connectionUid || '';
+    var root = document.getElementById('detail-vm');
+    var connectionUid = root ? (root.getAttribute('data-connection-uid') || '') : '';
 
     self.isLoading = ko.observable(true);
     self.isSaving = ko.observable(false);
@@ -164,15 +165,16 @@ function IntegrationDetailViewModel() {
     };
 
     self.removeWebhook = function (wh) {
-        if (!confirm(wh.name + ' webhook\'unu silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/integrations/webhooks/' + wh.uid,
-            method: 'DELETE'
-        }).done(function () {
-            toastr.success('Webhook silindi');
-            self.loadConnection();
-        }).fail(function () {
-            toastr.error('Silinemedi');
+        confirmModal('Webhook Sil', wh.name + ' webhook\'unu silmek istediginize emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/integrations/webhooks/' + wh.uid,
+                method: 'DELETE'
+            }).done(function () {
+                toastr.success('Webhook silindi');
+                self.loadConnection();
+            }).fail(function () {
+                toastr.error('Silinemedi');
+            });
         });
     };
 
@@ -210,15 +212,16 @@ function IntegrationDetailViewModel() {
     };
 
     self.revokeApiKey = function (key) {
-        if (!confirm(key.name + ' API key\'ini iptal etmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/integrations/api-keys/' + key.uid,
-            method: 'DELETE'
-        }).done(function () {
-            toastr.success('API key iptal edildi');
-            self.loadConnection();
-        }).fail(function () {
-            toastr.error('Iptal edilemedi');
+        confirmModal('API Key Iptal', key.name + ' API key\'ini iptal etmek istediginize emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/integrations/api-keys/' + key.uid,
+                method: 'DELETE'
+            }).done(function () {
+                toastr.success('API key iptal edildi');
+                self.loadConnection();
+            }).fail(function () {
+                toastr.error('Iptal edilemedi');
+            });
         });
     };
 
@@ -256,4 +259,8 @@ function IntegrationDetailViewModel() {
     });
 }
 
-ko.applyBindings(new IntegrationDetailViewModel(), document.getElementById('detail-vm'));
+(function () {
+    var root = document.getElementById('detail-vm');
+    if (!root || typeof ko === 'undefined') return;
+    ko.applyBindings(new IntegrationDetailViewModel(), root);
+})();

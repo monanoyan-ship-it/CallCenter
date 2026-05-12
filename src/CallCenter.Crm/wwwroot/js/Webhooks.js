@@ -122,15 +122,16 @@ function WebhooksViewModel() {
     };
 
     self.removeWebhook = function (wh) {
-        if (!confirm(wh.name + ' webhook\'unu silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/integrations/webhooks/' + wh.uid,
-            method: 'DELETE'
-        }).done(function () {
-            toastr.success('Webhook silindi');
-            self.loadWebhooks();
-        }).fail(function () {
-            toastr.error('Silinemedi');
+        confirmModal('Webhook Sil', wh.name + ' webhook\'unu silmek istediginize emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/integrations/webhooks/' + wh.uid,
+                method: 'DELETE'
+            }).done(function () {
+                toastr.success('Webhook silindi');
+                self.loadWebhooks();
+            }).fail(function () {
+                toastr.error('Silinemedi');
+            });
         });
     };
 

@@ -146,6 +146,7 @@ public static class FactoryRegistration
 
         // Platform Auth (kayit, giris, profil)
         services.AddScoped<IPlatformAuthFactory, PlatformAuthFactory>();
+        services.AddScoped<IPlatformPushTokenFactory, PlatformPushTokenFactory>();
 
         return services;
     }

@@ -140,15 +140,16 @@ function DealsViewModel() {
     };
 
     self.remove = function(deal) {
-        if (!confirm('Bu firsati silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/crm/deals/' + deal.id,
-            method: 'DELETE'
-        }).done(function() {
-            self.loadData();
-            toastr.success('Firsat silindi');
-        }).fail(function() {
-            toastr.error('Silinemedi');
+        confirmModal('Firsati Sil', 'Bu firsati silmek istediginize emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/crm/deals/' + deal.id,
+                method: 'DELETE'
+            }).done(function() {
+                self.loadData();
+                toastr.success('Firsat silindi');
+            }).fail(function() {
+                toastr.error('Silinemedi');
+            });
         });
     };
 

@@ -16,6 +16,8 @@ var contactStatusMap = {
 
 function CampaignDetailViewModel() {
     var self = this;
+    var root = document.getElementById('campaign-detail-vm');
+    var campaignUid = root ? (root.getAttribute('data-campaign-uid') || '') : '';
     self.campaign = ko.observable(null);
     self.isLoading = ko.observable(true);
     self.selectedIds = ko.observableArray([]);
@@ -219,4 +221,8 @@ function CampaignDetailViewModel() {
     });
 }
 
-ko.applyBindings(new CampaignDetailViewModel(), document.getElementById('campaign-detail-vm'));
+(function () {
+    var root = document.getElementById('campaign-detail-vm');
+    if (!root || typeof ko === 'undefined') return;
+    ko.applyBindings(new CampaignDetailViewModel(), root);
+})();

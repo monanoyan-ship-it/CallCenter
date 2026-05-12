@@ -97,15 +97,16 @@ function CampaignsViewModel() {
     };
 
     self.remove = function (campaign) {
-        if (!confirm(campaign.name + ' kampanyasini silmek istediginize emin misiniz?')) return;
-        $.ajax({
-            url: '/proxy/campaigns/' + campaign.uid,
-            method: 'DELETE'
-        }).done(function () {
-            self.loadData();
-            toastr.success('Kampanya silindi');
-        }).fail(function () {
-            toastr.error('Silinemedi');
+        confirmModal('Kampanyayi Sil', campaign.name + ' kampanyasini silmek istediginize emin misiniz?', function () {
+            $.ajax({
+                url: '/proxy/campaigns/' + campaign.uid,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadData();
+                toastr.success('Kampanya silindi');
+            }).fail(function () {
+                toastr.error('Silinemedi');
+            });
         });
     };
 

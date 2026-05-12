@@ -1,6 +1,7 @@
 function IntegrationConnectViewModel() {
     var self = this;
-    var platformStr = window.__platform || '';
+    var root = document.getElementById('connect-vm');
+    var platformStr = root ? (root.getAttribute('data-platform') || '') : '';
 
     self.platformName = ko.observable(platformStr);
     self.platformInfo = ko.observable({ systemName: platformStr, description: '', icon: '', cssClass: 'bg-secondary' });
@@ -119,4 +120,8 @@ function IntegrationConnectViewModel() {
     });
 }
 
-ko.applyBindings(new IntegrationConnectViewModel(), document.getElementById('connect-vm'));
+(function () {
+    var root = document.getElementById('connect-vm');
+    if (!root || typeof ko === 'undefined') return;
+    ko.applyBindings(new IntegrationConnectViewModel(), root);
+})();

@@ -112,9 +112,10 @@
             <p>@T("salon.legal.privacy.s10.p1", "Bu gizlilik politikası gerektiğinde güncellenebilir. Önemli değişiklikler yapılması halinde platform üzerinden bildirim yapılır.")</p>
 
             <div class="text-center mt-4">
-                <button onclick="window.history.back()" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left me-1"></i>@T("salon.legal.back", "Geri Dön")</button>
+                <button type="button" data-history-back="1" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-left me-1"></i>@T("salon.legal.back", "Geri Dön")</button>
             </div>
         </div>
     </div>
+    <script src="~/js/PublicCommon.js" asp-append-version="true"></script>
 </body>
 </html>

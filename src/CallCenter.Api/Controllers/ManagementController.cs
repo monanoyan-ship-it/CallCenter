@@ -33,58 +33,9 @@ public class ManagementController : ControllerBase
     [HttpGet("sub-merchants")]
     public async Task<ActionResult<List<AdminSubMerchantDto>>> GetSubMerchants(
         [FromQuery] int? statusId,
-        [FromQuery] string? search,
-        [FromServices] Data.AppDbContext db)
+        [FromQuery] string? search)
     {
-        var query = from p in db.Set<Shared.Entities.SlnSalonProfile>()
-                    join c in db.Customers on p.CustomerId equals c.Id
-                    select new { p, c };
-
-        if (statusId.HasValue)
-            query = query.Where(x => x.p.IyzicoOnboardingStatus == statusId.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.Trim().ToLower();
-            query = query.Where(x => x.c.Name.ToLower().Contains(s)
-                                     || (x.p.Slug != null && x.p.Slug.ToLower().Contains(s))
-                                     || (x.p.IyzicoSubMerchantKey != null && x.p.IyzicoSubMerchantKey.ToLower().Contains(s)));
-        }
-
-        var rows = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
-            query
-                .OrderBy(x => x.p.IyzicoOnboardingStatus == 1 ? 0 : x.p.IyzicoOnboardingStatus == 3 ? 1 : 2)
-                .ThenBy(x => x.c.Name));
-
-        static string StatusLabel(int s) => s switch
-        {
-            1 => "Beklemede",
-            2 => "Onaylandi",
-            3 => "Reddedildi",
-            _ => "Baslamadi"
-        };
-
-        var list = rows.Select(x => new AdminSubMerchantDto
-        {
-            CustomerId = x.c.Id,
-            CustomerName = x.c.Name,
-            Slug = x.p.Slug,
-            IyzicoSubMerchantKey = x.p.IyzicoSubMerchantKey,
-            IyzicoSubMerchantType = x.p.IyzicoSubMerchantType,
-            ContactName = x.p.IyzicoContactName,
-            ContactSurname = x.p.IyzicoContactSurname,
-            Iban = x.p.IyzicoIban,
-            GsmNumber = null,
-            OnboardingStatusId = x.p.IyzicoOnboardingStatus,
-            OnboardingStatus = StatusLabel(x.p.IyzicoOnboardingStatus),
-            OnboardedAt = x.p.IyzicoOnboardedAt,
-            OnboardingError = x.p.IyzicoOnboardingError,
-            CommissionPercentOverride = x.c.MarketplaceCommissionPercent != 5m
-                ? x.c.MarketplaceCommissionPercent
-                : (decimal?)null,
-        }).ToList();
-
-        return Ok(list);
+        return Ok(await _factory.GetSubMerchantsAsync(statusId, search));
     }
 
     [HttpGet("dashboard")]
