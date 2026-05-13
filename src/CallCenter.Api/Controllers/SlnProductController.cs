@@ -179,6 +179,45 @@ public class SlnProductController : ControllerBase
         return Ok(suppliers);
     }
 
+    [HttpGet("low-stock")]
+    public async Task<ActionResult<List<SlnLowStockProductDto>>> GetLowStockProducts()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        return Ok(await _productFactory.GetLowStockProductsAsync(customerId));
+    }
+
+    [HttpGet("supplier-orders")]
+    public async Task<ActionResult<List<SlnSupplierOrderDto>>> GetSupplierOrders([FromQuery] int? statusId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        return Ok(await _productFactory.GetSupplierOrdersAsync(customerId, statusId));
+    }
+
+    [HttpPost("supplier-orders")]
+    public async Task<ActionResult<SlnSupplierOrderDto>> CreateSupplierOrder([FromBody] SlnSupplierOrderCreateDto dto)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error, order) = await _productFactory.CreateSupplierOrderAsync(dto, userId, customerId);
+        return success && order != null ? Ok(order) : BadRequest(error);
+    }
+
+    [HttpPut("supplier-orders/{id}/status")]
+    public async Task<ActionResult> UpdateSupplierOrderStatus(int id, [FromBody] SlnSupplierOrderStatusUpdateDto dto)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _productFactory.UpdateSupplierOrderStatusAsync(id, dto, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
     [HttpPost("suppliers")]
     public async Task<ActionResult<SlnSupplierDto>> CreateSupplier([FromBody] SlnSupplierCreateDto dto)
     {

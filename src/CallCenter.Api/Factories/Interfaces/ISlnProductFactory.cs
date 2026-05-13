@@ -29,6 +29,12 @@ public interface ISlnProductFactory
     Task<(bool Success, string? Error)> UpdateSupplierAsync(int supplierId, SlnSupplierCreateDto dto, bool isActive, int customerId);
     Task<(bool Success, string? Error)> DeleteSupplierAsync(int supplierId, int customerId);
 
+    // Kritik stok ve tedarik siparisi
+    Task<List<SlnLowStockProductDto>> GetLowStockProductsAsync(int customerId);
+    Task<List<SlnSupplierOrderDto>> GetSupplierOrdersAsync(int customerId, int? statusId = null);
+    Task<(bool Success, string? Error, SlnSupplierOrderDto? Order)> CreateSupplierOrderAsync(SlnSupplierOrderCreateDto dto, int userId, int customerId);
+    Task<(bool Success, string? Error)> UpdateSupplierOrderStatusAsync(int orderId, SlnSupplierOrderStatusUpdateDto dto, int customerId);
+
     // Stok hareket
     Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int userId, int customerId);
     Task<(bool Success, string? Error)> TransferStockAsync(int productId, int? fromBranchId, int toBranchId, decimal quantity, string? notes, int userId, int customerId);

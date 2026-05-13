@@ -3,6 +3,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -15,6 +16,7 @@ public class SlnProductFactory : ISlnProductFactory
     private readonly ISlnSupplierEntityService _suppliers;
     private readonly ISlnStockMovementEntityService _stockMovements;
     private readonly ISlnSupplierTransactionEntityService _supplierTransactions;
+    private readonly ISlnSupplierOrderEntityService _supplierOrders;
     private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnProductFactory> _logger;
@@ -26,6 +28,7 @@ public class SlnProductFactory : ISlnProductFactory
         ISlnSupplierEntityService suppliers,
         ISlnStockMovementEntityService stockMovements,
         ISlnSupplierTransactionEntityService supplierTransactions,
+        ISlnSupplierOrderEntityService supplierOrders,
         ISlnBranchEntityService branches,
         IUnitOfWork uow,
         ILogger<SlnProductFactory> logger)
@@ -36,6 +39,7 @@ public class SlnProductFactory : ISlnProductFactory
         _suppliers = suppliers;
         _stockMovements = stockMovements;
         _supplierTransactions = supplierTransactions;
+        _supplierOrders = supplierOrders;
         _branches = branches;
         _uow = uow;
         _logger = logger;
@@ -330,6 +334,120 @@ public class SlnProductFactory : ISlnProductFactory
 
     // ═══ Stok Hareket ═══
 
+    public async Task<List<SlnLowStockProductDto>> GetLowStockProductsAsync(int customerId)
+    {
+        var products = await _products.GetAllQueryable()
+            .Include(p => p.Category)
+            .Where(p => p.CustomerId == customerId && p.IsActive && p.MinStockLevel > 0 && p.StockQuantity <= p.MinStockLevel)
+            .OrderBy(p => p.StockQuantity)
+            .ThenBy(p => p.Name)
+            .ToListAsync();
+
+        return products.Select(p => new SlnLowStockProductDto
+        {
+            ProductId = p.Id,
+            ProductName = p.Name,
+            CategoryName = p.Category?.Name,
+            StockQuantity = p.StockQuantity,
+            MinStockLevel = p.MinStockLevel,
+            SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(p),
+            PurchasePrice = p.PurchasePrice,
+            Unit = p.Unit
+        }).ToList();
+    }
+
+    public async Task<List<SlnSupplierOrderDto>> GetSupplierOrdersAsync(int customerId, int? statusId = null)
+    {
+        var query = _supplierOrders.GetAllQueryable()
+            .Include(o => o.Supplier)
+            .Include(o => o.Items).ThenInclude(i => i.Product)
+            .Where(o => o.CustomerId == customerId);
+
+        if (statusId.HasValue)
+            query = query.Where(o => o.StatusId == statusId.Value);
+
+        var orders = await query
+            .OrderByDescending(o => o.OrderDate)
+            .ThenByDescending(o => o.Id)
+            .Take(100)
+            .ToListAsync();
+
+        return orders.Select(MapSupplierOrderToDto).ToList();
+    }
+
+    public async Task<(bool Success, string? Error, SlnSupplierOrderDto? Order)> CreateSupplierOrderAsync(SlnSupplierOrderCreateDto dto, int userId, int customerId)
+    {
+        if (dto.SupplierId <= 0) return (false, "Tedarikci secilmelidir", null);
+        if (dto.Items.Count == 0) return (false, "En az bir urun eklenmelidir", null);
+
+        var supplier = await _suppliers.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.Id == dto.SupplierId && s.CustomerId == customerId && s.IsActive);
+        if (supplier == null) return (false, "Tedarikci bulunamadi", null);
+
+        var productIds = dto.Items.Select(i => i.ProductId).Distinct().ToList();
+        var products = await _products.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId && productIds.Contains(p.Id) && p.IsActive)
+            .ToDictionaryAsync(p => p.Id);
+
+        var order = new SlnSupplierOrder
+        {
+            CustomerId = customerId,
+            SupplierId = supplier.Id,
+            OrderNo = await BuildOrderNoAsync(customerId),
+            StatusId = SalonSupplierOrderStatuses.Ids.Draft,
+            OrderDate = DateTime.UtcNow,
+            ExpectedDate = dto.ExpectedDate,
+            Notes = dto.Notes,
+            CreatedByPersonnelId = userId > 0 ? userId : null
+        };
+
+        foreach (var item in dto.Items)
+        {
+            if (!products.TryGetValue(item.ProductId, out var product))
+                return (false, "Urun bulunamadi", null);
+            if (item.Quantity <= 0)
+                return (false, "Siparis miktari 0'dan buyuk olmalidir", null);
+
+            order.Items.Add(new SlnSupplierOrderItem
+            {
+                ProductId = product.Id,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice ?? product.PurchasePrice,
+                Notes = item.Notes
+            });
+        }
+
+        _supplierOrders.Add(order);
+        await _uow.SaveChangesAsync();
+
+        var created = await _supplierOrders.GetAllQueryable()
+            .Include(o => o.Supplier)
+            .Include(o => o.Items).ThenInclude(i => i.Product)
+            .FirstAsync(o => o.Id == order.Id);
+
+        return (true, null, MapSupplierOrderToDto(created));
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateSupplierOrderStatusAsync(int orderId, SlnSupplierOrderStatusUpdateDto dto, int customerId)
+    {
+        if (SalonSupplierOrderStatuses.GetById(dto.StatusId) == null)
+            return (false, "Gecersiz siparis durumu");
+
+        var order = await _supplierOrders.GetAllQueryable()
+            .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
+        if (order == null) return (false, "Siparis bulunamadi");
+
+        order.StatusId = dto.StatusId;
+        order.UpdatedAt = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(dto.Notes))
+            order.Notes = string.IsNullOrWhiteSpace(order.Notes) ? dto.Notes.Trim() : $"{order.Notes}\n{dto.Notes.Trim()}";
+        if (dto.StatusId == SalonSupplierOrderStatuses.Ids.Received)
+            order.ReceivedAt = DateTime.UtcNow;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int userId, int customerId)
     {
         var product = await _products.GetAllQueryable()
@@ -513,6 +631,49 @@ public class SlnProductFactory : ISlnProductFactory
         StockQuantity = p.StockQuantity,
         MinStockLevel = p.MinStockLevel,
         Unit = p.Unit,
-        IsActive = p.IsActive
+        IsActive = p.IsActive,
+        IsLowStock = p.MinStockLevel > 0 && p.StockQuantity <= p.MinStockLevel,
+        SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(p)
+    };
+
+    private async Task<string> BuildOrderNoAsync(int customerId)
+    {
+        var prefix = $"SO-{DateTime.UtcNow:yyyyMMdd}-";
+        var count = await _supplierOrders.GetAllQueryable()
+            .CountAsync(o => o.CustomerId == customerId && o.OrderNo.StartsWith(prefix));
+        return $"{prefix}{count + 1:000}";
+    }
+
+    private static decimal CalculateSuggestedOrderQuantity(SlnProduct p)
+    {
+        if (p.MinStockLevel <= 0) return 0;
+        var target = p.MinStockLevel * 2;
+        var needed = target - p.StockQuantity;
+        return needed > 0 ? needed : 0;
+    }
+
+    private static SlnSupplierOrderDto MapSupplierOrderToDto(SlnSupplierOrder order) => new()
+    {
+        Id = order.Id,
+        OrderNo = order.OrderNo,
+        SupplierId = order.SupplierId,
+        SupplierName = order.Supplier?.Name ?? "",
+        StatusId = order.StatusId,
+        StatusName = SalonSupplierOrderStatuses.GetById(order.StatusId)?.Description ?? order.StatusId.ToString(),
+        OrderDate = order.OrderDate,
+        ExpectedDate = order.ExpectedDate,
+        ReceivedAt = order.ReceivedAt,
+        Notes = order.Notes,
+        TotalAmount = order.Items.Sum(i => i.Quantity * i.UnitPrice),
+        Items = order.Items.Select(i => new SlnSupplierOrderItemDto
+        {
+            Id = i.Id,
+            ProductId = i.ProductId,
+            ProductName = i.Product?.Name ?? "",
+            Quantity = i.Quantity,
+            UnitPrice = i.UnitPrice,
+            ReceivedQuantity = i.ReceivedQuantity,
+            Unit = i.Product?.Unit ?? ""
+        }).ToList()
     };
 }

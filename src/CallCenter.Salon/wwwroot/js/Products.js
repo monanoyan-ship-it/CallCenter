@@ -9,6 +9,8 @@ function ProductsViewModel() {
     self.brands = ko.observableArray([]);
     self.suppliers = ko.observableArray([]);
     self.branches = ko.observableArray([]);
+    self.lowStockProducts = ko.observableArray([]);
+    self.supplierOrders = ko.observableArray([]);
     self.searchQuery = ko.observable('');
     self.selectedCategoryName = ko.observable(null);
     self.isEditing = ko.observable(false);
@@ -16,9 +18,11 @@ function ProductsViewModel() {
     self.isSaving = ko.observable(false);
     self.isPurchaseSaving = ko.observable(false);
     self.isStockOperationSaving = ko.observable(false);
+    self.isSupplierOrderSaving = ko.observable(false);
     self.purchaseProduct = ko.observable(null);
     self.stockOperationProduct = ko.observable(null);
     self.stockOperationMode = ko.observable('transfer');
+    self.supplierOrderProduct = ko.observable(null);
 
     self.form = {
         name: ko.observable(''),
@@ -48,6 +52,14 @@ function ProductsViewModel() {
         notes: ko.observable('')
     };
 
+    self.supplierOrderForm = {
+        supplierId: ko.observable(null),
+        quantity: ko.observable(1),
+        unitPrice: ko.observable(0),
+        expectedDate: ko.observable(''),
+        notes: ko.observable('')
+    };
+
     // ═══ Autocomplete'ler ═══
     self.categoryAutocomplete = createAutocomplete(self.categories, 'name', self.form.categoryId);
     self.brandAutocomplete = createAutocomplete(self.brands, 'name', self.form.brandId);
@@ -68,15 +80,36 @@ function ProductsViewModel() {
         return quantity * unitPrice;
     });
 
+    self.supplierOrderTotal = ko.computed(function () {
+        var quantity = parseFloat(self.supplierOrderForm.quantity()) || 0;
+        var unitPrice = parseFloat(self.supplierOrderForm.unitPrice()) || 0;
+        return quantity * unitPrice;
+    });
+
     var formModal;
     var purchaseModal;
     var stockOperationModal;
+    var supplierOrderModal;
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-products', method: 'GET' }).done(function (data) {
             self.products(data.items || data);
         }).fail(function () {
             toastr.error(slnJsT('salon.products.js.load_failed', 'Ürünler yüklenemedi'));
+        });
+        self.loadLowStock();
+        self.loadSupplierOrders();
+    };
+
+    self.loadLowStock = function () {
+        $.ajax({ url: '/proxy/sln-products/low-stock', method: 'GET' }).done(function (data) {
+            self.lowStockProducts(data.items || data || []);
+        });
+    };
+
+    self.loadSupplierOrders = function () {
+        $.ajax({ url: '/proxy/sln-products/supplier-orders', method: 'GET' }).done(function (data) {
+            self.supplierOrders(data.items || data || []);
         });
     };
 
@@ -147,6 +180,25 @@ function ProductsViewModel() {
         self.stockOperationForm.countedQuantity(product.stockQuantity || 0);
         self.stockOperationForm.notes('');
         stockOperationModal.show();
+    };
+
+    self.openSupplierOrder = function (product) {
+        var normalized = {
+            productId: product.productId || product.id,
+            productName: product.productName || product.name,
+            stockQuantity: product.stockQuantity || 0,
+            minStockLevel: product.minStockLevel || 0,
+            suggestedOrderQuantity: product.suggestedOrderQuantity || 1,
+            purchasePrice: product.purchasePrice || 0,
+            unit: product.unit || ''
+        };
+        self.supplierOrderProduct(normalized);
+        self.supplierOrderForm.supplierId(null);
+        self.supplierOrderForm.quantity(normalized.suggestedOrderQuantity || 1);
+        self.supplierOrderForm.unitPrice(normalized.purchasePrice || 0);
+        self.supplierOrderForm.expectedDate('');
+        self.supplierOrderForm.notes('');
+        supplierOrderModal.show();
     };
 
     self.openEdit = function (product) {
@@ -369,6 +421,45 @@ function ProductsViewModel() {
         });
     };
 
+    self.saveSupplierOrder = function () {
+        var product = self.supplierOrderProduct();
+        if (!product) { return; }
+
+        var supplierId = parseInt(self.supplierOrderForm.supplierId());
+        var quantity = parseFloat(self.supplierOrderForm.quantity()) || 0;
+        var unitPrice = parseFloat(self.supplierOrderForm.unitPrice()) || 0;
+
+        if (!supplierId) { toastr.warning(slnJsT('salon.products.js.tedarikci_secilmelidir', 'Tedarikci secilmelidir')); return; }
+        if (quantity <= 0) { toastr.warning(slnJsT('salon.products.js.order_quantity_positive', "Siparis miktari 0'dan buyuk olmalidir")); return; }
+        if (unitPrice < 0) { toastr.warning(slnJsT('salon.products.js.unit_price_negative', 'Birim fiyat negatif olamaz')); return; }
+
+        self.isSupplierOrderSaving(true);
+
+        $.ajax({
+            url: '/proxy/sln-products/supplier-orders',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                supplierId: supplierId,
+                expectedDate: self.supplierOrderForm.expectedDate() || null,
+                notes: self.supplierOrderForm.notes(),
+                items: [{
+                    productId: product.productId,
+                    quantity: quantity,
+                    unitPrice: unitPrice
+                }]
+            })
+        }).done(function () {
+            supplierOrderModal.hide();
+            self.loadData();
+            toastr.success(slnJsT('salon.products.js.supplier_order_created', 'Tedarik siparisi olusturuldu'));
+        }).fail(function (xhr) {
+            toastr.error(getErrorMessage(xhr, 'Tedarik siparisi olusturulamadi'));
+        }).always(function () {
+            self.isSupplierOrderSaving(false);
+        });
+    };
+
     self.remove = function (product) {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.products.js.delete_confirm', "'{name}' ürününü silmek istediğinize emin misiniz?").replace('{name}', product.name || ''), function() {
             $.ajax({ url: '/proxy/sln-products/' + product.id, method: 'DELETE' }).done(function () {
@@ -384,6 +475,7 @@ function ProductsViewModel() {
         formModal = new bootstrap.Modal(document.getElementById('productModal'));
         purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'));
         stockOperationModal = new bootstrap.Modal(document.getElementById('stockOperationModal'));
+        supplierOrderModal = new bootstrap.Modal(document.getElementById('supplierOrderModal'));
         self.loadLookups();
         self.loadData();
     });

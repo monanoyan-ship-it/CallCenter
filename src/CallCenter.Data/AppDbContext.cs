@@ -113,6 +113,8 @@ public class AppDbContext : DbContext
     public DbSet<SlnProductBrand> SlnProductBrands => Set<SlnProductBrand>();
     public DbSet<SlnProduct> SlnProducts => Set<SlnProduct>();
     public DbSet<SlnSupplier> SlnSuppliers => Set<SlnSupplier>();
+    public DbSet<SlnSupplierOrder> SlnSupplierOrders => Set<SlnSupplierOrder>();
+    public DbSet<SlnSupplierOrderItem> SlnSupplierOrderItems => Set<SlnSupplierOrderItem>();
     public DbSet<SlnStockMovement> SlnStockMovements => Set<SlnStockMovement>();
     public DbSet<SlnInvoice> SlnInvoices => Set<SlnInvoice>();
     public DbSet<SlnInvoiceItem> SlnInvoiceItems => Set<SlnInvoiceItem>();
@@ -544,6 +546,29 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnProduct>(e =>
         {
             e.Property(p => p.TaxRate).HasPrecision(5, 2);
+        });
+
+        modelBuilder.Entity<SlnSupplierOrder>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.HasIndex(o => new { o.CustomerId, o.OrderNo }).IsUnique();
+            e.HasIndex(o => new { o.CustomerId, o.SupplierId, o.StatusId });
+            e.Property(o => o.OrderNo).HasMaxLength(40).IsRequired();
+            e.Property(o => o.Notes).HasMaxLength(1000);
+            e.HasOne(o => o.Customer).WithMany().HasForeignKey(o => o.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(o => o.Supplier).WithMany().HasForeignKey(o => o.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.CreatedByPersonnel).WithMany().HasForeignKey(o => o.CreatedByPersonnelId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnSupplierOrderItem>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.Quantity).HasPrecision(18, 2);
+            e.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            e.Property(i => i.ReceivedQuantity).HasPrecision(18, 2);
+            e.Property(i => i.Notes).HasMaxLength(500);
+            e.HasOne(i => i.SupplierOrder).WithMany(o => o.Items).HasForeignKey(i => i.SupplierOrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Product).WithMany().HasForeignKey(i => i.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // PlatformUser

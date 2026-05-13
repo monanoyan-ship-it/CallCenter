@@ -18,6 +18,39 @@
         </button>
     </div>
 
+    <div class="alert alert-warning py-2" data-bind="visible: lowStockProducts().length > 0">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-semibold small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i><t key="salon.products.critical_stock_title">Kritik stok uyarilari</t>
+            </div>
+            <span class="badge bg-danger" data-bind="text: lowStockProducts().length"></span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <tbody data-bind="foreach: lowStockProducts">
+                    <tr>
+                        <td class="small fw-semibold" data-bind="text: productName"></td>
+                        <td class="small text-muted">
+                            <span data-bind="text: stockQuantity"></span> /
+                            <span data-bind="text: minStockLevel"></span>
+                            <span data-bind="text: unit"></span>
+                        </td>
+                        <td class="small">
+                            <t key="salon.products.suggested_order">Onerilen siparis</t>:
+                            <strong data-bind="text: suggestedOrderQuantity"></strong>
+                            <span data-bind="text: unit"></span>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-outline-dark btn-sm" data-bind="click: $parent.openSupplierOrder">
+                                <i class="bi bi-truck me-1"></i><t key="salon.products.create_supplier_order">Tedarik siparisi</t>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Table -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
@@ -56,6 +89,9 @@
                                     </button>
                                     <button class="btn btn-outline-success" title="@(Translation.T("salon.products.auto.alis_ekle", "Alış Ekle"))" data-bind="click: $parent.openPurchase">
                                         <i class="bi bi-cart-plus"></i>
+                                    </button>
+                                    <button class="btn btn-outline-dark" title="@(Translation.T("salon.products.create_supplier_order", "Tedarik siparisi"))" data-bind="click: $parent.openSupplierOrder">
+                                        <i class="bi bi-truck"></i>
                                     </button>
                                     <button class="btn btn-outline-primary" title="@(Translation.T("salon.products.auto.title_transfer", "Transfer"))" data-bind="click: $parent.openStockTransfer">
                                         <i class="bi bi-arrow-left-right"></i>
@@ -328,6 +364,69 @@
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveStockOperation, disable: isStockOperationSaving">
                         <span data-bind="visible: isStockOperationSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isStockOperationSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="supplierOrderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><t key="salon.products.supplier_order_modal_title">Tedarik Siparisi</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: supplierOrderProduct -->
+                    <div class="mb-3">
+                        <div class="small text-muted"><t key="salon.sidebar.products">Urun</t></div>
+                        <div class="fw-semibold" data-bind="text: supplierOrderProduct().productName"></div>
+                        <div class="small text-muted">
+                            <t key="salon.products.current_min_stock">Mevcut / min stok</t>:
+                            <span data-bind="text: supplierOrderProduct().stockQuantity"></span> /
+                            <span data-bind="text: supplierOrderProduct().minStockLevel"></span>
+                            <span data-bind="text: supplierOrderProduct().unit"></span>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.products.auto.tedarikci">Tedarikci *</t></label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: suppliers,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: supplierOrderForm.supplierId,
+                                               optionsCaption: salonT('salon.products.auto.tedarikci_secin', 'Tedarikci secin')"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.products.auto.miktar">Miktar</t></label>
+                            <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: supplierOrderForm.quantity, valueUpdate: 'afterkeydown'" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.products.auto.birim_alis_fiyati_tl">Birim Alis Fiyati (TL)</t></label>
+                            <input type="number" class="form-control form-control-sm" min="0" step="0.01" data-bind="value: supplierOrderForm.unitPrice, valueUpdate: 'afterkeydown'" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.products.expected_date">Beklenen tarih</t></label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: supplierOrderForm.expectedDate" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.products.auto.toplam">Toplam</t></label>
+                            <div class="form-control form-control-sm bg-light" data-bind="text: supplierOrderTotal().toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: supplierOrderForm.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveSupplierOrder, disable: isSupplierOrderSaving">
+                        <span data-bind="visible: isSupplierOrderSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSupplierOrderSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
                 </div>
             </div>

@@ -111,6 +111,7 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnStockMovementEntityService, SlnStockMovementEntityService>();
         services.AddScoped<ISlnSupplierEntityService, SlnSupplierEntityService>();
         services.AddScoped<ISlnSupplierTransactionEntityService, SlnSupplierTransactionEntityService>();
+        services.AddScoped<ISlnSupplierOrderEntityService, SlnSupplierOrderEntityService>();
         services.AddScoped<ISlnInvoiceEntityService, SlnInvoiceEntityService>();
         services.AddScoped<ISlnInvoiceItemEntityService, SlnInvoiceItemEntityService>();
         services.AddScoped<ISlnCashRegisterEntityService, SlnCashRegisterEntityService>();

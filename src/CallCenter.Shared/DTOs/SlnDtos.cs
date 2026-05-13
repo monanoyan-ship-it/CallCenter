@@ -322,6 +322,8 @@ public class SlnProductDto
     public decimal MinStockLevel { get; set; }
     public string Unit { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public bool IsLowStock { get; set; }
+    public decimal SuggestedOrderQuantity { get; set; }
 }
 
 public class SlnProductCreateDto
@@ -361,6 +363,67 @@ public class SlnSupplierCreateDto
 }
 
 // ═══ SlnInvoice ═══
+public class SlnLowStockProductDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? CategoryName { get; set; }
+    public decimal StockQuantity { get; set; }
+    public decimal MinStockLevel { get; set; }
+    public decimal SuggestedOrderQuantity { get; set; }
+    public decimal PurchasePrice { get; set; }
+    public string Unit { get; set; } = string.Empty;
+}
+
+public class SlnSupplierOrderDto
+{
+    public int Id { get; set; }
+    public string OrderNo { get; set; } = string.Empty;
+    public int SupplierId { get; set; }
+    public string SupplierName { get; set; } = string.Empty;
+    public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public DateTime OrderDate { get; set; }
+    public DateTime? ExpectedDate { get; set; }
+    public DateTime? ReceivedAt { get; set; }
+    public string? Notes { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<SlnSupplierOrderItemDto> Items { get; set; } = [];
+}
+
+public class SlnSupplierOrderItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal ReceivedQuantity { get; set; }
+    public string Unit { get; set; } = string.Empty;
+}
+
+public class SlnSupplierOrderCreateDto
+{
+    public int SupplierId { get; set; }
+    public DateTime? ExpectedDate { get; set; }
+    public string? Notes { get; set; }
+    public List<SlnSupplierOrderItemCreateDto> Items { get; set; } = [];
+}
+
+public class SlnSupplierOrderItemCreateDto
+{
+    public int ProductId { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal? UnitPrice { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnSupplierOrderStatusUpdateDto
+{
+    public int StatusId { get; set; }
+    public string? Notes { get; set; }
+}
+
 public class SlnInvoiceDto
 {
     public int Id { get; set; }
