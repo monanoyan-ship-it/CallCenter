@@ -20,6 +20,13 @@ public class PortalFactory : IPortalFactory
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly AesEncryptionService _encryption;
     private readonly ISlnPersonnelSkillEntityService _skillEs;
+    private readonly ISlnPersonnelCommissionEntityService _commissionEs;
+    private readonly ISlnPersonnelShiftEntityService _shiftEs;
+    private readonly ISlnPersonnelLeaveEntityService _leaveEs;
+    private readonly ISlnPersonnelTimesheetEntityService _timesheetEs;
+    private readonly ISlnPayrollEntityService _payrollEs;
+    private readonly ISlnAdvanceEntityService _advanceEs;
+    private readonly ISlnInvoiceItemEntityService _invoiceItemEs;
     private readonly IUnitOfWork _uow;
 
     public PortalFactory(
@@ -32,6 +39,13 @@ public class PortalFactory : IPortalFactory
         IPasswordPolicyFactory passwordPolicy,
         AesEncryptionService encryption,
         ISlnPersonnelSkillEntityService skillEs,
+        ISlnPersonnelCommissionEntityService commissionEs,
+        ISlnPersonnelShiftEntityService shiftEs,
+        ISlnPersonnelLeaveEntityService leaveEs,
+        ISlnPersonnelTimesheetEntityService timesheetEs,
+        ISlnPayrollEntityService payrollEs,
+        ISlnAdvanceEntityService advanceEs,
+        ISlnInvoiceItemEntityService invoiceItemEs,
         IUnitOfWork uow)
     {
         _customerEs = customerEs;
@@ -43,6 +57,13 @@ public class PortalFactory : IPortalFactory
         _passwordPolicy = passwordPolicy;
         _encryption = encryption;
         _skillEs = skillEs;
+        _commissionEs = commissionEs;
+        _shiftEs = shiftEs;
+        _leaveEs = leaveEs;
+        _timesheetEs = timesheetEs;
+        _payrollEs = payrollEs;
+        _advanceEs = advanceEs;
+        _invoiceItemEs = invoiceItemEs;
         _uow = uow;
     }
 
@@ -511,6 +532,314 @@ public class PortalFactory : IPortalFactory
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    // PERSONNEL OPS
+
+    public async Task<PortalPersonnelOpsDto> GetPersonnelOpsAsync(int customerId, DateTime from, DateTime to, int? callerPersonnelId = null, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var personnelQuery = BuildPersonnelScopeQuery(customerId, callerRoleId, callerBranchId);
+        var personnel = await personnelQuery
+            .Include(p => p.User)
+            .Select(p => new { p.Id, p.User.FullName })
+            .ToListAsync();
+        var personnelIds = personnel.Select(p => p.Id).ToList();
+        var nameMap = personnel.ToDictionary(p => p.Id, p => p.FullName);
+        var fromDate = from.Date;
+        var toDate = to.Date;
+
+        var shifts = await _shiftEs.GetAllQueryable()
+            .Where(s => personnelIds.Contains(s.PersonnelId) && s.ShiftDate.Date >= fromDate && s.ShiftDate.Date <= toDate)
+            .OrderBy(s => s.ShiftDate).ThenBy(s => s.StartTime)
+            .ToListAsync();
+        var leaves = await _leaveEs.GetAllQueryable()
+            .Where(l => personnelIds.Contains(l.PersonnelId) && l.StartDate.Date <= toDate && l.EndDate.Date >= fromDate)
+            .OrderBy(l => l.StartDate)
+            .ToListAsync();
+        var timesheets = await _timesheetEs.GetAllQueryable()
+            .Where(t => personnelIds.Contains(t.PersonnelId) && t.WorkDate.Date >= fromDate && t.WorkDate.Date <= toDate)
+            .OrderBy(t => t.WorkDate)
+            .ToListAsync();
+        var advances = await _advanceEs.GetAllQueryable()
+            .Where(a => personnelIds.Contains(a.PersonnelId) && a.AdvanceDate.Date >= fromDate && a.AdvanceDate.Date <= toDate)
+            .OrderByDescending(a => a.AdvanceDate)
+            .ToListAsync();
+        var payrolls = await _payrollEs.GetAllQueryable()
+            .Where(p => personnelIds.Contains(p.PersonnelId))
+            .OrderByDescending(p => p.Year).ThenByDescending(p => p.Month)
+            .Take(100)
+            .ToListAsync();
+
+        return new PortalPersonnelOpsDto
+        {
+            Shifts = shifts.Select(s => new PortalPersonnelShiftDto
+            {
+                Id = s.Id,
+                PersonnelId = s.PersonnelId,
+                PersonnelName = nameMap.GetValueOrDefault(s.PersonnelId) ?? "-",
+                ShiftDate = s.ShiftDate,
+                StartTime = s.StartTime.ToString(@"hh\:mm"),
+                EndTime = s.EndTime.ToString(@"hh\:mm"),
+                BreakMinutes = s.BreakMinutes,
+                Notes = s.Notes
+            }).ToList(),
+            Leaves = leaves.Select(l => new PortalPersonnelLeaveDto
+            {
+                Id = l.Id,
+                PersonnelId = l.PersonnelId,
+                PersonnelName = nameMap.GetValueOrDefault(l.PersonnelId) ?? "-",
+                LeaveTypeId = l.LeaveTypeId,
+                LeaveTypeName = SalonLeaveTypes.GetById(l.LeaveTypeId)?.Description ?? l.LeaveTypeId.ToString(),
+                StatusId = l.StatusId,
+                StatusName = SalonLeaveStatuses.GetById(l.StatusId)?.Description ?? l.StatusId.ToString(),
+                StartDate = l.StartDate,
+                EndDate = l.EndDate,
+                Notes = l.Notes
+            }).ToList(),
+            Timesheets = timesheets.Select(t => new PortalPersonnelTimesheetDto
+            {
+                Id = t.Id,
+                PersonnelId = t.PersonnelId,
+                PersonnelName = nameMap.GetValueOrDefault(t.PersonnelId) ?? "-",
+                WorkDate = t.WorkDate,
+                ClockInAt = t.ClockInAt,
+                ClockOutAt = t.ClockOutAt,
+                BreakMinutes = t.BreakMinutes,
+                WorkedHours = CalculateWorkedHours(t.ClockInAt, t.ClockOutAt, t.BreakMinutes),
+                Notes = t.Notes
+            }).ToList(),
+            Advances = advances.Select(a => new PortalAdvanceDto
+            {
+                Id = a.Id,
+                PersonnelId = a.PersonnelId,
+                PersonnelName = nameMap.GetValueOrDefault(a.PersonnelId) ?? "-",
+                Amount = a.Amount,
+                AdvanceDate = a.AdvanceDate,
+                Notes = a.Notes
+            }).ToList(),
+            Payrolls = payrolls.Select(p => new PortalPayrollDto
+            {
+                Id = p.Id,
+                PersonnelId = p.PersonnelId,
+                PersonnelName = nameMap.GetValueOrDefault(p.PersonnelId) ?? "-",
+                Year = p.Year,
+                Month = p.Month,
+                BaseSalary = p.BaseSalary,
+                ServiceCommission = p.ServiceCommission,
+                ProductCommission = p.ProductCommission,
+                TotalAdvance = p.TotalAdvance,
+                Deductions = p.Deductions,
+                NetPay = p.NetPay,
+                Notes = p.Notes,
+                IsFinalized = p.IsFinalized
+            }).ToList(),
+            LeaveTypes = SalonLeaveTypes.All.Select(ToTypeItemDto).ToList(),
+            LeaveStatuses = SalonLeaveStatuses.All.Select(ToTypeItemDto).ToList()
+        };
+    }
+
+    public async Task<(bool Success, string? Error)> UpsertPersonnelShiftAsync(int customerId, int? id, PortalPersonnelShiftUpsertDto dto, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (!TimeSpan.TryParse(dto.StartTime, out var start) || !TimeSpan.TryParse(dto.EndTime, out var end) || end <= start)
+            return (false, "Gecerli vardiya saati giriniz.");
+
+        var date = dto.ShiftDate.Date;
+        var shift = id.HasValue
+            ? await _shiftEs.GetAllQueryable().FirstOrDefaultAsync(s => s.Id == id.Value && s.PersonnelId == dto.PersonnelId)
+            : await _shiftEs.GetAllQueryable().FirstOrDefaultAsync(s => s.PersonnelId == dto.PersonnelId && s.ShiftDate.Date == date);
+        if (shift == null)
+        {
+            shift = new SlnPersonnelShift { PersonnelId = dto.PersonnelId };
+            _shiftEs.Add(shift);
+        }
+
+        shift.ShiftDate = date;
+        shift.StartTime = start;
+        shift.EndTime = end;
+        shift.BreakMinutes = Math.Max(0, dto.BreakMinutes);
+        shift.Notes = dto.Notes;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> DeletePersonnelShiftAsync(int customerId, int id, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var shift = await _shiftEs.GetAllQueryable().FirstOrDefaultAsync(s => s.Id == id);
+        if (shift == null) return (false, "Vardiya bulunamadi.");
+        var personnel = await GetScopedPersonnelAsync(customerId, shift.PersonnelId, callerRoleId, callerBranchId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        _shiftEs.Remove(shift);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> CreatePersonnelLeaveAsync(int customerId, PortalPersonnelLeaveCreateDto dto, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (SalonLeaveTypes.GetById(dto.LeaveTypeId) == null) return (false, "Izin tipi gecersiz.");
+        if (dto.EndDate.Date < dto.StartDate.Date) return (false, "Izin bitis tarihi baslangictan once olamaz.");
+
+        _leaveEs.Add(new SlnPersonnelLeave
+        {
+            PersonnelId = dto.PersonnelId,
+            LeaveTypeId = dto.LeaveTypeId,
+            StatusId = SalonLeaveStatuses.Ids.Pending,
+            StartDate = dto.StartDate.Date,
+            EndDate = dto.EndDate.Date,
+            Notes = dto.Notes
+        });
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdatePersonnelLeaveStatusAsync(int customerId, int id, PortalPersonnelLeaveStatusDto dto, int? reviewedByPersonnelId)
+    {
+        if (SalonLeaveStatuses.GetById(dto.StatusId) == null) return (false, "Izin durumu gecersiz.");
+        var leave = await _leaveEs.GetAllQueryable().FirstOrDefaultAsync(l => l.Id == id);
+        if (leave == null) return (false, "Izin kaydi bulunamadi.");
+        var personnel = await _personnelEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == leave.PersonnelId && p.CustomerId == customerId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        leave.StatusId = dto.StatusId;
+        leave.ReviewedByPersonnelId = reviewedByPersonnelId;
+        leave.ReviewedAt = DateTime.UtcNow;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UpsertPersonnelTimesheetAsync(int customerId, int? id, PortalPersonnelTimesheetUpsertDto dto, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (dto.ClockInAt.HasValue && dto.ClockOutAt.HasValue && dto.ClockOutAt <= dto.ClockInAt)
+            return (false, "Cikis saati giristen once olamaz.");
+
+        var date = dto.WorkDate.Date;
+        var row = id.HasValue
+            ? await _timesheetEs.GetAllQueryable().FirstOrDefaultAsync(t => t.Id == id.Value && t.PersonnelId == dto.PersonnelId)
+            : await _timesheetEs.GetAllQueryable().FirstOrDefaultAsync(t => t.PersonnelId == dto.PersonnelId && t.WorkDate.Date == date);
+        if (row == null)
+        {
+            row = new SlnPersonnelTimesheet { PersonnelId = dto.PersonnelId };
+            _timesheetEs.Add(row);
+        }
+
+        row.WorkDate = date;
+        row.ClockInAt = dto.ClockInAt;
+        row.ClockOutAt = dto.ClockOutAt;
+        row.BreakMinutes = Math.Max(0, dto.BreakMinutes);
+        row.Notes = dto.Notes;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> CreatePersonnelAdvanceAsync(int customerId, PortalAdvanceCreateDto dto, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (dto.Amount <= 0) return (false, "Avans tutari sifirdan buyuk olmalidir.");
+        _advanceEs.Add(new SlnAdvance
+        {
+            PersonnelId = dto.PersonnelId,
+            Amount = dto.Amount,
+            AdvanceDate = dto.AdvanceDate.Date,
+            Notes = dto.Notes
+        });
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> GeneratePayrollAsync(int customerId, PortalPayrollGenerateDto dto, int? callerRoleId = null, int? callerBranchId = null)
+    {
+        var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
+        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (dto.Year < 2000 || dto.Month is < 1 or > 12) return (false, "Bordro donemi gecersiz.");
+        var start = new DateTime(dto.Year, dto.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var end = start.AddMonths(1);
+
+        var items = await _invoiceItemEs.GetAllQueryable()
+            .Include(i => i.Invoice)
+            .Where(i => i.PersonnelId == dto.PersonnelId
+                && i.Invoice != null
+                && i.Invoice.CustomerId == customerId
+                && i.Invoice.InvoiceDate >= start
+                && i.Invoice.InvoiceDate < end)
+            .ToListAsync();
+        var commissions = await GetCommissionsForPayrollAsync(dto.PersonnelId);
+        var serviceCommission = CalculateCommission(items.Where(i => i.ServiceId.HasValue), commissions);
+        var productCommission = CalculateCommission(items.Where(i => i.ProductId.HasValue), commissions);
+        var totalAdvance = await _advanceEs.GetAllQueryable()
+            .Where(a => a.PersonnelId == dto.PersonnelId && a.AdvanceDate >= start && a.AdvanceDate < end)
+            .SumAsync(a => a.Amount);
+
+        var payroll = await _payrollEs.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.PersonnelId == dto.PersonnelId && p.Year == dto.Year && p.Month == dto.Month);
+        if (payroll?.IsFinalized == true)
+            return (false, "Kesinlesmis bordro guncellenemez.");
+        if (payroll == null)
+        {
+            payroll = new SlnPayroll { PersonnelId = dto.PersonnelId, Year = dto.Year, Month = dto.Month };
+            _payrollEs.Add(payroll);
+        }
+
+        payroll.BaseSalary = dto.BaseSalary;
+        payroll.ServiceCommission = serviceCommission;
+        payroll.ProductCommission = productCommission;
+        payroll.TotalAdvance = totalAdvance;
+        payroll.Deductions = dto.Deductions;
+        payroll.NetPay = dto.BaseSalary + serviceCommission + productCommission - totalAdvance - dto.Deductions;
+        payroll.Notes = dto.Notes;
+        payroll.IsFinalized = dto.IsFinalized;
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    private IQueryable<CustomerPersonnel> BuildPersonnelScopeQuery(int customerId, int? callerRoleId, int? callerBranchId)
+    {
+        var query = _personnelEs.GetAllQueryable().Where(p => p.CustomerId == customerId);
+        var shouldApplyBranchScope = callerBranchId.HasValue
+            && callerRoleId != SalonRoles.Ids.SalonOwner
+            && callerRoleId != CustomerRoles.Ids.FirmaAdmin;
+        return shouldApplyBranchScope && callerBranchId is int branchId ? query.Where(p => p.BranchId == branchId) : query;
+    }
+
+    private Task<CustomerPersonnel?> GetScopedPersonnelAsync(int customerId, int personnelId, int? callerRoleId, int? callerBranchId)
+        => BuildPersonnelScopeQuery(customerId, callerRoleId, callerBranchId).FirstOrDefaultAsync(p => p.Id == personnelId);
+
+    private static decimal CalculateWorkedHours(DateTime? clockInAt, DateTime? clockOutAt, int breakMinutes)
+    {
+        if (!clockInAt.HasValue || !clockOutAt.HasValue || clockOutAt <= clockInAt) return 0;
+        var minutes = (decimal)(clockOutAt.Value - clockInAt.Value).TotalMinutes - Math.Max(0, breakMinutes);
+        return Math.Round(Math.Max(0, minutes) / 60, 2);
+    }
+
+    private async Task<List<SlnPersonnelCommission>> GetCommissionsForPayrollAsync(int personnelId)
+        => await _commissionEs.GetAllQueryable().Where(c => c.PersonnelId == personnelId).ToListAsync();
+
+    private static decimal CalculateCommission(IEnumerable<SlnInvoiceItem> items, List<SlnPersonnelCommission> commissions)
+    {
+        decimal total = 0;
+        foreach (var item in items)
+        {
+            var rule = commissions.FirstOrDefault(c => c.ServiceId == item.ServiceId && c.ProductId == item.ProductId)
+                ?? commissions.FirstOrDefault(c => c.ServiceId == item.ServiceId && c.ProductId == null)
+                ?? commissions.FirstOrDefault(c => c.ProductId == item.ProductId && c.ServiceId == null)
+                ?? commissions.FirstOrDefault(c => c.ServiceId == null && c.ProductId == null);
+            if (rule == null) continue;
+            total += rule.IsPercentage ? item.LineTotal * rule.Rate / 100 : rule.Rate * item.Quantity;
+        }
+        return total;
+    }
+
+    private static TypeItemDto ToTypeItemDto(TypeItem item) => new()
+    {
+        Id = item.Id,
+        SystemName = item.SystemName,
+        Description = item.Description ?? item.SystemName,
+        Icon = item.Icon,
+        ColorClass = item.CssClass
+    };
 
     // MODULES
 

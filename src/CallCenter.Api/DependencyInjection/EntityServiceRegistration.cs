@@ -120,6 +120,11 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnExpenseEntityService, SlnExpenseEntityService>();
 
         services.AddScoped<ISlnPersonnelCommissionEntityService, SlnPersonnelCommissionEntityService>();
+        services.AddScoped<ISlnPayrollEntityService, SlnPayrollEntityService>();
+        services.AddScoped<ISlnAdvanceEntityService, SlnAdvanceEntityService>();
+        services.AddScoped<ISlnPersonnelShiftEntityService, SlnPersonnelShiftEntityService>();
+        services.AddScoped<ISlnPersonnelLeaveEntityService, SlnPersonnelLeaveEntityService>();
+        services.AddScoped<ISlnPersonnelTimesheetEntityService, SlnPersonnelTimesheetEntityService>();
 
         // Salon S7 — Pazarlama
         services.AddScoped<ISlnCampaignEntityService, SlnCampaignEntityService>();

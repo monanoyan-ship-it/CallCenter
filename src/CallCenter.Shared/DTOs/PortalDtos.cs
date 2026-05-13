@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CallCenter.Shared.Enums;
 
 namespace CallCenter.Shared.DTOs;
 
@@ -115,6 +116,145 @@ public class PortalPersonnelUpdateDto
     public bool PublicShowSpecialty { get; set; } = true;
 
     public string? WorkingHoursJson { get; set; }
+}
+
+public class PortalPersonnelOpsDto
+{
+    public List<PortalPersonnelShiftDto> Shifts { get; set; } = new();
+    public List<PortalPersonnelLeaveDto> Leaves { get; set; } = new();
+    public List<PortalPersonnelTimesheetDto> Timesheets { get; set; } = new();
+    public List<PortalPayrollDto> Payrolls { get; set; } = new();
+    public List<PortalAdvanceDto> Advances { get; set; } = new();
+    public List<TypeItemDto> LeaveTypes { get; set; } = new();
+    public List<TypeItemDto> LeaveStatuses { get; set; } = new();
+}
+
+public class TypeItemDto
+{
+    public int Id { get; set; }
+    public string SystemName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string? Icon { get; set; }
+    public string? ColorClass { get; set; }
+}
+
+public class PortalPersonnelShiftDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public DateTime ShiftDate { get; set; }
+    public string StartTime { get; set; } = string.Empty;
+    public string EndTime { get; set; } = string.Empty;
+    public int BreakMinutes { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalPersonnelShiftUpsertDto
+{
+    public int PersonnelId { get; set; }
+    public DateTime ShiftDate { get; set; }
+    public string StartTime { get; set; } = string.Empty;
+    public string EndTime { get; set; } = string.Empty;
+    public int BreakMinutes { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalPersonnelLeaveDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public int LeaveTypeId { get; set; }
+    public string LeaveTypeName { get; set; } = string.Empty;
+    public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalPersonnelLeaveCreateDto
+{
+    public int PersonnelId { get; set; }
+    public int LeaveTypeId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalPersonnelLeaveStatusDto
+{
+    public int StatusId { get; set; }
+}
+
+public class PortalPersonnelTimesheetDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public DateTime WorkDate { get; set; }
+    public DateTime? ClockInAt { get; set; }
+    public DateTime? ClockOutAt { get; set; }
+    public int BreakMinutes { get; set; }
+    public decimal WorkedHours { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalPersonnelTimesheetUpsertDto
+{
+    public int PersonnelId { get; set; }
+    public DateTime WorkDate { get; set; }
+    public DateTime? ClockInAt { get; set; }
+    public DateTime? ClockOutAt { get; set; }
+    public int BreakMinutes { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalAdvanceDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateTime AdvanceDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalAdvanceCreateDto
+{
+    public int PersonnelId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime AdvanceDate { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PortalPayrollDto
+{
+    public int Id { get; set; }
+    public int PersonnelId { get; set; }
+    public string PersonnelName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public decimal BaseSalary { get; set; }
+    public decimal ServiceCommission { get; set; }
+    public decimal ProductCommission { get; set; }
+    public decimal TotalAdvance { get; set; }
+    public decimal Deductions { get; set; }
+    public decimal NetPay { get; set; }
+    public string? Notes { get; set; }
+    public bool IsFinalized { get; set; }
+}
+
+public class PortalPayrollGenerateDto
+{
+    public int PersonnelId { get; set; }
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public decimal BaseSalary { get; set; }
+    public decimal Deductions { get; set; }
+    public string? Notes { get; set; }
+    public bool IsFinalized { get; set; }
 }
 
 // ═══════════════════════════════════════════════════════════════

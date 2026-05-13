@@ -100,6 +100,83 @@
         </div>
     </div>
 
+    @if (canManageStaff)
+    {
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="fw-semibold"><i class="bi bi-calendar2-week me-2"></i><t key="salon.staff.ops.title">Personel Operasyonu</t></div>
+                <div class="d-flex gap-2">
+                    <input type="date" class="form-control form-control-sm" data-bind="value: opsFrom" />
+                    <input type="date" class="form-control form-control-sm" data-bind="value: opsTo" />
+                    <button class="btn btn-outline-primary btn-sm" data-bind="click: loadOps"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs nav-sm mb-3">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#staff-shifts" type="button"><t key="salon.staff.ops.shifts">Vardiya</t></button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#staff-leaves" type="button"><t key="salon.staff.ops.leaves">Izin</t></button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#staff-timesheets" type="button"><t key="salon.staff.ops.timesheets">Timesheet</t></button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#staff-payroll" type="button"><t key="salon.staff.ops.payroll">Bordro</t></button></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="staff-shifts">
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-3"><label class="form-label small"><t key="salon.staff.auto.personel">Personel</t></label><select class="form-select form-select-sm" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: shiftForm.personnelId"></select></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.common.date">Tarih</t></label><input type="date" class="form-control form-control-sm" data-bind="value: shiftForm.shiftDate" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.start">Baslangic</t></label><input type="time" class="form-control form-control-sm" data-bind="value: shiftForm.startTime" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.end">Bitis</t></label><input type="time" class="form-control form-control-sm" data-bind="value: shiftForm.endTime" /></div>
+                            <div class="col-md-1"><label class="form-label small"><t key="salon.staff.ops.break">Mola</t></label><input type="number" min="0" class="form-control form-control-sm" data-bind="value: shiftForm.breakMinutes" /></div>
+                            <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" data-bind="click: saveShift"><i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t></button></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead><tr><th><t key="salon.staff.auto.personel">Personel</t></th><th><t key="salon.common.date">Tarih</t></th><th><t key="salon.staff.ops.hours">Saat</t></th><th><t key="salon.staff.ops.break">Mola</t></th><th></th></tr></thead>
+                                <tbody data-bind="foreach: ops.shifts"><tr><td data-bind="text: personnelName"></td><td data-bind="text: $root.formatDate(shiftDate)"></td><td data-bind="text: startTime + ' - ' + endTime"></td><td data-bind="text: breakMinutes"></td><td class="text-end"><button class="btn btn-outline-danger btn-sm" data-bind="click: $root.deleteShift"><i class="bi bi-trash"></i></button></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="staff-leaves">
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-3"><label class="form-label small"><t key="salon.staff.auto.personel">Personel</t></label><select class="form-select form-select-sm" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: leaveForm.personnelId"></select></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.leave_type">Izin Tipi</t></label><select class="form-select form-select-sm" data-bind="options: ops.leaveTypes, optionsText: 'description', optionsValue: 'id', value: leaveForm.leaveTypeId"></select></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.start_date">Baslangic</t></label><input type="date" class="form-control form-control-sm" data-bind="value: leaveForm.startDate" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.end_date">Bitis</t></label><input type="date" class="form-control form-control-sm" data-bind="value: leaveForm.endDate" /></div>
+                            <div class="col-md-3"><button class="btn btn-primary btn-sm w-100" data-bind="click: saveLeave"><i class="bi bi-plus-lg me-1"></i><t key="salon.staff.ops.add_leave">Izin Ekle</t></button></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead><tr><th><t key="salon.staff.auto.personel">Personel</t></th><th><t key="salon.staff.ops.leave_type">Izin Tipi</t></th><th><t key="salon.common.date">Tarih</t></th><th><t key="salon.appointments.status">Durum</t></th><th></th></tr></thead>
+                                <tbody data-bind="foreach: ops.leaves"><tr><td data-bind="text: personnelName"></td><td data-bind="text: leaveTypeName"></td><td data-bind="text: $root.formatDate(startDate) + ' - ' + $root.formatDate(endDate)"></td><td data-bind="text: statusName"></td><td class="text-end"><button class="btn btn-outline-success btn-sm me-1" data-bind="click: function(){ $root.setLeaveStatus($data, 2); }"><i class="bi bi-check"></i></button><button class="btn btn-outline-danger btn-sm" data-bind="click: function(){ $root.setLeaveStatus($data, 3); }"><i class="bi bi-x"></i></button></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="staff-timesheets">
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-3"><label class="form-label small"><t key="salon.staff.auto.personel">Personel</t></label><select class="form-select form-select-sm" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: timesheetForm.personnelId"></select></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.common.date">Tarih</t></label><input type="date" class="form-control form-control-sm" data-bind="value: timesheetForm.workDate" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.clock_in">Giris</t></label><input type="datetime-local" class="form-control form-control-sm" data-bind="value: timesheetForm.clockInAt" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.clock_out">Cikis</t></label><input type="datetime-local" class="form-control form-control-sm" data-bind="value: timesheetForm.clockOutAt" /></div>
+                            <div class="col-md-1"><label class="form-label small"><t key="salon.staff.ops.break">Mola</t></label><input type="number" min="0" class="form-control form-control-sm" data-bind="value: timesheetForm.breakMinutes" /></div>
+                            <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" data-bind="click: saveTimesheet"><i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t></button></div>
+                        </div>
+                        <div class="table-responsive"><table class="table table-sm"><thead><tr><th><t key="salon.staff.auto.personel">Personel</t></th><th><t key="salon.common.date">Tarih</t></th><th><t key="salon.staff.ops.hours">Saat</t></th><th><t key="salon.staff.ops.worked_hours">Calisma</t></th></tr></thead><tbody data-bind="foreach: ops.timesheets"><tr><td data-bind="text: personnelName"></td><td data-bind="text: $root.formatDate(workDate)"></td><td data-bind="text: $root.formatDateTime(clockInAt) + ' - ' + $root.formatDateTime(clockOutAt)"></td><td data-bind="text: workedHours"></td></tr></tbody></table></div>
+                    </div>
+                    <div class="tab-pane fade" id="staff-payroll">
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-3"><label class="form-label small"><t key="salon.staff.auto.personel">Personel</t></label><select class="form-select form-select-sm" data-bind="options: staffList, optionsText: 'fullName', optionsValue: 'id', value: payrollForm.personnelId"></select></div>
+                            <div class="col-md-1"><label class="form-label small"><t key="salon.staff.ops.year">Yil</t></label><input type="number" class="form-control form-control-sm" data-bind="value: payrollForm.year" /></div>
+                            <div class="col-md-1"><label class="form-label small"><t key="salon.staff.ops.month">Ay</t></label><input type="number" min="1" max="12" class="form-control form-control-sm" data-bind="value: payrollForm.month" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.base_salary">Maas</t></label><input type="number" min="0" class="form-control form-control-sm" data-bind="value: payrollForm.baseSalary" /></div>
+                            <div class="col-md-2"><label class="form-label small"><t key="salon.staff.ops.deductions">Kesinti</t></label><input type="number" min="0" class="form-control form-control-sm" data-bind="value: payrollForm.deductions" /></div>
+                            <div class="col-md-3"><button class="btn btn-primary btn-sm w-100" data-bind="click: generatePayroll"><i class="bi bi-calculator me-1"></i><t key="salon.staff.ops.generate_payroll">Bordro Hesapla</t></button></div>
+                        </div>
+                        <div class="table-responsive"><table class="table table-sm"><thead><tr><th><t key="salon.staff.auto.personel">Personel</t></th><th><t key="salon.staff.ops.period">Donem</t></th><th><t key="salon.staff.ops.commission">Prim</t></th><th><t key="salon.staff.ops.advance">Avans</t></th><th><t key="salon.staff.ops.net_pay">Net</t></th></tr></thead><tbody data-bind="foreach: ops.payrolls"><tr><td data-bind="text: personnelName"></td><td data-bind="text: year + '/' + month"></td><td data-bind="text: (serviceCommission + productCommission).toFixed(2)"></td><td data-bind="text: totalAdvance.toFixed(2)"></td><td class="fw-semibold" data-bind="text: netPay.toFixed(2)"></td></tr></tbody></table></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Modal -->
     <div class="modal fade" id="staffModal" tabindex="-1">
         <div class="modal-dialog">

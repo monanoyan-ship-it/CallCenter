@@ -14,10 +14,76 @@ function StaffViewModel() {
 
     self.branchList = ko.observableArray([]);
     self.serviceCategories = ko.observableArray([]);
+    var today = new Date();
+    var nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    self.opsFrom = ko.observable(toDateInput(today));
+    self.opsTo = ko.observable(toDateInput(nextMonth));
+    self.ops = {
+        shifts: ko.observableArray([]),
+        leaves: ko.observableArray([]),
+        timesheets: ko.observableArray([]),
+        payrolls: ko.observableArray([]),
+        advances: ko.observableArray([]),
+        leaveTypes: ko.observableArray([]),
+        leaveStatuses: ko.observableArray([])
+    };
+    self.shiftForm = {
+        personnelId: ko.observable(null),
+        shiftDate: ko.observable(toDateInput(today)),
+        startTime: ko.observable('09:00'),
+        endTime: ko.observable('18:00'),
+        breakMinutes: ko.observable(60)
+    };
+    self.leaveForm = {
+        personnelId: ko.observable(null),
+        leaveTypeId: ko.observable(1),
+        startDate: ko.observable(toDateInput(today)),
+        endDate: ko.observable(toDateInput(today))
+    };
+    self.timesheetForm = {
+        personnelId: ko.observable(null),
+        workDate: ko.observable(toDateInput(today)),
+        clockInAt: ko.observable(toDateTimeInput(today, '09:00')),
+        clockOutAt: ko.observable(toDateTimeInput(today, '18:00')),
+        breakMinutes: ko.observable(60)
+    };
+    self.payrollForm = {
+        personnelId: ko.observable(null),
+        year: ko.observable(today.getFullYear()),
+        month: ko.observable(today.getMonth() + 1),
+        baseSalary: ko.observable(0),
+        deductions: ko.observable(0)
+    };
 
     self.usernameAvailable = ko.observable(null); // null=kontrol edilmedi, true=musait, false=alinmis
     self.usernameChecking = ko.observable(false);
     var usernameCheckTimer = null;
+
+    function toDateInput(date) {
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+    }
+
+    function toDateTimeInput(date, time) {
+        return toDateInput(date) + 'T' + time;
+    }
+
+    function firstStaffId() {
+        var first = self.staffList()[0];
+        return first ? first.id : null;
+    }
+
+    self.formatDate = function (value) {
+        if (!value) return '-';
+        return new Date(value).toLocaleDateString('tr-TR');
+    };
+
+    self.formatDateTime = function (value) {
+        if (!value) return '-';
+        return new Date(value).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    };
 
     self.form = {
         userName: ko.observable(''),
@@ -168,6 +234,14 @@ function StaffViewModel() {
     self.loadData = function () {
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
+            var id = firstStaffId();
+            if (id && !self.shiftForm.personnelId()) {
+                self.shiftForm.personnelId(id);
+                self.leaveForm.personnelId(id);
+                self.timesheetForm.personnelId(id);
+                self.payrollForm.personnelId(id);
+            }
+            self.loadOps();
         }).fail(function () {
             toastr.error(slnJsT('salon.staff.js.personel_listesi_yuklenemedi', 'Personel listesi yüklenemedi'));
         });
@@ -190,6 +264,103 @@ function StaffViewModel() {
         $.get('/proxy/sln-services/categories', function (data) {
             self.serviceCategories(data || []);
         });
+    };
+
+    self.loadOps = function () {
+        $.ajax({
+            url: '/proxy/portal/personnel-ops?from=' + encodeURIComponent(self.opsFrom()) + '&to=' + encodeURIComponent(self.opsTo()),
+            method: 'GET'
+        }).done(function (data) {
+            data = data || {};
+            self.ops.shifts(data.shifts || []);
+            self.ops.leaves(data.leaves || []);
+            self.ops.timesheets(data.timesheets || []);
+            self.ops.payrolls(data.payrolls || []);
+            self.ops.advances(data.advances || []);
+            self.ops.leaveTypes(data.leaveTypes || []);
+            self.ops.leaveStatuses(data.leaveStatuses || []);
+            if (!self.leaveForm.leaveTypeId() && self.ops.leaveTypes().length) self.leaveForm.leaveTypeId(self.ops.leaveTypes()[0].id);
+        }).fail(function () {
+            toastr.error(slnJsT('salon.staff.ops.load_error', 'Personel operasyon bilgileri yuklenemedi'));
+        });
+    };
+
+    self.saveShift = function () {
+        var payload = {
+            personnelId: parseInt(self.shiftForm.personnelId()) || 0,
+            shiftDate: self.shiftForm.shiftDate(),
+            startTime: self.shiftForm.startTime(),
+            endTime: self.shiftForm.endTime(),
+            breakMinutes: parseInt(self.shiftForm.breakMinutes()) || 0
+        };
+        if (!payload.personnelId || !payload.shiftDate || !payload.startTime || !payload.endTime) {
+            toastr.warning(slnJsT('salon.staff.ops.required', 'Zorunlu alanlari doldurun'));
+            return;
+        }
+        $.ajax({ url: '/proxy/portal/personnel-ops/shifts', method: 'POST', contentType: 'application/json', data: JSON.stringify(payload) })
+            .done(function () { toastr.success(slnJsT('salon.staff.ops.shift_saved', 'Vardiya kaydedildi')); self.loadOps(); })
+            .fail(function (xhr) { toastr.error(xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata olustu')); });
+    };
+
+    self.deleteShift = function (shift) {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.staff.ops.delete_shift_confirm', 'Bu vardiyayi silmek istiyor musunuz?'), function () {
+            $.ajax({ url: '/proxy/portal/personnel-ops/shifts/' + shift.id, method: 'DELETE' })
+                .done(function () { toastr.success(slnJsT('salon.staff.ops.shift_deleted', 'Vardiya silindi')); self.loadOps(); })
+                .fail(function (xhr) { toastr.error(xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata olustu')); });
+        });
+    };
+
+    self.saveLeave = function () {
+        var payload = {
+            personnelId: parseInt(self.leaveForm.personnelId()) || 0,
+            leaveTypeId: parseInt(self.leaveForm.leaveTypeId()) || 1,
+            startDate: self.leaveForm.startDate(),
+            endDate: self.leaveForm.endDate()
+        };
+        $.ajax({ url: '/proxy/portal/personnel-ops/leaves', method: 'POST', contentType: 'application/json', data: JSON.stringify(payload) })
+            .done(function () { toastr.success(slnJsT('salon.staff.ops.leave_saved', 'Izin kaydedildi')); self.loadOps(); })
+            .fail(function (xhr) { toastr.error(xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata olustu')); });
+    };
+
+    self.setLeaveStatus = function (leave, statusId) {
+        $.ajax({
+            url: '/proxy/portal/personnel-ops/leaves/' + leave.id + '/status',
+            method: 'PATCH',
+            contentType: 'application/json',
+            data: JSON.stringify({ statusId: statusId })
+        }).done(function () {
+            toastr.success(slnJsT('salon.staff.ops.leave_status_saved', 'Izin durumu guncellendi'));
+            self.loadOps();
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata olustu'));
+        });
+    };
+
+    self.saveTimesheet = function () {
+        var payload = {
+            personnelId: parseInt(self.timesheetForm.personnelId()) || 0,
+            workDate: self.timesheetForm.workDate(),
+            clockInAt: self.timesheetForm.clockInAt(),
+            clockOutAt: self.timesheetForm.clockOutAt(),
+            breakMinutes: parseInt(self.timesheetForm.breakMinutes()) || 0
+        };
+        $.ajax({ url: '/proxy/portal/personnel-ops/timesheets', method: 'POST', contentType: 'application/json', data: JSON.stringify(payload) })
+            .done(function () { toastr.success(slnJsT('salon.staff.ops.timesheet_saved', 'Timesheet kaydedildi')); self.loadOps(); })
+            .fail(function (xhr) { toastr.error(xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata olustu')); });
+    };
+
+    self.generatePayroll = function () {
+        var payload = {
+            personnelId: parseInt(self.payrollForm.personnelId()) || 0,
+            year: parseInt(self.payrollForm.year()) || today.getFullYear(),
+            month: parseInt(self.payrollForm.month()) || (today.getMonth() + 1),
+            baseSalary: parseFloat(self.payrollForm.baseSalary()) || 0,
+            deductions: parseFloat(self.payrollForm.deductions()) || 0,
+            isFinalized: false
+        };
+        $.ajax({ url: '/proxy/portal/personnel-ops/payroll', method: 'POST', contentType: 'application/json', data: JSON.stringify(payload) })
+            .done(function () { toastr.success(slnJsT('salon.staff.ops.payroll_saved', 'Bordro hesaplandi')); self.loadOps(); })
+            .fail(function (xhr) { toastr.error(xhr.responseJSON?.message || slnJsT('salon.common.error.generic', 'Bir hata olustu')); });
     };
 
     self.resetForm = function () {

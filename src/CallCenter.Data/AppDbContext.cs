@@ -107,6 +107,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnPersonnelCommission> SlnPersonnelCommissions => Set<SlnPersonnelCommission>();
     public DbSet<SlnPayroll> SlnPayrolls => Set<SlnPayroll>();
     public DbSet<SlnAdvance> SlnAdvances => Set<SlnAdvance>();
+    public DbSet<SlnPersonnelShift> SlnPersonnelShifts => Set<SlnPersonnelShift>();
+    public DbSet<SlnPersonnelLeave> SlnPersonnelLeaves => Set<SlnPersonnelLeave>();
+    public DbSet<SlnPersonnelTimesheet> SlnPersonnelTimesheets => Set<SlnPersonnelTimesheet>();
     public DbSet<SlnAppointment> SlnAppointments => Set<SlnAppointment>();
     public DbSet<SlnAppointmentService> SlnAppointmentServices => Set<SlnAppointmentService>();
     public DbSet<SlnProductCategory> SlnProductCategories => Set<SlnProductCategory>();
@@ -546,6 +549,28 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnProduct>(e =>
         {
             e.Property(p => p.TaxRate).HasPrecision(5, 2);
+        });
+
+        modelBuilder.Entity<SlnPersonnelShift>(e =>
+        {
+            e.Property(s => s.Notes).HasMaxLength(1000);
+            e.HasIndex(s => new { s.PersonnelId, s.ShiftDate }).IsUnique();
+            e.HasOne(s => s.Personnel).WithMany().HasForeignKey(s => s.PersonnelId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SlnPersonnelLeave>(e =>
+        {
+            e.Property(l => l.Notes).HasMaxLength(1000);
+            e.HasIndex(l => new { l.PersonnelId, l.StartDate, l.EndDate });
+            e.HasOne(l => l.Personnel).WithMany().HasForeignKey(l => l.PersonnelId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.ReviewedByPersonnel).WithMany().HasForeignKey(l => l.ReviewedByPersonnelId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnPersonnelTimesheet>(e =>
+        {
+            e.Property(t => t.Notes).HasMaxLength(1000);
+            e.HasIndex(t => new { t.PersonnelId, t.WorkDate }).IsUnique();
+            e.HasOne(t => t.Personnel).WithMany().HasForeignKey(t => t.PersonnelId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SlnSupplierOrder>(e =>

@@ -19,4 +19,12 @@ public interface IPortalFactory
     Task<(bool Success, int? Id, string? Error)> CreateSipAccountAsync(int customerId, PortalSipCreateDto dto);
     Task<(bool Success, string? Error)> DeleteSipAccountAsync(int customerId, int id);
     Task<(bool Success, string? Error)> SetReportsToAsync(int customerId, int personnelId, int? reportsToPersonnelId);
+    Task<PortalPersonnelOpsDto> GetPersonnelOpsAsync(int customerId, DateTime from, DateTime to, int? callerPersonnelId = null, int? callerRoleId = null, int? callerBranchId = null);
+    Task<(bool Success, string? Error)> UpsertPersonnelShiftAsync(int customerId, int? id, PortalPersonnelShiftUpsertDto dto, int? callerRoleId = null, int? callerBranchId = null);
+    Task<(bool Success, string? Error)> DeletePersonnelShiftAsync(int customerId, int id, int? callerRoleId = null, int? callerBranchId = null);
+    Task<(bool Success, string? Error)> CreatePersonnelLeaveAsync(int customerId, PortalPersonnelLeaveCreateDto dto, int? callerRoleId = null, int? callerBranchId = null);
+    Task<(bool Success, string? Error)> UpdatePersonnelLeaveStatusAsync(int customerId, int id, PortalPersonnelLeaveStatusDto dto, int? reviewedByPersonnelId);
+    Task<(bool Success, string? Error)> UpsertPersonnelTimesheetAsync(int customerId, int? id, PortalPersonnelTimesheetUpsertDto dto, int? callerRoleId = null, int? callerBranchId = null);
+    Task<(bool Success, string? Error)> CreatePersonnelAdvanceAsync(int customerId, PortalAdvanceCreateDto dto, int? callerRoleId = null, int? callerBranchId = null);
+    Task<(bool Success, string? Error)> GeneratePayrollAsync(int customerId, PortalPayrollGenerateDto dto, int? callerRoleId = null, int? callerBranchId = null);
 }

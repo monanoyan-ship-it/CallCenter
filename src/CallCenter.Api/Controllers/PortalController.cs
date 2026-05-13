@@ -304,6 +304,125 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
+    [HttpGet("personnel-ops")]
+    public async Task<IActionResult> GetPersonnelOps([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelView))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var start = (from ?? DateTime.UtcNow.Date.AddDays(-7)).Date;
+        var end = (to ?? DateTime.UtcNow.Date.AddDays(30)).Date;
+        return Ok(await _portalFactory.GetPersonnelOpsAsync(cid.Value, start, end, GetCustomerPersonnelId(), GetCustomerRoleId(), GetBranchId()));
+    }
+
+    [HttpPost("personnel-ops/shifts")]
+    public async Task<IActionResult> UpsertShift([FromBody] PortalPersonnelShiftUpsertDto dto, [FromQuery] int? id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.UpsertPersonnelShiftAsync(cid.Value, id, dto, GetCustomerRoleId(), GetBranchId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("UpsertShift", "SlnPersonnelShift", id?.ToString(), $"Personel vardiyasi kaydedildi: PersonelID={dto.PersonnelId}", customerId: cid);
+        return Ok();
+    }
+
+    [HttpDelete("personnel-ops/shifts/{id}")]
+    public async Task<IActionResult> DeleteShift(int id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.DeletePersonnelShiftAsync(cid.Value, id, GetCustomerRoleId(), GetBranchId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("DeleteShift", "SlnPersonnelShift", id.ToString(), "Personel vardiyasi silindi.", customerId: cid);
+        return NoContent();
+    }
+
+    [HttpPost("personnel-ops/leaves")]
+    public async Task<IActionResult> CreateLeave([FromBody] PortalPersonnelLeaveCreateDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.CreatePersonnelLeaveAsync(cid.Value, dto, GetCustomerRoleId(), GetBranchId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("CreateLeave", "SlnPersonnelLeave", null, $"Personel izin kaydi olusturuldu: PersonelID={dto.PersonnelId}", customerId: cid);
+        return Ok();
+    }
+
+    [HttpPatch("personnel-ops/leaves/{id}/status")]
+    public async Task<IActionResult> UpdateLeaveStatus(int id, [FromBody] PortalPersonnelLeaveStatusDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.UpdatePersonnelLeaveStatusAsync(cid.Value, id, dto, GetCustomerPersonnelId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("UpdateLeaveStatus", "SlnPersonnelLeave", id.ToString(), $"Personel izin durumu guncellendi: StatusID={dto.StatusId}", customerId: cid);
+        return NoContent();
+    }
+
+    [HttpPost("personnel-ops/timesheets")]
+    public async Task<IActionResult> UpsertTimesheet([FromBody] PortalPersonnelTimesheetUpsertDto dto, [FromQuery] int? id, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.UpsertPersonnelTimesheetAsync(cid.Value, id, dto, GetCustomerRoleId(), GetBranchId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("UpsertTimesheet", "SlnPersonnelTimesheet", id?.ToString(), $"Personel timesheet kaydedildi: PersonelID={dto.PersonnelId}", customerId: cid);
+        return Ok();
+    }
+
+    [HttpPost("personnel-ops/advances")]
+    public async Task<IActionResult> CreateAdvance([FromBody] PortalAdvanceCreateDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.CreatePersonnelAdvanceAsync(cid.Value, dto, GetCustomerRoleId(), GetBranchId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("CreateAdvance", "SlnAdvance", null, $"Personel avansi olusturuldu: PersonelID={dto.PersonnelId}", customerId: cid);
+        return Ok();
+    }
+
+    [HttpPost("personnel-ops/payroll")]
+    public async Task<IActionResult> GeneratePayroll([FromBody] PortalPayrollGenerateDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.GeneratePayrollAsync(cid.Value, dto, GetCustomerRoleId(), GetBranchId());
+        if (!success) return BadRequest(new { message = error });
+        await AuditCrudAsync("GeneratePayroll", "SlnPayroll", null, $"Personel bordrosu olusturuldu: PersonelID={dto.PersonnelId}, Donem={dto.Year}-{dto.Month}", customerId: cid);
+        return Ok();
+    }
+
     // MODULES
 
     [HttpGet("modules")]
