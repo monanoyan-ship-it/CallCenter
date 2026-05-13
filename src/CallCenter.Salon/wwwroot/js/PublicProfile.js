@@ -31,6 +31,18 @@ var salonSlug = profileSlug;
             self.reviews = ko.observableArray([]);
             self.reviewStats = ko.observable({});
             self.selectedPlanId = ko.observable(null);
+            self.profileUrl = ko.computed(function () {
+                return window.location.origin + '/salon/' + (self.salon().slug || salonSlug);
+            });
+            self.bookingUrl = ko.computed(function () {
+                return self.profileUrl() + '/book';
+            });
+            self.qrCodeUrl = ko.computed(function () {
+                return 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(self.bookingUrl());
+            });
+            self.widgetCode = ko.computed(function () {
+                return '<iframe src="' + self.bookingUrl() + '?embed=1" width="100%" height="720" style="border:0;border-radius:8px" loading="lazy"></iframe>';
+            });
             self.serviceCombos = ko.computed(function () {
                 var s = self.salon();
                 return s && Array.isArray(s.serviceCombos) ? s.serviceCombos : [];
@@ -51,6 +63,39 @@ var salonSlug = profileSlug;
                     .map(function (item) { return item.serviceName; })
                     .filter(Boolean)
                     .join(' + ');
+            };
+
+            self.copyText = function (text, successKey, fallback) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function () {
+                        toastr.success(profileT(successKey, fallback));
+                    }).catch(function () {
+                        toastr.error(profileT('salon.profile.distribution.copy_failed', 'Kopyalanamadi'));
+                    });
+                    return;
+                }
+                toastr.info(text);
+            };
+
+            self.copyBookingLink = function () {
+                self.copyText(self.bookingUrl(), 'salon.profile.distribution.booking_copied', 'Randevu linki kopyalandi');
+            };
+
+            self.copyWidgetCode = function () {
+                self.copyText(self.widgetCode(), 'salon.profile.distribution.widget_copied', 'Widget kodu kopyalandi');
+            };
+
+            self.shareProfile = function () {
+                var shareData = {
+                    title: self.salon().salonName || document.title,
+                    text: profileT('salon.profile.distribution.share_text', 'Online randevu linki'),
+                    url: self.profileUrl()
+                };
+                if (navigator.share) {
+                    navigator.share(shareData).catch(function () {});
+                    return;
+                }
+                self.copyText(self.profileUrl(), 'salon.profile.distribution.profile_copied', 'Profil linki kopyalandi');
             };
 
             // Signup

@@ -417,6 +417,27 @@
                     <!-- /ko -->
 
                     <!-- Çalışma Saatleri -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white fw-semibold small"><i class="bi bi-share me-2"></i><t key="salon.profile.distribution.title">Paylasim ve QR</t></div>
+                        <div class="card-body small">
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: shareProfile">
+                                    <i class="bi bi-share me-1"></i><t key="salon.profile.distribution.share">Profili Paylas</t>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: copyBookingLink">
+                                    <i class="bi bi-link-45deg me-1"></i><t key="salon.profile.distribution.copy_booking">Randevu Linkini Kopyala</t>
+                                </button>
+                            </div>
+                            <div class="text-center mt-3">
+                                <img class="img-fluid border rounded p-2 bg-white" style="max-width:160px;"
+                                     data-bind="attr: { src: qrCodeUrl, alt: t('salon.profile.distribution.qr_alt', 'Randevu QR') }" />
+                                <div class="small text-muted mt-1"><t key="salon.profile.distribution.qr_hint">Instagram, Google ve masaustu afisleri icin</t></div>
+                            </div>
+                            <label class="form-label small mt-3"><t key="salon.profile.distribution.widget">Web site widget kodu</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" readonly data-bind="value: widgetCode, click: copyWidgetCode"></textarea>
+                        </div>
+                    </div>
+
                     <!-- ko if: salon().showHours !== false && workingHours().length > 0 -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-white fw-semibold small"><i class="bi bi-clock me-2"></i><t key="salon.profile.hours.title">Çalışma Saatleri</t></div>
