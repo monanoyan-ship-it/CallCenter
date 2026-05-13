@@ -17,6 +17,7 @@ function CampaignsViewModel() {
     self.segmentMissingPhoneCount = ko.observable(0);
     self.segmentEstimatedSmsCost = ko.observable(0);
     self.segmentPresets = ko.observableArray([]);
+    self.inboxMessages = ko.observableArray([]);
 
     self.campaignForm = {
         name: ko.observable(''),
@@ -49,7 +50,12 @@ function CampaignsViewModel() {
         isActive: ko.observable(true)
     };
 
-    var campaignModal, reminderModal;
+    self.replyForm = {
+        phone: ko.observable(''),
+        message: ko.observable('')
+    };
+
+    var campaignModal, reminderModal, replyModal;
     var statusTexts = {
         1: slnJsT('salon.campaigns.status.draft', 'Taslak'),
         2: slnJsT('salon.campaigns.status.scheduled', 'Zamanlanmış'),
@@ -373,13 +379,56 @@ function CampaignsViewModel() {
         });
     };
 
+    self.loadInbox = function () {
+        $.ajax({ url: '/proxy/sln-whatsapp/messages?page=1&pageSize=100', method: 'GET' }).done(function (data) {
+            self.inboxMessages(data.items || data || []);
+        }).fail(function () {
+            toastr.error(slnJsT('salon.campaigns.inbox_load_failed', 'Mesaj kutusu yuklenemedi'));
+        });
+    };
+
+    self.openReply = function (message) {
+        self.replyForm.phone(message.phoneNumber || '');
+        self.replyForm.message('');
+        replyModal.show();
+    };
+
+    self.sendReply = function () {
+        var data = {
+            phone: self.replyForm.phone(),
+            message: self.replyForm.message()
+        };
+        if (!data.phone || !data.message) {
+            toastr.warning(slnJsT('salon.campaigns.reply_required', 'Telefon ve mesaj zorunludur'));
+            return;
+        }
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-whatsapp/send-message',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data)
+        }).done(function () {
+            replyModal.hide();
+            self.loadInbox();
+            toastr.success(slnJsT('salon.campaigns.reply_sent', 'Mesaj gonderildi'));
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON || slnJsT('salon.campaigns.reply_failed', 'Mesaj gonderilemedi'));
+        }).always(function () {
+            self.isSaving(false);
+        });
+    };
+
     // Init
     $(document).ready(function () {
         campaignModal = new bootstrap.Modal(document.getElementById('campaignModal'));
         reminderModal = new bootstrap.Modal(document.getElementById('reminderModal'));
+        replyModal = new bootstrap.Modal(document.getElementById('replyModal'));
         self.loadCampaigns();
         self.loadSegmentPresets();
         self.loadReminders();
+        self.loadInbox();
     });
 }
 

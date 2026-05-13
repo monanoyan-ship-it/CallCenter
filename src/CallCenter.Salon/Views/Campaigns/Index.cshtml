@@ -12,6 +12,9 @@
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="tab" href="#reminders-tab"><t key="salon.campaigns.auto.oto_hatirlatmalar">Oto-Hatırlatmalar</t></a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#inbox-tab"><t key="salon.campaigns.inbox">Mesaj Kutusu</t></a>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -132,6 +135,55 @@
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-bell" style="font-size:2rem;"></i>
                         <p class="mt-2 small"><t key="salon.campaigns.auto.henuz_hatirlatma_tanimlanmamis">Henüz hatırlatma tanımlanmamış</t></p>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="inbox-tab">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><t key="salon.campaigns.inbox">Mesaj Kutusu</t></h6>
+                <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadInbox">
+                    <i class="bi bi-arrow-clockwise me-1"></i><t key="salon.common.btn.refresh">Yenile</t>
+                </button>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><t key="salon.campaigns.inbox.direction">Yon</t></th>
+                                    <th><t key="salon.clients.col.client">Musteri</t></th>
+                                    <th><t key="salon.clients.phone">Telefon</t></th>
+                                    <th><t key="salon.reports.email_modal.message">Mesaj</t></th>
+                                    <th><t key="salon.appointments.status">Durum</t></th>
+                                    <th><t key="salon.common.date">Tarih</t></th>
+                                    <th style="width:80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: inboxMessages">
+                                <tr>
+                                    <td class="small"><span class="badge" data-bind="text: directionText, css: directionId === 2 ? 'bg-info' : 'bg-secondary'"></span></td>
+                                    <td class="small" data-bind="text: clientName || '-'"></td>
+                                    <td class="small" data-bind="text: phoneNumber"></td>
+                                    <td class="small text-truncate" style="max-width:360px;" data-bind="text: messageBody || templateName || '-'"></td>
+                                    <td class="small" data-bind="text: statusText"></td>
+                                    <td class="small" data-bind="text: createdAt ? new Date(createdAt).toLocaleString(document.documentElement.lang || undefined) : '-'"></td>
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-primary btn-sm" data-bind="click: $parent.openReply">
+                                            <i class="bi bi-reply"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ko if: inboxMessages().length === 0 -->
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-chat-dots" style="font-size:2rem;"></i>
+                        <p class="mt-2 small"><t key="salon.campaigns.inbox.empty">Henuz mesaj yok</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -299,6 +351,29 @@
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveReminder, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="replyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><t key="salon.campaigns.reply">Mesaj Yaniti</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label small"><t key="salon.clients.phone">Telefon</t></label>
+                    <input type="text" class="form-control form-control-sm mb-3" data-bind="value: replyForm.phone" />
+                    <label class="form-label small"><t key="salon.reports.email_modal.message">Mesaj</t></label>
+                    <textarea class="form-control form-control-sm" rows="4" data-bind="value: replyForm.message"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: sendReply, disable: isSaving">
+                        <i class="bi bi-send me-1"></i><t key="salon.campaigns.send_reply">Gonder</t>
                     </button>
                 </div>
             </div>
