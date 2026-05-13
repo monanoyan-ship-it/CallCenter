@@ -1,11 +1,11 @@
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
-using Azure.Identity;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Google.Apis.Auth.OAuth2;
@@ -13,8 +13,6 @@ using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using Microsoft.Graph;
-using Microsoft.Graph.Models;
 
 namespace CallCenter.Windows.Services.CloudStorage;
 
@@ -207,7 +205,7 @@ public static class CloudUploadHelper
     }
 
     // ═══════════════════════════════════════
-    // ONEDRIVE (Microsoft Graph)
+    // ONEDRIVE (Microsoft Graph REST)
     // ═══════════════════════════════════════
 
     private static async Task<(bool, string?, string?)> UploadToOneDriveAsync(
@@ -215,86 +213,190 @@ public static class CloudUploadHelper
         CancellationToken ct)
     {
         var cred = config.Credentials;
-        var tenantId = cred.GetValueOrDefault("TenantId", "common");
-        var driveId = cred.GetValueOrDefault("DriveId", "");
+        string tenantId = cred.GetValueOrDefault("TenantId", "common") ?? "common";
+        string driveId = cred.GetValueOrDefault("DriveId", "") ?? "";
 
         if (string.IsNullOrEmpty(driveId))
             return (false, null, "OneDrive DriveId yapilandirilmamis");
 
-        // AuthMode'a gore credential sec: Delegated (RefreshToken) veya ClientCredential
-        var authMode = cred.GetValueOrDefault("AuthMode", "ClientCredential");
-        var refreshToken = cred.GetValueOrDefault("RefreshToken", "");
-        var clientId = cred.GetValueOrDefault("ClientId", "");
-        var clientSecret = cred.GetValueOrDefault("ClientSecret", "");
+        string authMode = cred.GetValueOrDefault("AuthMode", "ClientCredential") ?? "ClientCredential";
+        string refreshToken = cred.GetValueOrDefault("RefreshToken", "") ?? "";
+        string clientId = cred.GetValueOrDefault("ClientId", "") ?? "";
+        string clientSecret = cred.GetValueOrDefault("ClientSecret", "") ?? "";
 
         // Debug: credentials'da ne var kontrol
-        UploadDebugLog($"OneDrive creds: AuthMode={authMode}, ClientId={clientId?[..Math.Min(clientId.Length,10)]}..., " +
+        var clientIdPreview = clientId[..Math.Min(clientId.Length, 10)];
+        UploadDebugLog($"OneDrive creds: AuthMode={authMode}, ClientId={clientIdPreview}..., " +
             $"Secret={(string.IsNullOrEmpty(clientSecret) ? "BOS" : "DOLU")}, " +
             $"RefreshToken={(string.IsNullOrEmpty(refreshToken) ? "BOS" : "DOLU")}, " +
             $"DriveId={driveId}, TenantId={tenantId}, " +
             $"CredKeys=[{string.Join(",", cred.Keys)}]");
 
-        Azure.Core.TokenCredential credential;
-        if (authMode == "Delegated" && !string.IsNullOrEmpty(refreshToken))
-        {
-            credential = new OneDriveRefreshTokenCredential(
-                clientId,
-                clientSecret,
-                refreshToken,
-                tenantId);
-        }
-        else
-        {
-            credential = new ClientSecretCredential(
-                tenantId,
-                cred.GetValueOrDefault("ClientId", ""),
-                cred.GetValueOrDefault("ClientSecret", ""));
-        }
-
-        var graphClient = new GraphServiceClient(credential);
-
-        // Dosya yolu olustur
-        var pathParts = new List<string>();
-        if (cred.TryGetValue("FolderId", out var folderId) && !string.IsNullOrEmpty(folderId))
-            pathParts.Add(folderId);
-        if (!string.IsNullOrEmpty(config.BasePath))
-            pathParts.Add(config.BasePath.Trim('/'));
-        pathParts.Add(fileName);
-        var targetPath = "/" + string.Join("/", pathParts);
+        var accessToken = await GetOneDriveAccessTokenAsync(
+            tenantId, authMode, clientId, clientSecret, refreshToken, ct);
+        var targetPath = BuildOneDriveTargetPath(config, cred, fileName);
 
         // 4MB'den kucuk: basit upload
         if (fileStream.Length <= 4 * 1024 * 1024)
         {
-            var driveItem = await graphClient.Drives[driveId]
-                .Root
-                .ItemWithPath(targetPath)
-                .Content
-                .PutAsync(fileStream, cancellationToken: ct);
+            using var httpClient = CreateGraphClient(accessToken);
+            var uploadUrl = $"https://graph.microsoft.com/v1.0/drives/{Uri.EscapeDataString(driveId)}/root:{targetPath}:/content";
+            using var content = new StreamContent(fileStream);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            var response = await httpClient.PutAsync(uploadUrl, content, ct);
+            var json = await response.Content.ReadAsStringAsync(ct);
 
-            return (true, driveItem?.Id, null);
+            if (!response.IsSuccessStatusCode)
+                return (false, null, $"OneDrive upload hatasi ({(int)response.StatusCode}): {json}");
+
+            return (true, TryGetJsonString(json, "id") ?? targetPath, null);
         }
 
-        // Buyuk dosya: upload session
-        var uploadSession = await graphClient.Drives[driveId]
-            .Root
-            .ItemWithPath(targetPath)
-            .CreateUploadSession
-            .PostAsync(new Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession.CreateUploadSessionPostRequestBody
-            {
-                Item = new DriveItemUploadableProperties { Name = fileName }
-            }, cancellationToken: ct);
+        return await UploadLargeFileToOneDriveAsync(accessToken, driveId, targetPath, fileName, fileStream, ct);
+    }
 
-        if (uploadSession?.UploadUrl == null)
+    private static async Task<string> GetOneDriveAccessTokenAsync(
+        string tenantId,
+        string authMode,
+        string clientId,
+        string clientSecret,
+        string refreshToken,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+            throw new InvalidOperationException("OneDrive ClientId bos");
+        if (string.IsNullOrWhiteSpace(clientSecret))
+            throw new InvalidOperationException("OneDrive ClientSecret bos");
+
+        var tokenTenant = string.IsNullOrWhiteSpace(tenantId) ? "common" : tenantId;
+        var tokenUrl = $"https://login.microsoftonline.com/{tokenTenant}/oauth2/v2.0/token";
+
+        Dictionary<string, string> form;
+        if (authMode == "Delegated" && !string.IsNullOrWhiteSpace(refreshToken))
+        {
+            form = new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+                ["refresh_token"] = refreshToken,
+                ["grant_type"] = "refresh_token",
+                ["scope"] = "https://graph.microsoft.com/.default offline_access"
+            };
+        }
+        else
+        {
+            form = new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+                ["grant_type"] = "client_credentials",
+                ["scope"] = "https://graph.microsoft.com/.default"
+            };
+        }
+
+        using var httpClient = new HttpClient();
+        using var response = await httpClient.PostAsync(tokenUrl, new FormUrlEncodedContent(form), ct);
+        var json = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"OneDrive token alinamadi ({(int)response.StatusCode}): {json}");
+
+        return TryGetJsonString(json, "access_token")
+            ?? throw new InvalidOperationException("OneDrive token yanitinda access_token yok");
+    }
+
+    private static async Task<(bool, string?, string?)> UploadLargeFileToOneDriveAsync(
+        string accessToken,
+        string driveId,
+        string targetPath,
+        string fileName,
+        Stream fileStream,
+        CancellationToken ct)
+    {
+        using var httpClient = CreateGraphClient(accessToken);
+        var sessionUrl = $"https://graph.microsoft.com/v1.0/drives/{Uri.EscapeDataString(driveId)}/root:{targetPath}:/createUploadSession";
+        var payload = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["item"] = new Dictionary<string, object?>
+            {
+                ["@microsoft.graph.conflictBehavior"] = "replace",
+                ["name"] = fileName
+            }
+        });
+
+        using var sessionContent = new StringContent(payload, Encoding.UTF8, "application/json");
+        var sessionResponse = await httpClient.PostAsync(sessionUrl, sessionContent, ct);
+        var sessionJson = await sessionResponse.Content.ReadAsStringAsync(ct);
+        if (!sessionResponse.IsSuccessStatusCode)
+            return (false, null, $"OneDrive upload session hatasi ({(int)sessionResponse.StatusCode}): {sessionJson}");
+
+        var uploadUrl = TryGetJsonString(sessionJson, "uploadUrl");
+        if (uploadUrl == null)
             return (false, null, "OneDrive upload session olusturulamadi");
 
         const int chunkSize = 5 * 1024 * 1024;
-        var fileUploadTask = new LargeFileUploadTask<DriveItem>(uploadSession, fileStream, chunkSize);
-        var result = await fileUploadTask.UploadAsync(cancellationToken: ct);
+        var totalLength = fileStream.Length;
+        if (fileStream.CanSeek)
+            fileStream.Position = 0;
 
-        if (result.UploadSucceeded && result.ItemResponse is DriveItem item)
-            return (true, item.Id, null);
+        var buffer = new byte[chunkSize];
+        long uploaded = 0;
+        while (uploaded < totalLength)
+        {
+            var read = await fileStream.ReadAsync(
+                buffer.AsMemory(0, (int)Math.Min(chunkSize, totalLength - uploaded)), ct);
+            if (read == 0)
+                break;
 
-        return (false, null, "OneDrive upload basarisiz");
+            using var chunkContent = new ByteArrayContent(buffer, 0, read);
+            chunkContent.Headers.ContentLength = read;
+            chunkContent.Headers.ContentRange = new ContentRangeHeaderValue(uploaded, uploaded + read - 1, totalLength);
+
+            var chunkResponse = await httpClient.PutAsync(uploadUrl, chunkContent, ct);
+            var chunkJson = await chunkResponse.Content.ReadAsStringAsync(ct);
+            if (chunkResponse.StatusCode == System.Net.HttpStatusCode.Accepted)
+            {
+                uploaded += read;
+                continue;
+            }
+
+            if (chunkResponse.IsSuccessStatusCode)
+                return (true, TryGetJsonString(chunkJson, "id") ?? targetPath, null);
+
+            return (false, null, $"OneDrive chunk upload hatasi ({(int)chunkResponse.StatusCode}): {chunkJson}");
+        }
+
+        return (false, null, "OneDrive upload tamamlanamadi");
+    }
+
+    private static HttpClient CreateGraphClient(string accessToken)
+    {
+        var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return httpClient;
+    }
+
+    private static string BuildOneDriveTargetPath(
+        CloudConfigForClientDto config,
+        IReadOnlyDictionary<string, string> credentials,
+        string fileName)
+    {
+        var pathParts = new List<string>();
+        if (credentials.TryGetValue("FolderId", out var folderId) && !string.IsNullOrWhiteSpace(folderId))
+            pathParts.AddRange(folderId.Split('/', StringSplitOptions.RemoveEmptyEntries));
+        if (!string.IsNullOrWhiteSpace(config.BasePath))
+            pathParts.AddRange(config.BasePath.Split('/', StringSplitOptions.RemoveEmptyEntries));
+        pathParts.Add(fileName);
+
+        return "/" + string.Join("/", pathParts.Select(Uri.EscapeDataString));
+    }
+
+    private static string? TryGetJsonString(string json, string propertyName)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.TryGetProperty(propertyName, out var property)
+            ? property.GetString()
+            : null;
     }
 
     // ═══════════════════════════════════════

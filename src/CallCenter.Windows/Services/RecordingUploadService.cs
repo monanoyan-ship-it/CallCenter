@@ -29,6 +29,7 @@ public class RecordingUploadService
     private RecordingUploadTargetsDto? _cachedTargets;
     private DateTime _lastTargetsFetch = DateTime.MinValue;
     private static readonly TimeSpan TargetsCacheExpiry = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan RetryCooldown = TimeSpan.FromMinutes(30);
 
     private enum UploadTargetKind
     {
@@ -86,17 +87,25 @@ public class RecordingUploadService
             if (!File.Exists(recording.FilePath))
             {
                 UploadLog($"Dosya bulunamadi: {recording.FilePath}");
-                if (needsCustomerUpload && !recording.IsUploadedToCloud)
+                if (needsCustomerUpload &&
+                    !recording.IsUploadedToCloud &&
+                    ShouldAttemptUpload(recording.CloudUploadAttemptCount, recording.LastCloudUploadAttempt))
                     await _localRepo.UpdateRecordingUploadAttemptAsync(recording.Uid);
-                if (needsPlatformUpload && !recording.IsUploadedToPlatform)
+                if (needsPlatformUpload &&
+                    !recording.IsUploadedToPlatform &&
+                    ShouldAttemptUpload(recording.PlatformUploadAttemptCount, recording.LastPlatformUploadAttempt))
                     await _localRepo.UpdateRecordingPlatformUploadAttemptAsync(recording.Uid);
                 continue;
             }
 
-            if (needsCustomerUpload && !recording.IsUploadedToCloud && recording.CloudUploadAttemptCount < MaxRetries)
+            if (needsCustomerUpload &&
+                !recording.IsUploadedToCloud &&
+                ShouldAttemptUpload(recording.CloudUploadAttemptCount, recording.LastCloudUploadAttempt))
                 await UploadToTargetAsync(targets.CustomerConfig!, recording, UploadTargetKind.CustomerStorage, ct);
 
-            if (needsPlatformUpload && !recording.IsUploadedToPlatform && recording.PlatformUploadAttemptCount < MaxRetries)
+            if (needsPlatformUpload &&
+                !recording.IsUploadedToPlatform &&
+                ShouldAttemptUpload(recording.PlatformUploadAttemptCount, recording.LastPlatformUploadAttempt))
                 await UploadToTargetAsync(targets.PlatformConfig!, recording, UploadTargetKind.PlatformStorage, ct);
 
             if (IsCompleteForTargets(recording, targets))
@@ -350,6 +359,18 @@ public class RecordingUploadService
 
         return (!needsCustomer || recording.IsUploadedToCloud)
             && (!needsPlatform || recording.IsUploadedToPlatform);
+    }
+
+    private static bool ShouldAttemptUpload(int attemptCount, DateTime? lastAttempt)
+    {
+        if (attemptCount < MaxRetries || lastAttempt == null)
+            return true;
+
+        var lastUtc = lastAttempt.Value.Kind == DateTimeKind.Local
+            ? lastAttempt.Value.ToUniversalTime()
+            : lastAttempt.Value;
+
+        return DateTime.UtcNow - lastUtc >= RetryCooldown;
     }
 
     private static string TargetLabel(UploadTargetKind target)

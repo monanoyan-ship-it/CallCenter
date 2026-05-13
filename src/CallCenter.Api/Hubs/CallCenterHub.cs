@@ -15,6 +15,7 @@ namespace CallCenter.Api.Hubs;
 public class CallCenterHub : Hub
 {
     private static readonly ConcurrentDictionary<int, GatewayHealthUpdate> _gatewayStates = new();
+    private static readonly ConcurrentDictionary<int, int> _userConnectionCounts = new();
 
     private readonly AppDbContext _db;
     private readonly CallDistributionService _distribution;
@@ -27,6 +28,9 @@ public class CallCenterHub : Hub
         _sipFactory = sipFactory;
     }
 
+    public static bool HasActiveConnection(int userId)
+        => _userConnectionCounts.TryGetValue(userId, out var count) && count > 0;
+
     public override async Task OnConnectedAsync()
     {
         var userId = GetUserId();
@@ -35,6 +39,8 @@ public class CallCenterHub : Hub
             var user = await _db.Users.FindAsync(userId.Value);
             if (user != null)
             {
+                _userConnectionCounts.AddOrUpdate(user.Id, 1, (_, count) => count + 1);
+
                 // Kullaniciyi musteri grubuna ekle
                 var groupName = await GetGroupNameAsync(userId.Value);
                 if (groupName != null)
@@ -78,6 +84,10 @@ public class CallCenterHub : Hub
             var user = await _db.Users.FindAsync(userId.Value);
             if (user != null)
             {
+                var remainingConnections = _userConnectionCounts.AddOrUpdate(user.Id, 0, (_, count) => Math.Max(0, count - 1));
+                if (remainingConnections == 0)
+                    _userConnectionCounts.TryRemove(user.Id, out _);
+
                 var groupName = await GetGroupNameAsync(userId.Value);
 
                 user.StatusId = AgentStatuses.Ids.Offline;

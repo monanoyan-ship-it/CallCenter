@@ -19,6 +19,7 @@ public class HubService : IAsyncDisposable
     public event Action<CallNotification>? OnIncomingCall;
     public event Action<int>? OnCallEnded;
     public event Action<HubConnectionState>? OnConnectionStateChanged;
+    public event Action<string>? OnConcurrentLoginBlocked;
 
     // ─── Dashboard Events ───
     public event Action<DashboardKpiUpdate>? OnDashboardKpiUpdated;
@@ -75,6 +76,11 @@ public class HubService : IAsyncDisposable
         _connection.On<int>("CallEnded", callId =>
         {
             OnCallEnded?.Invoke(callId);
+        });
+
+        _connection.On<string>("ConcurrentLoginBlocked", message =>
+        {
+            OnConcurrentLoginBlocked?.Invoke(message);
         });
 
         // Dashboard events

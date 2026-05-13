@@ -17,6 +17,7 @@ public class AuthFactory : IAuthFactory
 {
     private readonly IUserEntityService _users;
     private readonly IRefreshTokenEntityService _refreshTokens;
+    private readonly ICallRecordEntityService _calls;
     private readonly ICustomerEntityService _customers;
     private readonly ICustomerPortalModuleEntityService _portalModules;
     private readonly IPasswordPolicyFactory _passwordPolicy;
@@ -38,6 +39,7 @@ public class AuthFactory : IAuthFactory
     public AuthFactory(
         IUserEntityService users,
         IRefreshTokenEntityService refreshTokens,
+        ICallRecordEntityService calls,
         ICustomerEntityService customers,
         ICustomerPortalModuleEntityService portalModules,
         IPasswordPolicyFactory passwordPolicy,
@@ -51,6 +53,7 @@ public class AuthFactory : IAuthFactory
     {
         _users = users;
         _refreshTokens = refreshTokens;
+        _calls = calls;
         _customers = customers;
         _portalModules = portalModules;
         _passwordPolicy = passwordPolicy;
@@ -70,6 +73,17 @@ public class AuthFactory : IAuthFactory
         if (current >= DailyEmailLimit) return false;
         _cache.Set(key, current + 1, TimeSpan.FromHours(24));
         return true;
+    }
+
+    private async Task<bool> HasRecentActiveCallAsync(int userId)
+    {
+        var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+        var cutoff = DateTime.UtcNow.AddHours(-2);
+
+        return await _calls.GetAllQueryable()
+            .AnyAsync(c => c.AgentId == userId
+                && activeStatusIds.Contains(c.StatusId)
+                && c.StartedAt >= cutoff);
     }
 
     public async Task<(bool Success, LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
@@ -111,7 +125,6 @@ public class AuthFactory : IAuthFactory
 
         user.FailedLoginCount = 0;
         user.LockedUntil = null;
-        user.LastLoginAt = DateTime.UtcNow;
 
         if (user.CustomerPersonnel != null)
         {
@@ -124,6 +137,19 @@ public class AuthFactory : IAuthFactory
                 return (false, null, reason ?? "Odenmemis fatura nedeniyle erisim engellendi.");
         }
 
+        var oldTokens = await _refreshTokens.GetActiveByUserIdAsync(user.Id);
+        if (oldTokens.Any()
+            && CallCenterHub.HasActiveConnection(user.Id)
+            && await HasRecentActiveCallAsync(user.Id))
+        {
+            const string loginError = "Bu kullanici su anda aktif bir gorusmede. Gorusme bitmeden baska bir cihazdan giris yapilamaz.";
+            const string activeSessionNotice = "Aktif gorusmeniz devam ederken baska bir yerden giris denemesi reddedildi.";
+            await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ConcurrentLoginBlocked", activeSessionNotice);
+            return (false, null, loginError);
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
+
         List<int>? moduleIds = null;
         if (user.CustomerPersonnel != null)
             moduleIds = await _portalModules.GetActiveModuleIdsAsync(user.CustomerPersonnel.CustomerId);
@@ -131,7 +157,6 @@ public class AuthFactory : IAuthFactory
         var token = _tokenService.GenerateToken(user, user.CustomerPersonnel, moduleIds);
         var expireMinutes = int.Parse(_config["Jwt:ExpireMinutes"] ?? "480");
 
-        var oldTokens = await _refreshTokens.GetActiveByUserIdAsync(user.Id);
         foreach (var old in oldTokens)
             old.RevokedAt = DateTime.UtcNow;
 

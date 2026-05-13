@@ -44,7 +44,7 @@ public class LocalRecording
     /// <summary>Son yukleme denemesi zamani</summary>
     public DateTime? LastCloudUploadAttempt { get; set; }
 
-    /// <summary>Toplam yukleme deneme sayisi (max 5'te durur)</summary>
+    /// <summary>Toplam yukleme deneme sayisi (5 hizli denemeden sonra aralikli tekrar denenir)</summary>
     public int CloudUploadAttemptCount { get; set; }
 
     /// <summary>Musteri bulut'undaki dosya ID/key (S3 key, Drive file ID, vb.)</summary>

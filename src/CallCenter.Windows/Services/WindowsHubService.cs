@@ -28,6 +28,7 @@ public class WindowsHubService : IAsyncDisposable
     public event Action<object>? OnCallbackTaskReverted;
     public event Action<int>? OnCallEnded;
     public event Action<HubConnectionState>? OnConnectionStateChanged;
+    public event Action<string>? OnConcurrentLoginBlocked;
 
     // ─── Force Logout Event ───
     public event Func<Task>? OnForceLogout;
@@ -118,6 +119,11 @@ public class WindowsHubService : IAsyncDisposable
         _connection.On<int>("CallEnded", callId =>
         {
             OnCallEnded?.Invoke(callId);
+        });
+
+        _connection.On<string>("ConcurrentLoginBlocked", message =>
+        {
+            OnConcurrentLoginBlocked?.Invoke(message);
         });
 
         _connection.On("ForceLogout", async () =>

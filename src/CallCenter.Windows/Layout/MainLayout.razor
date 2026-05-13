@@ -184,6 +184,7 @@
             // SignalR event'lerini dinle
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
             HubService.OnConnectionStateChanged += HandleConnectionStateChanged;
+            HubService.OnConcurrentLoginBlocked += HandleConcurrentLoginBlocked;
             HubService.OnForceLogout += HandleForceLogout;
             SessionEvents.SessionInvalidated += HandleSessionInvalidated;
 
@@ -246,6 +247,13 @@
     private async Task HandleForceLogout()
     {
         await EndAuthenticatedSessionAsync("Bu kullanici baska bir cihazda oturum acti.", revokeServerToken: false);
+    }
+
+    private void HandleConcurrentLoginBlocked(string message)
+    {
+        Toast.ShowWarning(string.IsNullOrWhiteSpace(message)
+            ? "Aktif gorusme nedeniyle yeni giris reddedildi."
+            : message);
     }
 
     private async Task HandleLogout()
@@ -330,6 +338,7 @@
     {
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+        HubService.OnConcurrentLoginBlocked -= HandleConcurrentLoginBlocked;
         HubService.OnForceLogout -= HandleForceLogout;
         SessionEvents.SessionInvalidated -= HandleSessionInvalidated;
         UpdateSvc.UpdateAvailable -= OnUpdateAvailable;

@@ -3,6 +3,7 @@
 @inject HubService HubService
 @inject SipService SipService
 @inject NavigationManager NavigationManager
+@inject ToastService Toast
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 @using CallCenter.Shared.Enums
@@ -138,6 +139,7 @@
             // SignalR event'lerini dinle
             HubService.OnAgentStatusChanged += HandleAgentStatusChanged;
             HubService.OnConnectionStateChanged += HandleConnectionStateChanged;
+            HubService.OnConcurrentLoginBlocked += HandleConcurrentLoginBlocked;
             HubService.OnForceLogout += HandleForceLogout;
 
             // Hub'a baglan
@@ -206,11 +208,19 @@
         await InvokeAsync(() => NavigationManager.NavigateTo("/login", forceLoad: true));
     }
 
+    private void HandleConcurrentLoginBlocked(string message)
+    {
+        Toast.ShowWarning(string.IsNullOrWhiteSpace(message)
+            ? "Aktif gorusme nedeniyle yeni giris reddedildi."
+            : message);
+    }
+
     private async Task HandleLogout()
     {
         // Event handler'lari once kaldir (dispose sirasinda event ateslenmesin)
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+        HubService.OnConcurrentLoginBlocked -= HandleConcurrentLoginBlocked;
         HubService.OnForceLogout -= HandleForceLogout;
 
         await SipService.DisposeAsync();
@@ -225,6 +235,7 @@
     {
         HubService.OnAgentStatusChanged -= HandleAgentStatusChanged;
         HubService.OnConnectionStateChanged -= HandleConnectionStateChanged;
+        HubService.OnConcurrentLoginBlocked -= HandleConcurrentLoginBlocked;
         HubService.OnForceLogout -= HandleForceLogout;
     }
 }
