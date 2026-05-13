@@ -67,6 +67,22 @@ public class PlatformController : ControllerBase
     // ═══ RANDEVU ═══
 
     /// <summary>Randevularım (gelecek + geçmiş)</summary>
+    /// <summary>Salon bazli saglik/alerji bilgim</summary>
+    [HttpGet("salons/{customerId}/health")]
+    public async Task<ActionResult<PlatformSalonHealthDto>> GetSalonHealth(int customerId)
+    {
+        var health = await _factory.GetSalonHealthInfoAsync(GetPlatformUserId(), customerId);
+        return health != null ? Ok(health) : NotFound();
+    }
+
+    /// <summary>Salon bazli saglik/alerji bilgisini guncelle</summary>
+    [HttpPut("salons/{customerId}/health")]
+    public async Task<ActionResult> UpdateSalonHealth(int customerId, [FromBody] SlnClientHealthUpdateDto dto)
+    {
+        var (success, error) = await _factory.UpdateSalonHealthInfoAsync(GetPlatformUserId(), customerId, dto);
+        return success ? Ok(new { message = "Saglik bilgileriniz salona iletildi." }) : BadRequest(new { message = error });
+    }
+
     [HttpGet("appointments")]
     public async Task<ActionResult<List<PlatformAppointmentDto>>> GetMyAppointments([FromQuery] bool past = false)
     {

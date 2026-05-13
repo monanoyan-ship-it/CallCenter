@@ -95,6 +95,7 @@ public class AppDbContext : DbContext
     // ─── Salon (Sln) ───
     public DbSet<SlnClient> SlnClients => Set<SlnClient>();
     public DbSet<SlnFormula> SlnFormulas => Set<SlnFormula>();
+    public DbSet<SlnTreatmentRecord> SlnTreatmentRecords => Set<SlnTreatmentRecord>();
     public DbSet<SlnClientPhoto> SlnClientPhotos => Set<SlnClientPhoto>();
     public DbSet<SlnServiceCategory> SlnServiceCategories => Set<SlnServiceCategory>();
     public DbSet<SlnService> SlnServices => Set<SlnService>();
@@ -426,6 +427,48 @@ public class AppDbContext : DbContext
             e.HasIndex(c => new { c.CustomerId, c.Phone }).IsUnique().HasFilter("\"Phone\" IS NOT NULL");
             e.Property(c => c.Phone).HasMaxLength(20);
             e.Property(c => c.Phone2).HasMaxLength(20);
+            e.Property(c => c.SkinSensitivity).HasMaxLength(100);
+            e.Property(c => c.Allergies).HasMaxLength(2000);
+            e.Property(c => c.Contraindications).HasMaxLength(2000);
+            e.Property(c => c.MedicalNotes).HasMaxLength(2000);
+            e.HasOne(c => c.HealthInfoReviewedByPersonnel)
+             .WithMany()
+             .HasForeignKey(c => c.HealthInfoReviewedByPersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // SlnTreatmentRecord (musteri tedavi/seans dosyasi)
+        modelBuilder.Entity<SlnTreatmentRecord>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => new { r.CustomerId, r.SlnClientId, r.TreatmentDate });
+            e.Property(r => r.SkinTypeSnapshot).HasMaxLength(100);
+            e.Property(r => r.AllergiesSnapshot).HasMaxLength(2000);
+            e.Property(r => r.ContraindicationsSnapshot).HasMaxLength(2000);
+            e.Property(r => r.SessionNotes).HasMaxLength(4000);
+            e.Property(r => r.DeviceParameters).HasMaxLength(2000);
+            e.Property(r => r.ProductNotes).HasMaxLength(2000);
+            e.Property(r => r.AftercareNotes).HasMaxLength(2000);
+            e.HasOne(r => r.SlnClient)
+             .WithMany(c => c.TreatmentRecords)
+             .HasForeignKey(r => r.SlnClientId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.SlnAppointment)
+             .WithMany()
+             .HasForeignKey(r => r.SlnAppointmentId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Service)
+             .WithMany()
+             .HasForeignKey(r => r.ServiceId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Personnel)
+             .WithMany()
+             .HasForeignKey(r => r.PersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.CreatedByPersonnel)
+             .WithMany()
+             .HasForeignKey(r => r.CreatedByPersonnelId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // SlnMembershipPlanService (plan-hizmet iliskisi)

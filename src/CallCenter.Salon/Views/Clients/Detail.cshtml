@@ -87,6 +87,14 @@
             </button>
         </li>
         <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-treatment">
+                <i class="bi bi-heart-pulse me-1"></i><t key="salon.clients.treatment.tab">Tedavi Dosyasi</t>
+                <!-- ko if: client().healthInfoRequiresReview -->
+                <span class="badge bg-warning text-dark ms-1"><t key="salon.clients.health.review_required_short">Inceleme</t></span>
+                <!-- /ko -->
+            </button>
+        </li>
+        <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-photos">
                 <i class="bi bi-image me-1"></i><t key="salon.clients.auto.fotograflar">Fotoğraflar</t>
             </button>
@@ -174,6 +182,94 @@
             </div>
         </div>
 
+        <!-- Tedavi Dosyasi -->
+        <div class="tab-pane fade" id="tab-treatment">
+            <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-0"><i class="bi bi-shield-check me-1"></i><t key="salon.clients.health.title">Saglik ve Uyari Bilgileri</t></h6>
+                            <!-- ko if: client().healthInfoUpdatedAt -->
+                            <small class="text-muted" data-bind="text: salonT('salon.clients.health.updated_at', 'Son guncelleme') + ': ' + new Date(client().healthInfoUpdatedAt).toLocaleString(document.documentElement.lang || undefined)"></small>
+                            <!-- /ko -->
+                        </div>
+                        <!-- ko if: client().healthInfoRequiresReview -->
+                        <button class="btn btn-outline-success btn-sm" data-bind="click: reviewHealthInfo, disable: isSaving">
+                            <i class="bi bi-check2-circle me-1"></i><t key="salon.clients.health.mark_reviewed">Inceledim</t>
+                        </button>
+                        <!-- /ko -->
+                    </div>
+                    <!-- ko if: client().healthInfoRequiresReview -->
+                    <div class="alert alert-warning py-2 small">
+                        <i class="bi bi-exclamation-triangle me-1"></i><t key="salon.clients.health.review_required">Musteri bu bilgileri guncelledi. Randevu oncesi salon tarafindan incelenmeli.</t>
+                    </div>
+                    <!-- /ko -->
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.clients.health.skin_type">Cilt Tipi</t></label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: healthForm.skinType" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.clients.health.skin_sensitivity">Cilt Hassasiyeti</t></label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: healthForm.skinSensitivity" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.clients.health.allergies">Alerjiler</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: healthForm.allergies"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small"><t key="salon.clients.health.contraindications">Kontraendikasyonlar</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: healthForm.contraindications"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.clients.health.medical_notes">Saglik Notlari</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: healthForm.medicalNotes"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-primary btn-sm" data-bind="click: saveHealthInfo, disable: isSaving">
+                            <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
+                        </button>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="bi bi-journal-medical me-1"></i><t key="salon.clients.treatment.records">Seans Kayitlari</t></h6>
+                        <button class="btn btn-outline-primary btn-sm" data-bind="click: openTreatmentRecord">
+                            <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.treatment.new">Yeni Seans Kaydi</t>
+                        </button>
+                    </div>
+                    <div data-bind="foreach: treatmentRecords">
+                        <div class="border rounded p-3 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <span class="fw-semibold small" data-bind="text: treatmentDate ? new Date(treatmentDate).toLocaleString(document.documentElement.lang || undefined) : '-'"></span>
+                                    <!-- ko if: serviceName -->
+                                    <span class="badge bg-light text-dark ms-2" data-bind="text: serviceName"></span>
+                                    <!-- /ko -->
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.removeTreatmentRecord" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            <!-- ko if: sessionNotes -->
+                            <p class="small mb-1 mt-2" data-bind="text: sessionNotes"></p>
+                            <!-- /ko -->
+                            <!-- ko if: deviceParameters -->
+                            <div class="small text-muted"><strong><t key="salon.clients.treatment.device_parameters">Cihaz Parametreleri</t>:</strong> <span data-bind="text: deviceParameters"></span></div>
+                            <!-- /ko -->
+                            <!-- ko if: aftercareNotes -->
+                            <div class="small text-muted"><strong><t key="salon.clients.treatment.aftercare">Bakim Onerisi</t>:</strong> <span data-bind="text: aftercareNotes"></span></div>
+                            <!-- /ko -->
+                        </div>
+                    </div>
+                    <!-- ko if: treatmentRecords().length === 0 -->
+                    <div class="text-center text-muted py-3 small"><t key="salon.clients.treatment.empty">Henuz seans kaydi yok.</t></div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+
         <!-- Fotograflar -->
         <div class="tab-pane fade" id="tab-photos">
             <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
@@ -254,6 +350,46 @@
                     <!-- ko if: invoices().length === 0 -->
                     <div class="text-center text-muted py-3 small"><t key="salon.clients.auto.adisyon_bulunamadi">Adisyon bulunamadı</t></div>
                     <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Treatment Record Modal -->
+    <div class="modal fade" id="treatmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><t key="salon.clients.treatment.new">Yeni Seans Kaydi</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label small"><t key="salon.panel.payments.date">Tarih</t></label>
+                        <input type="datetime-local" class="form-control form-control-sm" data-bind="value: treatmentForm.treatmentDate" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small"><t key="salon.clients.treatment.session_notes">Seans Notu</t></label>
+                        <textarea class="form-control form-control-sm" rows="3" data-bind="value: treatmentForm.sessionNotes"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small"><t key="salon.clients.treatment.device_parameters">Cihaz Parametreleri</t></label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: treatmentForm.deviceParameters"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small"><t key="salon.clients.treatment.product_notes">Urun/Icerik Notu</t></label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: treatmentForm.productNotes"></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label small"><t key="salon.clients.treatment.aftercare">Bakim Onerisi</t></label>
+                        <textarea class="form-control form-control-sm" rows="2" data-bind="value: treatmentForm.aftercareNotes"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveTreatmentRecord, disable: isSaving">
+                        <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
+                    </button>
                 </div>
             </div>
         </div>

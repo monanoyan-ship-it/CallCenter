@@ -61,6 +61,27 @@ public class SlnClientController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    [HttpPut("{id}/health")]
+    public async Task<ActionResult> UpdateHealthInfo(int id, [FromBody] SlnClientHealthUpdateDto dto)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _clientFactory.UpdateHealthInfoAsync(
+            id, dto, customerId, requiresReview: false, reviewedByPersonnelId: GetUserId());
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpPut("{id}/health/review")]
+    public async Task<ActionResult> ReviewHealthInfo(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _clientFactory.ReviewHealthInfoAsync(id, customerId, GetUserId());
+        return success ? Ok() : BadRequest(error);
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteClient(int id)
     {
@@ -106,6 +127,34 @@ public class SlnClientController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _clientFactory.DeleteFormulaAsync(id, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpPost("treatment-records")]
+    public async Task<ActionResult<SlnTreatmentRecordDto>> AddTreatmentRecord([FromBody] SlnTreatmentRecordCreateDto dto)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        try
+        {
+            var record = await _clientFactory.AddTreatmentRecordAsync(dto, userId, customerId);
+            return Ok(record);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("treatment-records/{id}")]
+    public async Task<ActionResult> DeleteTreatmentRecord(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _clientFactory.DeleteTreatmentRecordAsync(id, customerId);
         return success ? Ok() : BadRequest(error);
     }
 

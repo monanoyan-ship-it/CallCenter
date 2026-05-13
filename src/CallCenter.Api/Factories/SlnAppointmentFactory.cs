@@ -16,6 +16,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private readonly ISlnPersonnelSkillEntityService _skills;
     private readonly ISlnServiceComboEntityService _combos;
     private readonly ISlnServiceResourceRequirementEntityService _requirements;
+    private readonly ISlnRecipeEntityService _recipes;
+    private readonly ISlnProductEntityService _products;
+    private readonly ISlnStockMovementEntityService _stockMovements;
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
@@ -29,6 +32,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         ISlnPersonnelSkillEntityService skills,
         ISlnServiceComboEntityService combos,
         ISlnServiceResourceRequirementEntityService requirements,
+        ISlnRecipeEntityService recipes,
+        ISlnProductEntityService products,
+        ISlnStockMovementEntityService stockMovements,
         ICustomerPersonnelEntityService personnel,
         ISlnBranchEntityService branches,
         IUnitOfWork uow,
@@ -41,6 +47,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         _skills = skills;
         _combos = combos;
         _requirements = requirements;
+        _recipes = recipes;
+        _products = products;
+        _stockMovements = stockMovements;
         _personnel = personnel;
         _branches = branches;
         _uow = uow;
@@ -288,11 +297,86 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             }
         }
 
+        if (statusId == 3)
+        {
+            var (stockOk, stockError) = await ConsumeRecipeStockForCompletedAppointmentAsync(appointment);
+            if (!stockOk) return (false, stockError, penalty);
+        }
+
         appointment.StatusId = statusId;
         appointment.UpdatedAt = DateTime.UtcNow;
 
         await _uow.SaveChangesAsync();
         return (true, null, penalty);
+    }
+
+    private async Task<(bool Success, string? Error)> ConsumeRecipeStockForCompletedAppointmentAsync(SlnAppointment appointment)
+    {
+        var movementNotePrefix = $"Randevu:{appointment.Id}";
+        var alreadyConsumed = await _stockMovements.GetAllQueryable()
+            .AnyAsync(m => m.CustomerId == appointment.CustomerId
+                        && m.MovementTypeId == 3
+                        && m.Notes != null
+                        && m.Notes.StartsWith(movementNotePrefix));
+        if (alreadyConsumed) return (true, null);
+
+        var serviceIds = appointment.Services?
+            .Select(s => s.SlnServiceId)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList() ?? new List<int>();
+
+        if (serviceIds.Count == 0 && appointment.ServiceId.HasValue)
+            serviceIds.Add(appointment.ServiceId.Value);
+
+        if (serviceIds.Count == 0) return (true, null);
+
+        var recipes = await _recipes.GetAllQueryable()
+            .Include(r => r.Items)
+            .Where(r => r.CustomerId == appointment.CustomerId
+                     && r.IsActive
+                     && r.ServiceId.HasValue
+                     && serviceIds.Contains(r.ServiceId.Value))
+            .ToListAsync();
+
+        var recipeItems = recipes
+            .SelectMany(r => r.Items.Select(i => new { Recipe = r, Item = i }))
+            .ToList();
+        if (recipeItems.Count == 0) return (true, null);
+
+        var productIds = recipeItems.Select(x => x.Item.ProductId).Distinct().ToList();
+        var products = await _products.GetAllQueryable()
+            .Where(p => p.CustomerId == appointment.CustomerId && productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id);
+
+        foreach (var productGroup in recipeItems.GroupBy(x => x.Item.ProductId))
+        {
+            if (!products.TryGetValue(productGroup.Key, out var product))
+                return (false, "Recete urunu bulunamadi");
+
+            var totalQuantity = productGroup.Sum(x => x.Item.Quantity);
+            if (product.StockQuantity < totalQuantity)
+                return (false, $"Yetersiz stok: {product.Name} (Mevcut: {product.StockQuantity:0.##} {product.Unit})");
+        }
+
+        foreach (var entry in recipeItems)
+        {
+            var product = products[entry.Item.ProductId];
+            product.StockQuantity -= entry.Item.Quantity;
+            _stockMovements.Add(new SlnStockMovement
+            {
+                CustomerId = appointment.CustomerId,
+                BranchId = appointment.BranchId,
+                ProductId = product.Id,
+                MovementTypeId = 3,
+                Quantity = entry.Item.Quantity,
+                UnitPrice = product.PurchasePrice,
+                Notes = $"{movementNotePrefix} | Recete:{entry.Recipe.Name}",
+                CreatedByPersonnelId = appointment.CreatedByPersonnelId
+            });
+        }
+
+        return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> DeleteAppointmentAsync(int appointmentId, int customerId)

@@ -11,6 +11,7 @@ public class SlnClientFactory : ISlnClientFactory
 {
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnFormulaEntityService _formulas;
+    private readonly ISlnTreatmentRecordEntityService _treatmentRecords;
     private readonly ISlnClientPhotoEntityService _photos;
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnInvoiceEntityService _invoices;
@@ -20,6 +21,7 @@ public class SlnClientFactory : ISlnClientFactory
     public SlnClientFactory(
         ISlnClientEntityService clients,
         ISlnFormulaEntityService formulas,
+        ISlnTreatmentRecordEntityService treatmentRecords,
         ISlnClientPhotoEntityService photos,
         ISlnAppointmentEntityService appointments,
         ISlnInvoiceEntityService invoices,
@@ -28,6 +30,7 @@ public class SlnClientFactory : ISlnClientFactory
     {
         _clients = clients;
         _formulas = formulas;
+        _treatmentRecords = treatmentRecords;
         _photos = photos;
         _appointments = appointments;
         _invoices = invoices;
@@ -88,6 +91,7 @@ public class SlnClientFactory : ISlnClientFactory
                 BirthDate = c.BirthDate,
                 HairColor = c.HairColor,
                 IsFavorite = c.IsFavorite,
+                HealthInfoRequiresReview = c.HealthInfoRequiresReview,
                 CreatedAt = c.CreatedAt,
                 VisitCount = stats?.VisitCount ?? 0,
                 TotalSpent = stats?.TotalSpent ?? 0,
@@ -102,6 +106,7 @@ public class SlnClientFactory : ISlnClientFactory
     {
         var client = await _clients.GetAllQueryable()
             .Include(c => c.Formulas).ThenInclude(f => f.AppliedByPersonnel).ThenInclude(p => p!.User)
+            .Include(c => c.HealthInfoReviewedByPersonnel).ThenInclude(p => p!.User)
             .Include(c => c.Photos)
             .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
 
@@ -136,6 +141,14 @@ public class SlnClientFactory : ISlnClientFactory
             HairColor = client.HairColor,
             WhiteRatioPercent = client.WhiteRatioPercent,
             SkinType = client.SkinType,
+            SkinSensitivity = client.SkinSensitivity,
+            Allergies = client.Allergies,
+            Contraindications = client.Contraindications,
+            MedicalNotes = client.MedicalNotes,
+            HealthInfoRequiresReview = client.HealthInfoRequiresReview,
+            HealthInfoUpdatedAt = client.HealthInfoUpdatedAt,
+            HealthInfoReviewedAt = client.HealthInfoReviewedAt,
+            HealthInfoReviewedByName = client.HealthInfoReviewedByPersonnel?.User?.FullName,
             Notes = client.Notes,
             IsFavorite = client.IsFavorite,
             CreatedAt = client.CreatedAt,
@@ -158,7 +171,8 @@ public class SlnClientFactory : ISlnClientFactory
                 FilePath = p.FilePath,
                 Description = p.Description,
                 TakenAt = p.TakenAt
-            }).ToList()
+            }).ToList(),
+            TreatmentRecords = await GetTreatmentRecordsForClientAsync(clientId, customerId)
         };
     }
 
@@ -180,6 +194,11 @@ public class SlnClientFactory : ISlnClientFactory
             HairColor = dto.HairColor,
             WhiteRatioPercent = dto.WhiteRatioPercent,
             SkinType = dto.SkinType,
+            SkinSensitivity = dto.SkinSensitivity,
+            Allergies = dto.Allergies,
+            Contraindications = dto.Contraindications,
+            MedicalNotes = dto.MedicalNotes,
+            HealthInfoUpdatedAt = HasHealthInfo(dto) ? DateTime.UtcNow : null,
             Notes = dto.Notes
         };
 
@@ -199,6 +218,7 @@ public class SlnClientFactory : ISlnClientFactory
             BirthDate = client.BirthDate,
             HairColor = client.HairColor,
             IsFavorite = client.IsFavorite,
+            HealthInfoRequiresReview = client.HealthInfoRequiresReview,
             CreatedAt = client.CreatedAt
         };
     }
@@ -223,8 +243,59 @@ public class SlnClientFactory : ISlnClientFactory
         client.HairColor = dto.HairColor;
         client.WhiteRatioPercent = dto.WhiteRatioPercent;
         client.SkinType = dto.SkinType;
+        client.SkinSensitivity = dto.SkinSensitivity;
+        client.Allergies = dto.Allergies;
+        client.Contraindications = dto.Contraindications;
+        client.MedicalNotes = dto.MedicalNotes;
+        client.HealthInfoUpdatedAt = HasHealthInfo(dto) ? DateTime.UtcNow : client.HealthInfoUpdatedAt;
         client.Notes = dto.Notes;
         client.IsFavorite = dto.IsFavorite;
+        client.UpdatedAt = DateTime.UtcNow;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateHealthInfoAsync(
+        int clientId,
+        SlnClientHealthUpdateDto dto,
+        int customerId,
+        bool requiresReview,
+        int? reviewedByPersonnelId = null)
+    {
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+
+        if (client == null) return (false, "Musteri bulunamadi");
+
+        client.SkinType = dto.SkinType;
+        client.SkinSensitivity = dto.SkinSensitivity;
+        client.Allergies = dto.Allergies;
+        client.Contraindications = dto.Contraindications;
+        client.MedicalNotes = dto.MedicalNotes;
+        client.HealthInfoUpdatedAt = DateTime.UtcNow;
+        client.HealthInfoRequiresReview = requiresReview;
+        if (!requiresReview && reviewedByPersonnelId.HasValue)
+        {
+            client.HealthInfoReviewedAt = DateTime.UtcNow;
+            client.HealthInfoReviewedByPersonnelId = reviewedByPersonnelId;
+        }
+        client.UpdatedAt = DateTime.UtcNow;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ReviewHealthInfoAsync(int clientId, int customerId, int reviewedByPersonnelId)
+    {
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+
+        if (client == null) return (false, "Musteri bulunamadi");
+
+        client.HealthInfoRequiresReview = false;
+        client.HealthInfoReviewedAt = DateTime.UtcNow;
+        client.HealthInfoReviewedByPersonnelId = reviewedByPersonnelId;
         client.UpdatedAt = DateTime.UtcNow;
 
         await _uow.SaveChangesAsync();
@@ -305,6 +376,64 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
+    public async Task<SlnTreatmentRecordDto> AddTreatmentRecordAsync(SlnTreatmentRecordCreateDto dto, int userId, int customerId)
+    {
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+
+        if (client == null)
+            throw new InvalidOperationException("Musteri bulunamadi");
+
+        if (dto.SlnAppointmentId.HasValue)
+        {
+            var appointmentOk = await _appointments.GetAllQueryable()
+                .AnyAsync(a => a.Id == dto.SlnAppointmentId.Value
+                            && a.CustomerId == customerId
+                            && a.SlnClientId == dto.SlnClientId);
+            if (!appointmentOk)
+                throw new InvalidOperationException("Randevu bulunamadi");
+        }
+
+        var record = new SlnTreatmentRecord
+        {
+            CustomerId = customerId,
+            SlnClientId = dto.SlnClientId,
+            SlnAppointmentId = dto.SlnAppointmentId,
+            ServiceId = dto.ServiceId,
+            PersonnelId = dto.PersonnelId,
+            TreatmentDate = dto.TreatmentDate ?? DateTime.UtcNow,
+            SkinTypeSnapshot = client.SkinType,
+            AllergiesSnapshot = client.Allergies,
+            ContraindicationsSnapshot = client.Contraindications,
+            SessionNotes = dto.SessionNotes,
+            DeviceParameters = dto.DeviceParameters,
+            ProductNotes = dto.ProductNotes,
+            AftercareNotes = dto.AftercareNotes,
+            CreatedByPersonnelId = userId
+        };
+
+        _treatmentRecords.Add(record);
+        await _uow.SaveChangesAsync();
+
+        var mapped = await _treatmentRecords.GetAllQueryable()
+            .Include(r => r.Service)
+            .Include(r => r.Personnel).ThenInclude(p => p!.User)
+            .FirstAsync(r => r.Id == record.Id);
+        return MapTreatmentRecord(mapped);
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteTreatmentRecordAsync(int recordId, int customerId)
+    {
+        var record = await _treatmentRecords.GetAllQueryable()
+            .FirstOrDefaultAsync(r => r.Id == recordId && r.CustomerId == customerId);
+
+        if (record == null) return (false, "Seans kaydi bulunamadi");
+
+        _treatmentRecords.Remove(record);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId)
     {
         var client = await _clients.GetAllQueryable()
@@ -317,4 +446,44 @@ public class SlnClientFactory : ISlnClientFactory
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    private async Task<List<SlnTreatmentRecordDto>> GetTreatmentRecordsForClientAsync(int clientId, int customerId)
+    {
+        var records = await _treatmentRecords.GetAllQueryable()
+            .Include(r => r.Service)
+            .Include(r => r.Personnel).ThenInclude(p => p!.User)
+            .Where(r => r.CustomerId == customerId && r.SlnClientId == clientId)
+            .OrderByDescending(r => r.TreatmentDate)
+            .Take(50)
+            .ToListAsync();
+
+        return records.Select(MapTreatmentRecord).ToList();
+    }
+
+    private static SlnTreatmentRecordDto MapTreatmentRecord(SlnTreatmentRecord r) => new()
+    {
+        Id = r.Id,
+        SlnClientId = r.SlnClientId,
+        SlnAppointmentId = r.SlnAppointmentId,
+        ServiceId = r.ServiceId,
+        ServiceName = r.Service?.Name,
+        PersonnelId = r.PersonnelId,
+        PersonnelName = r.Personnel?.User?.FullName ?? r.Personnel?.Title,
+        TreatmentDate = r.TreatmentDate,
+        SkinTypeSnapshot = r.SkinTypeSnapshot,
+        AllergiesSnapshot = r.AllergiesSnapshot,
+        ContraindicationsSnapshot = r.ContraindicationsSnapshot,
+        SessionNotes = r.SessionNotes,
+        DeviceParameters = r.DeviceParameters,
+        ProductNotes = r.ProductNotes,
+        AftercareNotes = r.AftercareNotes,
+        CreatedAt = r.CreatedAt
+    };
+
+    private static bool HasHealthInfo(SlnClientCreateDto dto)
+        => !string.IsNullOrWhiteSpace(dto.SkinType)
+        || !string.IsNullOrWhiteSpace(dto.SkinSensitivity)
+        || !string.IsNullOrWhiteSpace(dto.Allergies)
+        || !string.IsNullOrWhiteSpace(dto.Contraindications)
+        || !string.IsNullOrWhiteSpace(dto.MedicalNotes);
 }

@@ -100,6 +100,7 @@ public static class EntityServiceRegistration
         // Salon Modulu
         services.AddScoped<ISlnClientEntityService, SlnClientEntityService>();
         services.AddScoped<ISlnFormulaEntityService, SlnFormulaEntityService>();
+        services.AddScoped<ISlnTreatmentRecordEntityService, SlnTreatmentRecordEntityService>();
         services.AddScoped<ISlnClientPhotoEntityService, SlnClientPhotoEntityService>();
         services.AddScoped<ISlnServiceCategoryEntityService, SlnServiceCategoryEntityService>();
         services.AddScoped<ISlnServiceEntityService, SlnServiceEntityService>();

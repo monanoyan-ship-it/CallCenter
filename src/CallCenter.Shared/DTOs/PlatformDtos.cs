@@ -91,6 +91,20 @@ public class PlatformJoinSalonDto
     public int CustomerId { get; set; }
 }
 
+public class PlatformSalonHealthDto
+{
+    public int CustomerId { get; set; }
+    public string SalonName { get; set; } = string.Empty;
+    public string? SkinType { get; set; }
+    public string? SkinSensitivity { get; set; }
+    public string? Allergies { get; set; }
+    public string? Contraindications { get; set; }
+    public string? MedicalNotes { get; set; }
+    public DateTime? HealthInfoUpdatedAt { get; set; }
+    public bool HealthInfoRequiresReview { get; set; }
+    public DateTime? HealthInfoReviewedAt { get; set; }
+}
+
 // ═══ Randevu ═══
 
 public class PlatformAppointmentDto

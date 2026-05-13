@@ -16,6 +16,7 @@ public class SlnClientDto
     public int VisitCount { get; set; }
     public decimal TotalSpent { get; set; }
     public DateTime? LastVisit { get; set; }
+    public bool HealthInfoRequiresReview { get; set; }
 }
 
 public class SlnClientDetailDto : SlnClientDto
@@ -27,9 +28,17 @@ public class SlnClientDetailDto : SlnClientDto
     public string? Address { get; set; }
     public int? WhiteRatioPercent { get; set; }
     public string? SkinType { get; set; }
+    public string? SkinSensitivity { get; set; }
+    public string? Allergies { get; set; }
+    public string? Contraindications { get; set; }
+    public string? MedicalNotes { get; set; }
+    public DateTime? HealthInfoUpdatedAt { get; set; }
+    public DateTime? HealthInfoReviewedAt { get; set; }
+    public string? HealthInfoReviewedByName { get; set; }
     public string? Notes { get; set; }
     public List<SlnFormulaDto> Formulas { get; set; } = [];
     public List<SlnClientPhotoDto> Photos { get; set; } = [];
+    public List<SlnTreatmentRecordDto> TreatmentRecords { get; set; } = [];
 }
 
 public class SlnClientCreateDto
@@ -47,6 +56,10 @@ public class SlnClientCreateDto
     public string? HairColor { get; set; }
     public int? WhiteRatioPercent { get; set; }
     public string? SkinType { get; set; }
+    public string? SkinSensitivity { get; set; }
+    public string? Allergies { get; set; }
+    public string? Contraindications { get; set; }
+    public string? MedicalNotes { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -59,6 +72,15 @@ public class SlnClientSuggestionsDto
 {
     public List<string> HairColors { get; set; } = [];
     public List<string> SkinTypes { get; set; } = [];
+}
+
+public class SlnClientHealthUpdateDto
+{
+    public string? SkinType { get; set; }
+    public string? SkinSensitivity { get; set; }
+    public string? Allergies { get; set; }
+    public string? Contraindications { get; set; }
+    public string? MedicalNotes { get; set; }
 }
 
 // ═══ SlnFormula ═══
@@ -80,6 +102,40 @@ public class SlnFormulaCreateDto
     public string? ColorCode { get; set; }
     public string? OxidantRatio { get; set; }
     public string? ApplicationNotes { get; set; }
+}
+
+// â•â•â• SlnTreatmentRecord â•â•â•
+public class SlnTreatmentRecordDto
+{
+    public int Id { get; set; }
+    public int SlnClientId { get; set; }
+    public int? SlnAppointmentId { get; set; }
+    public int? ServiceId { get; set; }
+    public string? ServiceName { get; set; }
+    public int? PersonnelId { get; set; }
+    public string? PersonnelName { get; set; }
+    public DateTime TreatmentDate { get; set; }
+    public string? SkinTypeSnapshot { get; set; }
+    public string? AllergiesSnapshot { get; set; }
+    public string? ContraindicationsSnapshot { get; set; }
+    public string? SessionNotes { get; set; }
+    public string? DeviceParameters { get; set; }
+    public string? ProductNotes { get; set; }
+    public string? AftercareNotes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnTreatmentRecordCreateDto
+{
+    public int SlnClientId { get; set; }
+    public int? SlnAppointmentId { get; set; }
+    public int? ServiceId { get; set; }
+    public int? PersonnelId { get; set; }
+    public DateTime? TreatmentDate { get; set; }
+    public string? SessionNotes { get; set; }
+    public string? DeviceParameters { get; set; }
+    public string? ProductNotes { get; set; }
+    public string? AftercareNotes { get; set; }
 }
 
 // ═══ SlnClientPhoto ═══

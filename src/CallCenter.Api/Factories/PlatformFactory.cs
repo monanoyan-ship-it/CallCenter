@@ -281,6 +281,63 @@ public class PlatformFactory : IPlatformFactory
         return (true, link.IsFavorite);
     }
 
+    public async Task<PlatformSalonHealthDto?> GetSalonHealthInfoAsync(int platformUserId, int customerId)
+    {
+        var link = await _userSalonEs.GetAllQueryable()
+            .Include(s => s.Customer)
+            .FirstOrDefaultAsync(s => s.PlatformUserId == platformUserId
+                                   && s.CustomerId == customerId
+                                   && s.IsActive
+                                   && s.SlnClientId != null);
+        if (link?.SlnClientId == null) return null;
+
+        var client = await _clientEs.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == link.SlnClientId.Value && c.CustomerId == customerId);
+        if (client == null) return null;
+
+        return new PlatformSalonHealthDto
+        {
+            CustomerId = customerId,
+            SalonName = link.Customer?.Name ?? "",
+            SkinType = client.SkinType,
+            SkinSensitivity = client.SkinSensitivity,
+            Allergies = client.Allergies,
+            Contraindications = client.Contraindications,
+            MedicalNotes = client.MedicalNotes,
+            HealthInfoUpdatedAt = client.HealthInfoUpdatedAt,
+            HealthInfoRequiresReview = client.HealthInfoRequiresReview,
+            HealthInfoReviewedAt = client.HealthInfoReviewedAt
+        };
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateSalonHealthInfoAsync(int platformUserId, int customerId, SlnClientHealthUpdateDto dto)
+    {
+        var link = await _userSalonEs.GetAllQueryable()
+            .FirstOrDefaultAsync(s => s.PlatformUserId == platformUserId
+                                   && s.CustomerId == customerId
+                                   && s.IsActive
+                                   && s.SlnClientId != null);
+        if (link?.SlnClientId == null)
+            return (false, "Salon uyeligi bulunamadi.");
+
+        var client = await _clientEs.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == link.SlnClientId.Value && c.CustomerId == customerId);
+        if (client == null)
+            return (false, "Musteri kaydi bulunamadi.");
+
+        client.SkinType = dto.SkinType;
+        client.SkinSensitivity = dto.SkinSensitivity;
+        client.Allergies = dto.Allergies;
+        client.Contraindications = dto.Contraindications;
+        client.MedicalNotes = dto.MedicalNotes;
+        client.HealthInfoUpdatedAt = DateTime.UtcNow;
+        client.HealthInfoRequiresReview = true;
+        client.UpdatedAt = DateTime.UtcNow;
+
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     // ═══ RANDEVU ═══
 
     public async Task<List<PlatformAppointmentDto>> GetMyAppointmentsAsync(int platformUserId, bool past)

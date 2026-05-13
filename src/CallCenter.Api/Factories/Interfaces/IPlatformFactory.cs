@@ -9,6 +9,8 @@ public interface IPlatformFactory
     Task<(bool Success, string? Error)> JoinSalonAsync(int platformUserId, int customerId);
     Task<(bool Success, string? Error)> LeaveSalonAsync(int platformUserId, int customerId);
     Task<(bool Success, bool IsFavorite)> ToggleFavoriteAsync(int platformUserId, int customerId);
+    Task<PlatformSalonHealthDto?> GetSalonHealthInfoAsync(int platformUserId, int customerId);
+    Task<(bool Success, string? Error)> UpdateSalonHealthInfoAsync(int platformUserId, int customerId, SlnClientHealthUpdateDto dto);
 
     // Randevu
     Task<List<PlatformAppointmentDto>> GetMyAppointmentsAsync(int platformUserId, bool past);

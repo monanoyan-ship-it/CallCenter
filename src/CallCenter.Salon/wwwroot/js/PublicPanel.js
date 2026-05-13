@@ -50,7 +50,8 @@
                         '<h6>' + s.salonName + '</h6>' +
                         '<small class="text-muted">' + (s.city || '') + ' ' + (s.district || '') + '</small>' +
                         '<div class="mt-2"><button class="btn btn-sm ' + (s.isFavorite ? 'btn-warning' : 'btn-outline-warning') + '" data-panel-action="toggle-fav" data-customer-id="' + s.customerId + '"><i class="bi bi-star' + (s.isFavorite ? '-fill' : '') + '"></i></button>' +
-                        ' <a href="/salon/' + slug + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>' + salonT('salon.panel.action.appointment', 'Randevu') + '</a></div>' +
+                        ' <a href="/salon/' + slug + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>' + salonT('salon.panel.action.appointment', 'Randevu') + '</a>' +
+                        ' <button class="btn btn-sm btn-outline-danger" data-panel-action="open-health" data-customer-id="' + s.customerId + '"><i class="bi bi-heart-pulse me-1"></i>' + salonT('salon.panel.health.button', 'Saglik') + '</button></div>' +
                         '</div></div></div>';
                 }).join('');
             });
@@ -58,6 +59,44 @@
 
         function toggleFav(customerId) {
             api('platform/salons/' + customerId + '/favorite', { method: 'POST' }).then(loadSalons);
+        }
+
+        var _healthModal;
+        var activeHealthCustomerId = null;
+
+        function openHealth(customerId) {
+            activeHealthCustomerId = customerId;
+            api('platform/salons/' + customerId + '/health').then(function(data) {
+                if (!data) {
+                    showToast(salonT('salon.panel.health.load_failed', 'Saglik bilgileri yuklenemedi.'), false);
+                    return;
+                }
+                document.getElementById('healthSalonName').textContent = data.salonName || '';
+                document.getElementById('healthSkinType').value = data.skinType || '';
+                document.getElementById('healthSkinSensitivity').value = data.skinSensitivity || '';
+                document.getElementById('healthAllergies').value = data.allergies || '';
+                document.getElementById('healthContraindications').value = data.contraindications || '';
+                document.getElementById('healthMedicalNotes').value = data.medicalNotes || '';
+                if (!_healthModal) _healthModal = new bootstrap.Modal(document.getElementById('healthModal'));
+                _healthModal.show();
+            });
+        }
+
+        function saveHealth() {
+            if (!activeHealthCustomerId) return;
+            api('platform/salons/' + activeHealthCustomerId + '/health', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    skinType: document.getElementById('healthSkinType').value || null,
+                    skinSensitivity: document.getElementById('healthSkinSensitivity').value || null,
+                    allergies: document.getElementById('healthAllergies').value || null,
+                    contraindications: document.getElementById('healthContraindications').value || null,
+                    medicalNotes: document.getElementById('healthMedicalNotes').value || null
+                })
+            }).then(function(data) {
+                if (_healthModal) _healthModal.hide();
+                showToast((data && data.message) || salonT('salon.panel.health.saved', 'Saglik bilgileriniz salona iletildi.'), true);
+            });
         }
 
         // --- Randevularım ---
@@ -438,6 +477,12 @@
             } else if (action === 'toggle-fav') {
                 event.preventDefault();
                 toggleFav(parseInt(actionEl.getAttribute('data-customer-id'), 10));
+            } else if (action === 'open-health') {
+                event.preventDefault();
+                openHealth(parseInt(actionEl.getAttribute('data-customer-id'), 10));
+            } else if (action === 'save-health') {
+                event.preventDefault();
+                saveHealth();
             } else if (action === 'appointment-payment') {
                 event.preventDefault();
                 openAppointmentPayment(parseInt(actionEl.getAttribute('data-id'), 10));

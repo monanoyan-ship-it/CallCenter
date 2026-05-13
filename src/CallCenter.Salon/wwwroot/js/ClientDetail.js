@@ -9,6 +9,7 @@ function ClientDetailViewModel() {
     self.client = ko.observable({});
     self.formulas = ko.observableArray([]);
     self.photos = ko.observableArray([]);
+    self.treatmentRecords = ko.observableArray([]);
     self.appointments = ko.observableArray([]);
     self.invoices = ko.observableArray([]);
     self.totalSpent = ko.observable(0);
@@ -22,7 +23,23 @@ function ClientDetailViewModel() {
         applicationNotes: ko.observable('')
     };
 
-    var formulaModal, photoModal;
+    self.healthForm = {
+        skinType: ko.observable(''),
+        skinSensitivity: ko.observable(''),
+        allergies: ko.observable(''),
+        contraindications: ko.observable(''),
+        medicalNotes: ko.observable('')
+    };
+
+    self.treatmentForm = {
+        treatmentDate: ko.observable(''),
+        sessionNotes: ko.observable(''),
+        deviceParameters: ko.observable(''),
+        productNotes: ko.observable(''),
+        aftercareNotes: ko.observable('')
+    };
+
+    var formulaModal, photoModal, treatmentModal;
 
     var appointmentStatusNames = {
         1: slnJsT('salon.appointments.status.scheduled', 'Planlanmış'),
@@ -51,10 +68,111 @@ function ClientDetailViewModel() {
             self.client(data);
             self.formulas(data.formulas || []);
             self.photos(data.photos || []);
+            self.treatmentRecords(data.treatmentRecords || []);
+            self.healthForm.skinType(data.skinType || '');
+            self.healthForm.skinSensitivity(data.skinSensitivity || '');
+            self.healthForm.allergies(data.allergies || '');
+            self.healthForm.contraindications(data.contraindications || '');
+            self.healthForm.medicalNotes(data.medicalNotes || '');
             self.totalSpent(data.totalSpent || 0);
             self.lastVisit(data.lastVisit ? new Date(data.lastVisit).toLocaleDateString(document.documentElement.lang || undefined) : null);
         }).fail(function () {
             toastr.error(slnJsT('salon.clientdetail.js.musteri_bilgisi_yuklenemedi', 'Müşteri bilgisi yüklenemedi'));
+        });
+    };
+
+    self.saveHealthInfo = function () {
+        var data = {
+            skinType: self.healthForm.skinType(),
+            skinSensitivity: self.healthForm.skinSensitivity(),
+            allergies: self.healthForm.allergies(),
+            contraindications: self.healthForm.contraindications(),
+            medicalNotes: self.healthForm.medicalNotes()
+        };
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-clients/' + id + '/health',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(data)
+        }).done(function () {
+            self.loadClient();
+            toastr.success(slnJsT('salon.clients.health.saved', 'Saglik bilgileri kaydedildi'));
+            self.isSaving(false);
+        }).fail(function () {
+            toastr.error(slnJsT('salon.clients.health.save_failed', 'Saglik bilgileri kaydedilemedi'));
+            self.isSaving(false);
+        });
+    };
+
+    self.reviewHealthInfo = function () {
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-clients/' + id + '/health/review',
+            method: 'PUT'
+        }).done(function () {
+            self.loadClient();
+            toastr.success(slnJsT('salon.clients.health.reviewed', 'Saglik bilgileri incelendi olarak isaretlendi'));
+            self.isSaving(false);
+        }).fail(function () {
+            toastr.error(slnJsT('salon.clients.health.review_failed', 'Inceleme durumu guncellenemedi'));
+            self.isSaving(false);
+        });
+    };
+
+    self.openTreatmentRecord = function () {
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        self.treatmentForm.treatmentDate(now.toISOString().slice(0, 16));
+        self.treatmentForm.sessionNotes('');
+        self.treatmentForm.deviceParameters('');
+        self.treatmentForm.productNotes('');
+        self.treatmentForm.aftercareNotes('');
+        treatmentModal.show();
+    };
+
+    self.saveTreatmentRecord = function () {
+        var data = {
+            slnClientId: id,
+            treatmentDate: self.treatmentForm.treatmentDate() ? new Date(self.treatmentForm.treatmentDate()).toISOString() : null,
+            sessionNotes: self.treatmentForm.sessionNotes(),
+            deviceParameters: self.treatmentForm.deviceParameters(),
+            productNotes: self.treatmentForm.productNotes(),
+            aftercareNotes: self.treatmentForm.aftercareNotes()
+        };
+
+        if (!data.sessionNotes && !data.deviceParameters && !data.productNotes && !data.aftercareNotes) {
+            toastr.warning(slnJsT('salon.clients.treatment.note_required', 'En az bir seans notu giriniz'));
+            return;
+        }
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-clients/treatment-records',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data)
+        }).done(function () {
+            treatmentModal.hide();
+            self.loadClient();
+            toastr.success(slnJsT('salon.clients.treatment.saved', 'Seans kaydi kaydedildi'));
+            self.isSaving(false);
+        }).fail(function () {
+            toastr.error(slnJsT('salon.clients.treatment.save_failed', 'Seans kaydi kaydedilemedi'));
+            self.isSaving(false);
+        });
+    };
+
+    self.removeTreatmentRecord = function (record) {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.clients.treatment.delete_confirm', 'Bu seans kaydini silmek istediginize emin misiniz?'), function() {
+            $.ajax({
+                url: '/proxy/sln-clients/treatment-records/' + record.id,
+                method: 'DELETE'
+            }).done(function () {
+                self.loadClient();
+                toastr.success(slnJsT('salon.clients.treatment.deleted', 'Seans kaydi silindi'));
+            });
         });
     };
 
@@ -178,6 +296,7 @@ function ClientDetailViewModel() {
     $(document).ready(function () {
         formulaModal = new bootstrap.Modal(document.getElementById('formulaModal'));
         photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
+        treatmentModal = new bootstrap.Modal(document.getElementById('treatmentModal'));
         self.loadClient();
         self.loadAppointments();
         self.loadInvoices();

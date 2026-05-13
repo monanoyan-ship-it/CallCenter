@@ -22,6 +22,15 @@ public class SlnClient
     public string? HairColor { get; set; }
     public int? WhiteRatioPercent { get; set; }
     public string? SkinType { get; set; }
+    public string? SkinSensitivity { get; set; }
+    public string? Allergies { get; set; }
+    public string? Contraindications { get; set; }
+    public string? MedicalNotes { get; set; }
+    public DateTime? HealthInfoUpdatedAt { get; set; }
+    public bool HealthInfoRequiresReview { get; set; }
+    public DateTime? HealthInfoReviewedAt { get; set; }
+    public int? HealthInfoReviewedByPersonnelId { get; set; }
+    public CustomerPersonnel? HealthInfoReviewedByPersonnel { get; set; }
     public string? Notes { get; set; }
     public bool IsFavorite { get; set; }
     public bool IsActive { get; set; } = true;
@@ -36,4 +45,5 @@ public class SlnClient
     public ICollection<SlnClientPhoto> Photos { get; set; } = [];
     public ICollection<SlnAppointment> Appointments { get; set; } = [];
     public ICollection<SlnInvoice> Invoices { get; set; } = [];
+    public ICollection<SlnTreatmentRecord> TreatmentRecords { get; set; } = [];
 }
