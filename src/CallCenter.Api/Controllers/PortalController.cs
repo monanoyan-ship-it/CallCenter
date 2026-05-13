@@ -116,6 +116,15 @@ public class PortalController : AuditableControllerBase
         return perms.Split(',').Any(p => int.TryParse(p.Trim(), out var id) && id == permTypeId);
     }
 
+    private bool CanManagePersonnelOps()
+    {
+        if (IsAdmin || IsCustomerAdmin) return true;
+        var roleId = GetCustomerRoleId();
+        return roleId == SalonRoles.Ids.SalonOwner
+            || roleId == SalonRoles.Ids.Manager
+            || roleId == SalonRoles.Ids.BranchManager;
+    }
+
     // DASHBOARD
 
     [HttpGet("dashboard")]
@@ -321,7 +330,7 @@ public class PortalController : AuditableControllerBase
     [HttpPost("personnel-ops/shifts")]
     public async Task<IActionResult> UpsertShift([FromBody] PortalPersonnelShiftUpsertDto dto, [FromQuery] int? id, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);
@@ -336,7 +345,7 @@ public class PortalController : AuditableControllerBase
     [HttpDelete("personnel-ops/shifts/{id}")]
     public async Task<IActionResult> DeleteShift(int id, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);
@@ -351,7 +360,7 @@ public class PortalController : AuditableControllerBase
     [HttpPost("personnel-ops/leaves")]
     public async Task<IActionResult> CreateLeave([FromBody] PortalPersonnelLeaveCreateDto dto, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);
@@ -366,7 +375,7 @@ public class PortalController : AuditableControllerBase
     [HttpPatch("personnel-ops/leaves/{id}/status")]
     public async Task<IActionResult> UpdateLeaveStatus(int id, [FromBody] PortalPersonnelLeaveStatusDto dto, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);
@@ -381,7 +390,7 @@ public class PortalController : AuditableControllerBase
     [HttpPost("personnel-ops/timesheets")]
     public async Task<IActionResult> UpsertTimesheet([FromBody] PortalPersonnelTimesheetUpsertDto dto, [FromQuery] int? id, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);
@@ -396,7 +405,7 @@ public class PortalController : AuditableControllerBase
     [HttpPost("personnel-ops/advances")]
     public async Task<IActionResult> CreateAdvance([FromBody] PortalAdvanceCreateDto dto, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);
@@ -411,7 +420,7 @@ public class PortalController : AuditableControllerBase
     [HttpPost("personnel-ops/payroll")]
     public async Task<IActionResult> GeneratePayroll([FromBody] PortalPayrollGenerateDto dto, [FromQuery] int? customerId)
     {
-        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+        if (!CanManagePersonnelOps())
             return Forbid();
 
         var cid = ResolveCustomerId(customerId);

@@ -73,6 +73,22 @@ public static class SalonRolePermissions
         "Reports",          // Raporlar
     };
 
+    /// <summary>107 - Sube muduru: merkezi tanimlar haric sube ici operasyon</summary>
+    private static readonly string[] BranchManagerPages = new[]
+    {
+        "Clients",
+        "Appointments",
+        "Waitlist",
+        "Staff",
+        "Invoices",
+        "Cash",
+        "Expenses",
+        "GiftCards",
+        "Packages",
+        "BeforeAfter",
+        "Reports",
+    };
+
     /// <summary>101 - Salon Sahibi: Sadece sahibine ozel sayfalar</summary>
     private static readonly string[] OwnerOnlyPages = new[]
     {
@@ -131,10 +147,7 @@ public static class SalonRolePermissions
             case SalonRoles.Ids.BranchManager: // 107 - Sube Muduru: kendi subesi icin operasyon + finans
                                                 // YONETIM (Branches, Profile, Modules, NoShowPolicy, EmailSettings, PageSettings) YASAK.
                                                 // BranchId JWT claim i API tarafinda query filtrelemesini zorlar.
-                pages.UnionWith(ManagerPages);
-                pages.UnionWith(CashierPages);
-                pages.UnionWith(ReceptionistPages);
-                pages.UnionWith(TechnicianPages);
+                pages.UnionWith(BranchManagerPages);
                 break;
 
             case SalonRoles.Ids.Cashier: // 105 - Satis + finans + musteri + randevu
