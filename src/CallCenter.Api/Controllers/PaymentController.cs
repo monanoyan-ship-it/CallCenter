@@ -546,13 +546,14 @@ public class PaymentController : ControllerBase
         => int.Parse(User.FindFirstValue("CustomerId") ?? "0");
 
     /// <summary>
-    /// Callback URL tabanini dondurur. ApiBaseUrl env var set edilmisse onu kullanir;
-    /// yoksa Request.Scheme + Request.Host'a duser (dev ortami icin yeterli).
-    /// Cloud Run gib proxy arkasinda ApiBaseUrl env var'i https:// ile set edilmeli.
+    /// Iyzico callback URL tabanini dondurur. Oncelik public Salon proxy'dedir;
+    /// boylece checkout formu API domain'ini ziyaretciye tasimaz.
     /// </summary>
     private string GetApiBaseUrl()
     {
-        var configured = _configuration["ApiBaseUrl"];
+        var configured = _configuration["Payment:CallbackBaseUrl"]
+            ?? _configuration["Salon:BaseUrl"]
+            ?? _configuration["ApiBaseUrl"];
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
         return $"{Request.Scheme}://{Request.Host}";

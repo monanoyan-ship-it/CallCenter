@@ -154,7 +154,9 @@ public class PlatformController : ControllerBase
 
     private string GetApiBaseUrl()
     {
-        var configured = _configuration["ApiBaseUrl"];
+        var configured = _configuration["Payment:CallbackBaseUrl"]
+            ?? _configuration["Salon:BaseUrl"]
+            ?? _configuration["ApiBaseUrl"];
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
         return $"{Request.Scheme}://{Request.Host}";

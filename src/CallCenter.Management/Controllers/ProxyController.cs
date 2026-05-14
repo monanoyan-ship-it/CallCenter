@@ -9,7 +9,7 @@ namespace CallCenter.Management.Controllers;
 /// <summary>
 /// Server-side API proxy. JS dosyalarinda API adresi ve token gorunmez.
 /// </summary>
-public class ProxyController(IConfiguration config) : MgmtBaseController
+public class ProxyController : MgmtBaseController
 {
     [HttpGet("proxy/{**path}")]
     public async Task<IActionResult> Get(string path)
@@ -78,12 +78,9 @@ public class ProxyController(IConfiguration config) : MgmtBaseController
 
     private Task<ContentResult> UpstreamUnreachableResult()
     {
-        var apiUrl = config["ApiBaseUrl"] ?? "(yok)";
         var payload = JsonSerializer.Serialize(new
         {
-            message = "API'ye baglanilamadi (baglanti reddedildi). CallCenter.Api calisiyor mu kontrol edin.",
-            apiBaseUrl = apiUrl,
-            hint = "Development: Api projesini http://localhost:5041 uzerinde calistirin; veya appsettings.Development.json icindeki ApiBaseUrl degerini guncelleyin."
+            message = "Servise gecici olarak ulasilamadi. Lutfen daha sonra tekrar deneyin."
         });
         return Task.FromResult(new ContentResult
         {

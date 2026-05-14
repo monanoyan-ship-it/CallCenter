@@ -384,14 +384,30 @@ public class SlnClientFactory : ISlnClientFactory
         if (client == null)
             throw new InvalidOperationException("Musteri bulunamadi");
 
+        SlnAppointment? appointment = null;
+        int? appointmentServiceId = null;
         if (dto.SlnAppointmentId.HasValue)
         {
-            var appointmentOk = await _appointments.GetAllQueryable()
-                .AnyAsync(a => a.Id == dto.SlnAppointmentId.Value
-                            && a.CustomerId == customerId
-                            && a.SlnClientId == dto.SlnClientId);
-            if (!appointmentOk)
+            appointment = await _appointments.GetAllQueryable()
+                .Include(a => a.Services)
+                .FirstOrDefaultAsync(a => a.Id == dto.SlnAppointmentId.Value
+                                       && a.CustomerId == customerId
+                                       && a.SlnClientId == dto.SlnClientId);
+            if (appointment == null)
                 throw new InvalidOperationException("Randevu bulunamadi");
+
+            var appointmentServiceIds = appointment.Services
+                .OrderBy(s => s.SortOrder)
+                .Select(s => s.SlnServiceId)
+                .ToList();
+            if (appointment.ServiceId.HasValue && !appointmentServiceIds.Contains(appointment.ServiceId.Value))
+                appointmentServiceIds.Insert(0, appointment.ServiceId.Value);
+
+            if (dto.ServiceId.HasValue && appointmentServiceIds.Count > 0 && !appointmentServiceIds.Contains(dto.ServiceId.Value))
+                throw new InvalidOperationException("Secilen hizmet randevuya ait degil");
+
+            if (appointmentServiceIds.Count > 0)
+                appointmentServiceId = appointmentServiceIds[0];
         }
 
         var record = new SlnTreatmentRecord
@@ -399,9 +415,9 @@ public class SlnClientFactory : ISlnClientFactory
             CustomerId = customerId,
             SlnClientId = dto.SlnClientId,
             SlnAppointmentId = dto.SlnAppointmentId,
-            ServiceId = dto.ServiceId,
-            PersonnelId = dto.PersonnelId,
-            TreatmentDate = dto.TreatmentDate ?? DateTime.UtcNow,
+            ServiceId = dto.ServiceId ?? appointmentServiceId,
+            PersonnelId = dto.PersonnelId ?? appointment?.PersonnelId,
+            TreatmentDate = dto.TreatmentDate ?? appointment?.StartTime ?? DateTime.UtcNow,
             SkinTypeSnapshot = client.SkinType,
             AllergiesSnapshot = client.Allergies,
             ContraindicationsSnapshot = client.Contraindications,

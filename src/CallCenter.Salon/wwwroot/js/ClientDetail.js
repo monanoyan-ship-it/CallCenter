@@ -32,6 +32,10 @@ function ClientDetailViewModel() {
     };
 
     self.treatmentForm = {
+        slnAppointmentId: ko.observable(null),
+        serviceId: ko.observable(null),
+        personnelId: ko.observable(null),
+        appointmentSummary: ko.observable(''),
         treatmentDate: ko.observable(''),
         sessionNotes: ko.observable(''),
         deviceParameters: ko.observable(''),
@@ -55,6 +59,46 @@ function ClientDetailViewModel() {
         3: slnJsT('salon.appointments.status.cancelled', 'İptal')
     };
     var invoiceStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
+
+    function toLocalDateTimeInput(value) {
+        if (!value) return '';
+        var date = new Date(value);
+        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+        return date.toISOString().slice(0, 16);
+    }
+
+    function getAppointmentServiceOptions(appointment) {
+        if (!appointment) return [];
+        var ids = appointment.serviceIds || [];
+        var names = appointment.serviceNames || [];
+        if (!ids.length && appointment.serviceId) ids = [appointment.serviceId];
+        if (!names.length && appointment.serviceName) names = [appointment.serviceName];
+        return ids.map(function (serviceId, index) {
+            return {
+                id: serviceId,
+                name: names[index] || slnJsT('salon.common.service', 'Hizmet') + ' #' + serviceId
+            };
+        });
+    }
+
+    function formatAppointmentLabel(appointment) {
+        if (!appointment) return '';
+        var serviceText = (appointment.serviceNames && appointment.serviceNames.length)
+            ? appointment.serviceNames.join(', ')
+            : (appointment.serviceName || '-');
+        var timeText = appointment.startTime ? new Date(appointment.startTime).toLocaleString(document.documentElement.lang || undefined) : '-';
+        return timeText + ' - ' + serviceText;
+    }
+
+    function findAppointment(appointmentId) {
+        var parsedId = parseInt(appointmentId);
+        if (!parsedId) return null;
+        return self.appointments().find(function (appointment) { return appointment.id === parsedId; }) || null;
+    }
+
+    function hasTreatmentRecordForAppointment(appointmentId) {
+        return self.treatmentRecords().some(function (record) { return record.slnAppointmentId === appointmentId; });
+    }
 
     self.loadClient = function () {
         $.ajax({ url: '/proxy/sln-clients/' + id, method: 'GET' }).done(function (data) {
@@ -121,20 +165,20 @@ function ClientDetailViewModel() {
         });
     };
 
-    self.openTreatmentRecord = function () {
-        var now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        self.treatmentForm.treatmentDate(now.toISOString().slice(0, 16));
-        self.treatmentForm.sessionNotes('');
-        self.treatmentForm.deviceParameters('');
-        self.treatmentForm.productNotes('');
-        self.treatmentForm.aftercareNotes('');
+    self.openTreatmentRecord = function (appointment) {
+        resetTreatmentForm();
+        if (appointment && appointment.id) {
+            self.treatmentForm.slnAppointmentId(appointment.id);
+        }
         treatmentModal.show();
     };
 
     self.saveTreatmentRecord = function () {
         var data = {
             slnClientId: id,
+            slnAppointmentId: self.treatmentForm.slnAppointmentId() ? parseInt(self.treatmentForm.slnAppointmentId()) : null,
+            serviceId: self.treatmentForm.serviceId() ? parseInt(self.treatmentForm.serviceId()) : null,
+            personnelId: self.treatmentForm.personnelId() ? parseInt(self.treatmentForm.personnelId()) : null,
             treatmentDate: self.treatmentForm.treatmentDate() ? new Date(self.treatmentForm.treatmentDate()).toISOString() : null,
             sessionNotes: self.treatmentForm.sessionNotes(),
             deviceParameters: self.treatmentForm.deviceParameters(),
@@ -186,6 +230,67 @@ function ClientDetailViewModel() {
             self.appointments(items);
         });
     };
+
+    self.treatmentAppointmentOptions = ko.computed(function () {
+        return self.appointments().map(function (appointment) {
+            return {
+                id: appointment.id,
+                label: formatAppointmentLabel(appointment)
+            };
+        });
+    });
+
+    self.treatmentServiceOptions = ko.computed(function () {
+        return getAppointmentServiceOptions(findAppointment(self.treatmentForm.slnAppointmentId()));
+    });
+
+    self.hasTreatmentRecordForAppointment = function (appointment) {
+        return appointment && hasTreatmentRecordForAppointment(appointment.id);
+    };
+
+    function resetTreatmentForm() {
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        self.treatmentForm.slnAppointmentId(null);
+        self.treatmentForm.serviceId(null);
+        self.treatmentForm.personnelId(null);
+        self.treatmentForm.appointmentSummary('');
+        self.treatmentForm.treatmentDate(now.toISOString().slice(0, 16));
+        self.treatmentForm.sessionNotes('');
+        self.treatmentForm.deviceParameters('');
+        self.treatmentForm.productNotes('');
+        self.treatmentForm.aftercareNotes('');
+    }
+
+    function populateTreatmentFromAppointment(appointment) {
+        if (!appointment) {
+            self.treatmentForm.appointmentSummary('');
+            self.treatmentForm.serviceId(null);
+            self.treatmentForm.personnelId(null);
+            return;
+        }
+
+        var serviceOptions = getAppointmentServiceOptions(appointment);
+        var serviceNames = serviceOptions.map(function (service) { return service.name; }).join(', ');
+        self.treatmentForm.slnAppointmentId(appointment.id);
+        self.treatmentForm.serviceId(serviceOptions.length ? serviceOptions[0].id : null);
+        self.treatmentForm.personnelId(appointment.personnelId || null);
+        self.treatmentForm.appointmentSummary(formatAppointmentLabel(appointment));
+        self.treatmentForm.treatmentDate(toLocalDateTimeInput(appointment.startTime));
+        self.treatmentForm.sessionNotes(
+            slnJsT('salon.clients.treatment.appointment_note_template', 'Randevu seansi tamamlandi.')
+                + (serviceNames ? ' ' + serviceNames : '')
+                + (appointment.personnelName ? ' - ' + appointment.personnelName : '')
+        );
+
+        if (hasTreatmentRecordForAppointment(appointment.id)) {
+            toastr.info(slnJsT('salon.clients.treatment.appointment_has_record', 'Bu randevuya bagli seans kaydi zaten var. Gerekirse yeni not olarak kaydedebilirsiniz.'));
+        }
+    }
+
+    self.treatmentForm.slnAppointmentId.subscribe(function (appointmentId) {
+        populateTreatmentFromAppointment(findAppointment(appointmentId));
+    });
 
     self.loadInvoices = function () {
         $.ajax({ url: '/proxy/sln-finance/invoices?slnClientId=' + id, method: 'GET' }).done(function (data) {

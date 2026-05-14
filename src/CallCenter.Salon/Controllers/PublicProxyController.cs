@@ -80,6 +80,20 @@ public class PublicProxyController : Controller
         return await ToResult(response, HttpContext);
     }
 
+    [HttpPost("api/payments/iyzico-callback")]
+    public async Task<IActionResult> IyzicoCallback()
+    {
+        var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+        var client = factory.CreateClient("SalonApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/payments/iyzico-callback");
+        request.Content = new StreamContent(Request.Body);
+        if (!string.IsNullOrWhiteSpace(Request.ContentType))
+            request.Content.Headers.TryAddWithoutValidation("Content-Type", Request.ContentType);
+
+        var response = await client.SendAsync(request);
+        return await ToResult(response, HttpContext);
+    }
+
     private HttpClient CreatePlatformClient()
     {
         var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();

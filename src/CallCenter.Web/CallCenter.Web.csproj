@@ -19,4 +19,8 @@
     <ProjectReference Include="..\CallCenter.Shared\CallCenter.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>
