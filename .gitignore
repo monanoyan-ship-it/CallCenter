@@ -18,6 +18,7 @@ obj/
 ## Publish output
 publish/
 publish-web/
+build-output/
 
 ## Deploy artifacts
 .wrangler/
@@ -44,6 +45,9 @@ bld/
 
 ## VS Code
 .vscode/
+
+## Local agent state
+.claude/
 
 ## Landing libman (restored via libman restore)
 src/CallCenter.Landing/wwwroot/lib/
