@@ -1,4 +1,4 @@
-function slnJsT(key, fallback) {
+﻿function slnJsT(key, fallback) {
     return (window.salonT || function (k, f) { return f || k; })(key, fallback);
 }
 
@@ -8,6 +8,8 @@ function ServicesViewModel() {
     self.services = ko.observableArray([]);
     self.resources = ko.observableArray([]);
     self.combos = ko.observableArray([]);
+    self.packageDefinitions = ko.observableArray([]);
+    self.packageFeatureAvailable = ko.observable(true);
     self.searchQuery = ko.observable('');
     self.isSaving = ko.observable(false);
 
@@ -57,7 +59,18 @@ function ServicesViewModel() {
         isActive: ko.observable('true')
     };
 
-    // ═══ Autocomplete ═══
+    self.selectedPackageService = ko.observable(null);
+    self.isEditingPackageDef = ko.observable(false);
+    self.editingPackageDefId = ko.observable(null);
+    self.packageForm = {
+        name: ko.observable(''),
+        description: ko.observable(''),
+        totalSessions: ko.observable(10),
+        price: ko.observable(0),
+        validDays: ko.observable(365)
+    };
+
+    // â•â•â• Autocomplete â•â•â•
     self.categoryAutocomplete = createAutocomplete(self.categories, 'name', self.serviceForm.categoryId);
 
     function normalizeList(data) {
@@ -91,6 +104,16 @@ function ServicesViewModel() {
 
         return raw;
     }
+
+    function sameId(a, b) {
+        return parseInt(a) === parseInt(b);
+    }
+
+    function formatMoney(value) {
+        return (parseFloat(value) || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL';
+    }
+
+    self.formatMoney = formatMoney;
 
     self.filteredCategories = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
@@ -137,6 +160,34 @@ function ServicesViewModel() {
         }).join(', ');
     };
 
+    self.packageStats = function (serviceId) {
+        var definitions = self.packageDefinitions().filter(function (d) {
+            return sameId(d.serviceId, serviceId);
+        });
+        return {
+            definitionCount: definitions.length,
+            activeDefinitionCount: definitions.filter(function (d) { return d.isActive; }).length
+        };
+    };
+
+    self.packageSummary = function (svc) {
+        if (!self.packageFeatureAvailable()) {
+            return slnJsT('salon.services.package_unavailable', 'Paket modÃ¼lÃ¼ kapalÄ±');
+        }
+
+        var stats = self.packageStats(svc.id);
+        if (!stats.definitionCount) {
+            return slnJsT('salon.services.package_empty', 'Paket yok');
+        }
+
+        var parts = [];
+        if (stats.definitionCount) {
+            parts.push(stats.definitionCount + ' ' + slnJsT('salon.services.package_def_short', 'tanÄ±m'));
+        }
+
+        return parts.join(' Â· ') || slnJsT('salon.services.package_empty', 'Paket yok');
+    };
+
     self.comboSummary = function (combo) {
         var names = (combo.items || []).map(function (i) { return i.serviceName; }).filter(Boolean);
         return names.length ? names.join(' + ') : '-';
@@ -157,7 +208,21 @@ function ServicesViewModel() {
         }));
     }
 
-    var categoryModal, serviceModal, resourceModal, comboModal;
+    self.packageDefinitionsForSelected = ko.computed(function () {
+        var svc = self.selectedPackageService();
+        if (!svc) return [];
+        return self.packageDefinitions().filter(function (d) { return sameId(d.serviceId, svc.id); });
+    });
+
+    self.selectedPackageStats = ko.computed(function () {
+        var svc = self.selectedPackageService();
+        if (!svc) {
+            return { definitionCount: 0, activeDefinitionCount: 0 };
+        }
+        return self.packageStats(svc.id);
+    });
+
+    var categoryModal, serviceModal, resourceModal, comboModal, packageModal;
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
@@ -172,6 +237,15 @@ function ServicesViewModel() {
         });
         $.ajax({ url: '/proxy/sln-services/combos', method: 'GET' }).done(function (data) {
             self.combos(normalizeList(data));
+        });
+        $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
+            self.packageFeatureAvailable(true);
+            self.packageDefinitions(normalizeList(data));
+        }).fail(function (xhr) {
+            if (xhr && xhr.status === 403) {
+                self.packageFeatureAvailable(false);
+                self.packageDefinitions([]);
+            }
         });
     };
 
@@ -216,7 +290,7 @@ function ServicesViewModel() {
     };
 
     self.removeCategory = function (cat) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.category_delete_confirm', "'{name}' kategorisini silmek istediğinize emin misiniz?").replace('{name}', cat.name || ''), function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.category_delete_confirm', "'{name}' kategorisini silmek istediÄŸinize emin misiniz?").replace('{name}', cat.name || ''), function() {
             $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.services.js.kategori_silindi', 'Kategori silindi'));
@@ -291,8 +365,8 @@ function ServicesViewModel() {
                 .filter(function (r) { return r.resourceId && r.quantityRequired > 0; }),
             isActive: self.serviceForm.isActive() === 'true'
         };
-        if (!data.name) { toastr.warning(slnJsT('salon.services.js.hizmet_adi_zorunludur', 'Hizmet adı zorunludur')); return; }
-        if (!data.categoryId) { toastr.warning(slnJsT('salon.services.js.kategori_secimi_zorunludur', 'Kategori seçimi zorunludur')); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.js.hizmet_adi_zorunludur', 'Hizmet adÄ± zorunludur')); return; }
+        if (!data.categoryId) { toastr.warning(slnJsT('salon.services.js.kategori_secimi_zorunludur', 'Kategori seÃ§imi zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-services';
@@ -374,6 +448,89 @@ function ServicesViewModel() {
         });
     };
 
+    function resetPackageForm(service) {
+        var sessionLabel = slnJsT('salon.services.package_default_sessions_suffix', '10 Seans');
+        self.isEditingPackageDef(false);
+        self.editingPackageDefId(null);
+        self.packageForm.name(service ? ((service.name || '') + ' - ' + sessionLabel) : '');
+        self.packageForm.description('');
+        self.packageForm.totalSessions(10);
+        self.packageForm.price(service ? ((parseFloat(service.price) || 0) * 10) : 0);
+        self.packageForm.validDays(365);
+    }
+
+    self.openPackageManager = function (service) {
+        if (!self.packageFeatureAvailable()) {
+            toastr.info(slnJsT('salon.services.package_unavailable', 'Paket modÃ¼lÃ¼ kapalÄ±'));
+            return;
+        }
+        self.selectedPackageService(service);
+        resetPackageForm(service);
+        packageModal.show();
+    };
+
+    self.newPackageDef = function () {
+        resetPackageForm(self.selectedPackageService());
+    };
+
+    self.editPackageDef = function (def) {
+        self.isEditingPackageDef(true);
+        self.editingPackageDefId(def.id);
+        self.packageForm.name(def.name || '');
+        self.packageForm.description(def.description || '');
+        self.packageForm.totalSessions(def.totalSessions || 10);
+        self.packageForm.price(def.price || 0);
+        self.packageForm.validDays(def.validDays || 365);
+    };
+
+    self.savePackageDef = function () {
+        var service = self.selectedPackageService();
+        if (!service) return;
+
+        var data = {
+            name: (self.packageForm.name() || '').trim(),
+            description: self.packageForm.description(),
+            serviceId: parseInt(service.id) || 0,
+            totalSessions: parseInt(self.packageForm.totalSessions()) || 0,
+            price: parseFloat(self.packageForm.price()) || 0,
+            validDays: parseInt(self.packageForm.validDays()) || 365,
+            isActive: true
+        };
+        if (!data.name) { toastr.warning(slnJsT('salon.packages.js.paket_adi_ve_hizmet_zorunludur', 'Paket adÄ± ve hizmet zorunludur')); return; }
+        if (data.totalSessions <= 0) { toastr.warning(slnJsT('salon.services.package_sessions_required', 'Seans sayÄ±sÄ± 0â€™dan bÃ¼yÃ¼k olmalÄ±dÄ±r')); return; }
+
+        self.isSaving(true);
+        var url = '/proxy/sln-packages/definitions';
+        var method = 'POST';
+        if (self.isEditingPackageDef()) {
+            url += '/' + self.editingPackageDefId();
+            method = 'PUT';
+        }
+
+        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
+            $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (items) {
+                self.packageDefinitions(normalizeList(items));
+            });
+            resetPackageForm(service);
+            toastr.success(slnJsT('salon.packages.js.paket_tanimi_kaydedildi', 'Paket tanÄ±mÄ± kaydedildi'));
+            self.isSaving(false);
+        }).fail(function (xhr) {
+            toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.services.package_save_failed', 'Paket tanÄ±mÄ± kaydedilemedi')));
+            self.isSaving(false);
+        });
+    };
+
+    self.removePackageDef = function (def) {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.packages.js.delete_def_confirm', "'{name}' paketini silmek istediÄŸinize emin misiniz?").replace('{name}', def.name || ''), function () {
+            $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
+                self.loadData();
+                toastr.success(slnJsT('salon.packages.js.paket_tanimi_silindi', 'Paket tanÄ±mÄ± silindi'));
+            }).fail(function (xhr) {
+                toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.services.package_delete_failed', 'Paket tanÄ±mÄ± silinemedi')));
+            });
+        });
+    };
+
     self.openComboManager = function () {
         self.comboForm.id(null);
         self.comboForm.name('');
@@ -444,7 +601,7 @@ function ServicesViewModel() {
     };
 
     self.removeService = function (svc) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.service_delete_confirm', "'{name}' hizmetini silmek istediğinize emin misiniz?").replace('{name}', svc.name || ''), function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.service_delete_confirm', "'{name}' hizmetini silmek istediÄŸinize emin misiniz?").replace('{name}', svc.name || ''), function() {
             $.ajax({ url: '/proxy/sln-services/' + svc.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.services.js.hizmet_silindi', 'Hizmet silindi'));
@@ -459,6 +616,7 @@ function ServicesViewModel() {
         serviceModal = new bootstrap.Modal(document.getElementById('serviceModal'));
         resourceModal = new bootstrap.Modal(document.getElementById('resourceModal'));
         comboModal = new bootstrap.Modal(document.getElementById('comboModal'));
+        packageModal = new bootstrap.Modal(document.getElementById('packageModal'));
         self.loadData();
     });
 }

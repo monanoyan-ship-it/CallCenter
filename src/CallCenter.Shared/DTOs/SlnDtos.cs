@@ -804,10 +804,17 @@ public class SlnClientPackageDto
     public int TotalSessions { get; set; }
     public int UsedSessions { get; set; }
     public int RemainingSessions { get; set; }
+    public decimal PackagePrice { get; set; }
     public decimal PaidAmount { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+public class SlnClientPackageAssignDto
+{
+    public int PackageDefinitionId { get; set; }
+    public int? SlnClientId { get; set; }
 }
 
 public class SlnClientPackageSellDto
@@ -821,6 +828,18 @@ public class SlnPackageUseDto
 {
     public int ClientPackageId { get; set; }
     public string? Notes { get; set; }
+}
+
+public class SlnPackageUsageDto
+{
+    public int Id { get; set; }
+    public int ClientPackageId { get; set; }
+    public string PackageName { get; set; } = string.Empty;
+    public string ServiceName { get; set; } = string.Empty;
+    public string? ClientName { get; set; }
+    public string? PersonnelName { get; set; }
+    public string? Notes { get; set; }
+    public DateTime UsedAt { get; set; }
 }
 
 public class SlnPackageBenefitCheckDto

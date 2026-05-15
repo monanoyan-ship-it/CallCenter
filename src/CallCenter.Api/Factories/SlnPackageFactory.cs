@@ -13,10 +13,6 @@ public class SlnPackageFactory : ISlnPackageFactory
     private readonly ISlnClientPackageEntityService _pkgEs;
     private readonly ISlnPackageUsageEntityService _usageEs;
     private readonly ISlnClientEntityService _clients;
-    private readonly ISlnInvoiceEntityService _invoices;
-    private readonly ISlnInvoiceItemEntityService _invoiceItems;
-    private readonly ISlnCashRegisterEntityService _cashRegisters;
-    private readonly ISlnCashTransactionEntityService _cashTransactions;
     private readonly IUnitOfWork _uow;
 
     public SlnPackageFactory(
@@ -24,20 +20,12 @@ public class SlnPackageFactory : ISlnPackageFactory
         ISlnClientPackageEntityService pkgEs,
         ISlnPackageUsageEntityService usageEs,
         ISlnClientEntityService clients,
-        ISlnInvoiceEntityService invoices,
-        ISlnInvoiceItemEntityService invoiceItems,
-        ISlnCashRegisterEntityService cashRegisters,
-        ISlnCashTransactionEntityService cashTransactions,
         IUnitOfWork uow)
     {
         _defEs = defEs;
         _pkgEs = pkgEs;
         _usageEs = usageEs;
         _clients = clients;
-        _invoices = invoices;
-        _invoiceItems = invoiceItems;
-        _cashRegisters = cashRegisters;
-        _cashTransactions = cashTransactions;
         _uow = uow;
     }
 
@@ -133,6 +121,7 @@ public class SlnPackageFactory : ISlnPackageFactory
             TotalSessions = p.TotalSessions,
             UsedSessions = p.UsedSessions,
             RemainingSessions = p.RemainingSessions,
+            PackagePrice = p.PackageDefinition != null ? p.PackageDefinition.Price : 0,
             PaidAmount = p.PaidAmount,
             ExpiresAt = p.ExpiresAt,
             IsActive = p.IsActive,
@@ -140,12 +129,12 @@ public class SlnPackageFactory : ISlnPackageFactory
         }).ToListAsync();
     }
 
-    public async Task<(SlnClientPackageDto? Package, string? Error)> SellPackageAsync(SlnClientPackageSellDto dto, int userId, int customerId, int? branchId = null)
+    public async Task<(SlnClientPackageDto? Package, string? Error)> AssignPackageAsync(SlnClientPackageAssignDto dto, int userId, int customerId, int? branchId = null)
     {
         var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == dto.PackageDefinitionId && d.CustomerId == customerId);
         if (def == null) return (null, "Paket tanimi bulunamadi");
         if (!def.IsActive) return (null, "Paket tanimi aktif degil");
-        if (!dto.SlnClientId.HasValue) return (null, "Paket satisi icin musteri secilmelidir");
+        if (!dto.SlnClientId.HasValue) return (null, "Paket atamak icin musteri secilmelidir");
         if (def.TotalSessions <= 0) return (null, "Paket seans sayisi gecersiz");
 
         var clientExists = await SalonBranchScope.ApplyToClients(
@@ -162,7 +151,7 @@ public class SlnPackageFactory : ISlnPackageFactory
             TotalSessions = def.TotalSessions,
             UsedSessions = 0,
             RemainingSessions = def.TotalSessions,
-            PaidAmount = def.Price,
+            PaidAmount = 0,
             ExpiresAt = DateTime.UtcNow.AddDays(def.ValidDays),
             IsActive = true,
             SoldByPersonnelId = userId
@@ -170,15 +159,54 @@ public class SlnPackageFactory : ISlnPackageFactory
         _pkgEs.Add(pkg);
         await _uow.SaveChangesAsync();
 
-        await CreatePackageSaleInvoiceAsync(customerId, branchId, userId, dto.PaymentMethodId, pkg, def);
-
         var result = (await GetClientPackagesAsync(customerId, null, branchId)).First(p => p.Id == pkg.Id);
         return (result, null);
+    }
+
+    public async Task<(SlnClientPackageDto? Package, string? Error)> SellPackageAsync(SlnClientPackageSellDto dto, int userId, int customerId, int? branchId = null)
+    {
+        return await AssignPackageAsync(new SlnClientPackageAssignDto
+        {
+            PackageDefinitionId = dto.PackageDefinitionId,
+            SlnClientId = dto.SlnClientId
+        }, userId, customerId, branchId);
     }
 
     public async Task<(bool Success, string? Error)> UseSessionAsync(SlnPackageUseDto dto, int userId, int customerId, int? branchId = null)
     {
         return await RecordUsageAsync(customerId, dto.ClientPackageId, null, null, userId, dto.Notes, branchId);
+    }
+
+    public async Task<List<SlnPackageUsageDto>> GetUsageHistoryAsync(int customerId, int? clientPackageId = null, int? branchId = null)
+    {
+        var scopedPackageIds = SalonBranchScope.ApplyToClientPackages(
+                _pkgEs.GetAllQueryable().Where(p => p.CustomerId == customerId),
+                branchId)
+            .Select(p => p.Id);
+
+        var query = _usageEs.GetAllQueryable()
+            .Where(u => scopedPackageIds.Contains(u.ClientPackageId));
+
+        if (clientPackageId.HasValue)
+            query = query.Where(u => u.ClientPackageId == clientPackageId.Value);
+
+        return await query
+            .Include(u => u.ClientPackage).ThenInclude(p => p!.PackageDefinition).ThenInclude(d => d!.Service)
+            .Include(u => u.ClientPackage).ThenInclude(p => p!.SlnClient)
+            .Include(u => u.Personnel).ThenInclude(p => p!.User)
+            .OrderByDescending(u => u.UsedAt)
+            .Select(u => new SlnPackageUsageDto
+            {
+                Id = u.Id,
+                ClientPackageId = u.ClientPackageId,
+                PackageName = u.ClientPackage != null && u.ClientPackage.PackageDefinition != null ? u.ClientPackage.PackageDefinition.Name : "",
+                ServiceName = u.ClientPackage != null && u.ClientPackage.PackageDefinition != null && u.ClientPackage.PackageDefinition.Service != null ? u.ClientPackage.PackageDefinition.Service.Name : "",
+                ClientName = u.ClientPackage != null && u.ClientPackage.SlnClient != null ? u.ClientPackage.SlnClient.FullName : null,
+                PersonnelName = u.Personnel != null && u.Personnel.User != null ? u.Personnel.User.FullName : null,
+                Notes = u.Notes,
+                UsedAt = u.UsedAt
+            })
+            .ToListAsync();
     }
 
     public async Task<List<SlnPackageBenefitDto>> GetUsablePackagesAsync(int customerId, int slnClientId, IEnumerable<int> serviceIds, int? branchId = null)
@@ -293,76 +321,6 @@ public class SlnPackageFactory : ISlnPackageFactory
         pkg.PaidAmount = 0;
         await _uow.SaveChangesAsync();
         return (true, null);
-    }
-
-    private async Task CreatePackageSaleInvoiceAsync(
-        int customerId,
-        int? branchId,
-        int userId,
-        int paymentMethodId,
-        SlnClientPackage pkg,
-        SlnPackageDefinition def)
-    {
-        var today = DateTime.UtcNow;
-        var todayCount = await _invoices.GetAllQueryable()
-            .Where(i => i.CustomerId == customerId && i.InvoiceDate.Date == today.Date)
-            .CountAsync();
-
-        var invoiceNo = $"SLN-{today:yyyyMMdd}-{(todayCount + 1):D4}";
-        var invoice = new SlnInvoice
-        {
-            CustomerId = customerId,
-            BranchId = branchId,
-            SlnClientId = pkg.SlnClientId,
-            InvoiceNo = invoiceNo,
-            InvoiceDate = today,
-            TotalAmount = def.Price,
-            NetAmount = def.Price,
-            GrandTotal = def.Price,
-            PaymentMethodId = paymentMethodId > 0 ? paymentMethodId : 1,
-            PersonnelId = userId > 0 ? userId : null,
-            StatusId = 2,
-            Notes = $"PackageSale:{pkg.Id}|PackageDefinition:{def.Id}"
-        };
-
-        _invoices.Add(invoice);
-        await _uow.SaveChangesAsync();
-
-        _invoiceItems.Add(new SlnInvoiceItem
-        {
-            InvoiceId = invoice.Id,
-            ServiceId = def.ServiceId,
-            PersonnelId = userId > 0 ? userId : null,
-            Quantity = 1,
-            UnitPrice = def.Price,
-            LineTotal = def.Price
-        });
-        await _uow.SaveChangesAsync();
-
-        if (def.Price > 0)
-        {
-            var registerQuery = _cashRegisters.GetAllQueryable()
-                .Where(r => r.CustomerId == customerId && r.IsActive);
-            var register = branchId.HasValue
-                ? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == branchId.Value)
-                  ?? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null)
-                : await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null)
-                  ?? await registerQuery.FirstOrDefaultAsync();
-
-            if (register != null)
-            {
-                _cashTransactions.Add(new SlnCashTransaction
-                {
-                    RegisterId = register.Id,
-                    TransactionTypeId = 1,
-                    Amount = def.Price,
-                    PaymentMethodId = invoice.PaymentMethodId,
-                    RelatedInvoiceId = invoice.Id,
-                    Description = $"Paket satisi: {def.Name} ({invoiceNo})"
-                });
-                await _uow.SaveChangesAsync();
-            }
-        }
     }
 
     private static int? TryReadNoteInt(string? notes, string prefix)

@@ -262,7 +262,6 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 if (usageCount > packageBenefit.RemainingSessions)
                     return (null, $"Paket seansi yetersiz. Kalan: {packageBenefit.RemainingSessions}");
 
-                unitPrice = 0;
                 for (var i = 0; i < usageCount; i++)
                     packageUsageRecords.Add((itemDto.ClientPackageId.Value, itemDto.ServiceId.Value));
             }

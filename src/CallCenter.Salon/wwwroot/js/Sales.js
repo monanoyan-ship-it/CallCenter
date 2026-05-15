@@ -10,11 +10,13 @@ function SalesViewModel() {
     self.clientList = ko.observableArray([]);
     self.staffList = ko.observableArray([]);
     self.recipes = ko.observableArray([]);
+    self.packageDefinitions = ko.observableArray([]);
     self.selectedCategoryId = ko.observable(null);
     self.productSearchQuery = ko.observable('');
     self.showRecipes = ko.observable(false);
     self.cartItems = ko.observableArray([]);
     self.clientId = ko.observable(null);
+    self.assignPackageDefinitionId = ko.observable(null);
     self.selectedPersonnelId = ko.observable(null);
     self.paymentMethodId = ko.observable('1');
     self.giftCardCode = ko.observable('');
@@ -33,6 +35,21 @@ function SalesViewModel() {
         return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
     }
 
+    function normalizeList(data) {
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.items)) return data.items;
+        return [];
+    }
+
+    self.formatMoney = function (value) {
+        return (parseFloat(value) || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL';
+    };
+
+    function readItemUnitPrice(item) {
+        var value = parseFloat(typeof item.editPrice === 'function' ? item.editPrice() : item.editPrice);
+        return isNaN(value) ? item.unitPrice : value;
+    }
+
     // ═══ Autocomplete ═══
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.clientId);
 
@@ -46,7 +63,7 @@ function SalesViewModel() {
         return item;
     };
 
-    self.resetServiceBenefit = function (item) {
+    self.resetServiceBenefit = function (item, resetPrice) {
         self.ensureBenefitFields(item);
         if (!item.serviceId) return;
         item.membershipId = null;
@@ -55,7 +72,7 @@ function SalesViewModel() {
         item.usePackageSession = false;
         item.packageRemainingSessions = null;
         item.benefitText(null);
-        item.editPrice(item.unitPrice);
+        if (resetPrice !== false) item.editPrice(item.unitPrice);
     };
 
     // Musteri secildiginde uyelik kontrolu
@@ -73,7 +90,7 @@ function SalesViewModel() {
         if (!clientId) return;
 
         var serviceItems = self.cartItems().filter(function (i) { return i.serviceId; });
-        serviceItems.forEach(self.resetServiceBenefit);
+        serviceItems.forEach(function (item) { self.resetServiceBenefit(item, false); });
 
         var serviceIds = serviceItems.map(function (i) { return i.serviceId; })
             .filter(function (value, index, arr) { return arr.indexOf(value) === index; });
@@ -89,11 +106,10 @@ function SalesViewModel() {
                 var item = serviceItems.find(function (i) { return i.serviceId === pkg.serviceId && i.usePackageSession !== true; });
                 if (!item || pkg.remainingSessions <= 0) return;
 
-                item.editPrice(0);
                 item.clientPackageId = pkg.clientPackageId;
                 item.usePackageSession = true;
                 item.packageRemainingSessions = pkg.remainingSessions;
-                item.benefitText(pkg.packageName + ': paket seansi (kalan ' + pkg.remainingSessions + ')');
+                item.benefitText(pkg.packageName + ': ' + slnJsT('salon.sales.package_session_tracking_suffix', 'paket seansı takipte, tahsilat bu adisyondan alınır') + ' (' + slnJsT('salon.packages.auto.kalan', 'kalan') + ' ' + pkg.remainingSessions + ')');
             });
         }).always(function () {
             self.applyMembershipOnly();
@@ -164,6 +180,11 @@ function SalesViewModel() {
         }).slice(0, 8);
     });
 
+    self.selectedAssignPackageDefinition = ko.computed(function () {
+        var id = parseInt(self.assignPackageDefinitionId()) || 0;
+        return self.packageDefinitions().find(function (d) { return parseInt(d.id) === id; }) || null;
+    });
+
     self.subtotal = ko.computed(function () {
         var total = 0;
         self.cartItems().forEach(function (item) { total += item.quantity() * (parseFloat(item.editPrice()) || 0); });
@@ -202,12 +223,71 @@ function SalesViewModel() {
         $.ajax({ url: '/proxy/sln-recipes', method: 'GET' }).done(function (data) {
             self.recipes((data.items || data).filter(function (r) { return r.isActive; }));
         });
+        $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
+            self.packageDefinitions(normalizeList(data).filter(function (d) { return d.isActive !== false; }));
+        }).fail(function () {
+            self.packageDefinitions([]);
+        });
     };
 
     self.loadProducts = function () {
         $.ajax({ url: '/proxy/sln-products', method: 'GET' })
             .done(function (data) { self.products(data.items || data); })
             .fail(function () { self.products([]); });
+    };
+
+    self.openPackageAssign = function () {
+        if (!self.clientId()) {
+            toastr.warning(slnJsT('salon.sales.package_assign_client_required', 'Seans paketi atamak icin once musteri secin.'));
+            return;
+        }
+
+        var defs = self.packageDefinitions();
+        if (!defs.length) {
+            toastr.warning(slnJsT('salon.sales.package_assign_no_definition', 'Once hizmet ekranindan seans paketi tanimi olusturun.'));
+            return;
+        }
+
+        var cartServiceIds = self.cartItems()
+            .filter(function (item) { return item.serviceId; })
+            .map(function (item) { return item.serviceId; });
+        var matchingDef = defs.find(function (def) { return cartServiceIds.indexOf(def.serviceId) >= 0; }) || defs[0];
+        self.assignPackageDefinitionId(matchingDef ? matchingDef.id : null);
+
+        if (!packageAssignModal) packageAssignModal = new bootstrap.Modal(document.getElementById('packageAssignModal'));
+        packageAssignModal.show();
+    };
+
+    self.confirmPackageAssign = function () {
+        if (!self.clientId()) {
+            toastr.warning(slnJsT('salon.sales.package_assign_client_required', 'Seans paketi atamak icin once musteri secin.'));
+            return;
+        }
+
+        var def = self.selectedAssignPackageDefinition();
+        if (!def) {
+            toastr.warning(slnJsT('salon.sales.package_assign_definition_required', 'Paket tanimi secilmelidir.'));
+            return;
+        }
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-packages/assign',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                packageDefinitionId: parseInt(def.id),
+                slnClientId: parseInt(self.clientId())
+            })
+        }).done(function () {
+            if (packageAssignModal) packageAssignModal.hide();
+            toastr.success(slnJsT('salon.sales.package_assigned', 'Seans paketi musteriye atandi.'));
+            self.applyClientBenefits();
+        }).fail(function (xhr) {
+            toastr.error(readError(xhr, slnJsT('salon.sales.package_assign_failed', 'Seans paketi atanamadi')));
+        }).always(function () {
+            self.isSaving(false);
+        });
     };
 
     // ═══ Recipe Toggle ═══
@@ -356,7 +436,7 @@ function SalesViewModel() {
                 productId: item.productId || null,
                 personnelId: self.selectedPersonnelId() ? parseInt(self.selectedPersonnelId()) : null,
                 quantity: item.quantity(),
-                unitPrice: parseFloat(item.editPrice()) || item.unitPrice,
+                unitPrice: readItemUnitPrice(item),
                 discountAmount: 0,
                 membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
                 useMembershipBenefit: item.useMembershipBenefit === true,
@@ -480,7 +560,7 @@ function SalesViewModel() {
     };
 
     // ═══ Randevu Çek ═══
-    var appointmentModal;
+    var appointmentModal, packageAssignModal;
 
     self.openAppointments = function () {
         self.appointmentsLoading(true);
@@ -688,6 +768,8 @@ function SalesViewModel() {
 
     // ═══ Init ═══
     $(document).ready(function () {
+        var packageAssignEl = document.getElementById('packageAssignModal');
+        if (packageAssignEl) packageAssignModal = new bootstrap.Modal(packageAssignEl);
         self.loadData();
     });
 }

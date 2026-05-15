@@ -69,6 +69,16 @@ public class SlnPackageController : ControllerBase
         return pkg != null ? Ok(pkg) : BadRequest(error);
     }
 
+    [HttpPost("assign")]
+    public async Task<ActionResult<SlnClientPackageDto>> AssignPackage([FromBody] SlnClientPackageAssignDto dto, [FromQuery] int? branchId)
+    {
+        var personnelId = GetPersonnelId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (pkg, error) = await _packageFactory.AssignPackageAsync(dto, personnelId, customerId, GetBranchId() ?? branchId);
+        return pkg != null ? Ok(pkg) : BadRequest(error);
+    }
+
     [HttpPost("use")]
     public async Task<ActionResult> UseSession([FromBody] SlnPackageUseDto dto, [FromQuery] int? branchId)
     {
@@ -77,6 +87,14 @@ public class SlnPackageController : ControllerBase
         if (customerId == 0) return Unauthorized();
         var (success, error) = await _packageFactory.UseSessionAsync(dto, personnelId, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpGet("usages")]
+    public async Task<ActionResult<List<SlnPackageUsageDto>>> GetUsages([FromQuery] int? clientPackageId, [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _packageFactory.GetUsageHistoryAsync(customerId, clientPackageId, GetBranchId() ?? branchId));
     }
 
     [HttpPost("usable")]

@@ -1,4 +1,4 @@
-@inject CallCenter.Shared.Services.ITranslationService Translation
+﻿@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = Translation.T("salon.services.auto.title", "Hizmetler");
 }
@@ -32,7 +32,7 @@
                     <span class="badge bg-secondary ms-1" data-bind="text: services.length"></span>
                 </h6>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.kategori_duzenle", "Kategori Düzenle"))" data-bind="click: $parent.openEditCategory">
+                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.kategori_duzenle", "Kategori DÃ¼zenle"))" data-bind="click: $parent.openEditCategory">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.services.auto.kategori_sil", "Kategori Sil"))" data-bind="click: $parent.removeCategory">
@@ -45,8 +45,9 @@
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
-                                <th><t key="salon.services.auto.sure_dk">Süre (dk)</t></th>
+                                <th><t key="salon.services.auto.hizmet_adi">Hizmet AdÄ±</t></th>
+                                <th><t key="salon.services.auto.sure_dk">SÃ¼re (dk)</t></th>
+                                <th><t key="salon.services.package_tracking">Seans Paketi</t></th>
                                 <th><t key="salon.services.resources">Kaynaklar</t></th>
                                 <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
                                 <th><t key="salon.appointments.status">Durum</t></th>
@@ -57,6 +58,11 @@
                             <tr>
                                 <td class="small fw-semibold" data-bind="text: name"></td>
                                 <td class="small" data-bind="text: durationMinutes + ' dk'"></td>
+                                <td class="small">
+                                    <button class="btn btn-sm btn-outline-info" data-bind="click: $parents[1].openPackageManager, attr: { title: $parents[1].packageSummary($data) }">
+                                        <i class="bi bi-box-seam me-1"></i><span data-bind="text: $parents[1].packageSummary($data)"></span>
+                                    </button>
+                                </td>
                                 <td class="small text-muted" data-bind="text: $parents[1].resourceSummary($data)"></td>
                                 <td class="small" data-bind="text: (price || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                                 <td>
@@ -64,7 +70,7 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "Düzenle"))" data-bind="click: $parents[1].openEditService">
+                                        <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "DÃ¼zenle"))" data-bind="click: $parents[1].openEditService">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parents[1].removeService">
@@ -94,8 +100,9 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
-                            <th><t key="salon.services.auto.sure_dk_2">Süre (dk)</t></th>
+                            <th><t key="salon.services.auto.hizmet_adi">Hizmet AdÄ±</t></th>
+                            <th><t key="salon.services.auto.sure_dk_2">SÃ¼re (dk)</t></th>
+                            <th><t key="salon.services.package_tracking">Seans Paketi</t></th>
                             <th><t key="salon.services.resources">Kaynaklar</t></th>
                             <th><t key="salon.services.auto.fiyat_2">Fiyat</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
@@ -106,6 +113,11 @@
                         <tr>
                             <td class="small fw-semibold" data-bind="text: name"></td>
                             <td class="small" data-bind="text: durationMinutes + ' dk'"></td>
+                            <td class="small">
+                                <button class="btn btn-sm btn-outline-info" data-bind="click: $parent.openPackageManager, attr: { title: $parent.packageSummary($data) }">
+                                    <i class="bi bi-box-seam me-1"></i><span data-bind="text: $parent.packageSummary($data)"></span>
+                                </button>
+                            </td>
                             <td class="small text-muted" data-bind="text: $parent.resourceSummary($data)"></td>
                             <td class="small" data-bind="text: (price || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
                             <td>
@@ -113,7 +125,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEditService">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "DÃ¼zenle"))" data-bind="click: $parent.openEditService">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removeService">
@@ -132,7 +144,7 @@
     <!-- ko if: filteredCategories().length === 0 && uncategorizedServices().length === 0 -->
     <div class="text-center text-muted py-5">
         <i class="bi bi-list-check" style="font-size: 2rem;"></i>
-        <p class="mt-2 small"><t key="salon.services.auto.henuz_hizmet_eklenmemis">Henüz hizmet eklenmemis</t></p>
+        <p class="mt-2 small"><t key="salon.services.auto.henuz_hizmet_eklenmemis">HenÃ¼z hizmet eklenmemis</t></p>
     </div>
     <!-- /ko -->
 
@@ -141,21 +153,21 @@
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditingCategory() ? salonT('salon.services.auto.kategori_duzenle', 'Kategori Düzenle') : salonT('salon.services.auto.yeni_kategori', 'Yeni Kategori')"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditingCategory() ? salonT('salon.services.auto.kategori_duzenle', 'Kategori DÃ¼zenle') : salonT('salon.services.auto.yeni_kategori', 'Yeni Kategori')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small"><t key="salon.services.auto.kategori_adi">Kategori Adı *</t></label>
+                        <label class="form-label small"><t key="salon.services.auto.kategori_adi">Kategori AdÄ± *</t></label>
                         <input type="text" class="form-control form-control-sm" data-bind="value: categoryForm.name" />
                     </div>
                     <div>
-                        <label class="form-label small"><t key="salon.services.auto.sira_no">Sıra No</t></label>
+                        <label class="form-label small"><t key="salon.services.auto.sira_no">SÄ±ra No</t></label>
                         <input type="number" class="form-control form-control-sm" data-bind="value: categoryForm.sortOrder" />
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Ä°ptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveCategory, disable: isSaving">
                         <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
@@ -169,13 +181,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditingService() ? salonT('salon.services.auto.hizmet_duzenle', 'Hizmet Düzenle') : salonT('salon.services.auto.yeni_hizmet', 'Yeni Hizmet')"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditingService() ? salonT('salon.services.auto.hizmet_duzenle', 'Hizmet DÃ¼zenle') : salonT('salon.services.auto.yeni_hizmet', 'Yeni Hizmet')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small"><t key="salon.services.auto.hizmet_adi_2">Hizmet Adı *</t></label>
+                            <label class="form-label small"><t key="salon.services.auto.hizmet_adi_2">Hizmet AdÄ± *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: serviceForm.name" />
                         </div>
                         <div class="col-6">
@@ -201,13 +213,13 @@
                                                   event: { mousedown: function(){ $parent.categoryAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: categoryAutocomplete.filteredItems().length === 0 && categoryAutocomplete.query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
+                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">SonuÃ§ bulunamadÄ±</t></span>
                                     <!-- /ko -->
                                 </div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="salon.services.auto.sure_dk_required">Süre (dk) *</t></label>
+                            <label class="form-label small"><t key="salon.services.auto.sure_dk_required">SÃ¼re (dk) *</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: serviceForm.durationMinutes" />
                         </div>
                         <div class="col-6">
@@ -282,7 +294,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Ä°ptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveService, disable: isSaving">
                         <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
@@ -355,6 +367,109 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="packageModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <t key="salon.services.package_tracking">Seans Paketi</t>
+                        <span class="text-muted ms-1" data-bind="text: selectedPackageService() ? selectedPackageService().name : ''"></span>
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-lg-5">
+                            <div class="border rounded p-2 mb-3 small">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted"><t key="salon.services.package_definitions">Paket Tanimlari</t></span>
+                                    <strong data-bind="text: selectedPackageStats().definitionCount"></strong>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 small fw-semibold" data-bind="text: isEditingPackageDef() ? salonT('salon.packages.auto.paket_duzenle', 'Paket Duzenle') : salonT('salon.packages.auto.yeni_paket_tanimi', 'Yeni Paket Tanimi')"></h6>
+                                <button type="button" class="btn btn-link btn-sm p-0" data-bind="click: newPackageDef, visible: isEditingPackageDef">
+                                    <t key="salon.services.package_new_form">Yeni form</t>
+                                </button>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label small"><t key="salon.packages.auto.paket_adi_required">Paket Adi *</t></label>
+                                    <input type="text" class="form-control form-control-sm" data-bind="value: packageForm.name" />
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small"><t key="salon.packages.auto.seans_sayisi_required">Seans Sayisi *</t></label>
+                                    <input type="number" min="1" class="form-control form-control-sm" data-bind="value: packageForm.totalSessions" />
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small"><t key="salon.packages.auto.fiyat_tl_required">Fiyat (TL) *</t></label>
+                                    <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: packageForm.price" />
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small"><t key="salon.packages.auto.gecerlilik_gun">Gecerlilik (gun)</t></label>
+                                    <input type="number" min="1" class="form-control form-control-sm" data-bind="value: packageForm.validDays" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small"><t key="salon.common.description">Aciklama</t></label>
+                                    <input type="text" class="form-control form-control-sm" data-bind="value: packageForm.description" />
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: savePackageDef, disable: isSaving">
+                                        <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-7">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="small fw-semibold mb-0"><t key="salon.services.package_definitions">Paket Tanimlari</t></h6>
+                                <a class="btn btn-outline-primary btn-sm" href="/Packages">
+                                    <i class="bi bi-arrow-right-circle me-1"></i><t key="salon.packages.client_packages">Müşteri Paketleri</t>
+                                </a>
+                            </div>
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th><t key="salon.packages.auto.paket">Paket</t></th>
+                                            <th><t key="salon.services.package_sessions">Seans</t></th>
+                                            <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
+                                            <th><t key="salon.packages.auto.seans_basi">Seans basi</t></th>
+                                            <th style="width:96px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-bind="foreach: packageDefinitionsForSelected">
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold" data-bind="text: name"></div>
+                                                <div class="text-muted small" data-bind="text: description || ''"></div>
+                                            </td>
+                                            <td data-bind="text: totalSessions"></td>
+                                            <td data-bind="text: $parent.formatMoney(price)"></td>
+                                            <td data-bind="text: $parent.formatMoney(pricePerSession)"></td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-secondary" data-bind="click: $parent.editPackageDef"><i class="bi bi-pencil"></i></button>
+                                                    <button class="btn btn-outline-danger" data-bind="click: $parent.removePackageDef"><i class="bi bi-trash"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- ko if: packageDefinitionsForSelected().length === 0 -->
+                            <div class="text-center text-muted py-3 small border rounded mb-3">
+                                <t key="salon.services.package_empty_for_service">Bu hizmet icin paket tanimi yok.</t>
+                            </div>
+                            <!-- /ko -->
+                        </div>
                     </div>
                 </div>
             </div>
