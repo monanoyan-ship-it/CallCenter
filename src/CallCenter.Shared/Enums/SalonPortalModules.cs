@@ -12,7 +12,7 @@ public static class SalonPortalModules
     public static readonly TypeItem SlnClients = new(202, "SlnClients", "SalonModule.Clients", "Müşteri Yönetimi", "bi-people-fill", "bg-success", 2, isDefault: true);
     public static readonly TypeItem SlnAppointments = new(203, "SlnAppointments", "SalonModule.Appointments", "Randevu Yönetimi", "bi-calendar-check", "bg-info", 3, isDefault: true);
     public static readonly TypeItem SlnServices = new(204, "SlnServices", "SalonModule.Services", "Hizmet Tanımları", "bi-list-check", "bg-warning text-dark", 4, isDefault: true);
-    public static readonly TypeItem SlnProducts = new(205, "SlnProducts", "SalonModule.Products", "Ürün ve Stok", "bi-box-seam", "bg-secondary", 5);
+    public static readonly TypeItem SlnProducts = new(205, "SlnProducts", "SalonModule.Products", "Ürün ve Stok", "bi-box-seam", "bg-secondary", 5, isDefault: true);
     public static readonly TypeItem SlnInvoices = new(206, "SlnInvoices", "SalonModule.Invoices", "Adisyon ve Satış", "bi-receipt", "bg-danger", 6, isDefault: true);
     public static readonly TypeItem SlnCash = new(207, "SlnCash", "SalonModule.Cash", "Kasa Yönetimi", "bi-cash-stack", "bg-success", 7, isDefault: true);
     public static readonly TypeItem SlnExpenses = new(208, "SlnExpenses", "SalonModule.Expenses", "Masraf Takibi", "bi-credit-card", "bg-dark", 8);

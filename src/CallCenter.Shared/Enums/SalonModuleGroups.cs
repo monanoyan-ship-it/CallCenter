@@ -37,6 +37,7 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnClients] = Ids.Core,
         [SalonPortalModules.Ids.SlnAppointments] = Ids.Core,
         [SalonPortalModules.Ids.SlnServices] = Ids.Core,
+        [SalonPortalModules.Ids.SlnProducts] = Ids.Core,
         [SalonPortalModules.Ids.SlnInvoices] = Ids.Core,
         [SalonPortalModules.Ids.SlnCash] = Ids.Core,
         [SalonPortalModules.Ids.SlnStaff] = Ids.Core,
@@ -50,7 +51,6 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnConsentForms] = Ids.Core,
 
         // ── Stok Tedarik / Finans (1) — 400 TL ─────────────────────────────
-        [SalonPortalModules.Ids.SlnProducts] = Ids.StockFinance,
         [SalonPortalModules.Ids.SlnSuppliers] = Ids.StockFinance,
         [SalonPortalModules.Ids.SlnExpenses] = Ids.StockFinance,
 

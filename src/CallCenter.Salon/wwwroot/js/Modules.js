@@ -60,13 +60,13 @@ function ModulesViewModel() {
         6: moduleT('salon.modules.package.corporate', 'Kurumsal')
     };
     var PACKAGE_SUMMARIES = {
-        1: moduleT('salon.modules.package.stock_finance.summary', 'Stok, tedarikçi, masraf ve finans görünürlüğünü günlük operasyonun üzerine ekler.'),
+        1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve finans derinliğini temel stok takibinin üzerine ekler.'),
         3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Tekrar ziyaret, paket, üyelik, hediye kartı ve kampanya gelirlerini birlikte büyütür.'),
         5: moduleT('salon.modules.package.professional.summary', 'Tedavi geçmişi, görsel takip ve profesyonel konsültasyon akışlarını derinleştirir.'),
         6: moduleT('salon.modules.package.corporate.summary', 'Çok şube, yönetici görünümü, gelişmiş rapor ve dışa aktarım ihtiyaçlarını toplar.')
     };
     var PACKAGE_OUTCOMES = {
-        1: moduleT('salon.modules.package.stock_finance.outcome', 'Amaç: ürün kaça alındı, nerede kaldı, hangi işlem para kazandırdı sorusunu cevaplamak.'),
+        1: moduleT('salon.modules.package.stock_finance.outcome', 'Amaç: stok operasyonunu denetlemek, tedarik borcunu görmek ve kârlılık/maliyet kararlarını hızlandırmak.'),
         3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Amaç: müşteriyi geri getirmek ve tek seferlik satışları tekrarlı gelire çevirmek.'),
         5: moduleT('salon.modules.package.professional.outcome', 'Amaç: uzman işi yapan merkezlerde güven, takip ve işlem kalitesini görünür kılmak.'),
         6: moduleT('salon.modules.package.corporate.outcome', 'Amaç: sahibin tüm şubeyi tek ekrandan kıyaslamasını ve denetlemesini sağlamak.')
@@ -74,7 +74,7 @@ function ModulesViewModel() {
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
     var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
     self.packagePrices = ko.observable({});
-    self.basePackageSummary = ko.observable(moduleT('salon.modules.base_package_summary', 'Randevu, müşteri, hizmet, personel, POS/adisyon, kasa, profil, bekleme listesi ve temel güvenlik akışları dahildir.'));
+    self.basePackageSummary = ko.observable(moduleT('salon.modules.base_package_summary', 'Randevu, müşteri, hizmet, personel, ürün/stok takibi, POS/adisyon, kasa, profil, bekleme listesi ve temel güvenlik akışları dahildir.'));
     self.basePackageOutcome = ko.observable(moduleT('salon.modules.base_package_outcome', 'Amaç: yeni salonun ilk günden satışa ve randevuya hazır görünmesi.'));
 
     self.priceForGroup = function (gId) {

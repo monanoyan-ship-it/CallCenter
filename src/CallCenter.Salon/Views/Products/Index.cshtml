@@ -1,9 +1,18 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = Translation.T("salon.products.auto.title", "Ürünler");
+    var productsJwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
+    var productsActiveModuleIds = (productsJwt.CustomerModules ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
+        .Where(id => id > 0)
+        .ToHashSet();
+    var productsHasStockFinancePro = string.IsNullOrWhiteSpace(productsJwt.CustomerModules)
+        || productsActiveModuleIds.Contains(CallCenter.Shared.Enums.SalonPortalModules.Ids.SlnSuppliers)
+        || productsActiveModuleIds.Contains(CallCenter.Shared.Enums.SalonPortalModules.Ids.SlnExpenses);
 }
 
-<div id="products-vm">
+<div id="products-vm" data-stock-finance-pro="@(productsHasStockFinancePro ? "true" : "false")">
     <!-- Toolbar -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
@@ -16,6 +25,16 @@
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
             <i class="bi bi-plus-lg me-1"></i><t key="salon.products.auto.yeni_urun">Yeni Ürün</t>
         </button>
+    </div>
+
+    <div class="alert alert-info py-2 small d-flex flex-wrap justify-content-between align-items-center gap-2" data-bind="visible: !hasStockFinancePro()">
+        <span>
+            <i class="bi bi-info-circle me-1"></i>
+            <t key="salon.products.stock_finance_pro_notice">Temel pakette ürün ve basit stok takibi açık. Tedarikçi cari, alış kaydı, transfer, sayım ve tedarik siparişleri için Stok Tedarik / Finans paketi gerekir.</t>
+        </span>
+        <a href="/Modules" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-box-seam me-1"></i><t key="salon.products.view_stock_finance_package">Paketi İncele</t>
+        </a>
     </div>
 
     <div class="alert alert-warning py-2" data-bind="visible: lowStockProducts().length > 0">
@@ -41,7 +60,7 @@
                             <span data-bind="text: unit"></span>
                         </td>
                         <td class="text-end">
-                            <button type="button" class="btn btn-outline-dark btn-sm" data-bind="click: $parent.openSupplierOrder">
+                            <button type="button" class="btn btn-outline-dark btn-sm" data-bind="click: $parent.openSupplierOrder, visible: $parent.hasStockFinancePro">
                                 <i class="bi bi-truck me-1"></i><t key="salon.products.create_supplier_order">Tedarik siparisi</t>
                             </button>
                         </td>
@@ -87,6 +106,7 @@
                                     <button class="btn btn-outline-secondary" title="@(Translation.T("salon.products.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    <!-- ko if: $parent.hasStockFinancePro -->
                                     <button class="btn btn-outline-success" title="@(Translation.T("salon.products.auto.alis_ekle", "Alış Ekle"))" data-bind="click: $parent.openPurchase">
                                         <i class="bi bi-cart-plus"></i>
                                     </button>
@@ -99,6 +119,7 @@
                                     <button class="btn btn-outline-warning" title="@(Translation.T("salon.products.auto.title_sayim", "Sayım"))" data-bind="click: $parent.openStockCount">
                                         <i class="bi bi-clipboard-check"></i>
                                     </button>
+                                    <!-- /ko -->
                                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
                                         <i class="bi bi-trash"></i>
                                     </button>

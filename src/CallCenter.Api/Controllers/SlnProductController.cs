@@ -170,6 +170,7 @@ public class SlnProductController : ControllerBase
     // ═══ Tedarikciler ═══
 
     [HttpGet("suppliers")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult<List<SlnSupplierDto>>> GetSuppliers()
     {
         var customerId = GetCustomerId();
@@ -189,6 +190,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpGet("supplier-orders")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult<List<SlnSupplierOrderDto>>> GetSupplierOrders([FromQuery] int? statusId)
     {
         var customerId = GetCustomerId();
@@ -198,6 +200,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost("supplier-orders")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult<SlnSupplierOrderDto>> CreateSupplierOrder([FromBody] SlnSupplierOrderCreateDto dto)
     {
         var userId = GetUserId();
@@ -209,6 +212,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPut("supplier-orders/{id}/status")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult> UpdateSupplierOrderStatus(int id, [FromBody] SlnSupplierOrderStatusUpdateDto dto)
     {
         var customerId = GetCustomerId();
@@ -219,6 +223,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost("suppliers")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult<SlnSupplierDto>> CreateSupplier([FromBody] SlnSupplierCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -229,6 +234,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPut("suppliers/{id}")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult> UpdateSupplier(int id, [FromBody] SlnSupplierUpdateRequest req)
     {
         var customerId = GetCustomerId();
@@ -250,6 +256,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpDelete("suppliers/{id}")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult> DeleteSupplier(int id)
     {
         var customerId = GetCustomerId();
@@ -262,6 +269,7 @@ public class SlnProductController : ControllerBase
     // ═══ Stok Hareket ═══
 
     [HttpPost("{id}/stock-movements")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult> AddStockMovement(int id, [FromBody] SlnStockMovementRequest req)
     {
         var userId = GetUserId();
@@ -275,6 +283,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost("{id}/stock-transfer")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult> TransferStock(int id, [FromBody] SlnStockTransferRequest req)
     {
         var userId = GetUserId();
@@ -288,6 +297,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost("{id}/stock-count")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
     public async Task<ActionResult> AdjustStockCount(int id, [FromBody] SlnStockCountRequest req)
     {
         var userId = GetUserId();

@@ -23,19 +23,15 @@ public static class SalonDefaultDataHelper
         IUnitOfWork uow,
         int customerId)
     {
-        // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
-        var hasCategories = await serviceCategoryEs.GetAllQueryable().AnyAsync(c => c.CustomerId == customerId);
-        if (hasCategories) return;
-
         // ═══ Default Moduller ═══
-        var existingModuleIds = await portalModuleEs.GetAllQueryable()
+        var existingModules = await portalModuleEs.GetAllQueryable()
             .Where(m => m.CustomerId == customerId)
-            .Select(m => m.ModuleId)
             .ToListAsync();
 
         foreach (var mod in SalonPortalModules.Defaults)
         {
-            if (!existingModuleIds.Contains(mod.Id))
+            var existing = existingModules.FirstOrDefault(m => m.ModuleId == mod.Id);
+            if (existing == null)
             {
                 portalModuleEs.Add(new CustomerPortalModule
                 {
@@ -44,8 +40,18 @@ public static class SalonDefaultDataHelper
                     IsActive = true
                 });
             }
+            else if (!existing.IsActive)
+            {
+                existing.IsActive = true;
+                existing.ActivatedAt = DateTime.UtcNow;
+                existing.DeactivatedAt = null;
+            }
         }
         await uow.SaveChangesAsync();
+
+        // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
+        var hasCategories = await serviceCategoryEs.GetAllQueryable().AnyAsync(c => c.CustomerId == customerId);
+        if (hasCategories) return;
 
         // ═══ Hizmet Kategorileri + Hizmetler ═══
         var categories = GetDefaultCategories();
@@ -120,19 +126,15 @@ public static class SalonDefaultDataHelper
     /// <summary>AppDbContext ile (Program.cs seed'den cagirmak icin)</summary>
     public static async Task SeedDefaultDataAsync(AppDbContext db, int customerId)
     {
-        // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
-        var hasCategories = await db.SlnServiceCategories.AnyAsync(c => c.CustomerId == customerId);
-        if (hasCategories) return;
-
         // ═══ Default Moduller ═══
-        var existingModuleIds = await db.CustomerPortalModules
+        var existingModules = await db.CustomerPortalModules
             .Where(m => m.CustomerId == customerId)
-            .Select(m => m.ModuleId)
             .ToListAsync();
 
         foreach (var mod in SalonPortalModules.Defaults)
         {
-            if (!existingModuleIds.Contains(mod.Id))
+            var existing = existingModules.FirstOrDefault(m => m.ModuleId == mod.Id);
+            if (existing == null)
             {
                 db.CustomerPortalModules.Add(new CustomerPortalModule
                 {
@@ -141,8 +143,18 @@ public static class SalonDefaultDataHelper
                     IsActive = true
                 });
             }
+            else if (!existing.IsActive)
+            {
+                existing.IsActive = true;
+                existing.ActivatedAt = DateTime.UtcNow;
+                existing.DeactivatedAt = null;
+            }
         }
         await db.SaveChangesAsync();
+
+        // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
+        var hasCategories = await db.SlnServiceCategories.AnyAsync(c => c.CustomerId == customerId);
+        if (hasCategories) return;
 
         // ═══ Hizmet Kategorileri + Hizmetler ═══
         var categories = GetDefaultCategories();

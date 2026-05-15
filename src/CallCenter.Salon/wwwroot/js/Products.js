@@ -4,6 +4,8 @@ function slnJsT(key, fallback) {
 
 function ProductsViewModel() {
     var self = this;
+    var root = document.getElementById('products-vm');
+    self.hasStockFinancePro = ko.observable(((root && root.dataset.stockFinancePro) || '').toLowerCase() === 'true');
     self.products = ko.observableArray([]);
     self.categories = ko.observableArray([]);
     self.brands = ko.observableArray([]);
@@ -91,6 +93,12 @@ function ProductsViewModel() {
     var stockOperationModal;
     var supplierOrderModal;
 
+    function requireStockFinancePro() {
+        if (self.hasStockFinancePro()) return true;
+        toastr.info(slnJsT('salon.products.pro_required', 'Bu işlem için Stok Tedarik / Finans paketi gerekir.'));
+        return false;
+    }
+
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-products', method: 'GET' }).done(function (data) {
             self.products(data.items || data);
@@ -98,7 +106,11 @@ function ProductsViewModel() {
             toastr.error(slnJsT('salon.products.js.load_failed', 'Ürünler yüklenemedi'));
         });
         self.loadLowStock();
-        self.loadSupplierOrders();
+        if (self.hasStockFinancePro()) {
+            self.loadSupplierOrders();
+        } else {
+            self.supplierOrders([]);
+        }
     };
 
     self.loadLowStock = function () {
@@ -108,6 +120,10 @@ function ProductsViewModel() {
     };
 
     self.loadSupplierOrders = function () {
+        if (!self.hasStockFinancePro()) {
+            self.supplierOrders([]);
+            return;
+        }
         $.ajax({ url: '/proxy/sln-products/supplier-orders', method: 'GET' }).done(function (data) {
             self.supplierOrders(data.items || data || []);
         });
@@ -120,9 +136,13 @@ function ProductsViewModel() {
         $.ajax({ url: '/proxy/sln-products/brands', method: 'GET' }).done(function (data) {
             self.brands(data);
         });
-        $.ajax({ url: '/proxy/sln-products/suppliers', method: 'GET' }).done(function (data) {
-            self.suppliers(data.items || data);
-        });
+        if (self.hasStockFinancePro()) {
+            $.ajax({ url: '/proxy/sln-products/suppliers', method: 'GET' }).done(function (data) {
+                self.suppliers(data.items || data);
+            });
+        } else {
+            self.suppliers([]);
+        }
         $.ajax({ url: '/proxy/sln-branches?_nb=1', method: 'GET' }).done(function (data) {
             self.branches(data.items || data || []);
         });
@@ -150,6 +170,7 @@ function ProductsViewModel() {
     };
 
     self.openPurchase = function (product) {
+        if (!requireStockFinancePro()) return;
         self.purchaseProduct(product);
         self.purchaseForm.supplierId(null);
         self.purchaseForm.quantity(1);
@@ -159,6 +180,7 @@ function ProductsViewModel() {
     };
 
     self.openStockTransfer = function (product) {
+        if (!requireStockFinancePro()) return;
         self.stockOperationProduct(product);
         self.stockOperationMode('transfer');
         self.stockOperationForm.fromBranchId(null);
@@ -171,6 +193,7 @@ function ProductsViewModel() {
     };
 
     self.openStockCount = function (product) {
+        if (!requireStockFinancePro()) return;
         self.stockOperationProduct(product);
         self.stockOperationMode('count');
         self.stockOperationForm.fromBranchId(null);
@@ -183,6 +206,7 @@ function ProductsViewModel() {
     };
 
     self.openSupplierOrder = function (product) {
+        if (!requireStockFinancePro()) return;
         var normalized = {
             productId: product.productId || product.id,
             productName: product.productName || product.name,
@@ -317,6 +341,7 @@ function ProductsViewModel() {
     }
 
     self.savePurchase = function () {
+        if (!requireStockFinancePro()) return;
         var product = self.purchaseProduct();
         if (!product) { return; }
 
@@ -325,8 +350,8 @@ function ProductsViewModel() {
         var unitPrice = parseFloat(self.purchaseForm.unitPrice()) || 0;
 
         if (!supplierId) { toastr.warning(slnJsT('salon.products.js.tedarikci_secilmelidir', 'Tedarikci secilmelidir')); return; }
-        if (quantity <= 0) { toastr.warning("Miktar 0'dan buyuk olmalidir"); return; }
-        if (unitPrice <= 0) { toastr.warning("Alis fiyati 0'dan buyuk olmalidir"); return; }
+        if (quantity <= 0) { toastr.warning(slnJsT('salon.products.js.quantity_positive', "Miktar 0'dan büyük olmalıdır")); return; }
+        if (unitPrice <= 0) { toastr.warning(slnJsT('salon.products.js.purchase_price_positive', "Alış fiyatı 0'dan büyük olmalıdır")); return; }
 
         self.isPurchaseSaving(true);
 
@@ -346,13 +371,14 @@ function ProductsViewModel() {
             self.loadData();
             toastr.success(slnJsT('salon.products.js.alis_kaydi_eklendi_tedarikci_carisi_guncellendi', 'Alis kaydi eklendi, tedarikci carisi güncellendi'));
         }).fail(function (xhr) {
-            toastr.error(getErrorMessage(xhr, 'Alis kaydi eklenemedi'));
+            toastr.error(getErrorMessage(xhr, slnJsT('salon.products.js.purchase_save_failed', 'Alış kaydı eklenemedi')));
         }).always(function () {
             self.isPurchaseSaving(false);
         });
     };
 
     self.saveStockOperation = function () {
+        if (!requireStockFinancePro()) return;
         var product = self.stockOperationProduct();
         if (!product) { return; }
 
@@ -367,7 +393,7 @@ function ProductsViewModel() {
                 return;
             }
             if (quantity <= 0) {
-                toastr.warning("Transfer miktari 0'dan buyuk olmalidir");
+                toastr.warning(slnJsT('salon.products.js.transfer_quantity_positive', "Transfer miktarı 0'dan büyük olmalıdır"));
                 self.isStockOperationSaving(false);
                 return;
             }
@@ -387,7 +413,7 @@ function ProductsViewModel() {
                 self.loadData();
                 toastr.success(slnJsT('salon.products.js.transfer_audit_created', 'Stok transfer audit kaydı oluşturuldu'));
             }).fail(function (xhr) {
-                toastr.error(getErrorMessage(xhr, 'Stok transferi kaydedilemedi'));
+                toastr.error(getErrorMessage(xhr, slnJsT('salon.products.js.transfer_save_failed', 'Stok transferi kaydedilemedi')));
             }).always(function () {
                 self.isStockOperationSaving(false);
             });
@@ -415,13 +441,14 @@ function ProductsViewModel() {
             self.loadData();
             toastr.success(slnJsT('salon.products.js.sayim_farki_kaydedildi', 'Sayim farki kaydedildi'));
         }).fail(function (xhr) {
-            toastr.error(getErrorMessage(xhr, 'Sayim farki kaydedilemedi'));
+            toastr.error(getErrorMessage(xhr, slnJsT('salon.products.js.stock_count_save_failed', 'Sayım farkı kaydedilemedi')));
         }).always(function () {
             self.isStockOperationSaving(false);
         });
     };
 
     self.saveSupplierOrder = function () {
+        if (!requireStockFinancePro()) return;
         var product = self.supplierOrderProduct();
         if (!product) { return; }
 
@@ -454,7 +481,7 @@ function ProductsViewModel() {
             self.loadData();
             toastr.success(slnJsT('salon.products.js.supplier_order_created', 'Tedarik siparisi olusturuldu'));
         }).fail(function (xhr) {
-            toastr.error(getErrorMessage(xhr, 'Tedarik siparisi olusturulamadi'));
+            toastr.error(getErrorMessage(xhr, slnJsT('salon.products.js.supplier_order_save_failed', 'Tedarik siparişi oluşturulamadı')));
         }).always(function () {
             self.isSupplierOrderSaving(false);
         });
