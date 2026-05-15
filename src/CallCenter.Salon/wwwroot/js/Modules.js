@@ -62,17 +62,18 @@ function ModulesViewModel() {
     var PACKAGE_SUMMARIES = {
         1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve finans derinliğini temel stok takibinin üzerine ekler.'),
         3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Paket, üyelik, hediye kartı, sadakat, yorum, winback, segment ve kampanya gelirlerini tek büyüme akışında toplar.'),
-        5: moduleT('salon.modules.package.professional.summary', 'Tedavi geçmişi, görsel takip ve profesyonel konsültasyon akışlarını derinleştirir.'),
+        5: moduleT('salon.modules.package.professional.summary', 'Tedavi dosyası, alerji/kontraendikasyon takibi, cihaz parametresi, kaynak/oda/cihaz derinliği ve önce/sonra görsel kanıtını profesyonel takip akışına bağlar.'),
         6: moduleT('salon.modules.package.corporate.summary', 'Çok şube, yönetici görünümü, gelişmiş rapor ve dışa aktarım ihtiyaçlarını toplar.')
     };
     var PACKAGE_OUTCOMES = {
         1: moduleT('salon.modules.package.stock_finance.outcome', 'Amaç: stok operasyonunu denetlemek, tedarik borcunu görmek ve kârlılık/maliyet kararlarını hızlandırmak.'),
         3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Amaç: müşteriyi geri getirmek ve tek seferlik satışları tekrarlı gelire çevirmek.'),
-        5: moduleT('salon.modules.package.professional.outcome', 'Amaç: uzman işi yapan merkezlerde güven, takip ve işlem kalitesini görünür kılmak.'),
+        5: moduleT('salon.modules.package.professional.outcome', 'Amaç: uzman işi yapan merkezlerde güven, takip, işlem kalitesi ve sonuç kanıtını görünür kılmak.'),
         6: moduleT('salon.modules.package.corporate.outcome', 'Amaç: sahibin tüm şubeyi tek ekrandan kıyaslamasını ve denetlemesini sağlamak.')
     };
     var PACKAGE_FLOW_NOTES = {
-        3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Akış: önce paket/üyelik/hediye kartı satışı, sonra sadakat puanı ve yorum, en sonda segment kampanyası veya winback ile geri dönüş.')
+        3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Akış: önce paket/üyelik/hediye kartı satışı, sonra sadakat puanı ve yorum, en sonda segment kampanyası veya winback ile geri dönüş.'),
+        5: moduleT('salon.modules.package.professional.flow_note', 'Akış: müşteri sağlık bilgisi, randevudan seans kaydı, cihaz/ürün notu, bakım önerisi ve önce/sonra fotoğrafı birlikte tutulur.')
     };
     var PACKAGE_USAGE_NOTES = {
         3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri paket ücretinden ayrı kredi/kullanım bazlı takip edilebilir.')

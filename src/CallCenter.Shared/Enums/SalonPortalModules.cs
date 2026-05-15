@@ -49,7 +49,7 @@ public static class SalonPortalModules
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static IEnumerable<TypeItem> Defaults => All.Where(x => x.IsDefault);
 
-    public static readonly HashSet<int> NotImplementedIds = new() { Ids.SlnBeforeAfter };
+    public static readonly HashSet<int> NotImplementedIds = new();
     public static bool IsImplemented(int moduleId) => !NotImplementedIds.Contains(moduleId);
 
     public static class Ids
