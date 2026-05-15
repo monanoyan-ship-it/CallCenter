@@ -14,6 +14,46 @@
             <i class="bi bi-exclamation-triangle me-2"></i>
             <t key="salon.pagesettings.create_profile_prefix">Önce</t> <a href="/Profile"><t key="salon.pagesettings.auto.salon_profili">Salon Profili</t></a> <t key="salon.pagesettings.create_profile_suffix">sayfasından profil oluşturun.</t>
         </div>
+        <!-- ko if: hasPublicBranchLinks() -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-2">
+                <h6 class="mb-0 small"><i class="bi bi-link-45deg me-1"></i><t key="salon.pagesettings.branch_growth_links">Şube Public Linkleri</t></h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3"><t key="salon.pagesettings.branch_growth_links_hint">Salon profili henüz tamamlanmasa bile aktif şube linklerinizi paylaşabilirsiniz.</t></p>
+                <div class="vstack gap-3" data-bind="foreach: publicBranches">
+                    <div class="border rounded p-2">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-semibold small" data-bind="text: name"></div>
+                            <!-- ko if: isHeadquarter -->
+                            <span class="badge bg-light text-dark"><t key="salon.branches.auto.ana_sube_merkez">Ana Şube (Merkez)</t></span>
+                            <!-- /ko -->
+                        </div>
+                        <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Public profil linki</t></label>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="text" class="form-control" readonly data-bind="value: publicPageUrl" />
+                            <button class="btn btn-outline-secondary" type="button" data-bind="click: $parent.copyBranchPublicUrl">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                            <a class="btn btn-outline-primary" target="_blank" data-bind="attr: { href: publicPageUrl }">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                        <label class="form-label small"><t key="salon.pagesettings.booking_link">Direkt randevu linki</t></label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" readonly data-bind="value: bookingUrl" />
+                            <button class="btn btn-outline-secondary" type="button" data-bind="click: $parent.copyBranchBookingUrl">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                            <a class="btn btn-outline-primary" target="_blank" data-bind="attr: { href: bookingUrl }">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /ko -->
         <!-- /ko -->
 
         <!-- ko if: profileExists() -->
@@ -37,7 +77,7 @@
                         <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Public profil linki</t></label>
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control" readonly data-bind="value: publicPageUrl" />
-                            <button class="btn btn-outline-secondary" type="button" data-bind="click: function(){ copyText(publicPageUrl(), salonT('salon.pagesettings.public_link_copied', 'Public profil linki kopyalandı.')); }">
+                            <button class="btn btn-outline-secondary" type="button" data-bind="click: copyPublicPageUrl">
                                 <i class="bi bi-copy"></i>
                             </button>
                             <a class="btn btn-outline-primary" target="_blank" data-bind="attr: { href: publicPageUrl }">
@@ -49,7 +89,7 @@
                         <label class="form-label small"><t key="salon.pagesettings.booking_link">Direkt randevu linki</t></label>
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control" readonly data-bind="value: bookingUrl" />
-                            <button class="btn btn-outline-secondary" type="button" data-bind="click: function(){ copyText(bookingUrl(), salonT('salon.pagesettings.booking_link_copied', 'Direkt randevu linki kopyalandı.')); }">
+                            <button class="btn btn-outline-secondary" type="button" data-bind="click: copyBookingUrl">
                                 <i class="bi bi-copy"></i>
                             </button>
                             <a class="btn btn-outline-primary" target="_blank" data-bind="attr: { href: bookingUrl }">

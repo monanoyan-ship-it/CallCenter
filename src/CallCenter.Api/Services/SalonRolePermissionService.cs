@@ -123,7 +123,7 @@ public class SalonRolePermissionService
             "Invoices", "Cash", "Expenses", "GiftCards", "Packages",
             "Campaigns", "Memberships", "Loyalty", "EmailCampaigns", "Reviews", "Winback",
             "Reports",
-            "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter", "EmailSettings", "PageSettings",
+            "Profile", "Branches", "NoShowPolicy", "ConsentForms", "BeforeAfter", "EmailSettings", "PageSettings", "PaymentInfo",
             "Modules"
         };
         return pages;

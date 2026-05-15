@@ -10,6 +10,7 @@ function PageSettingsViewModel() {
     self.slug = ko.observable('');
     self.isPublished = ko.observable(false);
     self.banners = ko.observableArray([]);
+    self.publicBranches = ko.observableArray([]);
 
     // Gorseller
     self.logoUrl = ko.observable('');
@@ -45,6 +46,10 @@ function PageSettingsViewModel() {
         return buildPublicUrl('/book');
     });
 
+    self.hasPublicBranchLinks = ko.computed(function () {
+        return self.publicBranches().length > 0;
+    });
+
     self.copyText = function (value, successMessage) {
         if (!value) return;
         var done = function () {
@@ -55,6 +60,22 @@ function PageSettingsViewModel() {
             return;
         }
         fallbackCopy(value, done);
+    };
+
+    self.copyPublicPageUrl = function () {
+        self.copyText(self.publicPageUrl(), slnJsT('salon.pagesettings.public_link_copied', 'Public profil linki kopyalandı.'));
+    };
+
+    self.copyBookingUrl = function () {
+        self.copyText(self.bookingUrl(), slnJsT('salon.pagesettings.booking_link_copied', 'Direkt randevu linki kopyalandı.'));
+    };
+
+    self.copyBranchPublicUrl = function (branch) {
+        self.copyText(branch.publicPageUrl, slnJsT('salon.pagesettings.public_link_copied', 'Public profil linki kopyalandı.'));
+    };
+
+    self.copyBranchBookingUrl = function (branch) {
+        self.copyText(branch.bookingUrl, slnJsT('salon.pagesettings.booking_link_copied', 'Direkt randevu linki kopyalandı.'));
     };
 
     function fallbackCopy(value, done) {
@@ -73,10 +94,35 @@ function PageSettingsViewModel() {
     // ═══ Veri Yukleme ═══
     self.loadData = function () {
         self.isLoading(true);
+        var pendingRequests = 2;
+        var completeRequest = function () {
+            pendingRequests--;
+            if (pendingRequests <= 0) {
+                self.isLoading(false);
+            }
+        };
+
+        $.get('/proxy/sln-branches').done(function (branches) {
+            var mapped = (branches || []).filter(function (branch) {
+                return branch && branch.slug && branch.isActive !== false;
+            }).map(function (branch) {
+                var baseUrl = window.location.origin + '/salon/' + branch.slug;
+                return {
+                    name: branch.name || branch.slug,
+                    slug: branch.slug,
+                    isHeadquarter: !!branch.isHeadquarter,
+                    publicPageUrl: baseUrl,
+                    bookingUrl: baseUrl + '/book'
+                };
+            });
+            self.publicBranches(mapped);
+        }).fail(function () {
+            self.publicBranches([]);
+        }).always(completeRequest);
+
         $.get('/proxy/sln-profile').done(function (data) {
             if (data.exists === false) {
                 self.profileExists(false);
-                self.isLoading(false);
                 return;
             }
 
@@ -136,7 +182,6 @@ function PageSettingsViewModel() {
             });
 
             self.sections(items);
-            self.isLoading(false);
 
             // SortableJS
             setTimeout(function () {
@@ -161,8 +206,7 @@ function PageSettingsViewModel() {
             }, 100);
         }).fail(function () {
             self.profileExists(false);
-            self.isLoading(false);
-        });
+        }).always(completeRequest);
     };
 
     // ═══ Tekli Gorsel Yukleme (logo, cover, favicon) ═══

@@ -37,7 +37,7 @@ public class RequireModuleAttribute : ActionFilterAttribute
 
         if (!moduleIds.Contains(_moduleId))
         {
-            context.Result = new ObjectResult(new { message = "Bu module erisim yetkiniz yok." })
+            context.Result = new ObjectResult(new { message = "Bu modüle erişim yetkiniz yok." })
             {
                 StatusCode = 403
             };
