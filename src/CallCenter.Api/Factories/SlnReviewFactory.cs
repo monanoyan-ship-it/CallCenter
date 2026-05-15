@@ -18,29 +18,35 @@ public class SlnReviewFactory : ISlnReviewFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnReviewDto>> GetReviewsAsync(int customerId)
+    public async Task<List<SlnReviewDto>> GetReviewsAsync(int customerId, int? branchId = null)
     {
-        return await _reviewEs.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId)
+        var query = SalonBranchScope.ApplyToReviews(
+            _reviewEs.GetAllQueryable().Where(r => r.CustomerId == customerId),
+            branchId);
+
+        return await query
             .Include(r => r.SlnClient)
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => MapToDto(r))
             .ToListAsync();
     }
 
-    public async Task<SlnReviewDto?> GetReviewAsync(int id, int customerId)
+    public async Task<SlnReviewDto?> GetReviewAsync(int id, int customerId, int? branchId = null)
     {
-        var review = await _reviewEs.GetAllQueryable()
+        var review = await SalonBranchScope.ApplyToReviews(
+                _reviewEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
             .Include(r => r.SlnClient)
-            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+            .FirstOrDefaultAsync();
         return review != null ? MapToDto(review) : null;
     }
 
-    public async Task<SlnReviewDto> CreateReviewAsync(SlnReviewCreateDto dto, int customerId)
+    public async Task<SlnReviewDto> CreateReviewAsync(SlnReviewCreateDto dto, int customerId, int? branchId = null)
     {
         var review = new SlnReview
         {
             CustomerId = customerId,
+            BranchId = branchId,
             SlnClientId = dto.SlnClientId,
             ClientName = dto.ClientName,
             Rating = dto.Rating,
@@ -51,22 +57,32 @@ public class SlnReviewFactory : ISlnReviewFactory
         };
         _reviewEs.Add(review);
         await _uow.SaveChangesAsync();
-        return (await GetReviewAsync(review.Id, customerId))!;
+        return (await GetReviewAsync(review.Id, customerId, branchId))!;
     }
 
-    public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId, int? branchId = null)
     {
-        var review = await _reviewEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var review = await SalonBranchScope.ApplyToReviews(
+                _reviewEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (review == null) return (false, "Yorum bulunamadi");
+        if (review.BranchId == null && branchId.HasValue)
+        {
+            review.BranchId = branchId;
+        }
 
         review.StatusId = statusId;
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteReviewAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteReviewAsync(int id, int customerId, int? branchId = null)
     {
-        var review = await _reviewEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var review = await SalonBranchScope.ApplyToReviews(
+                _reviewEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (review == null) return (false, "Yorum bulunamadi");
 
         _reviewEs.Remove(review);
@@ -74,9 +90,12 @@ public class SlnReviewFactory : ISlnReviewFactory
         return (true, null);
     }
 
-    public async Task<SlnReviewStatsDto> GetStatsAsync(int customerId)
+    public async Task<SlnReviewStatsDto> GetStatsAsync(int customerId, int? branchId = null)
     {
-        var reviews = await _reviewEs.GetAllQueryable().Where(r => r.CustomerId == customerId).ToListAsync();
+        var reviews = await SalonBranchScope.ApplyToReviews(
+                _reviewEs.GetAllQueryable().Where(r => r.CustomerId == customerId),
+                branchId)
+            .ToListAsync();
         return new SlnReviewStatsDto
         {
             TotalReviews = reviews.Count,
@@ -97,6 +116,7 @@ public class SlnReviewFactory : ISlnReviewFactory
         SourceId = r.SourceId,
         ExternalUrl = r.ExternalUrl,
         StatusId = r.StatusId,
+        BranchId = r.BranchId,
         CreatedAt = r.CreatedAt
     };
 }

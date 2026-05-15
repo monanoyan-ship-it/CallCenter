@@ -10,18 +10,26 @@ namespace CallCenter.Api.Factories;
 public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
 {
     private readonly ISlnBeforeAfterPhotoEntityService _photoEs;
+    private readonly ISlnClientEntityService _clientEs;
     private readonly IUnitOfWork _uow;
 
-    public SlnBeforeAfterFactory(ISlnBeforeAfterPhotoEntityService photoEs, IUnitOfWork uow)
+    public SlnBeforeAfterFactory(
+        ISlnBeforeAfterPhotoEntityService photoEs,
+        ISlnClientEntityService clientEs,
+        IUnitOfWork uow)
     {
         _photoEs = photoEs;
+        _clientEs = clientEs;
         _uow = uow;
     }
 
-    public async Task<List<SlnBeforeAfterPhotoDto>> GetPhotosAsync(int customerId)
+    public async Task<List<SlnBeforeAfterPhotoDto>> GetPhotosAsync(int customerId, int? branchId = null)
     {
-        return await _photoEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId)
+        var query = SalonBranchScope.ApplyToBeforeAfterPhotos(
+            _photoEs.GetAllQueryable().Where(p => p.CustomerId == customerId),
+            branchId);
+
+        return await query
             .Include(p => p.SlnClient)
             .Include(p => p.Service)
             .Include(p => p.Personnel).ThenInclude(pr => pr!.User)
@@ -30,21 +38,33 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
             .ToListAsync();
     }
 
-    public async Task<SlnBeforeAfterPhotoDto?> GetPhotoAsync(int id, int customerId)
+    public async Task<SlnBeforeAfterPhotoDto?> GetPhotoAsync(int id, int customerId, int? branchId = null)
     {
-        var photo = await _photoEs.GetAllQueryable()
+        var photo = await SalonBranchScope.ApplyToBeforeAfterPhotos(
+                _photoEs.GetAllQueryable().Where(p => p.Id == id && p.CustomerId == customerId),
+                branchId)
             .Include(p => p.SlnClient)
             .Include(p => p.Service)
             .Include(p => p.Personnel).ThenInclude(pr => pr!.User)
-            .FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+            .FirstOrDefaultAsync();
         return photo != null ? MapToDto(photo) : null;
     }
 
-    public async Task<SlnBeforeAfterPhotoDto> CreatePhotoAsync(SlnBeforeAfterPhotoCreateDto dto, int customerId)
+    public async Task<SlnBeforeAfterPhotoDto> CreatePhotoAsync(SlnBeforeAfterPhotoCreateDto dto, int customerId, int? branchId = null)
     {
+        var clientExists = await SalonBranchScope.ApplyToClients(
+                _clientEs.GetAllQueryable().Where(c => c.Id == dto.SlnClientId && c.CustomerId == customerId),
+                branchId)
+            .AnyAsync();
+        if (!clientExists)
+        {
+            throw new InvalidOperationException("Musteri bulunamadi");
+        }
+
         var photo = new SlnBeforeAfterPhoto
         {
             CustomerId = customerId,
+            BranchId = branchId,
             SlnClientId = dto.SlnClientId,
             ServiceId = dto.ServiceId,
             BeforePhotoUrl = dto.BeforePhotoUrl,
@@ -55,14 +75,27 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
         };
         _photoEs.Add(photo);
         await _uow.SaveChangesAsync();
-        return (await GetPhotoAsync(photo.Id, customerId))!;
+        return (await GetPhotoAsync(photo.Id, customerId, branchId))!;
     }
 
-    public async Task<(bool Success, string? Error)> UpdatePhotoAsync(int id, SlnBeforeAfterPhotoUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdatePhotoAsync(int id, SlnBeforeAfterPhotoUpdateDto dto, int customerId, int? branchId = null)
     {
-        var photo = await _photoEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var photo = await SalonBranchScope.ApplyToBeforeAfterPhotos(
+                _photoEs.GetAllQueryable().Where(p => p.Id == id && p.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (photo == null) return (false, "Fotograf bulunamadi");
 
+        var clientExists = await SalonBranchScope.ApplyToClients(
+                _clientEs.GetAllQueryable().Where(c => c.Id == dto.SlnClientId && c.CustomerId == customerId),
+                branchId)
+            .AnyAsync();
+        if (!clientExists) return (false, "Musteri bulunamadi");
+
+        if (photo.BranchId == null && branchId.HasValue)
+        {
+            photo.BranchId = branchId;
+        }
         photo.SlnClientId = dto.SlnClientId;
         photo.ServiceId = dto.ServiceId;
         photo.BeforePhotoUrl = dto.BeforePhotoUrl;
@@ -74,9 +107,12 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeletePhotoAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeletePhotoAsync(int id, int customerId, int? branchId = null)
     {
-        var photo = await _photoEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var photo = await SalonBranchScope.ApplyToBeforeAfterPhotos(
+                _photoEs.GetAllQueryable().Where(p => p.Id == id && p.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (photo == null) return (false, "Fotograf bulunamadi");
 
         _photoEs.Remove(photo);
@@ -97,6 +133,7 @@ public class SlnBeforeAfterFactory : ISlnBeforeAfterFactory
         PersonnelId = p.PersonnelId,
         PersonnelName = p.Personnel?.User?.FullName,
         IsPublic = p.IsPublic,
+        BranchId = p.BranchId,
         CreatedAt = p.CreatedAt
     };
 }

@@ -23,27 +23,33 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnEmailCampaignDto>> GetCampaignsAsync(int customerId)
+    public async Task<List<SlnEmailCampaignDto>> GetCampaignsAsync(int customerId, int? branchId = null)
     {
-        return await _emailCampaignEs.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId)
+        var query = SalonBranchScope.ApplyToEmailCampaigns(
+            _emailCampaignEs.GetAllQueryable().Where(c => c.CustomerId == customerId),
+            branchId);
+
+        return await query
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => MapToDto(c))
             .ToListAsync();
     }
 
-    public async Task<SlnEmailCampaignDto?> GetCampaignAsync(int id, int customerId)
+    public async Task<SlnEmailCampaignDto?> GetCampaignAsync(int id, int customerId, int? branchId = null)
     {
-        var campaign = await _emailCampaignEs.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
+        var campaign = await SalonBranchScope.ApplyToEmailCampaigns(
+                _emailCampaignEs.GetAllQueryable().Where(c => c.Id == id && c.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         return campaign != null ? MapToDto(campaign) : null;
     }
 
-    public async Task<SlnEmailCampaignDto> CreateCampaignAsync(SlnEmailCampaignCreateDto dto, int customerId)
+    public async Task<SlnEmailCampaignDto> CreateCampaignAsync(SlnEmailCampaignCreateDto dto, int customerId, int? branchId = null)
     {
         var campaign = new SlnEmailCampaign
         {
             CustomerId = customerId,
+            BranchId = branchId,
             Subject = dto.Subject,
             HtmlBody = dto.HtmlBody,
             SegmentFilter = dto.SegmentFilter,
@@ -51,7 +57,7 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
             StatusId = dto.ScheduledAt.HasValue ? 2 : 1
         };
 
-        var preview = await _marketingFactory.GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(dto.SegmentFilter, customerId, branchId);
         campaign.TotalRecipients = preview.EmailReachableClients;
 
         _emailCampaignEs.Add(campaign);
@@ -59,12 +65,18 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         return MapToDto(campaign);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateCampaignAsync(int id, SlnEmailCampaignUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateCampaignAsync(int id, SlnEmailCampaignUpdateDto dto, int customerId, int? branchId = null)
     {
-        var campaign = await _emailCampaignEs.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
+        var campaign = await SalonBranchScope.ApplyToEmailCampaigns(
+                _emailCampaignEs.GetAllQueryable().Where(c => c.Id == id && c.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Gonderilmis kampanya duzenlenemez");
+        if (campaign.BranchId == null && branchId.HasValue)
+        {
+            campaign.BranchId = branchId;
+        }
 
         campaign.Subject = dto.Subject;
         campaign.HtmlBody = dto.HtmlBody;
@@ -72,17 +84,19 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         campaign.ScheduledAt = dto.ScheduledAt;
         campaign.StatusId = dto.ScheduledAt.HasValue ? 2 : 1;
 
-        var preview = await _marketingFactory.GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(dto.SegmentFilter, customerId, branchId);
         campaign.TotalRecipients = preview.EmailReachableClients;
 
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteCampaignAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteCampaignAsync(int id, int customerId, int? branchId = null)
     {
-        var campaign = await _emailCampaignEs.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
+        var campaign = await SalonBranchScope.ApplyToEmailCampaigns(
+                _emailCampaignEs.GetAllQueryable().Where(c => c.Id == id && c.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (campaign == null) return (false, "Kampanya bulunamadi");
 
         _emailCampaignEs.Remove(campaign);
@@ -90,21 +104,23 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         return (true, null);
     }
 
-    public Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId)
-        => _marketingFactory.GetSegmentPreviewAsync(segmentFilter, customerId);
+    public Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId, int? branchId = null)
+        => _marketingFactory.GetSegmentPreviewAsync(segmentFilter, customerId, branchId);
 
-    public Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId)
-        => _marketingFactory.GetSegmentPresetsAsync(customerId);
+    public Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId, int? branchId = null)
+        => _marketingFactory.GetSegmentPresetsAsync(customerId, branchId);
 
-    public async Task<(bool Success, string? Error)> SendCampaignAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> SendCampaignAsync(int id, int customerId, int? branchId = null)
     {
-        var campaign = await _emailCampaignEs.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == id && c.CustomerId == customerId);
+        var campaign = await SalonBranchScope.ApplyToEmailCampaigns(
+                _emailCampaignEs.GetAllQueryable().Where(c => c.Id == id && c.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
 
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Kampanya zaten gonderilmis");
 
-        var preview = await _marketingFactory.GetSegmentPreviewAsync(campaign.SegmentFilter, customerId);
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(campaign.SegmentFilter, customerId, branchId);
 
         // Gercek e-posta provider teslimat takibi sonraki asamada; burada gonderim simule edilir.
         campaign.StatusId = 4;
@@ -129,6 +145,7 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         OpenCount = c.OpenCount,
         ClickCount = c.ClickCount,
         StatusId = c.StatusId,
+        BranchId = c.BranchId,
         CreatedAt = c.CreatedAt
     };
 }

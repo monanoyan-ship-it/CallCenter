@@ -51,29 +51,36 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
     // ═══ Kampanya ═══
 
-    public async Task<List<SlnCampaignDto>> GetCampaignsAsync(int customerId)
+    public async Task<List<SlnCampaignDto>> GetCampaignsAsync(int customerId, int? branchId = null)
     {
-        var campaigns = await _campaigns.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId)
+        var query = _campaigns.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToCampaigns(query, branchId);
+
+        var campaigns = await query
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
 
         return campaigns.Select(MapCampaignToDto).ToList();
     }
 
-    public async Task<SlnCampaignDto?> GetCampaignAsync(int campaignId, int customerId)
+    public async Task<SlnCampaignDto?> GetCampaignAsync(int campaignId, int customerId, int? branchId = null)
     {
-        var campaign = await _campaigns.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == campaignId && c.CustomerId == customerId);
+        var query = _campaigns.GetAllQueryable()
+            .Where(c => c.Id == campaignId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToCampaigns(query, branchId);
+
+        var campaign = await query.FirstOrDefaultAsync();
 
         return campaign != null ? MapCampaignToDto(campaign) : null;
     }
 
-    public async Task<SlnCampaignDto> CreateCampaignAsync(SlnCampaignCreateDto dto, int customerId)
+    public async Task<SlnCampaignDto> CreateCampaignAsync(SlnCampaignCreateDto dto, int customerId, int? branchId = null)
     {
         var campaign = new SlnCampaign
         {
             CustomerId = customerId,
+            BranchId = branchId,
             Name = dto.Name,
             MessageTemplate = dto.MessageTemplate,
             SegmentFilter = dto.SegmentFilter,
@@ -82,7 +89,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         };
 
         // Segment preview ile alici sayisi hesapla
-        var preview = await GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
+        var preview = await GetSegmentPreviewAsync(dto.SegmentFilter, customerId, branchId);
         campaign.TotalRecipients = preview.SmsReachableClients;
 
         _campaigns.Add(campaign);
@@ -92,10 +99,13 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         return MapCampaignToDto(campaign);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateCampaignAsync(int campaignId, SlnCampaignUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateCampaignAsync(int campaignId, SlnCampaignUpdateDto dto, int customerId, int? branchId = null)
     {
-        var campaign = await _campaigns.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == campaignId && c.CustomerId == customerId);
+        var query = _campaigns.GetAllQueryable()
+            .Where(c => c.Id == campaignId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToCampaigns(query, branchId);
+
+        var campaign = await query.FirstOrDefaultAsync();
 
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Gonderim baslamis kampanya duzenlenemez");
@@ -106,17 +116,20 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         campaign.ScheduledAt = dto.ScheduledAt;
         campaign.StatusId = dto.ScheduledAt.HasValue ? 2 : 1;
 
-        var preview = await GetSegmentPreviewAsync(dto.SegmentFilter, customerId);
+        var preview = await GetSegmentPreviewAsync(dto.SegmentFilter, customerId, branchId);
         campaign.TotalRecipients = preview.SmsReachableClients;
 
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteCampaignAsync(int campaignId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteCampaignAsync(int campaignId, int customerId, int? branchId = null)
     {
-        var campaign = await _campaigns.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == campaignId && c.CustomerId == customerId);
+        var query = _campaigns.GetAllQueryable()
+            .Where(c => c.Id == campaignId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToCampaigns(query, branchId);
+
+        var campaign = await query.FirstOrDefaultAsync();
 
         if (campaign == null) return (false, "Kampanya bulunamadi");
 
@@ -127,11 +140,12 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         return (true, null);
     }
 
-    public async Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId)
+    public async Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId, int? branchId = null)
     {
         var now = DateTime.UtcNow;
         var query = _clients.GetAllQueryable()
             .Where(c => c.CustomerId == customerId && c.IsActive);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
 
         if (!string.IsNullOrEmpty(segmentFilter))
         {
@@ -164,7 +178,11 @@ public class SlnMarketingFactory : ISlnMarketingFactory
                     {
                         var sinceDate = now.AddDays(-filter.LastVisitDays.Value);
                         var clientIds = await _invoices.GetAllQueryable()
-                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue && i.InvoiceDate >= sinceDate)
+                            .Where(i => i.CustomerId == customerId
+                                        && i.StatusId != 3
+                                        && i.SlnClientId.HasValue
+                                        && i.InvoiceDate >= sinceDate
+                                        && (!branchId.HasValue || i.BranchId == branchId.Value))
                             .Select(i => i.SlnClientId!.Value)
                             .Distinct()
                             .ToListAsync();
@@ -175,7 +193,11 @@ public class SlnMarketingFactory : ISlnMarketingFactory
                     {
                         var sinceDate = now.AddDays(-filter.InactiveDays.Value);
                         var recentlyVisitedClientIds = await _invoices.GetAllQueryable()
-                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue && i.InvoiceDate >= sinceDate)
+                            .Where(i => i.CustomerId == customerId
+                                        && i.StatusId != 3
+                                        && i.SlnClientId.HasValue
+                                        && i.InvoiceDate >= sinceDate
+                                        && (!branchId.HasValue || i.BranchId == branchId.Value))
                             .Select(i => i.SlnClientId!.Value)
                             .Distinct()
                             .ToListAsync();
@@ -184,14 +206,17 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
                     if (filter.BirthdayInDays.HasValue)
                     {
-                        var birthdayClientIds = await GetBirthdayClientIdsAsync(customerId, filter.BirthdayInDays.Value, now);
+                        var birthdayClientIds = await GetBirthdayClientIdsAsync(customerId, filter.BirthdayInDays.Value, now, branchId);
                         query = query.Where(c => birthdayClientIds.Contains(c.Id));
                     }
 
                     if (filter.MinSpent.HasValue)
                     {
                         var spentClients = await _invoices.GetAllQueryable()
-                            .Where(i => i.CustomerId == customerId && i.StatusId != 3 && i.SlnClientId.HasValue)
+                            .Where(i => i.CustomerId == customerId
+                                        && i.StatusId != 3
+                                        && i.SlnClientId.HasValue
+                                        && (!branchId.HasValue || i.BranchId == branchId.Value))
                             .GroupBy(i => i.SlnClientId!.Value)
                             .Where(g => g.Sum(i => i.NetAmount) >= filter.MinSpent.Value)
                             .Select(g => g.Key)
@@ -201,7 +226,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
                     if (filter.HasActiveMembership.HasValue)
                     {
-                        var membershipClientIds = await GetActiveMembershipClientIdsAsync(customerId, now);
+                        var membershipClientIds = await GetActiveMembershipClientIdsAsync(customerId, now, branchId);
                         query = filter.HasActiveMembership.Value
                             ? query.Where(c => membershipClientIds.Contains(c.Id))
                             : query.Where(c => !membershipClientIds.Contains(c.Id));
@@ -209,7 +234,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
                     if (filter.HasActivePackage.HasValue)
                     {
-                        var packageClientIds = await GetActivePackageClientIdsAsync(customerId, now);
+                        var packageClientIds = await GetActivePackageClientIdsAsync(customerId, now, branchId);
                         query = filter.HasActivePackage.Value
                             ? query.Where(c => packageClientIds.Contains(c.Id))
                             : query.Where(c => !packageClientIds.Contains(c.Id));
@@ -249,7 +274,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         };
     }
 
-    public async Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId)
+    public async Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId, int? branchId = null)
     {
         var definitions = new[]
         {
@@ -266,7 +291,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         foreach (var definition in definitions)
         {
             var filterJson = SerializeSegmentFilter(definition.Filter);
-            var preview = await GetSegmentPreviewAsync(filterJson, customerId);
+            var preview = await GetSegmentPreviewAsync(filterJson, customerId, branchId);
             result.Add(new SlnSegmentPresetDto
             {
                 Key = definition.Key,
@@ -287,15 +312,18 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         return result;
     }
 
-    public async Task<(bool Success, string? Error)> SendCampaignAsync(int campaignId, int customerId)
+    public async Task<(bool Success, string? Error)> SendCampaignAsync(int campaignId, int customerId, int? branchId = null)
     {
-        var campaign = await _campaigns.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == campaignId && c.CustomerId == customerId);
+        var query = _campaigns.GetAllQueryable()
+            .Where(c => c.Id == campaignId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToCampaigns(query, branchId);
+
+        var campaign = await query.FirstOrDefaultAsync();
 
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Kampanya zaten gonderilmis");
 
-        var preview = await GetSegmentPreviewAsync(campaign.SegmentFilter, customerId);
+        var preview = await GetSegmentPreviewAsync(campaign.SegmentFilter, customerId, branchId);
 
         // Gonderim simule et (gercek SMS entegrasyonu sonra eklenecek)
         campaign.StatusId = 4; // Completed
@@ -311,21 +339,25 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
     // ═══ Oto-Hatirlatma ═══
 
-    public async Task<List<SlnAutoReminderDto>> GetRemindersAsync(int customerId)
+    public async Task<List<SlnAutoReminderDto>> GetRemindersAsync(int customerId, int? branchId = null)
     {
-        var reminders = await _reminders.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId)
+        var query = _reminders.GetAllQueryable()
+            .Where(r => r.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToReminders(query, branchId);
+
+        var reminders = await query
             .OrderBy(r => r.ReminderTypeId)
             .ToListAsync();
 
         return reminders.Select(MapReminderToDto).ToList();
     }
 
-    public async Task<SlnAutoReminderDto> CreateReminderAsync(SlnAutoReminderCreateDto dto, int customerId)
+    public async Task<SlnAutoReminderDto> CreateReminderAsync(SlnAutoReminderCreateDto dto, int customerId, int? branchId = null)
     {
         var reminder = new SlnAutoReminder
         {
             CustomerId = customerId,
+            BranchId = branchId,
             ReminderTypeId = dto.ReminderTypeId,
             MessageTemplate = dto.MessageTemplate,
             DaysBefore = dto.DaysBefore,
@@ -340,10 +372,13 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         return MapReminderToDto(reminder);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateReminderAsync(int reminderId, SlnAutoReminderUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateReminderAsync(int reminderId, SlnAutoReminderUpdateDto dto, int customerId, int? branchId = null)
     {
-        var reminder = await _reminders.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == reminderId && r.CustomerId == customerId);
+        var query = _reminders.GetAllQueryable()
+            .Where(r => r.Id == reminderId && r.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToReminders(query, branchId);
+
+        var reminder = await query.FirstOrDefaultAsync();
 
         if (reminder == null) return (false, "Hatirlatma bulunamadi");
 
@@ -357,10 +392,13 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteReminderAsync(int reminderId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteReminderAsync(int reminderId, int customerId, int? branchId = null)
     {
-        var reminder = await _reminders.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == reminderId && r.CustomerId == customerId);
+        var query = _reminders.GetAllQueryable()
+            .Where(r => r.Id == reminderId && r.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToReminders(query, branchId);
+
+        var reminder = await query.FirstOrDefaultAsync();
 
         if (reminder == null) return (false, "Hatirlatma bulunamadi");
 
@@ -369,10 +407,13 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> ToggleReminderAsync(int reminderId, int customerId)
+    public async Task<(bool Success, string? Error)> ToggleReminderAsync(int reminderId, int customerId, int? branchId = null)
     {
-        var reminder = await _reminders.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == reminderId && r.CustomerId == customerId);
+        var query = _reminders.GetAllQueryable()
+            .Where(r => r.Id == reminderId && r.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToReminders(query, branchId);
+
+        var reminder = await query.FirstOrDefaultAsync();
 
         if (reminder == null) return (false, "Hatirlatma bulunamadi");
 
@@ -386,6 +427,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
     private static SlnCampaignDto MapCampaignToDto(SlnCampaign c) => new()
     {
         Id = c.Id,
+        BranchId = c.BranchId,
         Name = c.Name,
         MessageTemplate = c.MessageTemplate,
         SegmentFilter = c.SegmentFilter,
@@ -408,6 +450,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
     private static SlnAutoReminderDto MapReminderToDto(SlnAutoReminder r) => new()
     {
         Id = r.Id,
+        BranchId = r.BranchId,
         ReminderTypeId = r.ReminderTypeId,
         ReminderTypeName = ReminderTypeNames.GetValueOrDefault(r.ReminderTypeId, "Bilinmiyor"),
         MessageTemplate = r.MessageTemplate,
@@ -417,12 +460,15 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         CreatedAt = r.CreatedAt
     };
 
-    private async Task<List<int>> GetBirthdayClientIdsAsync(int customerId, int daysAhead, DateTime now)
+    private async Task<List<int>> GetBirthdayClientIdsAsync(int customerId, int daysAhead, DateTime now, int? branchId = null)
     {
         var start = now.Date;
         var end = start.AddDays(Math.Max(daysAhead, 0));
-        var clients = await _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId && c.IsActive && c.BirthDate.HasValue)
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId && c.IsActive && c.BirthDate.HasValue);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var clients = await query
             .Select(c => new { c.Id, c.BirthDate })
             .ToListAsync();
 
@@ -432,26 +478,36 @@ public class SlnMarketingFactory : ISlnMarketingFactory
             .ToList();
     }
 
-    private async Task<List<int>> GetActiveMembershipClientIdsAsync(int customerId, DateTime now)
-        => await _clientMemberships.GetAllQueryable()
+    private async Task<List<int>> GetActiveMembershipClientIdsAsync(int customerId, DateTime now, int? branchId = null)
+    {
+        var query = _clientMemberships.GetAllQueryable()
             .Where(m => m.CustomerId == customerId
                 && m.StatusId == 1
                 && m.StartDate <= now
-                && (!m.EndDate.HasValue || m.EndDate.Value >= now))
+                && (!m.EndDate.HasValue || m.EndDate.Value >= now));
+        query = SalonBranchScope.ApplyToMemberships(query, branchId);
+
+        return await query
             .Select(m => m.SlnClientId)
             .Distinct()
             .ToListAsync();
+    }
 
-    private async Task<List<int>> GetActivePackageClientIdsAsync(int customerId, DateTime now)
-        => await _clientPackages.GetAllQueryable()
+    private async Task<List<int>> GetActivePackageClientIdsAsync(int customerId, DateTime now, int? branchId = null)
+    {
+        var query = _clientPackages.GetAllQueryable()
             .Where(p => p.CustomerId == customerId
                 && p.SlnClientId.HasValue
                 && p.IsActive
                 && p.RemainingSessions > 0
-                && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value >= now))
+                && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value >= now));
+        query = SalonBranchScope.ApplyToClientPackages(query, branchId);
+
+        return await query
             .Select(p => p.SlnClientId!.Value)
             .Distinct()
             .ToListAsync();
+    }
 
     private static bool IsBirthdayInRange(DateTime birthDate, DateTime start, DateTime end)
     {

@@ -38,31 +38,31 @@ public class SlnWhatsAppController : ControllerBase
     }
 
     [HttpGet("messages")]
-    public async Task<ActionResult> GetMessages([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult> GetMessages([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] int? branchId = null)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        return Ok(await _factory.GetMessagesAsync(cid, page, pageSize));
+        return Ok(await _factory.GetMessagesAsync(cid, page, pageSize, GetBranchId() ?? branchId));
     }
 
     [HttpPost("send-test")]
-    public async Task<ActionResult> SendTest([FromBody] SendTestDto dto)
+    public async Task<ActionResult> SendTest([FromBody] SendTestDto dto, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var success = await _factory.SendTestAsync(cid, dto.Phone, dto.Message);
+        var success = await _factory.SendTestAsync(cid, dto.Phone, dto.Message, GetBranchId() ?? branchId);
         return success ? Ok(new { success = true }) : BadRequest("Mesaj gonderilemedi");
     }
 
     [HttpPost("send-message")]
-    public async Task<ActionResult> SendMessage([FromBody] SendTestDto dto)
+    public async Task<ActionResult> SendMessage([FromBody] SendTestDto dto, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
 
-        var success = await _factory.SendMessageAsync(cid, dto.Phone, dto.Message);
+        var success = await _factory.SendMessageAsync(cid, dto.Phone, dto.Message, GetBranchId() ?? branchId);
         return success ? Ok(new { success = true }) : BadRequest("Mesaj gonderilemedi");
     }
 
@@ -81,6 +81,12 @@ public class SlnWhatsAppController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var value = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
 
     private static (string Phone, string Message, string? MessageId)? ExtractIncomingMessage(JsonElement payload)
     {

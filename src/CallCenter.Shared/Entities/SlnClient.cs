@@ -6,6 +6,8 @@ public class SlnClient
     public Guid Uid { get; set; } = Guid.NewGuid();
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
 
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }

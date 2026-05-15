@@ -11,10 +11,10 @@ namespace CallCenter.Api.Services;
 /// </summary>
 public interface IWhatsAppService
 {
-    Task<bool> SendTemplateMessageAsync(int customerId, string phoneNumber, string templateName, string[] parameters, int? clientId = null);
-    Task<bool> SendTextMessageAsync(int customerId, string phoneNumber, string message, int? clientId = null);
-    Task SendAppointmentReminderAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null);
-    Task SendAppointmentConfirmationAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null);
+    Task<bool> SendTemplateMessageAsync(int customerId, string phoneNumber, string templateName, string[] parameters, int? clientId = null, int? branchId = null);
+    Task<bool> SendTextMessageAsync(int customerId, string phoneNumber, string message, int? clientId = null, int? branchId = null);
+    Task SendAppointmentReminderAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null, int? branchId = null);
+    Task SendAppointmentConfirmationAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null, int? branchId = null);
 }
 
 public class WhatsAppService : IWhatsAppService
@@ -32,7 +32,7 @@ public class WhatsAppService : IWhatsAppService
         _logger = logger;
     }
 
-    public async Task<bool> SendTemplateMessageAsync(int customerId, string phoneNumber, string templateName, string[] parameters, int? clientId = null)
+    public async Task<bool> SendTemplateMessageAsync(int customerId, string phoneNumber, string templateName, string[] parameters, int? clientId = null, int? branchId = null)
     {
         var config = await GetConfigAsync(customerId);
         if (config == null) return false;
@@ -58,10 +58,10 @@ public class WhatsAppService : IWhatsAppService
             }
         };
 
-        return await SendRequestAsync(config, phone, templateName, JsonSerializer.Serialize(body), body, clientId);
+        return await SendRequestAsync(config, phone, templateName, JsonSerializer.Serialize(body), body, clientId, branchId);
     }
 
-    public async Task<bool> SendTextMessageAsync(int customerId, string phoneNumber, string message, int? clientId = null)
+    public async Task<bool> SendTextMessageAsync(int customerId, string phoneNumber, string message, int? clientId = null, int? branchId = null)
     {
         var config = await GetConfigAsync(customerId);
         if (config == null) return false;
@@ -75,25 +75,25 @@ public class WhatsAppService : IWhatsAppService
             text = new { body = message }
         };
 
-        return await SendRequestAsync(config, phone, null, message, body, clientId);
+        return await SendRequestAsync(config, phone, null, message, body, clientId, branchId);
     }
 
-    public async Task SendAppointmentReminderAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null)
+    public async Task SendAppointmentReminderAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null, int? branchId = null)
     {
         var config = await GetConfigAsync(customerId);
         if (config == null || !config.SendAppointmentReminder) return;
 
         var message = $"Merhaba {clientName}, yarin saat {appointmentTime:HH:mm}'da {serviceName} randevunuz bulunmaktadir. Sizi bekliyoruz!";
-        await SendTextMessageAsync(customerId, clientPhone, message, clientId);
+        await SendTextMessageAsync(customerId, clientPhone, message, clientId, branchId);
     }
 
-    public async Task SendAppointmentConfirmationAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null)
+    public async Task SendAppointmentConfirmationAsync(int customerId, string clientName, string clientPhone, string serviceName, DateTime appointmentTime, int? clientId = null, int? branchId = null)
     {
         var config = await GetConfigAsync(customerId);
         if (config == null || !config.SendAppointmentConfirmation) return;
 
         var message = $"Merhaba {clientName}, {appointmentTime:dd.MM.yyyy} tarihinde saat {appointmentTime:HH:mm}'da {serviceName} randevunuz olusturulmustur. Iyi gunler!";
-        await SendTextMessageAsync(customerId, clientPhone, message, clientId);
+        await SendTextMessageAsync(customerId, clientPhone, message, clientId, branchId);
     }
 
     private async Task<SlnWhatsAppConfig?> GetConfigAsync(int customerId)
@@ -101,7 +101,7 @@ public class WhatsAppService : IWhatsAppService
         return await _db.SlnWhatsAppConfigs.FirstOrDefaultAsync(c => c.CustomerId == customerId && c.IsActive);
     }
 
-    private async Task<bool> SendRequestAsync(SlnWhatsAppConfig config, string phone, string? templateName, string messageBody, object requestBody, int? clientId)
+    private async Task<bool> SendRequestAsync(SlnWhatsAppConfig config, string phone, string? templateName, string messageBody, object requestBody, int? clientId, int? branchId)
     {
         var log = new SlnWhatsAppMessage
         {
@@ -111,6 +111,7 @@ public class WhatsAppService : IWhatsAppService
             TemplateName = templateName,
             MessageBody = messageBody,
             SlnClientId = clientId,
+            BranchId = branchId,
             StatusId = 1
         };
 

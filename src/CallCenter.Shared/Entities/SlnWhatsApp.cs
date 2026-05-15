@@ -37,6 +37,8 @@ public class SlnWhatsAppMessage
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
 
     /// <summary>Gonderim yonu: 1=Giden, 2=Gelen</summary>
     public int DirectionId { get; set; }

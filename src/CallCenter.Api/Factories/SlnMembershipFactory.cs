@@ -13,6 +13,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
     private readonly ISlnClientMembershipEntityService _membershipEs;
     private readonly ISlnMembershipPlanServiceEntityService _planServiceEs;
     private readonly ISlnMembershipUsageEntityService _usageEs;
+    private readonly ISlnClientEntityService _clientEs;
     private readonly IUnitOfWork _uow;
 
     public SlnMembershipFactory(
@@ -20,16 +21,18 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         ISlnClientMembershipEntityService membershipEs,
         ISlnMembershipPlanServiceEntityService planServiceEs,
         ISlnMembershipUsageEntityService usageEs,
+        ISlnClientEntityService clientEs,
         IUnitOfWork uow)
     {
         _planEs = planEs;
         _membershipEs = membershipEs;
         _planServiceEs = planServiceEs;
         _usageEs = usageEs;
+        _clientEs = clientEs;
         _uow = uow;
     }
 
-    public async Task<List<SlnMembershipPlanDto>> GetPlansAsync(int customerId)
+    public async Task<List<SlnMembershipPlanDto>> GetPlansAsync(int customerId, int? branchId = null)
     {
         var plans = await _planEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId)
@@ -37,8 +40,11 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             .OrderBy(p => p.SortOrder)
             .ToListAsync();
 
-        var memberCounts = await _membershipEs.GetAllQueryable()
-            .Where(m => m.CustomerId == customerId && m.StatusId == 1)
+        var activeMemberships = SalonBranchScope.ApplyToMemberships(
+            _membershipEs.GetAllQueryable().Where(m => m.CustomerId == customerId && m.StatusId == 1),
+            branchId);
+
+        var memberCounts = await activeMemberships
             .GroupBy(m => m.PlanId)
             .Select(g => new { PlanId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.PlanId, x => x.Count);
@@ -161,10 +167,11 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         return (true, null);
     }
 
-    public async Task<List<SlnClientMembershipDto>> GetMembershipsAsync(int customerId, int? clientId = null)
+    public async Task<List<SlnClientMembershipDto>> GetMembershipsAsync(int customerId, int? clientId = null, int? branchId = null)
     {
-        var query = _membershipEs.GetAllQueryable()
-            .Where(m => m.CustomerId == customerId)
+        var query = SalonBranchScope.ApplyToMemberships(
+                _membershipEs.GetAllQueryable().Where(m => m.CustomerId == customerId),
+                branchId)
             .Include(m => m.Plan)
             .Include(m => m.SlnClient)
             .AsQueryable();
@@ -188,13 +195,22 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         }).ToListAsync();
     }
 
-    public async Task<(SlnClientMembershipDto? Membership, string? Error)> CreateMembershipAsync(SlnClientMembershipCreateDto dto, int customerId)
+    public async Task<(SlnClientMembershipDto? Membership, string? Error)> CreateMembershipAsync(SlnClientMembershipCreateDto dto, int customerId, int? branchId = null)
     {
         var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == customerId);
         if (plan == null) return (null, "Plan bulunamadi");
 
-        var existing = await _membershipEs.GetAllQueryable()
-            .AnyAsync(m => m.SlnClientId == dto.SlnClientId && m.CustomerId == customerId && m.StatusId == 1);
+        var clientExists = await SalonBranchScope.ApplyToClients(
+                _clientEs.GetAllQueryable().Where(c => c.Id == dto.SlnClientId && c.CustomerId == customerId),
+                branchId)
+            .AnyAsync();
+        if (!clientExists) return (null, "Musteri bulunamadi");
+
+        var existing = await SalonBranchScope.ApplyToMemberships(
+                _membershipEs.GetAllQueryable()
+                    .Where(m => m.SlnClientId == dto.SlnClientId && m.CustomerId == customerId && m.StatusId == 1),
+                branchId)
+            .AnyAsync();
         if (existing) return (null, "Bu musterinin zaten aktif uyeligi var");
 
         var now = DateTime.UtcNow;
@@ -213,13 +229,16 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         _membershipEs.Add(membership);
         await _uow.SaveChangesAsync();
 
-        var result = (await GetMembershipsAsync(customerId)).First(m => m.Id == membership.Id);
+        var result = (await GetMembershipsAsync(customerId, null, branchId)).First(m => m.Id == membership.Id);
         return (result, null);
     }
 
-    public async Task<(bool Success, string? Error)> CancelMembershipAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> CancelMembershipAsync(int id, int customerId, int? branchId = null)
     {
-        var m = await _membershipEs.GetAllQueryable().FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId);
+        var m = await SalonBranchScope.ApplyToMemberships(
+                _membershipEs.GetAllQueryable().Where(m => m.Id == id && m.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (m == null) return (false, "Uyelik bulunamadi");
         m.StatusId = 3;
         m.EndDate = DateTime.UtcNow;
@@ -227,30 +246,38 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> FreezeMembershipAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> FreezeMembershipAsync(int id, int customerId, int? branchId = null)
     {
-        var m = await _membershipEs.GetAllQueryable().FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 1);
+        var m = await SalonBranchScope.ApplyToMemberships(
+                _membershipEs.GetAllQueryable().Where(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 1),
+                branchId)
+            .FirstOrDefaultAsync();
         if (m == null) return (false, "Aktif uyelik bulunamadi");
         m.StatusId = 2;
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> ReactivateMembershipAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> ReactivateMembershipAsync(int id, int customerId, int? branchId = null)
     {
-        var m = await _membershipEs.GetAllQueryable().FirstOrDefaultAsync(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 2);
+        var m = await SalonBranchScope.ApplyToMemberships(
+                _membershipEs.GetAllQueryable().Where(m => m.Id == id && m.CustomerId == customerId && m.StatusId == 2),
+                branchId)
+            .FirstOrDefaultAsync();
         if (m == null) return (false, "Dondurulmus uyelik bulunamadi");
         m.StatusId = 1;
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<List<ServiceMembershipBenefit>> CheckBenefitsAsync(int customerId, int slnClientId, List<int> serviceIds)
+    public async Task<List<ServiceMembershipBenefit>> CheckBenefitsAsync(int customerId, int slnClientId, List<int> serviceIds, int? branchId = null)
     {
         // Musterinin aktif uyeligi
-        var membership = await _membershipEs.GetAllQueryable()
+        var membership = await SalonBranchScope.ApplyToMemberships(
+                _membershipEs.GetAllQueryable().Where(m => m.CustomerId == customerId && m.SlnClientId == slnClientId && m.StatusId == 1),
+                branchId)
             .Include(m => m.Plan).ThenInclude(p => p!.Services).ThenInclude(s => s.Service)
-            .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.SlnClientId == slnClientId && m.StatusId == 1);
+            .FirstOrDefaultAsync();
 
         if (membership?.Plan == null)
             return serviceIds.Select(id => new ServiceMembershipBenefit { ServiceId = id }).ToList();

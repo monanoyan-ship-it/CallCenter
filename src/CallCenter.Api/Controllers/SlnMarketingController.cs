@@ -21,137 +21,143 @@ public class SlnMarketingController : ControllerBase
     // ═══ Kampanya ═══
 
     [HttpGet("campaigns")]
-    public async Task<ActionResult<List<SlnCampaignDto>>> GetCampaigns()
+    public async Task<ActionResult<List<SlnCampaignDto>>> GetCampaigns([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var campaigns = await _marketingFactory.GetCampaignsAsync(customerId);
+        var campaigns = await _marketingFactory.GetCampaignsAsync(customerId, GetBranchId() ?? branchId);
         return Ok(campaigns);
     }
 
     [HttpGet("campaigns/{id:int}")]
-    public async Task<ActionResult<SlnCampaignDto>> GetCampaign(int id)
+    public async Task<ActionResult<SlnCampaignDto>> GetCampaign(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var campaign = await _marketingFactory.GetCampaignAsync(id, customerId);
+        var campaign = await _marketingFactory.GetCampaignAsync(id, customerId, GetBranchId() ?? branchId);
         return campaign != null ? Ok(campaign) : NotFound();
     }
 
     [HttpPost("campaigns")]
-    public async Task<ActionResult<SlnCampaignDto>> CreateCampaign([FromBody] SlnCampaignCreateDto dto)
+    public async Task<ActionResult<SlnCampaignDto>> CreateCampaign([FromBody] SlnCampaignCreateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var campaign = await _marketingFactory.CreateCampaignAsync(dto, customerId);
+        var campaign = await _marketingFactory.CreateCampaignAsync(dto, customerId, GetBranchId() ?? branchId);
         return Ok(campaign);
     }
 
     [HttpPut("campaigns/{id:int}")]
-    public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnCampaignUpdateDto dto)
+    public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnCampaignUpdateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.UpdateCampaignAsync(id, dto, customerId);
+        var (success, error) = await _marketingFactory.UpdateCampaignAsync(id, dto, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpDelete("campaigns/{id:int}")]
-    public async Task<ActionResult> DeleteCampaign(int id)
+    public async Task<ActionResult> DeleteCampaign(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.DeleteCampaignAsync(id, customerId);
+        var (success, error) = await _marketingFactory.DeleteCampaignAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPost("campaigns/segment-preview")]
-    public async Task<ActionResult<SlnSegmentPreviewDto>> SegmentPreview([FromBody] string? segmentFilter)
+    public async Task<ActionResult<SlnSegmentPreviewDto>> SegmentPreview([FromBody] string? segmentFilter, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var preview = await _marketingFactory.GetSegmentPreviewAsync(segmentFilter, customerId);
+        var preview = await _marketingFactory.GetSegmentPreviewAsync(segmentFilter, customerId, GetBranchId() ?? branchId);
         return Ok(preview);
     }
 
     [HttpGet("campaigns/segment-presets")]
-    public async Task<ActionResult<List<SlnSegmentPresetDto>>> GetSegmentPresets()
+    public async Task<ActionResult<List<SlnSegmentPresetDto>>> GetSegmentPresets([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var presets = await _marketingFactory.GetSegmentPresetsAsync(customerId);
+        var presets = await _marketingFactory.GetSegmentPresetsAsync(customerId, GetBranchId() ?? branchId);
         return Ok(presets);
     }
 
     [HttpPost("campaigns/{id:int}/send")]
-    public async Task<ActionResult> SendCampaign(int id)
+    public async Task<ActionResult> SendCampaign(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.SendCampaignAsync(id, customerId);
+        var (success, error) = await _marketingFactory.SendCampaignAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     // ═══ Oto-Hatirlatma ═══
 
     [HttpGet("reminders")]
-    public async Task<ActionResult<List<SlnAutoReminderDto>>> GetReminders()
+    public async Task<ActionResult<List<SlnAutoReminderDto>>> GetReminders([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var reminders = await _marketingFactory.GetRemindersAsync(customerId);
+        var reminders = await _marketingFactory.GetRemindersAsync(customerId, GetBranchId() ?? branchId);
         return Ok(reminders);
     }
 
     [HttpPost("reminders")]
-    public async Task<ActionResult<SlnAutoReminderDto>> CreateReminder([FromBody] SlnAutoReminderCreateDto dto)
+    public async Task<ActionResult<SlnAutoReminderDto>> CreateReminder([FromBody] SlnAutoReminderCreateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var reminder = await _marketingFactory.CreateReminderAsync(dto, customerId);
+        var reminder = await _marketingFactory.CreateReminderAsync(dto, customerId, GetBranchId() ?? branchId);
         return Ok(reminder);
     }
 
     [HttpPut("reminders/{id:int}")]
-    public async Task<ActionResult> UpdateReminder(int id, [FromBody] SlnAutoReminderUpdateDto dto)
+    public async Task<ActionResult> UpdateReminder(int id, [FromBody] SlnAutoReminderUpdateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.UpdateReminderAsync(id, dto, customerId);
+        var (success, error) = await _marketingFactory.UpdateReminderAsync(id, dto, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpDelete("reminders/{id:int}")]
-    public async Task<ActionResult> DeleteReminder(int id)
+    public async Task<ActionResult> DeleteReminder(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.DeleteReminderAsync(id, customerId);
+        var (success, error) = await _marketingFactory.DeleteReminderAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPost("reminders/{id:int}/toggle")]
-    public async Task<ActionResult> ToggleReminder(int id)
+    public async Task<ActionResult> ToggleReminder(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.ToggleReminderAsync(id, customerId);
+        var (success, error) = await _marketingFactory.ToggleReminderAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 }

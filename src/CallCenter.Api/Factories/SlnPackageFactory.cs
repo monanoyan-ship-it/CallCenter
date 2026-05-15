@@ -110,10 +110,11 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     // ═══ Musteri Paketleri ═══
 
-    public async Task<List<SlnClientPackageDto>> GetClientPackagesAsync(int customerId, int? clientId = null)
+    public async Task<List<SlnClientPackageDto>> GetClientPackagesAsync(int customerId, int? clientId = null, int? branchId = null)
     {
-        var query = _pkgEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId)
+        var query = SalonBranchScope.ApplyToClientPackages(
+                _pkgEs.GetAllQueryable().Where(p => p.CustomerId == customerId),
+                branchId)
             .Include(p => p.PackageDefinition).ThenInclude(d => d!.Service)
             .Include(p => p.SlnClient)
             .AsQueryable();
@@ -147,8 +148,10 @@ public class SlnPackageFactory : ISlnPackageFactory
         if (!dto.SlnClientId.HasValue) return (null, "Paket satisi icin musteri secilmelidir");
         if (def.TotalSessions <= 0) return (null, "Paket seans sayisi gecersiz");
 
-        var clientExists = await _clients.GetAllQueryable()
-            .AnyAsync(c => c.Id == dto.SlnClientId.Value && c.CustomerId == customerId);
+        var clientExists = await SalonBranchScope.ApplyToClients(
+                _clients.GetAllQueryable().Where(c => c.Id == dto.SlnClientId.Value && c.CustomerId == customerId),
+                branchId)
+            .AnyAsync();
         if (!clientExists) return (null, "Musteri bulunamadi");
 
         var pkg = new SlnClientPackage
@@ -169,16 +172,16 @@ public class SlnPackageFactory : ISlnPackageFactory
 
         await CreatePackageSaleInvoiceAsync(customerId, branchId, userId, dto.PaymentMethodId, pkg, def);
 
-        var result = (await GetClientPackagesAsync(customerId)).First(p => p.Id == pkg.Id);
+        var result = (await GetClientPackagesAsync(customerId, null, branchId)).First(p => p.Id == pkg.Id);
         return (result, null);
     }
 
-    public async Task<(bool Success, string? Error)> UseSessionAsync(SlnPackageUseDto dto, int userId, int customerId)
+    public async Task<(bool Success, string? Error)> UseSessionAsync(SlnPackageUseDto dto, int userId, int customerId, int? branchId = null)
     {
-        return await RecordUsageAsync(customerId, dto.ClientPackageId, null, null, userId, dto.Notes);
+        return await RecordUsageAsync(customerId, dto.ClientPackageId, null, null, userId, dto.Notes, branchId);
     }
 
-    public async Task<List<SlnPackageBenefitDto>> GetUsablePackagesAsync(int customerId, int slnClientId, IEnumerable<int> serviceIds)
+    public async Task<List<SlnPackageBenefitDto>> GetUsablePackagesAsync(int customerId, int slnClientId, IEnumerable<int> serviceIds, int? branchId = null)
     {
         var ids = serviceIds
             .Where(id => id > 0)
@@ -189,12 +192,14 @@ public class SlnPackageFactory : ISlnPackageFactory
             return [];
 
         var now = DateTime.UtcNow;
-        return await _pkgEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId
-                && p.SlnClientId == slnClientId
-                && p.IsActive
-                && p.RemainingSessions > 0
-                && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value >= now))
+        return await SalonBranchScope.ApplyToClientPackages(
+                _pkgEs.GetAllQueryable()
+                    .Where(p => p.CustomerId == customerId
+                        && p.SlnClientId == slnClientId
+                        && p.IsActive
+                        && p.RemainingSessions > 0
+                        && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value >= now)),
+                branchId)
             .Include(p => p.PackageDefinition)
             .Where(p => p.PackageDefinition != null && ids.Contains(p.PackageDefinition.ServiceId))
             .OrderBy(p => p.ExpiresAt.HasValue ? 0 : 1)
@@ -212,11 +217,13 @@ public class SlnPackageFactory : ISlnPackageFactory
             .ToListAsync();
     }
 
-    public async Task<(bool Success, string? Error)> RecordUsageAsync(int customerId, int clientPackageId, int? serviceId, int? slnClientId, int userId, string? notes)
+    public async Task<(bool Success, string? Error)> RecordUsageAsync(int customerId, int clientPackageId, int? serviceId, int? slnClientId, int userId, string? notes, int? branchId = null)
     {
-        var pkg = await _pkgEs.GetAllQueryable()
+        var pkg = await SalonBranchScope.ApplyToClientPackages(
+                _pkgEs.GetAllQueryable().Where(p => p.Id == clientPackageId && p.CustomerId == customerId),
+                branchId)
             .Include(p => p.PackageDefinition)
-            .FirstOrDefaultAsync(p => p.Id == clientPackageId && p.CustomerId == customerId);
+            .FirstOrDefaultAsync();
         if (pkg == null) return (false, "Paket bulunamadi");
         if (!pkg.SlnClientId.HasValue) return (false, "Musteriye bagli olmayan paket kullanilamaz");
         if (slnClientId.HasValue && pkg.SlnClientId.Value != slnClientId.Value) return (false, "Paket secili musteriye ait degil");

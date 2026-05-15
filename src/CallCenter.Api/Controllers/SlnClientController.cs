@@ -22,88 +22,88 @@ public class SlnClientController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetClients([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetClients([FromQuery] string? search, [FromQuery] int? branchId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var result = await _clientFactory.GetClientsAsync(customerId, search, page, pageSize);
+        var result = await _clientFactory.GetClientsAsync(customerId, search, GetBranchId() ?? branchId, page, pageSize);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SlnClientDetailDto>> GetClient(int id)
+    public async Task<ActionResult<SlnClientDetailDto>> GetClient(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var client = await _clientFactory.GetClientDetailAsync(id, customerId);
+        var client = await _clientFactory.GetClientDetailAsync(id, customerId, GetBranchId() ?? branchId);
         return client != null ? Ok(client) : NotFound();
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnClientDto>> CreateClient([FromBody] SlnClientCreateDto dto)
+    public async Task<ActionResult<SlnClientDto>> CreateClient([FromBody] SlnClientCreateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var client = await _clientFactory.CreateClientAsync(dto, customerId);
+        var client = await _clientFactory.CreateClientAsync(dto, customerId, GetBranchId() ?? branchId);
         return Ok(client);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateClient(int id, [FromBody] SlnClientUpdateDto dto)
+    public async Task<ActionResult> UpdateClient(int id, [FromBody] SlnClientUpdateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.UpdateClientAsync(id, dto, customerId);
+        var (success, error) = await _clientFactory.UpdateClientAsync(id, dto, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPut("{id}/health")]
-    public async Task<ActionResult> UpdateHealthInfo(int id, [FromBody] SlnClientHealthUpdateDto dto)
+    public async Task<ActionResult> UpdateHealthInfo(int id, [FromBody] SlnClientHealthUpdateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _clientFactory.UpdateHealthInfoAsync(
-            id, dto, customerId, requiresReview: false, reviewedByPersonnelId: GetUserId());
+            id, dto, customerId, requiresReview: false, reviewedByPersonnelId: GetUserId(), branchId: GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPut("{id}/health/review")]
-    public async Task<ActionResult> ReviewHealthInfo(int id)
+    public async Task<ActionResult> ReviewHealthInfo(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.ReviewHealthInfoAsync(id, customerId, GetUserId());
+        var (success, error) = await _clientFactory.ReviewHealthInfoAsync(id, customerId, GetUserId(), GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteClient(int id)
+    public async Task<ActionResult> DeleteClient(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeleteClientAsync(id, customerId);
+        var (success, error) = await _clientFactory.DeleteClientAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpGet("suggestions")]
-    public async Task<ActionResult> GetSuggestions()
+    public async Task<ActionResult> GetSuggestions([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var suggestions = await _clientFactory.GetSuggestionsAsync(customerId);
+        var suggestions = await _clientFactory.GetSuggestionsAsync(customerId, GetBranchId() ?? branchId);
         return Ok(suggestions);
     }
 
     [HttpPost("formulas")]
-    public async Task<ActionResult<SlnFormulaDto>> AddFormula([FromBody] SlnFormulaCreateDto dto)
+    public async Task<ActionResult<SlnFormulaDto>> AddFormula([FromBody] SlnFormulaCreateDto dto, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
@@ -111,7 +111,7 @@ public class SlnClientController : ControllerBase
 
         try
         {
-            var formula = await _clientFactory.AddFormulaAsync(dto, userId, customerId);
+            var formula = await _clientFactory.AddFormulaAsync(dto, userId, customerId, GetBranchId() ?? branchId);
             return Ok(formula);
         }
         catch (InvalidOperationException ex)
@@ -121,17 +121,17 @@ public class SlnClientController : ControllerBase
     }
 
     [HttpDelete("formulas/{id}")]
-    public async Task<ActionResult> DeleteFormula(int id)
+    public async Task<ActionResult> DeleteFormula(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeleteFormulaAsync(id, customerId);
+        var (success, error) = await _clientFactory.DeleteFormulaAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPost("treatment-records")]
-    public async Task<ActionResult<SlnTreatmentRecordDto>> AddTreatmentRecord([FromBody] SlnTreatmentRecordCreateDto dto)
+    public async Task<ActionResult<SlnTreatmentRecordDto>> AddTreatmentRecord([FromBody] SlnTreatmentRecordCreateDto dto, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
@@ -139,7 +139,7 @@ public class SlnClientController : ControllerBase
 
         try
         {
-            var record = await _clientFactory.AddTreatmentRecordAsync(dto, userId, customerId);
+            var record = await _clientFactory.AddTreatmentRecordAsync(dto, userId, customerId, GetBranchId() ?? branchId);
             return Ok(record);
         }
         catch (InvalidOperationException ex)
@@ -149,22 +149,22 @@ public class SlnClientController : ControllerBase
     }
 
     [HttpDelete("treatment-records/{id}")]
-    public async Task<ActionResult> DeleteTreatmentRecord(int id)
+    public async Task<ActionResult> DeleteTreatmentRecord(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeleteTreatmentRecordAsync(id, customerId);
+        var (success, error) = await _clientFactory.DeleteTreatmentRecordAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPut("{id}/unblock")]
-    public async Task<ActionResult> UnblockClient(int id)
+    public async Task<ActionResult> UnblockClient(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.UnblockClientAsync(id, customerId);
+        var (success, error) = await _clientFactory.UnblockClientAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : NotFound(error);
     }
 
@@ -173,4 +173,10 @@ public class SlnClientController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
 }

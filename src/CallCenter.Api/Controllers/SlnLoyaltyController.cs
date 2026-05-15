@@ -36,39 +36,45 @@ public class SlnLoyaltyController : ControllerBase
     }
 
     [HttpGet("clients")]
-    public async Task<ActionResult<List<SlnClientLoyaltyDto>>> GetClientLoyalties()
+    public async Task<ActionResult<List<SlnClientLoyaltyDto>>> GetClientLoyalties([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _loyaltyFactory.GetClientLoyaltiesAsync(customerId));
+        return Ok(await _loyaltyFactory.GetClientLoyaltiesAsync(customerId, GetBranchId() ?? branchId));
     }
 
     [HttpGet("clients/{slnClientId}")]
-    public async Task<ActionResult<SlnClientLoyaltyDto>> GetClientLoyalty(int slnClientId)
+    public async Task<ActionResult<SlnClientLoyaltyDto>> GetClientLoyalty(int slnClientId, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var loyalty = await _loyaltyFactory.GetClientLoyaltyAsync(slnClientId, customerId);
+        var loyalty = await _loyaltyFactory.GetClientLoyaltyAsync(slnClientId, customerId, GetBranchId() ?? branchId);
         return Ok(loyalty);
     }
 
     [HttpGet("clients/{slnClientId}/transactions")]
-    public async Task<ActionResult<List<SlnLoyaltyTransactionDto>>> GetTransactions(int slnClientId)
+    public async Task<ActionResult<List<SlnLoyaltyTransactionDto>>> GetTransactions(int slnClientId, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _loyaltyFactory.GetTransactionsAsync(slnClientId, customerId));
+        return Ok(await _loyaltyFactory.GetTransactionsAsync(slnClientId, customerId, GetBranchId() ?? branchId));
     }
 
     [HttpPost("redeem")]
-    public async Task<ActionResult> RedeemPoints([FromBody] SlnLoyaltyRedeemDto dto)
+    public async Task<ActionResult> RedeemPoints([FromBody] SlnLoyaltyRedeemDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _loyaltyFactory.RedeemPointsAsync(dto, customerId);
+        var (success, error) = await _loyaltyFactory.RedeemPointsAsync(dto, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var value = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
 }

@@ -19,11 +19,11 @@ public class SlnMembershipController : ControllerBase
     public SlnMembershipController(ISlnMembershipFactory factory) => _factory = factory;
 
     [HttpGet("plans")]
-    public async Task<ActionResult<List<SlnMembershipPlanDto>>> GetPlans()
+    public async Task<ActionResult<List<SlnMembershipPlanDto>>> GetPlans([FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _factory.GetPlansAsync(cid));
+        return Ok(await _factory.GetPlansAsync(cid, GetBranchId() ?? branchId));
     }
 
     [HttpPost("plans")]
@@ -53,61 +53,67 @@ public class SlnMembershipController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<SlnClientMembershipDto>>> GetMemberships([FromQuery] int? clientId)
+    public async Task<ActionResult<List<SlnClientMembershipDto>>> GetMemberships([FromQuery] int? clientId, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _factory.GetMembershipsAsync(cid, clientId));
+        return Ok(await _factory.GetMembershipsAsync(cid, clientId, GetBranchId() ?? branchId));
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnClientMembershipDto>> CreateMembership([FromBody] SlnClientMembershipCreateDto dto)
+    public async Task<ActionResult<SlnClientMembershipDto>> CreateMembership([FromBody] SlnClientMembershipCreateDto dto, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (m, e) = await _factory.CreateMembershipAsync(dto, cid);
+        var (m, e) = await _factory.CreateMembershipAsync(dto, cid, GetBranchId() ?? branchId);
         return m != null ? Ok(m) : BadRequest(e);
     }
 
     [HttpPut("{id}/cancel")]
-    public async Task<ActionResult> Cancel(int id)
+    public async Task<ActionResult> Cancel(int id, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (s, e) = await _factory.CancelMembershipAsync(id, cid);
+        var (s, e) = await _factory.CancelMembershipAsync(id, cid, GetBranchId() ?? branchId);
         return s ? Ok() : BadRequest(e);
     }
 
     [HttpPut("{id}/freeze")]
-    public async Task<ActionResult> Freeze(int id)
+    public async Task<ActionResult> Freeze(int id, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (s, e) = await _factory.FreezeMembershipAsync(id, cid);
+        var (s, e) = await _factory.FreezeMembershipAsync(id, cid, GetBranchId() ?? branchId);
         return s ? Ok() : BadRequest(e);
     }
 
     [HttpPut("{id}/reactivate")]
-    public async Task<ActionResult> Reactivate(int id)
+    public async Task<ActionResult> Reactivate(int id, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (s, e) = await _factory.ReactivateMembershipAsync(id, cid);
+        var (s, e) = await _factory.ReactivateMembershipAsync(id, cid, GetBranchId() ?? branchId);
         return s ? Ok() : BadRequest(e);
     }
 
     /// <summary>Musteri icin hizmet bazli uyelik hak kontrolu</summary>
     [HttpPost("check-benefits")]
-    public async Task<ActionResult> CheckBenefits([FromBody] CheckBenefitsRequest request)
+    public async Task<ActionResult> CheckBenefits([FromBody] CheckBenefitsRequest request, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var benefits = await _factory.CheckBenefitsAsync(cid, request.SlnClientId, request.ServiceIds);
+        var benefits = await _factory.CheckBenefitsAsync(cid, request.SlnClientId, request.ServiceIds, GetBranchId() ?? branchId);
         return Ok(benefits);
     }
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var value = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
 }
 
 public class CheckBenefitsRequest

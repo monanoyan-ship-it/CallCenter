@@ -6,8 +6,8 @@ public interface ISlnWhatsAppFactory
 {
     Task<SlnWhatsAppConfig> GetConfigAsync(int customerId);
     Task SaveConfigAsync(int customerId, SlnWhatsAppConfig dto);
-    Task<object> GetMessagesAsync(int customerId, int page, int pageSize);
-    Task<bool> SendTestAsync(int customerId, string phone, string message);
-    Task<bool> SendMessageAsync(int customerId, string phone, string message);
+    Task<object> GetMessagesAsync(int customerId, int page, int pageSize, int? branchId = null);
+    Task<bool> SendTestAsync(int customerId, string phone, string message, int? branchId = null);
+    Task<bool> SendMessageAsync(int customerId, string phone, string message, int? branchId = null);
     Task<(bool Success, string? Error)> RecordIncomingMessageAsync(string phoneNumberId, string fromPhone, string message, string? whatsAppMessageId);
 }

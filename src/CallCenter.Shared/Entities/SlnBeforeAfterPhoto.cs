@@ -6,6 +6,8 @@ public class SlnBeforeAfterPhoto
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
 
     public int SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }

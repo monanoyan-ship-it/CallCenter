@@ -38,10 +38,11 @@ public class SlnClientFactory : ISlnClientFactory
         _logger = logger;
     }
 
-    public async Task<object> GetClientsAsync(int customerId, string? search, int page = 1, int pageSize = 50)
+    public async Task<object> GetClientsAsync(int customerId, string? search, int? branchId = null, int page = 1, int pageSize = 50)
     {
         var query = _clients.GetAllQueryable()
             .Where(c => c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -64,7 +65,9 @@ public class SlnClientFactory : ISlnClientFactory
 
         // Ziyaret ve harcama istatistikleri
         var invoiceStats = await _invoices.GetAllQueryable()
-            .Where(i => clientIds.Contains(i.SlnClientId ?? 0) && i.StatusId != 3)
+            .Where(i => clientIds.Contains(i.SlnClientId ?? 0)
+                        && i.StatusId != 3
+                        && (!branchId.HasValue || i.BranchId == branchId.Value))
             .GroupBy(i => i.SlnClientId)
             .Select(g => new
             {
@@ -84,6 +87,7 @@ public class SlnClientFactory : ISlnClientFactory
             {
                 Id = c.Id,
                 Uid = c.Uid,
+                BranchId = c.BranchId,
                 FullName = c.FullName,
                 Phone = c.Phone,
                 Email = c.Email,
@@ -102,19 +106,25 @@ public class SlnClientFactory : ISlnClientFactory
         return new { items, totalCount, page, pageSize };
     }
 
-    public async Task<SlnClientDetailDto?> GetClientDetailAsync(int clientId, int customerId)
+    public async Task<SlnClientDetailDto?> GetClientDetailAsync(int clientId, int customerId, int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query
             .Include(c => c.Formulas).ThenInclude(f => f.AppliedByPersonnel).ThenInclude(p => p!.User)
             .Include(c => c.HealthInfoReviewedByPersonnel).ThenInclude(p => p!.User)
             .Include(c => c.Photos)
-            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+            .FirstOrDefaultAsync();
 
         if (client == null) return null;
 
         // Istatistikler
         var invoiceStats = await _invoices.GetAllQueryable()
-            .Where(i => i.SlnClientId == clientId && i.StatusId != 3)
+            .Where(i => i.SlnClientId == clientId
+                        && i.StatusId != 3
+                        && (!branchId.HasValue || i.BranchId == branchId.Value))
             .GroupBy(i => i.SlnClientId)
             .Select(g => new
             {
@@ -128,6 +138,7 @@ public class SlnClientFactory : ISlnClientFactory
         {
             Id = client.Id,
             Uid = client.Uid,
+            BranchId = client.BranchId,
             FullName = client.FullName,
             Phone = client.Phone,
             Phone2 = client.Phone2,
@@ -172,15 +183,16 @@ public class SlnClientFactory : ISlnClientFactory
                 Description = p.Description,
                 TakenAt = p.TakenAt
             }).ToList(),
-            TreatmentRecords = await GetTreatmentRecordsForClientAsync(clientId, customerId)
+            TreatmentRecords = await GetTreatmentRecordsForClientAsync(clientId, customerId, branchId)
         };
     }
 
-    public async Task<SlnClientDto> CreateClientAsync(SlnClientCreateDto dto, int customerId)
+    public async Task<SlnClientDto> CreateClientAsync(SlnClientCreateDto dto, int customerId, int? branchId = null)
     {
         var client = new SlnClient
         {
             CustomerId = customerId,
+            BranchId = branchId,
             FullName = dto.FullName,
             Phone = Shared.Helpers.PhoneHelper.Normalize(dto.Phone),
             Phone2 = Shared.Helpers.PhoneHelper.Normalize(dto.Phone2),
@@ -211,6 +223,7 @@ public class SlnClientFactory : ISlnClientFactory
         {
             Id = client.Id,
             Uid = client.Uid,
+            BranchId = client.BranchId,
             FullName = client.FullName,
             Phone = client.Phone,
             Email = client.Email,
@@ -223,12 +236,18 @@ public class SlnClientFactory : ISlnClientFactory
         };
     }
 
-    public async Task<(bool Success, string? Error)> UpdateClientAsync(int clientId, SlnClientUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateClientAsync(int clientId, SlnClientUpdateDto dto, int customerId, int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null) return (false, "Musteri bulunamadi");
+
+        if (client.BranchId == null && branchId.HasValue)
+            client.BranchId = branchId;
 
         client.FullName = dto.FullName;
         client.Phone = Shared.Helpers.PhoneHelper.Normalize(dto.Phone);
@@ -261,10 +280,14 @@ public class SlnClientFactory : ISlnClientFactory
         SlnClientHealthUpdateDto dto,
         int customerId,
         bool requiresReview,
-        int? reviewedByPersonnelId = null)
+        int? reviewedByPersonnelId = null,
+        int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null) return (false, "Musteri bulunamadi");
 
@@ -286,10 +309,13 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> ReviewHealthInfoAsync(int clientId, int customerId, int reviewedByPersonnelId)
+    public async Task<(bool Success, string? Error)> ReviewHealthInfoAsync(int clientId, int customerId, int reviewedByPersonnelId, int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null) return (false, "Musteri bulunamadi");
 
@@ -302,10 +328,13 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteClientAsync(int clientId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteClientAsync(int clientId, int customerId, int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null) return (false, "Musteri bulunamadi");
 
@@ -316,10 +345,13 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
-    public async Task<SlnClientSuggestionsDto> GetSuggestionsAsync(int customerId)
+    public async Task<SlnClientSuggestionsDto> GetSuggestionsAsync(int customerId, int? branchId = null)
     {
-        var clients = await _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId)
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var clients = await query
             .Select(c => new { c.HairColor, c.SkinType })
             .ToListAsync();
 
@@ -330,11 +362,14 @@ public class SlnClientFactory : ISlnClientFactory
         };
     }
 
-    public async Task<SlnFormulaDto> AddFormulaAsync(SlnFormulaCreateDto dto, int userId, int customerId)
+    public async Task<SlnFormulaDto> AddFormulaAsync(SlnFormulaCreateDto dto, int userId, int customerId, int? branchId = null)
     {
         // Musterinin bu firmaya ait oldugunu dogrula
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null)
             throw new InvalidOperationException("Musteri bulunamadi");
@@ -363,11 +398,21 @@ public class SlnClientFactory : ISlnClientFactory
         };
     }
 
-    public async Task<(bool Success, string? Error)> DeleteFormulaAsync(int formulaId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteFormulaAsync(int formulaId, int customerId, int? branchId = null)
     {
-        var formula = await _formulas.GetAllQueryable()
+        var formulaQuery = _formulas.GetAllQueryable()
             .Include(f => f.SlnClient)
-            .FirstOrDefaultAsync(f => f.Id == formulaId && f.SlnClient != null && f.SlnClient.CustomerId == customerId);
+            .Where(f => f.Id == formulaId && f.SlnClient != null && f.SlnClient.CustomerId == customerId);
+        if (branchId.HasValue)
+        {
+            var id = branchId.Value;
+            formulaQuery = formulaQuery.Where(f =>
+                f.SlnClient!.BranchId == id
+                || f.SlnClient.Appointments.Any(a => a.BranchId == id)
+                || f.SlnClient.Invoices.Any(i => i.BranchId == id));
+        }
+
+        var formula = await formulaQuery.FirstOrDefaultAsync();
 
         if (formula == null) return (false, "Formul bulunamadi");
 
@@ -376,10 +421,13 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
-    public async Task<SlnTreatmentRecordDto> AddTreatmentRecordAsync(SlnTreatmentRecordCreateDto dto, int userId, int customerId)
+    public async Task<SlnTreatmentRecordDto> AddTreatmentRecordAsync(SlnTreatmentRecordCreateDto dto, int userId, int customerId, int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null)
             throw new InvalidOperationException("Musteri bulunamadi");
@@ -392,7 +440,8 @@ public class SlnClientFactory : ISlnClientFactory
                 .Include(a => a.Services)
                 .FirstOrDefaultAsync(a => a.Id == dto.SlnAppointmentId.Value
                                        && a.CustomerId == customerId
-                                       && a.SlnClientId == dto.SlnClientId);
+                                       && a.SlnClientId == dto.SlnClientId
+                                       && (!branchId.HasValue || a.BranchId == branchId.Value));
             if (appointment == null)
                 throw new InvalidOperationException("Randevu bulunamadi");
 
@@ -438,10 +487,23 @@ public class SlnClientFactory : ISlnClientFactory
         return MapTreatmentRecord(mapped);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteTreatmentRecordAsync(int recordId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteTreatmentRecordAsync(int recordId, int customerId, int? branchId = null)
     {
-        var record = await _treatmentRecords.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == recordId && r.CustomerId == customerId);
+        var query = _treatmentRecords.GetAllQueryable()
+            .Include(r => r.SlnClient)
+            .Where(r => r.Id == recordId && r.CustomerId == customerId);
+        if (branchId.HasValue)
+        {
+            var id = branchId.Value;
+            query = query.Where(r =>
+                (r.SlnAppointment != null && r.SlnAppointment.BranchId == id)
+                || (r.SlnClient != null
+                    && (r.SlnClient.BranchId == id
+                        || r.SlnClient.Appointments.Any(a => a.BranchId == id)
+                        || r.SlnClient.Invoices.Any(i => i.BranchId == id))));
+        }
+
+        var record = await query.FirstOrDefaultAsync();
 
         if (record == null) return (false, "Seans kaydi bulunamadi");
 
@@ -450,10 +512,13 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId)
+    public async Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId, int? branchId = null)
     {
-        var client = await _clients.GetAllQueryable()
-            .FirstOrDefaultAsync(c => c.Id == clientId && c.CustomerId == customerId);
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var client = await query.FirstOrDefaultAsync();
 
         if (client == null) return (false, "Musteri bulunamadi");
 
@@ -463,12 +528,24 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
-    private async Task<List<SlnTreatmentRecordDto>> GetTreatmentRecordsForClientAsync(int clientId, int customerId)
+    private async Task<List<SlnTreatmentRecordDto>> GetTreatmentRecordsForClientAsync(int clientId, int customerId, int? branchId = null)
     {
-        var records = await _treatmentRecords.GetAllQueryable()
+        var query = _treatmentRecords.GetAllQueryable()
             .Include(r => r.Service)
             .Include(r => r.Personnel).ThenInclude(p => p!.User)
-            .Where(r => r.CustomerId == customerId && r.SlnClientId == clientId)
+            .Where(r => r.CustomerId == customerId && r.SlnClientId == clientId);
+        if (branchId.HasValue)
+        {
+            var id = branchId.Value;
+            query = query.Where(r =>
+                (r.SlnAppointment != null && r.SlnAppointment.BranchId == id)
+                || (r.SlnClient != null
+                    && (r.SlnClient.BranchId == id
+                        || r.SlnClient.Appointments.Any(a => a.BranchId == id)
+                        || r.SlnClient.Invoices.Any(i => i.BranchId == id))));
+        }
+
+        var records = await query
             .OrderByDescending(r => r.TreatmentDate)
             .Take(50)
             .ToListAsync();

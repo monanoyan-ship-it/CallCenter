@@ -52,10 +52,11 @@ public class SlnWhatsAppFactory : ISlnWhatsAppFactory
         await _uow.SaveChangesAsync();
     }
 
-    public async Task<object> GetMessagesAsync(int customerId, int page, int pageSize)
+    public async Task<object> GetMessagesAsync(int customerId, int page, int pageSize, int? branchId = null)
     {
-        return await _messageEs.GetAllQueryable()
-            .Where(m => m.CustomerId == customerId)
+        return await SalonBranchScope.ApplyToWhatsAppMessages(
+                _messageEs.GetAllQueryable().Where(m => m.CustomerId == customerId),
+                branchId)
             .OrderByDescending(m => m.CreatedAt)
             .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(m => new
@@ -68,15 +69,15 @@ public class SlnWhatsAppFactory : ISlnWhatsAppFactory
             }).ToListAsync();
     }
 
-    public async Task<bool> SendTestAsync(int customerId, string phone, string message)
+    public async Task<bool> SendTestAsync(int customerId, string phone, string message, int? branchId = null)
     {
-        return await _whatsApp.SendTextMessageAsync(customerId, phone, message);
+        return await _whatsApp.SendTextMessageAsync(customerId, phone, message, branchId: branchId);
     }
 
-    public async Task<bool> SendMessageAsync(int customerId, string phone, string message)
+    public async Task<bool> SendMessageAsync(int customerId, string phone, string message, int? branchId = null)
     {
-        var clientId = await FindClientIdByPhoneAsync(customerId, phone);
-        return await _whatsApp.SendTextMessageAsync(customerId, phone, message, clientId);
+        var client = await FindClientByPhoneAsync(customerId, phone, branchId);
+        return await _whatsApp.SendTextMessageAsync(customerId, phone, message, client?.Id, branchId);
     }
 
     public async Task<(bool Success, string? Error)> RecordIncomingMessageAsync(string phoneNumberId, string fromPhone, string message, string? whatsAppMessageId)
@@ -85,7 +86,7 @@ public class SlnWhatsAppFactory : ISlnWhatsAppFactory
             .FirstOrDefaultAsync(c => c.PhoneNumberId == phoneNumberId && c.IsActive);
         if (config == null) return (false, "WhatsApp konfigurasyonu bulunamadi");
 
-        var clientId = await FindClientIdByPhoneAsync(config.CustomerId, fromPhone);
+        var client = await FindClientByPhoneAsync(config.CustomerId, fromPhone);
         var existing = !string.IsNullOrWhiteSpace(whatsAppMessageId)
             && await _messageEs.GetAllQueryable().AnyAsync(m => m.WhatsAppMessageId == whatsAppMessageId);
         if (existing) return (true, null);
@@ -98,20 +99,22 @@ public class SlnWhatsAppFactory : ISlnWhatsAppFactory
             MessageBody = message,
             StatusId = 2,
             WhatsAppMessageId = whatsAppMessageId,
-            SlnClientId = clientId,
+            SlnClientId = client?.Id,
+            BranchId = client?.BranchId,
             CreatedAt = DateTime.UtcNow
         });
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    private async Task<int?> FindClientIdByPhoneAsync(int customerId, string phone)
+    private async Task<SlnClient?> FindClientByPhoneAsync(int customerId, string phone, int? branchId = null)
     {
         var normalized = NormalizePhone(phone);
         var local = normalized.StartsWith("90") ? "0" + normalized[2..] : normalized;
-        return await _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId && (c.Phone == normalized || c.Phone == local || c.Phone2 == normalized || c.Phone2 == local))
-            .Select(c => (int?)c.Id)
+        return await SalonBranchScope.ApplyToClients(
+                _clients.GetAllQueryable()
+                    .Where(c => c.CustomerId == customerId && (c.Phone == normalized || c.Phone == local || c.Phone2 == normalized || c.Phone2 == local)),
+                branchId)
             .FirstOrDefaultAsync();
     }
 

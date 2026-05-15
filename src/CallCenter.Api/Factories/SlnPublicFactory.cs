@@ -422,7 +422,7 @@ public class SlnPublicFactory : ISlnPublicFactory
     private static string? PreferBranchMedia(string? branchValue, string? profileValue)
         => string.IsNullOrWhiteSpace(branchValue) ? profileValue : branchValue;
 
-    private async Task<SlnClient> FindOrCreatePublicClientAsync(int customerId, string fullName, string? phone, string? email)
+    private async Task<SlnClient> FindOrCreatePublicClientAsync(int customerId, string fullName, string? phone, string? email, int? branchId = null)
     {
         var phoneVariants = PhoneHelper.GetLookupVariants(phone);
         var normalizedPhone = PhoneHelper.Normalize(phone) ?? PhoneHelper.Sanitize(phone);
@@ -438,6 +438,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             client = new SlnClient
             {
                 CustomerId = customerId,
+                BranchId = branchId,
                 FullName = fullName.Trim(),
                 Phone = string.IsNullOrWhiteSpace(normalizedPhone) ? phone?.Trim() : normalizedPhone,
                 Email = normalizedEmail
@@ -448,6 +449,12 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         var changed = false;
+        if (client.BranchId == null && branchId.HasValue)
+        {
+            client.BranchId = branchId;
+            changed = true;
+        }
+
         if (!client.IsActive && !client.IsBlacklisted)
         {
             client.IsActive = true;
@@ -678,9 +685,9 @@ public class SlnPublicFactory : ISlnPublicFactory
     /// <summary>Online uyelik basvurusu (auth gerekmez)</summary>
     public async Task<(bool Success, string? Error, object? Result)> MembershipSignupAsync(string slug, SlnMembershipSignupDto dto)
     {
-        var customerId = await ResolveCustomerIdAsync(slug);
-        if (customerId == null) return (false, "Salon bulunamadi", null);
-        var cid = customerId.Value;
+        var scope = await ResolveSalonScopeAsync(slug);
+        if (scope == null) return (false, "Salon bulunamadi", null);
+        var cid = scope.CustomerId;
 
         var plan = await _membershipPlans.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == cid && p.IsActive);
@@ -690,7 +697,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             return (false, "Ad ve telefon zorunludur.", null);
 
         // Musteri bul veya olustur
-        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email, scope.BranchId);
 
         // Mevcut musterinin zaten aktif uyeligi var mi?
         var existing = await _clientMemberships.GetAllQueryable()
@@ -1243,7 +1250,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         }
 
         // ── ADIM 3: Müşteri bul / oluştur ──────────────────────────────────
-        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email, scope.BranchId);
         if (client.IsBlacklisted)
         {
             return (false, "Gecmis randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen salonu arayiniz.", null);
@@ -1492,7 +1499,12 @@ public class SlnPublicFactory : ISlnPublicFactory
         var depositAmount = requireDeposit ? policy!.DepositAmount : 0m;
 
         // Müşteri bul / oluştur
-        var client = existingClient ?? await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        var client = existingClient ?? await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email, scope.BranchId);
+        if (client.BranchId == null && scope.BranchId.HasValue)
+        {
+            client.BranchId = scope.BranchId;
+            await _uow.SaveChangesAsync();
+        }
         if (client.IsBlacklisted)
         {
             return (false, "Daha onceki randevu ihlalleri nedeniyle online randevu olusturulamiyor. Lutfen bu subeden randevu almak icin dogrudan salonla iletisime gecin.", null);
@@ -1586,7 +1598,7 @@ public class SlnPublicFactory : ISlnPublicFactory
         if (service == null) return (false, "Hizmet bulunamadi", null);
 
         // Telefonla mevcut musteri var mi? Yoksa hizli olustur (lead).
-        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email);
+        var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email, branchId);
 
         // Ayni telefon + tarih + hizmet icin acik (StatusId=1) waitlist varsa cogaltma
         var preferredDate = DateTime.SpecifyKind(dto.PreferredDate.Date, DateTimeKind.Utc);

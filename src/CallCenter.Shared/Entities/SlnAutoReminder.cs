@@ -5,6 +5,8 @@ public class SlnAutoReminder
     public int Id { get; set; }
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
 
     /// <summary>1=Birthday, 2=Anniversary, 3=AppointmentReminder, 4=InactiveClient</summary>
     public int ReminderTypeId { get; set; }

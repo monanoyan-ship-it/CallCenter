@@ -19,27 +19,27 @@ public class SlnReviewController : ControllerBase
     public SlnReviewController(ISlnReviewFactory factory) => _factory = factory;
 
     [HttpGet]
-    public async Task<ActionResult<List<SlnReviewDto>>> GetReviews()
+    public async Task<ActionResult<List<SlnReviewDto>>> GetReviews([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.GetReviewsAsync(customerId));
+        return Ok(await _factory.GetReviewsAsync(customerId, GetBranchId() ?? branchId));
     }
 
     [HttpGet("stats")]
-    public async Task<ActionResult<SlnReviewStatsDto>> GetStats()
+    public async Task<ActionResult<SlnReviewStatsDto>> GetStats([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.GetStatsAsync(customerId));
+        return Ok(await _factory.GetStatsAsync(customerId, GetBranchId() ?? branchId));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SlnReviewDto>> GetReview(int id)
+    public async Task<ActionResult<SlnReviewDto>> GetReview(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var review = await _factory.GetReviewAsync(id, customerId);
+        var review = await _factory.GetReviewAsync(id, customerId, GetBranchId() ?? branchId);
         return review != null ? Ok(review) : NotFound();
     }
 
@@ -52,23 +52,29 @@ public class SlnReviewController : ControllerBase
     public ActionResult CreateReview() => Forbid();
 
     [HttpPut("{id}/status/{statusId}")]
-    public async Task<ActionResult> UpdateStatus(int id, int statusId)
+    public async Task<ActionResult> UpdateStatus(int id, int statusId, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId);
+        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteReview(int id)
+    public async Task<ActionResult> DeleteReview(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.DeleteReviewAsync(id, customerId);
+        var (success, error) = await _factory.DeleteReviewAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var value = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
 }

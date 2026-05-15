@@ -5,6 +5,7 @@ public class SlnClientDto
 {
     public int Id { get; set; }
     public Guid Uid { get; set; }
+    public int? BranchId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? Email { get; set; }
@@ -919,6 +920,7 @@ public class SlnDashboardDto
 public class SlnCampaignDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string MessageTemplate { get; set; } = string.Empty;
     public string? SegmentFilter { get; set; }
@@ -978,6 +980,7 @@ public class SlnSegmentPresetDto
 public class SlnAutoReminderDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public int ReminderTypeId { get; set; }
     public string ReminderTypeName { get; set; } = string.Empty;
     public string MessageTemplate { get; set; } = string.Empty;
@@ -1479,6 +1482,7 @@ public class SlnWaitlistEntryUpdateDto : SlnWaitlistEntryCreateDto
 public class SlnEmailCampaignDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public string Subject { get; set; } = string.Empty;
     public string HtmlBody { get; set; } = string.Empty;
     public string? SegmentFilter { get; set; }
@@ -1508,6 +1512,7 @@ public class SlnEmailCampaignUpdateDto : SlnEmailCampaignCreateDto
 public class SlnReviewDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public int? SlnClientId { get; set; }
     public string? ClientName { get; set; }
     public int Rating { get; set; }
@@ -1589,6 +1594,7 @@ public class SlnClientConsentCreateDto
 public class SlnBeforeAfterPhotoDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public int SlnClientId { get; set; }
     public string ClientName { get; set; } = string.Empty;
     public int? ServiceId { get; set; }
@@ -1621,6 +1627,7 @@ public class SlnBeforeAfterPhotoUpdateDto : SlnBeforeAfterPhotoCreateDto
 public class SlnWinbackRuleDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int InactiveDays { get; set; }
     public int ChannelId { get; set; }

@@ -52,39 +52,39 @@ public class SlnPackageController : ControllerBase
     }
 
     [HttpGet("client-packages")]
-    public async Task<ActionResult<List<SlnClientPackageDto>>> GetClientPackages([FromQuery] int? clientId)
+    public async Task<ActionResult<List<SlnClientPackageDto>>> GetClientPackages([FromQuery] int? clientId, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _packageFactory.GetClientPackagesAsync(customerId, clientId));
+        return Ok(await _packageFactory.GetClientPackagesAsync(customerId, clientId, GetBranchId() ?? branchId));
     }
 
     [HttpPost("sell")]
-    public async Task<ActionResult<SlnClientPackageDto>> SellPackage([FromBody] SlnClientPackageSellDto dto)
+    public async Task<ActionResult<SlnClientPackageDto>> SellPackage([FromBody] SlnClientPackageSellDto dto, [FromQuery] int? branchId)
     {
         var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (pkg, error) = await _packageFactory.SellPackageAsync(dto, personnelId, customerId, GetBranchId());
+        var (pkg, error) = await _packageFactory.SellPackageAsync(dto, personnelId, customerId, GetBranchId() ?? branchId);
         return pkg != null ? Ok(pkg) : BadRequest(error);
     }
 
     [HttpPost("use")]
-    public async Task<ActionResult> UseSession([FromBody] SlnPackageUseDto dto)
+    public async Task<ActionResult> UseSession([FromBody] SlnPackageUseDto dto, [FromQuery] int? branchId)
     {
         var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _packageFactory.UseSessionAsync(dto, personnelId, customerId);
+        var (success, error) = await _packageFactory.UseSessionAsync(dto, personnelId, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPost("usable")]
-    public async Task<ActionResult<List<SlnPackageBenefitDto>>> GetUsablePackages([FromBody] SlnPackageBenefitCheckDto dto)
+    public async Task<ActionResult<List<SlnPackageBenefitDto>>> GetUsablePackages([FromBody] SlnPackageBenefitCheckDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _packageFactory.GetUsablePackagesAsync(customerId, dto.SlnClientId, dto.ServiceIds));
+        return Ok(await _packageFactory.GetUsablePackagesAsync(customerId, dto.SlnClientId, dto.ServiceIds, GetBranchId() ?? branchId));
     }
 
     private int GetPersonnelId()

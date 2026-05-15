@@ -59,7 +59,9 @@ public class PlatformReviewController : ControllerBase
 
         // Mevcut yorum var mi? (Ayni salon + ayni PlatformUser)
         var existing = await _reviewEs.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.CustomerId == target.CustomerId && r.PlatformUserId == platformUserId);
+            .FirstOrDefaultAsync(r => r.CustomerId == target.CustomerId
+                                      && r.BranchId == target.BranchId
+                                      && r.PlatformUserId == platformUserId);
 
         if (existing != null)
         {
@@ -74,6 +76,7 @@ public class PlatformReviewController : ControllerBase
         var review = new SlnReview
         {
             CustomerId = target.CustomerId,
+            BranchId = target.BranchId,
             PlatformUserId = platformUserId,
             ClientName = request.DisplayName,
             Rating = request.Rating,
@@ -122,14 +125,19 @@ public class PlatformReviewController : ControllerBase
             .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Slug == s);
         if (branch != null)
-            return new ReviewSalonTarget(branch.CustomerId, branch.Customer?.Name ?? branch.Name);
+            return new ReviewSalonTarget(branch.CustomerId, branch.Id, branch.Customer?.Name ?? branch.Name);
 
         var profile = await _profileEs.GetAllQueryable()
             .Include(p => p.Customer)
             .FirstOrDefaultAsync(p => p.Slug == s);
         if (profile == null) return null;
 
-        return new ReviewSalonTarget(profile.CustomerId, profile.Customer?.Name ?? profile.Slug);
+        var headquarterBranchId = await _branchEs.GetAllQueryable()
+            .Where(b => b.CustomerId == profile.CustomerId && b.IsHeadquarter && b.IsActive)
+            .Select(b => (int?)b.Id)
+            .FirstOrDefaultAsync();
+
+        return new ReviewSalonTarget(profile.CustomerId, headquarterBranchId, profile.Customer?.Name ?? profile.Slug);
     }
 
     private static PlatformReviewDto MapDto(SlnReview r, string? salonName = null) => new()
@@ -143,5 +151,5 @@ public class PlatformReviewController : ControllerBase
         CreatedAt = r.CreatedAt
     };
 
-    private sealed record ReviewSalonTarget(int CustomerId, string SalonName);
+    private sealed record ReviewSalonTarget(int CustomerId, int? BranchId, string SalonName);
 }

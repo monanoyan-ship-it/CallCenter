@@ -30,27 +30,31 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnWinbackRuleDto>> GetRulesAsync(int customerId)
+    public async Task<List<SlnWinbackRuleDto>> GetRulesAsync(int customerId, int? branchId = null)
     {
-        return await _winbackRuleEs.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId)
+        return await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.CustomerId == customerId),
+                branchId)
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => MapToDto(r))
             .ToListAsync();
     }
 
-    public async Task<SlnWinbackRuleDto?> GetRuleAsync(int id, int customerId)
+    public async Task<SlnWinbackRuleDto?> GetRuleAsync(int id, int customerId, int? branchId = null)
     {
-        var rule = await _winbackRuleEs.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         return rule != null ? MapToDto(rule) : null;
     }
 
-    public async Task<SlnWinbackRuleDto> CreateRuleAsync(SlnWinbackRuleCreateDto dto, int customerId)
+    public async Task<SlnWinbackRuleDto> CreateRuleAsync(SlnWinbackRuleCreateDto dto, int customerId, int? branchId = null)
     {
         var rule = new SlnWinbackRule
         {
             CustomerId = customerId,
+            BranchId = branchId,
             Name = dto.Name,
             InactiveDays = dto.InactiveDays,
             ChannelId = dto.ChannelId,
@@ -63,10 +67,17 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         return MapToDto(rule);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateRuleAsync(int id, SlnWinbackRuleUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateRuleAsync(int id, SlnWinbackRuleUpdateDto dto, int customerId, int? branchId = null)
     {
-        var rule = await _winbackRuleEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (rule == null) return (false, "Kural bulunamadi");
+        if (rule.BranchId == null && branchId.HasValue)
+        {
+            rule.BranchId = branchId;
+        }
 
         rule.Name = dto.Name;
         rule.InactiveDays = dto.InactiveDays;
@@ -78,9 +89,12 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteRuleAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteRuleAsync(int id, int customerId, int? branchId = null)
     {
-        var rule = await _winbackRuleEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (rule == null) return (false, "Kural bulunamadi");
 
         _winbackRuleEs.Remove(rule);
@@ -88,9 +102,12 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> ToggleRuleAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> ToggleRuleAsync(int id, int customerId, int? branchId = null)
     {
-        var rule = await _winbackRuleEs.GetAllQueryable().FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (rule == null) return (false, "Kural bulunamadi");
 
         rule.IsActive = !rule.IsActive;
@@ -98,13 +115,15 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         return (true, null);
     }
 
-    public async Task<SlnWinbackPreviewDto?> GetPreviewAsync(int id, int customerId)
+    public async Task<SlnWinbackPreviewDto?> GetPreviewAsync(int id, int customerId, int? branchId = null)
     {
-        var rule = await _winbackRuleEs.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (rule == null) return null;
 
-        var candidates = await GetCandidatesAsync(rule, customerId);
+        var candidates = await GetCandidatesAsync(rule, customerId, branchId);
         return new SlnWinbackPreviewDto
         {
             RuleId = rule.Id,
@@ -120,14 +139,16 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         };
     }
 
-    public async Task<(SlnCampaignDto? Campaign, string? Error)> CreateCampaignFromRuleAsync(int id, int customerId)
+    public async Task<(SlnCampaignDto? Campaign, string? Error)> CreateCampaignFromRuleAsync(int id, int customerId, int? branchId = null)
     {
-        var rule = await _winbackRuleEs.GetAllQueryable()
-            .FirstOrDefaultAsync(r => r.Id == id && r.CustomerId == customerId);
+        var rule = await SalonBranchScope.ApplyToWinbackRules(
+                _winbackRuleEs.GetAllQueryable().Where(r => r.Id == id && r.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (rule == null) return (null, "Kural bulunamadi");
         if (!rule.IsActive) return (null, "Pasif kuraldan kampanya olusturulamaz");
 
-        var preview = await GetPreviewAsync(id, customerId);
+        var preview = await GetPreviewAsync(id, customerId, branchId);
         if (preview == null) return (null, "Kural bulunamadi");
         if (preview.EligibleClients == 0) return (null, "Bu kural icin uygun pasif musteri yok");
 
@@ -137,17 +158,18 @@ public class SlnWinbackFactory : ISlnWinbackFactory
             Name = $"Winback - {rule.Name} - {DateTime.UtcNow:yyyyMMdd}",
             MessageTemplate = BuildMessage(rule),
             SegmentFilter = segmentFilter
-        }, customerId);
+        }, customerId, branchId);
 
         return (campaign, null);
     }
 
-    private async Task<List<SlnWinbackCandidateDto>> GetCandidatesAsync(SlnWinbackRule rule, int customerId)
+    private async Task<List<SlnWinbackCandidateDto>> GetCandidatesAsync(SlnWinbackRule rule, int customerId, int? branchId)
     {
         var now = DateTime.UtcNow;
         var cutoff = now.AddDays(-rule.InactiveDays);
-        var clients = await _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId && c.IsActive && !c.IsBlacklisted && c.CreatedAt <= cutoff)
+        var clients = await SalonBranchScope.ApplyToClients(
+                _clients.GetAllQueryable().Where(c => c.CustomerId == customerId && c.IsActive && !c.IsBlacklisted && c.CreatedAt <= cutoff),
+                branchId)
             .OrderBy(c => c.FullName)
             .ToListAsync();
 
@@ -155,11 +177,18 @@ public class SlnWinbackFactory : ISlnWinbackFactory
             return [];
 
         var clientIds = clients.Select(c => c.Id).ToList();
-        var lastVisits = await _invoices.GetAllQueryable()
+        var lastVisitQuery = _invoices.GetAllQueryable()
             .Where(i => i.CustomerId == customerId
                 && i.SlnClientId.HasValue
                 && clientIds.Contains(i.SlnClientId.Value)
-                && i.StatusId != 3)
+                && i.StatusId != 3);
+
+        if (branchId.HasValue)
+        {
+            lastVisitQuery = lastVisitQuery.Where(i => i.BranchId == branchId.Value);
+        }
+
+        var lastVisits = await lastVisitQuery
             .GroupBy(i => i.SlnClientId!.Value)
             .Select(g => new { ClientId = g.Key, LastVisitAt = g.Max(i => i.InvoiceDate) })
             .ToDictionaryAsync(x => x.ClientId, x => x.LastVisitAt);
@@ -207,6 +236,7 @@ public class SlnWinbackFactory : ISlnWinbackFactory
         MessageTemplate = r.MessageTemplate,
         DiscountPercent = r.DiscountPercent,
         IsActive = r.IsActive,
+        BranchId = r.BranchId,
         CreatedAt = r.CreatedAt
     };
 }

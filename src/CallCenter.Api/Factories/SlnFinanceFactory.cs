@@ -180,7 +180,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 .Distinct()
                 .ToList();
 
-            var benefits = await _packages.GetUsablePackagesAsync(customerId, dto.SlnClientId.Value, packageServiceIds);
+            var benefits = await _packages.GetUsablePackagesAsync(customerId, dto.SlnClientId.Value, packageServiceIds, branchId);
             packageBenefitLookup = benefits.ToDictionary(b => b.ClientPackageId);
 
             foreach (var group in packageSessionItems.GroupBy(i => new { ClientPackageId = i.ClientPackageId!.Value, ServiceId = i.ServiceId!.Value }))
@@ -215,7 +215,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 .Distinct()
                 .ToList();
 
-            var benefits = await _memberships.CheckBenefitsAsync(customerId, dto.SlnClientId.Value, membershipServiceIds);
+            var benefits = await _memberships.CheckBenefitsAsync(customerId, dto.SlnClientId.Value, membershipServiceIds, branchId);
             membershipBenefitLookup = benefits.ToDictionary(b => b.ServiceId);
 
             foreach (var group in membershipBenefitItems.GroupBy(i => i.ServiceId!.Value))
@@ -371,7 +371,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         foreach (var usage in packageUsageRecords)
         {
             var notes = $"Invoice:{invoice.Id}|InvoiceNo:{invoiceNo}|Service:{usage.ServiceId}";
-            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes);
+            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId);
             if (!success)
             {
                 _logger.LogWarning("Paket seansi kaydedilemedi: InvoiceId={InvoiceId}, ClientPackageId={ClientPackageId}, Error={Error}", invoice.Id, usage.ClientPackageId, error);
