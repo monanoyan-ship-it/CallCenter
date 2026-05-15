@@ -32,6 +32,44 @@ function PageSettingsViewModel() {
 
     self.sections = ko.observableArray([]);
 
+    function buildPublicUrl(pathSuffix) {
+        if (!self.slug()) return '';
+        return window.location.origin + '/salon/' + self.slug() + (pathSuffix || '');
+    }
+
+    self.publicPageUrl = ko.computed(function () {
+        return buildPublicUrl('');
+    });
+
+    self.bookingUrl = ko.computed(function () {
+        return buildPublicUrl('/book');
+    });
+
+    self.copyText = function (value, successMessage) {
+        if (!value) return;
+        var done = function () {
+            toastr.success(successMessage || slnJsT('salon.pagesettings.js.link_copied', 'Link kopyalandı.'));
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(done).catch(function () { fallbackCopy(value, done); });
+            return;
+        }
+        fallbackCopy(value, done);
+    };
+
+    function fallbackCopy(value, done) {
+        var input = document.createElement('textarea');
+        input.value = value;
+        input.setAttribute('readonly', 'readonly');
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        done();
+    }
+
     // ═══ Veri Yukleme ═══
     self.loadData = function () {
         self.isLoading(true);

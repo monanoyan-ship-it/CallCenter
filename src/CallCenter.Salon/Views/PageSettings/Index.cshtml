@@ -26,6 +26,41 @@
             <span class="badge" data-bind="text: isPublished() ? salonT('salon.status.published', 'Yayında') : salonT('salon.status.draft', 'Taslak'), css: isPublished() ? 'bg-success' : 'bg-secondary'"></span>
         </div>
 
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-2">
+                <h6 class="mb-0 small"><i class="bi bi-megaphone me-1"></i><t key="salon.pagesettings.growth_links">Public Büyüme Linkleri</t></h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3"><t key="salon.pagesettings.growth_links_hint">Bu linkleri Instagram bio, Google Business, QR kod ve kampanya görsellerinde kullanın. Müşteri marketplace komisyonu olmadan doğrudan sizin randevu akışınıza gelir.</t></p>
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Public profil linki</t></label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" readonly data-bind="value: publicPageUrl" />
+                            <button class="btn btn-outline-secondary" type="button" data-bind="click: function(){ copyText(publicPageUrl(), salonT('salon.pagesettings.public_link_copied', 'Public profil linki kopyalandı.')); }">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                            <a class="btn btn-outline-primary" target="_blank" data-bind="attr: { href: publicPageUrl }">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="form-label small"><t key="salon.pagesettings.booking_link">Direkt randevu linki</t></label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" readonly data-bind="value: bookingUrl" />
+                            <button class="btn btn-outline-secondary" type="button" data-bind="click: function(){ copyText(bookingUrl(), salonT('salon.pagesettings.booking_link_copied', 'Direkt randevu linki kopyalandı.')); }">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                            <a class="btn btn-outline-primary" target="_blank" data-bind="attr: { href: bookingUrl }">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Logo & Favicon -->
         <div class="row g-3 mb-3">
             <div class="col-md-6">
