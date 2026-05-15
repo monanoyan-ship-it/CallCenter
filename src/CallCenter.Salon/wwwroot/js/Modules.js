@@ -57,26 +57,28 @@ function ModulesViewModel() {
         1: moduleT('salon.modules.package.stock_finance', 'Stok Tedarik / Finans'),
         3: moduleT('salon.modules.package.loyalty_marketing', 'Müşteri Sadakati / Pazarlama'),
         5: moduleT('salon.modules.package.professional', 'Profesyonel'),
-        6: moduleT('salon.modules.package.corporate', 'Kurumsal')
+        6: moduleT('salon.modules.package.corporate', 'Kurumsal / Raporlama')
     };
     var PACKAGE_SUMMARIES = {
         1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve finans derinliğini temel stok takibinin üzerine ekler.'),
         3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Paket, üyelik, hediye kartı, sadakat, yorum, winback, segment ve kampanya gelirlerini tek büyüme akışında toplar.'),
         5: moduleT('salon.modules.package.professional.summary', 'Tedavi dosyası, alerji/kontraendikasyon takibi, cihaz parametresi, kaynak/oda/cihaz derinliği ve önce/sonra görsel kanıtını profesyonel takip akışına bağlar.'),
-        6: moduleT('salon.modules.package.corporate.summary', 'Çok şube, yönetici görünümü, gelişmiş rapor ve dışa aktarım ihtiyaçlarını toplar.')
+        6: moduleT('salon.modules.package.corporate.summary', 'Gelişmiş raporlar, şube karşılaştırma, CSV/Excel/PDF dışa aktarım ve zamanlanmış e-posta raporlarını kurumsal denetim akışında toplar.')
     };
     var PACKAGE_OUTCOMES = {
         1: moduleT('salon.modules.package.stock_finance.outcome', 'Amaç: stok operasyonunu denetlemek, tedarik borcunu görmek ve kârlılık/maliyet kararlarını hızlandırmak.'),
         3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Amaç: müşteriyi geri getirmek ve tek seferlik satışları tekrarlı gelire çevirmek.'),
         5: moduleT('salon.modules.package.professional.outcome', 'Amaç: uzman işi yapan merkezlerde güven, takip, işlem kalitesi ve sonuç kanıtını görünür kılmak.'),
-        6: moduleT('salon.modules.package.corporate.outcome', 'Amaç: sahibin tüm şubeyi tek ekrandan kıyaslamasını ve denetlemesini sağlamak.')
+        6: moduleT('salon.modules.package.corporate.outcome', 'Amaç: sahibin veya franchise yöneticisinin şube, personel, hizmet, ürün ve finans performansını kıyaslayıp denetlemesini sağlamak.')
     };
     var PACKAGE_FLOW_NOTES = {
         3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Akış: önce paket/üyelik/hediye kartı satışı, sonra sadakat puanı ve yorum, en sonda segment kampanyası veya winback ile geri dönüş.'),
-        5: moduleT('salon.modules.package.professional.flow_note', 'Akış: müşteri sağlık bilgisi, randevudan seans kaydı, cihaz/ürün notu, bakım önerisi ve önce/sonra fotoğrafı birlikte tutulur.')
+        5: moduleT('salon.modules.package.professional.flow_note', 'Akış: müşteri sağlık bilgisi, randevudan seans kaydı, cihaz/ürün notu, bakım önerisi ve önce/sonra fotoğrafı birlikte tutulur.'),
+        6: moduleT('salon.modules.package.corporate.flow_note', 'Akış: şube karşılaştırması, rapor filtresi, dışa aktarım ve e-posta zamanlaması tek raporlama hattında çalışır.')
     };
     var PACKAGE_USAGE_NOTES = {
-        3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri paket ücretinden ayrı kredi/kullanım bazlı takip edilebilir.')
+        3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri paket ücretinden ayrı kredi/kullanım bazlı takip edilebilir.'),
+        6: moduleT('salon.modules.package.corporate.usage_note', 'Çok şube sayısı temel abonelik hesabına dahil edilir; bu paket şube denetimi, rapor derinliği ve dışa aktarım değerini satar.')
     };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
     var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
