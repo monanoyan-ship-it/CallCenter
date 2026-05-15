@@ -63,9 +63,10 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnEmailCampaigns] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnWinback] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnReviews] = Ids.LoyaltyMarketing,
-        [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.LoyaltyMarketing,
 
-        // ── Profesyonel (5) — 1.500 TL (su an bu grupta modul yok; fiyat donemi ile tutulur) ──
+        // ── Profesyonel (5) — 1.500 TL ───────────────────────────────────────────────
+        [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.Professional,
+
         [SalonPortalModules.Ids.SlnReports] = Ids.Enterprise,
     };
 

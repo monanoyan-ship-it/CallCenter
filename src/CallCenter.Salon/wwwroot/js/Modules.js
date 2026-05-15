@@ -96,8 +96,9 @@ function ModulesViewModel() {
         all.forEach(function (m) {
             var gId = m.groupId || 0;
             var gName = PACKAGE_NAMES[gId] || m.groupName || moduleT('salon.modules.package.other', 'Diğer');
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), modules: [] };
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), modules: [], hasImplemented: false };
             grouped[gId].modules.push(m);
+            if (m.isImplemented !== false) grouped[gId].hasImplemented = true;
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
@@ -471,6 +472,11 @@ function ModulesViewModel() {
     });
 
     self.purchasePackage = function (pkg) {
+        if (pkg && pkg.hasImplemented === false) {
+            toastr.info(moduleT('salon.modules.package_coming_soon', 'Bu paket yakında aktif edilecek; şu an satın alınamaz.'));
+            return;
+        }
+
         self.purchaseModalTitle(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');

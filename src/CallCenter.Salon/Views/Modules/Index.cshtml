@@ -86,9 +86,16 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-purple" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')" style="font-size:.85rem;background:#6f42c1;"></span>
+                <!-- ko if: hasImplemented -->
                 <button class="btn btn-sm btn-success" data-bind="click: $root.purchasePackage">
                     <i class="bi bi-cart-plus me-1"></i><t key="salon.modules.purchase">Satın Al</t>
                 </button>
+                <!-- /ko -->
+                <!-- ko ifnot: hasImplemented -->
+                <button class="btn btn-sm btn-outline-secondary" disabled title="@(Translation.T("salon.modules.package_coming_soon", "Bu paket yakında aktif edilecek; şu an satın alınamaz."))">
+                    <i class="bi bi-lock me-1"></i><t key="salon.modules.coming_soon_short">Yakında</t>
+                </button>
+                <!-- /ko -->
             </div>
         </div>
         <div class="card-body py-2">
