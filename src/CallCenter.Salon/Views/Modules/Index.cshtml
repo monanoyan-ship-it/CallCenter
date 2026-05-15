@@ -60,6 +60,10 @@
                 <span class="badge bg-success-subtle text-success ms-1" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
                 <div class="small text-muted mt-1" data-bind="visible: summary, text: summary"></div>
                 <div class="small mt-1" data-bind="visible: outcome, text: outcome"></div>
+                <div class="small text-primary mt-1" data-bind="visible: flowNote, text: flowNote"></div>
+                <div class="small text-muted mt-1" data-bind="visible: usageNote">
+                    <i class="bi bi-info-circle me-1"></i><span data-bind="text: usageNote"></span>
+                </div>
             </div>
             <button class="btn btn-sm btn-outline-danger py-0 flex-shrink-0" data-bind="click: $root.cancelPackage">
                 <i class="bi bi-x-circle me-1"></i><t key="salon.panel.cancel.confirm">İptal Et</t>
@@ -97,6 +101,10 @@
                 <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' ' + salonT('salon.profile.services.count_suffix', 'hizmet') + ')'"></span>
                 <div class="small text-muted mt-1" data-bind="visible: summary, text: summary"></div>
                 <div class="small mt-1" data-bind="visible: outcome, text: outcome"></div>
+                <div class="small text-primary mt-1" data-bind="visible: flowNote, text: flowNote"></div>
+                <div class="small text-muted mt-1" data-bind="visible: usageNote">
+                    <i class="bi bi-info-circle me-1"></i><span data-bind="text: usageNote"></span>
+                </div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
                 <span class="badge bg-purple" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')" style="font-size:.85rem;background:#6f42c1;"></span>

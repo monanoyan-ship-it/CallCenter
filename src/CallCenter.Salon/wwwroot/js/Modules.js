@@ -61,7 +61,7 @@ function ModulesViewModel() {
     };
     var PACKAGE_SUMMARIES = {
         1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve finans derinliğini temel stok takibinin üzerine ekler.'),
-        3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Tekrar ziyaret, paket, üyelik, hediye kartı ve kampanya gelirlerini birlikte büyütür.'),
+        3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Paket, üyelik, hediye kartı, sadakat, yorum, winback, segment ve kampanya gelirlerini tek büyüme akışında toplar.'),
         5: moduleT('salon.modules.package.professional.summary', 'Tedavi geçmişi, görsel takip ve profesyonel konsültasyon akışlarını derinleştirir.'),
         6: moduleT('salon.modules.package.corporate.summary', 'Çok şube, yönetici görünümü, gelişmiş rapor ve dışa aktarım ihtiyaçlarını toplar.')
     };
@@ -70,6 +70,12 @@ function ModulesViewModel() {
         3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Amaç: müşteriyi geri getirmek ve tek seferlik satışları tekrarlı gelire çevirmek.'),
         5: moduleT('salon.modules.package.professional.outcome', 'Amaç: uzman işi yapan merkezlerde güven, takip ve işlem kalitesini görünür kılmak.'),
         6: moduleT('salon.modules.package.corporate.outcome', 'Amaç: sahibin tüm şubeyi tek ekrandan kıyaslamasını ve denetlemesini sağlamak.')
+    };
+    var PACKAGE_FLOW_NOTES = {
+        3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Akış: önce paket/üyelik/hediye kartı satışı, sonra sadakat puanı ve yorum, en sonda segment kampanyası veya winback ile geri dönüş.')
+    };
+    var PACKAGE_USAGE_NOTES = {
+        3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri paket ücretinden ayrı kredi/kullanım bazlı takip edilebilir.')
     };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
     var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
@@ -97,7 +103,7 @@ function ModulesViewModel() {
         nonDefault.forEach(function (m) {
             var gId = m.groupId || 0;
             var gName = PACKAGE_NAMES[gId] || m.groupName || moduleT('salon.modules.package.other', 'Diğer');
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), summary: PACKAGE_SUMMARIES[gId] || '', outcome: PACKAGE_OUTCOMES[gId] || '', modules: [] };
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), summary: PACKAGE_SUMMARIES[gId] || '', outcome: PACKAGE_OUTCOMES[gId] || '', flowNote: PACKAGE_FLOW_NOTES[gId] || '', usageNote: PACKAGE_USAGE_NOTES[gId] || '', modules: [] };
             grouped[gId].modules.push(m);
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
@@ -110,7 +116,7 @@ function ModulesViewModel() {
         all.forEach(function (m) {
             var gId = m.groupId || 0;
             var gName = PACKAGE_NAMES[gId] || m.groupName || moduleT('salon.modules.package.other', 'Diğer');
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), summary: PACKAGE_SUMMARIES[gId] || '', outcome: PACKAGE_OUTCOMES[gId] || '', modules: [], hasImplemented: false };
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, packagePrice: self.priceForGroup(gId), summary: PACKAGE_SUMMARIES[gId] || '', outcome: PACKAGE_OUTCOMES[gId] || '', flowNote: PACKAGE_FLOW_NOTES[gId] || '', usageNote: PACKAGE_USAGE_NOTES[gId] || '', modules: [], hasImplemented: false };
             grouped[gId].modules.push(m);
             if (m.isImplemented !== false) grouped[gId].hasImplemented = true;
         });
