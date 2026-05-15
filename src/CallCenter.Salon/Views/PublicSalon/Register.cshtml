@@ -2,6 +2,8 @@
 @{
     Layout = null;
     var pageLang = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var returnUrl = Context.Request.Query["returnUrl"].ToString();
+    var isBookingReturn = returnUrl.Contains("/book", StringComparison.OrdinalIgnoreCase);
     string T(string key, string fallback) => Translation.T(key, fallback);
 }
 <!DOCTYPE html>
@@ -28,6 +30,12 @@
             <h5 class="mt-2">CorpLynk <span style="color:#ce93d8;"><t key="salon.publicsalon.auto.salon">Salon</t></span></h5>
             <p class="text-muted small"><t key="salon.register.subtitle">Create a new account</t></p>
         </div>
+        @if (isBookingReturn)
+        {
+            <div class="alert alert-info py-2 small">
+                <i class="bi bi-calendar-check me-1"></i><t key="salon.register.booking_required">Randevu oluşturmak için müşteri hesabı oluşturun. Kayıttan sonra randevu adımına geri döneceksiniz.</t>
+            </div>
+        }
         <div id="register-form"
              data-consent-required="@T("salon.publicsalon.register.consent_required", "Gizlilik Politikası ve Kullanım Koşullarını kabul etmelisiniz.")"
              data-register-failed="@T("salon.publicsalon.register_failed", "Kayıt başarısız.")"

@@ -2,6 +2,8 @@
 @{
     Layout = null;
     var pageLang = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var returnUrl = Context.Request.Query["returnUrl"].ToString();
+    var isBookingReturn = returnUrl.Contains("/book", StringComparison.OrdinalIgnoreCase);
     string T(string key, string fallback) => Translation.T(key, fallback);
 }
 <!DOCTYPE html>
@@ -28,6 +30,12 @@
             <h5 class="mt-2">CorpLynk <span style="color:#ce93d8;"><t key="salon.publicsalon.auto.salon">Salon</t></span></h5>
             <p class="text-muted small"><t key="salon.login.subtitle">Sign in to your account</t></p>
         </div>
+        @if (isBookingReturn)
+        {
+            <div class="alert alert-info py-2 small">
+                <i class="bi bi-calendar-check me-1"></i><t key="salon.login.booking_required">Randevu oluşturmak için müşteri hesabınızla giriş yapın. Girişten sonra randevu adımına geri döneceksiniz.</t>
+            </div>
+        }
         <div id="login-form" data-login-failed="@T("salon.publicsalon.login_failed", "Giriş başarısız.")">
             <div class="mb-3">
                 <label class="form-label small"><t key="salon.login.phone">Phone</t></label>

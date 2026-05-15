@@ -112,9 +112,9 @@
                         <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-semibold small" data-bind="text: name"></span>
-                                <small class="text-muted ms-2" data-bind="text: durationMinutes + ' dk'"></small>
+                                <small class="text-muted ms-2" data-bind="text: durationMinutes + ' ' + $root.t('salon.common.minute_abbr', 'dk')"></small>
                             </div>
-                            <span class="fw-bold text-primary" data-bind="text: price.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></span>
+                            <span class="fw-bold text-primary" data-bind="text: price.toLocaleString($root.pageLang) + ' ' + $root.t('salon.common.currency_abbr', 'TL')"></span>
                         </div>
                     </button>
                     <!-- /ko -->
@@ -318,7 +318,7 @@
                 <p class="small mb-1">
                     <i class="bi bi-cash me-1"></i>
                     <t key="salon.book.policy.deposit">Depozito gerekli</t>:
-                    <strong data-bind="text: bookingPolicy().depositAmount.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></strong>
+                    <strong data-bind="text: bookingPolicy().depositAmount.toLocaleString($root.pageLang) + ' ' + $root.t('salon.common.currency_abbr', 'TL')"></strong>
                 </p>
                 <!-- /ko -->
                 <!-- ko if: bookingPolicy().freeCancellationHours > 0 -->
@@ -333,7 +333,7 @@
                 <p class="small mb-0">
                     <i class="bi bi-exclamation-triangle me-1"></i>
                     <t key="salon.book.policy.noshow">Gelmeme cezası</t>:
-                    <strong data-bind="text: bookingPolicy().noShowFee.toLocaleString(document.documentElement.lang || undefined) + ' TL'"></strong>
+                    <strong data-bind="text: bookingPolicy().noShowFee.toLocaleString($root.pageLang) + ' ' + $root.t('salon.common.currency_abbr', 'TL')"></strong>
                 </p>
                 <!-- /ko -->
             </div>
@@ -396,6 +396,8 @@
         <span data-key="salon.book.error.connection"><t key="salon.book.error.connection">Bağlantı hatası</t></span>
         <span data-key="salon.book.staff.any"><t key="salon.book.staff.any">Fark etmez</t></span>
         <span data-key="salon.book.staff.auto_suffix"><t key="salon.book.staff.auto_suffix">otomatik</t></span>
+        <span data-key="salon.common.minute_abbr"><t key="salon.common.minute_abbr">dk</t></span>
+        <span data-key="salon.common.currency_abbr"><t key="salon.common.currency_abbr">TL</t></span>
     </div>
 
     <script src="/lib/jquery/dist/jquery.min.js"></script>

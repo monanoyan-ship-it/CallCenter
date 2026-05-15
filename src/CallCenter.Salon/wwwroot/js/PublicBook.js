@@ -23,11 +23,13 @@ var bookData = document.getElementById('book-data');
 
         // Ahmet: randevu icin login zorunlu (kimlik gerek). Bekleme listesi profil sayfasindan anonim alinir.
         if (!getStoredPlatformToken()) {
-            window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname);
+            window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
         }
 
         function BookViewModel() {
             var self = this;
+            self.t = bookT;
+            self.pageLang = document.documentElement.lang || undefined;
             self.salonName = ko.observable('');
             self.branchName = ko.observable('');
             self.isHeadquarter = ko.observable(true);
@@ -189,10 +191,10 @@ var bookData = document.getElementById('book-data');
                 var combo = self.selectedCombo();
                 if (combo) {
                     var comboPrice = combo.price || 0;
-                    return comboPrice > 0 ? comboPrice.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '';
+                    return comboPrice > 0 ? comboPrice.toLocaleString(self.pageLang) + ' ' + bookT('salon.common.currency_abbr', 'TL') : '';
                 }
                 var price = self.selectedServices().reduce(function (total, s) { return total + (Number(s.price) || 0); }, 0);
-                return price > 0 ? price.toLocaleString(document.documentElement.lang || undefined) + ' TL' : '';
+                return price > 0 ? price.toLocaleString(self.pageLang) + ' ' + bookT('salon.common.currency_abbr', 'TL') : '';
             });
 
             self.selectedStaffName = ko.computed(function () {
@@ -213,7 +215,7 @@ var bookData = document.getElementById('book-data');
             self.securePaymentDescription = ko.computed(function () {
                 var policy = self.bookingPolicy();
                 if (!policy || !policy.depositAmount) return '';
-                var amount = policy.depositAmount.toLocaleString(document.documentElement.lang || undefined) + ' TL';
+                var amount = policy.depositAmount.toLocaleString(self.pageLang) + ' ' + bookT('salon.common.currency_abbr', 'TL');
                 return bookT('salon.book.payment.deposit_3ds_desc', '{amount} tutarındaki depozito için 3D Secure güvenli ödeme sayfasına yönlendirileceksiniz.')
                     .replace('{amount}', amount);
             });

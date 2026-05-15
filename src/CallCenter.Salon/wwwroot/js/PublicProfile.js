@@ -13,8 +13,6 @@
     function profileT(key, fallback) {
         return window.salonT(key, fallback);
     }
-    window.PROFILE_LANG = PROFILE_LANG;
-    window.profileT = profileT;
     toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };
 
 var salonSlug = profileSlug;
@@ -22,6 +20,7 @@ var salonSlug = profileSlug;
         function PublicSalonViewModel() {
             var self = this;
             self.t = profileT;
+            self.profileLang = PROFILE_LANG;
             self.salon = ko.observable({});
             self.loaded = ko.observable(false);
             self.notFound = ko.observable(false);
