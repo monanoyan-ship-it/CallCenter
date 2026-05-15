@@ -19,6 +19,13 @@ function EmailSettingsViewModel() {
         isDefault: ko.observable(false)
     };
 
+    self.gmailSmtpForm = {
+        email: ko.observable(''),
+        appPassword: ko.observable(''),
+        senderName: ko.observable(''),
+        isDefault: ko.observable(false)
+    };
+
     // ═══ SMTP Form ═══
     self.smtpForm = {
         host: ko.observable(''),
@@ -31,7 +38,7 @@ function EmailSettingsViewModel() {
         isDefault: ko.observable(false)
     };
 
-    var yandexModal, smtpModal, testModal;
+    var gmailSmtpModal, yandexModal, smtpModal, testModal;
 
     // ═══ Veri Yukleme ═══
     self.loadData = function () {
@@ -58,6 +65,47 @@ function EmailSettingsViewModel() {
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON || 'Office365 OAuth hatasi.');
         });
+    };
+
+    self.openGmailSmtpModal = function () {
+        self.gmailSmtpForm.email('');
+        self.gmailSmtpForm.appPassword('');
+        self.gmailSmtpForm.senderName('');
+        self.gmailSmtpForm.isDefault(false);
+        gmailSmtpModal.show();
+    };
+
+    self.saveGmailSmtp = function () {
+        var email = self.gmailSmtpForm.email();
+        var pass = self.gmailSmtpForm.appPassword();
+        if (!email || !pass) { toastr.warning(slnJsT('salon.emailsettings.js.gmail_e_posta_ve_uygulama_sifresi_zorunludur', 'Gmail adresi ve uygulama şifresi zorunludur.')); return; }
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-email-integrations',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                providerTypeId: 4,
+                displayName: 'Gmail SMTP (' + email + ')',
+                senderEmail: email,
+                senderName: self.gmailSmtpForm.senderName() || null,
+                isDefault: self.gmailSmtpForm.isDefault(),
+                credentials: {
+                    Host: 'smtp.gmail.com',
+                    Port: '465',
+                    Username: email,
+                    Password: pass,
+                    UseSsl: 'true'
+                }
+            })
+        }).done(function () {
+            gmailSmtpModal.hide();
+            toastr.success(slnJsT('salon.emailsettings.js.gmail_hesabi_eklendi', 'Gmail hesabı eklendi.'));
+            self.loadData();
+        }).fail(function (xhr) {
+            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Hata oluştu.'));
+        }).always(function () { self.isSaving(false); });
     };
 
     // ═══ Yandex ═══
@@ -231,6 +279,7 @@ function EmailSettingsViewModel() {
 
     // ═══ Init ═══
     $(document).ready(function () {
+        gmailSmtpModal = new bootstrap.Modal(document.getElementById('gmailSmtpModal'));
         yandexModal = new bootstrap.Modal(document.getElementById('yandexModal'));
         smtpModal = new bootstrap.Modal(document.getElementById('smtpModal'));
         testModal = new bootstrap.Modal(document.getElementById('testModal'));

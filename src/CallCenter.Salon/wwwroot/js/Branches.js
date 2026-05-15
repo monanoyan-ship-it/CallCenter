@@ -252,7 +252,7 @@ function BranchesViewModel() {
         formData.append('file', file);
 
         $.ajax({
-            url: '/proxy/sln-profile/upload-image?type=' + type,
+            url: '/proxy/sln-branches/upload-image?type=' + type,
             method: 'POST',
             data: formData,
             processData: false,

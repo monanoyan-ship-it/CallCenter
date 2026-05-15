@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -15,8 +16,13 @@ namespace CallCenter.Api.Controllers;
 public class SlnBranchController : ControllerBase
 {
     private readonly ISlnBranchFactory _branchFactory;
+    private readonly GcsUploadService _gcs;
 
-    public SlnBranchController(ISlnBranchFactory branchFactory) => _branchFactory = branchFactory;
+    public SlnBranchController(ISlnBranchFactory branchFactory, GcsUploadService gcs)
+    {
+        _branchFactory = branchFactory;
+        _gcs = gcs;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<SlnBranchDto>>> GetBranches()
@@ -90,6 +96,43 @@ public class SlnBranchController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Sube profil/kapak/galeri gorseli yukler. Multipart form-data.</summary>
+    [HttpPost("upload-image")]
+    [RequireSalonOwner]
+    [RequestSizeLimit(5_242_880)] // 5 MB
+    public async Task<ActionResult> UploadImage(IFormFile file, [FromQuery] string type = "branch-photo")
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
+        if (file.Length > 5_242_880) return BadRequest("Dosya 5 MB'dan buyuk olamaz.");
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
+
+        var normalizedType = NormalizeBranchImageType(type);
+        if (normalizedType == null) return BadRequest("Gecersiz gorsel tipi.");
+
+        var ext = file.ContentType switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => ".jpg"
+        };
+
+        var fileName = $"{normalizedType}-{Guid.NewGuid():N}{ext}";
+        var path = $"salons/{customerId}/branches/{fileName}";
+
+        using var stream = file.OpenReadStream();
+        var (url, error) = await _gcs.UploadAsync(stream, path, file.ContentType);
+
+        if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
+        return Ok(new { url, path });
+    }
+
     /// <summary>WorkingHoursJson NULL olan subelere default 09:00-19:00 (Pzt-Cmt) seed eder</summary>
     [HttpPost("normalize-working-hours")]
     [RequireSalonOwner]
@@ -126,5 +169,16 @@ public class SlnBranchController : ControllerBase
         if (User.IsInRole("Admin")) return true;
         var claim = User.FindFirst("CustomerRoleId")?.Value;
         return int.TryParse(claim, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
+    }
+
+    private static string? NormalizeBranchImageType(string? type)
+    {
+        return type?.Trim().ToLowerInvariant() switch
+        {
+            "branch-photo" => "branch-photo",
+            "branch-cover" => "branch-cover",
+            "branch-gallery" => "branch-gallery",
+            _ => null
+        };
     }
 }

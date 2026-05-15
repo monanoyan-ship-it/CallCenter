@@ -14,64 +14,63 @@
         </button>
     </div>
 
-    <!-- Kasa Kartlari -->
-    <div class="row g-3 mb-3">
-        <!-- ko foreach: cashRegisters -->
-        <div class="col-md-6 col-lg-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
-                    <h6 class="mb-0" data-bind="text: name"></h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-secondary'"></span>
-                        <i class="bi bi-pencil text-muted" style="cursor:pointer;font-size:.8rem;" title="@(Translation.T("salon.cash.auto.duzenle", "Düzenle"))" data-bind="click: $parent.editRegister"></i>
-                    </div>
-                </div>
-                <div class="card-body py-2">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="text-muted" style="font-size: .7rem;"><t key="salon.cash.auto.bakiye">Bakiye</t></div>
-                            <div class="fw-bold" data-bind="text: (balance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-muted" style="font-size: .7rem;"><t key="salon.cash.auto.tur">Tür</t></div>
-                            <div class="small" data-bind="text: typeName"></div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-muted" style="font-size: .7rem;"><t key="salon.common.branch">Şube</t></div>
-                            <div class="small" data-bind="text: branchName || '-'"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-white border-top-0 py-2">
-                    <div class="btn-group btn-group-sm w-100">
-                        <button class="btn btn-outline-primary" data-bind="click: $parent.viewTransactions">
-                            <i class="bi bi-list-ul me-1"></i><t key="salon.cash.auto.hareketler">Hareketler</t>
-                        </button>
-                        <button class="btn btn-outline-success" data-bind="click: $parent.openNewTransaction">
-                            <i class="bi bi-plus-lg me-1"></i><t key="salon.cash.auto.islem">İşlem</t>
-                        </button>
-                        <button class="btn btn-outline-info" data-bind="click: $parent.openCashRegister">
-                            <i class="bi bi-unlock me-1"></i><t key="salon.cash.auto.kasa_ac">Kasa Aç</t>
-                        </button>
-                        <button class="btn btn-outline-secondary" data-bind="click: $parent.openZReport">
-                            <i class="bi bi-file-earmark-bar-graph me-1"></i><t key="salon.cash.auto.z_raporu">Z Raporu</t>
-                        </button>
-                        <button class="btn btn-outline-warning" data-bind="click: $parent.openClosing">
-                            <i class="bi bi-lock me-1"></i><t key="salon.cash.auto.gun_sonu">Gün Sonu</t>
-                        </button>
-                    </div>
-                </div>
+    <!-- Kasa Tablosu -->
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th><t key="salon.cash.auto.kasa">Kasa</t></th>
+                            <th class="text-end"><t key="salon.cash.auto.bakiye">Bakiye</t></th>
+                            <th><t key="salon.cash.auto.tur">Tür</t></th>
+                            <th><t key="salon.common.branch">Şube</t></th>
+                            <th><t key="salon.common.status">Durum</t></th>
+                            <th class="text-end" style="min-width: 320px;"><t key="salon.common.actions">İşlemler</t></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: cashRegisters">
+                        <tr>
+                            <td class="fw-semibold small" data-bind="text: name"></td>
+                            <td class="small fw-bold text-end" data-bind="text: (balance || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL', css: balance >= 0 ? 'text-success' : 'text-danger'"></td>
+                            <td class="small" data-bind="text: typeName"></td>
+                            <td class="small" data-bind="text: branchName || '-'"></td>
+                            <td class="small">
+                                <span class="badge" data-bind="text: isActive ? salonT('salon.common.status_active', 'Aktif') : salonT('salon.common.status_inactive', 'Pasif'), css: isActive ? 'bg-success' : 'bg-secondary'"></span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap justify-content-end gap-1">
+                                    <button class="btn btn-outline-primary btn-sm text-nowrap" title="@(Translation.T("salon.cash.auto.hareketler", "Hareketler"))" data-bind="click: $parent.viewTransactions">
+                                        <i class="bi bi-list-ul"></i><span class="d-none d-xl-inline ms-1"><t key="salon.cash.auto.hareketler">Hareketler</t></span>
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm text-nowrap" title="@(Translation.T("salon.cash.auto.islem", "İşlem"))" data-bind="click: $parent.openNewTransaction">
+                                        <i class="bi bi-plus-lg"></i><span class="d-none d-xl-inline ms-1"><t key="salon.cash.auto.islem">İşlem</t></span>
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm text-nowrap" title="@(Translation.T("salon.cash.auto.kasa_ac", "Kasa Aç"))" data-bind="click: $parent.openCashRegister">
+                                        <i class="bi bi-unlock"></i><span class="d-none d-xl-inline ms-1"><t key="salon.cash.auto.kasa_ac">Kasa Aç</t></span>
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm text-nowrap" title="@(Translation.T("salon.cash.auto.z_raporu", "Z Raporu"))" data-bind="click: $parent.openZReport">
+                                        <i class="bi bi-file-earmark-bar-graph"></i><span class="d-none d-xl-inline ms-1"><t key="salon.cash.auto.z_raporu">Z Raporu</t></span>
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm text-nowrap" title="@(Translation.T("salon.cash.auto.gun_sonu", "Gün Sonu"))" data-bind="click: $parent.openClosing">
+                                        <i class="bi bi-lock"></i><span class="d-none d-xl-inline ms-1"><t key="salon.cash.auto.gun_sonu">Gün Sonu</t></span>
+                                    </button>
+                                    <button class="btn btn-outline-dark btn-sm text-nowrap" title="@(Translation.T("salon.cash.auto.duzenle", "Düzenle"))" data-bind="click: $parent.editRegister">
+                                        <i class="bi bi-pencil"></i><span class="d-none d-xl-inline ms-1"><t key="salon.cash.auto.duzenle">Düzenle</t></span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <!-- /ko -->
-        <!-- ko if: cashRegisters().length === 0 -->
-        <div class="col-12">
+            <!-- ko if: cashRegisters().length === 0 -->
             <div class="text-center text-muted py-5">
                 <i class="bi bi-safe" style="font-size: 2rem;"></i>
                 <p class="mt-2 small"><t key="salon.cash.auto.henuz_kasa_tanimlanmamis">Henüz kasa tanımlanmamış</t></p>
             </div>
+            <!-- /ko -->
         </div>
-        <!-- /ko -->
     </div>
 
     <!-- Hareketler Tablosu (secili kasa) -->
