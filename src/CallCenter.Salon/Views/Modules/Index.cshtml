@@ -23,6 +23,16 @@
 
     <!-- Temel Paket -->
     <h6 class="text-muted mb-3"><i class="bi bi-box-seam me-1"></i><t key="salon.modules.base_package">Temel Paket</t></h6>
+    <div class="border rounded-2 bg-light p-3 mb-3">
+        <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+            <div>
+                <div class="fw-semibold"><t key="salon.modules.base_package">Temel Paket</t></div>
+                <div class="small text-muted" data-bind="text: basePackageSummary"></div>
+                <div class="small mt-1" data-bind="text: basePackageOutcome"></div>
+            </div>
+            <span class="badge bg-success-subtle text-success" data-bind="text: priceForGroup(0).toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
+        </div>
+    </div>
     <div class="row g-3 mb-4" data-bind="foreach: defaultModules">
         <div class="col-md-4 col-lg-3">
             <div class="card border-0 shadow-sm h-100">
@@ -44,12 +54,14 @@
     <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i><t key="salon.modules.active_title">Aktif Modülleriniz</t></h6>
     <!-- ko foreach: activeGroups -->
     <div class="card border-0 shadow-sm mb-3 border-start border-3 border-success">
-        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-start gap-3">
             <div>
                 <span class="badge bg-success" data-bind="text: groupName"></span>
                 <span class="badge bg-success-subtle text-success ms-1" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
+                <div class="small text-muted mt-1" data-bind="visible: summary, text: summary"></div>
+                <div class="small mt-1" data-bind="visible: outcome, text: outcome"></div>
             </div>
-            <button class="btn btn-sm btn-outline-danger py-0" data-bind="click: $root.cancelPackage">
+            <button class="btn btn-sm btn-outline-danger py-0 flex-shrink-0" data-bind="click: $root.cancelPackage">
                 <i class="bi bi-x-circle me-1"></i><t key="salon.panel.cancel.confirm">İptal Et</t>
             </button>
         </div>
@@ -79,12 +91,14 @@
     <!-- /ko -->
     <!-- ko foreach: availableGroups -->
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-start gap-3">
             <div>
                 <strong data-bind="text: groupName"></strong>
                 <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' ' + salonT('salon.profile.services.count_suffix', 'hizmet') + ')'"></span>
+                <div class="small text-muted mt-1" data-bind="visible: summary, text: summary"></div>
+                <div class="small mt-1" data-bind="visible: outcome, text: outcome"></div>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
                 <span class="badge bg-purple" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')" style="font-size:.85rem;background:#6f42c1;"></span>
                 <!-- ko if: hasImplemented -->
                 <button class="btn btn-sm btn-success" data-bind="click: $root.purchasePackage">
