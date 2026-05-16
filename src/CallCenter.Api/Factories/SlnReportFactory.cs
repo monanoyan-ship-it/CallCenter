@@ -506,7 +506,7 @@ public class SlnReportFactory : ISlnReportFactory
 
         var items = products.Select(p =>
         {
-            var stockQuantity = stockMap.GetValueOrDefault(p.Id, p.StockQuantity);
+            var stockQuantity = stockMap.GetValueOrDefault(p.Id, ResolveStockFallback(branchId, p.StockQuantity));
             return new SlnStockItemDto
         {
             ProductId = p.Id,
@@ -708,6 +708,7 @@ public class SlnReportFactory : ISlnReportFactory
             .Where(p => p.CustomerId == customerId && p.IsActive)
             .Select(p => new
             {
+                p.Id,
                 p.StockQuantity,
                 p.PurchasePrice,
                 p.SalePrice,
@@ -715,9 +716,10 @@ public class SlnReportFactory : ISlnReportFactory
             })
             .ToListAsync();
 
-        var stockValue = products.Sum(p => p.StockQuantity * p.PurchasePrice);
-        var retailStockValue = products.Sum(p => p.StockQuantity * p.SalePrice);
-        var estimatedStockVat = products.Sum(p => VatFromVatIncluded(p.StockQuantity * p.SalePrice, p.TaxRate));
+        var financeStockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
+        var stockValue = products.Sum(p => ResolveStockQuantity(financeStockMap, p.Id, branchId, p.StockQuantity) * p.PurchasePrice);
+        var retailStockValue = products.Sum(p => ResolveStockQuantity(financeStockMap, p.Id, branchId, p.StockQuantity) * p.SalePrice);
+        var estimatedStockVat = products.Sum(p => VatFromVatIncluded(ResolveStockQuantity(financeStockMap, p.Id, branchId, p.StockQuantity) * p.SalePrice, p.TaxRate));
 
         return new SlnFinanceReportDto
         {
@@ -1651,6 +1653,12 @@ public class SlnReportFactory : ISlnReportFactory
 
     private static decimal PercentOrZero(decimal numerator, decimal denominator)
         => denominator == 0 ? 0 : Math.Round(numerator / denominator * 100, 2, MidpointRounding.AwayFromZero);
+
+    private static decimal ResolveStockQuantity(Dictionary<int, decimal> stockMap, int productId, int? branchId, decimal productTotalStock)
+        => stockMap.GetValueOrDefault(productId, ResolveStockFallback(branchId, productTotalStock));
+
+    private static decimal ResolveStockFallback(int? branchId, decimal productTotalStock)
+        => branchId.HasValue ? 0m : productTotalStock;
 
     private static decimal VatFromVatIncluded(decimal grossAmount, decimal taxRate)
         => grossAmount <= 0 || taxRate <= 0

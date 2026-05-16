@@ -521,7 +521,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 .FirstOrDefaultAsync(p => p.Id == item.ProductId!.Value && p.CustomerId == customerId);
             if (product != null)
             {
-                product.StockQuantity += item.Quantity;
+                var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                    product, customerId, invoice.BranchId, item.Quantity, preventNegative: false);
+                if (!stockOk) return (false, stockError);
+                await _stockBalances.SyncProductTotalAsync(product, customerId);
                 _stockMovements.Add(new SlnStockMovement
                 {
                     CustomerId = customerId,

@@ -56,6 +56,9 @@ public class SlnStockBalanceService : ISlnStockBalanceService
     public async Task<decimal> GetStockQuantityAsync(int customerId, int productId, int? branchId, decimal fallbackQuantity = 0)
     {
         var quantities = await GetStockQuantitiesAsync(customerId, new[] { productId }, branchId);
+        if (branchId.HasValue && !quantities.ContainsKey(productId))
+            return 0m;
+
         return quantities.TryGetValue(productId, out var quantity) ? quantity : fallbackQuantity;
     }
 

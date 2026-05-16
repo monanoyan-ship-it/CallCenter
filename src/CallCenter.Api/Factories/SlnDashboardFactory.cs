@@ -111,7 +111,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             {
                 p.Id,
                 p.Name,
-                StockQuantity = stockMap.GetValueOrDefault(p.Id, p.StockQuantity),
+                StockQuantity = stockMap.GetValueOrDefault(p.Id, ResolveStockFallback(branchId, p.StockQuantity)),
                 p.MinStockLevel,
                 p.Unit
             })
@@ -120,7 +120,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             .Take(8)
             .ToList();
 
-        var lowStockCount = stockProducts.Count(p => stockMap.GetValueOrDefault(p.Id, p.StockQuantity) <= p.MinStockLevel);
+        var lowStockCount = stockProducts.Count(p => stockMap.GetValueOrDefault(p.Id, ResolveStockFallback(branchId, p.StockQuantity)) <= p.MinStockLevel);
 
         var lowStockAlerts = lowStockProducts
             .Select(p =>
@@ -264,4 +264,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             subscription = subscriptionInfo
         };
     }
+
+    private static decimal ResolveStockFallback(int? branchId, decimal productTotalStock)
+        => branchId.HasValue ? 0m : productTotalStock;
 }

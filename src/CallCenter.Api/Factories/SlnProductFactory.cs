@@ -74,7 +74,9 @@ public class SlnProductFactory : ISlnProductFactory
             .ToListAsync();
 
         var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
-        return products.Select(p => MapProductToDto(p, stockMap.GetValueOrDefault(p.Id, p.StockQuantity))).ToList();
+        return products
+            .Select(p => MapProductToDto(p, stockMap.GetValueOrDefault(p.Id, ResolveStockFallback(branchId, p.StockQuantity))))
+            .ToList();
     }
 
     public async Task<SlnProductDto?> GetProductAsync(int productId, int customerId, int? branchId = null)
@@ -358,7 +360,7 @@ public class SlnProductFactory : ISlnProductFactory
         var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
 
         return products
-            .Select(p => new { Product = p, StockQuantity = stockMap.GetValueOrDefault(p.Id, p.StockQuantity) })
+            .Select(p => new { Product = p, StockQuantity = stockMap.GetValueOrDefault(p.Id, ResolveStockFallback(branchId, p.StockQuantity)) })
             .Where(x => x.StockQuantity <= x.Product.MinStockLevel)
             .OrderBy(x => x.StockQuantity)
             .ThenBy(x => x.Product.Name)
@@ -669,6 +671,9 @@ public class SlnProductFactory : ISlnProductFactory
         IsLowStock = p.MinStockLevel > 0 && stockQuantity <= p.MinStockLevel,
         SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(p, stockQuantity)
     };
+
+    private static decimal ResolveStockFallback(int? branchId, decimal productTotalStock)
+        => branchId.HasValue ? 0m : productTotalStock;
 
     private async Task<string> BuildOrderNoAsync(int customerId)
     {
