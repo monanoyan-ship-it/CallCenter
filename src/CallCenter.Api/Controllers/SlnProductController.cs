@@ -15,6 +15,9 @@ namespace CallCenter.Api.Controllers;
 public class SlnProductController : ControllerBase
 {
     private readonly ISlnProductFactory _productFactory;
+    private const string BranchTargetRequiredMessage = "Sube secin veya Tum Subeler secenegini secin";
+    private const string ConcreteBranchRequiredMessage = "Bu islem icin sube secilmelidir";
+    private const string AllBranchesInitialStockMessage = "Tum Subeler seciliyken baslangic stogu girilemez; stok miktarini sube bazli alis veya sayim ile girin";
 
     public SlnProductController(ISlnProductFactory productFactory) => _productFactory = productFactory;
 
@@ -41,17 +44,22 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnProductDto>> CreateProduct([FromBody] SlnProductCreateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult<SlnProductDto>> CreateProduct([FromBody] SlnProductCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var product = await _productFactory.CreateProductAsync(dto, customerId, ResolveBranchId(branchId));
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+        if (!target.BranchId.HasValue && dto.StockQuantity != 0)
+            return BadRequest(AllBranchesInitialStockMessage);
+
+        var product = await _productFactory.CreateProductAsync(dto, customerId, target.BranchId);
         return Ok(product);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateProduct(int id, [FromBody] SlnProductUpdateRequest req, [FromQuery] int? branchId)
+    public async Task<ActionResult> UpdateProduct(int id, [FromBody] SlnProductUpdateRequest req, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
@@ -69,17 +77,20 @@ public class SlnProductController : ControllerBase
             Unit = req.Unit
         };
 
-        var (success, error) = await _productFactory.UpdateProductAsync(id, dto, req.IsActive, customerId, ResolveBranchId(branchId));
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+
+        var (success, error) = await _productFactory.UpdateProductAsync(id, dto, req.IsActive, customerId, target.BranchId);
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteProduct(int id)
+    public async Task<ActionResult> DeleteProduct(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _productFactory.DeleteProductAsync(id, customerId);
+        var (success, error) = await _productFactory.DeleteProductAsync(id, customerId, ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -276,8 +287,11 @@ public class SlnProductController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
+        var target = ResolveConcreteBranchTarget(req.BranchId ?? branchId, ConcreteBranchRequiredMessage);
+        if (target.Error != null) return target.Error;
+
         var (success, error) = await _productFactory.AddStockMovementAsync(
-            id, req.MovementTypeId, req.Quantity, req.UnitPrice, req.SupplierId, req.Notes, userId, customerId, ResolveBranchId(req.BranchId ?? branchId));
+            id, req.MovementTypeId, req.Quantity, req.UnitPrice, req.SupplierId, req.Notes, userId, customerId, target.BranchId);
 
         return success ? Ok() : BadRequest(error);
     }
@@ -290,8 +304,11 @@ public class SlnProductController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
+        var target = ResolveConcreteBranchTarget(req.FromBranchId ?? branchId, ConcreteBranchRequiredMessage);
+        if (target.Error != null) return target.Error;
+
         var (success, error) = await _productFactory.TransferStockAsync(
-            id, ResolveBranchId(req.FromBranchId ?? branchId), req.ToBranchId, req.Quantity, req.Notes, userId, customerId);
+            id, target.BranchId, req.ToBranchId, req.Quantity, req.Notes, userId, customerId);
 
         return success ? Ok() : BadRequest(error);
     }
@@ -304,8 +321,11 @@ public class SlnProductController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
+        var target = ResolveConcreteBranchTarget(req.BranchId ?? branchId, ConcreteBranchRequiredMessage);
+        if (target.Error != null) return target.Error;
+
         var (success, error) = await _productFactory.AdjustStockCountAsync(
-            id, ResolveBranchId(req.BranchId ?? branchId), req.CountedQuantity, req.Notes, userId, customerId);
+            id, target.BranchId, req.CountedQuantity, req.Notes, userId, customerId);
 
         return success ? Ok() : BadRequest(error);
     }
@@ -324,6 +344,22 @@ public class SlnProductController : ControllerBase
 
     private int? ResolveBranchId(int? requestedBranchId)
         => GetBranchId() ?? requestedBranchId;
+
+    private (int? BranchId, ActionResult? Error) ResolveMutationBranchTarget(int? requestedBranchId, bool allBranches)
+    {
+        var claimBranchId = GetBranchId();
+        if (claimBranchId.HasValue) return (claimBranchId.Value, null);
+        if (allBranches) return (null, null);
+        if (requestedBranchId.HasValue && requestedBranchId.Value > 0) return (requestedBranchId.Value, null);
+        return (null, BadRequest(BranchTargetRequiredMessage));
+    }
+
+    private (int? BranchId, ActionResult? Error) ResolveConcreteBranchTarget(int? requestedBranchId, string message)
+    {
+        var branchId = ResolveBranchId(requestedBranchId);
+        if (branchId.HasValue && branchId.Value > 0) return (branchId.Value, null);
+        return (null, BadRequest(message));
+    }
 }
 
 // Request modelleri

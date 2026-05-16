@@ -102,7 +102,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         var stockProducts = await _products.GetAllQueryable()
             .Where(p => p.CustomerId == customerId
                      && p.IsActive
-                     && p.MinStockLevel > 0)
+                     && p.MinStockLevel > 0
+                     && (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value))
             .ToListAsync();
 
         var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, stockProducts.Select(p => p.Id), branchId);

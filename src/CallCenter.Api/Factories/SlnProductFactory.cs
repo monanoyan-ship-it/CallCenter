@@ -56,6 +56,9 @@ public class SlnProductFactory : ISlnProductFactory
         var query = _products.GetAllQueryable()
             .Where(p => p.CustomerId == customerId);
 
+        if (branchId.HasValue)
+            query = query.Where(p => p.BranchId == null || p.BranchId == branchId.Value);
+
         if (categoryId.HasValue)
             query = query.Where(p => p.CategoryId == categoryId.Value);
 
@@ -84,7 +87,8 @@ public class SlnProductFactory : ISlnProductFactory
         var product = await _products.GetAllQueryable()
             .Include(p => p.Category)
             .Include(p => p.Brand)
-            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
+            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId &&
+                (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value));
 
         if (product == null) return null;
 
@@ -97,22 +101,26 @@ public class SlnProductFactory : ISlnProductFactory
         var product = new SlnProduct
         {
             CustomerId = customerId,
+            BranchId = branchId,
             CategoryId = dto.CategoryId,
             BrandId = dto.BrandId,
             Name = dto.Name,
             Barcode = dto.Barcode,
             PurchasePrice = dto.PurchasePrice,
             SalePrice = dto.SalePrice,
-            StockQuantity = dto.StockQuantity,
+            StockQuantity = branchId.HasValue ? dto.StockQuantity : 0,
             MinStockLevel = dto.MinStockLevel,
             Unit = dto.Unit
         };
 
         _products.Add(product);
         await _uow.SaveChangesAsync();
-        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, dto.StockQuantity);
-        await _stockBalances.SyncProductTotalAsync(product, customerId);
-        await _uow.SaveChangesAsync();
+        if (branchId.HasValue)
+        {
+            await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, dto.StockQuantity);
+            await _stockBalances.SyncProductTotalAsync(product, customerId);
+            await _uow.SaveChangesAsync();
+        }
 
         _logger.LogInformation("Yeni urun olusturuldu: {ProductId} - {Name}", product.Id, product.Name);
 
@@ -121,17 +129,21 @@ public class SlnProductFactory : ISlnProductFactory
             .Include(p => p.Brand)
             .FirstAsync(p => p.Id == product.Id);
 
-        var stockQuantity = await _stockBalances.GetStockQuantityAsync(customerId, created.Id, branchId, created.StockQuantity);
+        var stockQuantity = branchId.HasValue
+            ? await _stockBalances.GetStockQuantityAsync(customerId, created.Id, branchId, created.StockQuantity)
+            : created.StockQuantity;
         return MapProductToDto(created, stockQuantity);
     }
 
     public async Task<(bool Success, string? Error)> UpdateProductAsync(int productId, SlnProductCreateDto dto, bool isActive, int customerId, int? branchId = null)
     {
         var product = await _products.GetAllQueryable()
-            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
+            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId &&
+                (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value));
 
         if (product == null) return (false, "Urun bulunamadi");
 
+        product.BranchId = branchId;
         product.CategoryId = dto.CategoryId;
         product.BrandId = dto.BrandId;
         product.Name = dto.Name;
@@ -142,16 +154,21 @@ public class SlnProductFactory : ISlnProductFactory
         product.Unit = dto.Unit;
         product.IsActive = isActive;
 
-        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, dto.StockQuantity);
-        await _stockBalances.SyncProductTotalAsync(product, customerId);
+        if (branchId.HasValue)
+        {
+            await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, dto.StockQuantity);
+            await _stockBalances.SyncProductTotalAsync(product, customerId);
+        }
+
         await _uow.SaveChangesAsync();
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteProductAsync(int productId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteProductAsync(int productId, int customerId, int? branchId = null)
     {
         var product = await _products.GetAllQueryable()
-            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
+            .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId &&
+                (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value));
 
         if (product == null) return (false, "Urun bulunamadi");
 
@@ -353,7 +370,8 @@ public class SlnProductFactory : ISlnProductFactory
     {
         var products = await _products.GetAllQueryable()
             .Include(p => p.Category)
-            .Where(p => p.CustomerId == customerId && p.IsActive && p.MinStockLevel > 0)
+            .Where(p => p.CustomerId == customerId && p.IsActive && p.MinStockLevel > 0 &&
+                (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value))
             .OrderBy(p => p.Name)
             .ToListAsync();
 
@@ -658,6 +676,7 @@ public class SlnProductFactory : ISlnProductFactory
     private static SlnProductDto MapProductToDto(SlnProduct p, decimal stockQuantity) => new()
     {
         Id = p.Id,
+        BranchId = p.BranchId,
         Name = p.Name,
         Barcode = p.Barcode,
         CategoryName = p.Category?.Name ?? "",

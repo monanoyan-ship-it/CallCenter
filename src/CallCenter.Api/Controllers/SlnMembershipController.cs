@@ -15,6 +15,7 @@ namespace CallCenter.Api.Controllers;
 public class SlnMembershipController : ControllerBase
 {
     private readonly ISlnMembershipFactory _factory;
+    private const string BranchTargetRequiredMessage = "Sube secin veya Tum Subeler secenegini secin";
 
     public SlnMembershipController(ISlnMembershipFactory factory) => _factory = factory;
 
@@ -27,28 +28,32 @@ public class SlnMembershipController : ControllerBase
     }
 
     [HttpPost("plans")]
-    public async Task<ActionResult<SlnMembershipPlanDto>> CreatePlan([FromBody] SlnMembershipPlanCreateDto dto)
+    public async Task<ActionResult<SlnMembershipPlanDto>> CreatePlan([FromBody] SlnMembershipPlanCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _factory.CreatePlanAsync(dto, cid));
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+        return Ok(await _factory.CreatePlanAsync(dto, cid, target.BranchId));
     }
 
     [HttpPut("plans/{id}")]
-    public async Task<ActionResult> UpdatePlan(int id, [FromBody] SlnMembershipPlanCreateDto dto)
+    public async Task<ActionResult> UpdatePlan(int id, [FromBody] SlnMembershipPlanCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (s, e) = await _factory.UpdatePlanAsync(id, dto, cid);
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+        var (s, e) = await _factory.UpdatePlanAsync(id, dto, cid, target.BranchId);
         return s ? Ok() : BadRequest(e);
     }
 
     [HttpDelete("plans/{id}")]
-    public async Task<ActionResult> DeletePlan(int id)
+    public async Task<ActionResult> DeletePlan(int id, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (s, e) = await _factory.DeletePlanAsync(id, cid);
+        var (s, e) = await _factory.DeletePlanAsync(id, cid, GetBranchId() ?? branchId);
         return s ? Ok() : BadRequest(e);
     }
 
@@ -113,6 +118,15 @@ public class SlnMembershipController : ControllerBase
     {
         var value = User.FindFirst("BranchId")?.Value;
         return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
+
+    private (int? BranchId, ActionResult? Error) ResolveMutationBranchTarget(int? requestedBranchId, bool allBranches)
+    {
+        var claimBranchId = GetBranchId();
+        if (claimBranchId.HasValue) return (claimBranchId.Value, null);
+        if (allBranches) return (null, null);
+        if (requestedBranchId.HasValue && requestedBranchId.Value > 0) return (requestedBranchId.Value, null);
+        return (null, BadRequest(BranchTargetRequiredMessage));
     }
 }
 

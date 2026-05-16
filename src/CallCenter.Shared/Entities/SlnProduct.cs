@@ -6,6 +6,9 @@ public class SlnProduct
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     public int CategoryId { get; set; }
     public SlnProductCategory? Category { get; set; }
 

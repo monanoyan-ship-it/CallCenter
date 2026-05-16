@@ -15,6 +15,7 @@ namespace CallCenter.Api.Controllers;
 public class SlnMarketingController : ControllerBase
 {
     private readonly ISlnMarketingFactory _marketingFactory;
+    private const string BranchTargetRequiredMessage = "Sube secin veya Tum Subeler secenegini secin";
 
     public SlnMarketingController(ISlnMarketingFactory marketingFactory) => _marketingFactory = marketingFactory;
 
@@ -41,22 +42,28 @@ public class SlnMarketingController : ControllerBase
     }
 
     [HttpPost("campaigns")]
-    public async Task<ActionResult<SlnCampaignDto>> CreateCampaign([FromBody] SlnCampaignCreateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult<SlnCampaignDto>> CreateCampaign([FromBody] SlnCampaignCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var campaign = await _marketingFactory.CreateCampaignAsync(dto, customerId, GetBranchId() ?? branchId);
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+
+        var campaign = await _marketingFactory.CreateCampaignAsync(dto, customerId, target.BranchId);
         return Ok(campaign);
     }
 
     [HttpPut("campaigns/{id:int}")]
-    public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnCampaignUpdateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnCampaignUpdateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.UpdateCampaignAsync(id, dto, customerId, GetBranchId() ?? branchId);
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+
+        var (success, error) = await _marketingFactory.UpdateCampaignAsync(id, dto, customerId, target.BranchId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -113,22 +120,28 @@ public class SlnMarketingController : ControllerBase
     }
 
     [HttpPost("reminders")]
-    public async Task<ActionResult<SlnAutoReminderDto>> CreateReminder([FromBody] SlnAutoReminderCreateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult<SlnAutoReminderDto>> CreateReminder([FromBody] SlnAutoReminderCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var reminder = await _marketingFactory.CreateReminderAsync(dto, customerId, GetBranchId() ?? branchId);
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+
+        var reminder = await _marketingFactory.CreateReminderAsync(dto, customerId, target.BranchId);
         return Ok(reminder);
     }
 
     [HttpPut("reminders/{id:int}")]
-    public async Task<ActionResult> UpdateReminder(int id, [FromBody] SlnAutoReminderUpdateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult> UpdateReminder(int id, [FromBody] SlnAutoReminderUpdateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _marketingFactory.UpdateReminderAsync(id, dto, customerId, GetBranchId() ?? branchId);
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+
+        var (success, error) = await _marketingFactory.UpdateReminderAsync(id, dto, customerId, target.BranchId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -159,5 +172,14 @@ public class SlnMarketingController : ControllerBase
     {
         var claim = User.FindFirst("BranchId")?.Value;
         return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private (int? BranchId, ActionResult? Error) ResolveMutationBranchTarget(int? requestedBranchId, bool allBranches)
+    {
+        var claimBranchId = GetBranchId();
+        if (claimBranchId.HasValue) return (claimBranchId.Value, null);
+        if (allBranches) return (null, null);
+        if (requestedBranchId.HasValue && requestedBranchId.Value > 0) return (requestedBranchId.Value, null);
+        return (null, BadRequest(BranchTargetRequiredMessage));
     }
 }

@@ -350,7 +350,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         var productIds = recipeItems.Select(x => x.Item.ProductId).Distinct().ToList();
         var products = await _products.GetAllQueryable()
-            .Where(p => p.CustomerId == appointment.CustomerId && productIds.Contains(p.Id))
+            .Where(p => p.CustomerId == appointment.CustomerId
+                     && productIds.Contains(p.Id)
+                     && (p.BranchId == null || p.BranchId == appointment.BranchId))
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var productGroup in recipeItems.GroupBy(x => x.Item.ProductId))

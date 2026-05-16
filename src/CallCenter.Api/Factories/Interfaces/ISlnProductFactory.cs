@@ -9,7 +9,7 @@ public interface ISlnProductFactory
     Task<SlnProductDto?> GetProductAsync(int productId, int customerId, int? branchId = null);
     Task<SlnProductDto> CreateProductAsync(SlnProductCreateDto dto, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> UpdateProductAsync(int productId, SlnProductCreateDto dto, bool isActive, int customerId, int? branchId = null);
-    Task<(bool Success, string? Error)> DeleteProductAsync(int productId, int customerId);
+    Task<(bool Success, string? Error)> DeleteProductAsync(int productId, int customerId, int? branchId = null);
 
     // Kategori
     Task<List<object>> GetCategoriesAsync(int customerId);

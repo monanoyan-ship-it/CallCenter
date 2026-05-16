@@ -73,11 +73,8 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
             .FirstOrDefaultAsync();
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Gonderilmis kampanya duzenlenemez");
-        if (campaign.BranchId == null && branchId.HasValue)
-        {
-            campaign.BranchId = branchId;
-        }
 
+        campaign.BranchId = branchId;
         campaign.Subject = dto.Subject;
         campaign.HtmlBody = dto.HtmlBody;
         campaign.SegmentFilter = dto.SegmentFilter;

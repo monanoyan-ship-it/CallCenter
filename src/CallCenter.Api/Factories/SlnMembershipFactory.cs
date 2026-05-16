@@ -34,8 +34,9 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<List<SlnMembershipPlanDto>> GetPlansAsync(int customerId, int? branchId = null)
     {
-        var plans = await _planEs.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId)
+        var plans = await SalonBranchScope.ApplyToMembershipPlans(
+                _planEs.GetAllQueryable().Where(p => p.CustomerId == customerId),
+                branchId)
             .Include(p => p.Services).ThenInclude(s => s.Service)
             .OrderBy(p => p.SortOrder)
             .ToListAsync();
@@ -52,6 +53,7 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         return plans.Select(p => new SlnMembershipPlanDto
         {
             Id = p.Id,
+            BranchId = p.BranchId,
             Name = p.Name,
             Description = p.Description,
             IconClass = p.IconClass,
@@ -75,11 +77,12 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         }).ToList();
     }
 
-    public async Task<SlnMembershipPlanDto> CreatePlanAsync(SlnMembershipPlanCreateDto dto, int customerId)
+    public async Task<SlnMembershipPlanDto> CreatePlanAsync(SlnMembershipPlanCreateDto dto, int customerId, int? branchId = null)
     {
         var plan = new SlnMembershipPlan
         {
             CustomerId = customerId,
+            BranchId = branchId,
             Name = dto.Name,
             Description = dto.Description,
             IconClass = dto.IconClass,
@@ -114,14 +117,18 @@ public class SlnMembershipFactory : ISlnMembershipFactory
             await _uow.SaveChangesAsync();
         }
 
-        return (await GetPlansAsync(customerId)).First(p => p.Id == plan.Id);
+        return (await GetPlansAsync(customerId, branchId)).First(p => p.Id == plan.Id);
     }
 
-    public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, SlnMembershipPlanCreateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdatePlanAsync(int id, SlnMembershipPlanCreateDto dto, int customerId, int? branchId = null)
     {
-        var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var plan = await SalonBranchScope.ApplyToMembershipPlans(
+                _planEs.GetAllQueryable().Where(p => p.Id == id && p.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (plan == null) return (false, "Plan bulunamadi");
 
+        plan.BranchId = branchId;
         plan.Name = dto.Name;
         plan.Description = dto.Description;
         plan.IconClass = dto.IconClass;
@@ -156,9 +163,12 @@ public class SlnMembershipFactory : ISlnMembershipFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeletePlanAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeletePlanAsync(int id, int customerId, int? branchId = null)
     {
-        var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == id && p.CustomerId == customerId);
+        var plan = await SalonBranchScope.ApplyToMembershipPlans(
+                _planEs.GetAllQueryable().Where(p => p.Id == id && p.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (plan == null) return (false, "Plan bulunamadi");
         var hasMembers = await _membershipEs.GetAllQueryable().AnyAsync(m => m.PlanId == id && m.StatusId == 1);
         if (hasMembers) return (false, "Aktif uyesi olan plan silinemez");
@@ -197,7 +207,10 @@ public class SlnMembershipFactory : ISlnMembershipFactory
 
     public async Task<(SlnClientMembershipDto? Membership, string? Error)> CreateMembershipAsync(SlnClientMembershipCreateDto dto, int customerId, int? branchId = null)
     {
-        var plan = await _planEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PlanId && p.CustomerId == customerId);
+        var plan = await SalonBranchScope.ApplyToMembershipPlans(
+                _planEs.GetAllQueryable().Where(p => p.Id == dto.PlanId && p.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
         if (plan == null) return (null, "Plan bulunamadi");
 
         var clientExists = await SalonBranchScope.ApplyToClients(

@@ -225,14 +225,14 @@
                             <label class="form-label small"><t key="salon.products.auto.stok_2">Stok</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: form.stockQuantity" />
                         </div>
-                        <div class="col-6" data-bind="visible: hasMultipleBranches">
-                            <label class="form-label small"><t key="salon.products.stock_branch">Stok Şubesi</t></label>
+                        <div class="col-6">
+                            <label class="form-label small"><t key="salon.common.branch_target">Şube hedefi *</t></label>
                             <select class="form-select form-select-sm"
-                                    data-bind="options: branches,
+                                    data-bind="options: branchTargetOptions,
                                                optionsText: 'name',
                                                optionsValue: 'id',
-                                               value: form.branchId,
-                                               optionsCaption: salonT('salon.products.select_branch', 'Şube seçin')"></select>
+                                               value: form.branchTarget,
+                                               optionsCaption: salonT('salon.common.select_branch_or_all', 'Şube seçin veya Tüm Şubeler')"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.products.auto.min_stok">Min Stok</t></label>

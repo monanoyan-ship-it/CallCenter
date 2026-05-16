@@ -83,6 +83,15 @@
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.subject" />
                         </div>
                         <div class="col-12">
+                            <label class="form-label small"><t key="salon.common.branch_target">Şube hedefi *</t></label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: branchTargetOptions,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: form.branchTarget,
+                                               optionsCaption: salonT('salon.common.select_branch_or_all', 'Şube seçin veya Tüm Şubeler')"></select>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label small"><t key="salon.emailcampaigns.auto.html_icerik_required">HTML İçerik *</t></label>
                             <textarea class="form-control form-control-sm" rows="8" data-bind="value: form.htmlBody"></textarea>
                         </div>

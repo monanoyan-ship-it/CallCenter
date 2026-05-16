@@ -136,6 +136,7 @@
         if (!url || url.indexOf('/proxy/') < 0) return url;
         if (url.indexOf('_nb=1') >= 0) return url;
         if (/([?&])branchId=/.test(url)) return url;
+        if (/([?&])allBranches=/.test(url)) return url;
 
         var branchId = getStoredBranch();
         if (!branchId) return url;
@@ -149,6 +150,40 @@
     };
     window.slnGetBranch = getStoredBranch;
     window.switchBranch = switchBranch;
+    window.slnAllBranchesValue = '__all__';
+    window.slnBuildBranchTargetOptions = function (branches) {
+        return [{
+            id: window.slnAllBranchesValue,
+            name: window.salonT('salon.common.all_branches', 'Tum Subeler')
+        }].concat(branches || []);
+    };
+    window.slnResolveBranchTarget = function (value, warningKey, fallback) {
+        if (value === window.slnAllBranchesValue) {
+            return { ok: true, branchId: null, allBranches: true };
+        }
+
+        var branchId = parseInt(value, 10) || null;
+        if (branchId) {
+            return { ok: true, branchId: branchId, allBranches: false };
+        }
+
+        var currentBranch = parseInt(getStoredBranch(), 10) || null;
+        if (currentBranch) {
+            return { ok: true, branchId: currentBranch, allBranches: false };
+        }
+
+        if (window.toastr) {
+            toastr.warning(window.salonT(warningKey || 'salon.common.branch_target_required', fallback || 'Sube secin veya Tum Subeler secenegini kullanin'));
+        }
+        return { ok: false, branchId: null, allBranches: false };
+    };
+    window.slnAppendBranchTarget = function (url, target) {
+        if (!target || !target.ok) return url;
+        var separator = url.indexOf('?') >= 0 ? '&' : '?';
+        if (target.allBranches) return url + separator + 'allBranches=true';
+        if (target.branchId) return url + separator + 'branchId=' + encodeURIComponent(target.branchId);
+        return url;
+    };
 
     $.ajaxSetup({
         converters: {

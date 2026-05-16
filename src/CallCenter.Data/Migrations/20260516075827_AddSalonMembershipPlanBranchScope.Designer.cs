@@ -3,6 +3,7 @@ using System;
 using CallCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CallCenter.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260516075827_AddSalonMembershipPlanBranchScope")]
+    partial class AddSalonMembershipPlanBranchScope
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -6223,9 +6226,6 @@ namespace CallCenter.Data.Migrations
                     b.Property<string>("Barcode")
                         .HasColumnType("text");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("BrandId")
                         .HasColumnType("integer");
 
@@ -6263,8 +6263,6 @@ namespace CallCenter.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("BrandId");
 
@@ -11066,11 +11064,6 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnProduct", b =>
                 {
-                    b.HasOne("CallCenter.Shared.Entities.SlnBranch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CallCenter.Shared.Entities.SlnProductBrand", "Brand")
                         .WithMany()
                         .HasForeignKey("BrandId");
@@ -11086,8 +11079,6 @@ namespace CallCenter.Data.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Brand");
 

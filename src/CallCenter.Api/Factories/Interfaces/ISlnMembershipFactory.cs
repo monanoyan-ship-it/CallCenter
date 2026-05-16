@@ -5,9 +5,9 @@ namespace CallCenter.Api.Factories.Interfaces;
 public interface ISlnMembershipFactory
 {
     Task<List<SlnMembershipPlanDto>> GetPlansAsync(int customerId, int? branchId = null);
-    Task<SlnMembershipPlanDto> CreatePlanAsync(SlnMembershipPlanCreateDto dto, int customerId);
-    Task<(bool Success, string? Error)> UpdatePlanAsync(int id, SlnMembershipPlanCreateDto dto, int customerId);
-    Task<(bool Success, string? Error)> DeletePlanAsync(int id, int customerId);
+    Task<SlnMembershipPlanDto> CreatePlanAsync(SlnMembershipPlanCreateDto dto, int customerId, int? branchId = null);
+    Task<(bool Success, string? Error)> UpdatePlanAsync(int id, SlnMembershipPlanCreateDto dto, int customerId, int? branchId = null);
+    Task<(bool Success, string? Error)> DeletePlanAsync(int id, int customerId, int? branchId = null);
     Task<List<SlnClientMembershipDto>> GetMembershipsAsync(int customerId, int? clientId = null, int? branchId = null);
     Task<(SlnClientMembershipDto? Membership, string? Error)> CreateMembershipAsync(SlnClientMembershipCreateDto dto, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> CancelMembershipAsync(int id, int customerId, int? branchId = null);

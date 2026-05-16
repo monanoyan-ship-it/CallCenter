@@ -206,6 +206,15 @@
                             <input type="text" class="form-control form-control-sm" data-bind="value: campaignForm.name" />
                         </div>
                         <div class="col-12">
+                            <label class="form-label small"><t key="salon.common.branch_target">Şube hedefi *</t></label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: branchTargetOptions,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: campaignForm.branchTarget,
+                                               optionsCaption: salonT('salon.common.select_branch_or_all', 'Şube seçin veya Tüm Şubeler')"></select>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label small"><t key="salon.campaigns.auto.mesaj_sablonu_required">Mesaj Şablonu *</t></label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: campaignForm.messageTemplate"></textarea>
                         </div>
@@ -326,6 +335,13 @@
                             </select>
                         </div>
                         <div class="col-12">
+                            <label class="form-label small"><t key="salon.common.branch_target">Şube hedefi *</t></label>
+                            <select class="form-select form-select-sm mb-3"
+                                    data-bind="options: branchTargetOptions,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: reminderForm.branchTarget,
+                                               optionsCaption: salonT('salon.common.select_branch_or_all', 'Şube seçin veya Tüm Şubeler')"></select>
                             <label class="form-label small"><t key="salon.campaigns.auto.mesaj_sablonu_required_2">Mesaj Şablonu *</t></label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: reminderForm.messageTemplate"></textarea>
                             <small class="text-muted"><t key="salon.campaigns.auto.degiskenler_ad_tarih_gun">Değişkenler: {ad}, {tarih}, {gün}</t></small>

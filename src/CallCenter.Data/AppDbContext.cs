@@ -370,6 +370,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnMembershipPlan>(e =>
         {
             e.Property(p => p.Price).HasPrecision(18, 2);
+            e.HasIndex(p => p.BranchId);
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
         });
         modelBuilder.Entity<SlnClientMembership>(e =>
         {
@@ -582,6 +584,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnProduct>(e =>
         {
             e.Property(p => p.TaxRate).HasPrecision(5, 2);
+            e.HasIndex(p => p.BranchId);
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<SlnProductBranchStock>(e =>

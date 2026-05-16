@@ -110,6 +110,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Gonderim baslamis kampanya duzenlenemez");
 
+        campaign.BranchId = branchId;
         campaign.Name = dto.Name;
         campaign.MessageTemplate = dto.MessageTemplate;
         campaign.SegmentFilter = dto.SegmentFilter;
@@ -382,6 +383,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
         if (reminder == null) return (false, "Hatirlatma bulunamadi");
 
+        reminder.BranchId = branchId;
         reminder.ReminderTypeId = dto.ReminderTypeId;
         reminder.MessageTemplate = dto.MessageTemplate;
         reminder.DaysBefore = dto.DaysBefore;

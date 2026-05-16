@@ -17,16 +17,19 @@ internal static class SalonBranchScope
     }
 
     public static IQueryable<SlnCampaign> ApplyToCampaigns(IQueryable<SlnCampaign> query, int? branchId)
-        => branchId.HasValue ? query.Where(c => c.BranchId == branchId.Value) : query;
+        => branchId.HasValue ? query.Where(c => c.BranchId == null || c.BranchId == branchId.Value) : query;
 
     public static IQueryable<SlnAutoReminder> ApplyToReminders(IQueryable<SlnAutoReminder> query, int? branchId)
-        => branchId.HasValue ? query.Where(r => r.BranchId == branchId.Value) : query;
+        => branchId.HasValue ? query.Where(r => r.BranchId == null || r.BranchId == branchId.Value) : query;
 
     public static IQueryable<SlnEmailCampaign> ApplyToEmailCampaigns(IQueryable<SlnEmailCampaign> query, int? branchId)
-        => branchId.HasValue ? query.Where(c => c.BranchId == branchId.Value) : query;
+        => branchId.HasValue ? query.Where(c => c.BranchId == null || c.BranchId == branchId.Value) : query;
 
     public static IQueryable<SlnWinbackRule> ApplyToWinbackRules(IQueryable<SlnWinbackRule> query, int? branchId)
-        => branchId.HasValue ? query.Where(r => r.BranchId == branchId.Value) : query;
+        => branchId.HasValue ? query.Where(r => r.BranchId == null || r.BranchId == branchId.Value) : query;
+
+    public static IQueryable<SlnMembershipPlan> ApplyToMembershipPlans(IQueryable<SlnMembershipPlan> query, int? branchId)
+        => branchId.HasValue ? query.Where(p => p.BranchId == null || p.BranchId == branchId.Value) : query;
 
     public static IQueryable<SlnBeforeAfterPhoto> ApplyToBeforeAfterPhotos(IQueryable<SlnBeforeAfterPhoto> query, int? branchId)
     {

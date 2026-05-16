@@ -13,11 +13,17 @@ function EmailCampaignsViewModel() {
     self.segmentEmailReachableCount = ko.observable(0);
     self.segmentMissingEmailCount = ko.observable(0);
     self.segmentExcludedCount = ko.observable(0);
+    self.branches = ko.observableArray([]);
+    self.branchTargetOptions = ko.computed(function () {
+        if (window.slnBuildBranchTargetOptions) return window.slnBuildBranchTargetOptions(self.branches());
+        return [{ id: '__all__', name: slnJsT('salon.common.all_branches', 'Tum Subeler') }].concat(self.branches() || []);
+    });
 
     self.form = {
         subject: ko.observable(''),
         htmlBody: ko.observable(''),
         segmentFilter: ko.observable(''),
+        branchTarget: ko.observable((window.slnGetBranch && window.slnGetBranch()) || ''),
         scheduledAt: ko.observable('')
     };
 
@@ -33,6 +39,30 @@ function EmailCampaignsViewModel() {
     self.statusBadge = function (id) { return statusBadges[id] || 'bg-secondary'; };
 
     var formModal;
+
+    function getInitialBranchTarget() {
+        return (window.slnGetBranch && window.slnGetBranch()) || '';
+    }
+
+    function resolveBranchTarget(value) {
+        if (window.slnResolveBranchTarget) {
+            return window.slnResolveBranchTarget(value, 'salon.common.branch_target_required', 'Sube secin veya Tum Subeler secenegini secin');
+        }
+
+        if (value === '__all__') return { ok: true, branchId: null, allBranches: true };
+        var branchId = parseInt(value, 10) || null;
+        return branchId ? { ok: true, branchId: branchId, allBranches: false } : { ok: false };
+    }
+
+    function appendBranchTarget(url, target) {
+        return window.slnAppendBranchTarget ? window.slnAppendBranchTarget(url, target) : url;
+    }
+
+    self.loadBranches = function () {
+        $.ajax({ url: '/proxy/sln-branches?_nb=1', method: 'GET' }).done(function (data) {
+            self.branches(data.items || data || []);
+        });
+    };
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-email-campaigns', method: 'GET' }).done(function (data) {
@@ -52,6 +82,7 @@ function EmailCampaignsViewModel() {
         self.form.subject('');
         self.form.htmlBody('');
         self.form.segmentFilter('');
+        self.form.branchTarget(getInitialBranchTarget());
         self.form.scheduledAt('');
         self.isEditing(false);
         self.editingId(null);
@@ -69,6 +100,7 @@ function EmailCampaignsViewModel() {
         self.form.subject(campaign.subject);
         self.form.htmlBody(campaign.htmlBody);
         self.form.segmentFilter(campaign.segmentFilter || '');
+        self.form.branchTarget(campaign.branchId ? String(campaign.branchId) : (window.slnAllBranchesValue || '__all__'));
         self.form.scheduledAt(campaign.scheduledAt ? campaign.scheduledAt.substring(0, 16) : '');
         setSegmentPreview({ matchingClients: campaign.totalRecipients, emailReachableClients: campaign.totalRecipients });
         formModal.show();
@@ -81,8 +113,10 @@ function EmailCampaignsViewModel() {
 
     self.previewSegment = function () {
         var filter = self.form.segmentFilter() || null;
+        var target = resolveBranchTarget(self.form.branchTarget());
+        if (!target.ok) return;
         $.ajax({
-            url: '/proxy/sln-email-campaigns/segment-preview',
+            url: appendBranchTarget('/proxy/sln-email-campaigns/segment-preview', target),
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(filter)
@@ -114,6 +148,9 @@ function EmailCampaignsViewModel() {
             return;
         }
 
+        var target = resolveBranchTarget(self.form.branchTarget());
+        if (!target.ok) return;
+
         self.isSaving(true);
         var url = '/proxy/sln-email-campaigns';
         var method = 'POST';
@@ -121,6 +158,7 @@ function EmailCampaignsViewModel() {
             url += '/' + self.editingId();
             method = 'PUT';
         }
+        url = appendBranchTarget(url, target);
 
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) })
             .done(function () {
@@ -157,6 +195,7 @@ function EmailCampaignsViewModel() {
 
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('emailCampaignModal'));
+        self.loadBranches();
         self.loadData();
         self.loadSegmentPresets();
     });

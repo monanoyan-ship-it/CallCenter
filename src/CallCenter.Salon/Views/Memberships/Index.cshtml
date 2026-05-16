@@ -109,6 +109,15 @@
                         <!-- SOL: Plan bilgileri + Hizmet seçimi -->
                         <div class="col-md-6 p-3 border-end" style="background:#f8f9fa;">
                             <div class="row g-2 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label small"><t key="salon.common.branch_target">Şube hedefi *</t></label>
+                                    <select class="form-select form-select-sm"
+                                            data-bind="options: branchTargetOptions,
+                                                       optionsText: 'name',
+                                                       optionsValue: 'id',
+                                                       value: planForm.branchTarget,
+                                                       optionsCaption: salonT('salon.common.select_branch_or_all', 'Şube seçin veya Tüm Şubeler')"></select>
+                                </div>
                                 <div class="col-8"><label class="form-label small"><t key="salon.memberships.plan_name">Plan Adı *</t></label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" /></div>
                                 <div class="col-4"><label class="form-label small"><t key="salon.memberships.color">Renk</t></label><input type="color" class="form-control form-control-sm form-control-color" data-bind="value: planForm.color" /></div>
                                 <div class="col-12"><label class="form-label small"><t key="salon.common.description">Açıklama</t></label><input type="text" class="form-control form-control-sm" data-bind="value: planForm.description" /></div>

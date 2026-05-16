@@ -331,7 +331,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             if (itemDto.ProductId.HasValue)
             {
                 var product = await _products.GetAllQueryable()
-                    .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId.Value && p.CustomerId == customerId);
+                    .FirstOrDefaultAsync(p => p.Id == itemDto.ProductId.Value && p.CustomerId == customerId &&
+                        (p.BranchId == null || p.BranchId == branchId));
 
                 if (product == null)
                     return (null, "Urun bulunamadi");
@@ -518,7 +519,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         foreach (var item in invoice.Items.Where(it => it.ProductId.HasValue))
         {
             var product = await _products.GetAllQueryable()
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId!.Value && p.CustomerId == customerId);
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId!.Value && p.CustomerId == customerId &&
+                    (p.BranchId == null || p.BranchId == invoice.BranchId));
             if (product != null)
             {
                 var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(

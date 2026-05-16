@@ -12,6 +12,10 @@ function ProductsViewModel() {
     self.suppliers = ko.observableArray([]);
     self.branches = ko.observableArray([]);
     self.currentBranchId = ko.observable((window.slnGetBranch && window.slnGetBranch()) || '');
+    self.branchTargetOptions = ko.computed(function () {
+        if (window.slnBuildBranchTargetOptions) return window.slnBuildBranchTargetOptions(self.branches());
+        return [{ id: '__all__', name: slnJsT('salon.common.all_branches', 'Tum Subeler') }].concat(self.branches() || []);
+    });
     self.lowStockProducts = ko.observableArray([]);
     self.supplierOrders = ko.observableArray([]);
     self.searchQuery = ko.observable('');
@@ -34,7 +38,7 @@ function ProductsViewModel() {
         barcode: ko.observable(''),
         unit: ko.observable('Adet'),
         stockQuantity: ko.observable(0),
-        branchId: ko.observable(null),
+        branchTarget: ko.observable(null),
         minStockLevel: ko.observable(0),
         purchasePrice: ko.observable(0),
         salePrice: ko.observable(0)
@@ -115,7 +119,27 @@ function ProductsViewModel() {
     }
 
     function setDefaultBranch(observable) {
-        observable(getCurrentBranchId());
+        var branches = self.branches();
+        observable(getCurrentBranchId() || (branches.length === 1 ? branches[0].id : null));
+    }
+
+    function setDefaultBranchTarget(observable) {
+        var branches = self.branches();
+        observable(getCurrentBranchId() || (branches.length === 1 ? branches[0].id : ''));
+    }
+
+    function resolveBranchTarget(value) {
+        if (window.slnResolveBranchTarget) {
+            return window.slnResolveBranchTarget(value, 'salon.common.branch_target_required', 'Sube secin veya Tum Subeler secenegini secin');
+        }
+
+        if (value === '__all__') return { ok: true, branchId: null, allBranches: true };
+        var branchId = parseInt(value, 10) || null;
+        return branchId ? { ok: true, branchId: branchId, allBranches: false } : { ok: false };
+    }
+
+    function appendBranchTarget(url, target) {
+        return window.slnAppendBranchTarget ? window.slnAppendBranchTarget(url, target) : url;
     }
 
     function requireBranchValue(branchId, fallback) {
@@ -185,7 +209,7 @@ function ProductsViewModel() {
         self.form.barcode('');
         self.form.unit('Adet');
         self.form.stockQuantity(0);
-        setDefaultBranch(self.form.branchId);
+        self.form.branchTarget(product.branchId || window.slnAllBranchesValue || '__all__');
         self.form.minStockLevel(0);
         self.form.purchasePrice(0);
         self.form.salePrice(0);
@@ -264,7 +288,7 @@ function ProductsViewModel() {
         self.form.barcode(product.barcode || '');
         self.form.unit(product.unit || 'Adet');
         self.form.stockQuantity(product.stockQuantity || 0);
-        setDefaultBranch(self.form.branchId);
+        setDefaultBranchTarget(self.form.branchTarget);
         self.form.minStockLevel(product.minStockLevel || 0);
         self.form.purchasePrice(product.purchasePrice || 0);
         self.form.salePrice(product.salePrice || 0);
@@ -345,16 +369,21 @@ function ProductsViewModel() {
                 salePrice: parseFloat(self.form.salePrice()) || 0
             };
 
-            var branchId = parseInt(self.form.branchId(), 10) || null;
-            if (!requireBranchValue(branchId, slnJsT('salon.products.product_stock_branch_required', 'Urun stok miktari icin sube secilmelidir'))) {
+            var target = resolveBranchTarget(self.form.branchTarget());
+            if (!target.ok) {
+                self.isSaving(false);
+                return;
+            }
+            if (!self.isEditing() && target.allBranches && data.stockQuantity !== 0) {
+                toastr.warning(slnJsT('salon.products.all_branches_initial_stock_warning', 'Tum Subeler seciliyken baslangic stogu girilemez; stok miktarini sube bazli alis veya sayim ile girin'));
                 self.isSaving(false);
                 return;
             }
 
-            var url = appendBranch('/proxy/sln-products', branchId);
+            var url = appendBranchTarget('/proxy/sln-products', target);
             var method = 'POST';
             if (self.isEditing()) {
-                url = appendBranch('/proxy/sln-products/' + self.editingId(), branchId);
+                url = appendBranchTarget('/proxy/sln-products/' + self.editingId(), target);
                 method = 'PUT';
             }
 
@@ -390,6 +419,7 @@ function ProductsViewModel() {
         var unitPrice = parseFloat(self.purchaseForm.unitPrice()) || 0;
 
         if (!supplierId) { toastr.warning(slnJsT('salon.products.js.tedarikci_secilmelidir', 'Tedarikci secilmelidir')); return; }
+        if (!requireBranchValue(branchId, slnJsT('salon.products.purchase_branch_required', 'Alis kaydi icin sube secilmelidir'))) return;
         if (quantity <= 0) { toastr.warning(slnJsT('salon.products.js.quantity_positive', "Miktar 0'dan büyük olmalıdır")); return; }
         if (unitPrice <= 0) { toastr.warning(slnJsT('salon.products.js.purchase_price_positive', "Alış fiyatı 0'dan büyük olmalıdır")); return; }
 
@@ -504,6 +534,7 @@ function ProductsViewModel() {
         if (!product) { return; }
 
         var supplierId = parseInt(self.supplierOrderForm.supplierId());
+        var branchId = getCurrentBranchId();
         var quantity = parseFloat(self.supplierOrderForm.quantity()) || 0;
         var unitPrice = parseFloat(self.supplierOrderForm.unitPrice()) || 0;
 

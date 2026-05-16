@@ -18,11 +18,17 @@ function CampaignsViewModel() {
     self.segmentEstimatedSmsCost = ko.observable(0);
     self.segmentPresets = ko.observableArray([]);
     self.inboxMessages = ko.observableArray([]);
+    self.branches = ko.observableArray([]);
+    self.branchTargetOptions = ko.computed(function () {
+        if (window.slnBuildBranchTargetOptions) return window.slnBuildBranchTargetOptions(self.branches());
+        return [{ id: '__all__', name: slnJsT('salon.common.all_branches', 'Tum Subeler') }].concat(self.branches() || []);
+    });
 
     self.campaignForm = {
         name: ko.observable(''),
         messageTemplate: ko.observable(''),
         scheduledAt: ko.observable(''),
+        branchTarget: ko.observable((window.slnGetBranch && window.slnGetBranch()) || ''),
         filter: {
             genderId: ko.observable(''),
             minAge: ko.observable(''),
@@ -47,6 +53,7 @@ function CampaignsViewModel() {
         messageTemplate: ko.observable(''),
         daysBefore: ko.observable(0),
         inactiveDaysThreshold: ko.observable(0),
+        branchTarget: ko.observable((window.slnGetBranch && window.slnGetBranch()) || ''),
         isActive: ko.observable(true)
     };
 
@@ -65,6 +72,30 @@ function CampaignsViewModel() {
     var statusBadges = { 1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success' };
 
     // ═══ Kampanya ═══
+
+    function getInitialBranchTarget() {
+        return (window.slnGetBranch && window.slnGetBranch()) || '';
+    }
+
+    function resolveBranchTarget(value) {
+        if (window.slnResolveBranchTarget) {
+            return window.slnResolveBranchTarget(value, 'salon.common.branch_target_required', 'Sube secin veya Tum Subeler secenegini secin');
+        }
+
+        if (value === '__all__') return { ok: true, branchId: null, allBranches: true };
+        var branchId = parseInt(value, 10) || null;
+        return branchId ? { ok: true, branchId: branchId, allBranches: false } : { ok: false };
+    }
+
+    function appendBranchTarget(url, target) {
+        return window.slnAppendBranchTarget ? window.slnAppendBranchTarget(url, target) : url;
+    }
+
+    self.loadBranches = function () {
+        $.ajax({ url: '/proxy/sln-branches?_nb=1', method: 'GET' }).done(function (data) {
+            self.branches(data.items || data || []);
+        });
+    };
 
     self.loadCampaigns = function () {
         $.ajax({ url: '/proxy/sln-marketing/campaigns', method: 'GET' }).done(function (data) {
@@ -121,6 +152,7 @@ function CampaignsViewModel() {
         self.campaignForm.name('');
         self.campaignForm.messageTemplate('');
         self.campaignForm.scheduledAt('');
+        self.campaignForm.branchTarget(getInitialBranchTarget());
         self.campaignForm.filter.genderId('');
         self.campaignForm.filter.minAge('');
         self.campaignForm.filter.maxAge('');
@@ -147,6 +179,7 @@ function CampaignsViewModel() {
         self.campaignForm.name(campaign.name);
         self.campaignForm.messageTemplate(campaign.messageTemplate);
         self.campaignForm.scheduledAt(campaign.scheduledAt ? campaign.scheduledAt.substring(0, 16) : '');
+        self.campaignForm.branchTarget(campaign.branchId ? String(campaign.branchId) : (window.slnAllBranchesValue || '__all__'));
         setSegmentPreview({ matchingClients: campaign.totalRecipients, smsReachableClients: campaign.totalRecipients });
 
         if (campaign.segmentFilter) {
@@ -216,8 +249,10 @@ function CampaignsViewModel() {
 
     self.previewSegment = function () {
         var filter = self.buildSegmentFilter();
+        var target = resolveBranchTarget(self.campaignForm.branchTarget());
+        if (!target.ok) return;
         $.ajax({
-            url: '/proxy/sln-marketing/campaigns/segment-preview',
+            url: appendBranchTarget('/proxy/sln-marketing/campaigns/segment-preview', target),
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(filter)
@@ -239,6 +274,9 @@ function CampaignsViewModel() {
             return;
         }
 
+        var target = resolveBranchTarget(self.campaignForm.branchTarget());
+        if (!target.ok) return;
+
         self.isSaving(true);
         var url = '/proxy/sln-marketing/campaigns';
         var method = 'POST';
@@ -246,6 +284,7 @@ function CampaignsViewModel() {
             url += '/' + self.editingCampaignId();
             method = 'PUT';
         }
+        url = appendBranchTarget(url, target);
 
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) })
             .done(function () {
@@ -301,6 +340,7 @@ function CampaignsViewModel() {
         self.reminderForm.messageTemplate('');
         self.reminderForm.daysBefore(0);
         self.reminderForm.inactiveDaysThreshold(0);
+        self.reminderForm.branchTarget(getInitialBranchTarget());
         self.reminderForm.isActive(true);
         self.isEditingReminder(false);
         self.editingReminderId(null);
@@ -318,6 +358,7 @@ function CampaignsViewModel() {
         self.reminderForm.messageTemplate(reminder.messageTemplate);
         self.reminderForm.daysBefore(reminder.daysBefore);
         self.reminderForm.inactiveDaysThreshold(reminder.inactiveDaysThreshold);
+        self.reminderForm.branchTarget(reminder.branchId ? String(reminder.branchId) : (window.slnAllBranchesValue || '__all__'));
         self.reminderForm.isActive(ko.unwrap(reminder.isActive));
         reminderModal.show();
     };
@@ -336,6 +377,9 @@ function CampaignsViewModel() {
             return;
         }
 
+        var target = resolveBranchTarget(self.reminderForm.branchTarget());
+        if (!target.ok) return;
+
         self.isSaving(true);
         var url = '/proxy/sln-marketing/reminders';
         var method = 'POST';
@@ -343,6 +387,7 @@ function CampaignsViewModel() {
             url += '/' + self.editingReminderId();
             method = 'PUT';
         }
+        url = appendBranchTarget(url, target);
 
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) })
             .done(function () {
@@ -425,6 +470,7 @@ function CampaignsViewModel() {
         campaignModal = new bootstrap.Modal(document.getElementById('campaignModal'));
         reminderModal = new bootstrap.Modal(document.getElementById('reminderModal'));
         replyModal = new bootstrap.Modal(document.getElementById('replyModal'));
+        self.loadBranches();
         self.loadCampaigns();
         self.loadSegmentPresets();
         self.loadReminders();

@@ -15,6 +15,7 @@ namespace CallCenter.Api.Controllers;
 public class SlnEmailCampaignController : ControllerBase
 {
     private readonly ISlnEmailCampaignFactory _factory;
+    private const string BranchTargetRequiredMessage = "Sube secin veya Tum Subeler secenegini secin";
 
     public SlnEmailCampaignController(ISlnEmailCampaignFactory factory) => _factory = factory;
 
@@ -36,19 +37,23 @@ public class SlnEmailCampaignController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnEmailCampaignDto>> CreateCampaign([FromBody] SlnEmailCampaignCreateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult<SlnEmailCampaignDto>> CreateCampaign([FromBody] SlnEmailCampaignCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.CreateCampaignAsync(dto, customerId, GetBranchId() ?? branchId));
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+        return Ok(await _factory.CreateCampaignAsync(dto, customerId, target.BranchId));
     }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnEmailCampaignUpdateDto dto, [FromQuery] int? branchId)
+    public async Task<ActionResult> UpdateCampaign(int id, [FromBody] SlnEmailCampaignUpdateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.UpdateCampaignAsync(id, dto, customerId, GetBranchId() ?? branchId);
+        var target = ResolveMutationBranchTarget(branchId, allBranches);
+        if (target.Error != null) return target.Error;
+        var (success, error) = await _factory.UpdateCampaignAsync(id, dto, customerId, target.BranchId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -93,5 +98,14 @@ public class SlnEmailCampaignController : ControllerBase
     {
         var value = User.FindFirst("BranchId")?.Value;
         return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
+
+    private (int? BranchId, ActionResult? Error) ResolveMutationBranchTarget(int? requestedBranchId, bool allBranches)
+    {
+        var claimBranchId = GetBranchId();
+        if (claimBranchId.HasValue) return (claimBranchId.Value, null);
+        if (allBranches) return (null, null);
+        if (requestedBranchId.HasValue && requestedBranchId.Value > 0) return (requestedBranchId.Value, null);
+        return (null, BadRequest(BranchTargetRequiredMessage));
     }
 }

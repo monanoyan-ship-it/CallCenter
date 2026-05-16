@@ -7,17 +7,23 @@ function MembershipsViewModel() {
     self.plans = ko.observableArray([]);
     self.memberships = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
+    self.branches = ko.observableArray([]);
     self.isEditingPlan = ko.observable(false);
     self.editingPlanId = ko.observable(null);
     self.isSaving = ko.observable(false);
 
     self.serviceCategories = ko.observableArray([]);
+    self.branchTargetOptions = ko.computed(function () {
+        if (window.slnBuildBranchTargetOptions) return window.slnBuildBranchTargetOptions(self.branches());
+        return [{ id: '__all__', name: memberT('salon.common.all_branches', 'Tum Subeler') }].concat(self.branches() || []);
+    });
 
     self.planForm = {
         name: ko.observable(''), description: ko.observable(''), iconClass: ko.observable('bi-award'),
         color: ko.observable('#7b1fa2'), price: ko.observable(0), discountPercent: ko.observable(10),
         priorityBooking: ko.observable(false),
         durationType: ko.observable(1), durationDays: ko.observable(30),
+        branchTarget: ko.observable((window.slnGetBranch && window.slnGetBranch()) || ''),
         serviceIds: ko.observableArray([])
     };
 
@@ -68,9 +74,31 @@ function MembershipsViewModel() {
 
     var planModal, memberModal;
 
+    function getInitialBranchTarget() {
+        return (window.slnGetBranch && window.slnGetBranch()) || '';
+    }
+
+    function resolveBranchTarget(value) {
+        if (window.slnResolveBranchTarget) {
+            return window.slnResolveBranchTarget(value, 'salon.common.branch_target_required', 'Sube secin veya Tum Subeler secenegini secin');
+        }
+
+        if (value === '__all__') return { ok: true, branchId: null, allBranches: true };
+        var branchId = parseInt(value, 10) || null;
+        return branchId ? { ok: true, branchId: branchId, allBranches: false } : { ok: false };
+    }
+
+    function appendBranchTarget(url, target) {
+        return window.slnAppendBranchTarget ? window.slnAppendBranchTarget(url, target) : url;
+    }
+
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-memberships/plans', method: 'GET' }).done(function (d) { self.plans(d.items || d); });
         $.ajax({ url: '/proxy/sln-memberships', method: 'GET' }).done(function (d) { self.memberships(d.items || d); });
+    };
+
+    self.loadBranches = function () {
+        $.ajax({ url: '/proxy/sln-branches?_nb=1', method: 'GET' }).done(function (d) { self.branches(d.items || d || []); });
     };
 
     self.loadClients = function () {
@@ -132,6 +160,7 @@ function MembershipsViewModel() {
         self.planForm.price(0); self.planForm.discountPercent(10);
         self.planForm.priorityBooking(false);
         self.planForm.durationType(1); self.planForm.durationDays(30);
+        self.planForm.branchTarget(getInitialBranchTarget());
         self.planForm.serviceIds([]); self._planServiceDetailMap = {}; self.selectedCategoryId(null);
         planModal.show();
     };
@@ -142,6 +171,7 @@ function MembershipsViewModel() {
         self.planForm.color(p.color || '#7b1fa2'); self.planForm.price(p.price || 0);
         self.planForm.discountPercent(p.discountPercent); self.planForm.priorityBooking(p.priorityBooking);
         self.planForm.durationType(p.durationType || 1); self.planForm.durationDays(p.durationDays || 30);
+        self.planForm.branchTarget(p.branchId ? String(p.branchId) : (window.slnAllBranchesValue || '__all__'));
         // Mevcut hizmet detaylarini yukle
         self._planServiceDetailMap = {};
         if (p.serviceDetails) {
@@ -175,10 +205,13 @@ function MembershipsViewModel() {
         };
         if (!d.name) { toastr.warning(memberT('salon.memberships.plan_name_required', 'Plan adı zorunludur')); return; }
 
+        var target = resolveBranchTarget(self.planForm.branchTarget());
+        if (!target.ok) return;
+
         self.isSaving(true);
-        var url = '/proxy/sln-memberships/plans';
+        var url = appendBranchTarget('/proxy/sln-memberships/plans', target);
         var method = 'POST';
-        if (self.isEditingPlan()) { url += '/' + self.editingPlanId(); method = 'PUT'; }
+        if (self.isEditingPlan()) { url = appendBranchTarget('/proxy/sln-memberships/plans/' + self.editingPlanId(), target); method = 'PUT'; }
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
             planModal.hide(); self.loadData(); toastr.success(memberT('salon.memberships.plan_saved', 'Plan kaydedildi')); self.isSaving(false);
         }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.generic', 'Bir hata oluştu')); self.isSaving(false); });
@@ -228,7 +261,7 @@ function MembershipsViewModel() {
     $(document).ready(function () {
         planModal = new bootstrap.Modal(document.getElementById('planModal'));
         memberModal = new bootstrap.Modal(document.getElementById('memberModal'));
-        self.loadClients(); self.loadServices(); self.loadData();
+        self.loadBranches(); self.loadClients(); self.loadServices(); self.loadData();
     });
 }
 

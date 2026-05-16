@@ -313,6 +313,7 @@ public class SlnAppointmentCreateDto
 public class SlnProductDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Barcode { get; set; }
     public string CategoryName { get; set; } = string.Empty;
@@ -661,6 +662,7 @@ public class SlnNoShowPolicyUpdateDto
 public class SlnMembershipPlanDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? IconClass { get; set; }
@@ -687,6 +689,7 @@ public class MembershipServiceDetailDto
 
 public class SlnMembershipPlanCreateDto
 {
+    public int? BranchId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? IconClass { get; set; }

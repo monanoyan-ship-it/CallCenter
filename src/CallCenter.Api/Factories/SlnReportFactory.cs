@@ -498,7 +498,8 @@ public class SlnReportFactory : ISlnReportFactory
     public async Task<SlnStockReportDto> GetStockReportAsync(int customerId, int? branchId = null)
     {
         var products = await _products.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId && p.IsActive)
+            .Where(p => p.CustomerId == customerId && p.IsActive &&
+                (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value))
             .Include(p => p.Category)
             .ToListAsync();
 
@@ -705,7 +706,8 @@ public class SlnReportFactory : ISlnReportFactory
         var cashBalance = cashBalanceRows.Sum(t => t.TransactionTypeId == 1 ? t.Amount : t.TransactionTypeId == 2 ? -t.Amount : 0);
 
         var products = await _products.GetAllQueryable()
-            .Where(p => p.CustomerId == customerId && p.IsActive)
+            .Where(p => p.CustomerId == customerId && p.IsActive &&
+                (!branchId.HasValue || p.BranchId == null || p.BranchId == branchId.Value))
             .Select(p => new
             {
                 p.Id,
