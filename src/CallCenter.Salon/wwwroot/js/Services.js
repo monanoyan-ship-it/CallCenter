@@ -172,12 +172,12 @@ function ServicesViewModel() {
 
     self.packageSummary = function (svc) {
         if (!self.packageFeatureAvailable()) {
-            return slnJsT('salon.services.package_unavailable', 'Paket modÃ¼lÃ¼ kapalÄ±');
+            return slnJsT('salon.services.package_unavailable', 'Seans takip modulu kapali');
         }
 
         var stats = self.packageStats(svc.id);
         if (!stats.definitionCount) {
-            return slnJsT('salon.services.package_empty', 'Paket yok');
+            return slnJsT('salon.session_plans.empty', 'Seans takibi yok');
         }
 
         var parts = [];
@@ -185,7 +185,7 @@ function ServicesViewModel() {
             parts.push(stats.definitionCount + ' ' + slnJsT('salon.services.package_def_short', 'tanÄ±m'));
         }
 
-        return parts.join(' Â· ') || slnJsT('salon.services.package_empty', 'Paket yok');
+        return parts.join(' Â· ') || slnJsT('salon.session_plans.empty', 'Seans takibi yok');
     };
 
     self.comboSummary = function (combo) {
@@ -461,7 +461,7 @@ function ServicesViewModel() {
 
     self.openPackageManager = function (service) {
         if (!self.packageFeatureAvailable()) {
-            toastr.info(slnJsT('salon.services.package_unavailable', 'Paket modÃ¼lÃ¼ kapalÄ±'));
+            toastr.info(slnJsT('salon.services.package_unavailable', 'Seans takip modulu kapali'));
             return;
         }
         self.selectedPackageService(service);
@@ -496,7 +496,7 @@ function ServicesViewModel() {
             validDays: parseInt(self.packageForm.validDays()) || 365,
             isActive: true
         };
-        if (!data.name) { toastr.warning(slnJsT('salon.packages.js.paket_adi_ve_hizmet_zorunludur', 'Paket adÄ± ve hizmet zorunludur')); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.session_plans.js.definition_and_service_required', 'Seans tanimi ve hizmet zorunludur')); return; }
         if (data.totalSessions <= 0) { toastr.warning(slnJsT('salon.services.package_sessions_required', 'Seans sayÄ±sÄ± 0â€™dan bÃ¼yÃ¼k olmalÄ±dÄ±r')); return; }
 
         self.isSaving(true);
@@ -512,21 +512,21 @@ function ServicesViewModel() {
                 self.packageDefinitions(normalizeList(items));
             });
             resetPackageForm(service);
-            toastr.success(slnJsT('salon.packages.js.paket_tanimi_kaydedildi', 'Paket tanÄ±mÄ± kaydedildi'));
+            toastr.success(slnJsT('salon.session_plans.js.definition_saved', 'Seans tanimi kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.services.package_save_failed', 'Paket tanÄ±mÄ± kaydedilemedi')));
+            toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.session_plans.js.definition_save_failed', 'Seans tanimi kaydedilemedi')));
             self.isSaving(false);
         });
     };
 
     self.removePackageDef = function (def) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.packages.js.delete_def_confirm', "'{name}' paketini silmek istediÄŸinize emin misiniz?").replace('{name}', def.name || ''), function () {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.session_plans.js.delete_def_confirm', "'{name}' seans tanimini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
             $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success(slnJsT('salon.packages.js.paket_tanimi_silindi', 'Paket tanÄ±mÄ± silindi'));
+                toastr.success(slnJsT('salon.session_plans.js.definition_deleted', 'Seans tanimi silindi'));
             }).fail(function (xhr) {
-                toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.services.package_delete_failed', 'Paket tanÄ±mÄ± silinemedi')));
+                toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.session_plans.js.definition_delete_failed', 'Seans tanimi silinemedi')));
             });
         });
     };

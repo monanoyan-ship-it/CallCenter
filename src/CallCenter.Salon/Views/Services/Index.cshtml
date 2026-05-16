@@ -47,7 +47,7 @@
                             <tr>
                                 <th><t key="salon.services.auto.hizmet_adi">Hizmet AdÄ±</t></th>
                                 <th><t key="salon.services.auto.sure_dk">SÃ¼re (dk)</t></th>
-                                <th><t key="salon.services.package_tracking">Seans Paketi</t></th>
+                                <th><t key="salon.session_plans.service_tracking">Seanslı Hizmet</t></th>
                                 <th><t key="salon.services.resources">Kaynaklar</t></th>
                                 <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
                                 <th><t key="salon.appointments.status">Durum</t></th>
@@ -102,7 +102,7 @@
                         <tr>
                             <th><t key="salon.services.auto.hizmet_adi">Hizmet AdÄ±</t></th>
                             <th><t key="salon.services.auto.sure_dk_2">SÃ¼re (dk)</t></th>
-                            <th><t key="salon.services.package_tracking">Seans Paketi</t></th>
+                            <th><t key="salon.session_plans.service_tracking">Seanslı Hizmet</t></th>
                             <th><t key="salon.services.resources">Kaynaklar</t></th>
                             <th><t key="salon.services.auto.fiyat_2">Fiyat</t></th>
                             <th><t key="salon.appointments.status">Durum</t></th>
@@ -377,7 +377,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h6 class="modal-title">
-                        <t key="salon.services.package_tracking">Seans Paketi</t>
+                        <t key="salon.session_plans.service_tracking">Seanslı Hizmet</t>
                         <span class="text-muted ms-1" data-bind="text: selectedPackageService() ? selectedPackageService().name : ''"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -387,20 +387,20 @@
                         <div class="col-lg-5">
                             <div class="border rounded p-2 mb-3 small">
                                 <div class="d-flex justify-content-between">
-                                    <span class="text-muted"><t key="salon.services.package_definitions">Paket Tanimlari</t></span>
+                                    <span class="text-muted"><t key="salon.session_plans.definitions">Seans Tanımları</t></span>
                                     <strong data-bind="text: selectedPackageStats().definitionCount"></strong>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 small fw-semibold" data-bind="text: isEditingPackageDef() ? salonT('salon.packages.auto.paket_duzenle', 'Paket Duzenle') : salonT('salon.packages.auto.yeni_paket_tanimi', 'Yeni Paket Tanimi')"></h6>
+                                <h6 class="mb-0 small fw-semibold" data-bind="text: isEditingPackageDef() ? salonT('salon.session_plans.edit_definition', 'Seans Tanımı Düzenle') : salonT('salon.session_plans.new_definition', 'Yeni Seans Tanımı')"></h6>
                                 <button type="button" class="btn btn-link btn-sm p-0" data-bind="click: newPackageDef, visible: isEditingPackageDef">
                                     <t key="salon.services.package_new_form">Yeni form</t>
                                 </button>
                             </div>
                             <div class="row g-2">
                                 <div class="col-12">
-                                    <label class="form-label small"><t key="salon.packages.auto.paket_adi_required">Paket Adi *</t></label>
+                                    <label class="form-label small"><t key="salon.session_plans.definition_name_required">Seans Tanımı *</t></label>
                                     <input type="text" class="form-control form-control-sm" data-bind="value: packageForm.name" />
                                 </div>
                                 <div class="col-4">
@@ -429,16 +429,16 @@
 
                         <div class="col-lg-7">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="small fw-semibold mb-0"><t key="salon.services.package_definitions">Paket Tanimlari</t></h6>
+                                <h6 class="small fw-semibold mb-0"><t key="salon.session_plans.definitions">Seans Tanımları</t></h6>
                                 <a class="btn btn-outline-primary btn-sm" href="/Packages">
-                                    <i class="bi bi-arrow-right-circle me-1"></i><t key="salon.packages.client_packages">Müşteri Paketleri</t>
+                                    <i class="bi bi-arrow-right-circle me-1"></i><t key="salon.session_plans.client_plans">Müşteri Seansları</t>
                                 </a>
                             </div>
                             <div class="table-responsive mb-3">
                                 <table class="table table-sm table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
-                                            <th><t key="salon.packages.auto.paket">Paket</t></th>
+                                            <th><t key="salon.session_plans.definition">Seans Tanımı</t></th>
                                             <th><t key="salon.services.package_sessions">Seans</t></th>
                                             <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
                                             <th><t key="salon.packages.auto.seans_basi">Seans basi</t></th>
@@ -466,7 +466,7 @@
                             </div>
                             <!-- ko if: packageDefinitionsForSelected().length === 0 -->
                             <div class="text-center text-muted py-3 small border rounded mb-3">
-                                <t key="salon.services.package_empty_for_service">Bu hizmet icin paket tanimi yok.</t>
+                                <t key="salon.session_plans.empty_for_service">Bu hizmet için seans tanımı yok.</t>
                             </div>
                             <!-- /ko -->
                         </div>

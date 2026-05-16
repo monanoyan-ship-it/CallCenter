@@ -153,7 +153,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         decimal totalAmount = 0;
         var items = new List<SlnInvoiceItem>();
         var membershipUsageRecords = new List<(int MembershipId, int ServiceId)>();
-        var packageUsageRecords = new List<(int ClientPackageId, int ServiceId)>();
+        var packageUsageRecords = new List<(int ClientPackageId, int ServiceId, SlnInvoiceItem Item)>();
+        var sessionPlanSaleItems = new List<SlnInvoiceItem>();
         var membershipBenefitLookup = new Dictionary<int, ServiceMembershipBenefit>();
         var packageBenefitLookup = new Dictionary<int, SlnPackageBenefitDto>();
 
@@ -262,8 +263,6 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 if (usageCount > packageBenefit.RemainingSessions)
                     return (null, $"Paket seansi yetersiz. Kalan: {packageBenefit.RemainingSessions}");
 
-                for (var i = 0; i < usageCount; i++)
-                    packageUsageRecords.Add((itemDto.ClientPackageId.Value, itemDto.ServiceId.Value));
             }
             else if (itemDto.UseMembershipBenefit)
             {
@@ -294,16 +293,35 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             var lineTotal = Math.Max(0, (itemDto.Quantity * unitPrice) - lineDiscount);
             totalAmount += lineTotal;
 
-            items.Add(new SlnInvoiceItem
+            var invoiceItem = new SlnInvoiceItem
             {
                 ServiceId = itemDto.ServiceId,
                 ProductId = itemDto.ProductId,
+                ClientPackageId = itemDto.UsePackageSession ? itemDto.ClientPackageId : null,
+                IsSessionUsage = itemDto.UsePackageSession,
                 PersonnelId = itemDto.PersonnelId,
                 Quantity = itemDto.Quantity,
                 UnitPrice = unitPrice,
                 DiscountAmount = lineDiscount,
                 LineTotal = lineTotal
-            });
+            };
+            items.Add(invoiceItem);
+
+            if (itemDto.UsePackageSession && itemDto.ClientPackageId.HasValue && itemDto.ServiceId.HasValue)
+            {
+                var usageCount = (int)itemDto.Quantity;
+                for (var i = 0; i < usageCount; i++)
+                    packageUsageRecords.Add((itemDto.ClientPackageId.Value, itemDto.ServiceId.Value, invoiceItem));
+            }
+
+            if (dto.SlnClientId.HasValue
+                && itemDto.ServiceId.HasValue
+                && !itemDto.ProductId.HasValue
+                && !itemDto.UseMembershipBenefit
+                && !itemDto.UsePackageSession)
+            {
+                sessionPlanSaleItems.Add(invoiceItem);
+            }
 
             // Urun satisinda stok dusur
             if (itemDto.ProductId.HasValue)
@@ -370,7 +388,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         foreach (var usage in packageUsageRecords)
         {
             var notes = $"Invoice:{invoice.Id}|InvoiceNo:{invoiceNo}|Service:{usage.ServiceId}";
-            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId);
+            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId, invoice.Id, usage.Item.Id);
             if (!success)
             {
                 _logger.LogWarning("Paket seansi kaydedilemedi: InvoiceId={InvoiceId}, ClientPackageId={ClientPackageId}, Error={Error}", invoice.Id, usage.ClientPackageId, error);
@@ -388,6 +406,37 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }, customerId);
             if (!success)
                 return (null, error ?? "Hediye karti odemesi kaydedilemedi");
+        }
+
+        if (dto.SlnClientId.HasValue && sessionPlanSaleItems.Count > 0)
+        {
+            var sessionPlanSaleLines = sessionPlanSaleItems
+                .Where(i => i.ServiceId.HasValue)
+                .Select(i =>
+                {
+                    var quantityAsInt = i.Quantity == Math.Truncate(i.Quantity)
+                        ? (int)i.Quantity
+                        : 1;
+                    return new SlnSessionPlanSaleLine(i.ServiceId!.Value, i.LineTotal, Math.Max(1, quantityAsInt), i.Id);
+                })
+                .ToList();
+
+            var createdPlans = await _packages.CreateSessionPlansFromInvoiceAsync(
+                customerId,
+                dto.SlnClientId.Value,
+                invoice.Id,
+                sessionPlanSaleLines,
+                userId,
+                branchId);
+
+            if (createdPlans.Count > 0)
+            {
+                var saleNote = "SessionPlanSale:" + string.Join(",", createdPlans.Select(p => p.Id));
+                invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes)
+                    ? saleNote
+                    : $"{invoice.Notes}|{saleNote}";
+                await _uow.SaveChangesAsync();
+            }
         }
 
         _logger.LogInformation("Yeni adisyon olusturuldu: {InvoiceNo} - {NetAmount:C}", invoiceNo, invoice.NetAmount);
@@ -1309,7 +1358,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     private static bool HasPackageSaleNote(string? notes)
         => !string.IsNullOrWhiteSpace(notes)
-            && notes.Contains("PackageSale:", StringComparison.OrdinalIgnoreCase);
+            && (notes.Contains("PackageSale:", StringComparison.OrdinalIgnoreCase)
+                || notes.Contains("SessionPlanSale:", StringComparison.OrdinalIgnoreCase));
 
     private static bool HasGiftCardSaleNote(string? notes)
         => !string.IsNullOrWhiteSpace(notes)

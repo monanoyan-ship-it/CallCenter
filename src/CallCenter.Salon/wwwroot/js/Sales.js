@@ -16,7 +16,6 @@ function SalesViewModel() {
     self.showRecipes = ko.observable(false);
     self.cartItems = ko.observableArray([]);
     self.clientId = ko.observable(null);
-    self.assignPackageDefinitionId = ko.observable(null);
     self.selectedPersonnelId = ko.observable(null);
     self.paymentMethodId = ko.observable('1');
     self.giftCardCode = ko.observable('');
@@ -109,7 +108,7 @@ function SalesViewModel() {
                 item.clientPackageId = pkg.clientPackageId;
                 item.usePackageSession = true;
                 item.packageRemainingSessions = pkg.remainingSessions;
-                item.benefitText(pkg.packageName + ': ' + slnJsT('salon.sales.package_session_tracking_suffix', 'paket seansı takipte, tahsilat bu adisyondan alınır') + ' (' + slnJsT('salon.packages.auto.kalan', 'kalan') + ' ' + pkg.remainingSessions + ')');
+                item.benefitText(pkg.packageName + ': ' + slnJsT('salon.sales.session_plan_available_suffix', 'satilmis seans planindan dusulecek') + ' (' + slnJsT('salon.packages.auto.kalan', 'kalan') + ' ' + pkg.remainingSessions + ')');
             });
         }).always(function () {
             self.applyMembershipOnly();
@@ -129,6 +128,7 @@ function SalesViewModel() {
             item.useMembershipBenefit = false;
             item.benefitText(null);
             item.editPrice(item.unitPrice);
+            self.setSessionSaleHint(item);
         });
 
         $.ajax({
@@ -142,7 +142,10 @@ function SalesViewModel() {
                 if (item.usePackageSession === true) return;
                 self.ensureBenefitFields(item);
                 var benefit = benefits.find(function (b) { return b.serviceId === item.serviceId; });
-                if (!benefit) return;
+                if (!benefit) {
+                    self.setSessionSaleHint(item);
+                    return;
+                }
 
                 if (benefit.hasFreeBenefit && benefit.remainingFree > 0) {
                     // Ucretsiz hakki var
@@ -157,6 +160,8 @@ function SalesViewModel() {
                     item.membershipId = null;
                     item.useMembershipBenefit = false;
                     item.benefitText(benefit.planName + ': ' + slnJsT('salon.sales.membership_discount_suffix', '%{percent} indirim').replace('{percent}', benefit.discountPercent));
+                } else {
+                    self.setSessionSaleHint(item);
                 }
             });
             if (benefits.some(function (b) { return b.hasFreeBenefit || b.discountPercent; }))
@@ -180,16 +185,37 @@ function SalesViewModel() {
         }).slice(0, 8);
     });
 
-    self.selectedAssignPackageDefinition = ko.computed(function () {
-        var id = parseInt(self.assignPackageDefinitionId()) || 0;
-        return self.packageDefinitions().find(function (d) { return parseInt(d.id) === id; }) || null;
-    });
-
     self.subtotal = ko.computed(function () {
         var total = 0;
         self.cartItems().forEach(function (item) { total += item.quantity() * (parseFloat(item.editPrice()) || 0); });
         return total;
     });
+
+    self.sessionDefinitionForService = function (serviceId) {
+        var id = parseInt(serviceId) || 0;
+        if (!id) return null;
+        return self.packageDefinitions().find(function (def) {
+            return def.isActive !== false && parseInt(def.serviceId) === id;
+        }) || null;
+    };
+
+    self.sessionDefinitionLabel = function (service) {
+        var def = self.sessionDefinitionForService(service && service.id);
+        if (!def) return '';
+        return (parseInt(def.totalSessions) || 0) + ' ' + slnJsT('salon.services.package_sessions', 'seans');
+    };
+
+    self.setSessionSaleHint = function (item) {
+        if (!item || !item.serviceId || item.usePackageSession === true || item.useMembershipBenefit === true) return;
+        var def = self.sessionDefinitionForService(item.serviceId);
+        if (!def) return;
+
+        self.ensureBenefitFields(item);
+        item.benefitText(
+            slnJsT('salon.sales.session_plan_sale_hint', 'Odeme alindiginda musteriye {count} seanslik takip acilir.')
+                .replace('{count}', parseInt(def.totalSessions) || 0)
+        );
+    };
 
     self.grandTotal = ko.computed(function () {
         var tip = self.tipIncludeInTotal() ? (parseFloat(self.tipAmount()) || 0) : 0;
@@ -236,60 +262,6 @@ function SalesViewModel() {
             .fail(function () { self.products([]); });
     };
 
-    self.openPackageAssign = function () {
-        if (!self.clientId()) {
-            toastr.warning(slnJsT('salon.sales.package_assign_client_required', 'Seans paketi atamak icin once musteri secin.'));
-            return;
-        }
-
-        var defs = self.packageDefinitions();
-        if (!defs.length) {
-            toastr.warning(slnJsT('salon.sales.package_assign_no_definition', 'Once hizmet ekranindan seans paketi tanimi olusturun.'));
-            return;
-        }
-
-        var cartServiceIds = self.cartItems()
-            .filter(function (item) { return item.serviceId; })
-            .map(function (item) { return item.serviceId; });
-        var matchingDef = defs.find(function (def) { return cartServiceIds.indexOf(def.serviceId) >= 0; }) || defs[0];
-        self.assignPackageDefinitionId(matchingDef ? matchingDef.id : null);
-
-        if (!packageAssignModal) packageAssignModal = new bootstrap.Modal(document.getElementById('packageAssignModal'));
-        packageAssignModal.show();
-    };
-
-    self.confirmPackageAssign = function () {
-        if (!self.clientId()) {
-            toastr.warning(slnJsT('salon.sales.package_assign_client_required', 'Seans paketi atamak icin once musteri secin.'));
-            return;
-        }
-
-        var def = self.selectedAssignPackageDefinition();
-        if (!def) {
-            toastr.warning(slnJsT('salon.sales.package_assign_definition_required', 'Paket tanimi secilmelidir.'));
-            return;
-        }
-
-        self.isSaving(true);
-        $.ajax({
-            url: '/proxy/sln-packages/assign',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                packageDefinitionId: parseInt(def.id),
-                slnClientId: parseInt(self.clientId())
-            })
-        }).done(function () {
-            if (packageAssignModal) packageAssignModal.hide();
-            toastr.success(slnJsT('salon.sales.package_assigned', 'Seans paketi musteriye atandi.'));
-            self.applyClientBenefits();
-        }).fail(function (xhr) {
-            toastr.error(readError(xhr, slnJsT('salon.sales.package_assign_failed', 'Seans paketi atanamadi')));
-        }).always(function () {
-            self.isSaving(false);
-        });
-    };
-
     // ═══ Recipe Toggle ═══
     self.toggleRecipes = function () {
         self.showRecipes(!self.showRecipes());
@@ -329,16 +301,19 @@ function SalesViewModel() {
         var existing = self.cartItems().find(function (item) { return item.serviceId === service.id; });
         if (existing) {
             existing.quantity(existing.quantity() + 1);
+            self.applyMembershipBenefits();
             return;
         }
-        self.cartItems.push({
+        var cartItem = {
             serviceId: service.id,
             name: service.name,
             unitPrice: service.price,
             editPrice: ko.observable(service.price),
             quantity: ko.observable(1),
             benefitText: ko.observable(null)
-        });
+        };
+        self.setSessionSaleHint(cartItem);
+        self.cartItems.push(cartItem);
         // Uyelik kontrolu
         self.applyMembershipBenefits();
     };
@@ -560,7 +535,7 @@ function SalesViewModel() {
     };
 
     // ═══ Randevu Çek ═══
-    var appointmentModal, packageAssignModal;
+    var appointmentModal;
 
     self.openAppointments = function () {
         self.appointmentsLoading(true);
@@ -768,8 +743,6 @@ function SalesViewModel() {
 
     // ═══ Init ═══
     $(document).ready(function () {
-        var packageAssignEl = document.getElementById('packageAssignModal');
-        if (packageAssignEl) packageAssignModal = new bootstrap.Modal(packageAssignEl);
         self.loadData();
     });
 }

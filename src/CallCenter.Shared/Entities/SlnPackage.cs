@@ -1,7 +1,7 @@
 namespace CallCenter.Shared.Entities;
 
 /// <summary>
-/// Paket tanimi (orn: 10 seans sac bakimi, 5 seans cilt bakimi)
+/// Seansli hizmet tanimi (orn: Tam Vucut Epilasyon - 6 seans)
 /// </summary>
 public class SlnPackageDefinition
 {
@@ -22,7 +22,7 @@ public class SlnPackageDefinition
 }
 
 /// <summary>
-/// Musteriye satilmis paket
+/// Musteriye satilmis seansli hizmet takibi
 /// </summary>
 public class SlnClientPackage
 {
@@ -36,10 +36,20 @@ public class SlnClientPackage
     public int? SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }
 
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     public int TotalSessions { get; set; }
     public int UsedSessions { get; set; }
     public int RemainingSessions { get; set; }
+    public decimal SaleAmount { get; set; }
     public decimal PaidAmount { get; set; }
+
+    public int? SourceInvoiceId { get; set; }
+    public SlnInvoice? SourceInvoice { get; set; }
+
+    public int? SourceInvoiceItemId { get; set; }
+    public SlnInvoiceItem? SourceInvoiceItem { get; set; }
 
     public DateTime? ExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
@@ -53,7 +63,7 @@ public class SlnClientPackage
 }
 
 /// <summary>
-/// Paket kullanim kaydi
+/// Satilmis seansli hizmet kullanim kaydi
 /// </summary>
 public class SlnPackageUsage
 {
@@ -63,6 +73,18 @@ public class SlnPackageUsage
 
     public int? PersonnelId { get; set; }
     public CustomerPersonnel? Personnel { get; set; }
+
+    public int? InvoiceId { get; set; }
+    public SlnInvoice? Invoice { get; set; }
+
+    public int? InvoiceItemId { get; set; }
+    public SlnInvoiceItem? InvoiceItem { get; set; }
+
+    public int? ServiceId { get; set; }
+    public SlnService? Service { get; set; }
+
+    public int? SlnAppointmentId { get; set; }
+    public SlnAppointment? SlnAppointment { get; set; }
 
     public string? Notes { get; set; }
     public DateTime UsedAt { get; set; } = DateTime.UtcNow;

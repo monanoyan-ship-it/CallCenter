@@ -8,12 +8,10 @@ function PackagesViewModel() {
     self.clientPackages = ko.observableArray([]);
     self.usageHistory = ko.observableArray([]);
     self.serviceList = ko.observableArray([]);
-    self.clientList = ko.observableArray([]);
 
     self.isEditingDef = ko.observable(false);
     self.editingDefId = ko.observable(null);
-    self.assigningDef = ko.observable(null);
-    self.assignClientId = ko.observable(null);
+    self.usingPackage = ko.observable(null);
     self.selectedClientPackage = ko.observable(null);
     self.searchQuery = ko.observable('');
     self.selectedServiceId = ko.observable('');
@@ -31,16 +29,16 @@ function PackagesViewModel() {
         validDays: ko.observable(365)
     };
 
-    self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.assignClientId);
-    self.clientAutocomplete.query.subscribe(function (value) {
-        if ((value || '').trim() && value !== self.clientAutocomplete.selectedName()) {
-            self.clientAutocomplete.showDropdown(true);
-        }
-    });
-
-    var defModal, assignModal;
+    var defModal, useSessionModal;
 
     function normalizeList(data) {
+        if (typeof data === 'string' && data.trim()) {
+            try {
+                data = JSON.parse(data);
+            } catch {
+                return [];
+            }
+        }
         if (Array.isArray(data)) return data;
         if (data && Array.isArray(data.items)) return data.items;
         return [];
@@ -135,9 +133,6 @@ function PackagesViewModel() {
         $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
             self.serviceList(normalizeList(data));
         });
-        $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
-            self.clientList(normalizeList(data));
-        });
     };
 
     self.loadUsageHistory = function (pkg) {
@@ -198,7 +193,7 @@ function PackagesViewModel() {
         };
 
         if (!data.name || !data.serviceId) {
-            toastr.warning(slnJsT('salon.packages.js.paket_adi_ve_hizmet_zorunludur', 'Paket adi ve hizmet zorunludur'));
+            toastr.warning(slnJsT('salon.session_plans.js.definition_and_service_required', 'Seans tanimi ve hizmet zorunludur'));
             return;
         }
         if (data.totalSessions <= 0) {
@@ -217,91 +212,69 @@ function PackagesViewModel() {
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
             defModal.hide();
             self.loadData();
-            toastr.success(slnJsT('salon.packages.js.paket_tanimi_kaydedildi', 'Paket tanimi kaydedildi'));
+            toastr.success(slnJsT('salon.session_plans.js.definition_saved', 'Seans tanimi kaydedildi'));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, slnJsT('salon.services.package_save_failed', 'Paket tanimi kaydedilemedi')));
+            toastr.error(readError(xhr, slnJsT('salon.session_plans.js.definition_save_failed', 'Seans tanimi kaydedilemedi')));
         }).always(function () {
             self.isSaving(false);
         });
     };
 
     self.removeDef = function (def) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.packages.js.delete_def_confirm', "'{name}' paketini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.session_plans.js.delete_def_confirm', "'{name}' seans tanimini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
             $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success(slnJsT('salon.packages.js.paket_tanimi_silindi', 'Paket tanimi silindi'));
+                toastr.success(slnJsT('salon.session_plans.js.definition_deleted', 'Seans tanimi silindi'));
             }).fail(function (xhr) {
-                toastr.error(readError(xhr, slnJsT('salon.services.package_delete_failed', 'Paket tanimi silinemedi')));
+                toastr.error(readError(xhr, slnJsT('salon.session_plans.js.definition_delete_failed', 'Seans tanimi silinemedi')));
             });
         });
     };
 
-    self.openAssign = function (def) {
-        self.assigningDef(def);
-        self.assignClientId(null);
-        self.clientAutocomplete.clear();
-        assignModal.show();
-    };
-
-    self.confirmAssign = function () {
-        var def = self.assigningDef();
-        if (!def) return;
-        if (!self.assignClientId()) {
-            toastr.warning(slnJsT('salon.packages.js.paket_atamak_icin_musteri_secilmelidir', 'Paket atamak icin musteri secilmelidir'));
+    self.openUseSession = function (pkg) {
+        var target = pkg || self.selectedClientPackage();
+        if (!target || !target.isActive || target.remainingSessions <= 0) return;
+        self.usingPackage(target);
+        self.manualUseNotes('');
+        if (!useSessionModal) {
+            toastr.error(slnJsT('salon.common.reload_required', 'Sayfa guncellenmeli. Lutfen sayfayi yenileyin.'));
             return;
         }
+        useSessionModal.show();
+    };
 
-        var data = {
-            packageDefinitionId: def.id,
-            slnClientId: parseInt(self.assignClientId())
-        };
+    self.confirmUseSession = function () {
+        var target = self.usingPackage();
+        if (!target || !target.isActive || target.remainingSessions <= 0) return;
 
         self.isSaving(true);
         $.ajax({
-            url: '/proxy/sln-packages/assign',
+            url: '/proxy/sln-packages/use',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(data)
-        }).done(function (pkg) {
-            assignModal.hide();
-            self.loadData(pkg && pkg.id);
-            toastr.success(slnJsT('salon.packages.js.paket_musteriye_atandi', 'Paket musteriye atandi'));
+            data: JSON.stringify({
+                clientPackageId: target.id,
+                notes: (self.manualUseNotes() || slnJsT('salon.session_plans.manual_use_note', 'Manuel seans kullanimi')).trim()
+            })
+        }).done(function () {
+            useSessionModal.hide();
+            self.manualUseNotes('');
+            self.usingPackage(null);
+            self.loadData(target.id);
+            toastr.success(slnJsT('salon.packages.js.session_used', '1 seans kullanildi'));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, slnJsT('salon.services.package_assign_failed', 'Paket atanamadi')));
+            toastr.error(readError(xhr, slnJsT('salon.packages.js.session_use_failed', 'Seans kullanimi kaydedilemedi')));
         }).always(function () {
             self.isSaving(false);
         });
     };
 
-    self.useSession = function (pkg) {
-        var target = pkg || self.selectedClientPackage();
-        if (!target || !target.isActive || target.remainingSessions <= 0) return;
-
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.packages.js.use_session_confirm', '1 seans kullanilacak. Emin misiniz?'), function () {
-            self.isSaving(true);
-            $.ajax({
-                url: '/proxy/sln-packages/use',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    clientPackageId: target.id,
-                    notes: (self.manualUseNotes() || slnJsT('salon.packages.manual_use_note', 'Manuel paket kullanimi')).trim()
-                })
-            }).done(function () {
-                self.manualUseNotes('');
-                self.loadData(target.id);
-                toastr.success(slnJsT('salon.packages.js.session_used', '1 seans kullanildi'));
-            }).fail(function (xhr) {
-                toastr.error(readError(xhr, slnJsT('salon.packages.js.session_use_failed', 'Seans kullanimi kaydedilemedi')));
-            }).always(function () {
-                self.isSaving(false);
-            });
-        });
-    };
+    self.useSession = self.openUseSession;
 
     $(document).ready(function () {
         defModal = new bootstrap.Modal(document.getElementById('defModal'));
-        assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
+        var useSessionEl = document.getElementById('useSessionModal');
+        if (useSessionEl) useSessionModal = new bootstrap.Modal(useSessionEl);
         self.loadLookups();
         self.loadData();
     });

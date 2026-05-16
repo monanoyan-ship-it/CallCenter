@@ -14,10 +14,13 @@ public interface ISlnPackageFactory
     Task<List<SlnClientPackageDto>> GetClientPackagesAsync(int customerId, int? clientId = null, int? branchId = null);
     Task<(SlnClientPackageDto? Package, string? Error)> AssignPackageAsync(SlnClientPackageAssignDto dto, int userId, int customerId, int? branchId = null);
     Task<(SlnClientPackageDto? Package, string? Error)> SellPackageAsync(SlnClientPackageSellDto dto, int userId, int customerId, int? branchId = null);
+    Task<List<SlnClientPackageDto>> CreateSessionPlansFromInvoiceAsync(int customerId, int slnClientId, int invoiceId, IEnumerable<SlnSessionPlanSaleLine> lines, int userId, int? branchId = null);
     Task<(bool Success, string? Error)> UseSessionAsync(SlnPackageUseDto dto, int userId, int customerId, int? branchId = null);
     Task<List<SlnPackageUsageDto>> GetUsageHistoryAsync(int customerId, int? clientPackageId = null, int? branchId = null);
     Task<List<SlnPackageBenefitDto>> GetUsablePackagesAsync(int customerId, int slnClientId, IEnumerable<int> serviceIds, int? branchId = null);
-    Task<(bool Success, string? Error)> RecordUsageAsync(int customerId, int clientPackageId, int? serviceId, int? slnClientId, int userId, string? notes, int? branchId = null);
+    Task<(bool Success, string? Error)> RecordUsageAsync(int customerId, int clientPackageId, int? serviceId, int? slnClientId, int userId, string? notes, int? branchId = null, int? invoiceId = null, int? invoiceItemId = null, int? appointmentId = null);
     Task<(bool Success, string? Error)> ReverseInvoiceUsagesAsync(int customerId, int invoiceId);
     Task<(bool Success, string? Error)> CancelPackageSaleFromInvoiceAsync(int customerId, string? invoiceNotes);
 }
+
+public sealed record SlnSessionPlanSaleLine(int ServiceId, decimal PaidAmount, int Quantity, int? InvoiceItemId = null);

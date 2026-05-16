@@ -45,6 +45,7 @@ Birden fazla Claude/Codex oturumu ayni anda calisabilir. Cakismayi onlemek icin:
 - Yeni kalici kural/hata/tercih ogrenilirse Pattern olarak kaydet.
 - Yeni hesap/API key/sifre/config olusturulursa Notes'a yaz.
 - Gunluk bilgi, deploy, domain, kredi, basvuru gibi bilgiler Journal'a yaz.
+- Duzeltilecek hata, eksik, UX kusuru veya teknik borc Notes'a degil roadmap task'ina yazilir ve tamamlandikca kapatilir.
 - Gorev tamamlaninca ilgili roadmap task'ina risk/eksik raporu ekle.
 
 ### 7. Paralel Calisma ve Sorumluluk

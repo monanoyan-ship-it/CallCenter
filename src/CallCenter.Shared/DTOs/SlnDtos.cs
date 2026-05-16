@@ -798,6 +798,9 @@ public class SlnClientPackageDto
     public int Id { get; set; }
     public int PackageDefinitionId { get; set; }
     public int ServiceId { get; set; }
+    public int? BranchId { get; set; }
+    public int? SourceInvoiceId { get; set; }
+    public int? SourceInvoiceItemId { get; set; }
     public string PackageName { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
     public string? ClientName { get; set; }
@@ -805,7 +808,9 @@ public class SlnClientPackageDto
     public int UsedSessions { get; set; }
     public int RemainingSessions { get; set; }
     public decimal PackagePrice { get; set; }
+    public decimal SaleAmount { get; set; }
     public decimal PaidAmount { get; set; }
+    public decimal BalanceAmount { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -834,6 +839,10 @@ public class SlnPackageUsageDto
 {
     public int Id { get; set; }
     public int ClientPackageId { get; set; }
+    public int? InvoiceId { get; set; }
+    public int? InvoiceItemId { get; set; }
+    public int? ServiceId { get; set; }
+    public int? SlnAppointmentId { get; set; }
     public string PackageName { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
     public string? ClientName { get; set; }

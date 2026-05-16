@@ -10,6 +10,11 @@ public class SlnInvoiceItem
     public int? ServiceId { get; set; }
     public SlnService? Service { get; set; }
 
+    /// <summary>Satilmis seansli hizmetten dusulen kullanim kalemi</summary>
+    public int? ClientPackageId { get; set; }
+    public SlnClientPackage? ClientPackage { get; set; }
+    public bool IsSessionUsage { get; set; }
+
     /// <summary>Urun satisi (null ise hizmet)</summary>
     public int? ProductId { get; set; }
     public SlnProduct? Product { get; set; }

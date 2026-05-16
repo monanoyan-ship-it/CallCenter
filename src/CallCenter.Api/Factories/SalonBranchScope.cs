@@ -89,10 +89,11 @@ internal static class SalonBranchScope
 
         var id = branchId.Value;
         return query.Where(p =>
-            p.SlnClient != null
-            && (p.SlnClient.BranchId == id
-                || p.SlnClient.Appointments.Any(a => a.BranchId == id)
-                || p.SlnClient.Invoices.Any(i => i.BranchId == id)));
+            p.BranchId == id
+            || (p.SlnClient != null
+                && (p.SlnClient.BranchId == id
+                    || p.SlnClient.Appointments.Any(a => a.BranchId == id)
+                    || p.SlnClient.Invoices.Any(i => i.BranchId == id))));
     }
 
     public static IQueryable<SlnWhatsAppMessage> ApplyToWhatsAppMessages(IQueryable<SlnWhatsAppMessage> query, int? branchId)

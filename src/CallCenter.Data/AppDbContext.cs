@@ -530,6 +530,38 @@ public class AppDbContext : DbContext
         {
             e.Property(i => i.TaxRate).HasPrecision(5, 2);
             e.Property(i => i.TaxAmount).HasPrecision(18, 2);
+            e.HasOne(i => i.ClientPackage).WithMany().HasForeignKey(i => i.ClientPackageId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnPackageDefinition>(e =>
+        {
+            e.Property(p => p.Price).HasPrecision(18, 2);
+            e.HasIndex(p => new { p.CustomerId, p.ServiceId });
+        });
+
+        modelBuilder.Entity<SlnClientPackage>(e =>
+        {
+            e.Property(p => p.SaleAmount).HasPrecision(18, 2);
+            e.Property(p => p.PaidAmount).HasPrecision(18, 2);
+            e.HasIndex(p => new { p.CustomerId, p.BranchId });
+            e.HasIndex(p => p.SourceInvoiceId);
+            e.HasIndex(p => p.SourceInvoiceItemId);
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.PackageDefinition).WithMany().HasForeignKey(p => p.PackageDefinitionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.SourceInvoice).WithMany().HasForeignKey(p => p.SourceInvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.SourceInvoiceItem).WithMany().HasForeignKey(p => p.SourceInvoiceItemId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnPackageUsage>(e =>
+        {
+            e.HasIndex(u => u.InvoiceId);
+            e.HasIndex(u => u.InvoiceItemId);
+            e.HasIndex(u => u.ServiceId);
+            e.HasIndex(u => u.SlnAppointmentId);
+            e.HasOne(u => u.Invoice).WithMany().HasForeignKey(u => u.InvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(u => u.InvoiceItem).WithMany().HasForeignKey(u => u.InvoiceItemId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(u => u.Service).WithMany().HasForeignKey(u => u.ServiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(u => u.SlnAppointment).WithMany().HasForeignKey(u => u.SlnAppointmentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // SlnExpense ek alanlar

@@ -54,6 +54,20 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<SlnPackageDefinitionDto> CreateDefinitionAsync(SlnPackageDefinitionCreateDto dto, int customerId)
     {
+        var existing = await _defEs.GetAllQueryable()
+            .FirstOrDefaultAsync(d => d.CustomerId == customerId && d.ServiceId == dto.ServiceId);
+        if (existing != null)
+        {
+            existing.Name = dto.Name;
+            existing.Description = dto.Description;
+            existing.TotalSessions = dto.TotalSessions;
+            existing.Price = dto.Price;
+            existing.ValidDays = dto.ValidDays;
+            existing.IsActive = dto.IsActive;
+            await _uow.SaveChangesAsync();
+            return (await GetDefinitionsAsync(customerId)).First(d => d.Id == existing.Id);
+        }
+
         var def = new SlnPackageDefinition
         {
             CustomerId = customerId,
@@ -76,6 +90,10 @@ public class SlnPackageFactory : ISlnPackageFactory
         var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == id && d.CustomerId == customerId);
         if (def == null) return (false, "Paket tanimi bulunamadi");
 
+        var duplicateExists = await _defEs.GetAllQueryable()
+            .AnyAsync(d => d.Id != id && d.CustomerId == customerId && d.ServiceId == dto.ServiceId);
+        if (duplicateExists) return (false, "Bu hizmet icin zaten seans tanimi var");
+
         def.Name = dto.Name;
         def.Description = dto.Description;
         def.ServiceId = dto.ServiceId;
@@ -91,6 +109,9 @@ public class SlnPackageFactory : ISlnPackageFactory
     {
         var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == id && d.CustomerId == customerId);
         if (def == null) return (false, "Paket tanimi bulunamadi");
+        var hasSoldPlans = await _pkgEs.GetAllQueryable()
+            .AnyAsync(p => p.CustomerId == customerId && p.PackageDefinitionId == id);
+        if (hasSoldPlans) return (false, "Satilmis seans kaydi olan tanim silinemez. Pasife alin veya once satis kayitlarini kapatin.");
         _defEs.Remove(def);
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -115,6 +136,9 @@ public class SlnPackageFactory : ISlnPackageFactory
             Id = p.Id,
             PackageDefinitionId = p.PackageDefinitionId,
             ServiceId = p.PackageDefinition != null ? p.PackageDefinition.ServiceId : 0,
+            BranchId = p.BranchId,
+            SourceInvoiceId = p.SourceInvoiceId,
+            SourceInvoiceItemId = p.SourceInvoiceItemId,
             PackageName = p.PackageDefinition != null ? p.PackageDefinition.Name : "",
             ServiceName = p.PackageDefinition != null && p.PackageDefinition.Service != null ? p.PackageDefinition.Service.Name : "",
             ClientName = p.SlnClient != null ? p.SlnClient.FullName : null,
@@ -122,7 +146,11 @@ public class SlnPackageFactory : ISlnPackageFactory
             UsedSessions = p.UsedSessions,
             RemainingSessions = p.RemainingSessions,
             PackagePrice = p.PackageDefinition != null ? p.PackageDefinition.Price : 0,
+            SaleAmount = p.SaleAmount > 0 ? p.SaleAmount : (p.PackageDefinition != null ? p.PackageDefinition.Price : 0),
             PaidAmount = p.PaidAmount,
+            BalanceAmount = (p.SaleAmount > 0 ? p.SaleAmount : (p.PackageDefinition != null ? p.PackageDefinition.Price : 0)) > p.PaidAmount
+                ? (p.SaleAmount > 0 ? p.SaleAmount : (p.PackageDefinition != null ? p.PackageDefinition.Price : 0)) - p.PaidAmount
+                : 0,
             ExpiresAt = p.ExpiresAt,
             IsActive = p.IsActive,
             CreatedAt = p.CreatedAt
@@ -131,45 +159,108 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(SlnClientPackageDto? Package, string? Error)> AssignPackageAsync(SlnClientPackageAssignDto dto, int userId, int customerId, int? branchId = null)
     {
-        var def = await _defEs.GetAllQueryable().FirstOrDefaultAsync(d => d.Id == dto.PackageDefinitionId && d.CustomerId == customerId);
-        if (def == null) return (null, "Paket tanimi bulunamadi");
-        if (!def.IsActive) return (null, "Paket tanimi aktif degil");
-        if (!dto.SlnClientId.HasValue) return (null, "Paket atamak icin musteri secilmelidir");
-        if (def.TotalSessions <= 0) return (null, "Paket seans sayisi gecersiz");
-
-        var clientExists = await SalonBranchScope.ApplyToClients(
-                _clients.GetAllQueryable().Where(c => c.Id == dto.SlnClientId.Value && c.CustomerId == customerId),
-                branchId)
-            .AnyAsync();
-        if (!clientExists) return (null, "Musteri bulunamadi");
-
-        var pkg = new SlnClientPackage
-        {
-            CustomerId = customerId,
-            PackageDefinitionId = def.Id,
-            SlnClientId = dto.SlnClientId,
-            TotalSessions = def.TotalSessions,
-            UsedSessions = 0,
-            RemainingSessions = def.TotalSessions,
-            PaidAmount = 0,
-            ExpiresAt = DateTime.UtcNow.AddDays(def.ValidDays),
-            IsActive = true,
-            SoldByPersonnelId = userId
-        };
-        _pkgEs.Add(pkg);
-        await _uow.SaveChangesAsync();
-
-        var result = (await GetClientPackagesAsync(customerId, null, branchId)).First(p => p.Id == pkg.Id);
-        return (result, null);
+        return (null, "Seansli hizmet musteriye atama ile acilmaz. Hizli satis/adisyon uzerinden satildiginda seans takibi otomatik olusur.");
     }
 
     public async Task<(SlnClientPackageDto? Package, string? Error)> SellPackageAsync(SlnClientPackageSellDto dto, int userId, int customerId, int? branchId = null)
     {
-        return await AssignPackageAsync(new SlnClientPackageAssignDto
+        var def = await _defEs.GetAllQueryable()
+            .FirstOrDefaultAsync(d => d.Id == dto.PackageDefinitionId && d.CustomerId == customerId);
+        if (def == null) return (null, "Seans tanimi bulunamadi");
+        if (!def.IsActive) return (null, "Seans tanimi aktif degil");
+        if (!dto.SlnClientId.HasValue) return (null, "Seansli hizmet satisi icin musteri secilmelidir");
+
+        var created = await CreateSessionPlansFromInvoiceAsync(
+            customerId,
+            dto.SlnClientId.Value,
+            0,
+            [new SlnSessionPlanSaleLine(def.ServiceId, def.Price, 1)],
+            userId,
+            branchId);
+
+        return created.Count > 0
+            ? (created[0], null)
+            : (null, "Seansli hizmet satisi kaydedilemedi");
+    }
+
+    public async Task<List<SlnClientPackageDto>> CreateSessionPlansFromInvoiceAsync(int customerId, int slnClientId, int invoiceId, IEnumerable<SlnSessionPlanSaleLine> lines, int userId, int? branchId = null)
+    {
+        if (slnClientId <= 0)
+            return [];
+
+        var clientExists = await SalonBranchScope.ApplyToClients(
+                _clients.GetAllQueryable().Where(c => c.Id == slnClientId && c.CustomerId == customerId),
+                branchId)
+            .AnyAsync();
+        if (!clientExists)
+            return [];
+
+        var saleLines = lines
+            .Where(l => l.ServiceId > 0 && l.Quantity > 0)
+            .GroupBy(l => l.ServiceId)
+            .Select(g => new
+            {
+                ServiceId = g.Key,
+                Quantity = g.Sum(l => l.Quantity),
+                PaidAmount = g.Sum(l => l.PaidAmount),
+                InvoiceItemId = g.Select(l => l.InvoiceItemId).FirstOrDefault(id => id.HasValue)
+            })
+            .ToList();
+
+        if (saleLines.Count == 0)
+            return [];
+
+        var serviceIds = saleLines.Select(l => l.ServiceId).Distinct().ToList();
+        var definitions = await _defEs.GetAllQueryable()
+            .Where(d => d.CustomerId == customerId
+                && d.IsActive
+                && d.TotalSessions > 0
+                && serviceIds.Contains(d.ServiceId))
+            .OrderByDescending(d => d.Id)
+            .ToListAsync();
+
+        var created = new List<SlnClientPackage>();
+        foreach (var line in saleLines)
         {
-            PackageDefinitionId = dto.PackageDefinitionId,
-            SlnClientId = dto.SlnClientId
-        }, userId, customerId, branchId);
+            var def = definitions.FirstOrDefault(d => d.ServiceId == line.ServiceId);
+            if (def == null)
+                continue;
+
+            var planCount = Math.Max(1, line.Quantity);
+            var paidPerPlan = planCount > 0 ? Math.Round(line.PaidAmount / planCount, 2) : line.PaidAmount;
+            for (var i = 0; i < planCount; i++)
+            {
+                var pkg = new SlnClientPackage
+                {
+                    CustomerId = customerId,
+                    PackageDefinitionId = def.Id,
+                    SlnClientId = slnClientId,
+                    BranchId = branchId,
+                    TotalSessions = def.TotalSessions,
+                    UsedSessions = 0,
+                    RemainingSessions = def.TotalSessions,
+                    SaleAmount = def.Price,
+                    PaidAmount = paidPerPlan,
+                    SourceInvoiceId = invoiceId > 0 ? invoiceId : null,
+                    SourceInvoiceItemId = line.InvoiceItemId,
+                    ExpiresAt = DateTime.UtcNow.AddDays(def.ValidDays),
+                    IsActive = true,
+                    SoldByPersonnelId = userId
+                };
+                _pkgEs.Add(pkg);
+                created.Add(pkg);
+            }
+        }
+
+        if (created.Count == 0)
+            return [];
+
+        await _uow.SaveChangesAsync();
+
+        var ids = created.Select(p => p.Id).ToList();
+        return (await GetClientPackagesAsync(customerId, slnClientId, branchId))
+            .Where(p => ids.Contains(p.Id))
+            .ToList();
     }
 
     public async Task<(bool Success, string? Error)> UseSessionAsync(SlnPackageUseDto dto, int userId, int customerId, int? branchId = null)
@@ -199,6 +290,10 @@ public class SlnPackageFactory : ISlnPackageFactory
             {
                 Id = u.Id,
                 ClientPackageId = u.ClientPackageId,
+                InvoiceId = u.InvoiceId,
+                InvoiceItemId = u.InvoiceItemId,
+                ServiceId = u.ServiceId,
+                SlnAppointmentId = u.SlnAppointmentId,
                 PackageName = u.ClientPackage != null && u.ClientPackage.PackageDefinition != null ? u.ClientPackage.PackageDefinition.Name : "",
                 ServiceName = u.ClientPackage != null && u.ClientPackage.PackageDefinition != null && u.ClientPackage.PackageDefinition.Service != null ? u.ClientPackage.PackageDefinition.Service.Name : "",
                 ClientName = u.ClientPackage != null && u.ClientPackage.SlnClient != null ? u.ClientPackage.SlnClient.FullName : null,
@@ -245,7 +340,7 @@ public class SlnPackageFactory : ISlnPackageFactory
             .ToListAsync();
     }
 
-    public async Task<(bool Success, string? Error)> RecordUsageAsync(int customerId, int clientPackageId, int? serviceId, int? slnClientId, int userId, string? notes, int? branchId = null)
+    public async Task<(bool Success, string? Error)> RecordUsageAsync(int customerId, int clientPackageId, int? serviceId, int? slnClientId, int userId, string? notes, int? branchId = null, int? invoiceId = null, int? invoiceItemId = null, int? appointmentId = null)
     {
         var pkg = await SalonBranchScope.ApplyToClientPackages(
                 _pkgEs.GetAllQueryable().Where(p => p.Id == clientPackageId && p.CustomerId == customerId),
@@ -268,6 +363,10 @@ public class SlnPackageFactory : ISlnPackageFactory
         {
             ClientPackageId = pkg.Id,
             PersonnelId = userId > 0 ? userId : null,
+            InvoiceId = invoiceId,
+            InvoiceItemId = invoiceItemId,
+            ServiceId = serviceId,
+            SlnAppointmentId = appointmentId,
             Notes = notes
         });
 
@@ -277,13 +376,12 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(bool Success, string? Error)> ReverseInvoiceUsagesAsync(int customerId, int invoiceId)
     {
-        var token = $"Invoice:{invoiceId}|";
         var usages = await _usageEs.GetAllQueryable()
             .Include(u => u.ClientPackage)
             .Where(u => u.ClientPackage != null
                 && u.ClientPackage.CustomerId == customerId
-                && u.Notes != null
-                && u.Notes.Contains(token))
+                && (u.InvoiceId == invoiceId
+                    || (u.Notes != null && u.Notes.Contains($"Invoice:{invoiceId}|"))))
             .ToListAsync();
 
         foreach (var usage in usages)
@@ -304,23 +402,56 @@ public class SlnPackageFactory : ISlnPackageFactory
 
     public async Task<(bool Success, string? Error)> CancelPackageSaleFromInvoiceAsync(int customerId, string? invoiceNotes)
     {
-        var packageId = TryReadNoteInt(invoiceNotes, "PackageSale:");
-        if (!packageId.HasValue)
+        var packageIds = TryReadNoteInts(invoiceNotes, "SessionPlanSale:");
+        var legacyPackageId = TryReadNoteInt(invoiceNotes, "PackageSale:");
+        if (legacyPackageId.HasValue)
+            packageIds.Add(legacyPackageId.Value);
+
+        packageIds = packageIds.Distinct().ToList();
+        if (packageIds.Count == 0)
             return (true, null);
 
-        var pkg = await _pkgEs.GetAllQueryable()
-            .FirstOrDefaultAsync(p => p.Id == packageId.Value && p.CustomerId == customerId);
-        if (pkg == null)
+        var packages = await _pkgEs.GetAllQueryable()
+            .Where(p => packageIds.Contains(p.Id) && p.CustomerId == customerId)
+            .ToListAsync();
+        if (packages.Count == 0)
             return (true, null);
 
-        if (pkg.UsedSessions > 0)
-            return (false, "Kullanilmis paket satisi iptal edilemez. Once manuel/pro-rata iade akisi uygulanmali.");
+        if (packages.Any(p => p.UsedSessions > 0))
+            return (false, "Kullanilmis seansli hizmet satisi iptal edilemez. Once manuel/pro-rata iade akisi uygulanmali.");
 
-        pkg.IsActive = false;
-        pkg.RemainingSessions = 0;
-        pkg.PaidAmount = 0;
+        foreach (var pkg in packages)
+        {
+            pkg.IsActive = false;
+            pkg.RemainingSessions = 0;
+            pkg.PaidAmount = 0;
+        }
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    private static List<int> TryReadNoteInts(string? notes, string prefix)
+    {
+        var values = new List<int>();
+        if (string.IsNullOrWhiteSpace(notes))
+            return values;
+
+        var index = notes.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
+            return values;
+
+        var start = index + prefix.Length;
+        var end = start;
+        while (end < notes.Length && (char.IsDigit(notes[end]) || notes[end] == ','))
+            end++;
+
+        foreach (var part in notes[start..end].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (int.TryParse(part, out var value))
+                values.Add(value);
+        }
+
+        return values;
     }
 
     private static int? TryReadNoteInt(string? notes, string prefix)
