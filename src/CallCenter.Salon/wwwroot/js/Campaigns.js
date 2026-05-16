@@ -92,10 +92,13 @@ function CampaignsViewModel() {
     }
 
     function serializeSegmentFilter(filter) {
-        return JSON.stringify(filter || {});
+        if (!filter) return null;
+        if (typeof filter === 'string') return filter.trim() ? filter : null;
+        return JSON.stringify(filter);
     }
 
     function readError(xhr, fallback) {
+        if (window.slnAjaxErrorMessage) return window.slnAjaxErrorMessage(xhr, fallback);
         return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
     }
 
@@ -147,7 +150,7 @@ function CampaignsViewModel() {
         if (hasMembership !== null) f.hasActiveMembership = hasMembership;
         var hasPackage = parseNullableBool(self.campaignForm.filter.hasActivePackage());
         if (hasPackage !== null) f.hasActivePackage = hasPackage;
-        return Object.keys(f).length > 0 ? JSON.stringify(f) : null;
+        return Object.keys(f).length > 0 ? f : null;
     };
 
     function parseNullableBool(value) {
@@ -315,7 +318,7 @@ function CampaignsViewModel() {
                 self.loadCampaigns();
                 toastr.success(slnJsT('salon.campaigns.js.kampanya_gonderildi', 'Kampanya gonderildi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || slnJsT('salon.campaigns.js.send_failed', 'Gönderilemedi'));
+                toastr.error(readError(xhr, slnJsT('salon.campaigns.js.send_failed', 'Gönderilemedi')));
             });
         });
     };
@@ -326,7 +329,7 @@ function CampaignsViewModel() {
                 .done(function () {
                     self.loadCampaigns();
                     toastr.success(slnJsT('salon.campaigns.js.kampanya_silindi', 'Kampanya silindi'));
-                }).fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
+                }).fail(function (xhr) { toastr.error(readError(xhr, slnJsT('salon.common.delete_failed', 'Silinemedi'))); });
         });
     };
 
@@ -428,7 +431,7 @@ function CampaignsViewModel() {
                 .done(function () {
                     self.loadReminders();
                     toastr.success(slnJsT('salon.campaigns.js.hatirlatma_silindi', 'Hatirlatma silindi'));
-                }).fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
+                }).fail(function (xhr) { toastr.error(readError(xhr, slnJsT('salon.common.delete_failed', 'Silinemedi'))); });
         });
     };
 
@@ -467,7 +470,7 @@ function CampaignsViewModel() {
             self.loadInbox();
             toastr.success(slnJsT('salon.campaigns.reply_sent', 'Mesaj gonderildi'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || slnJsT('salon.campaigns.reply_failed', 'Mesaj gonderilemedi'));
+            toastr.error(readError(xhr, slnJsT('salon.campaigns.reply_failed', 'Mesaj gonderilemedi')));
         }).always(function () {
             self.isSaving(false);
         });

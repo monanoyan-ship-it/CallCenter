@@ -6,6 +6,7 @@ function MembershipsViewModel() {
     }
 
     function readError(xhr, fallback) {
+        if (window.slnAjaxErrorMessage) return window.slnAjaxErrorMessage(xhr, fallback);
         return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
     }
 
@@ -154,7 +155,7 @@ function MembershipsViewModel() {
             self.newClientVisible(false);
             toastr.success(memberT('salon.memberships.customer_created_selected', 'Müşteri oluşturuldu ve seçildi'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || memberT('salon.memberships.customer_create_failed', 'Müşteri oluşturulamadı'));
+            toastr.error(readError(xhr, memberT('salon.memberships.customer_create_failed', 'Müşteri oluşturulamadı')));
         }).always(function () { self.isCreatingClient(false); });
     };
 

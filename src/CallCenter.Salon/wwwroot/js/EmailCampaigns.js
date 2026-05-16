@@ -59,6 +59,7 @@ function EmailCampaignsViewModel() {
     }
 
     function readError(xhr, fallback) {
+        if (window.slnAjaxErrorMessage) return window.slnAjaxErrorMessage(xhr, fallback);
         return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
     }
 
@@ -180,7 +181,7 @@ function EmailCampaignsViewModel() {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.emailcampaigns.js.bu_kampanyayi_silmek_istediginize_emin_misiniz', 'Bu kampanyayı silmek istediğinize emin misiniz?'), function() {
             $.ajax({ url: '/proxy/sln-email-campaigns/' + campaign.id, method: 'DELETE' })
                 .done(function () { self.loadData(); toastr.success(slnJsT('salon.emailcampaigns.js.kampanya_silindi', 'Kampanya silindi')); })
-                .fail(function () { toastr.error(slnJsT('salon.common.delete_failed', 'Silinemedi')); });
+                .fail(function (xhr) { toastr.error(readError(xhr, slnJsT('salon.common.delete_failed', 'Silinemedi'))); });
         });
     };
 
@@ -192,7 +193,7 @@ function EmailCampaignsViewModel() {
                     toastr.success(slnJsT('salon.emailcampaigns.js.sent', 'E-posta kampanyası gönderildi'));
                 })
                 .fail(function (xhr) {
-                    toastr.error(xhr.responseJSON || 'Gonderilemedi');
+                    toastr.error(readError(xhr, slnJsT('salon.emailcampaigns.js.send_failed', 'Gonderilemedi')));
                 });
         });
     };
