@@ -121,7 +121,9 @@ public class PlatformController : ControllerBase
         int id, [FromBody] PlatformPayAppointmentRequest? body)
     {
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var callbackUrl = string.IsNullOrWhiteSpace(body?.CallbackUrl)
+            ? $"{GetApiBaseUrl()}/api/payments/iyzico-callback"
+            : body.CallbackUrl.Trim();
         var resp = await _factory.PayAppointmentCheckoutAsync(
             GetPlatformUserId(), id, callbackUrl, buyerIp);
         if (!resp.Success) return BadRequest(resp);

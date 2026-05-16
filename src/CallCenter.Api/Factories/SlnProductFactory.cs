@@ -553,10 +553,13 @@ public class SlnProductFactory : ISlnProductFactory
             if (supplier == null) return (false, "Tedarikci bulunamadi");
         }
 
+        var resolvedBranchId = await _stockBalances.ResolveBranchIdAsync(customerId, branchId);
+        if (!resolvedBranchId.HasValue) return (false, "Sube bulunamadi");
+
         var movement = new SlnStockMovement
         {
             CustomerId = customerId,
-            BranchId = await _stockBalances.ResolveBranchIdAsync(customerId, branchId),
+            BranchId = resolvedBranchId.Value,
             ProductId = productId,
             MovementTypeId = movementTypeId,
             Quantity = quantity,
@@ -588,7 +591,7 @@ public class SlnProductFactory : ISlnProductFactory
             _ => 0
         };
         var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
-            product, customerId, movement.BranchId, delta, preventNegative: delta < 0);
+            product, customerId, resolvedBranchId.Value, delta, preventNegative: delta < 0);
         if (!stockOk) return (false, stockError);
         await _stockBalances.SyncProductTotalAsync(product, customerId);
 
@@ -683,10 +686,11 @@ public class SlnProductFactory : ISlnProductFactory
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
         if (product == null) return (false, "Urun bulunamadi");
         if (countedQuantity < 0) return (false, "Sayilan stok negatif olamaz");
-        if (branchId.HasValue && !await BranchExistsAsync(branchId.Value, customerId))
+        var effectiveBranchId = await _stockBalances.ResolveBranchIdAsync(customerId, branchId);
+        if (!effectiveBranchId.HasValue)
             return (false, "Sube bulunamadi");
 
-        var before = await _stockBalances.GetStockQuantityAsync(customerId, product.Id, branchId, product.StockQuantity);
+        var before = await _stockBalances.GetStockQuantityAsync(customerId, product.Id, effectiveBranchId.Value, product.StockQuantity);
         var difference = countedQuantity - before;
         var cleanNotes = string.IsNullOrWhiteSpace(notes) ? "" : " - " + notes.Trim();
 
@@ -694,7 +698,7 @@ public class SlnProductFactory : ISlnProductFactory
         {
             CustomerId = customerId,
             ProductId = productId,
-            BranchId = branchId,
+            BranchId = effectiveBranchId.Value,
             MovementTypeId = 6,
             Quantity = difference,
             UnitPrice = product.PurchasePrice,
@@ -702,13 +706,13 @@ public class SlnProductFactory : ISlnProductFactory
             CreatedByPersonnelId = userId
         });
 
-        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, countedQuantity);
+        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, effectiveBranchId.Value, countedQuantity);
         await _stockBalances.SyncProductTotalAsync(product, customerId);
         await _uow.SaveChangesAsync();
 
         _logger.LogInformation(
             "Stok sayim farki kaydedildi. CustomerId={CustomerId} UserId={UserId} BranchId={BranchId} ProductId={ProductId} Before={Before} Counted={Counted} Difference={Difference}",
-            customerId, userId, branchId, productId, before, countedQuantity, difference);
+            customerId, userId, effectiveBranchId.Value, productId, before, countedQuantity, difference);
         return (true, null);
     }
 

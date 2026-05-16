@@ -145,7 +145,7 @@ public class SlnReviewFactory : ISlnReviewFactory
             existing.StatusId = 1;
             existing.CreatedAt = DateTime.UtcNow;
             await _uow.SaveChangesAsync();
-            return (MapPlatformDto(existing, target.SalonName), null, 200);
+            return (MapPlatformDto(existing, target.SalonName, target.Slug), null, 200);
         }
 
         var review = new SlnReview
@@ -161,26 +161,34 @@ public class SlnReviewFactory : ISlnReviewFactory
         };
         _reviewEs.Add(review);
         await _uow.SaveChangesAsync();
-        return (MapPlatformDto(review, target.SalonName), null, 200);
+        return (MapPlatformDto(review, target.SalonName, target.Slug), null, 200);
     }
 
     public async Task<List<PlatformReviewDto>> GetPlatformReviewsAsync(int platformUserId)
     {
-        return await _reviewEs.GetAllQueryable()
+        var reviews = await _reviewEs.GetAllQueryable()
             .Where(r => r.PlatformUserId == platformUserId)
             .Include(r => r.Customer)
+            .Include(r => r.Branch)
             .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new PlatformReviewDto
-            {
-                Id = r.Id,
-                CustomerId = r.CustomerId,
-                SalonName = r.Customer != null ? r.Customer.Name : "",
-                Rating = r.Rating,
-                Comment = r.Comment,
-                StatusId = r.StatusId,
-                CreatedAt = r.CreatedAt
-            })
             .ToListAsync();
+
+        var customerIds = reviews.Select(r => r.CustomerId).Distinct().ToList();
+        var profileSlugs = customerIds.Count == 0
+            ? new Dictionary<int, string?>()
+            : (await _profileEs.GetAllQueryable()
+                    .Where(p => customerIds.Contains(p.CustomerId))
+                    .Select(p => new { p.CustomerId, p.Slug })
+                    .ToListAsync())
+                .GroupBy(p => p.CustomerId)
+                .ToDictionary(g => g.Key, g => (string?)g.First().Slug);
+
+        return reviews
+            .Select(r => MapPlatformDto(
+                r,
+                r.Customer?.Name,
+                r.Branch?.Slug ?? profileSlugs.GetValueOrDefault(r.CustomerId)))
+            .ToList();
     }
 
     private async Task<ReviewSalonTarget?> ResolveSalonTargetAsync(string slug)
@@ -190,7 +198,7 @@ public class SlnReviewFactory : ISlnReviewFactory
             .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Slug == normalized);
         if (branch != null)
-            return new ReviewSalonTarget(branch.CustomerId, branch.Id, branch.Customer?.Name ?? branch.Name);
+            return new ReviewSalonTarget(branch.CustomerId, branch.Id, branch.Customer?.Name ?? branch.Name, branch.Slug);
 
         var profile = await _profileEs.GetAllQueryable()
             .Include(p => p.Customer)
@@ -202,7 +210,7 @@ public class SlnReviewFactory : ISlnReviewFactory
             .Select(b => (int?)b.Id)
             .FirstOrDefaultAsync();
 
-        return new ReviewSalonTarget(profile.CustomerId, headquarterBranchId, profile.Customer?.Name ?? profile.Slug);
+        return new ReviewSalonTarget(profile.CustomerId, headquarterBranchId, profile.Customer?.Name ?? profile.Slug, profile.Slug);
     }
 
     private static SlnReviewDto MapToDto(SlnReview r) => new()
@@ -219,10 +227,12 @@ public class SlnReviewFactory : ISlnReviewFactory
         CreatedAt = r.CreatedAt
     };
 
-    private static PlatformReviewDto MapPlatformDto(SlnReview r, string? salonName = null) => new()
+    private static PlatformReviewDto MapPlatformDto(SlnReview r, string? salonName = null, string? salonSlug = null) => new()
     {
         Id = r.Id,
         CustomerId = r.CustomerId,
+        BranchId = r.BranchId,
+        SalonSlug = salonSlug,
         SalonName = salonName ?? r.Customer?.Name ?? "",
         Rating = r.Rating,
         Comment = r.Comment,
@@ -230,5 +240,5 @@ public class SlnReviewFactory : ISlnReviewFactory
         CreatedAt = r.CreatedAt
     };
 
-    private sealed record ReviewSalonTarget(int CustomerId, int? BranchId, string SalonName);
+    private sealed record ReviewSalonTarget(int CustomerId, int? BranchId, string SalonName, string? Slug);
 }

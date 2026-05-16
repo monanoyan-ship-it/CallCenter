@@ -245,8 +245,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId)
     {
-        var appointment = await _appointments.GetAllQueryable()
-            .Include(a => a.SlnClient)
+        var appointment = await IncludeAll(_appointments.GetAllQueryable())
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return (false, "Randevu bulunamadi", 0);

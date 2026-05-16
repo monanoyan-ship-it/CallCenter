@@ -371,8 +371,11 @@ public class SlnProductController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(dto.Name)) return "Urun adi zorunludur";
         if (dto.CategoryId <= 0) return "Kategori zorunludur";
-        if (!branchId.HasValue) return "Urun stok miktari icin sube secilmelidir";
-        if (dto.StockQuantity <= 0) return "Stok miktari 0'dan buyuk olmalidir";
+        if (!branchId.HasValue)
+        {
+            if (dto.StockQuantity != 0) return AllBranchesInitialStockMessage;
+        }
+        else if (dto.StockQuantity <= 0) return "Stok miktari 0'dan buyuk olmalidir";
         if (dto.PurchasePrice <= 0) return "Alis fiyati 0'dan buyuk olmalidir";
         if (dto.SalePrice <= 0) return "Satis fiyati 0'dan buyuk olmalidir";
         return null;

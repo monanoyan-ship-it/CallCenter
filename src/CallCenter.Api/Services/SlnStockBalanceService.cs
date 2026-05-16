@@ -24,8 +24,7 @@ public class SlnStockBalanceService : ISlnStockBalanceService
         {
             var exists = await _branches.GetAllQueryable()
                 .AnyAsync(b => b.Id == branchId.Value && b.CustomerId == customerId && b.IsActive);
-            if (exists)
-                return branchId.Value;
+            return exists ? branchId.Value : null;
         }
 
         return await _branches.GetAllQueryable()

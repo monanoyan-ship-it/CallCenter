@@ -443,17 +443,17 @@ function ProductsViewModel() {
 
         var target = resolveBranchTarget(self.form.branchTarget());
         if (!target.ok) return;
-        if (!target.branchId) {
-            toastr.warning(slnJsT('salon.products.product_stock_branch_required', 'Urun stok miktari icin sube secilmelidir'));
-            return;
-        }
 
         var stockQuantity = parseFloat(self.form.stockQuantity()) || 0;
         var minStockLevel = parseFloat(self.form.minStockLevel()) || 0;
         var purchasePrice = parseFloat(self.form.purchasePrice()) || 0;
         var salePrice = parseFloat(self.form.salePrice()) || 0;
 
-        if (stockQuantity <= 0) {
+        if (target.allBranches && stockQuantity !== 0) {
+            toastr.warning(slnJsT('salon.products.all_branches_initial_stock_warning', 'Tum Subeler seciliyken baslangic stogu girilemez; stok miktarini sube bazli alis veya sayim ile girin'));
+            return;
+        }
+        if (!target.allBranches && stockQuantity <= 0) {
             toastr.warning(slnJsT('salon.products.stock_quantity_positive', "Stok miktari 0'dan buyuk olmalidir"));
             return;
         }

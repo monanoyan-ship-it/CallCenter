@@ -23,6 +23,7 @@
         document.getElementById('userName').textContent = user.fullName || '';
         var salonByCustomerId = {};
         var myReviewsByCustomerId = {};
+        var myReviewsByKey = {};
         var showingPastAppointments = false;
 
         function escapeHtml(value) {
@@ -33,6 +34,17 @@
 
         function escapeAttr(value) {
             return escapeHtml(value).replace(/`/g, '&#96;');
+        }
+
+        function reviewLookupKey(customerId, salonSlug) {
+            return String(customerId || 0) + '|' + String(salonSlug || '').trim().toLowerCase();
+        }
+
+        function findExistingReview(customerId, salonSlug) {
+            if (salonSlug) {
+                return myReviewsByKey[reviewLookupKey(customerId, salonSlug)] || null;
+            }
+            return myReviewsByCustomerId[customerId] || null;
         }
 
         function api(path, opts) {
@@ -141,7 +153,7 @@
                     var canPay = !!a.canPay;
                     var customerId = a.customerId || 0;
                     var salonSlug = a.salonSlug || (salonByCustomerId[customerId] && salonByCustomerId[customerId].slug) || '';
-                    var existingReview = customerId ? myReviewsByCustomerId[customerId] : null;
+                    var existingReview = customerId ? findExistingReview(customerId, salonSlug) : null;
                     var reviewLabel = existingReview
                         ? salonT('salon.panel.review.update_button', 'Yorumu Güncelle')
                         : salonT('salon.panel.review.write_button', 'Yorum Yaz');
@@ -269,9 +281,15 @@
         function loadMyReviews() {
             return api('platform/reviews/me').then(function(data) {
                 myReviewsByCustomerId = {};
+                myReviewsByKey = {};
                 (data || []).forEach(function(review) {
                     if (review && review.customerId) {
-                        myReviewsByCustomerId[review.customerId] = review;
+                        if (!myReviewsByCustomerId[review.customerId]) {
+                            myReviewsByCustomerId[review.customerId] = review;
+                        }
+                        if (review.salonSlug) {
+                            myReviewsByKey[reviewLookupKey(review.customerId, review.salonSlug)] = review;
+                        }
                     }
                 });
                 return data || [];
@@ -289,7 +307,7 @@
                 salonSlug: salonSlug
             };
 
-            var existingReview = myReviewsByCustomerId[customerId];
+            var existingReview = findExistingReview(customerId, salonSlug);
             document.getElementById('reviewSalonName').textContent = salonName || '';
             document.getElementById('reviewRating').value = existingReview && existingReview.rating ? existingReview.rating : '5';
             document.getElementById('reviewComment').value = existingReview && existingReview.comment ? existingReview.comment : '';

@@ -44,6 +44,8 @@ public class PlatformReviewDto
 {
     public int Id { get; set; }
     public int CustomerId { get; set; }
+    public int? BranchId { get; set; }
+    public string? SalonSlug { get; set; }
     public string SalonName { get; set; } = string.Empty;
     public int Rating { get; set; }
     public string? Comment { get; set; }
