@@ -91,6 +91,14 @@ function CampaignsViewModel() {
         return window.slnAppendBranchTarget ? window.slnAppendBranchTarget(url, target) : url;
     }
 
+    function serializeSegmentFilter(filter) {
+        return JSON.stringify(filter || {});
+    }
+
+    function readError(xhr, fallback) {
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
+    }
+
     self.loadBranches = function () {
         $.ajax({ url: '/proxy/sln-branches?_nb=1', method: 'GET' }).done(function (data) {
             self.branches(data.items || data || []);
@@ -248,14 +256,14 @@ function CampaignsViewModel() {
     };
 
     self.previewSegment = function () {
-        var filter = self.buildSegmentFilter();
+        var filterJson = serializeSegmentFilter(self.buildSegmentFilter());
         var target = resolveBranchTarget(self.campaignForm.branchTarget());
         if (!target.ok) return;
         $.ajax({
             url: appendBranchTarget('/proxy/sln-marketing/campaigns/segment-preview', target),
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(filter)
+            data: JSON.stringify(filterJson)
         }).done(function (data) {
             setSegmentPreview(data);
         });
@@ -265,7 +273,7 @@ function CampaignsViewModel() {
         var data = {
             name: self.campaignForm.name(),
             messageTemplate: self.campaignForm.messageTemplate(),
-            segmentFilter: self.buildSegmentFilter(),
+            segmentFilter: serializeSegmentFilter(self.buildSegmentFilter()),
             scheduledAt: self.campaignForm.scheduledAt() ? self.campaignForm.scheduledAt() + ':00Z' : null
         };
 
@@ -293,7 +301,7 @@ function CampaignsViewModel() {
                 toastr.success(self.isEditingCampaign() ? slnJsT('salon.campaigns.js.kampanya_guncellendi', 'Kampanya güncellendi') : slnJsT('salon.campaigns.js.kampanya_olusturuldu', 'Kampanya oluşturuldu'));
                 self.isSaving(false);
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+                toastr.error(readError(xhr, slnJsT('salon.common.error.generic', 'Bir hata oluştu')));
                 self.isSaving(false);
             });
     };
@@ -338,8 +346,8 @@ function CampaignsViewModel() {
     self.resetReminderForm = function () {
         self.reminderForm.reminderTypeId('1');
         self.reminderForm.messageTemplate('');
-        self.reminderForm.daysBefore(0);
-        self.reminderForm.inactiveDaysThreshold(0);
+        self.reminderForm.daysBefore(1);
+        self.reminderForm.inactiveDaysThreshold(30);
         self.reminderForm.branchTarget(getInitialBranchTarget());
         self.reminderForm.isActive(true);
         self.isEditingReminder(false);
@@ -396,7 +404,7 @@ function CampaignsViewModel() {
                 toastr.success(self.isEditingReminder() ? slnJsT('salon.campaigns.js.hatirlatma_guncellendi', 'Hatirlatma güncellendi') : slnJsT('salon.campaigns.js.hatirlatma_olusturuldu', 'Hatirlatma oluşturuldu'));
                 self.isSaving(false);
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+                toastr.error(readError(xhr, slnJsT('salon.common.error.generic', 'Bir hata oluştu')));
                 self.isSaving(false);
             });
     };

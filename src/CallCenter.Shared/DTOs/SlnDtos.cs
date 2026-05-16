@@ -314,6 +314,8 @@ public class SlnProductDto
 {
     public int Id { get; set; }
     public int? BranchId { get; set; }
+    public int CategoryId { get; set; }
+    public int? BrandId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Barcode { get; set; }
     public string CategoryName { get; set; } = string.Empty;

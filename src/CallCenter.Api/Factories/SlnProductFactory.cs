@@ -122,7 +122,9 @@ public class SlnProductFactory : ISlnProductFactory
             await _uow.SaveChangesAsync();
         }
 
-        _logger.LogInformation("Yeni urun olusturuldu: {ProductId} - {Name}", product.Id, product.Name);
+        _logger.LogInformation(
+            "Yeni urun olusturuldu. CustomerId={CustomerId} BranchId={BranchId} ProductId={ProductId} Name={Name} StockQuantity={StockQuantity}",
+            customerId, branchId, product.Id, product.Name, dto.StockQuantity);
 
         var created = await _products.GetAllQueryable()
             .Include(p => p.Category)
@@ -161,6 +163,9 @@ public class SlnProductFactory : ISlnProductFactory
         }
 
         await _uow.SaveChangesAsync();
+        _logger.LogInformation(
+            "Urun guncellendi. CustomerId={CustomerId} BranchId={BranchId} ProductId={ProductId} Name={Name} StockQuantity={StockQuantity} IsActive={IsActive}",
+            customerId, branchId, product.Id, product.Name, dto.StockQuantity, isActive);
         return (true, null);
     }
 
@@ -174,6 +179,8 @@ public class SlnProductFactory : ISlnProductFactory
 
         _products.Remove(product);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun silindi. CustomerId={CustomerId} BranchId={BranchId} ProductId={ProductId} Name={Name}",
+            customerId, branchId, productId, product.Name);
         return (true, null);
     }
 
@@ -200,6 +207,8 @@ public class SlnProductFactory : ISlnProductFactory
 
         _categories.Add(category);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun kategorisi olusturuldu. CustomerId={CustomerId} CategoryId={CategoryId} Name={Name}",
+            customerId, category.Id, category.Name);
 
         return new { category.Id, category.Name, category.SortOrder };
     }
@@ -215,6 +224,8 @@ public class SlnProductFactory : ISlnProductFactory
         category.SortOrder = sortOrder;
 
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun kategorisi guncellendi. CustomerId={CustomerId} CategoryId={CategoryId} Name={Name}",
+            customerId, category.Id, category.Name);
         return (true, null);
     }
 
@@ -229,6 +240,8 @@ public class SlnProductFactory : ISlnProductFactory
 
         _categories.Remove(category);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun kategorisi silindi. CustomerId={CustomerId} CategoryId={CategoryId} Name={Name}",
+            customerId, categoryId, category.Name);
         return (true, null);
     }
 
@@ -246,39 +259,66 @@ public class SlnProductFactory : ISlnProductFactory
 
     public async Task<object> CreateBrandAsync(string name, int customerId)
     {
+        var normalizedName = name.Trim();
+        var normalizedLower = normalizedName.ToLower();
+        var existing = await _brands.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.Name.ToLower() == normalizedLower);
+
+        if (existing != null)
+        {
+            _logger.LogInformation("Urun markasi yeniden kullanildi. CustomerId={CustomerId} BrandId={BrandId} Name={Name}",
+                customerId, existing.Id, existing.Name);
+            return new { existing.Id, existing.Name };
+        }
+
         var brand = new SlnProductBrand
         {
             CustomerId = customerId,
-            Name = name
+            Name = normalizedName
         };
 
         _brands.Add(brand);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun markasi olusturuldu. CustomerId={CustomerId} BrandId={BrandId} Name={Name}",
+            customerId, brand.Id, brand.Name);
 
         return new { brand.Id, brand.Name };
     }
 
     public async Task<(bool Success, string? Error)> UpdateBrandAsync(int brandId, string name, int customerId)
     {
+        var normalizedName = name.Trim();
+        var normalizedLower = normalizedName.ToLower();
         var brand = await _brands.GetAllQueryable()
             .FirstOrDefaultAsync(b => b.Id == brandId && b.CustomerId == customerId);
 
         if (brand == null) return (false, "Marka bulunamadi");
 
-        brand.Name = name;
+        var exists = await _brands.GetAllQueryable()
+            .AnyAsync(b => b.Id != brandId && b.CustomerId == customerId && b.Name.ToLower() == normalizedLower);
+
+        if (exists) return (false, "Bu marka zaten var");
+
+        brand.Name = normalizedName;
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun markasi guncellendi. CustomerId={CustomerId} BrandId={BrandId} Name={Name}",
+            customerId, brand.Id, brand.Name);
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> DeleteBrandAsync(int brandId, int customerId)
     {
         var brand = await _brands.GetAllQueryable()
+            .Include(b => b.Products)
             .FirstOrDefaultAsync(b => b.Id == brandId && b.CustomerId == customerId);
 
         if (brand == null) return (false, "Marka bulunamadi");
+        if (brand.Products.Any()) return (false, "Bu markaya bagli urun var, once urunleri baska markaya alin");
 
         _brands.Remove(brand);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Urun markasi silindi. CustomerId={CustomerId} BrandId={BrandId} Name={Name}",
+            customerId, brandId, brand.Name);
         return (true, null);
     }
 
@@ -458,6 +498,9 @@ public class SlnProductFactory : ISlnProductFactory
 
         _supplierOrders.Add(order);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation(
+            "Tedarik siparisi olusturuldu. CustomerId={CustomerId} UserId={UserId} SupplierId={SupplierId} OrderId={OrderId} OrderNo={OrderNo} ItemCount={ItemCount}",
+            customerId, userId, supplier.Id, order.Id, order.OrderNo, order.Items.Count);
 
         var created = await _supplierOrders.GetAllQueryable()
             .Include(o => o.Supplier)
@@ -484,6 +527,8 @@ public class SlnProductFactory : ISlnProductFactory
             order.ReceivedAt = DateTime.UtcNow;
 
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("Tedarik siparisi durumu guncellendi. CustomerId={CustomerId} OrderId={OrderId} StatusId={StatusId}",
+            customerId, orderId, dto.StatusId);
         return (true, null);
     }
 
@@ -550,8 +595,9 @@ public class SlnProductFactory : ISlnProductFactory
         _stockMovements.Add(movement);
         await _uow.SaveChangesAsync();
 
-        _logger.LogInformation("Stok hareketi eklendi: Product={ProductId}, Type={TypeId}, Qty={Qty}",
-            productId, movementTypeId, quantity);
+        _logger.LogInformation(
+            "Stok hareketi eklendi. CustomerId={CustomerId} UserId={UserId} BranchId={BranchId} ProductId={ProductId} MovementTypeId={MovementTypeId} Quantity={Quantity} UnitPrice={UnitPrice}",
+            customerId, userId, movement.BranchId, productId, movementTypeId, quantity, unitPrice);
 
         return (true, null);
     }
@@ -619,8 +665,9 @@ public class SlnProductFactory : ISlnProductFactory
         await _stockBalances.SyncProductTotalAsync(product, customerId);
 
         await _uow.SaveChangesAsync();
-        _logger.LogInformation("Stok transferi audit kaydi olustu: Product={ProductId}, From={FromBranchId}, To={ToBranchId}, Qty={Qty}",
-            productId, effectiveFromBranchId.Value, toBranchId, quantity);
+        _logger.LogInformation(
+            "Stok transferi audit kaydi olustu. CustomerId={CustomerId} UserId={UserId} ProductId={ProductId} FromBranchId={FromBranchId} ToBranchId={ToBranchId} Quantity={Quantity}",
+            customerId, userId, productId, effectiveFromBranchId.Value, toBranchId, quantity);
         return (true, null);
     }
 
@@ -659,8 +706,9 @@ public class SlnProductFactory : ISlnProductFactory
         await _stockBalances.SyncProductTotalAsync(product, customerId);
         await _uow.SaveChangesAsync();
 
-        _logger.LogInformation("Stok sayim farki kaydedildi: Product={ProductId}, Branch={BranchId}, Before={Before}, Counted={Counted}, Diff={Diff}",
-            productId, branchId, before, countedQuantity, difference);
+        _logger.LogInformation(
+            "Stok sayim farki kaydedildi. CustomerId={CustomerId} UserId={UserId} BranchId={BranchId} ProductId={ProductId} Before={Before} Counted={Counted} Difference={Difference}",
+            customerId, userId, branchId, productId, before, countedQuantity, difference);
         return (true, null);
     }
 
@@ -677,6 +725,8 @@ public class SlnProductFactory : ISlnProductFactory
     {
         Id = p.Id,
         BranchId = p.BranchId,
+        CategoryId = p.CategoryId,
+        BrandId = p.BrandId,
         Name = p.Name,
         Barcode = p.Barcode,
         CategoryName = p.Category?.Name ?? "",

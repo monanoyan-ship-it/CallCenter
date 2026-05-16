@@ -18,11 +18,14 @@ function ProductsViewModel() {
     });
     self.lowStockProducts = ko.observableArray([]);
     self.supplierOrders = ko.observableArray([]);
+    self.activeProductsTab = ko.observable('products');
     self.searchQuery = ko.observable('');
+    self.brandSearchQuery = ko.observable('');
     self.selectedCategoryName = ko.observable(null);
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
+    self.isBrandSaving = ko.observable(false);
     self.isPurchaseSaving = ko.observable(false);
     self.isStockOperationSaving = ko.observable(false);
     self.isSupplierOrderSaving = ko.observable(false);
@@ -42,6 +45,11 @@ function ProductsViewModel() {
         minStockLevel: ko.observable(0),
         purchasePrice: ko.observable(0),
         salePrice: ko.observable(0)
+    };
+
+    self.brandForm = {
+        id: ko.observable(null),
+        name: ko.observable('')
     };
 
     self.purchaseForm = {
@@ -83,6 +91,24 @@ function ProductsViewModel() {
         });
     });
 
+    self.filteredBrands = ko.computed(function () {
+        var q = (self.brandSearchQuery() || '').toLowerCase();
+        return self.brands().filter(function (b) {
+            return !q || (b.name || '').toLowerCase().indexOf(q) >= 0;
+        });
+    });
+
+    self.brandProductCount = function (brand) {
+        if (!brand) return 0;
+        return self.products().filter(function (p) {
+            if (p.brandId) return p.brandId == brand.id;
+            return (p.brandName || '').toLowerCase() === (brand.name || '').toLowerCase();
+        }).length;
+    };
+
+    self.showProductsTab = function () { self.activeProductsTab('products'); };
+    self.showBrandsTab = function () { self.activeProductsTab('brands'); };
+
     self.hasMultipleBranches = ko.computed(function () {
         return self.branches().length > 1;
     });
@@ -104,6 +130,7 @@ function ProductsViewModel() {
     });
 
     var formModal;
+    var brandModal;
     var purchaseModal;
     var stockOperationModal;
     var supplierOrderModal;
@@ -209,7 +236,7 @@ function ProductsViewModel() {
         self.form.barcode('');
         self.form.unit('Adet');
         self.form.stockQuantity(0);
-        self.form.branchTarget(product.branchId || window.slnAllBranchesValue || '__all__');
+        setDefaultBranchTarget(self.form.branchTarget);
         self.form.minStockLevel(0);
         self.form.purchasePrice(0);
         self.form.salePrice(0);
@@ -288,13 +315,12 @@ function ProductsViewModel() {
         self.form.barcode(product.barcode || '');
         self.form.unit(product.unit || 'Adet');
         self.form.stockQuantity(product.stockQuantity || 0);
-        setDefaultBranchTarget(self.form.branchTarget);
+        self.form.branchTarget(product.branchId ? String(product.branchId) : (window.slnAllBranchesValue || '__all__'));
         self.form.minStockLevel(product.minStockLevel || 0);
         self.form.purchasePrice(product.purchasePrice || 0);
         self.form.salePrice(product.salePrice || 0);
-        // DTO da categoryId/brandId yok, isimden bulalim
-        var matchedCat = self.categories().find(function (c) { return c.name === product.categoryName; });
-        var matchedBrand = self.brands().find(function (b) { return b.name === product.brandName; });
+        var matchedCat = self.categories().find(function (c) { return c.id === product.categoryId || c.name === product.categoryName; });
+        var matchedBrand = self.brands().find(function (b) { return b.id === product.brandId || b.name === product.brandName; });
         var catId = matchedCat ? matchedCat.id : null;
         var brandId = matchedBrand ? matchedBrand.id : null;
         self.form.categoryId(catId);
@@ -304,9 +330,71 @@ function ProductsViewModel() {
         formModal.show();
     };
 
+    self.openNewBrand = function () {
+        self.brandForm.id(null);
+        self.brandForm.name('');
+        brandModal.show();
+    };
+
+    self.openEditBrand = function (brand) {
+        self.brandForm.id(brand.id);
+        self.brandForm.name(brand.name || '');
+        brandModal.show();
+    };
+
+    self.saveBrand = function () {
+        var name = (self.brandForm.name() || '').trim();
+        if (!name) {
+            toastr.warning(slnJsT('salon.products.brand_name_required', 'Marka adı zorunludur'));
+            return;
+        }
+
+        self.isBrandSaving(true);
+        var id = self.brandForm.id();
+        var url = '/proxy/sln-products/brands';
+        var method = 'POST';
+        if (id) {
+            url += '/' + id;
+            method = 'PUT';
+        }
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify({ name: name })
+        }).done(function () {
+            brandModal.hide();
+            self.loadLookups();
+            self.loadData();
+            toastr.success(slnJsT('salon.products.brand_saved', 'Marka kaydedildi'));
+        }).fail(function (xhr) {
+            toastr.error(getErrorMessage(xhr, slnJsT('salon.products.brand_save_failed', 'Marka kaydedilemedi')));
+        }).always(function () {
+            self.isBrandSaving(false);
+        });
+    };
+
+    self.removeBrand = function (brand) {
+        confirmModal(
+            slnJsT('salon.common.btn.confirm', 'Onayla'),
+            slnJsT('salon.products.brand_delete_confirm', "'{name}' markasını silmek istediğinize emin misiniz?").replace('{name}', brand.name || ''),
+            function () {
+                $.ajax({ url: '/proxy/sln-products/brands/' + brand.id, method: 'DELETE' })
+                    .done(function () {
+                        self.loadLookups();
+                        self.loadData();
+                        toastr.success(slnJsT('salon.products.brand_deleted', 'Marka silindi'));
+                    })
+                    .fail(function (xhr) {
+                        toastr.error(getErrorMessage(xhr, slnJsT('salon.products.brand_delete_failed', 'Marka silinemedi')));
+                    });
+            });
+    };
+
     // Autocomplete'de secilmemis ama yazilmis isim varsa otomatik olustur
-    function ensureLookup(autocomplete, formField, listObservable, createUrl) {
-        return new Promise(function (resolve) {
+    function ensureLookup(autocomplete, formField, listObservable, createUrl, createErrorMessage) {
+        return new Promise(function (resolve, reject) {
             // ID zaten secilmisse direkt don
             var selectedId = formField();
             if (selectedId) { resolve(selectedId); return; }
@@ -327,11 +415,19 @@ function ProductsViewModel() {
                 contentType: 'application/json',
                 data: JSON.stringify({ name: text, sortOrder: 0 })
             }).done(function (created) {
+                if (!created || !created.id) {
+                    reject(createErrorMessage || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+                    return;
+                }
                 var list = listObservable();
                 list.push(created);
                 listObservable(list);
+                formField(created.id);
+                autocomplete.setFromValue(created.id);
                 resolve(created.id);
-            }).fail(function () { resolve(null); });
+            }).fail(function (xhr) {
+                reject(getErrorMessage(xhr, createErrorMessage || slnJsT('salon.common.error.generic', 'Bir hata oluştu')));
+            });
         });
     }
 
@@ -345,11 +441,36 @@ function ProductsViewModel() {
             return;
         }
 
+        var target = resolveBranchTarget(self.form.branchTarget());
+        if (!target.ok) return;
+        if (!target.branchId) {
+            toastr.warning(slnJsT('salon.products.product_stock_branch_required', 'Urun stok miktari icin sube secilmelidir'));
+            return;
+        }
+
+        var stockQuantity = parseFloat(self.form.stockQuantity()) || 0;
+        var minStockLevel = parseFloat(self.form.minStockLevel()) || 0;
+        var purchasePrice = parseFloat(self.form.purchasePrice()) || 0;
+        var salePrice = parseFloat(self.form.salePrice()) || 0;
+
+        if (stockQuantity <= 0) {
+            toastr.warning(slnJsT('salon.products.stock_quantity_positive', "Stok miktari 0'dan buyuk olmalidir"));
+            return;
+        }
+        if (purchasePrice <= 0) {
+            toastr.warning(slnJsT('salon.products.js.purchase_price_positive', "Alis fiyati 0'dan buyuk olmalidir"));
+            return;
+        }
+        if (salePrice <= 0) {
+            toastr.warning(slnJsT('salon.products.sale_price_positive', "Satis fiyati 0'dan buyuk olmalidir"));
+            return;
+        }
+
         self.isSaving(true);
 
         Promise.all([
-            ensureLookup(self.categoryAutocomplete, self.form.categoryId, self.categories, '/proxy/sln-products/categories'),
-            ensureLookup(self.brandAutocomplete, self.form.brandId, self.brands, '/proxy/sln-products/brands')
+            ensureLookup(self.categoryAutocomplete, self.form.categoryId, self.categories, '/proxy/sln-products/categories', slnJsT('salon.products.js.kategori_olusturulamadi', 'Kategori oluşturulamadı')),
+            ensureLookup(self.brandAutocomplete, self.form.brandId, self.brands, '/proxy/sln-products/brands', slnJsT('salon.products.brand_create_failed', 'Marka oluşturulamadı'))
         ]).then(function (results) {
             if (!results[0]) {
                 toastr.error(slnJsT('salon.products.js.kategori_olusturulamadi', 'Kategori oluşturulamadı'));
@@ -363,22 +484,11 @@ function ProductsViewModel() {
                 brandId: results[1],
                 barcode: self.form.barcode(),
                 unit: self.form.unit(),
-                stockQuantity: parseInt(self.form.stockQuantity()) || 0,
-                minStockLevel: parseInt(self.form.minStockLevel()) || 0,
-                purchasePrice: parseFloat(self.form.purchasePrice()) || 0,
-                salePrice: parseFloat(self.form.salePrice()) || 0
+                stockQuantity: stockQuantity,
+                minStockLevel: minStockLevel,
+                purchasePrice: purchasePrice,
+                salePrice: salePrice
             };
-
-            var target = resolveBranchTarget(self.form.branchTarget());
-            if (!target.ok) {
-                self.isSaving(false);
-                return;
-            }
-            if (!self.isEditing() && target.allBranches && data.stockQuantity !== 0) {
-                toastr.warning(slnJsT('salon.products.all_branches_initial_stock_warning', 'Tum Subeler seciliyken baslangic stogu girilemez; stok miktarini sube bazli alis veya sayim ile girin'));
-                self.isSaving(false);
-                return;
-            }
 
             var url = appendBranchTarget('/proxy/sln-products', target);
             var method = 'POST';
@@ -397,13 +507,19 @@ function ProductsViewModel() {
                 self.loadLookups();
                 toastr.success(self.isEditing() ? slnJsT('salon.products.js.urun_guncellendi', 'Ürün güncellendi') : slnJsT('salon.products.js.urun_eklendi', 'Ürün eklendi'));
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+                toastr.error(getErrorMessage(xhr, slnJsT('salon.common.error.generic', 'Bir hata oluştu')));
             }).always(function () { self.isSaving(false); });
+        }).catch(function (error) {
+            toastr.error(error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+            self.isSaving(false);
         });
     };
 
     function getErrorMessage(xhr, fallback) {
+        if (window.slnAjaxErrorMessage) return window.slnAjaxErrorMessage(xhr, fallback);
+        if (xhr.responseJSON && xhr.responseJSON.message) return xhr.responseJSON.message;
         if (xhr.responseJSON && xhr.responseJSON.error) return xhr.responseJSON.error;
+        if (xhr.responseJSON && xhr.responseJSON.detail) return xhr.responseJSON.detail;
         if (xhr.responseText) return xhr.responseText.replace(/^"|"$/g, '');
         return fallback;
     }
@@ -583,6 +699,7 @@ function ProductsViewModel() {
 
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('productModal'));
+        brandModal = new bootstrap.Modal(document.getElementById('brandModal'));
         purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'));
         stockOperationModal = new bootstrap.Modal(document.getElementById('stockOperationModal'));
         supplierOrderModal = new bootstrap.Modal(document.getElementById('supplierOrderModal'));

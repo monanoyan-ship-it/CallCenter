@@ -51,8 +51,9 @@ public class SlnProductController : ControllerBase
 
         var target = ResolveMutationBranchTarget(branchId, allBranches);
         if (target.Error != null) return target.Error;
-        if (!target.BranchId.HasValue && dto.StockQuantity != 0)
-            return BadRequest(AllBranchesInitialStockMessage);
+
+        var validationError = ValidateProduct(dto, target.BranchId);
+        if (validationError != null) return BadRequest(validationError);
 
         var product = await _productFactory.CreateProductAsync(dto, customerId, target.BranchId);
         return Ok(product);
@@ -79,6 +80,9 @@ public class SlnProductController : ControllerBase
 
         var target = ResolveMutationBranchTarget(branchId, allBranches);
         if (target.Error != null) return target.Error;
+
+        var validationError = ValidateProduct(dto, target.BranchId);
+        if (validationError != null) return BadRequest(validationError);
 
         var (success, error) = await _productFactory.UpdateProductAsync(id, dto, req.IsActive, customerId, target.BranchId);
         return success ? Ok() : BadRequest(error);
@@ -153,6 +157,7 @@ public class SlnProductController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Marka adi zorunludur");
 
         var brand = await _productFactory.CreateBrandAsync(req.Name, customerId);
         return Ok(brand);
@@ -163,6 +168,7 @@ public class SlnProductController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Marka adi zorunludur");
 
         var (success, error) = await _productFactory.UpdateBrandAsync(id, req.Name, customerId);
         return success ? Ok() : BadRequest(error);
@@ -359,6 +365,17 @@ public class SlnProductController : ControllerBase
         var branchId = ResolveBranchId(requestedBranchId);
         if (branchId.HasValue && branchId.Value > 0) return (branchId.Value, null);
         return (null, BadRequest(message));
+    }
+
+    private static string? ValidateProduct(SlnProductCreateDto dto, int? branchId)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name)) return "Urun adi zorunludur";
+        if (dto.CategoryId <= 0) return "Kategori zorunludur";
+        if (!branchId.HasValue) return "Urun stok miktari icin sube secilmelidir";
+        if (dto.StockQuantity <= 0) return "Stok miktari 0'dan buyuk olmalidir";
+        if (dto.PurchasePrice <= 0) return "Alis fiyati 0'dan buyuk olmalidir";
+        if (dto.SalePrice <= 0) return "Satis fiyati 0'dan buyuk olmalidir";
+        return null;
     }
 }
 

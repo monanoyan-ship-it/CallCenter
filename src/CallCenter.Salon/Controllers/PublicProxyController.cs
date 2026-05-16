@@ -13,13 +13,7 @@ public class PublicProxyController : Controller
         var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
         var client = factory.CreateClient("SalonApi");
         var response = await client.GetAsync($"api/salon/{path}{Request.QueryString}");
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
-        {
-            Content = content,
-            ContentType = "application/json",
-            StatusCode = (int)response.StatusCode
-        };
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpPost("proxy/salon/{**path}")]
@@ -31,13 +25,7 @@ public class PublicProxyController : Controller
         var body = await reader.ReadToEndAsync();
         var response = await client.PostAsync($"api/salon/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        var content = await response.Content.ReadAsStringAsync();
-        return new ContentResult
-        {
-            Content = content,
-            ContentType = "application/json",
-            StatusCode = (int)response.StatusCode
-        };
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     // ─── Platform User Proxy (auth header forward) ───
@@ -47,7 +35,7 @@ public class PublicProxyController : Controller
     {
         var client = CreatePlatformClient();
         var response = await client.GetAsync($"api/{path}{Request.QueryString}");
-        return await ToResult(response, HttpContext);
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpPost("public-proxy/{**path}")]
@@ -58,7 +46,7 @@ public class PublicProxyController : Controller
         var body = await reader.ReadToEndAsync();
         var response = await client.PostAsync($"api/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        return await ToResult(response, HttpContext);
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpPut("public-proxy/{**path}")]
@@ -69,7 +57,7 @@ public class PublicProxyController : Controller
         var body = await reader.ReadToEndAsync();
         var response = await client.PutAsync($"api/{path}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-        return await ToResult(response, HttpContext);
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpDelete("public-proxy/{**path}")]
@@ -77,7 +65,7 @@ public class PublicProxyController : Controller
     {
         var client = CreatePlatformClient();
         var response = await client.DeleteAsync($"api/{path}");
-        return await ToResult(response, HttpContext);
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpPost("api/payments/iyzico-callback")]
@@ -91,7 +79,7 @@ public class PublicProxyController : Controller
             request.Content.Headers.TryAddWithoutValidation("Content-Type", Request.ContentType);
 
         var response = await client.SendAsync(request);
-        return await ToResult(response, HttpContext);
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     private HttpClient CreatePlatformClient()
@@ -105,25 +93,4 @@ public class PublicProxyController : Controller
         return client;
     }
 
-    private static async Task<IActionResult> ToResult(HttpResponseMessage response, HttpContext httpContext)
-    {
-        var statusCode = (int)response.StatusCode;
-        if (statusCode == 204) return new StatusCodeResult(204);
-        var content = await response.Content.ReadAsStringAsync();
-        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json; charset=utf-8";
-
-        if (response.Content.Headers.TryGetValues("Content-Disposition", out var cdVals))
-        {
-            var cd = cdVals.FirstOrDefault();
-            if (!string.IsNullOrEmpty(cd))
-                httpContext.Response.Headers.Append("Content-Disposition", cd);
-        }
-
-        return new ContentResult
-        {
-            Content = string.IsNullOrWhiteSpace(content) ? "null" : content,
-            ContentType = contentType,
-            StatusCode = statusCode
-        };
-    }
 }

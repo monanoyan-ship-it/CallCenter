@@ -223,6 +223,7 @@ var forwardedOptions = new ForwardedHeadersOptions
 forwardedOptions.KnownIPNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
+app.UseGlobalExceptionHandling();
 
 // CORS, redirect/auth'dan once (OPTIONS ve tarayıcı istekleri için tutarlı sıra)
 app.Use(async (context, next) =>

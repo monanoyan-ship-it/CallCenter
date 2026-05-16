@@ -4,6 +4,11 @@ function MembershipsViewModel() {
     function memberT(key, fallback) {
         return (window.salonT || function (k, f) { return f || k; })(key, fallback);
     }
+
+    function readError(xhr, fallback) {
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
+    }
+
     self.plans = ko.observableArray([]);
     self.memberships = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
@@ -214,7 +219,7 @@ function MembershipsViewModel() {
         if (self.isEditingPlan()) { url = appendBranchTarget('/proxy/sln-memberships/plans/' + self.editingPlanId(), target); method = 'PUT'; }
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
             planModal.hide(); self.loadData(); toastr.success(memberT('salon.memberships.plan_saved', 'Plan kaydedildi')); self.isSaving(false);
-        }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.generic', 'Bir hata oluştu')); self.isSaving(false); });
+        }).fail(function (x) { toastr.error(readError(x, memberT('salon.common.error.generic', 'Bir hata oluştu'))); self.isSaving(false); });
     };
 
     self.removePlan = function (p) {
@@ -224,7 +229,7 @@ function MembershipsViewModel() {
             function() {
             $.ajax({ url: '/proxy/sln-memberships/plans/' + p.id, method: 'DELETE' }).done(function () {
                 self.loadData(); toastr.success(memberT('salon.memberships.plan_deleted', 'Plan silindi'));
-            }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.delete_failed', 'Silinemedi')); });
+            }).fail(function (x) { toastr.error(readError(x, memberT('salon.common.error.delete_failed', 'Silinemedi'))); });
         });
     };
 
@@ -241,7 +246,7 @@ function MembershipsViewModel() {
         self.isSaving(true);
         $.ajax({ url: '/proxy/sln-memberships', method: 'POST', contentType: 'application/json', data: JSON.stringify(d) }).done(function () {
             memberModal.hide(); self.loadData(); toastr.success(memberT('salon.memberships.membership_created', 'Üyelik oluşturuldu')); self.isSaving(false);
-        }).fail(function (x) { toastr.error(x.responseJSON?.error || memberT('salon.common.error.generic', 'Bir hata oluştu')); self.isSaving(false); });
+        }).fail(function (x) { toastr.error(readError(x, memberT('salon.common.error.generic', 'Bir hata oluştu'))); self.isSaving(false); });
     };
 
     self.freezeMember = function (m) {

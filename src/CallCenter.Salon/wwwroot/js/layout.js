@@ -184,6 +184,81 @@
         if (target.branchId) return url + separator + 'branchId=' + encodeURIComponent(target.branchId);
         return url;
     };
+    window.slnAjaxErrorMessage = function (xhrOrBody, fallback) {
+        var generic = window.salonT('salon.common.error.generic', 'Bir hata oluştu');
+
+        function clean(message) {
+            if (message === null || message === undefined) return '';
+            var text = typeof message === 'string' ? message : String(message);
+            text = text.trim().replace(/^"|"$/g, '');
+            if (!text || text.charAt(0) === '<') return '';
+            return text.length > 1000 ? text.substring(0, 1000) : text;
+        }
+
+        function readValidation(errors) {
+            if (!errors) return '';
+            if (Array.isArray(errors)) {
+                for (var i = 0; i < errors.length; i++) {
+                    var itemMessage = clean(errors[i]);
+                    if (itemMessage) return itemMessage;
+                }
+                return '';
+            }
+
+            if (typeof errors !== 'object') return clean(errors);
+            for (var key in errors) {
+                if (!Object.prototype.hasOwnProperty.call(errors, key)) continue;
+                var value = errors[key];
+                if (Array.isArray(value)) {
+                    for (var j = 0; j < value.length; j++) {
+                        var arrayMessage = clean(value[j]);
+                        if (arrayMessage) return arrayMessage;
+                    }
+                } else {
+                    var directMessage = clean(value);
+                    if (directMessage) return directMessage;
+                }
+            }
+            return '';
+        }
+
+        function parseBody(text) {
+            if (!text || typeof text !== 'string') return text;
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                return text;
+            }
+        }
+
+        var status = xhrOrBody && xhrOrBody.status ? parseInt(xhrOrBody.status, 10) : 0;
+        var body = xhrOrBody && xhrOrBody.responseJSON !== undefined
+            ? xhrOrBody.responseJSON
+            : (xhrOrBody && xhrOrBody.responseText !== undefined ? parseBody(xhrOrBody.responseText) : xhrOrBody);
+
+        if (typeof body === 'string') {
+            var stringMessage = clean(body);
+            if (stringMessage) return stringMessage;
+        } else if (body && typeof body === 'object') {
+            status = status || parseInt(body.status || 0, 10);
+            var objectMessage = clean(body.message)
+                || clean(body.error)
+                || clean(body.detail)
+                || readValidation(body.errors)
+                || clean(body.title);
+            if (objectMessage) return objectMessage;
+        }
+
+        if (status === 401) return window.salonT('salon.common.error.unauthorized', 'Oturum süresi doldu. Yeniden giriş yapın.');
+        if (status === 403) return window.salonT('salon.common.error.forbidden', 'Bu işlem için yetkiniz yok.');
+        if (status === 404) return window.salonT('salon.common.error.not_found', 'Kayıt bulunamadı.');
+        if (status === 409) return window.salonT('salon.common.error.conflict', 'Kayıt çakışması nedeniyle işlem tamamlanamadı.');
+        if (status >= 500) return window.salonT('salon.common.error.unexpected', 'Beklenmeyen bir hata oluştu.');
+        return fallback || generic;
+    };
+    window.slnShowAjaxError = function (xhr, fallback) {
+        if (window.toastr) toastr.error(window.slnAjaxErrorMessage(xhr, fallback));
+    };
 
     $.ajaxSetup({
         converters: {
@@ -207,6 +282,16 @@
     });
 
     if (window.toastr) {
+        if (!toastr.__slnErrorWrapped) {
+            toastr.__slnErrorWrapped = true;
+            var originalToastrError = toastr.error;
+            toastr.error = function (message, title, optionsOverride) {
+                var safeMessage = typeof message === 'string'
+                    ? message
+                    : window.slnAjaxErrorMessage(message, window.salonT('salon.common.error.generic', 'Bir hata oluştu'));
+                return originalToastrError.call(toastr, safeMessage, title, optionsOverride);
+            };
+        }
         toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3000 };
     }
 

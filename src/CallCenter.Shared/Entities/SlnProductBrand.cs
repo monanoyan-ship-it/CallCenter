@@ -7,4 +7,6 @@ public class SlnProductBrand
     public Customer? Customer { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    public ICollection<SlnProduct> Products { get; set; } = [];
 }

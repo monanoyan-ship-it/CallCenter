@@ -58,6 +58,10 @@ function EmailCampaignsViewModel() {
         return window.slnAppendBranchTarget ? window.slnAppendBranchTarget(url, target) : url;
     }
 
+    function readError(xhr, fallback) {
+        return xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || fallback;
+    }
+
     self.loadBranches = function () {
         $.ajax({ url: '/proxy/sln-branches?_nb=1', method: 'GET' }).done(function (data) {
             self.branches(data.items || data || []);
@@ -167,7 +171,7 @@ function EmailCampaignsViewModel() {
                 toastr.success(self.isEditing() ? slnJsT('salon.emailcampaigns.js.kampanya_guncellendi', 'Kampanya güncellendi') : slnJsT('salon.emailcampaigns.js.kampanya_olusturuldu', 'Kampanya oluşturuldu'));
                 self.isSaving(false);
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+                toastr.error(readError(xhr, slnJsT('salon.common.error.generic', 'Bir hata oluştu')));
                 self.isSaving(false);
             });
     };
