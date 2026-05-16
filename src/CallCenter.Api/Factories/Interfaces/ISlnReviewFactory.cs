@@ -10,4 +10,6 @@ public interface ISlnReviewFactory
     Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> DeleteReviewAsync(int id, int customerId, int? branchId = null);
     Task<SlnReviewStatsDto> GetStatsAsync(int customerId, int? branchId = null);
+    Task<(PlatformReviewDto? Review, string? Error, int StatusCode)> UpsertPlatformReviewAsync(PlatformReviewCreateRequest request, int platformUserId);
+    Task<List<PlatformReviewDto>> GetPlatformReviewsAsync(int platformUserId);
 }
