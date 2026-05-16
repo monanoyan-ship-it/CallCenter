@@ -1,5 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.DTOs;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public class SlnReportFactory : ISlnReportFactory
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnSalonProfileEntityService _profiles;
+    private readonly ISlnStockBalanceService _stockBalances;
     private readonly ILogger<SlnReportFactory> _logger;
 
     private static readonly Dictionary<int, string> PaymentMethodNames = new()
@@ -47,6 +49,7 @@ public class SlnReportFactory : ISlnReportFactory
         ICustomerPersonnelEntityService personnel,
         ISlnBranchEntityService branches,
         ISlnSalonProfileEntityService profiles,
+        ISlnStockBalanceService stockBalances,
         ILogger<SlnReportFactory> logger)
     {
         _invoices = invoices;
@@ -61,6 +64,7 @@ public class SlnReportFactory : ISlnReportFactory
         _personnel = personnel;
         _branches = branches;
         _profiles = profiles;
+        _stockBalances = stockBalances;
         _logger = logger;
     }
 
@@ -491,26 +495,32 @@ public class SlnReportFactory : ISlnReportFactory
         };
     }
 
-    public async Task<SlnStockReportDto> GetStockReportAsync(int customerId)
+    public async Task<SlnStockReportDto> GetStockReportAsync(int customerId, int? branchId = null)
     {
         var products = await _products.GetAllQueryable()
             .Where(p => p.CustomerId == customerId && p.IsActive)
             .Include(p => p.Category)
             .ToListAsync();
 
-        var items = products.Select(p => new SlnStockItemDto
+        var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
+
+        var items = products.Select(p =>
+        {
+            var stockQuantity = stockMap.GetValueOrDefault(p.Id, p.StockQuantity);
+            return new SlnStockItemDto
         {
             ProductId = p.Id,
             ProductName = p.Name,
             CategoryName = p.Category?.Name ?? "",
-            StockQuantity = p.StockQuantity,
+            StockQuantity = stockQuantity,
             MinStockLevel = p.MinStockLevel,
             PurchasePrice = p.PurchasePrice,
             SalePrice = p.SalePrice,
             TaxRate = p.TaxRate,
-            StockValue = Math.Round(p.StockQuantity * p.PurchasePrice, 2, MidpointRounding.AwayFromZero),
-            RetailValue = Math.Round(p.StockQuantity * p.SalePrice, 2, MidpointRounding.AwayFromZero),
-            IsLowStock = p.StockQuantity <= p.MinStockLevel
+            StockValue = Math.Round(stockQuantity * p.PurchasePrice, 2, MidpointRounding.AwayFromZero),
+            RetailValue = Math.Round(stockQuantity * p.SalePrice, 2, MidpointRounding.AwayFromZero),
+            IsLowStock = p.MinStockLevel > 0 && stockQuantity <= p.MinStockLevel
+        };
         }).Select(item =>
         {
             item.PotentialGrossProfit = item.RetailValue - item.StockValue;
@@ -812,7 +822,7 @@ public class SlnReportFactory : ISlnReportFactory
                 AppendStaffCsv(sb, await GetStaffReportAsync(customerId, from, to, branchId));
                 break;
             case "stock":
-                AppendStockCsv(sb, await GetStockReportAsync(customerId));
+                AppendStockCsv(sb, await GetStockReportAsync(customerId, branchId));
                 break;
             case "finance":
                 AppendFinanceCsv(sb, await GetFinanceReportAsync(customerId, from, to, branchId));
@@ -847,7 +857,7 @@ public class SlnReportFactory : ISlnReportFactory
                 AddStaffWorksheets(workbook, await GetStaffReportAsync(customerId, from, to, branchId));
                 break;
             case "stock":
-                AddStockWorksheets(workbook, await GetStockReportAsync(customerId));
+                AddStockWorksheets(workbook, await GetStockReportAsync(customerId, branchId));
                 break;
             case "finance":
                 AddFinanceWorksheets(workbook, await GetFinanceReportAsync(customerId, from, to, branchId));

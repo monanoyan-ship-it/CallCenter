@@ -37,6 +37,11 @@
         </a>
     </div>
 
+    <div class="alert alert-secondary py-2 small" data-bind="visible: isAllBranchesStockContext">
+        <i class="bi bi-diagram-3 me-1"></i>
+        <t key="salon.products.branch_stock_notice">Tüm şubeler seçiliyken stok toplamı gösterilir. Stok değiştiren işlemlerde işlem şubesini seçin.</t>
+    </div>
+
     <div class="alert alert-warning py-2" data-bind="visible: lowStockProducts().length > 0">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="fw-semibold small">
@@ -220,6 +225,15 @@
                             <label class="form-label small"><t key="salon.products.auto.stok_2">Stok</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: form.stockQuantity" />
                         </div>
+                        <div class="col-6" data-bind="visible: hasMultipleBranches">
+                            <label class="form-label small"><t key="salon.products.stock_branch">Stok Şubesi</t></label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: branches,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: form.branchId,
+                                               optionsCaption: salonT('salon.products.select_branch', 'Şube seçin')"></select>
+                        </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.products.auto.min_stok">Min Stok</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: form.minStockLevel" />
@@ -270,6 +284,15 @@
                                                value: purchaseForm.supplierId,
                                                optionsCaption: salonT('salon.products.auto.tedarikci_secin', 'Tedarikçi seçin')"></select>
                         </div>
+                        <div class="col-12" data-bind="visible: hasMultipleBranches">
+                            <label class="form-label small"><t key="salon.products.stock_branch">Stok Şubesi</t></label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: branches,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: purchaseForm.branchId,
+                                               optionsCaption: salonT('salon.products.select_branch', 'Şube seçin')"></select>
+                        </div>
                         <div class="col-6">
                             <label class="form-label small">
                                 <t key="salon.products.auto.miktar">Miktar</t>
@@ -319,7 +342,7 @@
                     <div class="mb-3">
                         <div class="small text-muted"><t key="salon.sidebar.products">Ürün</t></div>
                         <div class="fw-semibold" data-bind="text: stockOperationProduct().name"></div>
-                        <div class="small text-muted"><t key="salon.products.auto.mevcut_global_stok">Mevcut global stok:</t> <span data-bind="text: stockOperationProduct().stockQuantity"></span></div>
+                        <div class="small text-muted"><t key="salon.products.auto.mevcut_global_stok">Görünen stok:</t> <span data-bind="text: stockOperationProduct().stockQuantity"></span></div>
                     </div>
                     <!-- /ko -->
 
@@ -332,7 +355,7 @@
                                                    optionsText: 'name',
                                                    optionsValue: 'id',
                                                    value: stockOperationForm.fromBranchId,
-                                                   optionsCaption: 'Merkez / belirsiz'"></select>
+                                                   optionsCaption: salonT('salon.products.select_branch', 'Şube seçin')"></select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small"><t key="salon.products.auto.hedef_sube">Hedef şube *</t></label>
@@ -363,7 +386,7 @@
                                                    optionsText: 'name',
                                                    optionsValue: 'id',
                                                    value: stockOperationForm.branchId,
-                                                   optionsCaption: salonT('salon.products.general_stock', 'Genel stok')"></select>
+                                                   optionsCaption: salonT('salon.products.select_branch', 'Şube seçin')"></select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small"><t key="salon.products.counted_stock">Sayılan stok</t></label>

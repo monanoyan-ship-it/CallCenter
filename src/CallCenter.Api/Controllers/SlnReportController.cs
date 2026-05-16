@@ -90,7 +90,7 @@ public class SlnReportController : ControllerBase
         var access = ResolveReportAccess();
         if (!access.IsAllowed) return access.ErrorResult!;
 
-        var report = await _reportFactory.GetStockReportAsync(customerId);
+        var report = await _reportFactory.GetStockReportAsync(customerId, access.BranchId);
         return Ok(report);
     }
 
@@ -229,11 +229,17 @@ public class SlnReportController : ControllerBase
         if (!SalonRolePermissions.CanAccess(roleId, "Reports"))
             return new ReportAccess(false, null, Forbid());
 
-        var branchId = GetBranchId();
+        var branchId = GetBranchId() ?? GetRequestedBranchId();
         if (roleId == SalonRoles.Ids.BranchManager && !branchId.HasValue)
             return new ReportAccess(false, null, Forbid());
 
         return new ReportAccess(true, branchId, null);
+    }
+
+    private int? GetRequestedBranchId()
+    {
+        var raw = Request.Query["branchId"].FirstOrDefault();
+        return int.TryParse(raw, out var id) && id > 0 ? id : null;
     }
 
     private readonly record struct ReportAccess(bool IsAllowed, int? BranchId, ActionResult? ErrorResult);

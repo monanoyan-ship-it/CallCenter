@@ -1,5 +1,6 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ISlnBranchEntityService _branches;
     private readonly ServicePricingFactory _pricingFactory;
     private readonly ISubscriptionFactory _subscriptionFactory;
+    private readonly ISlnStockBalanceService _stockBalances;
 
     public SlnDashboardFactory(
         ISlnClientEntityService clients,
@@ -28,7 +30,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         ICustomerPortalModuleEntityService portalModules,
         ISlnBranchEntityService branches,
         ServicePricingFactory pricingFactory,
-        ISubscriptionFactory subscriptionFactory)
+        ISubscriptionFactory subscriptionFactory,
+        ISlnStockBalanceService stockBalances)
     {
         _clients = clients;
         _appointments = appointments;
@@ -40,6 +43,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _branches = branches;
         _pricingFactory = pricingFactory;
         _subscriptionFactory = subscriptionFactory;
+        _stockBalances = stockBalances;
     }
 
     public async Task<object> GetDashboardAsync(int customerId, int? branchId = null)
@@ -95,28 +99,28 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             staffQuery = staffQuery.Where(p => p.BranchId == branchId.Value);
         var activeStaff = await staffQuery.CountAsync();
 
-        var lowStockProducts = await _products.GetAllQueryable()
+        var stockProducts = await _products.GetAllQueryable()
             .Where(p => p.CustomerId == customerId
                      && p.IsActive
-                     && p.MinStockLevel > 0
-                     && p.StockQuantity <= p.MinStockLevel)
-            .OrderBy(p => p.StockQuantity - p.MinStockLevel)
+                     && p.MinStockLevel > 0)
+            .ToListAsync();
+
+        var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, stockProducts.Select(p => p.Id), branchId);
+        var lowStockProducts = stockProducts
             .Select(p => new
             {
                 p.Id,
                 p.Name,
-                p.StockQuantity,
+                StockQuantity = stockMap.GetValueOrDefault(p.Id, p.StockQuantity),
                 p.MinStockLevel,
                 p.Unit
             })
+            .Where(p => p.StockQuantity <= p.MinStockLevel)
+            .OrderBy(p => p.StockQuantity - p.MinStockLevel)
             .Take(8)
-            .ToListAsync();
+            .ToList();
 
-        var lowStockCount = await _products.GetAllQueryable()
-            .CountAsync(p => p.CustomerId == customerId
-                          && p.IsActive
-                          && p.MinStockLevel > 0
-                          && p.StockQuantity <= p.MinStockLevel);
+        var lowStockCount = stockProducts.Count(p => stockMap.GetValueOrDefault(p.Id, p.StockQuantity) <= p.MinStockLevel);
 
         var lowStockAlerts = lowStockProducts
             .Select(p =>

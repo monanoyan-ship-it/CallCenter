@@ -11,6 +11,7 @@ function ProductsViewModel() {
     self.brands = ko.observableArray([]);
     self.suppliers = ko.observableArray([]);
     self.branches = ko.observableArray([]);
+    self.currentBranchId = ko.observable((window.slnGetBranch && window.slnGetBranch()) || '');
     self.lowStockProducts = ko.observableArray([]);
     self.supplierOrders = ko.observableArray([]);
     self.searchQuery = ko.observable('');
@@ -33,6 +34,7 @@ function ProductsViewModel() {
         barcode: ko.observable(''),
         unit: ko.observable('Adet'),
         stockQuantity: ko.observable(0),
+        branchId: ko.observable(null),
         minStockLevel: ko.observable(0),
         purchasePrice: ko.observable(0),
         salePrice: ko.observable(0)
@@ -40,6 +42,7 @@ function ProductsViewModel() {
 
     self.purchaseForm = {
         supplierId: ko.observable(null),
+        branchId: ko.observable(null),
         quantity: ko.observable(1),
         unitPrice: ko.observable(0),
         notes: ko.observable('')
@@ -76,6 +79,14 @@ function ProductsViewModel() {
         });
     });
 
+    self.hasMultipleBranches = ko.computed(function () {
+        return self.branches().length > 1;
+    });
+
+    self.isAllBranchesStockContext = ko.computed(function () {
+        return self.hasMultipleBranches() && !getCurrentBranchId();
+    });
+
     self.purchaseTotal = ko.computed(function () {
         var quantity = parseFloat(self.purchaseForm.quantity()) || 0;
         var unitPrice = parseFloat(self.purchaseForm.unitPrice()) || 0;
@@ -97,6 +108,25 @@ function ProductsViewModel() {
         if (self.hasStockFinancePro()) return true;
         toastr.info(slnJsT('salon.products.pro_required', 'Bu işlem için Stok Tedarik / Finans paketi gerekir.'));
         return false;
+    }
+
+    function getCurrentBranchId() {
+        return parseInt(self.currentBranchId(), 10) || null;
+    }
+
+    function setDefaultBranch(observable) {
+        observable(getCurrentBranchId());
+    }
+
+    function requireBranchValue(branchId, fallback) {
+        if (!self.hasMultipleBranches() || branchId) return true;
+        toastr.warning(slnJsT('salon.products.stock_branch_required', fallback || 'Stok islemi icin sube secilmelidir'));
+        return false;
+    }
+
+    function appendBranch(url, branchId) {
+        if (!branchId) return url;
+        return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'branchId=' + encodeURIComponent(branchId);
     }
 
     self.loadData = function () {
@@ -155,6 +185,7 @@ function ProductsViewModel() {
         self.form.barcode('');
         self.form.unit('Adet');
         self.form.stockQuantity(0);
+        setDefaultBranch(self.form.branchId);
         self.form.minStockLevel(0);
         self.form.purchasePrice(0);
         self.form.salePrice(0);
@@ -173,6 +204,7 @@ function ProductsViewModel() {
         if (!requireStockFinancePro()) return;
         self.purchaseProduct(product);
         self.purchaseForm.supplierId(null);
+        setDefaultBranch(self.purchaseForm.branchId);
         self.purchaseForm.quantity(1);
         self.purchaseForm.unitPrice(product.purchasePrice || 0);
         self.purchaseForm.notes('');
@@ -183,7 +215,7 @@ function ProductsViewModel() {
         if (!requireStockFinancePro()) return;
         self.stockOperationProduct(product);
         self.stockOperationMode('transfer');
-        self.stockOperationForm.fromBranchId(null);
+        setDefaultBranch(self.stockOperationForm.fromBranchId);
         self.stockOperationForm.toBranchId(null);
         self.stockOperationForm.branchId(null);
         self.stockOperationForm.quantity(1);
@@ -198,7 +230,7 @@ function ProductsViewModel() {
         self.stockOperationMode('count');
         self.stockOperationForm.fromBranchId(null);
         self.stockOperationForm.toBranchId(null);
-        self.stockOperationForm.branchId(null);
+        setDefaultBranch(self.stockOperationForm.branchId);
         self.stockOperationForm.quantity(1);
         self.stockOperationForm.countedQuantity(product.stockQuantity || 0);
         self.stockOperationForm.notes('');
@@ -232,6 +264,7 @@ function ProductsViewModel() {
         self.form.barcode(product.barcode || '');
         self.form.unit(product.unit || 'Adet');
         self.form.stockQuantity(product.stockQuantity || 0);
+        setDefaultBranch(self.form.branchId);
         self.form.minStockLevel(product.minStockLevel || 0);
         self.form.purchasePrice(product.purchasePrice || 0);
         self.form.salePrice(product.salePrice || 0);
@@ -312,10 +345,16 @@ function ProductsViewModel() {
                 salePrice: parseFloat(self.form.salePrice()) || 0
             };
 
-            var url = '/proxy/sln-products';
+            var branchId = parseInt(self.form.branchId(), 10) || null;
+            if (!requireBranchValue(branchId, slnJsT('salon.products.product_stock_branch_required', 'Urun stok miktari icin sube secilmelidir'))) {
+                self.isSaving(false);
+                return;
+            }
+
+            var url = appendBranch('/proxy/sln-products', branchId);
             var method = 'POST';
             if (self.isEditing()) {
-                url += '/' + self.editingId();
+                url = appendBranch('/proxy/sln-products/' + self.editingId(), branchId);
                 method = 'PUT';
             }
 
@@ -346,6 +385,7 @@ function ProductsViewModel() {
         if (!product) { return; }
 
         var supplierId = parseInt(self.purchaseForm.supplierId());
+        var branchId = parseInt(self.purchaseForm.branchId(), 10) || null;
         var quantity = parseFloat(self.purchaseForm.quantity()) || 0;
         var unitPrice = parseFloat(self.purchaseForm.unitPrice()) || 0;
 
@@ -364,6 +404,7 @@ function ProductsViewModel() {
                 quantity: quantity,
                 unitPrice: unitPrice,
                 supplierId: supplierId,
+                branchId: branchId,
                 notes: self.purchaseForm.notes()
             })
         }).done(function () {
@@ -385,8 +426,13 @@ function ProductsViewModel() {
         self.isStockOperationSaving(true);
 
         if (self.stockOperationMode() === 'transfer') {
+            var fromBranchId = parseInt(self.stockOperationForm.fromBranchId(), 10) || null;
             var toBranchId = parseInt(self.stockOperationForm.toBranchId());
             var quantity = parseFloat(self.stockOperationForm.quantity()) || 0;
+            if (!requireBranchValue(fromBranchId, slnJsT('salon.products.source_branch_required', 'Kaynak sube secilmelidir'))) {
+                self.isStockOperationSaving(false);
+                return;
+            }
             if (!toBranchId) {
                 toastr.warning(slnJsT('salon.products.js.hedef_sube_secilmelidir', 'Hedef şube secilmelidir'));
                 self.isStockOperationSaving(false);
@@ -403,7 +449,7 @@ function ProductsViewModel() {
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
-                    fromBranchId: parseInt(self.stockOperationForm.fromBranchId()) || null,
+                    fromBranchId: fromBranchId,
                     toBranchId: toBranchId,
                     quantity: quantity,
                     notes: self.stockOperationForm.notes()
@@ -421,6 +467,11 @@ function ProductsViewModel() {
         }
 
         var countedQuantity = parseFloat(self.stockOperationForm.countedQuantity());
+        var countBranchId = parseInt(self.stockOperationForm.branchId(), 10) || null;
+        if (!requireBranchValue(countBranchId, slnJsT('salon.products.count_branch_required', 'Sayim icin sube secilmelidir'))) {
+            self.isStockOperationSaving(false);
+            return;
+        }
         if (isNaN(countedQuantity) || countedQuantity < 0) {
             toastr.warning(slnJsT('salon.products.js.counted_stock_negative', 'Sayılan stok negatif olamaz'));
             self.isStockOperationSaving(false);
@@ -432,7 +483,7 @@ function ProductsViewModel() {
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                branchId: parseInt(self.stockOperationForm.branchId()) || null,
+                branchId: countBranchId,
                 countedQuantity: countedQuantity,
                 notes: self.stockOperationForm.notes()
             })
@@ -457,6 +508,7 @@ function ProductsViewModel() {
         var unitPrice = parseFloat(self.supplierOrderForm.unitPrice()) || 0;
 
         if (!supplierId) { toastr.warning(slnJsT('salon.products.js.tedarikci_secilmelidir', 'Tedarikci secilmelidir')); return; }
+        if (!requireBranchValue(branchId, slnJsT('salon.products.purchase_branch_required', 'Alis kaydi icin sube secilmelidir'))) return;
         if (quantity <= 0) { toastr.warning(slnJsT('salon.products.js.order_quantity_positive', "Siparis miktari 0'dan buyuk olmalidir")); return; }
         if (unitPrice < 0) { toastr.warning(slnJsT('salon.products.js.unit_price_negative', 'Birim fiyat negatif olamaz')); return; }
 

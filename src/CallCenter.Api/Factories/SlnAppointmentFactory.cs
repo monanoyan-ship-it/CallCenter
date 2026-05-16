@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private readonly ISlnStockMovementEntityService _stockMovements;
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ISlnBranchEntityService _branches;
+    private readonly ISlnStockBalanceService _stockBalances;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnAppointmentFactory> _logger;
 
@@ -37,6 +39,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         ISlnStockMovementEntityService stockMovements,
         ICustomerPersonnelEntityService personnel,
         ISlnBranchEntityService branches,
+        ISlnStockBalanceService stockBalances,
         IUnitOfWork uow,
         ILogger<SlnAppointmentFactory> logger)
     {
@@ -52,6 +55,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         _stockMovements = stockMovements;
         _personnel = personnel;
         _branches = branches;
+        _stockBalances = stockBalances;
         _uow = uow;
         _logger = logger;
     }
@@ -355,14 +359,18 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
                 return (false, "Recete urunu bulunamadi");
 
             var totalQuantity = productGroup.Sum(x => x.Item.Quantity);
-            if (product.StockQuantity < totalQuantity)
-                return (false, $"Yetersiz stok: {product.Name} (Mevcut: {product.StockQuantity:0.##} {product.Unit})");
+            var availableStock = await _stockBalances.GetStockQuantityAsync(appointment.CustomerId, product.Id, appointment.BranchId, product.StockQuantity);
+            if (availableStock < totalQuantity)
+                return (false, $"Yetersiz stok: {product.Name} (Mevcut: {availableStock:0.##} {product.Unit})");
         }
 
         foreach (var entry in recipeItems)
         {
             var product = products[entry.Item.ProductId];
-            product.StockQuantity -= entry.Item.Quantity;
+            var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                product, appointment.CustomerId, appointment.BranchId, -entry.Item.Quantity, preventNegative: true);
+            if (!stockOk) return (false, stockError);
+            await _stockBalances.SyncProductTotalAsync(product, appointment.CustomerId);
             _stockMovements.Add(new SlnStockMovement
             {
                 CustomerId = appointment.CustomerId,

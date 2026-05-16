@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnPackageFactory _packages;
     private readonly ISlnGiftCardFactory _giftCards;
+    private readonly ISlnStockBalanceService _stockBalances;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnFinanceFactory> _logger;
     private const int GiftCardPaymentMethodId = 5;
@@ -48,6 +50,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnMembershipFactory memberships,
         ISlnPackageFactory packages,
         ISlnGiftCardFactory giftCards,
+        ISlnStockBalanceService stockBalances,
         IUnitOfWork uow,
         ILogger<SlnFinanceFactory> logger)
     {
@@ -68,6 +71,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _memberships = memberships;
         _packages = packages;
         _giftCards = giftCards;
+        _stockBalances = stockBalances;
         _uow = uow;
         _logger = logger;
     }
@@ -332,10 +336,14 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 if (product == null)
                     return (null, "Urun bulunamadi");
 
-                if (product.StockQuantity < itemDto.Quantity)
-                    return (null, $"Yetersiz stok: {product.Name} (Mevcut: {product.StockQuantity:0.##} {product.Unit})");
+                var availableStock = await _stockBalances.GetStockQuantityAsync(customerId, product.Id, branchId, product.StockQuantity);
+                if (availableStock < itemDto.Quantity)
+                    return (null, $"Yetersiz stok: {product.Name} (Mevcut: {availableStock:0.##} {product.Unit})");
 
-                product.StockQuantity -= itemDto.Quantity;
+                var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                    product, customerId, branchId, -itemDto.Quantity, preventNegative: true);
+                if (!stockOk) return (null, stockError);
+                await _stockBalances.SyncProductTotalAsync(product, customerId);
                 _stockMovements.Add(new SlnStockMovement
                 {
                     CustomerId = customerId,
@@ -1192,7 +1200,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             // Urun stok geri yukle
             foreach (var item in invoice.Items.Where(i => i.ProductId != null && i.Product != null))
             {
-                item.Product!.StockQuantity += item.Quantity;
+                var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                    item.Product!, customerId, invoice.BranchId, item.Quantity, preventNegative: false);
+                if (!stockOk) return (null, stockError);
+                await _stockBalances.SyncProductTotalAsync(item.Product!, customerId);
                 _stockMovements.Add(new SlnStockMovement
                 {
                     CustomerId = customerId,
