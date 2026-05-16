@@ -21,6 +21,19 @@
 
         var user = JSON.parse(localStorage.getItem('platformUser') || '{}');
         document.getElementById('userName').textContent = user.fullName || '';
+        var salonByCustomerId = {};
+        var myReviewsByCustomerId = {};
+        var showingPastAppointments = false;
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+            });
+        }
+
+        function escapeAttr(value) {
+            return escapeHtml(value).replace(/`/g, '&#96;');
+        }
 
         function api(path, opts) {
             opts = opts || {};
@@ -41,7 +54,11 @@
         function loadSalons() {
             api('platform/salons').then(function(data) {
                 var el = document.getElementById('salonList');
+                salonByCustomerId = {};
                 if (!data || data.length === 0) { el.innerHTML = ''; document.getElementById('noSalons').style.display = ''; return; }
+                data.forEach(function(s) {
+                    if (s && s.customerId) salonByCustomerId[s.customerId] = s;
+                });
                 document.getElementById('noSalons').style.display = 'none';
                 el.innerHTML = data.map(function(s) {
                     var slug = s.slug || s.customerId;
@@ -51,7 +68,7 @@
                         '<small class="text-muted">' + (s.city || '') + ' ' + (s.district || '') + '</small>' +
                         '<div class="mt-2"><button class="btn btn-sm ' + (s.isFavorite ? 'btn-warning' : 'btn-outline-warning') + '" data-panel-action="toggle-fav" data-customer-id="' + s.customerId + '"><i class="bi bi-star' + (s.isFavorite ? '-fill' : '') + '"></i></button>' +
                         ' <a href="/salon/' + slug + '/book" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>' + salonT('salon.panel.action.appointment', 'Randevu') + '</a>' +
-                        ' <button class="btn btn-sm btn-outline-danger" data-panel-action="open-health" data-customer-id="' + s.customerId + '"><i class="bi bi-heart-pulse me-1"></i>' + salonT('salon.panel.health.button', 'Saglik') + '</button></div>' +
+                        ' <button class="btn btn-sm btn-outline-danger" data-panel-action="open-health" data-customer-id="' + s.customerId + '"><i class="bi bi-heart-pulse me-1"></i>' + salonT('salon.panel.health.button', 'Sağlık') + '</button></div>' +
                         '</div></div></div>';
                 }).join('');
             });
@@ -68,7 +85,7 @@
             activeHealthCustomerId = customerId;
             api('platform/salons/' + customerId + '/health').then(function(data) {
                 if (!data) {
-                    showToast(salonT('salon.panel.health.load_failed', 'Saglik bilgileri yuklenemedi.'), false);
+                    showToast(salonT('salon.panel.health.load_failed', 'Sağlık bilgileri yüklenemedi.'), false);
                     return;
                 }
                 document.getElementById('healthSalonName').textContent = data.salonName || '';
@@ -95,7 +112,7 @@
                 })
             }).then(function(data) {
                 if (_healthModal) _healthModal.hide();
-                showToast((data && data.message) || salonT('salon.panel.health.saved', 'Saglik bilgileriniz salona iletildi.'), true);
+                showToast((data && data.message) || salonT('salon.panel.health.saved', 'Sağlık bilgileriniz salona iletildi.'), true);
             });
         }
 
@@ -111,6 +128,7 @@
         }
 
         function loadAppointments(past) {
+            showingPastAppointments = !!past;
             api('platform/appointments?past=' + (past || false)).then(function(data) {
                 var el = document.getElementById('appointmentList');
                 if (!data || data.length === 0) { el.innerHTML = ''; document.getElementById('noAppts').style.display = ''; return; }
@@ -121,6 +139,12 @@
                     var time = a.startTime ? a.startTime.substring(0, 5) : '';
                     var canCancel = a.statusId === 1 || a.statusId === 2;
                     var canPay = !!a.canPay;
+                    var customerId = a.customerId || 0;
+                    var salonSlug = a.salonSlug || (salonByCustomerId[customerId] && salonByCustomerId[customerId].slug) || '';
+                    var existingReview = customerId ? myReviewsByCustomerId[customerId] : null;
+                    var reviewLabel = existingReview
+                        ? salonT('salon.panel.review.update_button', 'Yorumu Güncelle')
+                        : salonT('salon.panel.review.write_button', 'Yorum Yaz');
                     var payLabel = a.statusId === 6
                         ? salonT('salon.panel.appointments.resume_payment', 'Ödemeye Devam Et')
                         : salonT('salon.panel.appointments.pay_now', 'Öde');
@@ -131,18 +155,23 @@
                     var payBtn = canPay
                         ? '<button class="btn btn-sm btn-primary" data-panel-action="appointment-payment" data-id="' + a.id + '"><i class="bi bi-credit-card me-1"></i>' + payLabel + (a.remainingAmount > 0 ? ' (' + formatMoney(a.remainingAmount) + ')' : '') + '</button>'
                         : '';
+                    var reviewBtn = a.statusId === 3 && salonSlug
+                        ? '<button class="btn btn-sm btn-outline-warning" data-panel-action="open-review" data-customer-id="' + customerId + '" data-slug="' + escapeAttr(salonSlug) + '" data-salon-name="' + escapeAttr(a.salonName || '') + '"><i class="bi bi-star me-1"></i>' + reviewLabel + '</button>'
+                        : '';
                     return '<div class="card section-card mb-2"><div class="card-body d-flex justify-content-between align-items-center py-2">' +
                         '<div><strong>' + a.salonName + '</strong>' + apptStatusBadge(a.statusId) +
                         '<div class="small text-muted">' + date + ' ' + time + '</div>' +
                         '<div class="small">' + (a.serviceNames || []).join(', ') + '</div></div>' +
-                        '<div class="d-flex gap-2">' + payBtn + cancelBtn + '</div>' +
+                        '<div class="d-flex gap-2 flex-wrap justify-content-end">' + payBtn + reviewBtn + cancelBtn + '</div>' +
                         '</div></div>';
                 }).join('');
             });
         }
 
         var _cancelModal, _cancelToast;
+        var _reviewModal;
         var pendingCancelAppointmentId = null;
+        var pendingReview = null;
         var appointmentPaymentBusy = false;
 
         function formatMoney(amount) {
@@ -237,6 +266,70 @@
             _cancelModal.show();
         }
 
+        function loadMyReviews() {
+            return api('platform/reviews/me').then(function(data) {
+                myReviewsByCustomerId = {};
+                (data || []).forEach(function(review) {
+                    if (review && review.customerId) {
+                        myReviewsByCustomerId[review.customerId] = review;
+                    }
+                });
+                return data || [];
+            });
+        }
+
+        function openReview(customerId, salonSlug, salonName) {
+            if (!customerId || !salonSlug) {
+                showToast(salonT('salon.panel.review.slug_missing', 'Salon bağlantısı bulunamadı.'), false);
+                return;
+            }
+
+            pendingReview = {
+                customerId: customerId,
+                salonSlug: salonSlug
+            };
+
+            var existingReview = myReviewsByCustomerId[customerId];
+            document.getElementById('reviewSalonName').textContent = salonName || '';
+            document.getElementById('reviewRating').value = existingReview && existingReview.rating ? existingReview.rating : '5';
+            document.getElementById('reviewComment').value = existingReview && existingReview.comment ? existingReview.comment : '';
+
+            if (!_reviewModal) _reviewModal = new bootstrap.Modal(document.getElementById('reviewModal'));
+            _reviewModal.show();
+        }
+
+        function submitReview() {
+            if (!pendingReview) return;
+
+            var rating = parseInt(document.getElementById('reviewRating').value, 10);
+            if (rating < 1 || rating > 5) {
+                showToast(salonT('salon.panel.review.rating_required', 'Puan seçin.'), false);
+                return;
+            }
+
+            api('platform/reviews', {
+                method: 'POST',
+                body: JSON.stringify({
+                    salonSlug: pendingReview.salonSlug,
+                    rating: rating,
+                    comment: document.getElementById('reviewComment').value || null,
+                    displayName: user.fullName || null
+                })
+            }).then(function(data) {
+                if (!data || data.message || data.error) {
+                    showToast((data && (data.message || data.error)) || salonT('salon.panel.review.failed', 'Yorum kaydedilemedi.'), false);
+                    return;
+                }
+
+                if (_reviewModal) _reviewModal.hide();
+                pendingReview = null;
+                showToast(salonT('salon.panel.review.saved', 'Yorumunuz onaya gönderildi.'), true);
+                loadMyReviews().then(function() {
+                    loadAppointments(showingPastAppointments);
+                });
+            });
+        }
+
         // --- Sadakat ---
         function loadLoyalty() {
             api('platform/loyalty').then(function(data) {
@@ -307,7 +400,11 @@
 
         // Init
         loadSalons();
-        loadAppointments(false);
+        loadMyReviews().then(function() {
+            loadAppointments(false);
+        }, function() {
+            loadAppointments(false);
+        });
         loadLoyalty();
         loadProfile();
         loadBilling();
@@ -486,6 +583,16 @@
             } else if (action === 'appointment-payment') {
                 event.preventDefault();
                 openAppointmentPayment(parseInt(actionEl.getAttribute('data-id'), 10));
+            } else if (action === 'open-review') {
+                event.preventDefault();
+                openReview(
+                    parseInt(actionEl.getAttribute('data-customer-id'), 10),
+                    actionEl.getAttribute('data-slug') || '',
+                    actionEl.getAttribute('data-salon-name') || ''
+                );
+            } else if (action === 'submit-review') {
+                event.preventDefault();
+                submitReview();
             } else if (action === 'cancel-appt') {
                 event.preventDefault();
                 cancelAppt(

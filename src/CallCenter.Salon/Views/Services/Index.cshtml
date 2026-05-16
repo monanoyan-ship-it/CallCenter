@@ -32,7 +32,7 @@
                     <span class="badge bg-secondary ms-1" data-bind="text: services.length"></span>
                 </h6>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.kategori_duzenle", "Kategori DÃ¼zenle"))" data-bind="click: $parent.openEditCategory">
+                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.kategori_duzenle", "Kategori Düzenle"))" data-bind="click: $parent.openEditCategory">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.services.auto.kategori_sil", "Kategori Sil"))" data-bind="click: $parent.removeCategory">
@@ -45,8 +45,8 @@
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th><t key="salon.services.auto.hizmet_adi">Hizmet AdÄ±</t></th>
-                                <th><t key="salon.services.auto.sure_dk">SÃ¼re (dk)</t></th>
+                                <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
+                                <th><t key="salon.services.auto.sure_dk">Süre (dk)</t></th>
                                 <th><t key="salon.session_plans.service_tracking">Seanslı Hizmet</t></th>
                                 <th><t key="salon.services.resources">Kaynaklar</t></th>
                                 <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
@@ -70,7 +70,7 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "DÃ¼zenle"))" data-bind="click: $parents[1].openEditService">
+                                        <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "Düzenle"))" data-bind="click: $parents[1].openEditService">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parents[1].removeService">
@@ -100,8 +100,8 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th><t key="salon.services.auto.hizmet_adi">Hizmet AdÄ±</t></th>
-                            <th><t key="salon.services.auto.sure_dk_2">SÃ¼re (dk)</t></th>
+                            <th><t key="salon.services.auto.hizmet_adi">Hizmet Adı</t></th>
+                            <th><t key="salon.services.auto.sure_dk_2">Süre (dk)</t></th>
                             <th><t key="salon.session_plans.service_tracking">Seanslı Hizmet</t></th>
                             <th><t key="salon.services.resources">Kaynaklar</t></th>
                             <th><t key="salon.services.auto.fiyat_2">Fiyat</t></th>
@@ -125,7 +125,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "DÃ¼zenle"))" data-bind="click: $parent.openEditService">
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.services.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEditService">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removeService">
@@ -144,7 +144,7 @@
     <!-- ko if: filteredCategories().length === 0 && uncategorizedServices().length === 0 -->
     <div class="text-center text-muted py-5">
         <i class="bi bi-list-check" style="font-size: 2rem;"></i>
-        <p class="mt-2 small"><t key="salon.services.auto.henuz_hizmet_eklenmemis">HenÃ¼z hizmet eklenmemis</t></p>
+        <p class="mt-2 small"><t key="salon.services.auto.henuz_hizmet_eklenmemis">Henüz hizmet eklenmemiş</t></p>
     </div>
     <!-- /ko -->
 
@@ -153,21 +153,21 @@
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditingCategory() ? salonT('salon.services.auto.kategori_duzenle', 'Kategori DÃ¼zenle') : salonT('salon.services.auto.yeni_kategori', 'Yeni Kategori')"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditingCategory() ? salonT('salon.services.auto.kategori_duzenle', 'Kategori Düzenle') : salonT('salon.services.auto.yeni_kategori', 'Yeni Kategori')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small"><t key="salon.services.auto.kategori_adi">Kategori AdÄ± *</t></label>
+                        <label class="form-label small"><t key="salon.services.auto.kategori_adi">Kategori Adı *</t></label>
                         <input type="text" class="form-control form-control-sm" data-bind="value: categoryForm.name" />
                     </div>
                     <div>
-                        <label class="form-label small"><t key="salon.services.auto.sira_no">SÄ±ra No</t></label>
+                        <label class="form-label small"><t key="salon.services.auto.sira_no">Sıra No</t></label>
                         <input type="number" class="form-control form-control-sm" data-bind="value: categoryForm.sortOrder" />
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Ä°ptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveCategory, disable: isSaving">
                         <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
@@ -181,13 +181,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditingService() ? salonT('salon.services.auto.hizmet_duzenle', 'Hizmet DÃ¼zenle') : salonT('salon.services.auto.yeni_hizmet', 'Yeni Hizmet')"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditingService() ? salonT('salon.services.auto.hizmet_duzenle', 'Hizmet Düzenle') : salonT('salon.services.auto.yeni_hizmet', 'Yeni Hizmet')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small"><t key="salon.services.auto.hizmet_adi_2">Hizmet AdÄ± *</t></label>
+                            <label class="form-label small"><t key="salon.services.auto.hizmet_adi_2">Hizmet Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: serviceForm.name" />
                         </div>
                         <div class="col-6">
@@ -213,13 +213,13 @@
                                                   event: { mousedown: function(){ $parent.categoryAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
                                     <!-- ko if: categoryAutocomplete.filteredItems().length === 0 && categoryAutocomplete.query().length > 0 -->
-                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">SonuÃ§ bulunamadÄ±</t></span>
+                                    <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>
                             </div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="salon.services.auto.sure_dk_required">SÃ¼re (dk) *</t></label>
+                            <label class="form-label small"><t key="salon.services.auto.sure_dk_required">Süre (dk) *</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: serviceForm.durationMinutes" />
                         </div>
                         <div class="col-6">
@@ -294,7 +294,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Ä°ptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveService, disable: isSaving">
                         <i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t>
                     </button>
@@ -313,7 +313,7 @@
                 <div class="modal-body">
                     <div class="row g-2 mb-3">
                         <div class="col-md-4">
-                            <label class="form-label small"><t key="salon.services.resource_name">Kaynak adi</t></label>
+                            <label class="form-label small"><t key="salon.services.resource_name">Kaynak adı</t></label>
                             <input class="form-control form-control-sm" data-bind="value: resourceForm.name" />
                         </div>
                         <div class="col-md-3">
@@ -345,7 +345,7 @@
                         <table class="table table-sm table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th><t key="salon.services.resource_name">Kaynak adi</t></th>
+                                    <th><t key="salon.services.resource_name">Kaynak adı</t></th>
                                     <th><t key="salon.services.resource_kind">Tip</t></th>
                                     <th><t key="salon.services.quantity">Adet</t></th>
                                     <th><t key="salon.appointments.status">Durum</t></th>
@@ -486,7 +486,7 @@
                 <div class="modal-body">
                     <div class="row g-2 mb-3">
                         <div class="col-md-5">
-                            <label class="form-label small"><t key="salon.services.combo_name">Combo adi</t></label>
+                            <label class="form-label small"><t key="salon.services.combo_name">Combo adı</t></label>
                             <input class="form-control form-control-sm" data-bind="value: comboForm.name" />
                         </div>
                         <div class="col-md-3">
@@ -524,7 +524,7 @@
                         <table class="table table-sm table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th><t key="salon.services.combo_name">Combo adi</t></th>
+                                    <th><t key="salon.services.combo_name">Combo adı</t></th>
                                     <th><t key="salon.appointments.services">Hizmetler</t></th>
                                     <th><t key="salon.services.auto.fiyat">Fiyat</t></th>
                                     <th><t key="salon.services.auto.sure_dk">Sure (dk)</t></th>

@@ -110,6 +110,8 @@ public class PlatformSalonHealthDto
 public class PlatformAppointmentDto
 {
     public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public string? SalonSlug { get; set; }
     public string SalonName { get; set; } = string.Empty;
     public string? SalonLogoUrl { get; set; }
     public DateTime AppointmentDate { get; set; }

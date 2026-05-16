@@ -87,6 +87,36 @@
                 </div>
             </div>
 
+            <!-- Yorum Modalı -->
+            <div class="modal fade" id="reviewModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header py-2" style="background:linear-gradient(135deg,#2d1b3d 0%,#4a1a6b 100%);color:#fff;">
+                            <h6 class="modal-title"><i class="bi bi-star me-2"></i><t key="salon.panel.review.title">Yorum Yaz</t></h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="small text-muted mb-3" id="reviewSalonName"></div>
+                            <label class="form-label small"><t key="salon.panel.review.rating">Puan</t></label>
+                            <select class="form-select form-select-sm mb-3" id="reviewRating">
+                                <option value="5">5</option>
+                                <option value="4">4</option>
+                                <option value="3">3</option>
+                                <option value="2">2</option>
+                                <option value="1">1</option>
+                            </select>
+                            <label class="form-label small"><t key="salon.panel.review.comment">Yorumunuz</t></label>
+                            <textarea class="form-control form-control-sm" rows="4" id="reviewComment" maxlength="1000"></textarea>
+                            <div class="form-text"><t key="salon.panel.review.note">Yorumunuz salon onayından sonra yayınlanır.</t></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
+                            <button type="button" class="btn btn-primary btn-sm" data-panel-action="submit-review"><i class="bi bi-send me-1"></i><t key="salon.panel.review.submit">Gönder</t></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sadakat -->
             <div class="tab-pane fade" id="tabLoyalty">
                 <div id="loyaltyList"></div>
@@ -196,7 +226,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header py-2" style="background:linear-gradient(135deg,#2d1b3d 0%,#4a1a6b 100%);color:#fff;">
-                    <h6 class="modal-title"><i class="bi bi-heart-pulse me-2"></i><t key="salon.panel.health.title">Saglik Bilgilerim</t></h6>
+                    <h6 class="modal-title"><i class="bi bi-heart-pulse me-2"></i><t key="salon.panel.health.title">Sağlık Bilgilerim</t></h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -219,16 +249,16 @@
                             <textarea class="form-control form-control-sm" rows="3" id="healthContraindications"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small"><t key="salon.clients.health.medical_notes">Saglik Notlari</t></label>
+                            <label class="form-label small"><t key="salon.clients.health.medical_notes">Sağlık Notları</t></label>
                             <textarea class="form-control form-control-sm" rows="3" id="healthMedicalNotes"></textarea>
                         </div>
                     </div>
                     <div class="alert alert-info py-2 small mt-3 mb-0">
-                        <i class="bi bi-info-circle me-1"></i><t key="salon.panel.health.review_note">Kaydettiginizde bilgiler salona inceleme uyarisi olarak iletilir.</t>
+                        <i class="bi bi-info-circle me-1"></i><t key="salon.panel.health.review_note">Kaydettiğinizde bilgiler salona inceleme uyarısı olarak iletilir.</t>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-panel-action="save-health"><i class="bi bi-check-lg me-1"></i><t key="salon.common.btn.save">Kaydet</t></button>
                 </div>
             </div>

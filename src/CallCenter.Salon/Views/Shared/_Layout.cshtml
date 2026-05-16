@@ -36,8 +36,8 @@
         .sidebar .nav-group-toggle span { flex: 1; text-align: left; }
         .sidebar .nav-group-toggle .chevron { font-size: .6rem; transition: transform .2s ease; opacity: .5; }
         .sidebar .nav-group-toggle .chevron.open { transform: rotate(180deg); }
-        .sidebar .nav-group-items { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
-        .sidebar .nav-group-items.show { max-height: 500px; }
+        .sidebar .nav-group-items { display: none; }
+        .sidebar .nav-group-items.show { display: block; }
         .content-area { margin-left: var(--sidebar-width); padding: 1.5rem; min-height: 100vh; }
         .topbar { background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
     </style>

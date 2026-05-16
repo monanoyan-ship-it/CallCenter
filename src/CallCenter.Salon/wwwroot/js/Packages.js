@@ -237,7 +237,7 @@ function PackagesViewModel() {
         self.usingPackage(target);
         self.manualUseNotes('');
         if (!useSessionModal) {
-            toastr.error(slnJsT('salon.common.reload_required', 'Sayfa guncellenmeli. Lutfen sayfayi yenileyin.'));
+            toastr.error(slnJsT('salon.common.reload_required', 'Sayfa güncellenmeli. Lütfen sayfayı yenileyin.'));
             return;
         }
         useSessionModal.show();

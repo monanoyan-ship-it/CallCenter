@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Http.Json;
 using CallCenter.Shared.DTOs;
 
@@ -14,7 +15,7 @@ public class ServerTranslationCache
     private readonly string? _module;
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
     private LanguageCacheEntry? _languageCache;
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan VersionCheckTtl = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan LanguageCacheTtl = TimeSpan.FromMinutes(30);
 
     public ServerTranslationCache(HttpClient httpClient, string? module = null)
@@ -26,21 +27,37 @@ public class ServerTranslationCache
 
     public async Task<Dictionary<string, string>> GetTranslationsAsync(string languageCode)
     {
-        if (_cache.TryGetValue(languageCode, out var entry) && !entry.IsExpired)
+        _cache.TryGetValue(languageCode, out var entry);
+        if (entry is { NeedsValidation: false })
             return entry.Translations;
 
         try
         {
             var url = $"api/translations/{languageCode}";
             if (!string.IsNullOrEmpty(_module)) url += $"?module={_module}";
-            var translations = await _http.GetFromJsonAsync<Dictionary<string, string>>(url) ?? new();
 
-            _cache[languageCode] = new CacheEntry(translations, DateTime.UtcNow);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (!string.IsNullOrWhiteSpace(entry?.ETag))
+                request.Headers.TryAddWithoutValidation("If-None-Match", entry.ETag);
+
+            using var response = await _http.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.NotModified && entry != null)
+            {
+                _cache[languageCode] = entry.ValidatedNow();
+                return entry.Translations;
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var translations = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>() ?? new();
+            var etag = response.Headers.ETag?.Tag;
+
+            _cache[languageCode] = new CacheEntry(translations, DateTime.UtcNow, etag);
             return translations;
         }
         catch
         {
-            // API erisilemezse mevcut cache'i dondur (suresi dolmus olsa bile)
+            // API erisilemezse mevcut cache'i dondur.
             if (entry != null)
                 return entry.Translations;
 
@@ -84,9 +101,10 @@ public class ServerTranslationCache
         _languageCache = null;
     }
 
-    private record CacheEntry(Dictionary<string, string> Translations, DateTime LoadedAt)
+    private record CacheEntry(Dictionary<string, string> Translations, DateTime ValidatedAt, string? ETag)
     {
-        public bool IsExpired => DateTime.UtcNow - LoadedAt > CacheTtl;
+        public bool NeedsValidation => DateTime.UtcNow - ValidatedAt > VersionCheckTtl;
+        public CacheEntry ValidatedNow() => this with { ValidatedAt = DateTime.UtcNow };
     }
 
     private record LanguageCacheEntry(IReadOnlyList<LocalizationConstants.LanguageInfo> Languages, DateTime LoadedAt)

@@ -182,10 +182,10 @@ function ServicesViewModel() {
 
         var parts = [];
         if (stats.definitionCount) {
-            parts.push(stats.definitionCount + ' ' + slnJsT('salon.services.package_def_short', 'tanÄ±m'));
+            parts.push(stats.definitionCount + ' ' + slnJsT('salon.services.package_def_short', 'tanım'));
         }
 
-        return parts.join(' Â· ') || slnJsT('salon.session_plans.empty', 'Seans takibi yok');
+        return parts.join(' · ') || slnJsT('salon.session_plans.empty', 'Seans takibi yok');
     };
 
     self.comboSummary = function (combo) {
@@ -268,7 +268,7 @@ function ServicesViewModel() {
 
     self.saveCategory = function () {
         var data = { name: self.categoryForm.name(), sortOrder: parseInt(self.categoryForm.sortOrder()) || 0 };
-        if (!data.name) { toastr.warning(slnJsT('salon.services.js.kategori_adi_zorunludur', 'Kategori adi zorunludur')); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.js.kategori_adi_zorunludur', 'Kategori adı zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-services/categories';
@@ -290,7 +290,7 @@ function ServicesViewModel() {
     };
 
     self.removeCategory = function (cat) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.category_delete_confirm', "'{name}' kategorisini silmek istediÄŸinize emin misiniz?").replace('{name}', cat.name || ''), function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.category_delete_confirm', "'{name}' kategorisini silmek istediğinize emin misiniz?").replace('{name}', cat.name || ''), function() {
             $.ajax({ url: '/proxy/sln-services/categories/' + cat.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.services.js.kategori_silindi', 'Kategori silindi'));
@@ -365,8 +365,8 @@ function ServicesViewModel() {
                 .filter(function (r) { return r.resourceId && r.quantityRequired > 0; }),
             isActive: self.serviceForm.isActive() === 'true'
         };
-        if (!data.name) { toastr.warning(slnJsT('salon.services.js.hizmet_adi_zorunludur', 'Hizmet adÄ± zorunludur')); return; }
-        if (!data.categoryId) { toastr.warning(slnJsT('salon.services.js.kategori_secimi_zorunludur', 'Kategori seÃ§imi zorunludur')); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.js.hizmet_adi_zorunludur', 'Hizmet adı zorunludur')); return; }
+        if (!data.categoryId) { toastr.warning(slnJsT('salon.services.js.kategori_secimi_zorunludur', 'Kategori seçimi zorunludur')); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-services';
@@ -416,7 +416,7 @@ function ServicesViewModel() {
             notes: self.resourceForm.notes(),
             isActive: self.resourceForm.isActive() === 'true'
         };
-        if (!data.name) { toastr.warning(slnJsT('salon.services.resource_name_required', 'Kaynak adi zorunludur')); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.resource_name_required', 'Kaynak adı zorunludur')); return; }
 
         var id = self.resourceForm.id();
         $.ajax({
@@ -497,7 +497,7 @@ function ServicesViewModel() {
             isActive: true
         };
         if (!data.name) { toastr.warning(slnJsT('salon.session_plans.js.definition_and_service_required', 'Seans tanimi ve hizmet zorunludur')); return; }
-        if (data.totalSessions <= 0) { toastr.warning(slnJsT('salon.services.package_sessions_required', 'Seans sayÄ±sÄ± 0â€™dan bÃ¼yÃ¼k olmalÄ±dÄ±r')); return; }
+        if (data.totalSessions <= 0) { toastr.warning(slnJsT('salon.services.package_sessions_required', "Seans sayısı 0'dan büyük olmalıdır")); return; }
 
         self.isSaving(true);
         var url = '/proxy/sln-packages/definitions';
@@ -567,7 +567,7 @@ function ServicesViewModel() {
             isActive: self.comboForm.isActive() === 'true',
             items: selected.map(function (id, idx) { return { serviceId: id, sortOrder: idx + 1 }; })
         };
-        if (!data.name) { toastr.warning(slnJsT('salon.services.combo_name_required', 'Combo adi zorunludur')); return; }
+        if (!data.name) { toastr.warning(slnJsT('salon.services.combo_name_required', 'Combo adı zorunludur')); return; }
         if (!data.items.length) { toastr.warning(slnJsT('salon.services.combo_services_required', 'Combo icin en az bir hizmet secin')); return; }
 
         var id = self.comboForm.id();
@@ -601,7 +601,7 @@ function ServicesViewModel() {
     };
 
     self.removeService = function (svc) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.service_delete_confirm', "'{name}' hizmetini silmek istediÄŸinize emin misiniz?").replace('{name}', svc.name || ''), function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.services.js.service_delete_confirm', "'{name}' hizmetini silmek istediğinize emin misiniz?").replace('{name}', svc.name || ''), function() {
             $.ajax({ url: '/proxy/sln-services/' + svc.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.services.js.hizmet_silindi', 'Hizmet silindi'));

@@ -358,12 +358,36 @@ public class PlatformFactory : IPlatformFactory
         var appointments = await query.Take(50).ToListAsync();
 
         var customerIds = appointments.Select(a => a.CustomerId).Distinct().ToList();
+        var branchIds = appointments
+            .Where(a => a.BranchId.HasValue)
+            .Select(a => a.BranchId!.Value)
+            .Distinct()
+            .ToList();
         var salonNames = await _customerEs.GetAllQueryable()
             .Where(c => customerIds.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, c => c.Name);
-        var salonLogos = await _profileEs.GetAllQueryable()
+        var profiles = await _profileEs.GetAllQueryable()
             .Where(p => customerIds.Contains(p.CustomerId))
-            .ToDictionaryAsync(p => p.CustomerId, p => p.LogoUrl);
+            .Select(p => new { p.CustomerId, p.LogoUrl, p.Slug })
+            .ToListAsync();
+        var salonLogos = profiles
+            .GroupBy(p => p.CustomerId)
+            .ToDictionary(g => g.Key, g => g.First().LogoUrl);
+        var profileSlugs = profiles
+            .GroupBy(p => p.CustomerId)
+            .ToDictionary(g => g.Key, g => (string?)g.First().Slug);
+        var branchSlugs = branchIds.Count == 0
+            ? new Dictionary<int, string?>()
+            : await _branchEs.GetAllQueryable()
+                .Where(b => branchIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.Slug);
+        var headquarterSlugRows = await _branchEs.GetAllQueryable()
+            .Where(b => customerIds.Contains(b.CustomerId) && b.IsHeadquarter && b.IsActive)
+            .Select(b => new { b.CustomerId, b.Slug })
+            .ToListAsync();
+        var headquarterSlugs = headquarterSlugRows
+            .GroupBy(b => b.CustomerId)
+            .ToDictionary(g => g.Key, g => g.Select(b => b.Slug).FirstOrDefault());
 
         var legacyServiceIds = appointments
             .Where(a => a.ServiceId.HasValue && (a.Services == null || a.Services.Count == 0))
@@ -413,6 +437,8 @@ public class PlatformFactory : IPlatformFactory
             return new PlatformAppointmentDto
             {
                 Id = a.Id,
+                CustomerId = a.CustomerId,
+                SalonSlug = ResolveAppointmentSlug(a, branchSlugs, headquarterSlugs, profileSlugs),
                 SalonName = salonNames.GetValueOrDefault(a.CustomerId, "-"),
                 SalonLogoUrl = salonLogos.GetValueOrDefault(a.CustomerId),
                 AppointmentDate = a.StartTime.Date,
@@ -724,6 +750,30 @@ public class PlatformFactory : IPlatformFactory
         6 => "Ödeme bekliyor",
         _ => "Bilinmiyor"
     };
+
+    private static string? ResolveAppointmentSlug(
+        SlnAppointment appointment,
+        IReadOnlyDictionary<int, string?> branchSlugs,
+        IReadOnlyDictionary<int, string?> headquarterSlugs,
+        IReadOnlyDictionary<int, string?> profileSlugs)
+    {
+        if (appointment.BranchId.HasValue
+            && branchSlugs.TryGetValue(appointment.BranchId.Value, out var branchSlug)
+            && !string.IsNullOrWhiteSpace(branchSlug))
+        {
+            return branchSlug;
+        }
+
+        if (headquarterSlugs.TryGetValue(appointment.CustomerId, out var headquarterSlug)
+            && !string.IsNullOrWhiteSpace(headquarterSlug))
+        {
+            return headquarterSlug;
+        }
+
+        return profileSlugs.TryGetValue(appointment.CustomerId, out var profileSlug)
+            ? profileSlug
+            : null;
+    }
 
     private async Task<string> GetAppointmentPublicSlugAsync(SlnAppointment appointment)
     {
