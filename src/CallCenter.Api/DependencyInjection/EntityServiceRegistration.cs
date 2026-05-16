@@ -106,6 +106,7 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnServiceEntityService, SlnServiceEntityService>();
         services.AddScoped<ISlnAppointmentEntityService, SlnAppointmentEntityService>();
         services.AddScoped<ISlnProductEntityService, SlnProductEntityService>();
+        services.AddScoped<ISlnProductBranchStockEntityService, SlnProductBranchStockEntityService>();
         services.AddScoped<ISlnProductCategoryEntityService, SlnProductCategoryEntityService>();
         services.AddScoped<ISlnProductBrandEntityService, SlnProductBrandEntityService>();
         services.AddScoped<ISlnStockMovementEntityService, SlnStockMovementEntityService>();

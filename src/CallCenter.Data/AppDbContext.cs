@@ -115,6 +115,7 @@ public class AppDbContext : DbContext
     public DbSet<SlnProductCategory> SlnProductCategories => Set<SlnProductCategory>();
     public DbSet<SlnProductBrand> SlnProductBrands => Set<SlnProductBrand>();
     public DbSet<SlnProduct> SlnProducts => Set<SlnProduct>();
+    public DbSet<SlnProductBranchStock> SlnProductBranchStocks => Set<SlnProductBranchStock>();
     public DbSet<SlnSupplier> SlnSuppliers => Set<SlnSupplier>();
     public DbSet<SlnSupplierOrder> SlnSupplierOrders => Set<SlnSupplierOrder>();
     public DbSet<SlnSupplierOrderItem> SlnSupplierOrderItems => Set<SlnSupplierOrderItem>();
@@ -581,6 +582,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SlnProduct>(e =>
         {
             e.Property(p => p.TaxRate).HasPrecision(5, 2);
+        });
+
+        modelBuilder.Entity<SlnProductBranchStock>(e =>
+        {
+            e.HasIndex(s => new { s.CustomerId, s.BranchId, s.ProductId }).IsUnique();
+            e.Property(s => s.StockQuantity).HasPrecision(18, 2);
+            e.HasOne(s => s.Customer).WithMany().HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Product).WithMany().HasForeignKey(s => s.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Branch).WithMany().HasForeignKey(s => s.BranchId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SlnPersonnelShift>(e =>

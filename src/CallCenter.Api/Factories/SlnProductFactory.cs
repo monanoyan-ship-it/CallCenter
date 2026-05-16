@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -18,6 +19,7 @@ public class SlnProductFactory : ISlnProductFactory
     private readonly ISlnSupplierTransactionEntityService _supplierTransactions;
     private readonly ISlnSupplierOrderEntityService _supplierOrders;
     private readonly ISlnBranchEntityService _branches;
+    private readonly ISlnStockBalanceService _stockBalances;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnProductFactory> _logger;
 
@@ -30,6 +32,7 @@ public class SlnProductFactory : ISlnProductFactory
         ISlnSupplierTransactionEntityService supplierTransactions,
         ISlnSupplierOrderEntityService supplierOrders,
         ISlnBranchEntityService branches,
+        ISlnStockBalanceService stockBalances,
         IUnitOfWork uow,
         ILogger<SlnProductFactory> logger)
     {
@@ -41,13 +44,14 @@ public class SlnProductFactory : ISlnProductFactory
         _supplierTransactions = supplierTransactions;
         _supplierOrders = supplierOrders;
         _branches = branches;
+        _stockBalances = stockBalances;
         _uow = uow;
         _logger = logger;
     }
 
     // ═══ Urun ═══
 
-    public async Task<List<SlnProductDto>> GetProductsAsync(int customerId, int? categoryId = null, string? search = null)
+    public async Task<List<SlnProductDto>> GetProductsAsync(int customerId, int? categoryId = null, string? search = null, int? branchId = null)
     {
         var query = _products.GetAllQueryable()
             .Where(p => p.CustomerId == customerId);
@@ -69,20 +73,24 @@ public class SlnProductFactory : ISlnProductFactory
             .OrderBy(p => p.Name)
             .ToListAsync();
 
-        return products.Select(MapProductToDto).ToList();
+        var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
+        return products.Select(p => MapProductToDto(p, stockMap.GetValueOrDefault(p.Id, p.StockQuantity))).ToList();
     }
 
-    public async Task<SlnProductDto?> GetProductAsync(int productId, int customerId)
+    public async Task<SlnProductDto?> GetProductAsync(int productId, int customerId, int? branchId = null)
     {
         var product = await _products.GetAllQueryable()
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
 
-        return product != null ? MapProductToDto(product) : null;
+        if (product == null) return null;
+
+        var stockQuantity = await _stockBalances.GetStockQuantityAsync(customerId, product.Id, branchId, product.StockQuantity);
+        return MapProductToDto(product, stockQuantity);
     }
 
-    public async Task<SlnProductDto> CreateProductAsync(SlnProductCreateDto dto, int customerId)
+    public async Task<SlnProductDto> CreateProductAsync(SlnProductCreateDto dto, int customerId, int? branchId = null)
     {
         var product = new SlnProduct
         {
@@ -100,6 +108,9 @@ public class SlnProductFactory : ISlnProductFactory
 
         _products.Add(product);
         await _uow.SaveChangesAsync();
+        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, dto.StockQuantity);
+        await _stockBalances.SyncProductTotalAsync(product, customerId);
+        await _uow.SaveChangesAsync();
 
         _logger.LogInformation("Yeni urun olusturuldu: {ProductId} - {Name}", product.Id, product.Name);
 
@@ -108,10 +119,11 @@ public class SlnProductFactory : ISlnProductFactory
             .Include(p => p.Brand)
             .FirstAsync(p => p.Id == product.Id);
 
-        return MapProductToDto(created);
+        var stockQuantity = await _stockBalances.GetStockQuantityAsync(customerId, created.Id, branchId, created.StockQuantity);
+        return MapProductToDto(created, stockQuantity);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateProductAsync(int productId, SlnProductCreateDto dto, bool isActive, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateProductAsync(int productId, SlnProductCreateDto dto, bool isActive, int customerId, int? branchId = null)
     {
         var product = await _products.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
@@ -124,11 +136,12 @@ public class SlnProductFactory : ISlnProductFactory
         product.Barcode = dto.Barcode;
         product.PurchasePrice = dto.PurchasePrice;
         product.SalePrice = dto.SalePrice;
-        product.StockQuantity = dto.StockQuantity;
         product.MinStockLevel = dto.MinStockLevel;
         product.Unit = dto.Unit;
         product.IsActive = isActive;
 
+        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, dto.StockQuantity);
+        await _stockBalances.SyncProductTotalAsync(product, customerId);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -334,26 +347,32 @@ public class SlnProductFactory : ISlnProductFactory
 
     // ═══ Stok Hareket ═══
 
-    public async Task<List<SlnLowStockProductDto>> GetLowStockProductsAsync(int customerId)
+    public async Task<List<SlnLowStockProductDto>> GetLowStockProductsAsync(int customerId, int? branchId = null)
     {
         var products = await _products.GetAllQueryable()
             .Include(p => p.Category)
-            .Where(p => p.CustomerId == customerId && p.IsActive && p.MinStockLevel > 0 && p.StockQuantity <= p.MinStockLevel)
-            .OrderBy(p => p.StockQuantity)
-            .ThenBy(p => p.Name)
+            .Where(p => p.CustomerId == customerId && p.IsActive && p.MinStockLevel > 0)
+            .OrderBy(p => p.Name)
             .ToListAsync();
 
-        return products.Select(p => new SlnLowStockProductDto
-        {
-            ProductId = p.Id,
-            ProductName = p.Name,
-            CategoryName = p.Category?.Name,
-            StockQuantity = p.StockQuantity,
-            MinStockLevel = p.MinStockLevel,
-            SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(p),
-            PurchasePrice = p.PurchasePrice,
-            Unit = p.Unit
-        }).ToList();
+        var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
+
+        return products
+            .Select(p => new { Product = p, StockQuantity = stockMap.GetValueOrDefault(p.Id, p.StockQuantity) })
+            .Where(x => x.StockQuantity <= x.Product.MinStockLevel)
+            .OrderBy(x => x.StockQuantity)
+            .ThenBy(x => x.Product.Name)
+            .Select(x => new SlnLowStockProductDto
+            {
+                ProductId = x.Product.Id,
+                ProductName = x.Product.Name,
+                CategoryName = x.Product.Category?.Name,
+                StockQuantity = x.StockQuantity,
+                MinStockLevel = x.Product.MinStockLevel,
+                SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(x.Product, x.StockQuantity),
+                PurchasePrice = x.Product.PurchasePrice,
+                Unit = x.Product.Unit
+            }).ToList();
     }
 
     public async Task<List<SlnSupplierOrderDto>> GetSupplierOrdersAsync(int customerId, int? statusId = null)
@@ -448,7 +467,7 @@ public class SlnProductFactory : ISlnProductFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int userId, int customerId)
+    public async Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int userId, int customerId, int? branchId = null)
     {
         var product = await _products.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
@@ -472,6 +491,7 @@ public class SlnProductFactory : ISlnProductFactory
         var movement = new SlnStockMovement
         {
             CustomerId = customerId,
+            BranchId = await _stockBalances.ResolveBranchIdAsync(customerId, branchId),
             ProductId = productId,
             MovementTypeId = movementTypeId,
             Quantity = quantity,
@@ -494,9 +514,7 @@ public class SlnProductFactory : ISlnProductFactory
             });
         }
 
-        // Stok miktarini guncelle
-        // 1=Purchase(+), 2=Sale(-), 3=InternalUse(-), 4=Transfer(0), 5=Return(+)
-        product.StockQuantity += movementTypeId switch
+        var delta = movementTypeId switch
         {
             1 => quantity,   // Alis
             2 => -quantity,  // Satis
@@ -504,6 +522,10 @@ public class SlnProductFactory : ISlnProductFactory
             5 => quantity,   // Iade
             _ => 0
         };
+        var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+            product, customerId, movement.BranchId, delta, preventNegative: delta < 0);
+        if (!stockOk) return (false, stockError);
+        await _stockBalances.SyncProductTotalAsync(product, customerId);
 
         _stockMovements.Add(movement);
         await _uow.SaveChangesAsync();
@@ -527,15 +549,20 @@ public class SlnProductFactory : ISlnProductFactory
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
         if (product == null) return (false, "Urun bulunamadi");
         if (quantity <= 0) return (false, "Transfer miktari 0'dan buyuk olmali");
-        if (product.StockQuantity < quantity) return (false, "Transfer icin yeterli global stok yok");
 
-        if (fromBranchId.HasValue && fromBranchId.Value == toBranchId)
+        var effectiveFromBranchId = await _stockBalances.ResolveBranchIdAsync(customerId, fromBranchId);
+        if (!effectiveFromBranchId.HasValue) return (false, "Kaynak sube bulunamadi");
+
+        if (effectiveFromBranchId.Value == toBranchId)
             return (false, "Kaynak ve hedef sube ayni olamaz");
 
-        if (fromBranchId.HasValue && !await BranchExistsAsync(fromBranchId.Value, customerId))
+        if (!await BranchExistsAsync(effectiveFromBranchId.Value, customerId))
             return (false, "Kaynak sube bulunamadi");
         if (!await BranchExistsAsync(toBranchId, customerId))
             return (false, "Hedef sube bulunamadi");
+
+        var currentFromStock = await _stockBalances.GetStockQuantityAsync(customerId, productId, effectiveFromBranchId.Value, product.StockQuantity);
+        if (currentFromStock < quantity) return (false, "Transfer icin yeterli sube stogu yok");
 
         var unitPrice = product.PurchasePrice;
         var transferUid = Guid.NewGuid().ToString("N");
@@ -545,7 +572,7 @@ public class SlnProductFactory : ISlnProductFactory
         {
             CustomerId = customerId,
             ProductId = productId,
-            BranchId = fromBranchId,
+            BranchId = effectiveFromBranchId.Value,
             MovementTypeId = 4,
             Quantity = -quantity,
             UnitPrice = unitPrice,
@@ -561,13 +588,19 @@ public class SlnProductFactory : ISlnProductFactory
             MovementTypeId = 4,
             Quantity = quantity,
             UnitPrice = unitPrice,
-            Notes = $"TransferIn:{transferUid}|FromBranch:{fromBranchId?.ToString() ?? "Merkez"}{cleanNotes}",
+            Notes = $"TransferIn:{transferUid}|FromBranch:{effectiveFromBranchId.Value}{cleanNotes}",
             CreatedByPersonnelId = userId
         });
 
+        var (fromOk, fromError) = await _stockBalances.AdjustStockAsync(product, customerId, effectiveFromBranchId.Value, -quantity, preventNegative: true);
+        if (!fromOk) return (false, fromError);
+        var (toOk, toError) = await _stockBalances.AdjustStockAsync(product, customerId, toBranchId, quantity, preventNegative: false);
+        if (!toOk) return (false, toError);
+        await _stockBalances.SyncProductTotalAsync(product, customerId);
+
         await _uow.SaveChangesAsync();
         _logger.LogInformation("Stok transferi audit kaydi olustu: Product={ProductId}, From={FromBranchId}, To={ToBranchId}, Qty={Qty}",
-            productId, fromBranchId, toBranchId, quantity);
+            productId, effectiveFromBranchId.Value, toBranchId, quantity);
         return (true, null);
     }
 
@@ -586,7 +619,7 @@ public class SlnProductFactory : ISlnProductFactory
         if (branchId.HasValue && !await BranchExistsAsync(branchId.Value, customerId))
             return (false, "Sube bulunamadi");
 
-        var before = product.StockQuantity;
+        var before = await _stockBalances.GetStockQuantityAsync(customerId, product.Id, branchId, product.StockQuantity);
         var difference = countedQuantity - before;
         var cleanNotes = string.IsNullOrWhiteSpace(notes) ? "" : " - " + notes.Trim();
 
@@ -602,7 +635,8 @@ public class SlnProductFactory : ISlnProductFactory
             CreatedByPersonnelId = userId
         });
 
-        product.StockQuantity = countedQuantity;
+        await _stockBalances.SetStockQuantityAsync(customerId, product.Id, branchId, countedQuantity);
+        await _stockBalances.SyncProductTotalAsync(product, customerId);
         await _uow.SaveChangesAsync();
 
         _logger.LogInformation("Stok sayim farki kaydedildi: Product={ProductId}, Branch={BranchId}, Before={Before}, Counted={Counted}, Diff={Diff}",
@@ -619,7 +653,7 @@ public class SlnProductFactory : ISlnProductFactory
         return string.IsNullOrWhiteSpace(notes) ? description : $"{description} - {notes.Trim()}";
     }
 
-    private static SlnProductDto MapProductToDto(SlnProduct p) => new()
+    private static SlnProductDto MapProductToDto(SlnProduct p, decimal stockQuantity) => new()
     {
         Id = p.Id,
         Name = p.Name,
@@ -628,12 +662,12 @@ public class SlnProductFactory : ISlnProductFactory
         BrandName = p.Brand?.Name,
         PurchasePrice = p.PurchasePrice,
         SalePrice = p.SalePrice,
-        StockQuantity = p.StockQuantity,
+        StockQuantity = stockQuantity,
         MinStockLevel = p.MinStockLevel,
         Unit = p.Unit,
         IsActive = p.IsActive,
-        IsLowStock = p.MinStockLevel > 0 && p.StockQuantity <= p.MinStockLevel,
-        SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(p)
+        IsLowStock = p.MinStockLevel > 0 && stockQuantity <= p.MinStockLevel,
+        SuggestedOrderQuantity = CalculateSuggestedOrderQuantity(p, stockQuantity)
     };
 
     private async Task<string> BuildOrderNoAsync(int customerId)
@@ -644,11 +678,11 @@ public class SlnProductFactory : ISlnProductFactory
         return $"{prefix}{count + 1:000}";
     }
 
-    private static decimal CalculateSuggestedOrderQuantity(SlnProduct p)
+    private static decimal CalculateSuggestedOrderQuantity(SlnProduct p, decimal stockQuantity)
     {
         if (p.MinStockLevel <= 0) return 0;
         var target = p.MinStockLevel * 2;
-        var needed = target - p.StockQuantity;
+        var needed = target - stockQuantity;
         return needed > 0 ? needed : 0;
     }
 

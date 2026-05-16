@@ -21,37 +21,37 @@ public class SlnProductController : ControllerBase
     // ═══ Urunler ═══
 
     [HttpGet]
-    public async Task<ActionResult<List<SlnProductDto>>> GetProducts([FromQuery] int? categoryId, [FromQuery] string? search)
+    public async Task<ActionResult<List<SlnProductDto>>> GetProducts([FromQuery] int? categoryId, [FromQuery] string? search, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var products = await _productFactory.GetProductsAsync(customerId, categoryId, search);
+        var products = await _productFactory.GetProductsAsync(customerId, categoryId, search, ResolveBranchId(branchId));
         return Ok(products);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SlnProductDto>> GetProduct(int id)
+    public async Task<ActionResult<SlnProductDto>> GetProduct(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var product = await _productFactory.GetProductAsync(id, customerId);
+        var product = await _productFactory.GetProductAsync(id, customerId, ResolveBranchId(branchId));
         return product != null ? Ok(product) : NotFound();
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnProductDto>> CreateProduct([FromBody] SlnProductCreateDto dto)
+    public async Task<ActionResult<SlnProductDto>> CreateProduct([FromBody] SlnProductCreateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var product = await _productFactory.CreateProductAsync(dto, customerId);
+        var product = await _productFactory.CreateProductAsync(dto, customerId, ResolveBranchId(branchId));
         return Ok(product);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateProduct(int id, [FromBody] SlnProductUpdateRequest req)
+    public async Task<ActionResult> UpdateProduct(int id, [FromBody] SlnProductUpdateRequest req, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
@@ -69,7 +69,7 @@ public class SlnProductController : ControllerBase
             Unit = req.Unit
         };
 
-        var (success, error) = await _productFactory.UpdateProductAsync(id, dto, req.IsActive, customerId);
+        var (success, error) = await _productFactory.UpdateProductAsync(id, dto, req.IsActive, customerId, ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -181,12 +181,12 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpGet("low-stock")]
-    public async Task<ActionResult<List<SlnLowStockProductDto>>> GetLowStockProducts()
+    public async Task<ActionResult<List<SlnLowStockProductDto>>> GetLowStockProducts([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        return Ok(await _productFactory.GetLowStockProductsAsync(customerId));
+        return Ok(await _productFactory.GetLowStockProductsAsync(customerId, ResolveBranchId(branchId)));
     }
 
     [HttpGet("supplier-orders")]
@@ -270,42 +270,42 @@ public class SlnProductController : ControllerBase
 
     [HttpPost("{id}/stock-movements")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
-    public async Task<ActionResult> AddStockMovement(int id, [FromBody] SlnStockMovementRequest req)
+    public async Task<ActionResult> AddStockMovement(int id, [FromBody] SlnStockMovementRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _productFactory.AddStockMovementAsync(
-            id, req.MovementTypeId, req.Quantity, req.UnitPrice, req.SupplierId, req.Notes, userId, customerId);
+            id, req.MovementTypeId, req.Quantity, req.UnitPrice, req.SupplierId, req.Notes, userId, customerId, ResolveBranchId(req.BranchId ?? branchId));
 
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPost("{id}/stock-transfer")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
-    public async Task<ActionResult> TransferStock(int id, [FromBody] SlnStockTransferRequest req)
+    public async Task<ActionResult> TransferStock(int id, [FromBody] SlnStockTransferRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _productFactory.TransferStockAsync(
-            id, req.FromBranchId, req.ToBranchId, req.Quantity, req.Notes, userId, customerId);
+            id, ResolveBranchId(req.FromBranchId ?? branchId), req.ToBranchId, req.Quantity, req.Notes, userId, customerId);
 
         return success ? Ok() : BadRequest(error);
     }
 
     [HttpPost("{id}/stock-count")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
-    public async Task<ActionResult> AdjustStockCount(int id, [FromBody] SlnStockCountRequest req)
+    public async Task<ActionResult> AdjustStockCount(int id, [FromBody] SlnStockCountRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _productFactory.AdjustStockCountAsync(
-            id, req.BranchId, req.CountedQuantity, req.Notes, userId, customerId);
+            id, ResolveBranchId(req.BranchId ?? branchId), req.CountedQuantity, req.Notes, userId, customerId);
 
         return success ? Ok() : BadRequest(error);
     }
@@ -315,6 +315,15 @@ public class SlnProductController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(claim, out var id) && id > 0 ? id : null;
+    }
+
+    private int? ResolveBranchId(int? requestedBranchId)
+        => GetBranchId() ?? requestedBranchId;
 }
 
 // Request modelleri
@@ -334,6 +343,7 @@ public class SlnStockMovementRequest
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public int? SupplierId { get; set; }
+    public int? BranchId { get; set; }
     public string? Notes { get; set; }
 }
 

@@ -3,6 +3,7 @@ using CallCenter.Api.Services;
 using CallCenter.Api.Services.CloudStorage;
 using CallCenter.Api.Services.Connectors;
 using CallCenter.Api.Services.Email;
+using CallCenter.Api.Services.Interfaces;
 using CallCenter.Api.Services.Payment;
 using CallCenter.Shared.Services;
 using Google.Cloud.TextToSpeech.V1;
@@ -42,6 +43,7 @@ public static class InfrastructureRegistration
         // Scoped utilities
         services.AddScoped<TokenService>();
         services.AddScoped<CallDistributionService>();
+        services.AddScoped<ISlnStockBalanceService, SlnStockBalanceService>();
 
 
         // Webhook Engine
