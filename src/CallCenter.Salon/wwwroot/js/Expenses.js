@@ -25,6 +25,44 @@ function ExpensesViewModel() {
     // ═══ Autocomplete'ler ═══
     self.categoryAutocomplete = createAutocomplete(self.expenseCategories, 'name', self.form.categoryId);
 
+    function normalizeCategoryText(value) {
+        return (value || '')
+            .toString()
+            .trim()
+            .toLocaleLowerCase('tr-TR')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    self.resolveCategoryId = function () {
+        var selectedId = parseInt(self.form.categoryId(), 10) || 0;
+        if (selectedId > 0) return selectedId;
+
+        var rawQuery = self.categoryAutocomplete && self.categoryAutocomplete.query
+            ? self.categoryAutocomplete.query()
+            : '';
+
+        if (!rawQuery) {
+            var categoryInput = document.querySelector('#expenseModal [data-expense-category-input="1"]');
+            rawQuery = categoryInput ? categoryInput.value : '';
+            if (rawQuery && self.categoryAutocomplete && self.categoryAutocomplete.query) {
+                self.categoryAutocomplete.query(rawQuery);
+            }
+        }
+
+        var query = normalizeCategoryText(rawQuery);
+        if (!query) return null;
+
+        var matched = self.expenseCategories().find(function (category) {
+            return normalizeCategoryText(category.name) === query;
+        });
+        if (!matched) return null;
+
+        self.form.categoryId(matched.id);
+        self.categoryAutocomplete.setFromValue(matched.id);
+        return matched.id;
+    };
+
     self.filteredExpenses = ko.computed(function () {
         var q = (self.searchQuery() || '').toLowerCase();
         var catName = self.selectedCategoryName();
@@ -134,11 +172,16 @@ function ExpensesViewModel() {
     self.save = function () {
         var data = {
             expenseDate: self.form.expenseDate() ? self.form.expenseDate() + 'T00:00:00Z' : null,
-            categoryId: self.form.categoryId() || null,
+            categoryId: self.resolveCategoryId(),
             description: self.form.description(),
             amount: parseFloat(self.form.amount()) || 0,
             paymentMethodId: parseInt(self.form.paymentMethodId()) || 1
         };
+
+        if (!data.categoryId) {
+            toastr.warning(slnJsT('salon.products.js.kategori_zorunludur', 'Kategori zorunludur'));
+            return;
+        }
 
         if (!data.description || !data.amount) {
             toastr.warning(slnJsT('salon.expenses.js.aciklama_ve_tutar_zorunludur', 'Açıklama ve tutar zorunludur'));

@@ -23,6 +23,7 @@ public class JwtIdentity
     public string FullName { get; init; } = "";
     public string Role { get; init; } = "";
     public string CustomerName { get; init; } = "";
+    public int CustomerPersonnelId { get; init; }
     public int CustomerRoleId { get; init; }
     public string CustomerRole { get; init; } = "";
     public bool IsCustomerAdmin { get; init; }
@@ -83,6 +84,7 @@ public class JwtIdentity
                 FullName = root.TryGetProperty(GivenName, out var g) ? (g.GetString() ?? "") : s("given_name"),
                 Role = root.TryGetProperty(RoleClaim, out var r) ? (r.GetString() ?? "") : s("role"),
                 CustomerName = s("CustomerName"),
+                CustomerPersonnelId = i("CustomerPersonnelId"),
                 CustomerRole = s("CustomerRole"),
                 CustomerRoleId = i("CustomerRoleId"),
                 IsCustomerAdmin = b("IsCustomerAdmin"),

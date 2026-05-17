@@ -40,8 +40,43 @@ function SalesViewModel() {
         return [];
     }
 
+    function toOptionalInt(value) {
+        var parsed = parseInt(value, 10);
+        return parsed > 0 ? parsed : null;
+    }
+
     self.formatMoney = function (value) {
         return (parseFloat(value) || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL';
+    };
+
+    self.ensureCurrentPersonnelOption = function () {
+        var currentPersonnelId = toOptionalInt(window.slnCurrentPersonnelId);
+        if (!currentPersonnelId || window.slnCurrentRoleId === 101) return null;
+
+        var existing = self.staffList().find(function (p) { return parseInt(p.id, 10) === currentPersonnelId; });
+        if (existing) return existing;
+
+        var option = {
+            id: currentPersonnelId,
+            fullName: window.slnCurrentFullName || slnJsT('salon.sidebar.staff', 'Personel'),
+            branchId: window.slnCurrentJwtBranchId || null
+        };
+        self.staffList.push(option);
+        return option;
+    };
+
+    self.selectDefaultPersonnel = function () {
+        if (self.selectedPersonnelId()) return;
+
+        var current = self.ensureCurrentPersonnelOption();
+        if (current) {
+            self.selectedPersonnelId(String(current.id));
+            return;
+        }
+
+        if (self.staffList().length === 1) {
+            self.selectedPersonnelId(String(self.staffList()[0].id));
+        }
     };
 
     function readItemUnitPrice(item) {
@@ -245,6 +280,10 @@ function SalesViewModel() {
         });
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
+            self.selectDefaultPersonnel();
+        }).fail(function () {
+            self.ensureCurrentPersonnelOption();
+            self.selectDefaultPersonnel();
         });
         $.ajax({ url: '/proxy/sln-recipes', method: 'GET' }).done(function (data) {
             self.recipes((data.items || data).filter(function (r) { return r.isActive; }));
@@ -270,6 +309,7 @@ function SalesViewModel() {
 
     // ═══ Add Recipe to Cart ═══
     self.addRecipeToCart = function (recipe) {
+        self.selectDefaultPersonnel();
         (recipe.items || []).forEach(function (item) {
             for (var i = 0; i < item.quantity; i++) {
                 var existing = self.cartItems().find(function (c) { return c.serviceId === item.serviceId; });
@@ -297,6 +337,7 @@ function SalesViewModel() {
 
     // ═══ Cart Operations ═══
     self.addToCart = function (service) {
+        self.selectDefaultPersonnel();
         // Ayni hizmet varsa adet arttir
         var existing = self.cartItems().find(function (item) { return item.serviceId === service.id; });
         if (existing) {
@@ -319,6 +360,7 @@ function SalesViewModel() {
     };
 
     self.addProductToCart = function (product) {
+        self.selectDefaultPersonnel();
         var stock = parseFloat(product.stockQuantity) || 0;
         if (stock <= 0) {
             toastr.warning(slnJsT('salon.sales.js.urun_stogu_yok', 'Ürün stoğu yok'));

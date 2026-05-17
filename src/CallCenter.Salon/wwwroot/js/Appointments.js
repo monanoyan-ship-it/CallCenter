@@ -45,6 +45,25 @@ function AppointmentsViewModel() {
     self.staffAutocomplete = createAutocomplete(self.staffList, 'fullName', self.form.personnelId);
     self.staffFilterAutocomplete = createMultiAutocomplete(self.staffList, 'fullName', self.selectedStaffIds);
 
+    function toOptionalInt(value) {
+        var parsed = parseInt(value, 10);
+        return parsed > 0 ? parsed : null;
+    }
+
+    self.getPersonnelBranchId = function (personnelId) {
+        var id = toOptionalInt(personnelId);
+        if (!id) return null;
+        var staff = self.staffList().find(function (p) { return parseInt(p.id, 10) === id; });
+        return staff ? toOptionalInt(staff.branchId) : null;
+    };
+
+    self.resolveFormBranchId = function () {
+        var personnelBranchId = self.getPersonnelBranchId(self.form.personnelId());
+        if (personnelBranchId) return personnelBranchId;
+        if (window.slnGetBranch) return toOptionalInt(window.slnGetBranch());
+        return null;
+    };
+
     // Hizmet secildiginde uygun personelleri getir
     self.form.serviceIds.subscribe(function (ids) {
         if (!ids || ids.length === 0) {
@@ -381,6 +400,7 @@ function AppointmentsViewModel() {
         var data = {
             slnClientId: self.form.slnClientId(),
             personnelId: self.form.personnelId(),
+            branchId: self.resolveFormBranchId(),
             comboId: self.form.comboId(),
             serviceIds: self.form.serviceIds(),
             startTime: startTimeVal,

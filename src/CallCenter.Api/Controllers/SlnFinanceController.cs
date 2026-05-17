@@ -23,12 +23,13 @@ public class SlnFinanceController : ControllerBase
 
     [HttpGet("invoices")]
     public async Task<ActionResult<List<SlnInvoiceDto>>> GetInvoices(
-        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? statusId)
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? statusId,
+        [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var invoices = await _financeFactory.GetInvoicesAsync(customerId, from, to, statusId, GetBranchId());
+        var invoices = await _financeFactory.GetInvoicesAsync(customerId, from, to, statusId, ResolveBranchId(branchId));
         return Ok(invoices);
     }
 
@@ -43,14 +44,14 @@ public class SlnFinanceController : ControllerBase
     }
 
     [HttpPost("invoices")]
-    public async Task<ActionResult<SlnInvoiceDto>> CreateInvoice([FromBody] SlnInvoiceCreateDto dto)
+    public async Task<ActionResult<SlnInvoiceDto>> CreateInvoice([FromBody] SlnInvoiceCreateDto dto, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         var personnelId = GetPersonnelId();
-        var (invoice, error) = await _financeFactory.CreateInvoiceAsync(dto, personnelId, customerId, GetBranchId());
+        var (invoice, error) = await _financeFactory.CreateInvoiceAsync(dto, personnelId, customerId, ResolveBranchId(branchId));
         return invoice != null ? Ok(invoice) : BadRequest(error);
     }
 
@@ -67,37 +68,37 @@ public class SlnFinanceController : ControllerBase
     // ═══ Kasa ═══
 
     [HttpGet("cash-registers")]
-    public async Task<ActionResult> GetCashRegisters()
+    public async Task<ActionResult> GetCashRegisters([FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var registers = await _financeFactory.GetCashRegistersAsync(customerId, GetBranchId());
+        var registers = await _financeFactory.GetCashRegistersAsync(customerId, ResolveBranchId(branchId));
         return Ok(registers);
     }
 
     [HttpPost("cash-registers")]
-    public async Task<ActionResult> CreateCashRegister([FromBody] SlnCashRegisterCreateRequest req)
+    public async Task<ActionResult> CreateCashRegister([FromBody] SlnCashRegisterCreateRequest req, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         // Sube Muduru ise JWT deki BranchId override (baskasinin subesinde kasa acmayi engelle)
-        var jwtBranchId = GetBranchId();
-        var effectiveBranchId = jwtBranchId ?? req.BranchId;
+        var branchScopeId = GetBranchScopeId();
+        var effectiveBranchId = branchScopeId ?? req.BranchId ?? branchId;
 
         var register = await _financeFactory.CreateCashRegisterAsync(req.Name, customerId, effectiveBranchId);
         return Ok(register);
     }
 
     [HttpPut("cash-registers/{id}")]
-    public async Task<ActionResult> UpdateCashRegister(int id, [FromBody] SlnCashRegisterUpdateRequest req)
+    public async Task<ActionResult> UpdateCashRegister(int id, [FromBody] SlnCashRegisterUpdateRequest req, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var branchScopeId = GetBranchId();
-        var effectiveBranchId = branchScopeId ?? req.BranchId;
+        var branchScopeId = GetBranchScopeId();
+        var effectiveBranchId = branchScopeId ?? req.BranchId ?? branchId;
         var (success, error) = await _financeFactory.UpdateCashRegisterAsync(id, req.Name, effectiveBranchId, req.IsActive, customerId, branchScopeId);
         return success ? Ok() : BadRequest(new { message = error });
     }
@@ -115,24 +116,24 @@ public class SlnFinanceController : ControllerBase
 
     [HttpGet("cash-registers/{registerId}/transactions")]
     public async Task<ActionResult<List<SlnCashTransactionDto>>> GetCashTransactions(
-        int registerId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+        int registerId, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var transactions = await _financeFactory.GetCashTransactionsAsync(registerId, customerId, from, to, GetBranchId());
+        var transactions = await _financeFactory.GetCashTransactionsAsync(registerId, customerId, from, to, ResolveBranchId(branchId));
         return Ok(transactions);
     }
 
     [HttpPost("cash-registers/{registerId}/transactions")]
-    public async Task<ActionResult<SlnCashTransactionDto>> AddCashTransaction(int registerId, [FromBody] SlnCashTransactionCreateRequest req)
+    public async Task<ActionResult<SlnCashTransactionDto>> AddCashTransaction(int registerId, [FromBody] SlnCashTransactionCreateRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
         var (transaction, error) = await _financeFactory.AddCashTransactionAsync(
-            registerId, req.TransactionTypeId, req.Amount, req.Description, req.PaymentMethodId, userId, customerId, GetBranchId());
+            registerId, req.TransactionTypeId, req.Amount, req.Description, req.PaymentMethodId, userId, customerId, ResolveBranchId(branchId));
 
         return transaction != null ? Ok(transaction) : BadRequest(error);
     }
@@ -161,23 +162,25 @@ public class SlnFinanceController : ControllerBase
 
     [HttpGet("expenses")]
     public async Task<ActionResult<List<SlnExpenseDto>>> GetExpenses(
-        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? categoryId)
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? categoryId, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var expenses = await _financeFactory.GetExpensesAsync(customerId, from, to, categoryId, GetBranchId());
+        var expenses = await _financeFactory.GetExpensesAsync(customerId, from, to, categoryId, ResolveBranchId(branchId));
         return Ok(expenses);
     }
 
     [HttpPost("expenses")]
-    public async Task<ActionResult<SlnExpenseDto>> CreateExpense([FromBody] SlnExpenseCreateDto dto)
+    public async Task<ActionResult<SlnExpenseDto>> CreateExpense([FromBody] SlnExpenseCreateDto dto, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var expense = await _financeFactory.CreateExpenseAsync(dto, userId, customerId, GetBranchId());
+        if (dto.CategoryId <= 0) return BadRequest(new { error = "Kategori zorunludur" });
+
+        var expense = await _financeFactory.CreateExpenseAsync(dto, userId, customerId, ResolveBranchId(branchId));
         return Ok(expense);
     }
 
@@ -198,7 +201,7 @@ public class SlnFinanceController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetCashClosingsAsync(customerId, registerId, GetBranchId()));
+        return Ok(await _financeFactory.GetCashClosingsAsync(customerId, registerId, GetBranchScopeId()));
     }
 
     [HttpPost("cash-closings")]
@@ -207,7 +210,7 @@ public class SlnFinanceController : ControllerBase
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (closing, error) = await _financeFactory.CreateCashClosingAsync(dto, userId, customerId, GetBranchId());
+        var (closing, error) = await _financeFactory.CreateCashClosingAsync(dto, userId, customerId, GetBranchScopeId());
         return closing != null ? Ok(closing) : BadRequest(error);
     }
 
@@ -216,7 +219,7 @@ public class SlnFinanceController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var summary = await _financeFactory.GetDailySummaryAsync(registerId, customerId, GetBranchId());
+        var summary = await _financeFactory.GetDailySummaryAsync(registerId, customerId, GetBranchScopeId());
         return Ok(summary);
     }
 
@@ -235,6 +238,18 @@ public class SlnFinanceController : ControllerBase
         return claim != null && int.TryParse(claim, out var id) ? id : null;
     }
 
+    private int GetCustomerRoleId()
+    {
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+    }
+
+    private int? GetBranchScopeId()
+        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
+
+    private int? ResolveBranchId(int? requestedBranchId)
+        => GetBranchScopeId() ?? requestedBranchId;
+
     // ═══ Z RAPORU ═══
 
     [HttpGet("z-report/{registerId}")]
@@ -242,7 +257,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetZReportAsync(registerId, cid, date, GetBranchId()));
+        return Ok(await _financeFactory.GetZReportAsync(registerId, cid, date, GetBranchScopeId()));
     }
 
     // ═══ KASA AÇILIŞ ═══
@@ -252,7 +267,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (result, error) = await _financeFactory.CreateCashOpeningAsync(registerId, cid, request?.ManualBalance, GetPersonnelId(), GetBranchId());
+        var (result, error) = await _financeFactory.CreateCashOpeningAsync(registerId, cid, request?.ManualBalance, GetPersonnelId(), GetBranchScopeId());
         if (error != null) return BadRequest(new { message = error });
         return Ok(result);
     }
@@ -286,7 +301,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetStaffRevenueAsync(cid, startDate, endDate, GetBranchId()));
+        return Ok(await _financeFactory.GetStaffRevenueAsync(cid, startDate, endDate, GetBranchScopeId()));
     }
 
     // ═══ FİNANS RAPORLARI ═══
@@ -296,7 +311,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetIncomeExpenseReportAsync(cid, startDate, endDate, GetBranchId()));
+        return Ok(await _financeFactory.GetIncomeExpenseReportAsync(cid, startDate, endDate, GetBranchScopeId()));
     }
 
     [HttpGet("reports/tax")]
@@ -304,7 +319,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetTaxReportAsync(cid, startDate, endDate, GetBranchId()));
+        return Ok(await _financeFactory.GetTaxReportAsync(cid, startDate, endDate, GetBranchScopeId()));
     }
 
     /// <summary>

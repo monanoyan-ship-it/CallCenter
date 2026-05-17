@@ -8,6 +8,8 @@
     var redirecting = false;
     var authenticated = root.getAttribute('data-authenticated') === 'true';
     var roleId = parseInt(root.getAttribute('data-role-id') || '101', 10);
+    var currentPersonnelId = parseInt(root.getAttribute('data-personnel-id') || '0', 10) || null;
+    var currentFullName = root.getAttribute('data-full-name') || '';
     var jwtBranch = root.getAttribute('data-jwt-branch') || '';
     var sessionKey = root.getAttribute('data-session-key') || '';
     var translationsRaw = root.getAttribute('data-translations') || '{}';
@@ -98,14 +100,15 @@
 
         var storage = getSessionStorage();
         if (storage) {
+            var scopedBranch = roleId !== 101 && jwtBranch;
             var previousSessionKey = storage.getItem('slnBranchSessionKey');
             if (previousSessionKey !== sessionKey) {
-                if (jwtBranch) storage.setItem('slnBranchId', jwtBranch);
+                if (scopedBranch) storage.setItem('slnBranchId', jwtBranch);
                 else storage.removeItem('slnBranchId');
                 storage.setItem('slnBranchSessionKey', sessionKey);
             }
 
-            if (jwtBranch) storage.setItem('slnBranchId', jwtBranch);
+            if (scopedBranch) storage.setItem('slnBranchId', jwtBranch);
         }
 
         if (roleId !== 101) return;
@@ -149,6 +152,10 @@
         return (window.salonTranslations && window.salonTranslations[key]) || fallback || key;
     };
     window.slnGetBranch = getStoredBranch;
+    window.slnCurrentRoleId = roleId;
+    window.slnCurrentPersonnelId = currentPersonnelId;
+    window.slnCurrentFullName = currentFullName;
+    window.slnCurrentJwtBranchId = jwtBranch ? (parseInt(jwtBranch, 10) || null) : null;
     window.switchBranch = switchBranch;
     window.slnAllBranchesValue = '__all__';
     window.slnBuildBranchTargetOptions = function (branches) {

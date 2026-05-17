@@ -53,6 +53,8 @@
          hidden
          data-authenticated="@(__jwt.IsAuthenticated ? "true" : "false")"
          data-role-id="@__layoutRoleId"
+         data-personnel-id="@(__jwt.CustomerPersonnelId > 0 ? __jwt.CustomerPersonnelId.ToString() : "")"
+         data-full-name="@__jwt.FullName"
          data-jwt-branch="@(__jwt.BranchId?.ToString() ?? "")"
          data-session-key="@__layoutSessionKey"
          data-translations="@__layoutTranslationsJson"></div>

@@ -119,6 +119,13 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (services.Count != resolved.ServiceIds.Count)
             return (null, "Bir veya daha fazla hizmet bulunamadi");
 
+        var personnel = await _personnel.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.Id == dto.PersonnelId && p.CustomerId == customerId && p.IsActive);
+        if (personnel == null)
+            return (null, "Personel bulunamadi");
+        if (branchId.HasValue && personnel.BranchId.HasValue && personnel.BranchId.Value != branchId.Value)
+            return (null, "Secilen personel bu sube icin uygun degil");
+
         var skillScope = await GetSkillScopeAsync(resolved.ServiceIds);
         if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(dto.PersonnelId))
             return (null, "Secilen personel bu hizmetler icin uygun degil");
@@ -138,27 +145,29 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (hasConflict)
             return (null, "Secilen saatte personelin baska bir randevusu var");
 
-        // Sube atamasi: JWT branchId > personelin subesi > merkez sube (zorunlu)
-        if (!branchId.HasValue && dto.PersonnelId > 0)
+        // Sube atamasi: JWT branchId > personelin subesi > form/query branch > merkez sube
+        var effectiveBranchId = branchId ?? personnel.BranchId ?? dto.BranchId;
+        if (effectiveBranchId.HasValue)
         {
-            var personnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PersonnelId);
-            branchId = personnel?.BranchId;
+            var branchExists = await _branches.GetAllQueryable()
+                .AnyAsync(b => b.Id == effectiveBranchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (!branchExists) return (null, "Gecersiz sube");
         }
-        if (!branchId.HasValue)
+        if (!effectiveBranchId.HasValue)
         {
             var hq = await _branches.GetAllQueryable()
                 .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
-            branchId = hq?.Id;
+            effectiveBranchId = hq?.Id;
         }
 
-        var resourceConflict = await FindResourceConflictAsync(customerId, branchId, resolved.ServiceIds, dto.StartTime, endTime);
+        var resourceConflict = await FindResourceConflictAsync(customerId, effectiveBranchId, resolved.ServiceIds, dto.StartTime, endTime);
         if (resourceConflict != null)
             return (null, resourceConflict);
 
         var appointment = new SlnAppointment
         {
             CustomerId = customerId,
-            BranchId = branchId,
+            BranchId = effectiveBranchId,
             SlnClientId = dto.SlnClientId,
             PersonnelId = dto.PersonnelId,
             ComboId = resolved.Combo?.Id,
@@ -185,7 +194,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return (MapToDto(created), null);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateAppointmentAsync(int appointmentId, SlnAppointmentCreateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateAppointmentAsync(int appointmentId, SlnAppointmentCreateDto dto, int customerId, int? branchId = null)
     {
         var appointment = await _appointments.GetAllQueryable()
             .Include(a => a.Services)
@@ -205,6 +214,13 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (services.Count != resolved.ServiceIds.Count)
             return (false, "Bir veya daha fazla hizmet bulunamadi");
 
+        var newPersonnel = await _personnel.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.Id == dto.PersonnelId && p.CustomerId == customerId && p.IsActive);
+        if (newPersonnel == null)
+            return (false, "Personel bulunamadi");
+        if (branchId.HasValue && newPersonnel.BranchId.HasValue && newPersonnel.BranchId.Value != branchId.Value)
+            return (false, "Secilen personel bu sube icin uygun degil");
+
         var skillScope = await GetSkillScopeAsync(resolved.ServiceIds);
         if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(dto.PersonnelId))
             return (false, "Secilen personel bu hizmetler icin uygun degil");
@@ -215,17 +231,25 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId, appointmentId);
         if (hasConflict) return (false, "Secilen saatte personelin baska bir randevusu var");
 
-        // Personel degistiyse subeyi de yeni personele gore guncelle
-        if (appointment.PersonnelId != dto.PersonnelId)
+        var effectiveBranchId = branchId ?? newPersonnel.BranchId ?? dto.BranchId ?? appointment.BranchId;
+        if (effectiveBranchId.HasValue)
         {
-            var newPersonnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == dto.PersonnelId);
-            if (newPersonnel?.BranchId != null) appointment.BranchId = newPersonnel.BranchId;
+            var branchExists = await _branches.GetAllQueryable()
+                .AnyAsync(b => b.Id == effectiveBranchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (!branchExists) return (false, "Gecersiz sube");
+        }
+        if (!effectiveBranchId.HasValue)
+        {
+            var hq = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
+            effectiveBranchId = hq?.Id;
         }
 
-        var resourceConflict = await FindResourceConflictAsync(customerId, appointment.BranchId, resolved.ServiceIds, dto.StartTime, endTime, appointmentId);
+        var resourceConflict = await FindResourceConflictAsync(customerId, effectiveBranchId, resolved.ServiceIds, dto.StartTime, endTime, appointmentId);
         if (resourceConflict != null) return (false, resourceConflict);
 
         appointment.SlnClientId = dto.SlnClientId;
+        appointment.BranchId = effectiveBranchId;
         appointment.PersonnelId = dto.PersonnelId;
         appointment.ComboId = resolved.Combo?.Id;
         appointment.ServiceId = null;

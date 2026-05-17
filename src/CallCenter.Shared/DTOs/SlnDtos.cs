@@ -303,6 +303,7 @@ public class SlnAppointmentCreateDto
 {
     public int SlnClientId { get; set; }
     public int PersonnelId { get; set; }
+    public int? BranchId { get; set; }
     public int? ComboId { get; set; }
     public List<int> ServiceIds { get; set; } = new();
     public DateTime StartTime { get; set; }
@@ -1500,6 +1501,7 @@ public class SlnWaitlistEntryDto
 public class SlnWaitlistEntryCreateDto
 {
     public int SlnClientId { get; set; }
+    public int? BranchId { get; set; }
     public int ServiceId { get; set; }
     public int? PreferredPersonnelId { get; set; }
     public DateTime PreferredDate { get; set; }

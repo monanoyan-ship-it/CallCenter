@@ -86,7 +86,11 @@ function CashViewModel() {
         if (self.branches().length === 1) {
             self.registerForm.branchId(self.branches()[0].id);
         } else {
-            self.registerForm.branchId(null);
+            var currentBranchId = window.slnGetBranch ? (parseInt(window.slnGetBranch(), 10) || null) : null;
+            var currentBranchExists = currentBranchId && self.branches().some(function (branch) {
+                return parseInt(branch.id, 10) === currentBranchId;
+            });
+            self.registerForm.branchId(currentBranchExists ? currentBranchId : null);
         }
         registerModal.show();
     };

@@ -93,6 +93,25 @@ function WaitlistViewModel() {
         notes: ko.observable('')
     };
 
+    function toOptionalInt(value) {
+        var parsed = parseInt(value, 10);
+        return parsed > 0 ? parsed : null;
+    }
+
+    self.getPersonnelBranchId = function (personnelId) {
+        var id = toOptionalInt(personnelId);
+        if (!id) return null;
+        var personnel = self.staff().find(function (p) { return parseInt(p.id, 10) === id; });
+        return personnel ? toOptionalInt(personnel.branchId) : null;
+    };
+
+    self.resolveFormBranchId = function (personnelId) {
+        var personnelBranchId = self.getPersonnelBranchId(personnelId);
+        if (personnelBranchId) return personnelBranchId;
+        if (window.slnGetBranch) return toOptionalInt(window.slnGetBranch());
+        return null;
+    };
+
     var wlStatusTexts = {
         1: slnJsT('salon.waitlist.status.waiting', 'Bekliyor'),
         2: slnJsT('salon.waitlist.status.notified', 'Bildirildi'),
@@ -161,6 +180,7 @@ function WaitlistViewModel() {
     self.save = function () {
         var data = {
             slnClientId: parseInt(self.form.slnClientId()) || 0,
+            branchId: self.resolveFormBranchId(self.form.preferredPersonnelId()),
             serviceId: parseInt(self.form.serviceId()) || 0,
             preferredPersonnelId: self.form.preferredPersonnelId() ? parseInt(self.form.preferredPersonnelId()) : null,
             preferredDate: self.form.preferredDate() ? self.form.preferredDate() + 'T00:00:00Z' : null,
@@ -271,6 +291,7 @@ function WaitlistViewModel() {
         var apptPayload = {
             slnClientId: self.convertForm.slnClientId(),
             personnelId: parseInt(self.convertForm.personnelId()),
+            branchId: self.resolveFormBranchId(self.convertForm.personnelId()),
             serviceIds: [self.convertForm.serviceId()],
             startTime: startTime,
             notes: self.convertForm.notes() || null

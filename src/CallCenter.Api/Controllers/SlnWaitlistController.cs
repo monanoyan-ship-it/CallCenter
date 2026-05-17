@@ -24,8 +24,7 @@ public class SlnWaitlistController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
         // JWT'de BranchId varsa kilit (personel) — yoksa query'den al (SalonOwner)
-        var jwtBranch = User.FindFirst("BranchId")?.Value;
-        var effectiveBranch = (jwtBranch != null && int.TryParse(jwtBranch, out var jb) && jb > 0) ? jb : branchId;
+        var effectiveBranch = GetBranchScopeId() ?? branchId;
         return Ok(await _factory.GetEntriesAsync(customerId, date, effectiveBranch));
     }
 
@@ -39,19 +38,21 @@ public class SlnWaitlistController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnWaitlistEntryDto>> CreateEntry([FromBody] SlnWaitlistEntryCreateDto dto)
+    public async Task<ActionResult<SlnWaitlistEntryDto>> CreateEntry([FromBody] SlnWaitlistEntryCreateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.CreateEntryAsync(dto, customerId));
+        dto.BranchId ??= branchId;
+        return Ok(await _factory.CreateEntryAsync(dto, customerId, GetBranchScopeId()));
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateEntry(int id, [FromBody] SlnWaitlistEntryUpdateDto dto)
+    public async Task<ActionResult> UpdateEntry(int id, [FromBody] SlnWaitlistEntryUpdateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.UpdateEntryAsync(id, dto, customerId);
+        dto.BranchId ??= branchId;
+        var (success, error) = await _factory.UpdateEntryAsync(id, dto, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 
@@ -84,4 +85,19 @@ public class SlnWaitlistController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(claim, out var id) && id > 0 ? id : null;
+    }
+
+    private int GetCustomerRoleId()
+    {
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+    }
+
+    private int? GetBranchScopeId()
+        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
 }

@@ -29,7 +29,7 @@ public class SlnAppointmentController : ControllerBase
 
         // JWT'deki BranchId belirli sube personeli icin kilit (guvenlik).
         // JWT.BranchId null ise (SalonOwner/merkez) query'den gelen branchId filtreyi uygular.
-        var effectiveBranchId = GetBranchId() ?? branchId;
+        var effectiveBranchId = GetBranchScopeId() ?? branchId;
 
         var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, effectiveBranchId, slnClientId);
         return Ok(appointments);
@@ -46,23 +46,25 @@ public class SlnAppointmentController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SlnAppointmentDto>> CreateAppointment([FromBody] SlnAppointmentCreateDto dto)
+    public async Task<ActionResult<SlnAppointmentDto>> CreateAppointment([FromBody] SlnAppointmentCreateDto dto, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (appointment, error) = await _appointmentFactory.CreateAppointmentAsync(dto, userId, customerId, GetBranchId());
+        dto.BranchId ??= branchId;
+        var (appointment, error) = await _appointmentFactory.CreateAppointmentAsync(dto, userId, customerId, GetBranchScopeId());
         return appointment != null ? Ok(appointment) : BadRequest(error);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateAppointment(int id, [FromBody] SlnAppointmentCreateDto dto)
+    public async Task<ActionResult> UpdateAppointment(int id, [FromBody] SlnAppointmentCreateDto dto, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _appointmentFactory.UpdateAppointmentAsync(id, dto, customerId);
+        dto.BranchId ??= branchId;
+        var (success, error) = await _appointmentFactory.UpdateAppointmentAsync(id, dto, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 
@@ -102,7 +104,7 @@ public class SlnAppointmentController : ControllerBase
 
     /// <summary>Secilen hizmetleri yapabilecek personeller</summary>
     [HttpGet("available-staff")]
-    public async Task<ActionResult> GetAvailableStaff([FromQuery] string serviceIds)
+    public async Task<ActionResult> GetAvailableStaff([FromQuery] string serviceIds, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
@@ -111,13 +113,13 @@ public class SlnAppointmentController : ControllerBase
             .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
             .Where(id => id > 0).ToList();
 
-        var staff = await _appointmentFactory.GetAvailableStaffAsync(customerId, ids, GetBranchId());
+        var staff = await _appointmentFactory.GetAvailableStaffAsync(customerId, ids, GetBranchScopeId() ?? branchId);
         return Ok(staff);
     }
 
     /// <summary>Personelin belirtilen gundeki musait saat slotlari</summary>
     [HttpGet("available-slots")]
-    public async Task<ActionResult> GetAvailableSlots([FromQuery] int personnelId, [FromQuery] DateTime date, [FromQuery] int durationMinutes = 30, [FromQuery] string? serviceIds = null)
+    public async Task<ActionResult> GetAvailableSlots([FromQuery] int personnelId, [FromQuery] DateTime date, [FromQuery] int durationMinutes = 30, [FromQuery] string? serviceIds = null, [FromQuery] int? branchId = null)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
@@ -127,7 +129,7 @@ public class SlnAppointmentController : ControllerBase
             .Where(id => id > 0)
             .ToList();
 
-        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, GetBranchId(), ids);
+        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, GetBranchScopeId() ?? branchId, ids);
         return Ok(slots);
     }
 
@@ -152,6 +154,15 @@ public class SlnAppointmentController : ControllerBase
         var claim = User.FindFirst("BranchId")?.Value;
         return claim != null && int.TryParse(claim, out var id) ? id : null;
     }
+
+    private int GetCustomerRoleId()
+    {
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+    }
+
+    private int? GetBranchScopeId()
+        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
 }
 
 public class SlnAppointmentStatusRequest

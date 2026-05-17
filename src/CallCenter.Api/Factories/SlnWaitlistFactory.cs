@@ -58,12 +58,13 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         return entry != null ? MapToDto(entry) : null;
     }
 
-    public async Task<SlnWaitlistEntryDto> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId)
+    public async Task<SlnWaitlistEntryDto> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId = null)
     {
+        var branchId = await ResolveBranchIdAsync(customerId, dto.PreferredPersonnelId, branchScopeId, dto.BranchId);
         var entry = new SlnWaitlistEntry
         {
             CustomerId = customerId,
-            BranchId = null, // Salon panelinden manuel ekleme — sonradan UpdateEntry ile atanabilir; public tarafta JoinWaitlistAsync slug'tan dolduruyor
+            BranchId = branchId,
             SlnClientId = dto.SlnClientId,
             ServiceId = dto.ServiceId,
             PreferredPersonnelId = dto.PreferredPersonnelId,
@@ -77,11 +78,14 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         return (await GetEntryAsync(entry.Id, customerId))!;
     }
 
-    public async Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId, int? branchScopeId = null)
     {
         var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
+        if (branchScopeId.HasValue && entry.BranchId.HasValue && entry.BranchId.Value != branchScopeId.Value)
+            return (false, "Bu kayit icin yetkiniz yok");
 
+        entry.BranchId = await ResolveBranchIdAsync(customerId, dto.PreferredPersonnelId, branchScopeId, dto.BranchId);
         entry.SlnClientId = dto.SlnClientId;
         entry.ServiceId = dto.ServiceId;
         entry.PreferredPersonnelId = dto.PreferredPersonnelId;
@@ -90,6 +94,34 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         entry.Notes = dto.Notes;
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    private async Task<int?> ResolveBranchIdAsync(int customerId, int? preferredPersonnelId, int? branchScopeId, int? requestedBranchId)
+    {
+        if (branchScopeId.HasValue)
+            return branchScopeId.Value;
+
+        if (preferredPersonnelId.HasValue)
+        {
+            var personnelBranchId = await _personnel.GetAllQueryable()
+                .Where(p => p.Id == preferredPersonnelId.Value && p.CustomerId == customerId && p.IsActive)
+                .Select(p => p.BranchId)
+                .FirstOrDefaultAsync();
+            if (personnelBranchId.HasValue)
+                return personnelBranchId.Value;
+        }
+
+        if (requestedBranchId.HasValue)
+        {
+            var branchExists = await _branches.GetAllQueryable()
+                .AnyAsync(b => b.Id == requestedBranchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (branchExists)
+                return requestedBranchId.Value;
+        }
+
+        var hqBranch = await _branches.GetAllQueryable()
+            .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter && b.IsActive);
+        return hqBranch?.Id;
     }
 
     public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId)
