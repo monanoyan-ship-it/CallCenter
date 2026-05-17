@@ -121,9 +121,8 @@ public class PlatformController : ControllerBase
         int id, [FromBody] PlatformPayAppointmentRequest? body)
     {
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = string.IsNullOrWhiteSpace(body?.CallbackUrl)
-            ? $"{GetApiBaseUrl()}/api/payments/iyzico-callback"
-            : body.CallbackUrl.Trim();
+        // Callback URL client'tan alinmaz; Iyzico public ayarlarinda API domain'i gorunmemeli.
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
         var resp = await _factory.PayAppointmentCheckoutAsync(
             GetPlatformUserId(), id, callbackUrl, buyerIp);
         if (!resp.Success) return BadRequest(resp);
@@ -154,13 +153,12 @@ public class PlatformController : ControllerBase
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
 
-    private string GetApiBaseUrl()
+    private string GetPaymentCallbackBaseUrl()
     {
         var configured = _configuration["Payment:CallbackBaseUrl"]
-            ?? _configuration["Salon:BaseUrl"]
-            ?? _configuration["ApiBaseUrl"];
+            ?? _configuration["Salon:BaseUrl"];
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
-        return $"{Request.Scheme}://{Request.Host}";
+        return "https://sln.corplynk.com";
     }
 }

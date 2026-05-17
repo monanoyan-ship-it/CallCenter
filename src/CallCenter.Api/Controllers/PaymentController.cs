@@ -157,7 +157,7 @@ public class PaymentController : ControllerBase
     {
         var platformUserId = GetPlatformUserId();
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
         var result = await _paymentService.InitMembershipCheckoutAsync(
             request.PlanId, request.SlnClientId, platformUserId, callbackUrl, request.Slug, buyerIp);
         if (!result.Success) return BadRequest(new { success = false, error = result.Error, message = result.Error });
@@ -188,7 +188,7 @@ public class PaymentController : ControllerBase
         if (!packageGroupId.HasValue) return BadRequest(new { success = false, error = "Paket veya modul secimi gecersiz." });
 
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
         var result = await _paymentService.InitPackageCheckoutAsync(customerId, packageGroupId.Value, callbackUrl, buyerIp);
         if (!result.Success) return BadRequest(new { success = false, error = result.Error });
         return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
@@ -201,7 +201,7 @@ public class PaymentController : ControllerBase
     {
         var customerId = GetCustomerId();
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
         var result = await _paymentService.InitSubscriptionCheckoutAsync(customerId, callbackUrl, buyerIp);
         if (!result.Success) return BadRequest(new { success = false, error = result.Error });
         return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
@@ -251,8 +251,8 @@ public class PaymentController : ControllerBase
     /// hesabi yapmaz (settlement raporu iyzico panelden cekilir); bu endpoint
     /// hak edis takibinde audit trail olarak kullanilir.
     ///
-    /// Iyzico webhook URL: https://api.corplynk.com/api/payments/iyzico-webhook
-    /// (Merchant panel → API Anahtarlari → Webhook URL)
+    /// Iyzico webhook URL: https://sln.corplynk.com/api/payments/iyzico-webhook
+    /// (Merchant panel -> API Anahtarlari -> Webhook URL, Salon public proxy uzerinden)
     /// </summary>
     [HttpPost("iyzico-webhook")]
     [AllowAnonymous]
@@ -546,17 +546,16 @@ public class PaymentController : ControllerBase
         => int.Parse(User.FindFirstValue("CustomerId") ?? "0");
 
     /// <summary>
-    /// Iyzico callback URL tabanini dondurur. Oncelik public Salon proxy'dedir;
-    /// boylece checkout formu API domain'ini ziyaretciye tasimaz.
+    /// Iyzico callback URL tabanini public Salon proxy uzerinden dondurur.
+    /// API domain'i public back URL olarak kullanilmaz.
     /// </summary>
-    private string GetApiBaseUrl()
+    private string GetPaymentCallbackBaseUrl()
     {
         var configured = _configuration["Payment:CallbackBaseUrl"]
-            ?? _configuration["Salon:BaseUrl"]
-            ?? _configuration["ApiBaseUrl"];
+            ?? _configuration["Salon:BaseUrl"];
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
-        return $"{Request.Scheme}://{Request.Host}";
+        return "https://sln.corplynk.com";
     }
 
     private static int? ResolvePackageGroupId(PackageRequest request)

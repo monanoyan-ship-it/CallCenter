@@ -127,7 +127,7 @@ public class SlnPublicController : ControllerBase
     public async Task<ActionResult> BookCheckout(string slug, [FromBody] SlnOnlineBookingDto dto)
     {
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{GetApiBaseUrl()}/api/payments/iyzico-callback";
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
         var (success, error, result) = await _publicFactory.BookCheckoutAsync(slug, dto, callbackUrl, buyerIp);
         if (!success && error == "Salon bulunamadi") return NotFound();
         return success ? Ok(result) : BadRequest(new { message = error });
@@ -142,14 +142,13 @@ public class SlnPublicController : ControllerBase
         return success ? Ok(result) : BadRequest(new { message = error });
     }
 
-    private string GetApiBaseUrl()
+    private string GetPaymentCallbackBaseUrl()
     {
         var configured = _configuration["Payment:CallbackBaseUrl"]
-            ?? _configuration["Salon:BaseUrl"]
-            ?? _configuration["ApiBaseUrl"];
+            ?? _configuration["Salon:BaseUrl"];
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
-        return $"{Request.Scheme}://{Request.Host}";
+        return "https://sln.corplynk.com";
     }
 
     private static List<int> ParseServiceIds(int serviceId, string? serviceIds)
