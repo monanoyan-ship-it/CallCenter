@@ -43,6 +43,24 @@ public class SlnProductController : ControllerBase
         return product != null ? Ok(product) : NotFound();
     }
 
+    [HttpGet("by-barcode/{barcode}")]
+    public async Task<ActionResult<SlnProductDto>> GetProductByBarcode(string barcode, [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var effectiveBranchId = ResolveBranchId(branchId);
+        var products = await _productFactory.GetProductsByBarcodeAsync(barcode, customerId, effectiveBranchId);
+        var product = PickSingleBarcodeProduct(products, effectiveBranchId);
+        if (product != null) return Ok(product);
+        if (products.Count == 0) return NotFound();
+        return Conflict(new
+        {
+            message = "Bu barkod birden fazla urunle eslesiyor. Urun barkodlarini tekillestirin.",
+            items = products.Select(p => new { p.Id, p.Name, p.BranchId, p.Barcode })
+        });
+    }
+
     [HttpPost]
     public async Task<ActionResult<SlnProductDto>> CreateProduct([FromBody] SlnProductCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
@@ -379,6 +397,18 @@ public class SlnProductController : ControllerBase
         if (dto.PurchasePrice <= 0) return "Alis fiyati 0'dan buyuk olmalidir";
         if (dto.SalePrice <= 0) return "Satis fiyati 0'dan buyuk olmalidir";
         return null;
+    }
+
+    private static SlnProductDto? PickSingleBarcodeProduct(List<SlnProductDto> products, int? branchId)
+    {
+        if (products.Count == 1) return products[0];
+        if (!branchId.HasValue) return null;
+
+        var branchProducts = products.Where(p => p.BranchId == branchId.Value).ToList();
+        if (branchProducts.Count == 1) return branchProducts[0];
+
+        var globalProducts = products.Where(p => !p.BranchId.HasValue).ToList();
+        return branchProducts.Count == 0 && globalProducts.Count == 1 ? globalProducts[0] : null;
     }
 }
 

@@ -344,6 +344,54 @@ public class SlnProductCreateDto
     public string Unit { get; set; } = "Adet";
 }
 
+public class SlnScanResolveRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string? Format { get; set; }
+    public string? Context { get; set; }
+    public int? BranchId { get; set; }
+}
+
+public class SlnScanTokenCreateRequest
+{
+    public string TargetType { get; set; } = string.Empty;
+    public int? TargetId { get; set; }
+    public string? Slug { get; set; }
+    public int? BranchId { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public string? ReturnPath { get; set; }
+}
+
+public class SlnScanTokenDto
+{
+    public string Token { get; set; } = string.Empty;
+    public string DeepLink { get; set; } = string.Empty;
+    public string? WebUrl { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+}
+
+public class SlnScanResolveDto
+{
+    public bool Found { get; set; }
+    public string ScanType { get; set; } = "unknown";
+    public string Action { get; set; } = "none";
+    public string? Message { get; set; }
+    public string RawValue { get; set; } = string.Empty;
+    public string? NormalizedValue { get; set; }
+    public string? Slug { get; set; }
+    public string? Url { get; set; }
+    public int? CustomerId { get; set; }
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public SlnProductDto? Product { get; set; }
+    public SlnGiftCardDto? GiftCard { get; set; }
+    public SlnClientDto? Client { get; set; }
+    public SlnAppointmentDto? Appointment { get; set; }
+    public SlnClientPackageDto? ClientPackage { get; set; }
+    public SlnClientMembershipDto? Membership { get; set; }
+    public Dictionary<string, string> Metadata { get; set; } = new();
+}
+
 // ═══ SlnSupplier ═══
 public class SlnSupplierDto
 {

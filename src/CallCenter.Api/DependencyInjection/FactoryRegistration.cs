@@ -74,6 +74,7 @@ public static class FactoryRegistration
         services.AddScoped<ISlnServiceFactory, SlnServiceFactory>();
         services.AddScoped<ISlnAppointmentFactory, SlnAppointmentFactory>();
         services.AddScoped<ISlnProductFactory, SlnProductFactory>();
+        services.AddScoped<ISlnScannerFactory, SlnScannerFactory>();
         services.AddScoped<ISlnFinanceFactory, SlnFinanceFactory>();
         services.AddScoped<ISlnDashboardFactory, SlnDashboardFactory>();
 

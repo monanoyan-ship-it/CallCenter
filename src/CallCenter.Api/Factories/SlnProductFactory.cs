@@ -96,6 +96,33 @@ public class SlnProductFactory : ISlnProductFactory
         return MapProductToDto(product, stockQuantity);
     }
 
+    public async Task<List<SlnProductDto>> GetProductsByBarcodeAsync(string barcode, int customerId, int? branchId = null)
+    {
+        var normalized = NormalizeBarcode(barcode);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return [];
+
+        var query = _products.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId
+                && p.Barcode != null
+                && p.Barcode.ToLower() == normalized);
+
+        if (branchId.HasValue)
+            query = query.Where(p => p.BranchId == null || p.BranchId == branchId.Value);
+
+        var products = await query
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .OrderByDescending(p => branchId.HasValue && p.BranchId == branchId.Value)
+            .ThenBy(p => p.Name)
+            .ToListAsync();
+
+        var stockMap = await _stockBalances.GetStockQuantitiesAsync(customerId, products.Select(p => p.Id), branchId);
+        return products
+            .Select(p => MapProductToDto(p, stockMap.GetValueOrDefault(p.Id, ResolveStockFallback(branchId, p.StockQuantity))))
+            .ToList();
+    }
+
     public async Task<SlnProductDto> CreateProductAsync(SlnProductCreateDto dto, int customerId, int? branchId = null)
     {
         var product = new SlnProduct
@@ -747,6 +774,9 @@ public class SlnProductFactory : ISlnProductFactory
 
     private static decimal ResolveStockFallback(int? branchId, decimal productTotalStock)
         => branchId.HasValue ? 0m : productTotalStock;
+
+    private static string NormalizeBarcode(string? barcode)
+        => (barcode ?? string.Empty).Trim().ToLowerInvariant();
 
     private async Task<string> BuildOrderNoAsync(int customerId)
     {

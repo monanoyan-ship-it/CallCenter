@@ -318,9 +318,24 @@ public class BillingFactory : IBillingFactory
     public async Task<(bool IsBlocked, string? Reason)> IsCustomerBlockedByBillingAsync(int customerId)
     {
         var now = DateTime.UtcNow;
+        var hasBillableCallCenterScope =
+            await _customerProductEs.GetAllQueryable()
+                .AnyAsync(cp => cp.CustomerId == customerId
+                    && cp.ProductTypeId == ProductTypes.Ids.CallCenter
+                    && cp.IsActive)
+            || await _subscriptionEs.GetAllQueryable()
+                .AnyAsync(s => s.CustomerId == customerId
+                    && s.StatusId == SubscriptionStatuses.Ids.Active
+                    && s.MonthlyPrice > 0m);
+
+        if (!hasBillableCallCenterScope)
+            return (false, null);
+
         var unpaidPeriods = await _billingEs.GetAllQueryable()
             .Where(b => b.CustomerId == customerId
                 && b.BillingKindId == CustomerBillingKinds.CallCenter
+                && !b.IsPaid
+                && b.Amount + b.ServiceAmount > 0m
                 && b.StatusId != BillingPeriodStatuses.Ids.Paid)
             .Select(b => new { b.PeriodEndDate, b.Year, b.Month })
             .ToListAsync();

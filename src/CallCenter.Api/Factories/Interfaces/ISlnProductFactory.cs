@@ -7,6 +7,7 @@ public interface ISlnProductFactory
     // Urun
     Task<List<SlnProductDto>> GetProductsAsync(int customerId, int? categoryId = null, string? search = null, int? branchId = null);
     Task<SlnProductDto?> GetProductAsync(int productId, int customerId, int? branchId = null);
+    Task<List<SlnProductDto>> GetProductsByBarcodeAsync(string barcode, int customerId, int? branchId = null);
     Task<SlnProductDto> CreateProductAsync(SlnProductCreateDto dto, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> UpdateProductAsync(int productId, SlnProductCreateDto dto, bool isActive, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> DeleteProductAsync(int productId, int customerId, int? branchId = null);

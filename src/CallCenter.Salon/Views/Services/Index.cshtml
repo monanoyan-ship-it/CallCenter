@@ -10,9 +10,12 @@
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
             <input type="text" class="form-control" placeholder="@(Translation.T("salon.services.auto.hizmet_ara", "Hizmet ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2 justify-content-end">
             <button class="btn btn-outline-secondary btn-sm" data-bind="click: openResourceManager">
                 <i class="bi bi-boxes me-1"></i><t key="salon.services.resources">Kaynaklar</t>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" data-bind="click: openComboManager">
+                <i class="bi bi-diagram-3 me-1"></i><t key="salon.services.combos">Kombolar</t>
             </button>
             <button class="btn btn-outline-primary btn-sm" data-bind="click: openNewCategory">
                 <i class="bi bi-folder-plus me-1"></i><t key="salon.services.auto.yeni_kategori">Yeni Kategori</t>
@@ -480,7 +483,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><t key="salon.services.combos">Combos</t></h6>
+                    <h6 class="modal-title"><t key="salon.services.combos">Kombolar</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
