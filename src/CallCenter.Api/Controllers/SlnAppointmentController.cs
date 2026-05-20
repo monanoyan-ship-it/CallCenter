@@ -27,9 +27,10 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        // JWT'deki BranchId belirli sube personeli icin kilit (guvenlik).
-        // JWT.BranchId null ise (SalonOwner/merkez) query'den gelen branchId filtreyi uygular.
-        var effectiveBranchId = GetBranchScopeId() ?? branchId;
+        // Owner tum subeleri gorebilir; owner disi roller BranchId claim'i yoksa fail-closed.
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+        var effectiveBranchId = access.BranchScopeId ?? branchId;
 
         var appointments = await _appointmentFactory.GetAppointmentsAsync(customerId, from, to, personnelId, statusId, effectiveBranchId, slnClientId);
         return Ok(appointments);
@@ -41,7 +42,10 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var appointment = await _appointmentFactory.GetAppointmentAsync(id, customerId, GetBranchScopeId());
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        var appointment = await _appointmentFactory.GetAppointmentAsync(id, customerId, access.BranchScopeId);
         return appointment != null ? Ok(appointment) : NotFound();
     }
 
@@ -52,8 +56,11 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
         dto.BranchId ??= branchId;
-        var (appointment, error) = await _appointmentFactory.CreateAppointmentAsync(dto, userId, customerId, GetBranchScopeId());
+        var (appointment, error) = await _appointmentFactory.CreateAppointmentAsync(dto, userId, customerId, access.BranchScopeId);
         return appointment != null ? Ok(appointment) : BadRequest(error);
     }
 
@@ -63,8 +70,11 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
         dto.BranchId ??= branchId;
-        var (success, error) = await _appointmentFactory.UpdateAppointmentAsync(id, dto, customerId, GetBranchScopeId());
+        var (success, error) = await _appointmentFactory.UpdateAppointmentAsync(id, dto, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -74,7 +84,10 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error, penalty) = await _appointmentFactory.UpdateStatusAsync(id, req.StatusId, customerId, GetBranchScopeId());
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        var (success, error, penalty) = await _appointmentFactory.UpdateStatusAsync(id, req.StatusId, customerId, access.BranchScopeId);
         if (!success) return BadRequest(error);
         return Ok(new { penalty, message = penalty > 0 ? $"{penalty:F0} TL ceza uygulandi" : (string?)null });
     }
@@ -85,7 +98,10 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _appointmentFactory.DeleteAppointmentAsync(id, customerId, GetBranchScopeId());
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        var (success, error) = await _appointmentFactory.DeleteAppointmentAsync(id, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -97,6 +113,8 @@ public class SlnAppointmentController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
 
         var hasConflict = await _appointmentFactory.CheckConflictAsync(personnelId, startTime, endTime, customerId, excludeId);
         return Ok(hasConflict);
@@ -108,12 +126,14 @@ public class SlnAppointmentController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
 
         var ids = (serviceIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
             .Where(id => id > 0).ToList();
 
-        var staff = await _appointmentFactory.GetAvailableStaffAsync(customerId, ids, GetBranchScopeId() ?? branchId);
+        var staff = await _appointmentFactory.GetAvailableStaffAsync(customerId, ids, access.BranchScopeId ?? branchId);
         return Ok(staff);
     }
 
@@ -123,13 +143,15 @@ public class SlnAppointmentController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        var access = ResolveAppointmentBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
 
         var ids = (serviceIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
             .Where(id => id > 0)
             .ToList();
 
-        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, GetBranchScopeId() ?? branchId, ids);
+        var slots = await _appointmentFactory.GetAvailableSlotsAsync(customerId, personnelId, date, durationMinutes, access.BranchScopeId ?? branchId, ids);
         return Ok(slots);
     }
 
@@ -156,14 +178,24 @@ public class SlnAppointmentController : ControllerBase
         return claim != null && int.TryParse(claim, out var id) ? id : null;
     }
 
-    private int GetCustomerRoleId()
+    private bool IsSalonOwner()
     {
+        if (User.IsInRole("Admin")) return true;
         var claim = User.FindFirst("CustomerRoleId")?.Value;
-        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+        return int.TryParse(claim, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
     }
 
-    private int? GetBranchScopeId()
-        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
+    private AppointmentBranchAccess ResolveAppointmentBranchAccess()
+    {
+        if (IsSalonOwner()) return new(true, null, null);
+
+        var branchId = GetBranchId();
+        return branchId.HasValue
+            ? new(true, branchId.Value, null)
+            : new(false, null, Forbid());
+    }
+
+    private readonly record struct AppointmentBranchAccess(bool IsAllowed, int? BranchScopeId, ActionResult? ErrorResult);
 }
 
 public class SlnAppointmentStatusRequest
