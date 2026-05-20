@@ -4,6 +4,7 @@ using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using CallCenter.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
@@ -1600,14 +1601,20 @@ public class SlnPublicFactory : ISlnPublicFactory
         // Telefonla mevcut musteri var mi? Yoksa hizli olustur (lead).
         var client = await FindOrCreatePublicClientAsync(cid, dto.FullName, dto.Phone, dto.Email, branchId);
 
-        // Ayni telefon + tarih + hizmet icin acik (StatusId=1) waitlist varsa cogaltma
+        // Ayni telefon + tarih + hizmet icin aktif/aksiyon bekleyen waitlist varsa cogaltma.
         var preferredDate = DateTime.SpecifyKind(dto.PreferredDate.Date, DateTimeKind.Utc);
+        var activeWaitlistStatusIds = new[]
+        {
+            SlnWaitlistStatuses.Ids.Waiting,
+            SlnWaitlistStatuses.Ids.Notified,
+            SlnWaitlistStatuses.Ids.AppointmentBooked
+        };
         var existing = await _waitlist.GetAllQueryable().AnyAsync(w =>
             w.CustomerId == cid &&
             w.SlnClientId == client.Id &&
             w.ServiceId == dto.ServiceId &&
             w.PreferredDate == preferredDate &&
-            w.StatusId == 1);
+            activeWaitlistStatusIds.Contains(w.StatusId));
         if (existing)
             return (true, null, new { duplicate = true, message = "Bu tarih icin zaten bekleme listesindesiniz." });
 
@@ -1621,7 +1628,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             PreferredDate = preferredDate,
             PreferredTimeSlot = string.IsNullOrWhiteSpace(dto.PreferredTimeSlot) ? "Farketmez" : dto.PreferredTimeSlot,
             Notes = dto.Notes,
-            StatusId = 1
+            StatusId = SlnWaitlistStatuses.Ids.Waiting
         };
         _waitlist.Add(entry);
         await _uow.SaveChangesAsync();

@@ -197,6 +197,39 @@ public class PlatformPhoneLinkingTests : IDisposable
         services.Should().Equal(7, 8);
     }
 
+    [Theory]
+    [InlineData(SlnWaitlistStatuses.Ids.Waiting)]
+    [InlineData(SlnWaitlistStatuses.Ids.Notified)]
+    [InlineData(SlnWaitlistStatuses.Ids.AppointmentBooked)]
+    public async Task PublicWaitlist_TreatsActiveStatusesAsDuplicate(int statusId)
+    {
+        var preferredDate = DateTime.UtcNow.Date.AddDays(2);
+        SeedWaitlistClient(statusId, preferredDate);
+
+        var dto = CreateWaitlistDto(preferredDate);
+        var (success, error, result) = await _publicFactory.JoinWaitlistAsync("test-salon", dto);
+
+        success.Should().BeTrue(error);
+        GetAnonymousValue<bool>(result!, "duplicate").Should().BeTrue();
+        (await _db.SlnWaitlistEntries.CountAsync()).Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(SlnWaitlistStatuses.Ids.Cancelled)]
+    [InlineData(SlnWaitlistStatuses.Ids.Completed)]
+    public async Task PublicWaitlist_AllowsDuplicateAfterTerminalStatuses(int statusId)
+    {
+        var preferredDate = DateTime.UtcNow.Date.AddDays(2);
+        SeedWaitlistClient(statusId, preferredDate);
+
+        var dto = CreateWaitlistDto(preferredDate);
+        var (success, error, result) = await _publicFactory.JoinWaitlistAsync("test-salon", dto);
+
+        success.Should().BeTrue(error);
+        result!.GetType().GetProperty("duplicate").Should().BeNull();
+        (await _db.SlnWaitlistEntries.CountAsync()).Should().Be(2);
+    }
+
     private PlatformFactory CreatePlatformFactory()
         => new(
             new PlatformUserSalonEntityService(_db),
@@ -240,6 +273,45 @@ public class PlatformPhoneLinkingTests : IDisposable
 
     private PaymentService CreatePaymentService()
         => new(_db, null!, null!, NullLogger<PaymentService>.Instance);
+
+    private void SeedWaitlistClient(int statusId, DateTime preferredDate)
+    {
+        _db.SlnClients.Add(new SlnClient
+        {
+            Id = 10,
+            CustomerId = 1,
+            FullName = "Mobil Musteri",
+            Phone = "+905060716728",
+            IsActive = true
+        });
+        _db.SlnWaitlistEntries.Add(new SlnWaitlistEntry
+        {
+            Id = 50,
+            CustomerId = 1,
+            BranchId = 3,
+            SlnClientId = 10,
+            ServiceId = 7,
+            PreferredDate = DateTime.SpecifyKind(preferredDate.Date, DateTimeKind.Utc),
+            PreferredTimeSlot = "Farketmez",
+            StatusId = statusId
+        });
+        _db.SaveChanges();
+        _db.ChangeTracker.Clear();
+    }
+
+    private static SlnPublicWaitlistDto CreateWaitlistDto(DateTime preferredDate) => new()
+    {
+        FullName = "Mobil Musteri",
+        Phone = "05060716728",
+        Email = "mobil@test.local",
+        ServiceId = 7,
+        PreferredDate = preferredDate,
+        PreferredTimeSlot = "Farketmez"
+    };
+
+    private static T GetAnonymousValue<T>(object source, string propertyName)
+        => (T)(source.GetType().GetProperty(propertyName)?.GetValue(source)
+            ?? throw new InvalidOperationException($"Property '{propertyName}' was not found."));
 
     private void SeedBaseData()
     {
