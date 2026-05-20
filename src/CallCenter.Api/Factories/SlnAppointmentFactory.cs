@@ -651,12 +651,54 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<List<object>> GetAvailableSlotsAsync(int customerId, int personnelId, DateTime date, int durationMinutes, int? branchId = null, List<int>? serviceIds = null)
     {
+        if (personnelId <= 0 || durationMinutes <= 0)
+            return [];
+
+        var requestedServiceIds = (serviceIds ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        if (requestedServiceIds.Count > 0)
+        {
+            var validServiceCount = await _services.GetAllQueryable()
+                .CountAsync(s => requestedServiceIds.Contains(s.Id) && s.CustomerId == customerId && s.IsActive);
+            if (validServiceCount != requestedServiceIds.Count)
+                return [];
+        }
+
         // Personel kendi calisma saati varsa onu kullan, yoksa subeye dus.
-        var personnel = await _personnel.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == personnelId);
-        var branch = branchId.HasValue
-            ? await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.Id == branchId.Value)
-            : await _branches.GetAllQueryable().FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
-        var effectiveBranchId = branchId ?? personnel?.BranchId ?? branch?.Id;
+        var personnel = await _personnel.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.Id == personnelId && p.CustomerId == customerId && p.IsActive);
+        if (personnel == null)
+            return [];
+
+        if (branchId.HasValue && personnel.BranchId.HasValue && personnel.BranchId.Value != branchId.Value)
+            return [];
+
+        if (requestedServiceIds.Count > 0)
+        {
+            var skillScope = await GetSkillScopeAsync(requestedServiceIds);
+            if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(personnelId))
+                return [];
+        }
+
+        var effectiveBranchId = branchId ?? personnel.BranchId;
+        SlnBranch? branch = null;
+
+        if (effectiveBranchId.HasValue)
+        {
+            branch = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.Id == effectiveBranchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (branch == null)
+                return [];
+        }
+        else
+        {
+            branch = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter && b.IsActive);
+            effectiveBranchId = branch?.Id;
+        }
 
         var dayKey = date.DayOfWeek switch
         {
@@ -715,8 +757,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         {
             var slotEnd = slotStart.AddMinutes(durationMinutes);
             var hasConflict = existingAppointments.Any(a => slotStart < a.EndTime && slotEnd > a.StartTime);
-            var resourceConflict = serviceIds is { Count: > 0 }
-                ? await FindResourceConflictAsync(customerId, effectiveBranchId, serviceIds, slotStart, slotEnd)
+            var resourceConflict = requestedServiceIds.Count > 0
+                ? await FindResourceConflictAsync(customerId, effectiveBranchId, requestedServiceIds, slotStart, slotEnd)
                 : null;
 
             slots.Add(new

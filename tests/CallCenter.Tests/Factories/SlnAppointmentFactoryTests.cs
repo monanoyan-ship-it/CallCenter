@@ -43,6 +43,79 @@ public class SlnAppointmentFactoryTests : IDisposable
             .Should().Be(1);
     }
 
+    [Fact]
+    public async Task GetAvailableSlotsAsync_ReturnsEmpty_WhenPersonnelBelongsToAnotherCustomer()
+    {
+        SeedSlotScopeData();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var slots = await factory.GetAvailableSlotsAsync(1, 21, new DateTime(2026, 5, 20), 30, branchId: 3, serviceIds: [7]);
+
+        slots.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableSlotsAsync_ReturnsEmpty_WhenBranchScopeDoesNotMatchPersonnel()
+    {
+        SeedSlotScopeData();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var slots = await factory.GetAvailableSlotsAsync(1, 14, new DateTime(2026, 5, 20), 30, branchId: 3, serviceIds: [7]);
+
+        slots.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableSlotsAsync_ReturnsEmpty_WhenServiceIsOutsideCustomer()
+    {
+        SeedSlotScopeData();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var slots = await factory.GetAvailableSlotsAsync(1, 11, new DateTime(2026, 5, 20), 30, branchId: 3, serviceIds: [80]);
+
+        slots.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableSlotsAsync_ReturnsEmpty_WhenPersonnelLacksRequiredSkill()
+    {
+        SeedSlotScopeData();
+        _db.SlnPersonnelSkills.Add(new SlnPersonnelSkill
+        {
+            Id = 90,
+            PersonnelId = 11,
+            ServiceId = 7
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var slots = await factory.GetAvailableSlotsAsync(1, 14, new DateTime(2026, 5, 20), 30, serviceIds: [7]);
+
+        slots.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableSlotsAsync_UsesPersonnelBranchHours_WhenBranchIsNotRequested()
+    {
+        SeedSlotScopeData();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var slots = await factory.GetAvailableSlotsAsync(1, 14, new DateTime(2026, 5, 20), 30, serviceIds: [7]);
+
+        slots.Select(slot => GetAnonymousValue<string>(slot, "timeText"))
+            .Should().Equal("10:00", "10:30");
+    }
+
     private SlnAppointmentFactory CreateFactory()
         => new(
             new SlnAppointmentEntityService(_db),
@@ -62,6 +135,10 @@ public class SlnAppointmentFactoryTests : IDisposable
                 new SlnBranchEntityService(_db)),
             new UnitOfWork(_db),
             NullLogger<SlnAppointmentFactory>.Instance);
+
+    private static T GetAnonymousValue<T>(object source, string propertyName)
+        => (T)(source.GetType().GetProperty(propertyName)?.GetValue(source)
+            ?? throw new InvalidOperationException($"Property '{propertyName}' was not found."));
 
     private void SeedRecipeAppointment()
     {
@@ -202,4 +279,138 @@ public class SlnAppointmentFactoryTests : IDisposable
 
         _db.SaveChanges();
     }
+
+    private void SeedSlotScopeData()
+    {
+        _db.Customers.AddRange(
+            new Customer
+            {
+                Id = 1,
+                Uid = Guid.NewGuid(),
+                Name = "Test Salon",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Customer
+            {
+                Id = 2,
+                Uid = Guid.NewGuid(),
+                Name = "Other Salon",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        _db.SlnBranches.AddRange(
+            new SlnBranch
+            {
+                Id = 3,
+                CustomerId = 1,
+                Name = "Merkez",
+                Slug = "test-salon",
+                WorkingHoursJson = "{\"wed\":\"closed\"}",
+                IsHeadquarter = true,
+                IsActive = true
+            },
+            new SlnBranch
+            {
+                Id = 4,
+                CustomerId = 1,
+                Name = "Sube",
+                Slug = "test-salon-sube",
+                WorkingHoursJson = "{\"wed\":\"10:00-11:00\"}",
+                IsActive = true
+            },
+            new SlnBranch
+            {
+                Id = 13,
+                CustomerId = 2,
+                Name = "Other Branch",
+                Slug = "other-salon",
+                IsHeadquarter = true,
+                IsActive = true
+            });
+        _db.Users.AddRange(
+            CreateUser(12, "staff@test.local", "Salon Personel"),
+            CreateUser(15, "staff2@test.local", "Sube Personel"),
+            CreateUser(22, "other@test.local", "Other Personel"));
+        _db.CustomerPersonnel.AddRange(
+            new CustomerPersonnel
+            {
+                Id = 11,
+                CustomerId = 1,
+                UserId = 12,
+                IsActive = true,
+                CustomerRoleId = SalonRoles.Ids.Hairdresser,
+                BranchId = 3
+            },
+            new CustomerPersonnel
+            {
+                Id = 14,
+                CustomerId = 1,
+                UserId = 15,
+                IsActive = true,
+                CustomerRoleId = SalonRoles.Ids.Hairdresser,
+                BranchId = 4
+            },
+            new CustomerPersonnel
+            {
+                Id = 21,
+                CustomerId = 2,
+                UserId = 22,
+                IsActive = true,
+                CustomerRoleId = SalonRoles.Ids.Hairdresser,
+                BranchId = 13
+            });
+        _db.SlnServiceCategories.AddRange(
+            new SlnServiceCategory
+            {
+                Id = 6,
+                CustomerId = 1,
+                Name = "Bakim",
+                IsActive = true
+            },
+            new SlnServiceCategory
+            {
+                Id = 60,
+                CustomerId = 2,
+                Name = "Other Bakim",
+                IsActive = true
+            });
+        _db.SlnServices.AddRange(
+            new SlnService
+            {
+                Id = 7,
+                CustomerId = 1,
+                CategoryId = 6,
+                Name = "Kesim",
+                DurationMinutes = 30,
+                Price = 100m,
+                IsActive = true
+            },
+            new SlnService
+            {
+                Id = 80,
+                CustomerId = 2,
+                CategoryId = 60,
+                Name = "Other Kesim",
+                DurationMinutes = 30,
+                Price = 100m,
+                IsActive = true
+            });
+
+        _db.SaveChanges();
+    }
+
+    private static User CreateUser(int id, string email, string fullName) => new()
+    {
+        Id = id,
+        Uid = Guid.NewGuid(),
+        UserName = email,
+        FullName = fullName,
+        Email = email,
+        PasswordHash = "hash",
+        RoleId = UserRoles.Ids.Agent,
+        StatusId = AgentStatuses.Ids.Available,
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow
+    };
 }
