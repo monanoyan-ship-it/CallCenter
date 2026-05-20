@@ -119,7 +119,7 @@ function WaitlistViewModel() {
         4: slnJsT('salon.common.btn.cancel', 'İptal'),
         5: slnJsT('salon.waitlist.status.completed', 'Gerçekleşti')
     };
-    var wlStatusBadges = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-secondary', 5: 'bg-primary' };
+    var wlStatusBadges = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-primary', 4: 'bg-secondary', 5: 'bg-success' };
 
     self.wlStatusText = function (id) { return wlStatusTexts[id] || '?'; };
     self.wlStatusBadge = function (id) { return wlStatusBadges[id] || 'bg-secondary'; };
@@ -143,11 +143,11 @@ function WaitlistViewModel() {
     var formModal;
 
     self.loadWaitlist = function () {
-        // Tum kayitlari getir (date filter UI tarafinda yapilir, sadece bekleyen + bildirilenleri goster)
+        // Tum kayitlari getir (date filter UI tarafinda yapilir, terminal olmayan aksiyon bekleyenleri goster)
         $.ajax({ url: '/proxy/sln-waitlist', method: 'GET' }).done(function (data) {
             var items = data.items || data || [];
-            // Aktif olanlar: 1=Bekliyor, 2=Bildirildi (3=Randevu Alindi, 4=Iptal, 5=Gerceklesti gizli)
-            self.waitlistEntries(items.filter(function (e) { return e.statusId === 1 || e.statusId === 2; }));
+            // Aksiyon bekleyenler: 1=Bekliyor, 2=Bildirildi, 3=Randevu Alindi. Terminal: 4=Iptal, 5=Gerceklesti.
+            self.waitlistEntries(items.filter(function (e) { return e.statusId === 1 || e.statusId === 2 || e.statusId === 3; }));
         });
     };
 
