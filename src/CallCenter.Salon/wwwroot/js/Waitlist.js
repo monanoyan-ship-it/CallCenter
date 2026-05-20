@@ -144,7 +144,7 @@ function WaitlistViewModel() {
 
     self.loadWaitlist = function () {
         // Tum kayitlari getir (date filter UI tarafinda yapilir, terminal olmayan aksiyon bekleyenleri goster)
-        $.ajax({ url: '/proxy/sln-waitlist', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-waitlist?scope=active', method: 'GET' }).done(function (data) {
             var items = data.items || data || [];
             // Aksiyon bekleyenler: 1=Bekliyor, 2=Bildirildi, 3=Randevu Alindi. Terminal: 4=Iptal, 5=Gerceklesti.
             self.waitlistEntries(items.filter(function (e) { return e.statusId === 1 || e.statusId === 2 || e.statusId === 3; }));

@@ -4,7 +4,7 @@ namespace CallCenter.Api.Factories.Interfaces;
 
 public interface ISlnWaitlistFactory
 {
-    Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null);
+    Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null, string? scope = null);
     Task<SlnWaitlistEntryDto?> GetEntryAsync(int id, int customerId);
     Task<SlnWaitlistEntryDto> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId = null);
     Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId, int? branchScopeId = null);

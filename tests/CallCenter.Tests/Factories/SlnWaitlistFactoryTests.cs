@@ -75,6 +75,38 @@ public class SlnWaitlistFactoryTests : IDisposable
         (await GetStatusAsync()).Should().Be(SlnWaitlistStatuses.Ids.Completed);
     }
 
+    [Fact]
+    public async Task GetEntriesAsync_AppliesActiveAndArchiveScopes()
+    {
+        await SeedWaitlistEntriesAsync();
+        var factory = CreateFactory();
+
+        (await _db.SlnWaitlistEntries.CountAsync()).Should().Be(5);
+        (await _db.SlnWaitlistEntries
+            .CountAsync(w => w.StatusId == SlnWaitlistStatuses.Ids.Waiting
+                          || w.StatusId == SlnWaitlistStatuses.Ids.Notified
+                          || w.StatusId == SlnWaitlistStatuses.Ids.AppointmentBooked))
+            .Should().Be(3);
+
+        var active = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeActive);
+        var archive = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeArchive);
+        var all = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeAll);
+
+        active.Select(e => e.StatusId).Should().BeEquivalentTo(new[]
+        {
+            SlnWaitlistStatuses.Ids.Waiting,
+            SlnWaitlistStatuses.Ids.Notified,
+            SlnWaitlistStatuses.Ids.AppointmentBooked
+        });
+        archive.Select(e => e.StatusId).Should().BeEquivalentTo(new[]
+        {
+            SlnWaitlistStatuses.Ids.Cancelled,
+            SlnWaitlistStatuses.Ids.Completed
+        });
+        all.Should().HaveCount(5);
+    }
+
+
     private SlnWaitlistFactory CreateFactory()
         => new(
             new SlnWaitlistEntryEntityService(_db),
@@ -101,6 +133,51 @@ public class SlnWaitlistFactoryTests : IDisposable
             PreferredDate = DateTime.UtcNow.Date,
             StatusId = statusId
         });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedWaitlistEntriesAsync()
+    {
+        _db.Customers.Add(new Customer
+        {
+            Id = 1,
+            Uid = Guid.NewGuid(),
+            Name = "Test Salon",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        _db.SlnClients.Add(new SlnClient
+        {
+            Id = 20,
+            CustomerId = 1,
+            FullName = "Test Musteri",
+            IsActive = true
+        });
+        _db.SlnServices.Add(new SlnService
+        {
+            Id = 30,
+            CustomerId = 1,
+            Name = "Test Hizmet",
+            DurationMinutes = 30,
+            Price = 100m,
+            IsActive = true
+        });
+
+        foreach (var statusId in SlnWaitlistStatuses.All.Select(s => s.Id))
+        {
+            _db.SlnWaitlistEntries.Add(new SlnWaitlistEntry
+            {
+                Id = 100 + statusId,
+                CustomerId = 1,
+                SlnClientId = 20,
+                ServiceId = 30,
+                PreferredDate = DateTime.UtcNow.Date,
+                StatusId = statusId,
+                CreatedAt = DateTime.UtcNow.AddMinutes(statusId)
+            });
+        }
+
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
     }

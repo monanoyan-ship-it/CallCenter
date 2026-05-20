@@ -19,13 +19,15 @@ public class SlnWaitlistController : ControllerBase
     public SlnWaitlistController(ISlnWaitlistFactory factory) => _factory = factory;
 
     [HttpGet]
-    public async Task<ActionResult<List<SlnWaitlistEntryDto>>> GetEntries([FromQuery] DateTime? date, [FromQuery] int? branchId)
+    public async Task<ActionResult<List<SlnWaitlistEntryDto>>> GetEntries([FromQuery] DateTime? date, [FromQuery] int? branchId, [FromQuery] string? scope)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
+        var normalizedScope = SlnWaitlistStatuses.NormalizeScope(scope);
+        if (normalizedScope == null) return BadRequest("Gecersiz bekleme listesi kapsami");
         // JWT'de BranchId varsa kilit (personel) — yoksa query'den al (SalonOwner)
         var effectiveBranch = GetBranchScopeId() ?? branchId;
-        return Ok(await _factory.GetEntriesAsync(customerId, date, effectiveBranch));
+        return Ok(await _factory.GetEntriesAsync(customerId, date, effectiveBranch, normalizedScope));
     }
 
     [HttpGet("{id}")]

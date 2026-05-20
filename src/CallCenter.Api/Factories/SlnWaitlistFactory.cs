@@ -27,8 +27,9 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null)
+    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null, string? scope = null)
     {
+        var normalizedScope = SlnWaitlistStatuses.NormalizeScope(scope) ?? SlnWaitlistStatuses.ScopeAll;
         var query = _waitlistEs.GetAllQueryable()
             .Where(w => w.CustomerId == customerId)
             .Include(w => w.SlnClient)
@@ -42,6 +43,26 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
         if (branchId.HasValue)
             query = query.Where(w => w.BranchId == branchId.Value);
+
+        if (normalizedScope == SlnWaitlistStatuses.ScopeActive)
+        {
+            var activeStatusIds = new[]
+            {
+                SlnWaitlistStatuses.Ids.Waiting,
+                SlnWaitlistStatuses.Ids.Notified,
+                SlnWaitlistStatuses.Ids.AppointmentBooked
+            };
+            query = query.Where(w => activeStatusIds.Contains(w.StatusId));
+        }
+        else if (normalizedScope == SlnWaitlistStatuses.ScopeArchive)
+        {
+            var archivedStatusIds = new[]
+            {
+                SlnWaitlistStatuses.Ids.Cancelled,
+                SlnWaitlistStatuses.Ids.Completed
+            };
+            query = query.Where(w => archivedStatusIds.Contains(w.StatusId));
+        }
 
         return await query
             .OrderByDescending(w => w.CreatedAt)

@@ -2,10 +2,15 @@ namespace CallCenter.Shared.Enums;
 
 /// <summary>
 /// Salon bekleme listesi yasam dongusu.
-/// Aktif liste: Waiting, Notified. Arsiv/gecmis: AppointmentBooked, Cancelled, Completed.
+/// Aktif/aksiyon bekleyen liste: Waiting, Notified, AppointmentBooked. Arsiv/gecmis: Cancelled, Completed.
 /// </summary>
 public static class SlnWaitlistStatuses
 {
+    public const string ScopeAll = "all";
+    public const string ScopeActive = "active";
+    public const string ScopeArchive = "archive";
+    public const string ScopeHistory = "history";
+
     public static readonly TypeItem Waiting = new(1, "Waiting", "SlnWaitlistStatus.Waiting", "Bekliyor", "bi-hourglass", "bg-warning text-dark", 1, isDefault: true);
     public static readonly TypeItem Notified = new(2, "Notified", "SlnWaitlistStatus.Notified", "Bildirildi", "bi-bell", "bg-info", 2);
     public static readonly TypeItem AppointmentBooked = new(3, "AppointmentBooked", "SlnWaitlistStatus.AppointmentBooked", "Randevu Alindi", "bi-calendar-check", "bg-primary", 3);
@@ -15,8 +20,8 @@ public static class SlnWaitlistStatuses
     public static IEnumerable<TypeItem> All => new[] { Waiting, Notified, AppointmentBooked, Cancelled, Completed };
     public static TypeItem Default => Waiting;
 
-    public static IReadOnlySet<int> ActiveIds { get; } = new HashSet<int> { Ids.Waiting, Ids.Notified };
-    public static IReadOnlySet<int> ArchivedIds { get; } = new HashSet<int> { Ids.AppointmentBooked, Ids.Cancelled, Ids.Completed };
+    public static IReadOnlySet<int> ActiveIds { get; } = new HashSet<int> { Ids.Waiting, Ids.Notified, Ids.AppointmentBooked };
+    public static IReadOnlySet<int> ArchivedIds { get; } = new HashSet<int> { Ids.Cancelled, Ids.Completed };
     public static IReadOnlySet<int> TerminalIds { get; } = new HashSet<int> { Ids.Cancelled, Ids.Completed };
 
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
@@ -24,6 +29,19 @@ public static class SlnWaitlistStatuses
     public static bool IsActive(int id) => ActiveIds.Contains(id);
     public static bool IsArchived(int id) => ArchivedIds.Contains(id);
     public static bool IsTerminal(int id) => TerminalIds.Contains(id);
+
+    public static string? NormalizeScope(string? scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope)) return ScopeAll;
+        return scope.Trim().ToLowerInvariant() switch
+        {
+            ScopeAll => ScopeAll,
+            ScopeActive => ScopeActive,
+            ScopeArchive => ScopeArchive,
+            ScopeHistory => ScopeArchive,
+            _ => null
+        };
+    }
 
     public static bool CanTransition(int fromStatusId, int toStatusId)
     {

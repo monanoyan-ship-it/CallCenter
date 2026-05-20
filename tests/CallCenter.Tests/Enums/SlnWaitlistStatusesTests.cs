@@ -25,12 +25,24 @@ public class SlnWaitlistStatusesTests
     {
         SlnWaitlistStatuses.IsActive(SlnWaitlistStatuses.Ids.Waiting).Should().BeTrue();
         SlnWaitlistStatuses.IsActive(SlnWaitlistStatuses.Ids.Notified).Should().BeTrue();
-        SlnWaitlistStatuses.IsArchived(SlnWaitlistStatuses.Ids.AppointmentBooked).Should().BeTrue();
+        SlnWaitlistStatuses.IsActive(SlnWaitlistStatuses.Ids.AppointmentBooked).Should().BeTrue();
         SlnWaitlistStatuses.IsArchived(SlnWaitlistStatuses.Ids.Cancelled).Should().BeTrue();
         SlnWaitlistStatuses.IsArchived(SlnWaitlistStatuses.Ids.Completed).Should().BeTrue();
         SlnWaitlistStatuses.IsTerminal(SlnWaitlistStatuses.Ids.Cancelled).Should().BeTrue();
         SlnWaitlistStatuses.IsTerminal(SlnWaitlistStatuses.Ids.Completed).Should().BeTrue();
         SlnWaitlistStatuses.IsDefined(999).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(null, SlnWaitlistStatuses.ScopeAll)]
+    [InlineData("", SlnWaitlistStatuses.ScopeAll)]
+    [InlineData("active", SlnWaitlistStatuses.ScopeActive)]
+    [InlineData("archive", SlnWaitlistStatuses.ScopeArchive)]
+    [InlineData("history", SlnWaitlistStatuses.ScopeArchive)]
+    [InlineData("bad", null)]
+    public void NormalizeScope_MapsListScopes(string? scope, string? expected)
+    {
+        SlnWaitlistStatuses.NormalizeScope(scope).Should().Be(expected);
     }
 
     [Fact]
