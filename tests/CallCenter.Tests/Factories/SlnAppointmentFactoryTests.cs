@@ -263,6 +263,70 @@ public class SlnAppointmentFactoryTests : IDisposable
         appointments.Single(a => a.Id == 30).PaidAmount.Should().Be(125m);
     }
 
+    [Fact]
+    public async Task GetAppointmentsAsync_ExpiresStaleAwaitingPaymentAppointments()
+    {
+        SeedRecipeAppointment();
+        var stale = await _db.SlnAppointments.SingleAsync(a => a.Id == 30);
+        stale.StatusId = 6;
+        stale.IsPrepaid = false;
+        stale.CreatedAt = DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout - TimeSpan.FromMinutes(1);
+        _db.SlnAppointments.Add(new SlnAppointment
+        {
+            Id = 40,
+            CustomerId = 1,
+            BranchId = 3,
+            SlnClientId = 10,
+            PersonnelId = 11,
+            StartTime = DateTime.UtcNow.AddHours(3),
+            EndTime = DateTime.UtcNow.AddHours(4),
+            StatusId = 6,
+            IsPrepaid = false,
+            CreatedAt = DateTime.UtcNow,
+            Services =
+            [
+                new SlnAppointmentService { Id = 41, SlnServiceId = 7, SortOrder = 1 }
+            ]
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var awaitingPayment = await factory.GetAppointmentsAsync(1, null, null, statusId: 6, branchId: 3);
+
+        awaitingPayment.Select(a => a.Id).Should().Equal(40);
+        var statuses = await _db.SlnAppointments.AsNoTracking()
+            .Where(a => a.Id == 30 || a.Id == 40)
+            .ToDictionaryAsync(a => a.Id, a => a.StatusId);
+        statuses[30].Should().Be(4);
+        statuses[40].Should().Be(6);
+    }
+
+    [Fact]
+    public async Task GetAppointmentAsync_ExpiresStaleAwaitingPaymentAppointment()
+    {
+        SeedRecipeAppointment();
+        var stale = await _db.SlnAppointments.SingleAsync(a => a.Id == 30);
+        stale.StatusId = 6;
+        stale.IsPrepaid = false;
+        stale.CreatedAt = DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout - TimeSpan.FromMinutes(1);
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var appointment = await factory.GetAppointmentAsync(30, 1, branchId: 3);
+
+        appointment.Should().NotBeNull();
+        appointment!.StatusId.Should().Be(4);
+        var status = await _db.SlnAppointments.AsNoTracking()
+            .Where(a => a.Id == 30)
+            .Select(a => a.StatusId)
+            .SingleAsync();
+        status.Should().Be(4);
+    }
+
     private SlnAppointmentFactory CreateFactory()
         => new(
             new SlnAppointmentEntityService(_db),

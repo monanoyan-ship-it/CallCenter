@@ -78,6 +78,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null, int? branchId = null, int? slnClientId = null)
     {
+        var cleanupBranchId = slnClientId.HasValue && slnClientId.Value > 0 ? null : branchId;
+        await ExpireStaleAwaitingPaymentAppointmentsAsync(customerId, cleanupBranchId, slnClientId);
+
         var query = _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId);
 
@@ -116,6 +119,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return null;
+
+        await ExpireStaleAwaitingPaymentAppointmentAsync(appointment);
 
         var paidAmount = await _paymentService.GetAppointmentPaidAmountAsync(appointment.Id);
         return MapToDto(appointment, paidAmount);
@@ -296,6 +301,13 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         if (appointment == null) return (false, "Randevu bulunamadi", 0);
 
+        var expired = await ExpireStaleAwaitingPaymentAppointmentAsync(appointment);
+        if (expired)
+        {
+            if (statusId == 4) return (true, null, 0);
+            return (false, "Odeme suresi dolan randevu iptal edildi", 0);
+        }
+
         var policy = await _noShowPolicies.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.IsActive);
 
@@ -357,6 +369,46 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
         await _uow.SaveChangesAsync();
         return (true, null, penalty);
+    }
+
+    private async Task ExpireStaleAwaitingPaymentAppointmentsAsync(int customerId, int? branchId, int? slnClientId = null)
+    {
+        var cutoff = DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout;
+        var query = _appointments.GetAllQueryable()
+            .Where(a => a.CustomerId == customerId
+                     && a.StatusId == 6
+                     && !a.IsPrepaid
+                     && a.CreatedAt <= cutoff);
+
+        if (branchId.HasValue)
+            query = query.Where(a => a.BranchId == branchId.Value);
+
+        if (slnClientId.HasValue && slnClientId.Value > 0)
+            query = query.Where(a => a.SlnClientId == slnClientId.Value);
+
+        var staleAppointments = await query.ToListAsync();
+        if (staleAppointments.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        foreach (var stale in staleAppointments)
+        {
+            stale.StatusId = 4;
+            stale.UpdatedAt = now;
+        }
+
+        await _uow.SaveChangesAsync();
+    }
+
+    private async Task<bool> ExpireStaleAwaitingPaymentAppointmentAsync(SlnAppointment appointment)
+    {
+        var cutoff = DateTime.UtcNow - PaymentService.PendingPaymentHoldTimeout;
+        if (appointment.StatusId != 6 || appointment.IsPrepaid || appointment.CreatedAt > cutoff)
+            return false;
+
+        appointment.StatusId = 4;
+        appointment.UpdatedAt = DateTime.UtcNow;
+        await _uow.SaveChangesAsync();
+        return true;
     }
 
     private async Task<(bool Success, string? Error)> ConsumeRecipeStockForCompletedAppointmentAsync(SlnAppointment appointment)
