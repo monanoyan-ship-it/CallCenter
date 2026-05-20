@@ -135,6 +135,7 @@ public class SlnAppointmentController : ControllerBase
 
     /// <summary>BranchId NULL olan randevulari merkez subeye bagla (veri temizligi).</summary>
     [HttpPost("normalize-branches")]
+    [RequireSalonOwner]
     public async Task<ActionResult> NormalizeBranches()
     {
         var customerId = GetCustomerId();
