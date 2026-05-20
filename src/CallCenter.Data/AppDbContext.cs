@@ -526,6 +526,7 @@ public class AppDbContext : DbContext
         {
             e.Property(i => i.TaxAmount).HasPrecision(18, 2);
             e.Property(i => i.GrandTotal).HasPrecision(18, 2);
+            e.Property(i => i.PrepaidAmount).HasPrecision(18, 2);
             e.HasIndex(i => i.SlnAppointmentId)
                 .IsUnique()
                 .HasFilter("\"SlnAppointmentId\" IS NOT NULL AND \"StatusId\" <> 3");

@@ -488,6 +488,7 @@ public class SlnInvoiceDto
     public string? ClientName { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal DiscountAmount { get; set; }
+    public decimal PrepaidAmount { get; set; }
     public decimal NetAmount { get; set; }
     public int PaymentMethodId { get; set; }
     public string? PersonnelName { get; set; }
@@ -515,6 +516,7 @@ public class SlnInvoiceCreateDto
     public string? GiftCardCode { get; set; }
     public int? PosDeviceId { get; set; }
     public decimal DiscountAmount { get; set; }
+    public decimal PrepaidAmount { get; set; }
     public decimal TipAmount { get; set; }
     /// <summary>true: bahsis NetAmount'a dahil edilir (musteri toplama oder). false: bahsis ayri tutulur (personel hakki).</summary>
     public bool IncludeTipInTotal { get; set; }

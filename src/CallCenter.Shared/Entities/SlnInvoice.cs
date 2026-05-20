@@ -20,6 +20,7 @@ public class SlnInvoice
     public DateTime InvoiceDate { get; set; } = DateTime.UtcNow;
     public decimal TotalAmount { get; set; }
     public decimal DiscountAmount { get; set; }
+    public decimal PrepaidAmount { get; set; }
     public decimal NetAmount { get; set; }
 
     /// <summary>KDV toplam tutari</summary>

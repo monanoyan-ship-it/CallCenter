@@ -5413,6 +5413,10 @@ namespace CallCenter.Data.Migrations
                     b.Property<int?>("PosDeviceId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("PrepaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<int?>("SlnClientId")
                         .HasColumnType("integer");
 

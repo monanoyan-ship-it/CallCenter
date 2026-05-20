@@ -146,21 +146,28 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         if (dto.Items.Count == 0)
             return (null, "Adisyonda en az bir kalem olmali");
 
+        SlnAppointment? linkedAppointment = null;
         if (dto.SlnAppointmentId.HasValue)
         {
-            var appointment = await _appointments.GetAllQueryable()
+            linkedAppointment = await _appointments.GetAllQueryable()
                 .FirstOrDefaultAsync(a => a.Id == dto.SlnAppointmentId.Value && a.CustomerId == customerId);
-            if (appointment == null)
+            if (linkedAppointment == null)
                 return (null, "Randevu bulunamadi");
-            if (appointment.StatusId == 4 || appointment.StatusId == 5)
+            if (linkedAppointment.StatusId == 4 || linkedAppointment.StatusId == 5)
                 return (null, "Iptal veya gelmedi durumundaki randevu adisyona baglanamaz");
-            if (branchId.HasValue && appointment.BranchId.HasValue && appointment.BranchId.Value != branchId.Value)
+            if (branchId.HasValue && linkedAppointment.BranchId.HasValue && linkedAppointment.BranchId.Value != branchId.Value)
                 return (null, "Randevu bu sube icin uygun degil");
-            if (dto.SlnClientId.HasValue && dto.SlnClientId.Value != appointment.SlnClientId)
+            if (dto.SlnClientId.HasValue && dto.SlnClientId.Value != linkedAppointment.SlnClientId)
                 return (null, "Randevu musterisi ile adisyon musterisi eslesmiyor");
 
-            dto.SlnClientId ??= appointment.SlnClientId;
-            branchId ??= appointment.BranchId;
+            dto.SlnClientId ??= linkedAppointment.SlnClientId;
+            branchId ??= linkedAppointment.BranchId;
+            if (dto.PrepaidAmount <= 0 && linkedAppointment.IsPrepaid && linkedAppointment.PrepaidAmount > 0)
+                dto.PrepaidAmount = linkedAppointment.PrepaidAmount;
+            if (dto.PrepaidAmount > 0 && (!linkedAppointment.IsPrepaid || linkedAppointment.PrepaidAmount <= 0))
+                return (null, "Randevuda kayitli on odeme bulunamadi");
+            if (dto.PrepaidAmount > linkedAppointment.PrepaidAmount)
+                return (null, "Adisyon on odemesi randevuda kayitli on odemeyi asamaz");
 
             var existingInvoice = await _invoices.GetAllQueryable()
                 .FirstOrDefaultAsync(i => i.CustomerId == customerId
@@ -168,6 +175,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     && i.StatusId != 3);
             if (existingInvoice != null)
                 return (null, $"Bu randevu icin adisyon zaten olusturulmus: {existingInvoice.InvoiceNo}");
+        }
+        else if (dto.PrepaidAmount > 0)
+        {
+            return (null, "On odeme sadece randevuya bagli adisyonda kullanilabilir");
         }
 
         // Fatura numarasi olustur
@@ -190,6 +201,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             PosDeviceId = dto.PosDeviceId,
             PersonnelId = userId > 0 ? userId : null, // userId = CustomerPersonnelId
             DiscountAmount = dto.DiscountAmount,
+            PrepaidAmount = dto.PrepaidAmount,
             TipAmount = dto.TipAmount,
             Notes = dto.Notes
         };
@@ -399,9 +411,13 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }
         }
 
+        var subtotalAfterDiscount = Math.Max(0, totalAmount - dto.DiscountAmount);
+        if (dto.PrepaidAmount > subtotalAfterDiscount)
+            return (null, "On odeme adisyon tutarini asamaz");
+
         invoice.TotalAmount = totalAmount;
         // BUG.A2: bahsis opsiyonel olarak NetAmount'a eklenir
-        invoice.NetAmount = totalAmount - dto.DiscountAmount + (dto.IncludeTipInTotal ? dto.TipAmount : 0);
+        invoice.NetAmount = subtotalAfterDiscount - dto.PrepaidAmount + (dto.IncludeTipInTotal ? dto.TipAmount : 0);
         invoice.StatusId = 2; // Paid
 
         SlnGiftCardDto? giftCardPayment = null;
@@ -891,6 +907,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ClientName = i.SlnClient?.FullName,
         TotalAmount = i.TotalAmount,
         DiscountAmount = i.DiscountAmount,
+        PrepaidAmount = i.PrepaidAmount,
         NetAmount = i.NetAmount,
         PaymentMethodId = i.PaymentMethodId,
         PersonnelName = i.Personnel?.User?.FullName,

@@ -464,6 +464,7 @@ function SalesViewModel() {
 
         var data = {
             slnClientId: self.clientId() ? parseInt(self.clientId()) : null,
+            slnAppointmentId: self.linkedAppointmentId() ? parseInt(self.linkedAppointmentId()) : null,
             paymentMethodId: parseInt(self.paymentMethodId()) || 1,
             giftCardCode: parseInt(self.paymentMethodId()) === 5 ? self.giftCardCode() : null,
             discountAmount: parseFloat(self.discountAmount()) || 0,
@@ -750,6 +751,7 @@ function SalesViewModel() {
 
         var data = {
             slnClientId: self.clientId() ? parseInt(self.clientId()) : null,
+            slnAppointmentId: self.linkedAppointmentId() ? parseInt(self.linkedAppointmentId()) : null,
             paymentMethodId: 1,
             discountAmount: 0, tipAmount: 0,
             notes: self.isPrepaid() ? slnJsT('salon.sales.note.completed_with_prepayment', 'Ön ödeme ile tamamlandı') : slnJsT('salon.sales.note.completed_with_membership', 'Üyelik kapsamında tamamlandı'),
