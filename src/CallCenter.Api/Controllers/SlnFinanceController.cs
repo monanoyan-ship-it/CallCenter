@@ -281,11 +281,11 @@ public class SlnFinanceController : ControllerBase
     // ═══ MÜŞTERİ CARİ HESAP ═══
 
     [HttpGet("client-ledger/{slnClientId}")]
-    public async Task<ActionResult> GetClientLedger(int slnClientId)
+    public async Task<ActionResult> GetClientLedger(int slnClientId, [FromQuery] int? branchId)
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        return Ok(await _financeFactory.GetClientLedgerAsync(cid, slnClientId));
+        return Ok(await _financeFactory.GetClientLedgerAsync(cid, slnClientId, ResolveBranchId(branchId)));
     }
 
     // ═══ İADE ═══

@@ -43,7 +43,7 @@ public interface ISlnFinanceFactory
     Task<(object? Result, string? Error)> CreateCashOpeningAsync(int registerId, int customerId, decimal? manualBalance, int personnelId, int? branchId = null);
 
     // Musteri Cari Hesap
-    Task<object> GetClientLedgerAsync(int customerId, int slnClientId);
+    Task<object> GetClientLedgerAsync(int customerId, int slnClientId, int? branchId = null);
     Task AddLedgerEntryAsync(int customerId, int slnClientId, int typeId, decimal amount, int? invoiceId, string? description);
 
     // Iade

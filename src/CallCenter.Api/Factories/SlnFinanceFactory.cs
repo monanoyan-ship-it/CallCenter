@@ -23,6 +23,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnCashOpeningEntityService _cashOpenings;
     private readonly ISlnClientLedgerEntityService _clientLedgers;
     private readonly ISlnInvoiceRefundEntityService _invoiceRefunds;
+    private readonly ISlnClientEntityService _clients;
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnPackageFactory _packages;
@@ -46,6 +47,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnCashOpeningEntityService cashOpenings,
         ISlnClientLedgerEntityService clientLedgers,
         ISlnInvoiceRefundEntityService invoiceRefunds,
+        ISlnClientEntityService clients,
         ISlnBranchEntityService branches,
         ISlnMembershipFactory memberships,
         ISlnPackageFactory packages,
@@ -67,6 +69,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _cashOpenings = cashOpenings;
         _clientLedgers = clientLedgers;
         _invoiceRefunds = invoiceRefunds;
+        _clients = clients;
         _branches = branches;
         _memberships = memberships;
         _packages = packages;
@@ -1108,8 +1111,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ MÜŞTERİ CARİ HESAP ═══
 
-    public async Task<object> GetClientLedgerAsync(int customerId, int slnClientId)
+    public async Task<object> GetClientLedgerAsync(int customerId, int slnClientId, int? branchId = null)
     {
+        var clientQuery = _clients.GetAllQueryable()
+            .Where(c => c.Id == slnClientId && c.CustomerId == customerId);
+        clientQuery = SalonBranchScope.ApplyToClients(clientQuery, branchId);
+
+        if (!await clientQuery.AnyAsync())
+            return new { balance = 0m, entries = Array.Empty<object>() };
+
         var entries = await _clientLedgers.GetAllQueryable()
             .Where(l => l.CustomerId == customerId && l.SlnClientId == slnClientId)
             .OrderByDescending(l => l.TransactionDate)
