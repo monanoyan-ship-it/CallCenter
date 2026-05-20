@@ -1549,6 +1549,13 @@ public class SlnWaitlistEntryDto
     public string? PreferredTimeSlot { get; set; }
     public string? Notes { get; set; }
     public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public string StatusSystemName { get; set; } = string.Empty;
+    public string StatusTranslationKey { get; set; } = string.Empty;
+    public string StatusCssClass { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public bool IsArchived { get; set; }
+    public bool IsTerminal { get; set; }
     public DateTime? NotifiedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }

@@ -106,6 +106,23 @@ public class SlnWaitlistFactoryTests : IDisposable
         all.Should().HaveCount(5);
     }
 
+    [Fact]
+    public async Task GetEntriesAsync_ReturnsStatusMetadata()
+    {
+        await SeedWaitlistEntriesAsync();
+        var factory = CreateFactory();
+
+        var entries = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeActive);
+        var booked = entries.Single(e => e.StatusId == SlnWaitlistStatuses.Ids.AppointmentBooked);
+
+        booked.StatusName.Should().Be(SlnWaitlistStatuses.AppointmentBooked.Description);
+        booked.StatusSystemName.Should().Be(SlnWaitlistStatuses.AppointmentBooked.SystemName);
+        booked.StatusTranslationKey.Should().Be(SlnWaitlistStatuses.AppointmentBooked.NameResourceKey);
+        booked.StatusCssClass.Should().Be(SlnWaitlistStatuses.AppointmentBooked.CssClass);
+        booked.IsActive.Should().BeTrue();
+        booked.IsArchived.Should().BeFalse();
+        booked.IsTerminal.Should().BeFalse();
+    }
 
     private SlnWaitlistFactory CreateFactory()
         => new(

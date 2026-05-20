@@ -174,25 +174,36 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         return (true, null);
     }
 
-    private static SlnWaitlistEntryDto MapToDto(SlnWaitlistEntry w) => new()
+    private static SlnWaitlistEntryDto MapToDto(SlnWaitlistEntry w)
     {
-        Id = w.Id,
-        SlnClientId = w.SlnClientId,
-        ClientName = w.SlnClient?.FullName ?? "",
-        ClientPhone = w.SlnClient?.Phone,
-        BranchId = w.BranchId,
-        BranchName = w.Branch?.Name,
-        ServiceId = w.ServiceId,
-        ServiceName = w.Service?.Name ?? "",
-        PreferredPersonnelId = w.PreferredPersonnelId,
-        PreferredPersonnelName = w.PreferredPersonnel?.User?.FullName,
-        PreferredDate = w.PreferredDate,
-        PreferredTimeSlot = w.PreferredTimeSlot,
-        Notes = w.Notes,
-        StatusId = w.StatusId,
-        NotifiedAt = w.NotifiedAt,
-        CreatedAt = w.CreatedAt
-    };
+        var status = SlnWaitlistStatuses.GetById(w.StatusId);
+        return new SlnWaitlistEntryDto
+        {
+            Id = w.Id,
+            SlnClientId = w.SlnClientId,
+            ClientName = w.SlnClient?.FullName ?? "",
+            ClientPhone = w.SlnClient?.Phone,
+            BranchId = w.BranchId,
+            BranchName = w.Branch?.Name,
+            ServiceId = w.ServiceId,
+            ServiceName = w.Service?.Name ?? "",
+            PreferredPersonnelId = w.PreferredPersonnelId,
+            PreferredPersonnelName = w.PreferredPersonnel?.User?.FullName,
+            PreferredDate = w.PreferredDate,
+            PreferredTimeSlot = w.PreferredTimeSlot,
+            Notes = w.Notes,
+            StatusId = w.StatusId,
+            StatusName = status?.Description ?? w.StatusId.ToString(),
+            StatusSystemName = status?.SystemName ?? "Unknown",
+            StatusTranslationKey = status?.NameResourceKey ?? "",
+            StatusCssClass = status?.CssClass ?? "bg-secondary",
+            IsActive = SlnWaitlistStatuses.IsActive(w.StatusId),
+            IsArchived = SlnWaitlistStatuses.IsArchived(w.StatusId),
+            IsTerminal = SlnWaitlistStatuses.IsTerminal(w.StatusId),
+            NotifiedAt = w.NotifiedAt,
+            CreatedAt = w.CreatedAt
+        };
+    }
 
     public async Task<object> NormalizeBranchesAsync(int customerId)
     {
