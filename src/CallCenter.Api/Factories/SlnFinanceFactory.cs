@@ -26,6 +26,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnAppointmentEntityService _appointments;
+    private readonly ISlnAppointmentFactory _appointmentFactory;
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnPackageFactory _packages;
     private readonly ISlnGiftCardFactory _giftCards;
@@ -51,6 +52,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnClientEntityService clients,
         ISlnBranchEntityService branches,
         ISlnAppointmentEntityService appointments,
+        ISlnAppointmentFactory appointmentFactory,
         ISlnMembershipFactory memberships,
         ISlnPackageFactory packages,
         ISlnGiftCardFactory giftCards,
@@ -74,6 +76,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _clients = clients;
         _branches = branches;
         _appointments = appointments;
+        _appointmentFactory = appointmentFactory;
         _memberships = memberships;
         _packages = packages;
         _giftCards = giftCards;
@@ -534,6 +537,16 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             {
                 _logger.LogWarning("Adisyon icin aktif kasa yok: CustomerId={CustomerId}, InvoiceNo={InvoiceNo}", customerId, invoiceNo);
             }
+        }
+
+        if (dto.SlnAppointmentId.HasValue && linkedAppointment?.StatusId != 3)
+        {
+            var (statusSuccess, statusError, _) = await _appointmentFactory.UpdateStatusAsync(
+                dto.SlnAppointmentId.Value,
+                3,
+                customerId);
+            if (!statusSuccess)
+                return (null, statusError ?? "Randevu tamamlanamadi");
         }
 
         // Include'li tekrar cek

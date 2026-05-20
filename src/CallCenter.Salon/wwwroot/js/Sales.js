@@ -484,16 +484,6 @@ function SalesViewModel() {
         }).done(function () {
             toastr.success(slnJsT('salon.sales.js.odeme_alindi', 'Ödeme alındı'));
 
-            // Randevu bağlıysa tamamlandı olarak işaretle
-            if (self.linkedAppointmentId()) {
-                $.ajax({
-                    url: '/proxy/sln-appointments/' + self.linkedAppointmentId() + '/status',
-                    method: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ statusId: 3 }) // Tamamlandı
-                });
-            }
-
             self.cartItems([]);
             self.loadProducts();
             self.clientId(null);
@@ -679,7 +669,7 @@ function SalesViewModel() {
         // Ön ödemeli ise direkt tamamla mı sor
         if (appt.isPrepaid && appt.prepaidAmount > 0) {
             confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.sales.js.bu_randevu_online_odenmis', 'Bu randevu online ödenmiş (') + appt.prepaidAmount + slnJsT('salon.sales.js.tl_ek_islem_yoksa_direkt_tamamlansin_mi', ' TL). Ek işlem yoksa direkt tamamlansın mı?'), function() {
-                self.completeWithoutPayment(appt.id);
+                self.completeWithoutPayment();
             });
             return;
         }
@@ -721,7 +711,7 @@ function SalesViewModel() {
 
                     if (allFree && self.cartItems().length > 0) {
                         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.sales.js.tum_hizmetler_uyelik_kapsaminda_ucretsiz_ek_islem_yoksa_direkt_tamamla', 'Tüm hizmetler üyelik kapsamında ücretsiz. Ek işlem yoksa direkt tamamlansın mı?'), function() {
-                            self.completeWithoutPayment(appt.id);
+                            self.completeWithoutPayment();
                         });
                         return;
                     }
@@ -735,7 +725,7 @@ function SalesViewModel() {
         toastr.info(slnJsT('salon.sales.js.randevu_sepete_alindi_ek_hizmet_urun_ekleyebilirsiniz', 'Randevu sepete alındı. Ek hizmet/ürün ekleyebilirsiniz.'));
     };
 
-    self.completeWithoutPayment = function (appointmentId) {
+    self.completeWithoutPayment = function () {
         // Adisyon 0 TL olustur (kayit icin) + randevu tamamla
         var items = self.cartItems().map(function (item) {
             return {
@@ -763,12 +753,6 @@ function SalesViewModel() {
             url: '/proxy/sln-finance/invoices', method: 'POST',
             contentType: 'application/json', data: JSON.stringify(data)
         }).done(function () {
-            // Randevu tamamla
-            $.ajax({
-                url: '/proxy/sln-appointments/' + appointmentId + '/status',
-                method: 'PUT', contentType: 'application/json',
-                data: JSON.stringify({ statusId: 3 })
-            });
             toastr.success(slnJsT('salon.sales.js.islem_tamamlandi_odeme_alinmadi', 'İşlem tamamlandı (ödeme alınmadı).'));
             self.cartItems([]);
             self.clientId(null);
