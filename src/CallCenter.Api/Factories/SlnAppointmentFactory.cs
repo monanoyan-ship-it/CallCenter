@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services;
 using CallCenter.Api.Services.Interfaces;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -23,6 +24,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnStockBalanceService _stockBalances;
+    private readonly PaymentService _paymentService;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnAppointmentFactory> _logger;
 
@@ -40,6 +42,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         ICustomerPersonnelEntityService personnel,
         ISlnBranchEntityService branches,
         ISlnStockBalanceService stockBalances,
+        PaymentService paymentService,
         IUnitOfWork uow,
         ILogger<SlnAppointmentFactory> logger)
     {
@@ -56,6 +59,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         _personnel = personnel;
         _branches = branches;
         _stockBalances = stockBalances;
+        _paymentService = paymentService;
         _uow = uow;
         _logger = logger;
     }
@@ -96,7 +100,11 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             .OrderBy(a => a.StartTime)
             .ToListAsync();
 
-        return appointments.Select(MapToDto).ToList();
+        var paidAmounts = await _paymentService.GetAppointmentPaidAmountsAsync(appointments.Select(a => a.Id));
+
+        return appointments
+            .Select(a => MapToDto(a, paidAmounts.GetValueOrDefault(a.Id, 0m)))
+            .ToList();
     }
 
     public async Task<SlnAppointmentDto?> GetAppointmentAsync(int appointmentId, int customerId)
@@ -104,7 +112,10 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         var appointment = await IncludeAll(_appointments.GetAllQueryable())
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
-        return appointment != null ? MapToDto(appointment) : null;
+        if (appointment == null) return null;
+
+        var paidAmount = await _paymentService.GetAppointmentPaidAmountAsync(appointment.Id);
+        return MapToDto(appointment, paidAmount);
     }
 
     public async Task<(SlnAppointmentDto? Appointment, string? Error)> CreateAppointmentAsync(SlnAppointmentCreateDto dto, int userId, int customerId, int? branchId = null)
@@ -551,7 +562,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
     private static int CalculateBookableMinutes(IEnumerable<SlnService> services)
         => services.Sum(s => Math.Max(5, Math.Max(s.DurationMinutes, s.ProcessingMinutes) + s.BufferBeforeMinutes + s.BufferAfterMinutes));
 
-    private static SlnAppointmentDto MapToDto(SlnAppointment a)
+    private static SlnAppointmentDto MapToDto(SlnAppointment a, decimal paidAmount = 0m)
     {
         // Yeni kayitlar Services koleksiyonunu kullanir, eski kayitlar ServiceId FK'yi
         var serviceIds = a.Services.Count > 0
@@ -590,6 +601,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             Notes = a.Notes,
             IsPrepaid = a.IsPrepaid,
             PrepaidAmount = a.PrepaidAmount,
+            PaidAmount = paidAmount,
             DepositAmount = a.DepositAmount,
             ClientNoShowCount = a.SlnClient?.NoShowCount ?? 0,
             ClientIsBlacklisted = a.SlnClient?.IsBlacklisted ?? false,

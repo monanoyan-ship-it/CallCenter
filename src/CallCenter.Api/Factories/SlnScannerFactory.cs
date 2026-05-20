@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.AspNetCore.WebUtilities;
@@ -24,6 +25,7 @@ public class SlnScannerFactory : ISlnScannerFactory
     private readonly ISlnClientMembershipEntityService _memberships;
     private readonly ISlnProductEntityService _products;
     private readonly ISlnGiftCardEntityService _giftCards;
+    private readonly PaymentService _paymentService;
     private readonly IConfiguration _configuration;
 
     public SlnScannerFactory(
@@ -36,6 +38,7 @@ public class SlnScannerFactory : ISlnScannerFactory
         ISlnClientMembershipEntityService memberships,
         ISlnProductEntityService products,
         ISlnGiftCardEntityService giftCards,
+        PaymentService paymentService,
         IConfiguration configuration)
     {
         _productFactory = productFactory;
@@ -47,6 +50,7 @@ public class SlnScannerFactory : ISlnScannerFactory
         _memberships = memberships;
         _products = products;
         _giftCards = giftCards;
+        _paymentService = paymentService;
         _configuration = configuration;
     }
 
@@ -347,6 +351,8 @@ public class SlnScannerFactory : ISlnScannerFactory
         if (appointment == null || !IsVisibleForBranchScope(appointment.BranchId, branchId))
             return NotFound(raw, "appointmentQr", "Randevu bulunamadi veya yetki disi.");
 
+        var paidAmount = await _paymentService.GetAppointmentPaidAmountAsync(appointment.Id);
+
         return new SlnScanResolveDto
         {
             Found = true,
@@ -357,7 +363,7 @@ public class SlnScannerFactory : ISlnScannerFactory
             BranchId = appointment.BranchId,
             BranchName = appointment.Branch?.Name,
             Client = appointment.SlnClient != null ? MapClient(appointment.SlnClient) : null,
-            Appointment = MapAppointment(appointment)
+            Appointment = MapAppointment(appointment, paidAmount)
         };
     }
 
@@ -758,7 +764,7 @@ public class SlnScannerFactory : ISlnScannerFactory
         HealthInfoRequiresReview = c.HealthInfoRequiresReview
     };
 
-    private static SlnAppointmentDto MapAppointment(SlnAppointment a)
+    private static SlnAppointmentDto MapAppointment(SlnAppointment a, decimal paidAmount = 0m)
     {
         var serviceIds = a.Services.Count > 0
             ? a.Services.OrderBy(s => s.SortOrder).Select(s => s.SlnServiceId).ToList()
@@ -789,6 +795,7 @@ public class SlnScannerFactory : ISlnScannerFactory
             Notes = a.Notes,
             IsPrepaid = a.IsPrepaid,
             PrepaidAmount = a.PrepaidAmount,
+            PaidAmount = paidAmount,
             DepositAmount = a.DepositAmount,
             ClientNoShowCount = a.SlnClient?.NoShowCount ?? 0,
             ClientIsBlacklisted = a.SlnClient?.IsBlacklisted ?? false

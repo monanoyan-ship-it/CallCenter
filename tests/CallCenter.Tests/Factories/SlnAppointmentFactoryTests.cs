@@ -116,6 +116,29 @@ public class SlnAppointmentFactoryTests : IDisposable
             .Should().Equal("10:00", "10:30");
     }
 
+    [Fact]
+    public async Task GetAppointmentsAsync_ReturnsPostPayPaidAmount()
+    {
+        SeedRecipeAppointment();
+        _db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            CustomerId = 1,
+            PaymentTypeId = PaymentTypes.Ids.SalonAdisyon,
+            PaymentMethodId = 1,
+            StatusId = PaymentStatuses.Ids.Basarili,
+            Amount = 125m,
+            Notes = "PayAppointment:30|MarketplaceSplit"
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var appointments = await factory.GetAppointmentsAsync(1, null, null);
+
+        appointments.Single(a => a.Id == 30).PaidAmount.Should().Be(125m);
+    }
+
     private SlnAppointmentFactory CreateFactory()
         => new(
             new SlnAppointmentEntityService(_db),
@@ -133,6 +156,7 @@ public class SlnAppointmentFactoryTests : IDisposable
             new SlnStockBalanceService(
                 new SlnProductBranchStockEntityService(_db),
                 new SlnBranchEntityService(_db)),
+            new PaymentService(_db, null!, null!, NullLogger<PaymentService>.Instance),
             new UnitOfWork(_db),
             NullLogger<SlnAppointmentFactory>.Instance);
 

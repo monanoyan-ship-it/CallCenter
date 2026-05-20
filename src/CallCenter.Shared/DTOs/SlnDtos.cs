@@ -294,6 +294,7 @@ public class SlnAppointmentDto
     public string? Notes { get; set; }
     public bool IsPrepaid { get; set; }
     public decimal PrepaidAmount { get; set; }
+    public decimal PaidAmount { get; set; }
     public decimal DepositAmount { get; set; }
     public int ClientNoShowCount { get; set; }
     public bool ClientIsBlacklisted { get; set; }
