@@ -78,13 +78,22 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ Adisyon (Invoice) ═══
 
-    public async Task<List<SlnInvoiceDto>> GetInvoicesAsync(int customerId, DateTime? from, DateTime? to, int? statusId = null, int? branchId = null)
+    public async Task<List<SlnInvoiceDto>> GetInvoicesAsync(
+        int customerId,
+        DateTime? from,
+        DateTime? to,
+        int? statusId = null,
+        int? branchId = null,
+        int? slnClientId = null)
     {
         var query = _invoices.GetAllQueryable()
             .Where(i => i.CustomerId == customerId);
 
         if (branchId.HasValue)
             query = query.Where(i => i.BranchId == branchId.Value);
+
+        if (slnClientId.HasValue)
+            query = query.Where(i => i.SlnClientId == slnClientId.Value);
 
         if (from.HasValue)
         {

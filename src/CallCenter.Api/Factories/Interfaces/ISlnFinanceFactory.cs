@@ -5,7 +5,13 @@ namespace CallCenter.Api.Factories.Interfaces;
 public interface ISlnFinanceFactory
 {
     // Adisyon (Invoice)
-    Task<List<SlnInvoiceDto>> GetInvoicesAsync(int customerId, DateTime? from, DateTime? to, int? statusId = null, int? branchId = null);
+    Task<List<SlnInvoiceDto>> GetInvoicesAsync(
+        int customerId,
+        DateTime? from,
+        DateTime? to,
+        int? statusId = null,
+        int? branchId = null,
+        int? slnClientId = null);
     Task<SlnInvoiceDto?> GetInvoiceAsync(int invoiceId, int customerId);
     Task<(SlnInvoiceDto? Invoice, string? Error)> CreateInvoiceAsync(SlnInvoiceCreateDto dto, int userId, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> CancelInvoiceAsync(int invoiceId, int customerId);

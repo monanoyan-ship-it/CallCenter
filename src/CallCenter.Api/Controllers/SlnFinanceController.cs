@@ -24,12 +24,18 @@ public class SlnFinanceController : ControllerBase
     [HttpGet("invoices")]
     public async Task<ActionResult<List<SlnInvoiceDto>>> GetInvoices(
         [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? statusId,
-        [FromQuery] int? branchId)
+        [FromQuery] int? branchId, [FromQuery] int? slnClientId)
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var invoices = await _financeFactory.GetInvoicesAsync(customerId, from, to, statusId, ResolveBranchId(branchId));
+        var invoices = await _financeFactory.GetInvoicesAsync(
+            customerId,
+            from,
+            to,
+            statusId,
+            ResolveBranchId(branchId),
+            slnClientId);
         return Ok(invoices);
     }
 
