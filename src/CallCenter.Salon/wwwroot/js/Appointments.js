@@ -125,9 +125,10 @@ function AppointmentsViewModel() {
         2: appointmentT('salon.appointments.status.confirmed', 'Onaylandı'),
         3: appointmentT('salon.appointments.status.completed', 'Tamamlandı'),
         4: appointmentT('salon.appointments.status.cancelled', 'İptal'),
-        5: appointmentT('salon.appointments.status.no_show', 'Gelmedi')
+        5: appointmentT('salon.appointments.status.no_show', 'Gelmedi'),
+        6: appointmentT('salon.appointments.status.payment_pending', 'Ödeme bekliyor')
     };
-    var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
+    var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary', 6: 'bg-warning text-dark' };
 
     // ═══ Tarih Yardimcilari ═══
     function toDateStr(d) { return d.toISOString().substring(0, 10); }

@@ -28,7 +28,7 @@ public class SlnAppointment
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
 
-    /// <summary>1=Planned, 2=Confirmed, 3=Completed, 4=Cancelled, 5=NoShow</summary>
+    /// <summary>1=Planned, 2=Confirmed, 3=Completed, 4=Cancelled, 5=NoShow, 6=AwaitingPayment</summary>
     public int StatusId { get; set; } = 1;
 
     public string? Notes { get; set; }
