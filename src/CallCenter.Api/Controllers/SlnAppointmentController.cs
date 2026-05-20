@@ -41,7 +41,7 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var appointment = await _appointmentFactory.GetAppointmentAsync(id, customerId);
+        var appointment = await _appointmentFactory.GetAppointmentAsync(id, customerId, GetBranchScopeId());
         return appointment != null ? Ok(appointment) : NotFound();
     }
 
@@ -74,7 +74,7 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error, penalty) = await _appointmentFactory.UpdateStatusAsync(id, req.StatusId, customerId);
+        var (success, error, penalty) = await _appointmentFactory.UpdateStatusAsync(id, req.StatusId, customerId, GetBranchScopeId());
         if (!success) return BadRequest(error);
         return Ok(new { penalty, message = penalty > 0 ? $"{penalty:F0} TL ceza uygulandi" : (string?)null });
     }
@@ -85,7 +85,7 @@ public class SlnAppointmentController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _appointmentFactory.DeleteAppointmentAsync(id, customerId);
+        var (success, error) = await _appointmentFactory.DeleteAppointmentAsync(id, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 

@@ -3,6 +3,7 @@ using CallCenter.Api.Factories;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Api.Services;
 using CallCenter.Data;
+using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,49 @@ public class SlnAppointmentFactoryTests : IDisposable
         branchStock.StockQuantity.Should().Be(8m);
         (await _db.SlnStockMovements.CountAsync(m => m.Notes != null && m.Notes.StartsWith("Randevu:30")))
             .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AppointmentIdActions_RespectBranchScope()
+    {
+        SeedRecipeAppointment();
+        _db.SlnBranches.Add(new SlnBranch
+        {
+            Id = 4,
+            CustomerId = 1,
+            Name = "Sube",
+            Slug = "test-salon-sube",
+            IsActive = true
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var inScope = await factory.GetAppointmentAsync(30, 1, branchId: 3);
+        var outOfScope = await factory.GetAppointmentAsync(30, 1, branchId: 4);
+        var updateDto = new SlnAppointmentCreateDto
+        {
+            SlnClientId = 10,
+            PersonnelId = 11,
+            ServiceIds = [7],
+            StartTime = DateTime.UtcNow.AddDays(1)
+        };
+        var (updated, updateError) = await factory.UpdateAppointmentAsync(30, updateDto, 1, branchId: 4);
+        var (statusUpdated, statusError, _) = await factory.UpdateStatusAsync(30, 3, 1, branchId: 4);
+        var (deleted, deleteError) = await factory.DeleteAppointmentAsync(30, 1, branchId: 4);
+
+        inScope.Should().NotBeNull();
+        outOfScope.Should().BeNull();
+        updated.Should().BeFalse();
+        updateError.Should().Be("Randevu bulunamadi");
+        statusUpdated.Should().BeFalse();
+        statusError.Should().Be("Randevu bulunamadi");
+        deleted.Should().BeFalse();
+        deleteError.Should().Be("Randevu bulunamadi");
+
+        var appointment = await _db.SlnAppointments.SingleAsync(a => a.Id == 30);
+        appointment.StatusId.Should().Be(2);
     }
 
     [Fact]

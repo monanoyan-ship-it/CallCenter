@@ -73,6 +73,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         .Include(a => a.Service)
         .Include(a => a.Services).ThenInclude(s => s.SlnService);
 
+    private static IQueryable<SlnAppointment> ApplyBranchScope(IQueryable<SlnAppointment> q, int? branchId)
+        => branchId.HasValue ? q.Where(a => a.BranchId == branchId.Value) : q;
+
     public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null, int? branchId = null, int? slnClientId = null)
     {
         var query = _appointments.GetAllQueryable()
@@ -107,9 +110,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             .ToList();
     }
 
-    public async Task<SlnAppointmentDto?> GetAppointmentAsync(int appointmentId, int customerId)
+    public async Task<SlnAppointmentDto?> GetAppointmentAsync(int appointmentId, int customerId, int? branchId = null)
     {
-        var appointment = await IncludeAll(_appointments.GetAllQueryable())
+        var appointment = await ApplyBranchScope(IncludeAll(_appointments.GetAllQueryable()), branchId)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return null;
@@ -209,8 +212,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<(bool Success, string? Error)> UpdateAppointmentAsync(int appointmentId, SlnAppointmentCreateDto dto, int customerId, int? branchId = null)
     {
-        var appointment = await _appointments.GetAllQueryable()
-            .Include(a => a.Services)
+        var appointment = await ApplyBranchScope(_appointments.GetAllQueryable().Include(a => a.Services), branchId)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return (false, "Randevu bulunamadi");
@@ -287,9 +289,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId)
+    public async Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId, int? branchId = null)
     {
-        var appointment = await IncludeAll(_appointments.GetAllQueryable())
+        var appointment = await ApplyBranchScope(IncludeAll(_appointments.GetAllQueryable()), branchId)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return (false, "Randevu bulunamadi", 0);
@@ -432,9 +434,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteAppointmentAsync(int appointmentId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteAppointmentAsync(int appointmentId, int customerId, int? branchId = null)
     {
-        var appointment = await _appointments.GetAllQueryable()
+        var appointment = await ApplyBranchScope(_appointments.GetAllQueryable(), branchId)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
         if (appointment == null) return (false, "Randevu bulunamadi");
