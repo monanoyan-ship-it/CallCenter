@@ -297,6 +297,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }
         }
 
+        await using var transaction = await _uow.BeginTransactionAsync();
+
         foreach (var itemDto in dto.Items)
         {
             if (itemDto.Quantity <= 0)
@@ -507,8 +509,6 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }
         }
 
-        _logger.LogInformation("Yeni adisyon olusturuldu: {InvoiceNo} - {NetAmount:C}", invoiceNo, invoice.NetAmount);
-
         // Kasaya gelir hareketi yaz (BUG2.3 fix) — once subenin kasasi, yoksa merkez kasa
         if (invoice.NetAmount > 0 && invoice.PaymentMethodId != GiftCardPaymentMethodId)
         {
@@ -548,6 +548,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             if (!statusSuccess)
                 return (null, statusError ?? "Randevu tamamlanamadi");
         }
+
+        await transaction.CommitAsync();
+
+        _logger.LogInformation("Yeni adisyon olusturuldu: {InvoiceNo} - {NetAmount:C}", invoiceNo, invoice.NetAmount);
 
         // Include'li tekrar cek
         var created = await _invoices.GetAllQueryable()

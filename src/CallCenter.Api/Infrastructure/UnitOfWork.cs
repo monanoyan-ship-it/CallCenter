@@ -1,4 +1,6 @@
 using CallCenter.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CallCenter.Api.Infrastructure;
 
@@ -10,4 +12,7 @@ public class UnitOfWork : IUnitOfWork
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)
         => _context.SaveChangesAsync(ct);
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
+        => _context.Database.BeginTransactionAsync(ct);
 }
