@@ -3,6 +3,7 @@ using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -71,7 +72,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             PreferredDate = dto.PreferredDate,
             PreferredTimeSlot = dto.PreferredTimeSlot,
             Notes = dto.Notes,
-            StatusId = 1
+            StatusId = SlnWaitlistStatuses.Ids.Waiting
         };
         _waitlistEs.Add(entry);
         await _uow.SaveChangesAsync();
@@ -130,7 +131,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         if (entry == null) return (false, "Kayit bulunamadi");
 
         entry.StatusId = statusId;
-        if (statusId == 2) entry.NotifiedAt = DateTime.UtcNow;
+        if (statusId == SlnWaitlistStatuses.Ids.Notified) entry.NotifiedAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
         return (true, null);
     }

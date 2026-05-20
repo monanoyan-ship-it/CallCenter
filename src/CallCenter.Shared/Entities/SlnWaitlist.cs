@@ -1,3 +1,5 @@
+using CallCenter.Shared.Enums;
+
 namespace CallCenter.Shared.Entities;
 
 public class SlnWaitlistEntry
@@ -23,8 +25,8 @@ public class SlnWaitlistEntry
     public string? PreferredTimeSlot { get; set; }
     public string? Notes { get; set; }
 
-    /// <summary>1=Bekliyor, 2=Bildirildi, 3=Randevu Alindi, 4=Iptal</summary>
-    public int StatusId { get; set; } = 1;
+    /// <summary>SlnWaitlistStatuses yasam dongusu.</summary>
+    public int StatusId { get; set; } = SlnWaitlistStatuses.Ids.Waiting;
 
     public DateTime? NotifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
