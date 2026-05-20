@@ -133,13 +133,12 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         var totalMinutes = CalculateBookableMinutes(services);
         var endTime = dto.StartTime.AddMinutes(totalMinutes);
 
-        // Engelli musteri kontrolu
-        if (dto.SlnClientId > 0)
-        {
-            var client = await _clients.GetByIdAsync(dto.SlnClientId);
-            if (client?.IsBlacklisted == true)
-                return (null, $"Bu musteri engellenmis ({client.NoShowCount} kez gelmedi). Engeli kaldirmak icin musteri kartini kullanin.");
-        }
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+        if (client == null)
+            return (null, "Musteri bulunamadi");
+        if (client.IsBlacklisted)
+            return (null, $"Bu musteri engellenmis ({client.NoShowCount} kez gelmedi). Engeli kaldirmak icin musteri kartini kullanin.");
 
         var hasConflict = await CheckConflictAsync(dto.PersonnelId, dto.StartTime, endTime, customerId);
         if (hasConflict)
@@ -159,6 +158,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
                 .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
             effectiveBranchId = hq?.Id;
         }
+        if (effectiveBranchId.HasValue && client.BranchId.HasValue && client.BranchId.Value != effectiveBranchId.Value)
+            return (null, "Secilen musteri bu sube icin uygun degil");
 
         var resourceConflict = await FindResourceConflictAsync(customerId, effectiveBranchId, resolved.ServiceIds, dto.StartTime, endTime);
         if (resourceConflict != null)
@@ -221,6 +222,11 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         if (branchId.HasValue && newPersonnel.BranchId.HasValue && newPersonnel.BranchId.Value != branchId.Value)
             return (false, "Secilen personel bu sube icin uygun degil");
 
+        var client = await _clients.GetAllQueryable()
+            .FirstOrDefaultAsync(c => c.Id == dto.SlnClientId && c.CustomerId == customerId);
+        if (client == null)
+            return (false, "Musteri bulunamadi");
+
         var skillScope = await GetSkillScopeAsync(resolved.ServiceIds);
         if (skillScope.HasSkillDefinitions && !skillScope.PersonnelIds.Contains(dto.PersonnelId))
             return (false, "Secilen personel bu hizmetler icin uygun degil");
@@ -244,6 +250,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
                 .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
             effectiveBranchId = hq?.Id;
         }
+        if (effectiveBranchId.HasValue && client.BranchId.HasValue && client.BranchId.Value != effectiveBranchId.Value)
+            return (false, "Secilen musteri bu sube icin uygun degil");
 
         var resourceConflict = await FindResourceConflictAsync(customerId, effectiveBranchId, resolved.ServiceIds, dto.StartTime, endTime, appointmentId);
         if (resourceConflict != null) return (false, resourceConflict);
