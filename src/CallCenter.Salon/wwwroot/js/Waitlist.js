@@ -115,14 +115,25 @@ function WaitlistViewModel() {
     var wlStatusTexts = {
         1: slnJsT('salon.waitlist.status.waiting', 'Bekliyor'),
         2: slnJsT('salon.waitlist.status.notified', 'Bildirildi'),
-        3: slnJsT('salon.waitlist.js.randevu_alindi', 'Randevu Alındı'),
-        4: slnJsT('salon.common.btn.cancel', 'İptal'),
+        3: slnJsT('salon.waitlist.status.appointment_booked', 'Randevu Alındı'),
+        4: slnJsT('salon.waitlist.status.cancelled', 'İptal'),
         5: slnJsT('salon.waitlist.status.completed', 'Gerçekleşti')
     };
     var wlStatusBadges = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-primary', 4: 'bg-secondary', 5: 'bg-success' };
 
-    self.wlStatusText = function (id) { return wlStatusTexts[id] || '?'; };
-    self.wlStatusBadge = function (id) { return wlStatusBadges[id] || 'bg-secondary'; };
+    self.wlStatusText = function (itemOrId) {
+        if (itemOrId && typeof itemOrId === 'object') {
+            var fallback = itemOrId.statusName || wlStatusTexts[itemOrId.statusId] || '?';
+            return itemOrId.statusTranslationKey ? slnJsT(itemOrId.statusTranslationKey, fallback) : fallback;
+        }
+        return wlStatusTexts[itemOrId] || '?';
+    };
+    self.wlStatusBadge = function (itemOrId) {
+        if (itemOrId && typeof itemOrId === 'object') {
+            return itemOrId.statusCssClass || wlStatusBadges[itemOrId.statusId] || 'bg-secondary';
+        }
+        return wlStatusBadges[itemOrId] || 'bg-secondary';
+    };
 
     self.formatDate = function (iso) {
         if (!iso) return '-';

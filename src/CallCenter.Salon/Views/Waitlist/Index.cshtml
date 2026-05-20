@@ -145,7 +145,7 @@
                                     <td class="small" data-bind="text: $parent.formatDate(preferredDate)"></td>
                                     <td class="small" data-bind="text: preferredTimeSlot || '-'"></td>
                                     <td class="small">
-                                        <span class="badge" data-bind="text: $parent.wlStatusText(statusId), css: $parent.wlStatusBadge(statusId)"></span>
+                                        <span class="badge" data-bind="text: $parent.wlStatusText($data), css: $parent.wlStatusBadge($data)"></span>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">

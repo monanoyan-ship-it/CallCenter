@@ -21,6 +21,23 @@ public class SlnWaitlistStatusesTests
     }
 
     [Fact]
+    public void StatusMetadata_UsesSalonTranslationKeysAndReadableLabels()
+    {
+        var statuses = SlnWaitlistStatuses.All.ToDictionary(s => s.Id);
+
+        statuses[SlnWaitlistStatuses.Ids.Waiting].NameResourceKey.Should().Be(SlnWaitlistStatuses.TranslationKeys.Waiting);
+        statuses[SlnWaitlistStatuses.Ids.Notified].NameResourceKey.Should().Be(SlnWaitlistStatuses.TranslationKeys.Notified);
+        statuses[SlnWaitlistStatuses.Ids.AppointmentBooked].NameResourceKey.Should().Be(SlnWaitlistStatuses.TranslationKeys.AppointmentBooked);
+        statuses[SlnWaitlistStatuses.Ids.Cancelled].NameResourceKey.Should().Be(SlnWaitlistStatuses.TranslationKeys.Cancelled);
+        statuses[SlnWaitlistStatuses.Ids.Completed].NameResourceKey.Should().Be(SlnWaitlistStatuses.TranslationKeys.Completed);
+        statuses[SlnWaitlistStatuses.Ids.AppointmentBooked].Description.Should().Be("Randevu Alındı");
+        statuses[SlnWaitlistStatuses.Ids.Cancelled].Description.Should().Be("İptal");
+        statuses[SlnWaitlistStatuses.Ids.Completed].Description.Should().Be("Gerçekleşti");
+        SlnWaitlistStatuses.All.Select(s => s.NameResourceKey)
+            .Should().OnlyContain(key => key.StartsWith("salon.waitlist.status."));
+    }
+
+    [Fact]
     public void LifecycleHelpers_DefineActiveArchiveAndTerminalSets()
     {
         SlnWaitlistStatuses.IsActive(SlnWaitlistStatuses.Ids.Waiting).Should().BeTrue();

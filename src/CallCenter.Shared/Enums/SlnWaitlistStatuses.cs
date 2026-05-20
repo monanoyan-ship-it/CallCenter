@@ -11,11 +11,11 @@ public static class SlnWaitlistStatuses
     public const string ScopeArchive = "archive";
     public const string ScopeHistory = "history";
 
-    public static readonly TypeItem Waiting = new(1, "Waiting", "SlnWaitlistStatus.Waiting", "Bekliyor", "bi-hourglass", "bg-warning text-dark", 1, isDefault: true);
-    public static readonly TypeItem Notified = new(2, "Notified", "SlnWaitlistStatus.Notified", "Bildirildi", "bi-bell", "bg-info", 2);
-    public static readonly TypeItem AppointmentBooked = new(3, "AppointmentBooked", "SlnWaitlistStatus.AppointmentBooked", "Randevu Alindi", "bi-calendar-check", "bg-primary", 3);
-    public static readonly TypeItem Cancelled = new(4, "Cancelled", "SlnWaitlistStatus.Cancelled", "Iptal", "bi-x-circle", "bg-danger", 4);
-    public static readonly TypeItem Completed = new(5, "Completed", "SlnWaitlistStatus.Completed", "Gerceklesti", "bi-check2-circle", "bg-success", 5);
+    public static readonly TypeItem Waiting = new(1, "Waiting", TranslationKeys.Waiting, "Bekliyor", "bi-hourglass", "bg-warning text-dark", 1, isDefault: true);
+    public static readonly TypeItem Notified = new(2, "Notified", TranslationKeys.Notified, "Bildirildi", "bi-bell", "bg-info", 2);
+    public static readonly TypeItem AppointmentBooked = new(3, "AppointmentBooked", TranslationKeys.AppointmentBooked, "Randevu Alındı", "bi-calendar-check", "bg-primary", 3);
+    public static readonly TypeItem Cancelled = new(4, "Cancelled", TranslationKeys.Cancelled, "İptal", "bi-x-circle", "bg-danger", 4);
+    public static readonly TypeItem Completed = new(5, "Completed", TranslationKeys.Completed, "Gerçekleşti", "bi-check2-circle", "bg-success", 5);
 
     public static IEnumerable<TypeItem> All => new[] { Waiting, Notified, AppointmentBooked, Cancelled, Completed };
     public static TypeItem Default => Waiting;
@@ -64,5 +64,14 @@ public static class SlnWaitlistStatuses
         public const int AppointmentBooked = 3;
         public const int Cancelled = 4;
         public const int Completed = 5;
+    }
+
+    public static class TranslationKeys
+    {
+        public const string Waiting = "salon.waitlist.status.waiting";
+        public const string Notified = "salon.waitlist.status.notified";
+        public const string AppointmentBooked = "salon.waitlist.status.appointment_booked";
+        public const string Cancelled = "salon.waitlist.status.cancelled";
+        public const string Completed = "salon.waitlist.status.completed";
     }
 }
