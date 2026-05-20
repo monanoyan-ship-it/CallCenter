@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
+using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -15,10 +16,12 @@ namespace CallCenter.Api.Controllers;
 public class SlnClientController : ControllerBase
 {
     private readonly ISlnClientFactory _clientFactory;
+    private readonly GcsUploadService _gcs;
 
-    public SlnClientController(ISlnClientFactory clientFactory)
+    public SlnClientController(ISlnClientFactory clientFactory, GcsUploadService gcs)
     {
         _clientFactory = clientFactory;
+        _gcs = gcs;
     }
 
     [HttpGet]
@@ -155,6 +158,60 @@ public class SlnClientController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _clientFactory.DeleteTreatmentRecordAsync(id, customerId, GetBranchId() ?? branchId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpPost("{id}/photos")]
+    [RequestSizeLimit(5_242_880)] // 5 MB
+    public async Task<ActionResult<SlnClientPhotoDto>> UploadPhoto(
+        int id,
+        IFormFile file,
+        [FromForm] string? description,
+        [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
+        if (file.Length > 5_242_880) return BadRequest("Dosya 5 MB'dan buyuk olamaz.");
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
+
+        var ext = file.ContentType switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => ".jpg"
+        };
+
+        var fileName = $"client-photo-{Guid.NewGuid():N}{ext}";
+        var path = $"salons/{customerId}/clients/{id}/{fileName}";
+
+        using var stream = file.OpenReadStream();
+        var (url, error) = await _gcs.UploadAsync(stream, path, file.ContentType);
+        if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
+
+        try
+        {
+            var photo = await _clientFactory.AddPhotoAsync(id, url, description, customerId, GetBranchId() ?? branchId);
+            return Ok(photo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("photos/{id}")]
+    public async Task<ActionResult> DeletePhoto(int id, [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (success, error) = await _clientFactory.DeletePhotoAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(error);
     }
 

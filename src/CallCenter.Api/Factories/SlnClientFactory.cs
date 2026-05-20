@@ -176,13 +176,7 @@ public class SlnClientFactory : ISlnClientFactory
                 AppliedByName = f.AppliedByPersonnel?.User?.FullName,
                 AppliedAt = f.AppliedAt
             }).ToList(),
-            Photos = client.Photos.OrderByDescending(p => p.TakenAt).Select(p => new SlnClientPhotoDto
-            {
-                Id = p.Id,
-                FilePath = p.FilePath,
-                Description = p.Description,
-                TakenAt = p.TakenAt
-            }).ToList(),
+            Photos = client.Photos.OrderByDescending(p => p.TakenAt).Select(MapClientPhoto).ToList(),
             TreatmentRecords = await GetTreatmentRecordsForClientAsync(clientId, customerId, branchId)
         };
     }
@@ -512,6 +506,52 @@ public class SlnClientFactory : ISlnClientFactory
         return (true, null);
     }
 
+    public async Task<SlnClientPhotoDto> AddPhotoAsync(int clientId, string filePath, string? description, int customerId, int? branchId = null)
+    {
+        var query = _clients.GetAllQueryable()
+            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+        query = SalonBranchScope.ApplyToClients(query, branchId);
+
+        var clientExists = await query.AnyAsync();
+        if (!clientExists)
+            throw new InvalidOperationException("Musteri bulunamadi");
+
+        var photo = new SlnClientPhoto
+        {
+            SlnClientId = clientId,
+            FilePath = filePath,
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            TakenAt = DateTime.UtcNow
+        };
+
+        _photos.Add(photo);
+        await _uow.SaveChangesAsync();
+
+        return MapClientPhoto(photo);
+    }
+
+    public async Task<(bool Success, string? Error)> DeletePhotoAsync(int photoId, int customerId, int? branchId = null)
+    {
+        var query = _photos.GetAllQueryable()
+            .Include(p => p.SlnClient)
+            .Where(p => p.Id == photoId && p.SlnClient != null && p.SlnClient.CustomerId == customerId);
+        if (branchId.HasValue)
+        {
+            var id = branchId.Value;
+            query = query.Where(p =>
+                p.SlnClient!.BranchId == id
+                || p.SlnClient.Appointments.Any(a => a.BranchId == id)
+                || p.SlnClient.Invoices.Any(i => i.BranchId == id));
+        }
+
+        var photo = await query.FirstOrDefaultAsync();
+        if (photo == null) return (false, "Fotograf bulunamadi");
+
+        _photos.Remove(photo);
+        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId, int? branchId = null)
     {
         var query = _clients.GetAllQueryable()
@@ -571,6 +611,14 @@ public class SlnClientFactory : ISlnClientFactory
         ProductNotes = r.ProductNotes,
         AftercareNotes = r.AftercareNotes,
         CreatedAt = r.CreatedAt
+    };
+
+    private static SlnClientPhotoDto MapClientPhoto(SlnClientPhoto p) => new()
+    {
+        Id = p.Id,
+        FilePath = p.FilePath,
+        Description = p.Description,
+        TakenAt = p.TakenAt
     };
 
     private static bool HasHealthInfo(SlnClientCreateDto dto)
