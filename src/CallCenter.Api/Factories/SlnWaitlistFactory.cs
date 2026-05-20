@@ -129,9 +129,16 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
     {
         var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
+        if (!SlnWaitlistStatuses.IsDefined(statusId))
+            return (false, "Gecersiz bekleme listesi durumu");
+        if (!SlnWaitlistStatuses.CanTransition(entry.StatusId, statusId))
+            return (false, "Bu bekleme listesi durum gecisi yapilamaz");
+        if (entry.StatusId == statusId)
+            return (true, null);
 
         entry.StatusId = statusId;
-        if (statusId == SlnWaitlistStatuses.Ids.Notified) entry.NotifiedAt = DateTime.UtcNow;
+        if (statusId == SlnWaitlistStatuses.Ids.Notified && entry.NotifiedAt == null)
+            entry.NotifiedAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
         return (true, null);
     }

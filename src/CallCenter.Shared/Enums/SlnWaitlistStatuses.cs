@@ -25,6 +25,20 @@ public static class SlnWaitlistStatuses
     public static bool IsArchived(int id) => ArchivedIds.Contains(id);
     public static bool IsTerminal(int id) => TerminalIds.Contains(id);
 
+    public static bool CanTransition(int fromStatusId, int toStatusId)
+    {
+        if (!IsDefined(fromStatusId) || !IsDefined(toStatusId)) return false;
+        if (fromStatusId == toStatusId) return true;
+
+        return fromStatusId switch
+        {
+            Ids.Waiting => toStatusId is Ids.Notified or Ids.AppointmentBooked or Ids.Cancelled,
+            Ids.Notified => toStatusId is Ids.AppointmentBooked or Ids.Cancelled,
+            Ids.AppointmentBooked => toStatusId is Ids.Completed or Ids.Cancelled,
+            _ => false
+        };
+    }
+
     public static class Ids
     {
         public const int Waiting = 1;

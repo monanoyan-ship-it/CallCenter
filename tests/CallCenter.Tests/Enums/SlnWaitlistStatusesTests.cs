@@ -38,4 +38,19 @@ public class SlnWaitlistStatusesTests
     {
         new SlnWaitlistEntry().StatusId.Should().Be(SlnWaitlistStatuses.Ids.Waiting);
     }
+
+    [Theory]
+    [InlineData(SlnWaitlistStatuses.Ids.Waiting, SlnWaitlistStatuses.Ids.Notified, true)]
+    [InlineData(SlnWaitlistStatuses.Ids.Waiting, SlnWaitlistStatuses.Ids.AppointmentBooked, true)]
+    [InlineData(SlnWaitlistStatuses.Ids.Waiting, SlnWaitlistStatuses.Ids.Cancelled, true)]
+    [InlineData(SlnWaitlistStatuses.Ids.Notified, SlnWaitlistStatuses.Ids.AppointmentBooked, true)]
+    [InlineData(SlnWaitlistStatuses.Ids.AppointmentBooked, SlnWaitlistStatuses.Ids.Completed, true)]
+    [InlineData(SlnWaitlistStatuses.Ids.Completed, SlnWaitlistStatuses.Ids.Waiting, false)]
+    [InlineData(SlnWaitlistStatuses.Ids.Cancelled, SlnWaitlistStatuses.Ids.Notified, false)]
+    [InlineData(SlnWaitlistStatuses.Ids.Waiting, SlnWaitlistStatuses.Ids.Completed, false)]
+    [InlineData(999, SlnWaitlistStatuses.Ids.Waiting, false)]
+    public void CanTransition_EnforcesLifecycle(int fromStatusId, int toStatusId, bool expected)
+    {
+        SlnWaitlistStatuses.CanTransition(fromStatusId, toStatusId).Should().Be(expected);
+    }
 }
