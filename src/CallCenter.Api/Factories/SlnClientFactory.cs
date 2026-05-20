@@ -530,7 +530,7 @@ public class SlnClientFactory : ISlnClientFactory
         return MapClientPhoto(photo);
     }
 
-    public async Task<(bool Success, string? Error)> DeletePhotoAsync(int photoId, int customerId, int? branchId = null)
+    public async Task<(bool Success, string? Error, string? FilePath)> DeletePhotoAsync(int photoId, int customerId, int? branchId = null)
     {
         var query = _photos.GetAllQueryable()
             .Include(p => p.SlnClient)
@@ -545,11 +545,12 @@ public class SlnClientFactory : ISlnClientFactory
         }
 
         var photo = await query.FirstOrDefaultAsync();
-        if (photo == null) return (false, "Fotograf bulunamadi");
+        if (photo == null) return (false, "Fotograf bulunamadi", null);
 
+        var filePath = photo.FilePath;
         _photos.Remove(photo);
         await _uow.SaveChangesAsync();
-        return (true, null);
+        return (true, null, filePath);
     }
 
     public async Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId, int? branchId = null)

@@ -17,6 +17,6 @@ public interface ISlnClientFactory
     Task<SlnTreatmentRecordDto> AddTreatmentRecordAsync(SlnTreatmentRecordCreateDto dto, int userId, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> DeleteTreatmentRecordAsync(int recordId, int customerId, int? branchId = null);
     Task<SlnClientPhotoDto> AddPhotoAsync(int clientId, string filePath, string? description, int customerId, int? branchId = null);
-    Task<(bool Success, string? Error)> DeletePhotoAsync(int photoId, int customerId, int? branchId = null);
+    Task<(bool Success, string? Error, string? FilePath)> DeletePhotoAsync(int photoId, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> UnblockClientAsync(int clientId, int customerId, int? branchId = null);
 }

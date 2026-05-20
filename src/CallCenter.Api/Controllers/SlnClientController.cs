@@ -201,7 +201,13 @@ public class SlnClientController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
+            await _gcs.DeleteAsync(path);
             return BadRequest(ex.Message);
+        }
+        catch
+        {
+            await _gcs.DeleteAsync(path);
+            throw;
         }
     }
 
@@ -211,7 +217,14 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeletePhotoAsync(id, customerId, GetBranchId() ?? branchId);
+        var (success, error, filePath) = await _clientFactory.DeletePhotoAsync(id, customerId, GetBranchId() ?? branchId);
+        if (success)
+        {
+            var path = _gcs.TryGetObjectPath(filePath);
+            if (!string.IsNullOrEmpty(path) && path.StartsWith($"salons/{customerId}/clients/", StringComparison.OrdinalIgnoreCase))
+                await _gcs.DeleteAsync(path);
+        }
+
         return success ? Ok() : BadRequest(error);
     }
 

@@ -69,4 +69,26 @@ public class GcsUploadService
             return false;
         }
     }
+
+    public string? TryGetObjectPath(string? value)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrEmpty(trimmed)) return null;
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+            return trimmed.TrimStart('/');
+
+        var publicBase = _publicBaseUrl.TrimEnd('/');
+        if (trimmed.StartsWith($"{publicBase}/", StringComparison.OrdinalIgnoreCase))
+            return Uri.UnescapeDataString(trimmed[(publicBase.Length + 1)..]);
+
+        if (!string.Equals(uri.Host, "storage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var path = uri.AbsolutePath.TrimStart('/');
+        if (path.StartsWith($"{_bucketName}/", StringComparison.OrdinalIgnoreCase))
+            path = path[(_bucketName.Length + 1)..];
+
+        return Uri.UnescapeDataString(path);
+    }
 }
