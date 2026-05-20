@@ -127,6 +127,86 @@ public class SlnAppointmentFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetAvailableStaffAsync_ReturnsEmpty_WhenServiceIsOutsideCustomer()
+    {
+        SeedSlotScopeData();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var staff = await factory.GetAvailableStaffAsync(1, [80], branchId: 3);
+
+        staff.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAvailableStaffAsync_FiltersPersonnelByBranchScope()
+    {
+        SeedSlotScopeData();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var staff = await factory.GetAvailableStaffAsync(1, [7], branchId: 3);
+
+        staff.Select(item => GetAnonymousValue<int>(item, "Id"))
+            .Should().Equal(11);
+    }
+
+    [Fact]
+    public async Task GetAvailableSlotsAsync_DoesNotCountOtherBranchAppointmentsForBranchResource()
+    {
+        SeedSlotScopeData();
+        _db.SlnClients.Add(new SlnClient
+        {
+            Id = 10,
+            CustomerId = 1,
+            FullName = "Test Musteri",
+            IsActive = true
+        });
+        _db.SlnResources.Add(new SlnResource
+        {
+            Id = 30,
+            CustomerId = 1,
+            BranchId = 4,
+            Name = "Branch Room",
+            Quantity = 1,
+            IsActive = true
+        });
+        _db.SlnServiceResourceRequirements.Add(new SlnServiceResourceRequirement
+        {
+            Id = 31,
+            ServiceId = 7,
+            ResourceId = 30,
+            QuantityRequired = 1
+        });
+        _db.SlnAppointments.Add(new SlnAppointment
+        {
+            Id = 40,
+            CustomerId = 1,
+            BranchId = 3,
+            SlnClientId = 10,
+            PersonnelId = 11,
+            StartTime = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Utc),
+            EndTime = new DateTime(2026, 5, 20, 10, 30, 0, DateTimeKind.Utc),
+            StatusId = 2,
+            Services =
+            [
+                new SlnAppointmentService { Id = 41, SlnServiceId = 7, SortOrder = 1 }
+            ]
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var slots = await factory.GetAvailableSlotsAsync(1, 14, new DateTime(2026, 5, 20), 30, branchId: 4, serviceIds: [7]);
+        var ten = slots.Single(slot => GetAnonymousValue<string>(slot, "timeText") == "10:00");
+
+        GetAnonymousValue<bool>(ten, "available").Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetAvailableSlotsAsync_ReturnsEmpty_WhenPersonnelLacksRequiredSkill()
     {
         SeedSlotScopeData();

@@ -541,6 +541,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             var used = 0;
             foreach (var appointment in overlapping)
             {
+                if (resource.BranchId.HasValue && appointment.BranchId != branchId)
+                    continue;
+
                 var appointmentRequirements = appointment.Services.Count > 0
                     ? appointment.Services
                         .Where(s => s.SlnService != null)
@@ -633,18 +636,24 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<List<object>> GetAvailableStaffAsync(int customerId, List<int> serviceIds, int? branchId = null)
     {
-        // Skill eslemesi olan personelleri bul
-        var skillRows = await _skills.GetAllQueryable()
-            .Where(s => serviceIds.Contains(s.ServiceId))
-            .Select(s => new { s.ServiceId, s.PersonnelId })
-            .ToListAsync();
-
-        var serviceIdsWithSkills = skillRows.Select(s => s.ServiceId).Distinct().ToList();
-        var skilledPersonnelIds = skillRows
-            .GroupBy(s => s.PersonnelId)
-            .Where(g => serviceIdsWithSkills.All(serviceId => g.Any(s => s.ServiceId == serviceId)))
-            .Select(g => g.Key)
+        var requestedServiceIds = serviceIds
+            .Where(id => id > 0)
+            .Distinct()
             .ToList();
+
+        if (requestedServiceIds.Count > 0)
+        {
+            var validServiceIds = await _services.GetAllQueryable()
+                .Where(s => requestedServiceIds.Contains(s.Id) && s.CustomerId == customerId && s.IsActive)
+                .Select(s => s.Id)
+                .ToListAsync();
+            if (validServiceIds.Count != requestedServiceIds.Count)
+                return [];
+        }
+
+        var skillScope = requestedServiceIds.Count > 0
+            ? await GetSkillScopeAsync(requestedServiceIds)
+            : (PersonnelIds: new List<int>(), HasSkillDefinitions: false);
 
         var personnelQuery = _personnel.GetAllQueryable()
             .Where(p => p.CustomerId == customerId && p.IsActive);
@@ -653,8 +662,8 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             personnelQuery = personnelQuery.Where(p => p.BranchId == branchId.Value || p.BranchId == null);
 
         // Skill tanimlanmissa filtrele, tanimlanmamissa tum aktif personelleri don
-        if (serviceIdsWithSkills.Count > 0)
-            personnelQuery = personnelQuery.Where(p => skilledPersonnelIds.Contains(p.Id));
+        if (skillScope.HasSkillDefinitions)
+            personnelQuery = personnelQuery.Where(p => skillScope.PersonnelIds.Contains(p.Id));
 
         return await personnelQuery
             .Include(p => p.User)
