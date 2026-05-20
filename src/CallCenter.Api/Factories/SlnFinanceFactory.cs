@@ -25,6 +25,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnInvoiceRefundEntityService _invoiceRefunds;
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnBranchEntityService _branches;
+    private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnPackageFactory _packages;
     private readonly ISlnGiftCardFactory _giftCards;
@@ -49,6 +50,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnInvoiceRefundEntityService invoiceRefunds,
         ISlnClientEntityService clients,
         ISlnBranchEntityService branches,
+        ISlnAppointmentEntityService appointments,
         ISlnMembershipFactory memberships,
         ISlnPackageFactory packages,
         ISlnGiftCardFactory giftCards,
@@ -71,6 +73,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _invoiceRefunds = invoiceRefunds;
         _clients = clients;
         _branches = branches;
+        _appointments = appointments;
         _memberships = memberships;
         _packages = packages;
         _giftCards = giftCards;
@@ -143,6 +146,30 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         if (dto.Items.Count == 0)
             return (null, "Adisyonda en az bir kalem olmali");
 
+        if (dto.SlnAppointmentId.HasValue)
+        {
+            var appointment = await _appointments.GetAllQueryable()
+                .FirstOrDefaultAsync(a => a.Id == dto.SlnAppointmentId.Value && a.CustomerId == customerId);
+            if (appointment == null)
+                return (null, "Randevu bulunamadi");
+            if (appointment.StatusId == 4 || appointment.StatusId == 5)
+                return (null, "Iptal veya gelmedi durumundaki randevu adisyona baglanamaz");
+            if (branchId.HasValue && appointment.BranchId.HasValue && appointment.BranchId.Value != branchId.Value)
+                return (null, "Randevu bu sube icin uygun degil");
+            if (dto.SlnClientId.HasValue && dto.SlnClientId.Value != appointment.SlnClientId)
+                return (null, "Randevu musterisi ile adisyon musterisi eslesmiyor");
+
+            dto.SlnClientId ??= appointment.SlnClientId;
+            branchId ??= appointment.BranchId;
+
+            var existingInvoice = await _invoices.GetAllQueryable()
+                .FirstOrDefaultAsync(i => i.CustomerId == customerId
+                    && i.SlnAppointmentId == dto.SlnAppointmentId.Value
+                    && i.StatusId != 3);
+            if (existingInvoice != null)
+                return (null, $"Bu randevu icin adisyon zaten olusturulmus: {existingInvoice.InvoiceNo}");
+        }
+
         // Fatura numarasi olustur
         var today = DateTime.UtcNow;
         var todayCount = await _invoices.GetAllQueryable()
@@ -156,6 +183,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             CustomerId = customerId,
             BranchId = branchId,
             SlnClientId = dto.SlnClientId,
+            SlnAppointmentId = dto.SlnAppointmentId,
             InvoiceNo = invoiceNo,
             InvoiceDate = today,
             PaymentMethodId = dto.PaymentMethodId,
@@ -409,7 +437,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         foreach (var usage in packageUsageRecords)
         {
             var notes = $"Invoice:{invoice.Id}|InvoiceNo:{invoiceNo}|Service:{usage.ServiceId}";
-            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId, invoice.Id, usage.Item.Id);
+            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId, invoice.Id, usage.Item.Id, dto.SlnAppointmentId);
             if (!success)
             {
                 _logger.LogWarning("Paket seansi kaydedilemedi: InvoiceId={InvoiceId}, ClientPackageId={ClientPackageId}, Error={Error}", invoice.Id, usage.ClientPackageId, error);
@@ -857,6 +885,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private static SlnInvoiceDto MapInvoiceToDto(SlnInvoice i) => new()
     {
         Id = i.Id,
+        SlnAppointmentId = i.SlnAppointmentId,
         InvoiceNo = i.InvoiceNo,
         InvoiceDate = i.InvoiceDate,
         ClientName = i.SlnClient?.FullName,

@@ -13,6 +13,9 @@ public class SlnInvoice
     public int? SlnClientId { get; set; }
     public SlnClient? SlnClient { get; set; }
 
+    public int? SlnAppointmentId { get; set; }
+    public SlnAppointment? SlnAppointment { get; set; }
+
     public string InvoiceNo { get; set; } = string.Empty;
     public DateTime InvoiceDate { get; set; } = DateTime.UtcNow;
     public decimal TotalAmount { get; set; }

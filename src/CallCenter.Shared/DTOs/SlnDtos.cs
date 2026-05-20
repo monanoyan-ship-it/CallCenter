@@ -297,6 +297,8 @@ public class SlnAppointmentDto
     public decimal DepositAmount { get; set; }
     public int ClientNoShowCount { get; set; }
     public bool ClientIsBlacklisted { get; set; }
+    public int? InvoiceId { get; set; }
+    public string? InvoiceNo { get; set; }
 }
 
 public class SlnAppointmentCreateDto
@@ -480,6 +482,7 @@ public class SlnSupplierOrderStatusUpdateDto
 public class SlnInvoiceDto
 {
     public int Id { get; set; }
+    public int? SlnAppointmentId { get; set; }
     public string InvoiceNo { get; set; } = string.Empty;
     public DateTime InvoiceDate { get; set; }
     public string? ClientName { get; set; }
@@ -507,6 +510,7 @@ public class SlnInvoiceItemDto
 public class SlnInvoiceCreateDto
 {
     public int? SlnClientId { get; set; }
+    public int? SlnAppointmentId { get; set; }
     public int PaymentMethodId { get; set; } = 1;
     public string? GiftCardCode { get; set; }
     public int? PosDeviceId { get; set; }

@@ -526,6 +526,13 @@ public class AppDbContext : DbContext
         {
             e.Property(i => i.TaxAmount).HasPrecision(18, 2);
             e.Property(i => i.GrandTotal).HasPrecision(18, 2);
+            e.HasIndex(i => i.SlnAppointmentId)
+                .IsUnique()
+                .HasFilter("\"SlnAppointmentId\" IS NOT NULL AND \"StatusId\" <> 3");
+            e.HasOne(i => i.SlnAppointment)
+                .WithMany(a => a.Invoices)
+                .HasForeignKey(i => i.SlnAppointmentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // SlnInvoiceItem ek decimal precision

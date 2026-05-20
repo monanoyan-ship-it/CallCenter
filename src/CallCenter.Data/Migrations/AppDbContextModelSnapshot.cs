@@ -5416,6 +5416,9 @@ namespace CallCenter.Data.Migrations
                     b.Property<int?>("SlnClientId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SlnAppointmentId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("StatusId")
                         .HasColumnType("integer");
 
@@ -5440,6 +5443,10 @@ namespace CallCenter.Data.Migrations
                     b.HasIndex("PosDeviceId");
 
                     b.HasIndex("SlnClientId");
+
+                    b.HasIndex("SlnAppointmentId")
+                        .IsUnique()
+                        .HasFilter("\"SlnAppointmentId\" IS NOT NULL AND \"StatusId\" <> 3");
 
                     b.ToTable("SlnInvoices");
                 });
@@ -10685,6 +10692,11 @@ namespace CallCenter.Data.Migrations
                         .WithMany("Invoices")
                         .HasForeignKey("SlnClientId");
 
+                    b.HasOne("CallCenter.Shared.Entities.SlnAppointment", "SlnAppointment")
+                        .WithMany("Invoices")
+                        .HasForeignKey("SlnAppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Branch");
 
                     b.Navigation("Customer");
@@ -10694,6 +10706,8 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("PosDevice");
 
                     b.Navigation("SlnClient");
+
+                    b.Navigation("SlnAppointment");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnInvoiceItem", b =>
@@ -11804,6 +11818,8 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnAppointment", b =>
                 {
+                    b.Navigation("Invoices");
+
                     b.Navigation("Services");
                 });
 

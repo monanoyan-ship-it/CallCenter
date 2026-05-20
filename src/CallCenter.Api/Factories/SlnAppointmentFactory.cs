@@ -65,6 +65,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         .Include(a => a.Personnel).ThenInclude(p => p!.User)
         .Include(a => a.Branch)
         .Include(a => a.Combo)
+        .Include(a => a.Invoices)
         .Include(a => a.Service)
         .Include(a => a.Services).ThenInclude(s => s.SlnService);
 
@@ -562,6 +563,11 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             : a.Service != null ? new List<string> { a.Service.Name } : new List<string>();
 
         var duration = (int)(a.EndTime - a.StartTime).TotalMinutes;
+        var invoice = a.Invoices
+            .Where(i => i.StatusId != 3)
+            .OrderByDescending(i => i.InvoiceDate)
+            .FirstOrDefault()
+            ?? a.Invoices.OrderByDescending(i => i.InvoiceDate).FirstOrDefault();
 
         return new SlnAppointmentDto
         {
@@ -586,7 +592,9 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             PrepaidAmount = a.PrepaidAmount,
             DepositAmount = a.DepositAmount,
             ClientNoShowCount = a.SlnClient?.NoShowCount ?? 0,
-            ClientIsBlacklisted = a.SlnClient?.IsBlacklisted ?? false
+            ClientIsBlacklisted = a.SlnClient?.IsBlacklisted ?? false,
+            InvoiceId = invoice?.Id,
+            InvoiceNo = invoice?.InvoiceNo
         };
     }
 
