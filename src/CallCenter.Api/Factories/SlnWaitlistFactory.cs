@@ -329,7 +329,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
     }
 
     private static bool BranchScopeAllows(SlnWaitlistEntry entry, int? branchScopeId)
-        => !branchScopeId.HasValue || !entry.BranchId.HasValue || entry.BranchId.Value == branchScopeId.Value;
+        => !branchScopeId.HasValue || entry.BranchId == branchScopeId.Value;
 
     private static SlnWaitlistEntryDto MapToDto(SlnWaitlistEntry w)
     {
