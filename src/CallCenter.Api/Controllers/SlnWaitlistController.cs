@@ -25,8 +25,10 @@ public class SlnWaitlistController : ControllerBase
         if (customerId == 0) return Unauthorized();
         var normalizedScope = SlnWaitlistStatuses.NormalizeScope(scope);
         if (normalizedScope == null) return BadRequest("Gecersiz bekleme listesi kapsami");
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
         // JWT'de BranchId varsa kilit (personel) — yoksa query'den al (SalonOwner)
-        var effectiveBranch = GetBranchScopeId() ?? branchId;
+        var effectiveBranch = access.BranchScopeId ?? branchId;
         return Ok(await _factory.GetEntriesAsync(customerId, date, effectiveBranch, normalizedScope, search));
     }
 
@@ -35,7 +37,9 @@ public class SlnWaitlistController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var entry = await _factory.GetEntryAsync(id, customerId, GetBranchScopeId());
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+        var entry = await _factory.GetEntryAsync(id, customerId, access.BranchScopeId);
         return entry != null ? Ok(entry) : NotFound();
     }
 
@@ -45,7 +49,9 @@ public class SlnWaitlistController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
         dto.BranchId ??= branchId;
-        var (success, error, entry) = await _factory.CreateEntryAsync(dto, customerId, GetBranchScopeId());
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+        var (success, error, entry) = await _factory.CreateEntryAsync(dto, customerId, access.BranchScopeId);
         return success ? Ok(entry) : BadRequest(error);
     }
 
@@ -55,7 +61,9 @@ public class SlnWaitlistController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
         dto.BranchId ??= branchId;
-        var (success, error) = await _factory.UpdateEntryAsync(id, dto, customerId, GetBranchScopeId());
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+        var (success, error) = await _factory.UpdateEntryAsync(id, dto, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -64,7 +72,9 @@ public class SlnWaitlistController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId, GetBranchScopeId());
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -76,8 +86,10 @@ public class SlnWaitlistController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
         dto.BranchId ??= branchId;
-        var (success, error, result) = await _factory.ConvertToAppointmentAsync(id, dto, userId, customerId, GetBranchScopeId());
+        var (success, error, result) = await _factory.ConvertToAppointmentAsync(id, dto, userId, customerId, access.BranchScopeId);
         return success ? Ok(result) : BadRequest(error);
     }
 
@@ -86,7 +98,9 @@ public class SlnWaitlistController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.DeleteEntryAsync(id, customerId, GetBranchScopeId());
+        var access = ResolveWaitlistBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+        var (success, error) = await _factory.DeleteEntryAsync(id, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -112,12 +126,19 @@ public class SlnWaitlistController : ControllerBase
         return int.TryParse(claim, out var id) && id > 0 ? id : null;
     }
 
-    private int GetCustomerRoleId()
+    private bool IsSalonOwner()
     {
+        if (User.IsInRole("Admin")) return true;
         var claim = User.FindFirst("CustomerRoleId")?.Value;
-        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+        return int.TryParse(claim, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
     }
 
-    private int? GetBranchScopeId()
-        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
+    private WaitlistBranchAccess ResolveWaitlistBranchAccess()
+    {
+        if (IsSalonOwner()) return new(true, null, null);
+        var branchId = GetBranchId();
+        return branchId.HasValue ? new(true, branchId.Value, null) : new(false, null, Forbid());
+    }
+
+    private readonly record struct WaitlistBranchAccess(bool IsAllowed, int? BranchScopeId, ActionResult? ErrorResult);
 }
