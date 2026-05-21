@@ -107,7 +107,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         var category = await _categories.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == categoryId && c.CustomerId == customerId);
 
-        if (category == null) return (false, "Kategori bulunamadi");
+        if (category == null) return (false, "Kategori bulunamadı");
 
         category.Name = name;
         category.SortOrder = sortOrder;
@@ -126,8 +126,8 @@ public class SlnServiceFactory : ISlnServiceFactory
             .Include(c => c.Services)
             .FirstOrDefaultAsync(c => c.Id == categoryId && c.CustomerId == customerId);
 
-        if (category == null) return (false, "Kategori bulunamadi");
-        if (category.Services.Any()) return (false, "Kategoride hizmet bulunuyor, once hizmetleri silin");
+        if (category == null) return (false, "Kategori bulunamadı");
+        if (category.Services.Any()) return (false, "Kategoride hizmet bulunuyor, önce hizmetleri silin");
 
         _categories.Remove(category);
         await _uow.SaveChangesAsync();
@@ -196,7 +196,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == customerId);
 
-        if (service == null) return (false, "Hizmet bulunamadi");
+        if (service == null) return (false, "Hizmet bulunamadı");
 
         var validationError = await ValidateServiceSaveAsync(dto, customerId, serviceId, syncResourceRequirements);
         if (validationError != null)
@@ -237,7 +237,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == customerId);
 
-        if (service == null) return (false, "Hizmet bulunamadi");
+        if (service == null) return (false, "Hizmet bulunamadı");
 
         if (await HasServiceReferencesAsync(serviceId, customerId))
         {
@@ -324,10 +324,10 @@ public class SlnServiceFactory : ISlnServiceFactory
     {
         var resource = await _resources.GetAllQueryable()
             .FirstOrDefaultAsync(r => r.Id == resourceId && r.CustomerId == customerId);
-        if (resource == null) return (false, "Kaynak bulunamadi");
+        if (resource == null) return (false, "Kaynak bulunamadı");
         if (!ResourceWriteScopeAllows(resource, branchScopeId))
         {
-            return (false, "Bu kaynak icin yetkiniz yok");
+            return (false, "Bu kaynak için yetkiniz yok");
         }
 
         resource.BranchId = branchScopeId ?? await NormalizeBranchIdAsync(dto.BranchId, customerId);
@@ -347,12 +347,12 @@ public class SlnServiceFactory : ISlnServiceFactory
         var resource = await _resources.GetAllQueryable()
             .Include(r => r.ServiceRequirements)
             .FirstOrDefaultAsync(r => r.Id == resourceId && r.CustomerId == customerId);
-        if (resource == null) return (false, "Kaynak bulunamadi");
+        if (resource == null) return (false, "Kaynak bulunamadı");
         if (!ResourceWriteScopeAllows(resource, branchScopeId))
         {
-            return (false, "Bu kaynak icin yetkiniz yok");
+            return (false, "Bu kaynak için yetkiniz yok");
         }
-        if (resource.ServiceRequirements.Any()) return (false, "Bu kaynak hizmetlerde kullaniliyor");
+        if (resource.ServiceRequirements.Any()) return (false, "Bu kaynak hizmetlerde kullanılıyor");
 
         _resources.Remove(resource);
         await _uow.SaveChangesAsync();
@@ -406,7 +406,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         var combo = await _combos.GetAllQueryable()
             .Include(c => c.Items)
             .FirstOrDefaultAsync(c => c.Id == comboId && c.CustomerId == customerId);
-        if (combo == null) return (false, "Combo bulunamadi");
+        if (combo == null) return (false, "Combo bulunamadı");
 
         var validationError = await ValidateComboSaveAsync(dto, customerId);
         if (validationError != null)
@@ -430,10 +430,10 @@ public class SlnServiceFactory : ISlnServiceFactory
     {
         var combo = await _combos.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == comboId && c.CustomerId == customerId);
-        if (combo == null) return (false, "Combo bulunamadi");
+        if (combo == null) return (false, "Combo bulunamadı");
         var hasAppointments = await _appointments.GetAllQueryable()
             .AnyAsync(a => a.CustomerId == customerId && a.ComboId == comboId);
-        if (hasAppointments) return (false, "Bu combo randevularda kullaniliyor");
+        if (hasAppointments) return (false, "Bu combo randevularda kullanılıyor");
 
         _combos.Remove(combo);
         await _uow.SaveChangesAsync();
@@ -471,21 +471,21 @@ public class SlnServiceFactory : ISlnServiceFactory
         int? currentServiceId = null,
         bool validateResourceRequirements = true)
     {
-        if (dto.TaxRate.HasValue && (dto.TaxRate.Value < 0 || dto.TaxRate.Value > 100)) return "KDV orani 0 ile 100 arasinda olmali";
-        if (dto.SortOrder.HasValue && dto.SortOrder.Value < 0) return "Sira 0 veya daha buyuk olmali";
+        if (dto.TaxRate.HasValue && (dto.TaxRate.Value < 0 || dto.TaxRate.Value > 100)) return "KDV oranı 0 ile 100 arasında olmalı";
+        if (dto.SortOrder.HasValue && dto.SortOrder.Value < 0) return "Sıra 0 veya daha büyük olmalı";
 
         var categoryExists = await _categories.GetAllQueryable()
             .AnyAsync(c => c.Id == dto.CategoryId && c.CustomerId == customerId);
-        if (!categoryExists) return "Kategori bulunamadi";
+        if (!categoryExists) return "Kategori bulunamadı";
 
         if (dto.ParentServiceId.HasValue)
         {
             if (currentServiceId.HasValue && dto.ParentServiceId.Value == currentServiceId.Value)
-                return "Hizmet kendisinin ust hizmeti olamaz";
+                return "Hizmet kendisinin üst hizmeti olamaz";
 
             var parentExists = await _services.GetAllQueryable()
                 .AnyAsync(s => s.Id == dto.ParentServiceId.Value && s.CustomerId == customerId);
-            if (!parentExists) return "Ust hizmet bulunamadi";
+            if (!parentExists) return "Üst hizmet bulunamadı";
         }
 
         return validateResourceRequirements
@@ -505,7 +505,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         var validCount = await _resources.GetAllQueryable()
             .CountAsync(r => r.CustomerId == customerId && resourceIds.Contains(r.Id));
 
-        return validCount == resourceIds.Count ? null : "Kaynak bulunamadi";
+        return validCount == resourceIds.Count ? null : "Kaynak bulunamadı";
     }
 
     private async Task<(bool Success, string? Error)> SyncComboItemsAsync(int comboId, List<SlnServiceComboItemCreateDto>? incoming, int customerId)
@@ -536,8 +536,8 @@ public class SlnServiceFactory : ISlnServiceFactory
 
     private async Task<string?> ValidateComboSaveAsync(SlnServiceComboCreateDto dto, int customerId)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name)) return "Combo adi zorunlu";
-        if (dto.Price < 0) return "Fiyat 0 veya daha buyuk olmali";
+        if (string.IsNullOrWhiteSpace(dto.Name)) return "Combo adı zorunlu";
+        if (dto.Price < 0) return "Fiyat 0 veya daha büyük olmalı";
 
         return await ValidateComboItemsAsync(dto.Items, customerId);
     }
@@ -549,13 +549,13 @@ public class SlnServiceFactory : ISlnServiceFactory
             .Select(i => i.ServiceId)
             .Distinct()
             .ToList();
-        if (serviceIds.Count == 0) return "Combo icin en az bir hizmet secin";
+        if (serviceIds.Count == 0) return "Combo için en az bir hizmet seçin";
         if (serviceIds.Count != items.Count) return "Combo hizmetleri tekrar etmemeli";
 
         var validCount = await _services.GetAllQueryable()
             .CountAsync(s => s.CustomerId == customerId && serviceIds.Contains(s.Id));
 
-        return validCount == serviceIds.Count ? null : "Hizmet bulunamadi";
+        return validCount == serviceIds.Count ? null : "Hizmet bulunamadı";
     }
 
     private async Task<int?> NormalizeBranchIdAsync(int? branchId, int customerId)

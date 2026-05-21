@@ -153,7 +153,7 @@ public class SlnServiceController : ControllerBase
         }
         catch (DbUpdateException ex) when (IsDuplicateComboName(ex))
         {
-            return BadRequest("Ayni isimde bir combo zaten var");
+            return BadRequest("Aynı isimde bir combo zaten var");
         }
     }
 
@@ -170,7 +170,7 @@ public class SlnServiceController : ControllerBase
         }
         catch (DbUpdateException ex) when (IsDuplicateComboName(ex))
         {
-            return BadRequest("Ayni isimde bir combo zaten var");
+            return BadRequest("Aynı isimde bir combo zaten var");
         }
     }
 

@@ -195,7 +195,7 @@ public class SlnServiceFactoryTests : IDisposable
         var result = await factory.CreateServiceAsync(dto, customerId: 1);
 
         result.Service.Should().BeNull();
-        result.Error.Should().Be("Kategori bulunamadi");
+        result.Error.Should().Be("Kategori bulunamadı");
         (await _db.SlnServices.AsNoTracking().CountAsync(s => s.Name == "Updated service")).Should().Be(0);
     }
 
@@ -211,7 +211,7 @@ public class SlnServiceFactoryTests : IDisposable
         var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Kategori bulunamadi");
+        result.Error.Should().Be("Kategori bulunamadı");
         service.CategoryId.Should().Be(20);
         service.Name.Should().Be("Existing service");
     }
@@ -228,7 +228,7 @@ public class SlnServiceFactoryTests : IDisposable
         var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("KDV orani 0 ile 100 arasinda olmali");
+        result.Error.Should().Be("KDV oranı 0 ile 100 arasında olmalı");
         service.TaxRate.Should().Be(8m);
     }
 
@@ -244,7 +244,7 @@ public class SlnServiceFactoryTests : IDisposable
         var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Sira 0 veya daha buyuk olmali");
+        result.Error.Should().Be("Sıra 0 veya daha büyük olmalı");
         service.SortOrder.Should().Be(4);
     }
 
@@ -260,7 +260,7 @@ public class SlnServiceFactoryTests : IDisposable
         var result = await factory.CreateServiceAsync(dto, customerId: 1);
 
         result.Service.Should().BeNull();
-        result.Error.Should().Be("Ust hizmet bulunamadi");
+        result.Error.Should().Be("Üst hizmet bulunamadı");
         (await _db.SlnServices.AsNoTracking().CountAsync(s => s.Name == "Updated service")).Should().Be(0);
     }
 
@@ -276,7 +276,7 @@ public class SlnServiceFactoryTests : IDisposable
         var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Hizmet kendisinin ust hizmeti olamaz");
+        result.Error.Should().Be("Hizmet kendisinin üst hizmeti olamaz");
         service.ParentServiceId.Should().BeNull();
         service.Name.Should().Be("Existing service");
     }
@@ -302,7 +302,7 @@ public class SlnServiceFactoryTests : IDisposable
         var requirements = await _db.SlnServiceResourceRequirements.AsNoTracking().Where(r => r.ServiceId == 10).ToListAsync();
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Kaynak bulunamadi");
+        result.Error.Should().Be("Kaynak bulunamadı");
         service.Name.Should().Be("Existing service");
         requirements.Should().ContainSingle();
         requirements.Single().ResourceId.Should().Be(30);
@@ -322,7 +322,7 @@ public class SlnServiceFactoryTests : IDisposable
         }, customerId: 1);
 
         result.Combo.Should().BeNull();
-        result.Error.Should().Be("Combo icin en az bir hizmet secin");
+        result.Error.Should().Be("Combo için en az bir hizmet seçin");
         (await _db.SlnServiceCombos.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
@@ -340,7 +340,7 @@ public class SlnServiceFactoryTests : IDisposable
         }, customerId: 1);
 
         result.Combo.Should().BeNull();
-        result.Error.Should().Be("Hizmet bulunamadi");
+        result.Error.Should().Be("Hizmet bulunamadı");
         (await _db.SlnServiceCombos.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
@@ -361,7 +361,7 @@ public class SlnServiceFactoryTests : IDisposable
         var items = await _db.SlnServiceComboItems.AsNoTracking().Where(i => i.ComboId == 60).ToListAsync();
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Hizmet bulunamadi");
+        result.Error.Should().Be("Hizmet bulunamadı");
         combo.Name.Should().Be("Existing combo");
         items.Should().ContainSingle();
         items.Single().ServiceId.Should().Be(10);
@@ -387,7 +387,7 @@ public class SlnServiceFactoryTests : IDisposable
         var result = await factory.DeleteComboAsync(60, customerId: 1);
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Bu combo randevularda kullaniliyor");
+        result.Error.Should().Be("Bu combo randevularda kullanılıyor");
         (await _db.SlnServiceCombos.AsNoTracking().AnyAsync(c => c.Id == 60)).Should().BeTrue();
     }
 
@@ -503,9 +503,9 @@ public class SlnServiceFactoryTests : IDisposable
         }, customerId: 1, branchScopeId: 40);
 
         otherBranch.Success.Should().BeFalse();
-        otherBranch.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        otherBranch.Error.Should().Be("Bu kaynak için yetkiniz yok");
         global.Success.Should().BeFalse();
-        global.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        global.Error.Should().Be("Bu kaynak için yetkiniz yok");
         (await _db.SlnResources.AsNoTracking().SingleAsync(r => r.Id == 32)).Name.Should().Be("Other branch room");
         (await _db.SlnResources.AsNoTracking().SingleAsync(r => r.Id == 31)).Name.Should().Be("Global room");
     }
@@ -520,9 +520,9 @@ public class SlnServiceFactoryTests : IDisposable
         var global = await factory.DeleteResourceAsync(31, customerId: 1, branchScopeId: 40);
 
         otherBranch.Success.Should().BeFalse();
-        otherBranch.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        otherBranch.Error.Should().Be("Bu kaynak için yetkiniz yok");
         global.Success.Should().BeFalse();
-        global.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        global.Error.Should().Be("Bu kaynak için yetkiniz yok");
         (await _db.SlnResources.AsNoTracking().CountAsync()).Should().Be(3);
     }
 
