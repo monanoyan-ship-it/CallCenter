@@ -17,6 +17,10 @@ public class SlnServiceFactory : ISlnServiceFactory
     private readonly ISlnServiceComboItemEntityService _comboItems;
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnBranchEntityService _branches;
+    private readonly ISlnAppointmentServiceEntityService _appointmentServices;
+    private readonly ISlnInvoiceItemEntityService _invoiceItems;
+    private readonly ISlnPackageDefinitionEntityService _packageDefinitions;
+    private readonly ISlnRecipeEntityService _recipes;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnServiceFactory> _logger;
 
@@ -29,6 +33,10 @@ public class SlnServiceFactory : ISlnServiceFactory
         ISlnServiceComboItemEntityService comboItems,
         ISlnAppointmentEntityService appointments,
         ISlnBranchEntityService branches,
+        ISlnAppointmentServiceEntityService appointmentServices,
+        ISlnInvoiceItemEntityService invoiceItems,
+        ISlnPackageDefinitionEntityService packageDefinitions,
+        ISlnRecipeEntityService recipes,
         IUnitOfWork uow,
         ILogger<SlnServiceFactory> logger)
     {
@@ -40,6 +48,10 @@ public class SlnServiceFactory : ISlnServiceFactory
         _comboItems = comboItems;
         _appointments = appointments;
         _branches = branches;
+        _appointmentServices = appointmentServices;
+        _invoiceItems = invoiceItems;
+        _packageDefinitions = packageDefinitions;
+        _recipes = recipes;
         _uow = uow;
         _logger = logger;
     }
@@ -219,9 +231,49 @@ public class SlnServiceFactory : ISlnServiceFactory
 
         if (service == null) return (false, "Hizmet bulunamadi");
 
+        if (await HasServiceReferencesAsync(serviceId, customerId))
+        {
+            service.IsActive = false;
+            await _uow.SaveChangesAsync();
+            return (true, null);
+        }
+
         _services.Remove(service);
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    private async Task<bool> HasServiceReferencesAsync(int serviceId, int customerId)
+    {
+        if (await _appointments.GetAllQueryable()
+            .AnyAsync(a => a.CustomerId == customerId && a.ServiceId == serviceId))
+            return true;
+
+        if (await _appointmentServices.GetAllQueryable()
+            .Include(s => s.SlnAppointment)
+            .AnyAsync(s => s.SlnServiceId == serviceId && s.SlnAppointment != null && s.SlnAppointment.CustomerId == customerId))
+            return true;
+
+        if (await _invoiceItems.GetAllQueryable()
+            .Include(i => i.Invoice)
+            .AnyAsync(i => i.ServiceId == serviceId && i.Invoice != null && i.Invoice.CustomerId == customerId))
+            return true;
+
+        if (await _packageDefinitions.GetAllQueryable()
+            .AnyAsync(d => d.CustomerId == customerId && d.ServiceId == serviceId))
+            return true;
+
+        if (await _comboItems.GetAllQueryable()
+            .Include(i => i.Combo)
+            .AnyAsync(i => i.ServiceId == serviceId && i.Combo != null && i.Combo.CustomerId == customerId))
+            return true;
+
+        if (await _recipes.GetAllQueryable()
+            .AnyAsync(r => r.CustomerId == customerId && r.ServiceId == serviceId))
+            return true;
+
+        return await _services.GetAllQueryable()
+            .AnyAsync(s => s.CustomerId == customerId && s.ParentServiceId == serviceId);
     }
 
     public async Task<List<SlnResourceDto>> GetResourcesAsync(int customerId, int? branchScopeId = null)

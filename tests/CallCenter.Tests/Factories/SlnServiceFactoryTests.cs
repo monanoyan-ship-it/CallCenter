@@ -331,6 +331,66 @@ public class SlnServiceFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteServiceAsync_RemovesServiceWithoutReferences()
+    {
+        await SeedServiceAsync(isActive: true);
+        var factory = CreateFactory();
+
+        var result = await factory.DeleteServiceAsync(10, customerId: 1);
+
+        result.Success.Should().BeTrue();
+        (await _db.SlnServices.AsNoTracking().AnyAsync(s => s.Id == 10)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteServiceAsync_DeactivatesServiceWithAppointmentReference()
+    {
+        await SeedServiceAsync(isActive: true);
+        _db.SlnAppointments.Add(new SlnAppointment
+        {
+            Id = 80,
+            CustomerId = 1,
+            ServiceId = 10,
+            StartTime = new DateTime(2026, 5, 21, 9, 0, 0, DateTimeKind.Utc),
+            EndTime = new DateTime(2026, 5, 21, 10, 0, 0, DateTimeKind.Utc)
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+        var factory = CreateFactory();
+
+        var result = await factory.DeleteServiceAsync(10, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeTrue();
+        service.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteServiceAsync_DeactivatesServiceWithInvoiceReference()
+    {
+        await SeedServiceAsync(isActive: true);
+        _db.SlnInvoices.Add(new SlnInvoice
+        {
+            Id = 81,
+            CustomerId = 1,
+            InvoiceNo = "INV-1",
+            InvoiceDate = new DateTime(2026, 5, 21, 9, 0, 0, DateTimeKind.Utc),
+            TotalAmount = 100m,
+            NetAmount = 100m
+        });
+        _db.SlnInvoiceItems.Add(new SlnInvoiceItem { Id = 82, InvoiceId = 81, ServiceId = 10, Quantity = 1, UnitPrice = 100m, LineTotal = 100m });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+        var factory = CreateFactory();
+
+        var result = await factory.DeleteServiceAsync(10, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeTrue();
+        service.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task GetResourcesAsync_FiltersByBranchScopeAndKeepsGlobalResources()
     {
         await SeedResourcesAsync();
@@ -415,6 +475,10 @@ public class SlnServiceFactoryTests : IDisposable
             new SlnServiceComboItemEntityService(_db),
             new SlnAppointmentEntityService(_db),
             new SlnBranchEntityService(_db),
+            new SlnAppointmentServiceEntityService(_db),
+            new SlnInvoiceItemEntityService(_db),
+            new SlnPackageDefinitionEntityService(_db),
+            new SlnRecipeEntityService(_db),
             new UnitOfWork(_db),
             NullLogger<SlnServiceFactory>.Instance);
 
