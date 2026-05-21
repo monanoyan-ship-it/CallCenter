@@ -364,6 +364,9 @@ public class PortalFactory : IPortalFactory
         if (emailExists)
             return (false, "Bu e-posta adresi zaten kullaniliyor.");
 
+        if (!dto.IsActive && personnel.IsActive && personnel.CustomerRoleId == SalonRoles.Ids.SalonOwner)
+            return (false, "Salon sahibi pasife alinamaz.");
+
         if (!dto.IsActive && personnel.IsActive
             && (personnel.IsCustomerAdmin || personnel.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin))
         {
@@ -532,6 +535,9 @@ public class PortalFactory : IPortalFactory
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
             return (false, "Personel bulunamadi.");
+
+        if (personnel.CustomerRoleId == SalonRoles.Ids.SalonOwner)
+            return (false, "Salon sahibi pasife alinamaz.");
 
         if (personnel.IsCustomerAdmin || personnel.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin)
         {

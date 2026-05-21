@@ -258,6 +258,41 @@ public class PortalFactoryDependencyValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdatePersonnelAsync_RejectsSalonOwnerDeactivation()
+    {
+        await SeedPersonnelAsync(customerRoleId: SalonRoles.Ids.SalonOwner);
+        var factory = CreateFactory();
+        var dto = UpdateDto();
+        dto.CustomerRoleId = SalonRoles.Ids.SalonOwner;
+        dto.IsActive = false;
+
+        var result = await factory.UpdatePersonnelAsync(1, 20, dto);
+
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
+        var user = await _db.Users.AsNoTracking().SingleAsync(u => u.Id == 10);
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Salon sahibi pasife alinamaz.");
+        personnel.IsActive.Should().BeTrue();
+        user.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeactivatePersonnelAsync_RejectsSalonOwner()
+    {
+        await SeedPersonnelAsync(customerRoleId: SalonRoles.Ids.SalonOwner);
+        var factory = CreateFactory();
+
+        var result = await factory.DeactivatePersonnelAsync(1, 20);
+
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
+        var user = await _db.Users.AsNoTracking().SingleAsync(u => u.Id == 10);
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Salon sahibi pasife alinamaz.");
+        personnel.IsActive.Should().BeTrue();
+        user.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task ResetPersonnelPasswordAsync_UpdatesPasswordWithoutTouchingProfile()
     {
         await SeedPersonnelAsync(branchId: 1);
@@ -490,7 +525,10 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
-    private async Task SeedPersonnelAsync(int? branchId = null)
+    private async Task SeedPersonnelAsync(
+        int? branchId = null,
+        int customerRoleId = SalonRoles.Ids.Hairdresser,
+        bool isCustomerAdmin = false)
     {
         await SeedCustomersAsync();
         _db.Users.Add(new User
@@ -509,7 +547,8 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             UserId = 10,
             CustomerId = 1,
             Title = "Kuaför",
-            CustomerRoleId = SalonRoles.Ids.Hairdresser,
+            CustomerRoleId = customerRoleId,
+            IsCustomerAdmin = isCustomerAdmin,
             BranchId = branchId,
             IsActive = true
         });
