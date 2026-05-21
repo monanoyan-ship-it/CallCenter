@@ -92,6 +92,7 @@ public class SlnWaitlistController : ControllerBase
 
     /// <summary>BranchId NULL olan waitlist kayitlarini personelin/merkez subesine bagla.</summary>
     [HttpPost("normalize-branches")]
+    [RequireSalonOwner]
     public async Task<ActionResult> NormalizeBranches()
     {
         var customerId = GetCustomerId();
