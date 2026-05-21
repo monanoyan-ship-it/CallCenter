@@ -158,6 +158,61 @@ public class PortalFactoryDependencyValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task ResetPersonnelPasswordAsync_UpdatesPasswordWithoutTouchingProfile()
+    {
+        await SeedPersonnelAsync(branchId: 1);
+        var user = await _db.Users.SingleAsync(u => u.Id == 10);
+        var originalTitle = await _db.CustomerPersonnel
+            .AsNoTracking()
+            .Where(p => p.Id == 20)
+            .Select(p => p.Title)
+            .SingleAsync();
+        user.MustChangePassword = true;
+        user.FailedLoginCount = 3;
+        user.LockedUntil = DateTime.UtcNow.AddHours(1);
+        await _db.SaveChangesAsync();
+        var passwordPolicy = Substitute.For<IPasswordPolicyFactory>();
+        passwordPolicy.ValidatePassword(Arg.Any<string>()).Returns((true, Array.Empty<string>()));
+        passwordPolicy.IsPasswordReusedAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(false);
+        passwordPolicy.RecordPasswordAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(Task.CompletedTask);
+        var factory = CreateFactory(passwordPolicy);
+
+        var result = await factory.ResetPersonnelPasswordAsync(1, 20, "NewPassword1!");
+
+        var reloadedUser = await _db.Users.AsNoTracking().SingleAsync(u => u.Id == 10);
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
+        result.Success.Should().BeTrue();
+        BCrypt.Net.BCrypt.Verify("NewPassword1!", reloadedUser.PasswordHash).Should().BeTrue();
+        reloadedUser.PasswordChangedAt.Should().NotBeNull();
+        reloadedUser.MustChangePassword.Should().BeFalse();
+        reloadedUser.FailedLoginCount.Should().Be(0);
+        reloadedUser.LockedUntil.Should().BeNull();
+        personnel.Title.Should().Be(originalTitle);
+        personnel.BranchId.Should().Be(1);
+        await passwordPolicy.Received(1).RecordPasswordAsync(10, Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task ResetPersonnelPasswordAsync_ReturnsPolicyErrorWithoutMutating()
+    {
+        await SeedPersonnelAsync();
+        var passwordPolicy = Substitute.For<IPasswordPolicyFactory>();
+        passwordPolicy.ValidatePassword("weakpass").Returns((false, new[] { "weak password" }));
+        passwordPolicy.IsPasswordReusedAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(false);
+        passwordPolicy.RecordPasswordAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(Task.CompletedTask);
+        var factory = CreateFactory(passwordPolicy);
+
+        var result = await factory.ResetPersonnelPasswordAsync(1, 20, "weakpass");
+
+        var reloadedUser = await _db.Users.AsNoTracking().SingleAsync(u => u.Id == 10);
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("weak password");
+        reloadedUser.PasswordHash.Should().Be("hash");
+        reloadedUser.PasswordChangedAt.Should().BeNull();
+        await passwordPolicy.DidNotReceive().RecordPasswordAsync(Arg.Any<int>(), Arg.Any<string>());
+    }
+
+    [Fact]
     public async Task UpdatePersonnelLeaveStatusAsync_RejectsBranchManagerOutsideBranch()
     {
         await SeedPersonnelAsync();
@@ -315,11 +370,15 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             SkillServiceIds = skillServiceIds
         };
 
-    private PortalFactory CreateFactory()
+    private PortalFactory CreateFactory(IPasswordPolicyFactory? passwordPolicy = null)
     {
-        var passwordPolicy = Substitute.For<IPasswordPolicyFactory>();
-        passwordPolicy.ValidatePassword(Arg.Any<string>()).Returns((true, Array.Empty<string>()));
-        passwordPolicy.IsPasswordReusedAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(false);
+        var resolvedPasswordPolicy = passwordPolicy ?? Substitute.For<IPasswordPolicyFactory>();
+        if (passwordPolicy == null)
+        {
+            resolvedPasswordPolicy.ValidatePassword(Arg.Any<string>()).Returns((true, Array.Empty<string>()));
+            resolvedPasswordPolicy.IsPasswordReusedAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(false);
+            resolvedPasswordPolicy.RecordPasswordAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(Task.CompletedTask);
+        }
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -335,7 +394,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             Substitute.For<ISipAccountEntityService>(),
             new UserEntityService(_db),
             Substitute.For<ICallRecordEntityService>(),
-            passwordPolicy,
+            resolvedPasswordPolicy,
             new AesEncryptionService(config),
             new SlnPersonnelSkillEntityService(_db),
             new SlnBranchEntityService(_db),

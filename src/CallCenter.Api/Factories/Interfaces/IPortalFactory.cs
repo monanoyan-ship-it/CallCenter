@@ -9,6 +9,7 @@ public interface IPortalFactory
     Task<List<PortalPersonnelListDto>> GetPersonnelAsync(int customerId, int? callerPersonnelId = null, int? callerRoleId = null, int? callerBranchId = null);
     Task<(bool Success, object Result)> CreatePersonnelAsync(int customerId, PortalPersonnelCreateDto dto, int createdByUserId);
     Task<(bool Success, string? Error)> UpdatePersonnelAsync(int customerId, int id, PortalPersonnelUpdateDto dto, bool isSystemAdmin = false);
+    Task<(bool Success, string? Error)> ResetPersonnelPasswordAsync(int customerId, int id, string password);
     Task<(bool Success, string? Error, string? PhotoUrl)> GetPersonnelPhotoUrlAsync(int customerId, int id);
     Task<(bool Success, string? Error)> UpdatePersonnelPhotoAsync(int customerId, int id, string photoUrl);
     Task<(bool Success, string? Error)> DeactivatePersonnelAsync(int customerId, int id);

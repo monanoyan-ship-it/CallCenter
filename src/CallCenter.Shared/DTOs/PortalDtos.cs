@@ -118,6 +118,13 @@ public class PortalPersonnelUpdateDto
     public string? WorkingHoursJson { get; set; }
 }
 
+public class PortalPersonnelPasswordResetDto
+{
+    [Required(ErrorMessage = "Sifre zorunludur.")]
+    [MinLength(8, ErrorMessage = "Sifre en az 8 karakter olmalidir.")]
+    public string Password { get; set; } = string.Empty;
+}
+
 public class PortalPersonnelOpsDto
 {
     public List<PortalPersonnelShiftDto> Shifts { get; set; } = new();

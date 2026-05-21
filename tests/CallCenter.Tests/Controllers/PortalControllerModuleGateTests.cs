@@ -16,6 +16,7 @@ public class PortalControllerModuleGateTests
             nameof(PortalController.GetPersonnel),
             nameof(PortalController.CreatePersonnel),
             nameof(PortalController.UpdatePersonnel),
+            nameof(PortalController.ResetPersonnelPassword),
             nameof(PortalController.UploadPersonnelPhoto),
             nameof(PortalController.SetReportsTo),
             nameof(PortalController.DeactivatePersonnel),

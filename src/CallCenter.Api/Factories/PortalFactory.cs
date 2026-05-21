@@ -384,22 +384,9 @@ public class PortalFactory : IPortalFactory
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {
-            var (pwValid, pwErrors) = _passwordPolicy.ValidatePassword(dto.Password);
-            if (!pwValid)
-                return (false, string.Join(" ", pwErrors));
-
-            if (await _passwordPolicy.IsPasswordReusedAsync(personnel.UserId, dto.Password))
-                return (false, "Bu şifre daha önce kullanılmış. Farklı bir şifre seçiniz.");
-
-            var newHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-            personnel.User.PasswordHash = newHash;
-            personnel.User.PasswordChangedAt = DateTime.UtcNow;
-            personnel.User.MustChangePassword = false;
-            personnel.User.FailedLoginCount = 0;
-            personnel.User.LockedUntil = null;
-
-            await _uow.SaveChangesAsync();
-            await _passwordPolicy.RecordPasswordAsync(personnel.UserId, newHash);
+            var passwordError = await ApplyPersonnelPasswordAsync(personnel, dto.Password);
+            if (passwordError != null)
+                return (false, passwordError);
         }
 
         if (dto.CustomerRoleId != personnel.CustomerRoleId)
@@ -439,6 +426,36 @@ public class PortalFactory : IPortalFactory
 
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ResetPersonnelPasswordAsync(int customerId, int id, string password)
+    {
+        var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
+        if (personnel == null) return (false, "Personel bulunamadı.");
+
+        var passwordError = await ApplyPersonnelPasswordAsync(personnel, password);
+        return passwordError == null ? (true, null) : (false, passwordError);
+    }
+
+    private async Task<string?> ApplyPersonnelPasswordAsync(CustomerPersonnel personnel, string password)
+    {
+        var (pwValid, pwErrors) = _passwordPolicy.ValidatePassword(password);
+        if (!pwValid)
+            return string.Join(" ", pwErrors);
+
+        if (await _passwordPolicy.IsPasswordReusedAsync(personnel.UserId, password))
+            return "Bu şifre daha önce kullanılmış. Farklı bir şifre seçiniz.";
+
+        var newHash = BCrypt.Net.BCrypt.HashPassword(password);
+        personnel.User.PasswordHash = newHash;
+        personnel.User.PasswordChangedAt = DateTime.UtcNow;
+        personnel.User.MustChangePassword = false;
+        personnel.User.FailedLoginCount = 0;
+        personnel.User.LockedUntil = null;
+
+        await _uow.SaveChangesAsync();
+        await _passwordPolicy.RecordPasswordAsync(personnel.UserId, newHash);
+        return null;
     }
 
     private async Task<string?> ValidatePersonnelDependenciesAsync(

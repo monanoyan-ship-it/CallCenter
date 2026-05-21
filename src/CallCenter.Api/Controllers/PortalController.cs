@@ -215,6 +215,25 @@ public class PortalController : AuditableControllerBase
         return NoContent();
     }
 
+    [HttpPut("personnel/{id}/password")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
+    public async Task<IActionResult> ResetPersonnelPassword(int id, [FromBody] PortalPersonnelPasswordResetDto dto, [FromQuery] int? customerId)
+    {
+        if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
+            return Forbid();
+
+        var cid = ResolveCustomerId(customerId);
+        if (cid == null) return BadRequest("CustomerId gerekli.");
+
+        var (success, error) = await _portalFactory.ResetPersonnelPasswordAsync(cid.Value, id, dto.Password);
+        if (!success) return BadRequest(new { message = error });
+
+        await AuditCrudAsync("ResetPassword", "Personnel", id.ToString(),
+            $"Personel sifresi sifirlandi: ID={id}", customerId: cid);
+
+        return NoContent();
+    }
+
     /// <summary>Personel profil fotografi yukle (max 3 MB, JPEG/PNG/WebP)</summary>
     [HttpPost("personnel/{id}/upload-photo")]
     [RequireModule(SalonPortalModules.Ids.SlnStaff)]
