@@ -181,6 +181,23 @@ public class SlnWaitlistFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetEntriesAsync_AppliesBranchAndStatusScopeTogether()
+    {
+        await SeedBranchStatusMatrixAsync();
+        var factory = CreateFactory();
+
+        var branchActive = await factory.GetEntriesAsync(1, branchId: 40, scope: SlnWaitlistStatuses.ScopeActive);
+        var branchArchive = await factory.GetEntriesAsync(1, branchId: 40, scope: SlnWaitlistStatuses.ScopeArchive);
+        var otherBranchActive = await factory.GetEntriesAsync(1, branchId: 42, scope: SlnWaitlistStatuses.ScopeActive);
+        var allActive = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeActive);
+
+        branchActive.Select(e => e.Id).Should().BeEquivalentTo(new[] { 301, 302, 303 });
+        branchArchive.Select(e => e.Id).Should().BeEquivalentTo(new[] { 304, 305 });
+        otherBranchActive.Select(e => e.Id).Should().BeEquivalentTo(new[] { 306 });
+        allActive.Select(e => e.Id).Should().BeEquivalentTo(new[] { 301, 302, 303, 306, 307 });
+    }
+
+    [Fact]
     public async Task GetEntriesAsync_AppliesDateAndSearchFilters()
     {
         await SeedSearchFilterEntriesAsync();
@@ -534,6 +551,66 @@ public class SlnWaitlistFactoryTests : IDisposable
                 Notes = "Normal",
                 StatusId = SlnWaitlistStatuses.Ids.Waiting
             });
+
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedBranchStatusMatrixAsync()
+    {
+        _db.Customers.Add(new Customer
+        {
+            Id = 1,
+            Uid = Guid.NewGuid(),
+            Name = "Test Salon",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        _db.SlnClients.Add(new SlnClient
+        {
+            Id = 20,
+            CustomerId = 1,
+            FullName = "Test Musteri",
+            IsActive = true
+        });
+        _db.SlnServices.Add(new SlnService
+        {
+            Id = 30,
+            CustomerId = 1,
+            Name = "Test Hizmet",
+            DurationMinutes = 30,
+            Price = 100m,
+            IsActive = true
+        });
+        _db.SlnBranches.AddRange(
+            new SlnBranch { Id = 40, CustomerId = 1, Name = "Branch 1", IsActive = true },
+            new SlnBranch { Id = 42, CustomerId = 1, Name = "Branch 2", IsActive = true });
+
+        var rows = new (int Id, int? BranchId, int StatusId)[]
+        {
+            (301, 40, SlnWaitlistStatuses.Ids.Waiting),
+            (302, 40, SlnWaitlistStatuses.Ids.Notified),
+            (303, 40, SlnWaitlistStatuses.Ids.AppointmentBooked),
+            (304, 40, SlnWaitlistStatuses.Ids.Cancelled),
+            (305, 40, SlnWaitlistStatuses.Ids.Completed),
+            (306, 42, SlnWaitlistStatuses.Ids.Waiting),
+            (307, null, SlnWaitlistStatuses.Ids.Waiting)
+        };
+
+        foreach (var row in rows)
+        {
+            _db.SlnWaitlistEntries.Add(new SlnWaitlistEntry
+            {
+                Id = row.Id,
+                CustomerId = 1,
+                BranchId = row.BranchId,
+                SlnClientId = 20,
+                ServiceId = 30,
+                PreferredDate = DateTime.UtcNow.Date,
+                StatusId = row.StatusId,
+                CreatedAt = DateTime.UtcNow.AddMinutes(row.Id)
+            });
+        }
 
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
