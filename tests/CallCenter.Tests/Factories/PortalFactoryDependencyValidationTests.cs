@@ -54,6 +54,48 @@ public class PortalFactoryDependencyValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task CreatePersonnelAsync_CreatesInactiveWhenRequestedWithoutConsumingActiveLimit()
+    {
+        await SeedCustomersAsync();
+        var customer = await _db.Customers.SingleAsync(c => c.Id == 1);
+        customer.MaxUsers = 0;
+        await _db.SaveChangesAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.CreatePersonnelAsync(
+            1,
+            CreateDto(isActive: false),
+            createdByUserId: 99);
+
+        var created = result.Result.Should().BeOfType<PortalPersonnelListDto>().Which;
+        var user = await _db.Users.AsNoTracking().SingleAsync(u => u.UserName == "new-user");
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.UserId == user.Id);
+        result.Success.Should().BeTrue();
+        created.IsActive.Should().BeFalse();
+        user.IsActive.Should().BeFalse();
+        personnel.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreatePersonnelAsync_ActiveCreateStillRespectsMaxUsers()
+    {
+        await SeedCustomersAsync();
+        var customer = await _db.Customers.SingleAsync(c => c.Id == 1);
+        customer.MaxUsers = 0;
+        await _db.SaveChangesAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.CreatePersonnelAsync(
+            1,
+            CreateDto(isActive: true),
+            createdByUserId: 99);
+
+        result.Success.Should().BeFalse();
+        result.Result.Should().Be("Maksimum kullanici limitine (0) ulasildi.");
+        (await _db.Users.AsNoTracking().AnyAsync(u => u.UserName == "new-user")).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task UpdatePersonnelAsync_RejectsReportsToOutsideCustomerWithoutMutating()
     {
         await SeedPersonnelAsync();
@@ -343,7 +385,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
-    private static PortalPersonnelCreateDto CreateDto(int? branchId = null)
+    private static PortalPersonnelCreateDto CreateDto(int? branchId = null, bool isActive = true)
         => new()
         {
             UserName = "new-user",
@@ -352,7 +394,8 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             Password = "Password1!",
             Title = "Kuaför",
             CustomerRoleId = SalonRoles.Ids.Hairdresser,
-            BranchId = branchId
+            BranchId = branchId,
+            IsActive = isActive
         };
 
     private static PortalPersonnelUpdateDto UpdateDto(

@@ -126,7 +126,7 @@ public class PortalService : IPortalService
             return (false, string.Join(" ", errors));
 
         // MaxUsers limit kontrolu (FirmaAdmin haric — aranabilir roller)
-        if (dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
+        if (dto.IsActive && dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin)
         {
             var customer = await _db.Customers.FindAsync(customerId);
             if (customer?.MaxUsers > 0)
@@ -149,7 +149,7 @@ public class PortalService : IPortalService
             PasswordHash = passwordHash,
             RoleId = UserRoles.Ids.CustomerUser,
             StatusId = AgentStatuses.Ids.Offline,
-            IsActive = true,
+            IsActive = dto.IsActive,
             PasswordChangedAt = DateTime.UtcNow
         };
         _db.Users.Add(user);
@@ -171,7 +171,7 @@ public class PortalService : IPortalService
             IsCustomerAdmin = isAdmin,
             OrganizationUnitId = dto.OrganizationUnitId,
             ReportsToPersonnelId = dto.ReportsToPersonnelId,
-            IsActive = true
+            IsActive = dto.IsActive
         };
         _db.CustomerPersonnel.Add(personnel);
         await _db.SaveChangesAsync();
@@ -185,7 +185,7 @@ public class PortalService : IPortalService
             Title = personnel.Title,
             CustomerRoleId = personnel.CustomerRoleId,
             CustomerRoleName = CustomerRoles.GetById(personnel.CustomerRoleId)?.Description,
-            IsActive = true
+            IsActive = personnel.IsActive
         });
     }
 

@@ -67,6 +67,7 @@ public class PortalPersonnelCreateDto
     public int? ReportsToPersonnelId { get; set; }
     public int? BranchId { get; set; }
     public List<int>? SkillServiceIds { get; set; }
+    public bool IsActive { get; set; } = true;
 
     // Public gorunurluk (varsayilan: true)
     public bool PublicVisible { get; set; } = true;

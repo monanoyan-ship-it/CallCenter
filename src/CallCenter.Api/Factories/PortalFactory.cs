@@ -241,7 +241,8 @@ public class PortalFactory : IPortalFactory
         if (!isValid)
             return (false, string.Join(" ", errors));
 
-        if (dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin
+        if (dto.IsActive
+            && dto.CustomerRoleId != CustomerRoles.Ids.FirmaAdmin
             && dto.CustomerRoleId != CustomerRoles.Ids.EkipLideri)
         {
             var customer = await _customerEs.GetByIdAsync(customerId);
@@ -270,7 +271,7 @@ public class PortalFactory : IPortalFactory
             PasswordHash = passwordHash,
             RoleId = UserRoles.Ids.CustomerUser,
             StatusId = AgentStatuses.Ids.Offline,
-            IsActive = true,
+            IsActive = dto.IsActive,
             PasswordChangedAt = DateTime.UtcNow
         };
         _userEs.Add(user);
@@ -290,7 +291,7 @@ public class PortalFactory : IPortalFactory
             OrganizationUnitId = dto.OrganizationUnitId,
             ReportsToPersonnelId = dto.ReportsToPersonnelId,
             BranchId = dto.BranchId,
-            IsActive = true,
+            IsActive = dto.IsActive,
             PublicVisible = dto.PublicVisible,
             PublicShowFullName = dto.PublicShowFullName,
             PublicShowPhoto = dto.PublicShowPhoto,
@@ -322,7 +323,7 @@ public class PortalFactory : IPortalFactory
                 ?? CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
             BranchId = personnelEntity.BranchId,
             SkillServiceIds = skillServiceIds,
-            IsActive = true
+            IsActive = personnelEntity.IsActive
         });
     }
 
