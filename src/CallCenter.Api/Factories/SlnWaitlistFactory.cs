@@ -105,6 +105,11 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         if (!validation.Success) return (false, validation.Error, null);
 
         var branchId = await ResolveBranchIdAsync(customerId, dto.PreferredPersonnelId, branchScopeId, dto.BranchId);
+        var preferredDate = ToDateOnlyUtc(dto.PreferredDate);
+        var duplicateExists = await ActiveDuplicateExistsAsync(customerId, dto.SlnClientId, dto.ServiceId, preferredDate);
+        if (duplicateExists)
+            return (false, "Bu tarih icin zaten aktif bekleme kaydi var", null);
+
         var entry = new SlnWaitlistEntry
         {
             CustomerId = customerId,
@@ -112,7 +117,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             SlnClientId = dto.SlnClientId,
             ServiceId = dto.ServiceId,
             PreferredPersonnelId = dto.PreferredPersonnelId,
-            PreferredDate = ToDateOnlyUtc(dto.PreferredDate),
+            PreferredDate = preferredDate,
             PreferredTimeSlot = dto.PreferredTimeSlot,
             Notes = dto.Notes,
             StatusId = SlnWaitlistStatuses.Ids.Waiting
@@ -144,6 +149,22 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
     private static DateTime ToDateOnlyUtc(DateTime value)
         => DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
+
+    private Task<bool> ActiveDuplicateExistsAsync(int customerId, int slnClientId, int serviceId, DateTime preferredDate)
+    {
+        var activeStatusIds = new[]
+        {
+            SlnWaitlistStatuses.Ids.Waiting,
+            SlnWaitlistStatuses.Ids.Notified,
+            SlnWaitlistStatuses.Ids.AppointmentBooked
+        };
+        return _waitlistEs.GetAllQueryable().AnyAsync(w =>
+            w.CustomerId == customerId &&
+            w.SlnClientId == slnClientId &&
+            w.ServiceId == serviceId &&
+            w.PreferredDate == preferredDate &&
+            activeStatusIds.Contains(w.StatusId));
+    }
 
     private async Task<(bool Success, string? Error)> ValidateLookupOwnershipAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId)
     {

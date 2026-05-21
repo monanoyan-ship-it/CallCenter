@@ -185,6 +185,24 @@ public class SlnWaitlistFactoryTests : IDisposable
         updatedDate.Should().Be(new DateTime(2026, 6, 21, 0, 0, 0, DateTimeKind.Utc));
     }
 
+    [Theory]
+    [InlineData(SlnWaitlistStatuses.Ids.Waiting, false)]
+    [InlineData(SlnWaitlistStatuses.Ids.Notified, false)]
+    [InlineData(SlnWaitlistStatuses.Ids.AppointmentBooked, false)]
+    [InlineData(SlnWaitlistStatuses.Ids.Cancelled, true)]
+    [InlineData(SlnWaitlistStatuses.Ids.Completed, true)]
+    public async Task CreateEntryAsync_PreventsOnlyActiveDuplicates(int existingStatusId, bool expectedSuccess)
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true, existingStatusId: existingStatusId);
+        var factory = CreateFactory();
+
+        var result = await factory.CreateEntryAsync(CreateDto(), 1);
+
+        result.Success.Should().Be(expectedSuccess);
+        if (!expectedSuccess)
+            result.Error.Should().Be("Bu tarih icin zaten aktif bekleme kaydi var");
+    }
+
     [Fact]
     public async Task UpdateEntryAsync_RejectsLookupIdsOutsideCustomer()
     {
@@ -240,7 +258,7 @@ public class SlnWaitlistFactoryTests : IDisposable
             PreferredDate = DateTime.UtcNow.Date
         };
 
-    private async Task SeedOwnershipLookupsAsync(bool includeEntry = false)
+    private async Task SeedOwnershipLookupsAsync(bool includeEntry = false, int existingStatusId = SlnWaitlistStatuses.Ids.Waiting)
     {
         _db.Customers.AddRange(
             new Customer { Id = 1, Uid = Guid.NewGuid(), Name = "Salon 1", IsActive = true, CreatedAt = DateTime.UtcNow },
@@ -270,7 +288,7 @@ public class SlnWaitlistFactoryTests : IDisposable
                 BranchId = 40,
                 PreferredPersonnelId = 50,
                 PreferredDate = DateTime.UtcNow.Date,
-                StatusId = SlnWaitlistStatuses.Ids.Waiting
+                StatusId = existingStatusId
             });
         }
 
