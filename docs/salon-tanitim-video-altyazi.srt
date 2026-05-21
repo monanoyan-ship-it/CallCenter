@@ -1,0 +1,43 @@
+1
+00:00:00,000 --> 00:00:05,500
+Randevular, müşteriler, satışlar ve stok farklı yerlerde durduğunda salonu yönetmek zorlaşır.
+
+2
+00:00:05,500 --> 00:00:10,000
+CorpLynk Salon, günlük operasyonunuzu tek panelde toplar.
+
+3
+00:00:10,000 --> 00:00:17,000
+Randevuları hizmet, personel ve şube bazında planlayın; durumları anlık takip edin.
+
+4
+00:00:17,000 --> 00:00:24,000
+Hizmet, ürün, paket ve hediye kartı satışlarını hızlıca tamamlayın.
+
+5
+00:00:24,000 --> 00:00:29,000
+Kasa ve adisyon kayıtları otomatik oluşsun.
+
+6
+00:00:29,000 --> 00:00:37,000
+Müşteri geçmişini, seans haklarını, notları ve onay formlarını düzenli tutun.
+
+7
+00:00:37,000 --> 00:00:44,000
+Public salon sayfanızla müşterileriniz online randevu alabilir.
+
+8
+00:00:44,000 --> 00:00:50,000
+Ödemelerini ve randevularını kendi panelinden takip edebilir.
+
+9
+00:00:50,000 --> 00:01:00,000
+Kampanya, üyelik, sadakat, yorum ve geri kazanım araçlarıyla müşterilerinizi tekrar salona çağırın.
+
+10
+00:01:00,000 --> 00:01:09,000
+CorpLynk Salon ile salonunuzu daha düzenli, ölçülebilir ve müşteriye daha yakın yönetin.
+
+11
+00:01:09,000 --> 00:01:12,000
+Demo için corplynk.com.

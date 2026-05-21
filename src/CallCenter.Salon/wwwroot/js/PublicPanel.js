@@ -47,12 +47,24 @@
             return myReviewsByCustomerId[customerId] || null;
         }
 
+        function parseJsonSafe(response) {
+            return response.text().then(function (text) {
+                var body = text == null ? '' : String(text).trim();
+                if (!body) return null;
+                try {
+                    return JSON.parse(body);
+                } catch (error) {
+                    return null;
+                }
+            });
+        }
+
         function api(path, opts) {
             opts = opts || {};
             opts.headers = Object.assign({ 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, opts.headers || {});
             return fetch('/public-proxy/' + path, opts).then(function(r) {
                 if (r.status === 401) { logout(); return; }
-                return r.json();
+                return parseJsonSafe(r);
             });
         }
 

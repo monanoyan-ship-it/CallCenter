@@ -136,8 +136,8 @@ function PricingPeriodsViewModel() {
                 data: JSON.stringify({ monthlyPrice: parseFloat(price) || 0 })
             }).done(function () {
                 toastr.success('Fiyat güncellendi', '', { timeOut: 1200 });
-            }).fail(function () {
-                toastr.error('Fiyat kaydedilemedi');
+            }).fail(function (xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Fiyat kaydedilemedi');
             });
         }, 400);
     };

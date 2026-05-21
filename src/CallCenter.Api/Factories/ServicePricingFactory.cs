@@ -9,6 +9,10 @@ namespace CallCenter.Api.Factories;
 
 public class ServicePricingFactory
 {
+    public const int CallCenterOperatorLicenseServiceId = 0;
+    public const decimal InitialCallCenterOperatorMonthlyPrice = 700m;
+    public const string CallCenterOperatorLicenseName = "Operator Lisansi";
+
     private readonly IServicePricingPeriodEntityService _periodEs;
     private readonly IServicePricingItemEntityService _itemEs;
     private readonly IModulePricingEntityService _modulePricingEs;
@@ -69,6 +73,37 @@ public class ServicePricingFactory
         return result;
     }
 
+    /// <summary>CallCenter tahakkuku icin operator basina aylik birim fiyat.</summary>
+    public async Task<decimal> GetActiveCallCenterOperatorUnitPriceAsync()
+    {
+        var (price, error) = await TryGetActiveCallCenterOperatorUnitPriceAsync();
+        if (!price.HasValue)
+            throw new InvalidOperationException(error ?? "CallCenter operator birim fiyati bulunamadi.");
+
+        return price.Value;
+    }
+
+    public async Task<(decimal? Price, string? Error)> TryGetActiveCallCenterOperatorUnitPriceAsync()
+    {
+        var activePeriod = await _periodEs.GetAllQueryable()
+            .Where(p => p.StatusId == 1)
+            .OrderByDescending(p => p.StartDate)
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync();
+
+        if (activePeriod == null)
+            return (null, "Aktif fiyat donemi bulunamadi. /Modules/PricingPeriods ekraninda bir fiyat donemi olusturup aktif edin.");
+
+        var operatorItem = FindCallCenterOperatorLicenseItem(activePeriod.Items);
+        if (operatorItem == null)
+            return (null, "Aktif fiyat doneminde Operator Lisansi satiri bulunamadi. /Modules/PricingPeriods ekranindaki fiyat donemini kontrol edin.");
+
+        if (operatorItem.MonthlyPrice <= 0m)
+            return (null, "Aktif fiyat donemindeki Operator Lisansi fiyati 0 veya negatif olamaz. /Modules/PricingPeriods ekranindan duzeltin.");
+
+        return (operatorItem.MonthlyPrice, null);
+    }
+
     private static bool IsLegacySalonPackagePlaceholder(int packageGroupId, decimal monthlyPrice)
     {
         var group = SalonModuleGroups.GetById(packageGroupId);
@@ -111,6 +146,8 @@ public class ServicePricingFactory
 
         if (period == null) return null;
 
+        var operatorItem = FindCallCenterOperatorLicenseItem(period.Items);
+
         var ccItems = period.Items.Where(i => i.ProductTypeId == PortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
         var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).OrderBy(i => i.ServiceId).ToList();
         var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue).OrderBy(i => i.PackageGroupId).ToList();
@@ -147,7 +184,7 @@ public class ServicePricingFactory
                 .ThenBy(t => t.MinBranches)
                 .Select(t => new { t.Id, t.MinBranches, t.MaxBranches, t.DiscountPercent, t.SortOrder })
                 .ToList(),
-            operatorUnitPrice = 0m // CC operatör birim fiyatı - TODO
+            operatorUnitPrice = operatorItem?.MonthlyPrice ?? 0m
         };
     }
 
@@ -194,6 +231,8 @@ public class ServicePricingFactory
                 });
             }
 
+            EnsureCallCenterOperatorLicenseItem(period);
+
             foreach (var t in previousPeriod.BranchDiscountTiers.OrderBy(t => t.SortOrder))
             {
                 period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
@@ -208,6 +247,8 @@ public class ServicePricingFactory
         else
         {
             // Ilk donem — TypeDefinition'lardan tum hizmetleri yukle (fiyat 0)
+            EnsureCallCenterOperatorLicenseItem(period);
+
             foreach (var svc in ServiceTypes.All.Where(s => !s.IsDefault))
             {
                 period.Items.Add(new ServicePricingItem
@@ -295,6 +336,10 @@ public class ServicePricingFactory
     {
         var item = await _itemEs.GetByIdAsync(itemId);
         if (item == null) return (false, "Kalem bulunamadı.");
+        if (newPrice < 0m) return (false, "Fiyat negatif olamaz.");
+        if (IsCallCenterOperatorLicenseItem(item) && newPrice <= 0m)
+            return (false, "Operator Lisansi fiyati 0 veya negatif olamaz.");
+
         item.MonthlyPrice = newPrice;
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -311,10 +356,16 @@ public class ServicePricingFactory
 
         foreach (var item in items)
         {
+            var nextPrice = adjustType == "percentage"
+                ? Math.Round(item.MonthlyPrice * (1 + value / 100), 2)
+                : Math.Max(0, item.MonthlyPrice + value);
+            if (IsCallCenterOperatorLicenseItem(item) && nextPrice <= 0m)
+                return (0, "Operator Lisansi fiyati 0 veya negatif olamaz.");
+
             if (adjustType == "percentage")
-                item.MonthlyPrice = Math.Round(item.MonthlyPrice * (1 + value / 100), 2);
+                item.MonthlyPrice = nextPrice;
             else
-                item.MonthlyPrice = Math.Max(0, item.MonthlyPrice + value);
+                item.MonthlyPrice = nextPrice;
         }
 
         await _uow.SaveChangesAsync();
@@ -323,11 +374,20 @@ public class ServicePricingFactory
 
     public async Task<(bool Success, string? Error)> ActivatePeriodAsync(int periodId)
     {
+        var period = await _periodEs.GetAllQueryable()
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync(p => p.Id == periodId);
+        if (period == null) return (false, "Donem bulunamadi.");
+        var operatorItem = FindCallCenterOperatorLicenseItem(period.Items);
+        if (operatorItem == null)
+            return (false, "Operator Lisansi satiri bulunamadi.");
+        if (operatorItem.MonthlyPrice <= 0m)
+            return (false, "Operator Lisansi fiyati 0 veya negatif olamaz.");
+
         // Mevcut aktif donemi gecmis yap
-        var currentActive = await _periodEs.GetAllQueryable().Where(p => p.StatusId == 1).ToListAsync();
+        var currentActive = await _periodEs.GetAllQueryable().Where(p => p.StatusId == 1 && p.Id != periodId).ToListAsync();
         foreach (var p in currentActive) p.StatusId = 2;
 
-        var period = await _periodEs.GetByIdAsync(periodId);
         if (period == null) return (false, "Dönem bulunamadı.");
         period.StatusId = 1;
 
@@ -349,6 +409,35 @@ public class ServicePricingFactory
 
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    private static bool IsCallCenterOperatorLicenseItem(ServicePricingItem item)
+        => item.ProductTypeId == PortalModules.ProductTypeId
+            && item.PackageGroupId == null
+            && item.ServiceId == CallCenterOperatorLicenseServiceId;
+
+    private static ServicePricingItem? FindCallCenterOperatorLicenseItem(IEnumerable<ServicePricingItem> items)
+        => items
+            .Where(IsCallCenterOperatorLicenseItem)
+            .OrderByDescending(i => i.Id)
+            .FirstOrDefault();
+
+    private static ServicePricingItem EnsureCallCenterOperatorLicenseItem(ServicePricingPeriod period)
+    {
+        var existing = FindCallCenterOperatorLicenseItem(period.Items);
+        if (existing != null)
+            return existing;
+
+        var item = new ServicePricingItem
+        {
+            ProductTypeId = PortalModules.ProductTypeId,
+            ServiceId = CallCenterOperatorLicenseServiceId,
+            ServiceName = CallCenterOperatorLicenseName,
+            MonthlyPrice = InitialCallCenterOperatorMonthlyPrice,
+            PreviousPrice = InitialCallCenterOperatorMonthlyPrice
+        };
+        period.Items.Add(item);
+        return item;
     }
 
     public async Task<(bool Success, string? Error)> DeletePeriodAsync(int periodId)

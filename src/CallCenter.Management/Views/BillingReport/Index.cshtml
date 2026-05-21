@@ -66,6 +66,7 @@
                                 <th class="text-end">Hizmet</th>
                                 <th class="text-end">Toplam</th>
                                 <th>Durum</th>
+                                <th style="width:72px;">Islem</th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: items">
@@ -84,6 +85,12 @@
                                         css: statusName === 'Odenmis' ? 'bg-success' :
                                              statusName === 'Faturalanmis' ? 'bg-info' :
                                              statusName === 'Gecikme' ? 'bg-danger' : 'bg-warning'"></span>
+                                </td>
+                                <td class="text-nowrap">
+                                    <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Tahakkuku Sil"
+                                        data-bind="visible: $parent.canDeletePeriod($data), click: function() { $parent.deletePeriod($data); }">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>

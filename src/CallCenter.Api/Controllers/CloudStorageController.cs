@@ -180,7 +180,7 @@ public class CloudStorageController : AuditableControllerBase
         if (!_googleDriveOAuth.IsConfigured)
             return BadRequest(new { error = "Google Drive OAuth yapilandirilmamis. appsettings'te GoogleDrive:ClientId/ClientSecret ayarlayin." });
 
-        var state = Guid.NewGuid().ToString("N");
+        var state = $"googledrive-{Guid.NewGuid():N}";
         var url = _googleDriveOAuth.GetAuthorizationUrl(state);
         return Ok(new GoogleDriveAuthUrlDto { AuthUrl = url, State = state });
     }

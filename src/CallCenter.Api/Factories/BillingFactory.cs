@@ -17,7 +17,9 @@ public class BillingFactory : IBillingFactory
     private readonly IServiceBillingItemEntityService _billingItemEs;
     private readonly ICustomerProductEntityService _customerProductEs;
     private readonly ICustomerBillingPeriodModuleLineEntityService _billingPeriodModuleLineEs;
+    private readonly IPaymentTransactionEntityService _paymentTransactionEs;
     private readonly ISubscriptionFactory _subscriptionFactory;
+    private readonly ServicePricingFactory _servicePricingFactory;
     private readonly IUnitOfWork _uow;
 
     public BillingFactory(
@@ -28,7 +30,9 @@ public class BillingFactory : IBillingFactory
         IServiceBillingItemEntityService billingItemEs,
         ICustomerProductEntityService customerProductEs,
         ICustomerBillingPeriodModuleLineEntityService billingPeriodModuleLineEs,
+        IPaymentTransactionEntityService paymentTransactionEs,
         ISubscriptionFactory subscriptionFactory,
+        ServicePricingFactory servicePricingFactory,
         IUnitOfWork uow)
     {
         _billingEs = billingEs;
@@ -38,7 +42,9 @@ public class BillingFactory : IBillingFactory
         _billingItemEs = billingItemEs;
         _customerProductEs = customerProductEs;
         _billingPeriodModuleLineEs = billingPeriodModuleLineEs;
+        _paymentTransactionEs = paymentTransactionEs;
         _subscriptionFactory = subscriptionFactory;
+        _servicePricingFactory = servicePricingFactory;
         _uow = uow;
     }
 
@@ -163,8 +169,18 @@ public class BillingFactory : IBillingFactory
         var period = await _billingEs.GetByIdAsync(periodId);
         if (period == null) return (false, "Faturalama donemi bulunamadi.");
 
-        if (period.IsPaid)
-            return (false, "Odemesi onaylanmis donem silinemez.");
+        if (period.StatusId != BillingPeriodStatuses.Ids.Draft
+            || period.IsPaid
+            || period.PaidAt.HasValue
+            || period.PaymentMethodId.HasValue)
+        {
+            return (false, "Sadece fatura/odeme islemi baslamamis tahakkuk silinebilir.");
+        }
+
+        var hasPaymentTransaction = await _paymentTransactionEs.GetAllQueryable()
+            .AnyAsync(t => t.BillingPeriodId == periodId);
+        if (hasPaymentTransaction)
+            return (false, "Bu tahakkuk icin odeme islemi olusturuldugu icin silinemez.");
 
         _billingEs.Remove(period);
         await _uow.SaveChangesAsync();
@@ -180,15 +196,8 @@ public class BillingFactory : IBillingFactory
 
         var activeCustomers = await _customerEs.GetAllQueryable()
             .Where(c => c.IsActive && !c.IsTest) // Test musterileri atla
-            .Select(c => new { c.Id, c.BillingAnchorDay, c.MaxUsers })
+            .Select(c => new { c.Id, c.BillingAnchorDay })
             .ToListAsync();
-
-        // Urun bazli fiyatlari topla
-        var productPrices = await _customerProductEs.GetAllQueryable()
-            .Where(cp => cp.IsActive)
-            .GroupBy(cp => cp.CustomerId)
-            .Select(g => new { CustomerId = g.Key, TotalMonthlyPrice = g.Sum(cp => cp.MonthlyPrice) })
-            .ToDictionaryAsync(x => x.CustomerId, x => x.TotalMonthlyPrice);
 
         var existingCustomerIds = await _billingEs.GetAllQueryable()
             .Where(b => b.Year == year && b.Month == month && b.BillingKindId == CustomerBillingKinds.CallCenter)
@@ -199,7 +208,6 @@ public class BillingFactory : IBillingFactory
         var activeSubscriptions = await _subscriptionEs.GetAllQueryable()
             .Where(s => s.StatusId == SubscriptionStatuses.Ids.Active && s.MonthlyPrice > 0)
             .ToListAsync();
-
         // CC donemi yalnizca CC urunu veya ucretli hizmet aboneligi olanlara:
         // Saf salon musterilerinde 0 TL CallCenter satiri + SalonPlatform tahakkuku ikili satir olusmasin.
         var customerIdsWithCcProduct = await _customerProductEs.GetAllQueryable()
@@ -210,6 +218,15 @@ public class BillingFactory : IBillingFactory
         var needsCallCenterBulk = new HashSet<int>(customerIdsWithCcProduct);
         foreach (var s in activeSubscriptions)
             needsCallCenterBulk.Add(s.CustomerId);
+
+        decimal operatorUnitPrice = 0m;
+        if (needsCallCenterBulk.Count > 0)
+        {
+            var (price, pricingError) = await _servicePricingFactory.TryGetActiveCallCenterOperatorUnitPriceAsync();
+            if (!price.HasValue)
+                return (0, 0, 0, pricingError);
+            operatorUnitPrice = price.Value;
+        }
 
         // Bu donem icin zaten olusturulmus hizmet faturalari
         var existingBillingItemKeys = await _billingItemEs.GetAllQueryable()
@@ -249,24 +266,15 @@ public class BillingFactory : IBillingFactory
             var endDay = Math.Min(startDay, daysInNextMonth);
             var periodEnd = new DateTime(nextYear, nextMonth, endDay, 0, 0, 0, DateTimeKind.Utc).AddDays(-1);
 
-            // MaxUsers > 0: izin verilen sayi uzerinden tahakkuk
-            // MaxUsers == 0: sinirsiz → aktif Operator sayisi uzerinden tahakkuk
-            int userCount;
-            if (customer.MaxUsers > 0)
-            {
-                userCount = customer.MaxUsers;
-            }
-            else
-            {
-                userCount = await _personnelEs.GetAllQueryable()
-                    .CountAsync(p => p.CustomerId == customer.Id && p.IsActive
-                        && p.CustomerRoleId == CustomerRoles.Ids.Operator);
-            }
+            // CallCenter tahakkuku aktif operator sayisina gore kesilir.
+            var userCount = await _personnelEs.GetAllQueryable()
+                .CountAsync(p => p.CustomerId == customer.Id && p.IsActive
+                    && p.CustomerRoleId == CustomerRoles.Ids.Operator);
 
             // Bu musterinin aktif ucretli hizmetleri
             var customerSubs = activeSubscriptions.Where(s => s.CustomerId == customer.Id).ToList();
             var serviceAmount = customerSubs.Sum(s => s.MonthlyPrice);
-            var productAmount = userCount * productPrices.GetValueOrDefault(customer.Id, 0m);
+            var productAmount = userCount * operatorUnitPrice;
             var totalAmount = productAmount + serviceAmount;
 
             // BUG2.12 fix: 0 TL tahakkuklar da kayit olustur, otomatik Paid isaretle ki salon panel engellenmesin
@@ -279,7 +287,7 @@ public class BillingFactory : IBillingFactory
                 PeriodStartDate = periodStart,
                 PeriodEndDate = periodEnd,
                 UserCount = userCount,
-                UnitPrice = productPrices.GetValueOrDefault(customer.Id, 0m),
+                UnitPrice = operatorUnitPrice,
                 Amount = productAmount,
                 ServiceAmount = serviceAmount,
                 StatusId = totalAmount <= 0 ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft,
@@ -386,24 +394,13 @@ public class BillingFactory : IBillingFactory
         var endDay = Math.Min(startDate.Day, daysInNextMonth);
         var periodEnd = new DateTime(nextYear, nextMonth, endDay, 0, 0, 0, DateTimeKind.Utc).AddDays(-1);
 
-        // MaxUsers > 0: izin verilen sayi uzerinden tahakkuk
-        // MaxUsers == 0: sinirsiz → aktif Operator sayisi uzerinden tahakkuk
-        int userCount;
-        if (customer.MaxUsers > 0)
-        {
-            userCount = customer.MaxUsers;
-        }
-        else
-        {
-            userCount = await _personnelEs.GetAllQueryable()
-                .CountAsync(p => p.CustomerId == dto.CustomerId && p.IsActive
-                    && p.CustomerRoleId == CustomerRoles.Ids.Operator);
-        }
-
-        // Urun bazli fiyatlari topla
-        var totalMonthlyPrice = await _customerProductEs.GetAllQueryable()
-            .Where(cp => cp.CustomerId == dto.CustomerId && cp.IsActive)
-            .SumAsync(cp => cp.MonthlyPrice);
+        // CallCenter tahakkuku aktif operator sayisina gore kesilir.
+        var userCount = await _personnelEs.GetAllQueryable()
+            .CountAsync(p => p.CustomerId == dto.CustomerId && p.IsActive
+                && p.CustomerRoleId == CustomerRoles.Ids.Operator);
+        var (operatorUnitPrice, pricingError) = await _servicePricingFactory.TryGetActiveCallCenterOperatorUnitPriceAsync();
+        if (!operatorUnitPrice.HasValue)
+            return (false, pricingError);
 
         // Aktif ucretli hizmetler
         var customerSubs = await _subscriptionEs.GetAllQueryable()
@@ -420,8 +417,8 @@ public class BillingFactory : IBillingFactory
             PeriodStartDate = new DateTime(year, month, startDate.Day, 0, 0, 0, DateTimeKind.Utc),
             PeriodEndDate = periodEnd,
             UserCount = userCount,
-            UnitPrice = totalMonthlyPrice,
-            Amount = userCount * totalMonthlyPrice,
+            UnitPrice = operatorUnitPrice.Value,
+            Amount = userCount * operatorUnitPrice.Value,
             ServiceAmount = serviceAmount,
             StatusId = BillingPeriodStatuses.Ids.Draft,
             IsPaid = false,
@@ -607,25 +604,29 @@ public class BillingFactory : IBillingFactory
             };
         }
 
-        var products = await _customerProductEs.GetAllQueryable()
-            .Where(cp => cp.CustomerId == customerId && cp.IsActive)
-            .OrderBy(cp => cp.ProductTypeId)
-            .ThenBy(cp => cp.Id)
-            .ToListAsync();
-
-        var productLines = products.Select(cp =>
+        var activeOperatorUnitPrice = 0m;
+        if (period.UnitPrice <= 0m && (period.UserCount <= 0 || period.Amount <= 0m))
         {
-            var label = ProductTypes.GetById(cp.ProductTypeId)?.Description ?? $"Urun #{cp.ProductTypeId}";
-            var lineAmt = Math.Round(period.UserCount * cp.MonthlyPrice, 2, MidpointRounding.AwayFromZero);
-            return new BillingTahakkukProductLineDto
+            var (price, _) = await _servicePricingFactory.TryGetActiveCallCenterOperatorUnitPriceAsync();
+            activeOperatorUnitPrice = price ?? 0m;
+        }
+
+        var operatorUnitPrice = period.UnitPrice > 0m
+            ? period.UnitPrice
+            : period.UserCount > 0
+                ? Math.Round(period.Amount / period.UserCount, 2, MidpointRounding.AwayFromZero)
+                : activeOperatorUnitPrice;
+        var productLines = new List<BillingTahakkukProductLineDto>();
+        if (period.UserCount > 0 || period.Amount > 0m)
+        {
+            productLines.Add(new BillingTahakkukProductLineDto
             {
-                CustomerProductId = cp.Id,
-                ProductTypeId = cp.ProductTypeId,
-                ProductLabel = label,
-                MonthlyUnitPrice = cp.MonthlyPrice,
-                LineAmount = lineAmt
-            };
-        }).ToList();
+                ProductTypeId = ProductTypes.Ids.CallCenter,
+                ProductLabel = ServicePricingFactory.CallCenterOperatorLicenseName,
+                MonthlyUnitPrice = operatorUnitPrice,
+                LineAmount = period.Amount
+            });
+        }
 
         var items = await _billingItemEs.GetAllQueryable()
             .Include(bi => bi.CustomerServiceSubscription)
@@ -644,8 +645,6 @@ public class BillingFactory : IBillingFactory
             };
         }).ToList();
 
-        var unitSum = products.Sum(p => p.MonthlyPrice);
-
         return new BillingTahakkukDetailDto
         {
             PeriodId = period.Id,
@@ -657,7 +656,7 @@ public class BillingFactory : IBillingFactory
             PeriodStartDate = period.PeriodStartDate,
             PeriodEndDate = period.PeriodEndDate,
             UserCount = period.UserCount,
-            UnitPriceSum = unitSum,
+            UnitPriceSum = operatorUnitPrice,
             OperatorAmount = period.Amount,
             ServiceAmount = period.ServiceAmount,
             ProductLines = productLines,

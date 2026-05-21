@@ -58,6 +58,36 @@ function BillingReportViewModel() {
         }).fail(function() { toastr.error('Guncelleme hatasi.'); });
     };
 
+    self.canDeletePeriod = function(item) {
+        return item
+            && item.statusId === 1
+            && !item.isPaid
+            && !item.paidAt
+            && !item.paymentMethodId
+            && !item.paymentMethodName;
+    };
+
+    self.deletePeriod = function(item) {
+        if (!self.canDeletePeriod(item)) {
+            toastr.warning('Sadece islem gormemis tahakkuk silinebilir.');
+            return;
+        }
+
+        var message = (item.customerName || 'Firma') + ' icin ' + (item.month || '-') + '/' + (item.year || '-') +
+            ' donemi tahakkuku silinsin mi?';
+        confirmModal('Tahakkuk Silme', message, function() {
+            $.ajax({
+                url: '/proxy/customers/billing/' + item.periodId,
+                method: 'DELETE'
+            }).done(function() {
+                toastr.success('Tahakkuk silindi.');
+                self.loadData();
+            }).fail(function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Tahakkuk silinemedi.');
+            });
+        }, { confirmClass: 'btn-danger', confirmText: 'Sil' });
+    };
+
     self.bulkInvoice = function() { self.bulkUpdate(2, false); };
     self.bulkPaid = function() { self.bulkUpdate(3, true); };
 

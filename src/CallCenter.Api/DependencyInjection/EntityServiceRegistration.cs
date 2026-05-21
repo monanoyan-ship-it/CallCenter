@@ -152,6 +152,7 @@ public static class EntityServiceRegistration
 
         // Payment
         services.AddScoped<IPlatformPaymentConfigEntityService, PlatformPaymentConfigEntityService>();
+        services.AddScoped<IPaymentTransactionEntityService, PaymentTransactionEntityService>();
 
         // Platform
         services.AddScoped<IPlatformUserEntityService, PlatformUserEntityService>();

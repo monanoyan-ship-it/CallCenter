@@ -13,7 +13,9 @@ public class CustomerProduct
     /// <summary>ProductTypes.Ids.CallCenter (1) veya ProductTypes.Ids.Salon (2)</summary>
     public int ProductTypeId { get; set; }
 
-    /// <summary>Bu urun icin aylik birim fiyat</summary>
+    /// <summary>
+    /// Yonetim ekranindaki bilgi/sozlesme fiyati. CallCenter tahakkukunda birim fiyat olarak kullanilmaz.
+    /// </summary>
     public decimal MonthlyPrice { get; set; }
 
     public bool IsActive { get; set; } = true;

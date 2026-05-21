@@ -32,7 +32,7 @@ public class GmailOAuthService
         var scopes = Uri.EscapeDataString(Scopes);
         return $"https://accounts.google.com/o/oauth2/v2/auth" +
                $"?client_id={_clientId}&response_type=code&redirect_uri={redirectUri}" +
-               $"&scope={scopes}&state={state}&access_type=offline&prompt=consent";
+               $"&scope={scopes}&state={state}&access_type=offline&prompt=consent%20select_account";
     }
 
     public async Task<GmailTokenResponse?> ExchangeCodeAsync(string code)

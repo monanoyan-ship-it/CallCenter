@@ -36,7 +36,7 @@ public class ServicePricingController : ControllerBase
     public async Task<ActionResult> UpdateItemPrice(int itemId, [FromBody] UpdatePriceRequest request)
     {
         var (s, e) = await _factory.UpdateItemPriceAsync(itemId, request.MonthlyPrice);
-        return s ? Ok() : BadRequest(new { message = e });
+        return s ? Ok(new { success = true }) : BadRequest(new { message = e });
     }
 
     [HttpPost("periods/{periodId}/bulk-adjust")]
@@ -50,21 +50,21 @@ public class ServicePricingController : ControllerBase
     public async Task<ActionResult> ActivatePeriod(int periodId)
     {
         var (s, e) = await _factory.ActivatePeriodAsync(periodId);
-        return s ? Ok() : BadRequest(new { message = e });
+        return s ? Ok(new { success = true }) : BadRequest(new { message = e });
     }
 
     [HttpPut("periods/{periodId}/branch-discount-tiers")]
     public async Task<ActionResult> ReplaceBranchDiscountTiers(int periodId, [FromBody] ReplaceBranchDiscountTiersRequest request)
     {
         var (s, e) = await _factory.ReplaceBranchDiscountTiersAsync(periodId, request.Tiers ?? []);
-        return s ? Ok() : BadRequest(new { message = e });
+        return s ? Ok(new { success = true }) : BadRequest(new { message = e });
     }
 
     [HttpDelete("periods/{periodId}")]
     public async Task<ActionResult> DeletePeriod(int periodId)
     {
         var (s, e) = await _factory.DeletePeriodAsync(periodId);
-        return s ? Ok() : BadRequest(new { message = e });
+        return s ? Ok(new { success = true }) : BadRequest(new { message = e });
     }
 }
 

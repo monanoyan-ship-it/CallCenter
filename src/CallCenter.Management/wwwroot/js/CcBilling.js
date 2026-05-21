@@ -80,6 +80,38 @@ function CcBillingViewModel() {
         });
     };
 
+    self.canDeletePeriod = function(item) {
+        return item
+            && item.statusId === 1
+            && !item.isPaid
+            && !item.paidAt
+            && !item.paymentMethodId
+            && !item.paymentMethodName;
+    };
+
+    self.deletePeriod = function(item) {
+        if (!self.canDeletePeriod(item)) {
+            toastr.warning('Sadece islem gormemis tahakkuk silinebilir.');
+            return;
+        }
+
+        var title = 'Tahakkuk Silme';
+        var message = (item.customerName || 'Firma') + ' icin ' + (item.month || '-') + '/' + (item.year || '-') +
+            ' donemi tahakkuku silinsin mi?';
+
+        confirmModal(title, message, function() {
+            $.ajax({
+                url: '/proxy/customers/billing/' + item.periodId,
+                method: 'DELETE'
+            }).done(function() {
+                toastr.success('Tahakkuk silindi.');
+                self.loadData();
+            }).fail(function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Tahakkuk silinemedi.');
+            });
+        }, { confirmClass: 'btn-danger', confirmText: 'Sil' });
+    };
+
     // Tekil Fatura Kes
     self.singleInvoice = function(periodId) {
         self.updatePeriod(periodId, { statusId: 2, isPaid: false }).done(function() {

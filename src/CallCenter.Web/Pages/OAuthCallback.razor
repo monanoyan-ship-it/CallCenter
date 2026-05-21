@@ -25,7 +25,7 @@
 
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var provider = query["provider"] ?? "";
+        var provider = query["provider"] ?? InferProvider(query["state"]);
         var code = query["code"];
         var error = query["error"];
 
@@ -39,5 +39,16 @@
             await JS.InvokeVoidAsync("postOAuthResult", provider, null, errorMsg);
             StateHasChanged();
         }
+    }
+
+    private static string InferProvider(string? state)
+    {
+        if (string.IsNullOrWhiteSpace(state))
+            return "";
+
+        if (state.StartsWith("googledrive-", StringComparison.OrdinalIgnoreCase))
+            return "googledrive";
+
+        return "";
     }
 }
