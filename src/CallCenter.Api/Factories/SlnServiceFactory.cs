@@ -154,7 +154,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         return (await GetServicesAsync(customerId)).First(s => s.Id == service.Id);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateServiceAsync(int serviceId, SlnServiceCreateDto dto, bool isActive, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateServiceAsync(int serviceId, SlnServiceCreateDto dto, bool? isActive, int customerId)
     {
         var service = await _services.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == customerId);
@@ -173,7 +173,8 @@ public class SlnServiceFactory : ISlnServiceFactory
         service.RequiresConsultation = dto.RequiresConsultation;
         service.RequiresPatchTest = dto.RequiresPatchTest;
         service.PrerequisiteNotes = dto.PrerequisiteNotes;
-        service.IsActive = isActive;
+        if (isActive.HasValue)
+            service.IsActive = isActive.Value;
 
         await SyncRequirementsAsync(service.Id, dto.ResourceRequirements, customerId);
         await _uow.SaveChangesAsync();

@@ -246,5 +246,5 @@ public class SlnServiceUpdateRequest
     public bool RequiresPatchTest { get; set; }
     public string? PrerequisiteNotes { get; set; }
     public List<SlnServiceResourceRequirementCreateDto> ResourceRequirements { get; set; } = [];
-    public bool IsActive { get; set; } = true;
+    public bool? IsActive { get; set; }
 }
