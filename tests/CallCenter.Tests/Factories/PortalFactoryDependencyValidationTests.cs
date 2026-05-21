@@ -96,6 +96,39 @@ public class PortalFactoryDependencyValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task CreatePersonnelAsync_PreservesPublicVisibilityAndWorkingHoursContract()
+    {
+        await SeedCustomersAsync();
+        var factory = CreateFactory();
+        var dto = CreateDto();
+        dto.PublicVisible = false;
+        dto.PublicShowFullName = false;
+        dto.PublicShowPhoto = false;
+        dto.PublicShowTitle = false;
+        dto.PublicShowSpecialty = false;
+        dto.WorkingHoursJson = "{\"mon\":\"10:00-18:00\",\"sun\":\"closed\"}";
+
+        var result = await factory.CreatePersonnelAsync(1, dto, createdByUserId: 99);
+
+        var created = result.Result.Should().BeOfType<PortalPersonnelListDto>().Which;
+        var user = await _db.Users.AsNoTracking().SingleAsync(u => u.UserName == "new-user");
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.UserId == user.Id);
+        result.Success.Should().BeTrue();
+        created.PublicVisible.Should().BeFalse();
+        created.PublicShowFullName.Should().BeFalse();
+        created.PublicShowPhoto.Should().BeFalse();
+        created.PublicShowTitle.Should().BeFalse();
+        created.PublicShowSpecialty.Should().BeFalse();
+        created.WorkingHoursJson.Should().Be(dto.WorkingHoursJson);
+        personnel.PublicVisible.Should().BeFalse();
+        personnel.PublicShowFullName.Should().BeFalse();
+        personnel.PublicShowPhoto.Should().BeFalse();
+        personnel.PublicShowTitle.Should().BeFalse();
+        personnel.PublicShowSpecialty.Should().BeFalse();
+        personnel.WorkingHoursJson.Should().Be(dto.WorkingHoursJson);
+    }
+
+    [Fact]
     public async Task UpdatePersonnelAsync_RejectsReportsToOutsideCustomerWithoutMutating()
     {
         await SeedPersonnelAsync();
@@ -197,6 +230,31 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
         result.Success.Should().BeTrue();
         personnel.Title.Should().Be("Kuaför");
+    }
+
+    [Fact]
+    public async Task UpdatePersonnelAsync_PreservesPublicVisibilityAndWorkingHoursContract()
+    {
+        await SeedPersonnelAsync();
+        var factory = CreateFactory();
+        var dto = UpdateDto();
+        dto.PublicVisible = false;
+        dto.PublicShowFullName = false;
+        dto.PublicShowPhoto = false;
+        dto.PublicShowTitle = false;
+        dto.PublicShowSpecialty = false;
+        dto.WorkingHoursJson = "{\"mon\":\"10:00-18:00\",\"sun\":\"closed\"}";
+
+        var result = await factory.UpdatePersonnelAsync(1, 20, dto);
+
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
+        result.Success.Should().BeTrue();
+        personnel.PublicVisible.Should().BeFalse();
+        personnel.PublicShowFullName.Should().BeFalse();
+        personnel.PublicShowPhoto.Should().BeFalse();
+        personnel.PublicShowTitle.Should().BeFalse();
+        personnel.PublicShowSpecialty.Should().BeFalse();
+        personnel.WorkingHoursJson.Should().Be(dto.WorkingHoursJson);
     }
 
     [Fact]

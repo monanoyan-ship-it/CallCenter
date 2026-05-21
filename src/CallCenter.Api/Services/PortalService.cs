@@ -171,7 +171,13 @@ public class PortalService : IPortalService
             IsCustomerAdmin = isAdmin,
             OrganizationUnitId = dto.OrganizationUnitId,
             ReportsToPersonnelId = dto.ReportsToPersonnelId,
-            IsActive = dto.IsActive
+            IsActive = dto.IsActive,
+            PublicVisible = dto.PublicVisible,
+            PublicShowFullName = dto.PublicShowFullName,
+            PublicShowPhoto = dto.PublicShowPhoto,
+            PublicShowTitle = dto.PublicShowTitle,
+            PublicShowSpecialty = dto.PublicShowSpecialty,
+            WorkingHoursJson = dto.WorkingHoursJson
         };
         _db.CustomerPersonnel.Add(personnel);
         await _db.SaveChangesAsync();
@@ -185,7 +191,13 @@ public class PortalService : IPortalService
             Title = personnel.Title,
             CustomerRoleId = personnel.CustomerRoleId,
             CustomerRoleName = CustomerRoles.GetById(personnel.CustomerRoleId)?.Description,
-            IsActive = personnel.IsActive
+            IsActive = personnel.IsActive,
+            PublicVisible = personnel.PublicVisible,
+            PublicShowFullName = personnel.PublicShowFullName,
+            PublicShowPhoto = personnel.PublicShowPhoto,
+            PublicShowTitle = personnel.PublicShowTitle,
+            PublicShowSpecialty = personnel.PublicShowSpecialty,
+            WorkingHoursJson = personnel.WorkingHoursJson
         });
     }
 

@@ -323,7 +323,13 @@ public class PortalFactory : IPortalFactory
                 ?? CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
             BranchId = personnelEntity.BranchId,
             SkillServiceIds = skillServiceIds,
-            IsActive = personnelEntity.IsActive
+            IsActive = personnelEntity.IsActive,
+            PublicVisible = personnelEntity.PublicVisible,
+            PublicShowFullName = personnelEntity.PublicShowFullName,
+            PublicShowPhoto = personnelEntity.PublicShowPhoto,
+            PublicShowTitle = personnelEntity.PublicShowTitle,
+            PublicShowSpecialty = personnelEntity.PublicShowSpecialty,
+            WorkingHoursJson = personnelEntity.WorkingHoursJson
         });
     }
 
