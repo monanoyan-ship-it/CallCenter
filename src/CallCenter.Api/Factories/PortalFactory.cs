@@ -379,8 +379,8 @@ public class PortalFactory : IPortalFactory
         personnel.User.IsActive = dto.IsActive;
         personnel.IsActive = dto.IsActive;
 
-        if (!string.IsNullOrWhiteSpace(dto.Title))
-            personnel.Title = dto.Title;
+        if (dto.Title != null)
+            personnel.Title = dto.Title.Trim();
 
         if (!string.IsNullOrWhiteSpace(dto.Password))
         {

@@ -132,6 +132,32 @@ public class PortalFactoryDependencyValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdatePersonnelAsync_AllowsClearingTitleWithBlankValue()
+    {
+        await SeedPersonnelAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.UpdatePersonnelAsync(1, 20, UpdateDto(title: ""));
+
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
+        result.Success.Should().BeTrue();
+        personnel.Title.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UpdatePersonnelAsync_PreservesTitleWhenOmitted()
+    {
+        await SeedPersonnelAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.UpdatePersonnelAsync(1, 20, UpdateDto(title: null));
+
+        var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
+        result.Success.Should().BeTrue();
+        personnel.Title.Should().Be("Kuaför");
+    }
+
+    [Fact]
     public async Task UpdatePersonnelLeaveStatusAsync_RejectsBranchManagerOutsideBranch()
     {
         await SeedPersonnelAsync();
@@ -275,13 +301,14 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         };
 
     private static PortalPersonnelUpdateDto UpdateDto(
+        string? title = "Kuaför",
         int? reportsToPersonnelId = null,
         List<int>? skillServiceIds = null)
         => new()
         {
             FullName = "Ali Veli",
             Email = "ali@example.com",
-            Title = "Kuaför",
+            Title = title,
             CustomerRoleId = SalonRoles.Ids.Hairdresser,
             IsActive = true,
             ReportsToPersonnelId = reportsToPersonnelId,
