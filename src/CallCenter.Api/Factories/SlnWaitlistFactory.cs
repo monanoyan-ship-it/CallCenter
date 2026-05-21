@@ -12,6 +12,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 {
     private readonly ISlnWaitlistEntryEntityService _waitlistEs;
     private readonly ISlnClientEntityService _clients;
+    private readonly ISlnAppointmentFactory _appointments;
     private readonly ISlnServiceEntityService _services;
     private readonly ISlnBranchEntityService _branches;
     private readonly ICustomerPersonnelEntityService _personnel;
@@ -20,6 +21,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
     public SlnWaitlistFactory(
         ISlnWaitlistEntryEntityService waitlistEs,
         ISlnClientEntityService clients,
+        ISlnAppointmentFactory appointments,
         ISlnServiceEntityService services,
         ISlnBranchEntityService branches,
         ICustomerPersonnelEntityService personnel,
@@ -27,6 +29,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
     {
         _waitlistEs = waitlistEs;
         _clients = clients;
+        _appointments = appointments;
         _services = services;
         _branches = branches;
         _personnel = personnel;
@@ -95,6 +98,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             .Include(w => w.SlnClient)
             .Include(w => w.Service)
             .Include(w => w.PreferredPersonnel).ThenInclude(p => p!.User)
+            .Include(w => w.Branch)
             .FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         return entry != null ? MapToDto(entry) : null;
     }
@@ -251,6 +255,64 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error, SlnWaitlistConversionDto? Result)> ConvertToAppointmentAsync(int id, SlnWaitlistConvertToAppointmentDto dto, int userId, int customerId, int? branchScopeId = null)
+    {
+        if (dto.PersonnelId <= 0)
+            return (false, "Personel zorunludur", null);
+        if (dto.StartTime == default)
+            return (false, "Randevu zamani zorunludur", null);
+        if (branchScopeId.HasValue && dto.BranchId.HasValue && dto.BranchId.Value != branchScopeId.Value)
+            return (false, "Bu sube icin yetkiniz yok", null);
+
+        await using var tx = await _uow.BeginTransactionAsync();
+
+        var entry = await _waitlistEs.GetAllQueryable()
+            .Include(w => w.SlnClient)
+            .Include(w => w.Service)
+            .Include(w => w.Branch)
+            .Include(w => w.PreferredPersonnel).ThenInclude(p => p!.User)
+            .FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
+
+        if (entry == null)
+            return (false, "Kayit bulunamadi", null);
+        if (branchScopeId.HasValue && entry.BranchId.HasValue && entry.BranchId.Value != branchScopeId.Value)
+            return (false, "Bu kayit icin yetkiniz yok", null);
+        if (entry.SlnAppointmentId.HasValue)
+            return (false, "Bu bekleme kaydi zaten bir randevuya bagli", null);
+        if (!SlnWaitlistStatuses.CanTransition(entry.StatusId, SlnWaitlistStatuses.Ids.AppointmentBooked))
+            return (false, "Bu bekleme listesi durum gecisi yapilamaz", null);
+
+        var appointmentDto = new SlnAppointmentCreateDto
+        {
+            SlnClientId = entry.SlnClientId,
+            PersonnelId = dto.PersonnelId,
+            BranchId = dto.BranchId ?? entry.BranchId,
+            ServiceIds = [entry.ServiceId],
+            StartTime = dto.StartTime,
+            Notes = string.IsNullOrWhiteSpace(dto.Notes) ? entry.Notes : dto.Notes
+        };
+
+        var (appointment, error) = await _appointments.CreateAppointmentAsync(
+            appointmentDto,
+            userId,
+            customerId,
+            branchScopeId);
+        if (appointment == null)
+            return (false, error ?? "Randevu olusturulamadi", null);
+
+        entry.StatusId = SlnWaitlistStatuses.Ids.AppointmentBooked;
+        entry.SlnAppointmentId = appointment.Id;
+        await _uow.SaveChangesAsync();
+        await tx.CommitAsync();
+
+        var waitlistEntry = await GetEntryAsync(entry.Id, customerId) ?? MapToDto(entry);
+        return (true, null, new SlnWaitlistConversionDto
+        {
+            WaitlistEntry = waitlistEntry,
+            Appointment = appointment
+        });
+    }
+
     public async Task<(bool Success, string? Error)> DeleteEntryAsync(int id, int customerId)
     {
         var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
@@ -285,6 +347,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             StatusTranslationKey = status?.NameResourceKey ?? "",
             StatusCssClass = status?.CssClass ?? "bg-secondary",
             IsActive = SlnWaitlistStatuses.IsActive(w.StatusId),
+            SlnAppointmentId = w.SlnAppointmentId,
             IsArchived = SlnWaitlistStatuses.IsArchived(w.StatusId),
             IsTerminal = SlnWaitlistStatuses.IsTerminal(w.StatusId),
             NotifiedAt = w.NotifiedAt,

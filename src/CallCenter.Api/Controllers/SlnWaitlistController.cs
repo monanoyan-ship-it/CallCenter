@@ -68,6 +68,18 @@ public class SlnWaitlistController : ControllerBase
         return success ? Ok() : BadRequest(error);
     }
 
+    [HttpPost("{id}/convert")]
+    public async Task<ActionResult<SlnWaitlistConversionDto>> ConvertToAppointment(int id, [FromBody] SlnWaitlistConvertToAppointmentDto dto, [FromQuery] int? branchId)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        dto.BranchId ??= branchId;
+        var (success, error, result) = await _factory.ConvertToAppointmentAsync(id, dto, userId, customerId, GetBranchScopeId());
+        return success ? Ok(result) : BadRequest(error);
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteEntry(int id)
     {
@@ -85,6 +97,9 @@ public class SlnWaitlistController : ControllerBase
         if (customerId == 0) return Unauthorized();
         return Ok(await _factory.NormalizeBranchesAsync(customerId));
     }
+
+    private int GetUserId()
+        => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");

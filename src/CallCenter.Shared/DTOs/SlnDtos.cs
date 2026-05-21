@@ -1554,6 +1554,7 @@ public class SlnWaitlistEntryDto
     public string StatusTranslationKey { get; set; } = string.Empty;
     public string StatusCssClass { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public int? SlnAppointmentId { get; set; }
     public bool IsArchived { get; set; }
     public bool IsTerminal { get; set; }
     public DateTime? NotifiedAt { get; set; }
@@ -1573,6 +1574,20 @@ public class SlnWaitlistEntryCreateDto
 
 public class SlnWaitlistEntryUpdateDto : SlnWaitlistEntryCreateDto
 {
+}
+
+public class SlnWaitlistConvertToAppointmentDto
+{
+    public int PersonnelId { get; set; }
+    public int? BranchId { get; set; }
+    public DateTime StartTime { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnWaitlistConversionDto
+{
+    public SlnWaitlistEntryDto WaitlistEntry { get; set; } = new();
+    public SlnAppointmentDto Appointment { get; set; } = new();
 }
 
 // ═══ SlnEmailCampaign (C5) ═══

@@ -1,11 +1,13 @@
 using CallCenter.Api.EntityServices;
 using CallCenter.Api.Factories;
+using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace CallCenter.Tests.Factories;
 
@@ -17,6 +19,7 @@ public class SlnWaitlistFactoryTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         _db = new AppDbContext(options);
@@ -221,10 +224,53 @@ public class SlnWaitlistFactoryTests : IDisposable
         branchResult.Error.Should().Be("Sube bulunamadi");
     }
 
-    private SlnWaitlistFactory CreateFactory()
+    [Fact]
+    public async Task ConvertToAppointmentAsync_CreatesAppointmentAndLinksWaitlistEntry()
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true);
+        var appointmentFactory = Substitute.For<ISlnAppointmentFactory>();
+        appointmentFactory
+            .CreateAppointmentAsync(
+                Arg.Any<SlnAppointmentCreateDto>(),
+                7,
+                1,
+                null)
+            .Returns((new SlnAppointmentDto
+            {
+                Id = 900,
+                SlnClientId = 20,
+                ClientName = "Client 1",
+                PersonnelId = 50,
+                PersonnelName = "Staff 1",
+                ServiceIds = [30],
+                ServiceNames = ["Service 1"],
+                StartTime = new DateTime(2026, 5, 21, 10, 0, 0, DateTimeKind.Utc),
+                EndTime = new DateTime(2026, 5, 21, 10, 30, 0, DateTimeKind.Utc),
+                StatusId = 1
+            }, null));
+        var factory = CreateFactory(appointmentFactory);
+
+        var result = await factory.ConvertToAppointmentAsync(10, new SlnWaitlistConvertToAppointmentDto
+        {
+            PersonnelId = 50,
+            BranchId = 40,
+            StartTime = new DateTime(2026, 5, 21, 10, 0, 0, DateTimeKind.Utc),
+            Notes = "Donustur"
+        }, 7, 1);
+
+        result.Success.Should().BeTrue();
+        result.Result!.Appointment.Id.Should().Be(900);
+        result.Result.WaitlistEntry.SlnAppointmentId.Should().Be(900);
+        var entry = await _db.SlnWaitlistEntries.AsNoTracking().SingleAsync(w => w.Id == 10);
+        entry.StatusId.Should().Be(SlnWaitlistStatuses.Ids.AppointmentBooked);
+        entry.SlnAppointmentId.Should().Be(900);
+    }
+
+    private SlnWaitlistFactory CreateFactory(ISlnAppointmentFactory? appointmentFactory = null)
         => new(
             new SlnWaitlistEntryEntityService(_db),
             new SlnClientEntityService(_db),
+            appointmentFactory ?? Substitute.For<ISlnAppointmentFactory>(),
             new SlnServiceEntityService(_db),
             new SlnBranchEntityService(_db),
             new CustomerPersonnelEntityService(_db),

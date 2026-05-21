@@ -28,6 +28,9 @@ public class SlnWaitlistEntry
     /// <summary>SlnWaitlistStatuses yasam dongusu.</summary>
     public int StatusId { get; set; } = SlnWaitlistStatuses.Ids.Waiting;
 
+    public int? SlnAppointmentId { get; set; }
+    public SlnAppointment? SlnAppointment { get; set; }
+
     public DateTime? NotifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
