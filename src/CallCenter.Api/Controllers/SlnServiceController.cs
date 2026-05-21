@@ -191,10 +191,15 @@ public class SlnServiceController : ControllerBase
             RequiresConsultation = req.RequiresConsultation,
             RequiresPatchTest = req.RequiresPatchTest,
             PrerequisiteNotes = req.PrerequisiteNotes,
-            ResourceRequirements = req.ResourceRequirements
+            ResourceRequirements = req.ResourceRequirements ?? []
         };
 
-        var (success, error) = await _serviceFactory.UpdateServiceAsync(id, dto, req.IsActive, customerId);
+        var (success, error) = await _serviceFactory.UpdateServiceAsync(
+            id,
+            dto,
+            req.IsActive,
+            customerId,
+            syncResourceRequirements: req.ResourceRequirements != null);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -245,6 +250,6 @@ public class SlnServiceUpdateRequest
     public bool RequiresConsultation { get; set; }
     public bool RequiresPatchTest { get; set; }
     public string? PrerequisiteNotes { get; set; }
-    public List<SlnServiceResourceRequirementCreateDto> ResourceRequirements { get; set; } = [];
+    public List<SlnServiceResourceRequirementCreateDto>? ResourceRequirements { get; set; }
     public bool? IsActive { get; set; }
 }
