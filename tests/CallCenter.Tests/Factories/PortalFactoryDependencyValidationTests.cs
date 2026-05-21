@@ -355,6 +355,59 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         ops.Payrolls.Select(p => $"{p.Year}-{p.Month}").Should().Equal("2026-6", "2026-5");
     }
 
+    [Fact]
+    public async Task CreatePersonnelAdvanceAsync_RejectsFinalizedPayrollPeriod()
+    {
+        await SeedPersonnelAsync();
+        _db.SlnPayrolls.Add(new SlnPayroll
+        {
+            Id = 60,
+            PersonnelId = 20,
+            Year = 2026,
+            Month = 5,
+            IsFinalized = true,
+            NetPay = 1000
+        });
+        await _db.SaveChangesAsync();
+        var factory = CreateFactory(useRealOps: true);
+
+        var result = await factory.CreatePersonnelAdvanceAsync(
+            1,
+            new PortalAdvanceCreateDto
+            {
+                PersonnelId = 20,
+                Amount = 250,
+                AdvanceDate = new DateTime(2026, 5, 21)
+            });
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Kesinlesmis bordro donemine avans eklenemez.");
+        (await _db.SlnAdvances.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreatePersonnelAdvanceAsync_CreatesDateOnlyAdvanceForOpenPeriod()
+    {
+        await SeedPersonnelAsync();
+        var factory = CreateFactory(useRealOps: true);
+
+        var result = await factory.CreatePersonnelAdvanceAsync(
+            1,
+            new PortalAdvanceCreateDto
+            {
+                PersonnelId = 20,
+                Amount = 250,
+                AdvanceDate = new DateTime(2026, 5, 21, 14, 30, 0),
+                Notes = "May advance"
+            });
+
+        var advance = await _db.SlnAdvances.AsNoTracking().SingleAsync();
+        result.Success.Should().BeTrue();
+        advance.Amount.Should().Be(250);
+        advance.AdvanceDate.Should().Be(new DateTime(2026, 5, 21));
+        advance.Notes.Should().Be("May advance");
+    }
+
     private async Task SeedCustomersAsync()
     {
         _db.Customers.AddRange(

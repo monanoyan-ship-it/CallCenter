@@ -844,11 +844,20 @@ public class PortalFactory : IPortalFactory
         var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
         if (personnel == null) return (false, "Personel bulunamadi.");
         if (dto.Amount <= 0) return (false, "Avans tutari sifirdan buyuk olmalidir.");
+        var advanceDate = dto.AdvanceDate.Date;
+        var finalizedPayrollExists = await _payrollEs.GetAllQueryable()
+            .AnyAsync(p => p.PersonnelId == dto.PersonnelId
+                && p.Year == advanceDate.Year
+                && p.Month == advanceDate.Month
+                && p.IsFinalized);
+        if (finalizedPayrollExists)
+            return (false, "Kesinlesmis bordro donemine avans eklenemez.");
+
         _advanceEs.Add(new SlnAdvance
         {
             PersonnelId = dto.PersonnelId,
             Amount = dto.Amount,
-            AdvanceDate = dto.AdvanceDate.Date,
+            AdvanceDate = advanceDate,
             Notes = dto.Notes
         });
         await _uow.SaveChangesAsync();
