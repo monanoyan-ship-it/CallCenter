@@ -33,7 +33,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null, string? scope = null)
+    public async Task<List<SlnWaitlistEntryDto>> GetEntriesAsync(int customerId, DateTime? date = null, int? branchId = null, string? scope = null, string? search = null)
     {
         var normalizedScope = SlnWaitlistStatuses.NormalizeScope(scope) ?? SlnWaitlistStatuses.ScopeAll;
         var query = _waitlistEs.GetAllQueryable()
@@ -49,6 +49,19 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
         if (branchId.HasValue)
             query = query.Where(w => w.BranchId == branchId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.Trim().ToLower();
+            query = query.Where(w =>
+                (w.SlnClient != null && (
+                    w.SlnClient.FullName.ToLower().Contains(q) ||
+                    (w.SlnClient.Phone != null && w.SlnClient.Phone.ToLower().Contains(q)) ||
+                    (w.SlnClient.Email != null && w.SlnClient.Email.ToLower().Contains(q)))) ||
+                (w.Service != null && w.Service.Name.ToLower().Contains(q)) ||
+                (w.PreferredPersonnel != null && w.PreferredPersonnel.User != null && w.PreferredPersonnel.User.FullName.ToLower().Contains(q)) ||
+                (w.Notes != null && w.Notes.ToLower().Contains(q)));
+        }
 
         if (normalizedScope == SlnWaitlistStatuses.ScopeActive)
         {

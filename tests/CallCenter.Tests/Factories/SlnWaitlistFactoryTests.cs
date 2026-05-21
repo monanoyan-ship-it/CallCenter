@@ -108,6 +108,23 @@ public class SlnWaitlistFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetEntriesAsync_AppliesDateAndSearchFilters()
+    {
+        await SeedSearchFilterEntriesAsync();
+        var factory = CreateFactory();
+
+        var dateFiltered = await factory.GetEntriesAsync(1, date: new DateTime(2026, 5, 20), scope: SlnWaitlistStatuses.ScopeActive);
+        var clientSearch = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeActive, search: "ayse");
+        var serviceSearch = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeActive, search: "boya");
+        var noteSearch = await factory.GetEntriesAsync(1, scope: SlnWaitlistStatuses.ScopeActive, search: "vip");
+
+        dateFiltered.Select(e => e.Id).Should().BeEquivalentTo(new[] { 201 });
+        clientSearch.Select(e => e.Id).Should().BeEquivalentTo(new[] { 201 });
+        serviceSearch.Select(e => e.Id).Should().BeEquivalentTo(new[] { 202 });
+        noteSearch.Select(e => e.Id).Should().BeEquivalentTo(new[] { 201 });
+    }
+
+    [Fact]
     public async Task GetEntriesAsync_ReturnsStatusMetadata()
     {
         await SeedWaitlistEntriesAsync();
@@ -324,6 +341,48 @@ public class SlnWaitlistFactoryTests : IDisposable
                 CreatedAt = DateTime.UtcNow.AddMinutes(statusId)
             });
         }
+
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedSearchFilterEntriesAsync()
+    {
+        _db.Customers.Add(new Customer
+        {
+            Id = 1,
+            Uid = Guid.NewGuid(),
+            Name = "Test Salon",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        _db.SlnClients.AddRange(
+            new SlnClient { Id = 20, CustomerId = 1, FullName = "Ayse Kara", Phone = "5551112233", IsActive = true },
+            new SlnClient { Id = 21, CustomerId = 1, FullName = "Mehmet Ak", Phone = "5559998877", IsActive = true });
+        _db.SlnServices.AddRange(
+            new SlnService { Id = 30, CustomerId = 1, Name = "Kesim", DurationMinutes = 30, Price = 100m, IsActive = true },
+            new SlnService { Id = 31, CustomerId = 1, Name = "Boya", DurationMinutes = 60, Price = 200m, IsActive = true });
+        _db.SlnWaitlistEntries.AddRange(
+            new SlnWaitlistEntry
+            {
+                Id = 201,
+                CustomerId = 1,
+                SlnClientId = 20,
+                ServiceId = 30,
+                PreferredDate = new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc),
+                Notes = "VIP musteri",
+                StatusId = SlnWaitlistStatuses.Ids.Waiting
+            },
+            new SlnWaitlistEntry
+            {
+                Id = 202,
+                CustomerId = 1,
+                SlnClientId = 21,
+                ServiceId = 31,
+                PreferredDate = new DateTime(2026, 5, 21, 0, 0, 0, DateTimeKind.Utc),
+                Notes = "Normal",
+                StatusId = SlnWaitlistStatuses.Ids.Waiting
+            });
 
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
