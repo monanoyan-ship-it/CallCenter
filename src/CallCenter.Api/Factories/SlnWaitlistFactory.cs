@@ -279,8 +279,8 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             return (false, "Bu kayit icin yetkiniz yok", null);
         if (entry.SlnAppointmentId.HasValue)
             return (false, "Bu bekleme kaydi zaten bir randevuya bagli", null);
-        if (!SlnWaitlistStatuses.CanTransition(entry.StatusId, SlnWaitlistStatuses.Ids.AppointmentBooked))
-            return (false, "Bu bekleme listesi durum gecisi yapilamaz", null);
+        if (entry.StatusId is not (SlnWaitlistStatuses.Ids.Waiting or SlnWaitlistStatuses.Ids.Notified))
+            return (false, "Yalnizca bekleyen veya bildirilen kayitlar randevuya donusturulebilir", null);
 
         var appointmentDto = new SlnAppointmentCreateDto
         {

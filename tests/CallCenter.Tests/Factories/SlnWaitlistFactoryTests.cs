@@ -266,6 +266,23 @@ public class SlnWaitlistFactoryTests : IDisposable
         entry.SlnAppointmentId.Should().Be(900);
     }
 
+    [Fact]
+    public async Task ConvertToAppointmentAsync_RejectsManualAppointmentMadeEntries()
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true, existingStatusId: SlnWaitlistStatuses.Ids.AppointmentBooked);
+        var appointmentFactory = Substitute.For<ISlnAppointmentFactory>();
+        var factory = CreateFactory(appointmentFactory);
+
+        var result = await factory.ConvertToAppointmentAsync(10, new SlnWaitlistConvertToAppointmentDto
+        {
+            PersonnelId = 50,
+            StartTime = new DateTime(2026, 5, 21, 10, 0, 0, DateTimeKind.Utc)
+        }, 7, 1);
+
+        result.Success.Should().BeFalse();
+        await appointmentFactory.DidNotReceive().CreateAppointmentAsync(Arg.Any<SlnAppointmentCreateDto>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<int?>());
+    }
+
     private SlnWaitlistFactory CreateFactory(ISlnAppointmentFactory? appointmentFactory = null)
         => new(
             new SlnWaitlistEntryEntityService(_db),
