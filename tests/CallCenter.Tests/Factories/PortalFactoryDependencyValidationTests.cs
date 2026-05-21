@@ -91,7 +91,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             createdByUserId: 99);
 
         result.Success.Should().BeFalse();
-        result.Result.Should().Be("Maksimum kullanici limitine (0) ulasildi.");
+        result.Result.Should().Be("Maksimum kullanıcı limitine (0) ulaşıldı.");
         (await _db.Users.AsNoTracking().AnyAsync(u => u.UserName == "new-user")).Should().BeFalse();
     }
 
@@ -271,7 +271,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
         var user = await _db.Users.AsNoTracking().SingleAsync(u => u.Id == 10);
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Salon sahibi pasife alinamaz.");
+        result.Error.Should().Be("Salon sahibi pasife alınamaz.");
         personnel.IsActive.Should().BeTrue();
         user.IsActive.Should().BeTrue();
     }
@@ -287,7 +287,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         var personnel = await _db.CustomerPersonnel.AsNoTracking().SingleAsync(p => p.Id == 20);
         var user = await _db.Users.AsNoTracking().SingleAsync(u => u.Id == 10);
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Salon sahibi pasife alinamaz.");
+        result.Error.Should().Be("Salon sahibi pasife alınamaz.");
         personnel.IsActive.Should().BeTrue();
         user.IsActive.Should().BeTrue();
     }
@@ -393,7 +393,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
 
         var leave = await _db.SlnPersonnelLeaves.AsNoTracking().SingleAsync(l => l.Id == 50);
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Personel bulunamadi.");
+        result.Error.Should().Be("Personel bulunamadı.");
         leave.StatusId.Should().Be(SalonLeaveStatuses.Ids.Pending);
         leave.ReviewedByPersonnelId.Should().BeNull();
     }
@@ -474,7 +474,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             });
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be("Kesinlesmis bordro donemine avans eklenemez.");
+        result.Error.Should().Be("Kesinleşmiş bordro dönemine avans eklenemez.");
         (await _db.SlnAdvances.AsNoTracking().CountAsync()).Should().Be(0);
     }
 

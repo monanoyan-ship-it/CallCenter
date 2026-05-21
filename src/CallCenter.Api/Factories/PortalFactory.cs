@@ -229,13 +229,13 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, object Result)> CreatePersonnelAsync(int customerId, PortalPersonnelCreateDto dto, int createdByUserId)
     {
         if (dto.CustomerRoleId == SalonRoles.Ids.SalonOwner)
-            return (false, "Salon Sahibi rolu atanamaz. Bu rol kayit sirasinda otomatik olusturulur.");
+            return (false, "Salon Sahibi rolü atanamaz. Bu rol kayıt sırasında otomatik oluşturulur.");
 
         if (await _userEs.ExistsByUsernameAsync(dto.UserName))
-            return (false, "Bu kullanici adi zaten kullaniliyor.");
+            return (false, "Bu kullanıcı adı zaten kullanılıyor.");
 
         if (await _userEs.ExistsByEmailAsync(dto.Email))
-            return (false, "Bu e-posta adresi zaten kullaniliyor.");
+            return (false, "Bu e-posta adresi zaten kullanılıyor.");
 
         var (isValid, errors) = _passwordPolicy.ValidatePassword(dto.Password);
         if (!isValid)
@@ -250,7 +250,7 @@ public class PortalFactory : IPortalFactory
             {
                 var callableCount = await _personnelEs.GetActiveCountAsync(customerId, excludeAdmin: true);
                 if (callableCount >= customer.MaxUsers)
-                    return (false, $"Maksimum kullanici limitine ({customer.MaxUsers}) ulasildi.");
+                    return (false, $"Maksimum kullanıcı limitine ({customer.MaxUsers}) ulaşıldı.");
             }
         }
 
@@ -337,24 +337,24 @@ public class PortalFactory : IPortalFactory
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
-            return (false, "Personel bulunamadi.");
+            return (false, "Personel bulunamadı.");
 
-        // Salon Sahibi rolu degistirilemez
+        // Salon Sahibi rolü değiştirilemez
         if (dto.CustomerRoleId == SalonRoles.Ids.SalonOwner && personnel.CustomerRoleId != SalonRoles.Ids.SalonOwner)
-            return (false, "Salon Sahibi rolu atanamaz.");
+            return (false, "Salon Sahibi rolü atanamaz.");
         if (personnel.CustomerRoleId == SalonRoles.Ids.SalonOwner && dto.CustomerRoleId != SalonRoles.Ids.SalonOwner)
-            return (false, "Salon Sahibi rolunden baska bir role degistirilemez.");
+            return (false, "Salon Sahibi rolünden başka bir role değiştirilemez.");
 
-        // Kullanici adi degisikligi sadece sistem admin tarafindan yapilabilir
+        // Kullanıcı adı değişikliği sadece sistem admin tarafından yapılabilir
         if (!string.IsNullOrWhiteSpace(dto.UserName) && dto.UserName != personnel.User.UserName)
         {
             if (!isSystemAdmin)
-                return (false, "Kullanici adi sadece sistem yoneticisi tarafindan degistirilebilir.");
+                return (false, "Kullanıcı adı sadece sistem yöneticisi tarafından değiştirilebilir.");
 
             var userNameExists = await _userEs.GetAllQueryable()
                 .AnyAsync(u => u.UserName == dto.UserName && u.Id != personnel.UserId);
             if (userNameExists)
-                return (false, "Bu kullanici adi zaten kullaniliyor.");
+                return (false, "Bu kullanıcı adı zaten kullanılıyor.");
 
             personnel.User.UserName = dto.UserName;
         }
@@ -362,17 +362,17 @@ public class PortalFactory : IPortalFactory
         var emailExists = await _userEs.GetAllQueryable()
             .AnyAsync(u => u.Email == dto.Email && u.Id != personnel.UserId);
         if (emailExists)
-            return (false, "Bu e-posta adresi zaten kullaniliyor.");
+            return (false, "Bu e-posta adresi zaten kullanılıyor.");
 
         if (!dto.IsActive && personnel.IsActive && personnel.CustomerRoleId == SalonRoles.Ids.SalonOwner)
-            return (false, "Salon sahibi pasife alinamaz.");
+            return (false, "Salon sahibi pasife alınamaz.");
 
         if (!dto.IsActive && personnel.IsActive
             && (personnel.IsCustomerAdmin || personnel.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin))
         {
             var activeAdminCount = await _personnelEs.GetActiveAdminCountAsync(customerId);
             if (activeAdminCount <= 1)
-                return (false, "Firmada en az bir yonetici olmalidir. Son yonetici deaktive edilemez.");
+                return (false, "Firmada en az bir yönetici olmalıdır. Son yönetici pasife alınamaz.");
         }
 
         var dependencyError = await ValidatePersonnelDependenciesAsync(
@@ -534,16 +534,16 @@ public class PortalFactory : IPortalFactory
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
-            return (false, "Personel bulunamadi.");
+            return (false, "Personel bulunamadı.");
 
         if (personnel.CustomerRoleId == SalonRoles.Ids.SalonOwner)
-            return (false, "Salon sahibi pasife alinamaz.");
+            return (false, "Salon sahibi pasife alınamaz.");
 
         if (personnel.IsCustomerAdmin || personnel.CustomerRoleId == CustomerRoles.Ids.FirmaAdmin)
         {
             var activeAdminCount = await _personnelEs.GetActiveAdminCountAsync(customerId);
             if (activeAdminCount <= 1)
-                return (false, "Firmada en az bir yonetici olmalidir. Son yonetici deaktive edilemez.");
+                return (false, "Firmada en az bir yönetici olmalıdır. Son yönetici pasife alınamaz.");
         }
 
         personnel.IsActive = false;
@@ -557,7 +557,7 @@ public class PortalFactory : IPortalFactory
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
-            return (false, "Personel bulunamadi.");
+            return (false, "Personel bulunamadı.");
 
         if (personnel.IsActive && personnel.User.IsActive)
             return (false, "Personel zaten aktif.");
@@ -568,7 +568,7 @@ public class PortalFactory : IPortalFactory
         {
             var activeCount = await _personnelEs.GetActiveCountAsync(customerId, excludeAdmin: true);
             if (activeCount >= customer.MaxUsers)
-                return (false, $"Maksimum kullanici limitine ({customer.MaxUsers}) ulasildi. Yeni personel aktiflestirilemiyor.");
+                return (false, $"Maksimum kullanıcı limitine ({customer.MaxUsers}) ulaşıldı. Yeni personel aktifleştirilemiyor.");
         }
 
         personnel.IsActive = true;
@@ -582,10 +582,10 @@ public class PortalFactory : IPortalFactory
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
         if (personnel == null)
-            return (false, "Personel bulunamadi.");
+            return (false, "Personel bulunamadı.");
 
         if (!personnel.User.LockedUntil.HasValue || personnel.User.LockedUntil.Value <= DateTime.UtcNow)
-            return (false, "Hesap zaten kilitli degil.");
+            return (false, "Hesap zaten kilitli değil.");
 
         personnel.User.LockedUntil = null;
         personnel.User.FailedLoginCount = 0;
@@ -600,7 +600,7 @@ public class PortalFactory : IPortalFactory
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(personnelId, customerId);
         if (personnel == null)
-            return (false, "Personel bulunamadi.");
+            return (false, "Personel bulunamadı.");
 
         if (reportsToPersonnelId == personnelId)
             return (false, "Bir personel kendi amiri olamaz.");
@@ -609,7 +609,7 @@ public class PortalFactory : IPortalFactory
         {
             var target = await _personnelEs.GetByIdWithUserAsync(reportsToPersonnelId.Value, customerId);
             if (target == null)
-                return (false, "Hedef amir bulunamadi.");
+                return (false, "Hedef amir bulunamadı.");
 
             // Cycle detection: BFS ile reportsToPersonnelId'den yukarı çık, personnelId'ye ulaşılıyorsa döngü var
             var allPersonnel = await _personnelEs.GetAllQueryable()
@@ -751,9 +751,9 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, string? Error)> UpsertPersonnelShiftAsync(int customerId, int? id, PortalPersonnelShiftUpsertDto dto, int? callerRoleId = null, int? callerBranchId = null)
     {
         var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
         if (!TimeSpan.TryParse(dto.StartTime, out var start) || !TimeSpan.TryParse(dto.EndTime, out var end) || end <= start)
-            return (false, "Gecerli vardiya saati giriniz.");
+            return (false, "Geçerli vardiya saati giriniz.");
 
         var date = dto.ShiftDate.Date;
         var shift = id.HasValue
@@ -777,9 +777,9 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, string? Error)> DeletePersonnelShiftAsync(int customerId, int id, int? callerRoleId = null, int? callerBranchId = null)
     {
         var shift = await _shiftEs.GetAllQueryable().FirstOrDefaultAsync(s => s.Id == id);
-        if (shift == null) return (false, "Vardiya bulunamadi.");
+        if (shift == null) return (false, "Vardiya bulunamadı.");
         var personnel = await GetScopedPersonnelAsync(customerId, shift.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
         _shiftEs.Remove(shift);
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -788,9 +788,9 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, string? Error)> CreatePersonnelLeaveAsync(int customerId, PortalPersonnelLeaveCreateDto dto, int? callerRoleId = null, int? callerBranchId = null)
     {
         var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
-        if (SalonLeaveTypes.GetById(dto.LeaveTypeId) == null) return (false, "Izin tipi gecersiz.");
-        if (dto.EndDate.Date < dto.StartDate.Date) return (false, "Izin bitis tarihi baslangictan once olamaz.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
+        if (SalonLeaveTypes.GetById(dto.LeaveTypeId) == null) return (false, "İzin tipi geçersiz.");
+        if (dto.EndDate.Date < dto.StartDate.Date) return (false, "İzin bitiş tarihi başlangıçtan önce olamaz.");
 
         _leaveEs.Add(new SlnPersonnelLeave
         {
@@ -813,11 +813,11 @@ public class PortalFactory : IPortalFactory
         int? callerRoleId = null,
         int? callerBranchId = null)
     {
-        if (SalonLeaveStatuses.GetById(dto.StatusId) == null) return (false, "Izin durumu gecersiz.");
+        if (SalonLeaveStatuses.GetById(dto.StatusId) == null) return (false, "İzin durumu geçersiz.");
         var leave = await _leaveEs.GetAllQueryable().FirstOrDefaultAsync(l => l.Id == id);
-        if (leave == null) return (false, "Izin kaydi bulunamadi.");
+        if (leave == null) return (false, "İzin kaydı bulunamadı.");
         var personnel = await GetScopedPersonnelAsync(customerId, leave.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
         leave.StatusId = dto.StatusId;
         leave.ReviewedByPersonnelId = reviewedByPersonnelId;
         leave.ReviewedAt = DateTime.UtcNow;
@@ -828,9 +828,9 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, string? Error)> UpsertPersonnelTimesheetAsync(int customerId, int? id, PortalPersonnelTimesheetUpsertDto dto, int? callerRoleId = null, int? callerBranchId = null)
     {
         var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
         if (dto.ClockInAt.HasValue && dto.ClockOutAt.HasValue && dto.ClockOutAt <= dto.ClockInAt)
-            return (false, "Cikis saati giristen once olamaz.");
+            return (false, "Çıkış saati girişten önce olamaz.");
 
         var date = dto.WorkDate.Date;
         var row = id.HasValue
@@ -854,8 +854,8 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, string? Error)> CreatePersonnelAdvanceAsync(int customerId, PortalAdvanceCreateDto dto, int? callerRoleId = null, int? callerBranchId = null)
     {
         var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
-        if (dto.Amount <= 0) return (false, "Avans tutari sifirdan buyuk olmalidir.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
+        if (dto.Amount <= 0) return (false, "Avans tutarı sıfırdan büyük olmalıdır.");
         var advanceDate = dto.AdvanceDate.Date;
         var finalizedPayrollExists = await _payrollEs.GetAllQueryable()
             .AnyAsync(p => p.PersonnelId == dto.PersonnelId
@@ -863,7 +863,7 @@ public class PortalFactory : IPortalFactory
                 && p.Month == advanceDate.Month
                 && p.IsFinalized);
         if (finalizedPayrollExists)
-            return (false, "Kesinlesmis bordro donemine avans eklenemez.");
+            return (false, "Kesinleşmiş bordro dönemine avans eklenemez.");
 
         _advanceEs.Add(new SlnAdvance
         {
@@ -879,8 +879,8 @@ public class PortalFactory : IPortalFactory
     public async Task<(bool Success, string? Error)> GeneratePayrollAsync(int customerId, PortalPayrollGenerateDto dto, int? callerRoleId = null, int? callerBranchId = null)
     {
         var personnel = await GetScopedPersonnelAsync(customerId, dto.PersonnelId, callerRoleId, callerBranchId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
-        if (dto.Year < 2000 || dto.Month is < 1 or > 12) return (false, "Bordro donemi gecersiz.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
+        if (dto.Year < 2000 || dto.Month is < 1 or > 12) return (false, "Bordro dönemi geçersiz.");
         var start = new DateTime(dto.Year, dto.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddMonths(1);
 
@@ -902,7 +902,7 @@ public class PortalFactory : IPortalFactory
         var payroll = await _payrollEs.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.PersonnelId == dto.PersonnelId && p.Year == dto.Year && p.Month == dto.Month);
         if (payroll?.IsFinalized == true)
-            return (false, "Kesinlesmis bordro guncellenemez.");
+            return (false, "Kesinleşmiş bordro güncellenemez.");
         if (payroll == null)
         {
             payroll = new SlnPayroll { PersonnelId = dto.PersonnelId, Year = dto.Year, Month = dto.Month };
@@ -1039,7 +1039,7 @@ public class PortalFactory : IPortalFactory
         var account = await _sipEs.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == id && s.CustomerId == customerId);
         if (account == null)
-            return (false, "Gateway bulunamadi.");
+            return (false, "Gateway bulunamadı.");
 
         if (!string.IsNullOrWhiteSpace(dto.Name))
             account.Name = dto.Name;
@@ -1115,7 +1115,7 @@ public class PortalFactory : IPortalFactory
         var account = await _sipEs.GetAllQueryable()
             .FirstOrDefaultAsync(s => s.Id == id && s.CustomerId == customerId);
         if (account == null)
-            return (false, "Gateway bulunamadi.");
+            return (false, "Gateway bulunamadı.");
 
         account.IsActive = false;
         await _uow.SaveChangesAsync();
