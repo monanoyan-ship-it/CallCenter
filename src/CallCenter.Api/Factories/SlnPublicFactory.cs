@@ -173,6 +173,8 @@ public class SlnPublicFactory : ISlnPublicFactory
                     Name = s.Name,
                     DurationMinutes = s.DurationMinutes,
                     Price = s.Price,
+                    TaxRate = s.TaxRate,
+                    SortOrder = s.SortOrder,
                     IsActive = s.IsActive
                 }).ToList()
             }).ToList(),

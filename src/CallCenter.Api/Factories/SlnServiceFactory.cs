@@ -147,6 +147,8 @@ public class SlnServiceFactory : ISlnServiceFactory
             BufferAfterMinutes = Math.Max(0, dto.BufferAfterMinutes),
             ProcessingMinutes = Math.Max(0, dto.ProcessingMinutes),
             Price = dto.Price,
+            TaxRate = dto.TaxRate ?? 10,
+            SortOrder = dto.SortOrder ?? 0,
             ParentServiceId = dto.ParentServiceId,
             IsAddOn = dto.IsAddOn,
             RequiresConsultation = dto.RequiresConsultation,
@@ -187,6 +189,10 @@ public class SlnServiceFactory : ISlnServiceFactory
         service.BufferAfterMinutes = Math.Max(0, dto.BufferAfterMinutes);
         service.ProcessingMinutes = Math.Max(0, dto.ProcessingMinutes);
         service.Price = dto.Price;
+        if (dto.TaxRate.HasValue)
+            service.TaxRate = dto.TaxRate.Value;
+        if (dto.SortOrder.HasValue)
+            service.SortOrder = dto.SortOrder.Value;
         service.ParentServiceId = dto.ParentServiceId;
         service.IsAddOn = dto.IsAddOn;
         service.RequiresConsultation = dto.RequiresConsultation;
@@ -405,6 +411,9 @@ public class SlnServiceFactory : ISlnServiceFactory
         int? currentServiceId = null,
         bool validateResourceRequirements = true)
     {
+        if (dto.TaxRate.HasValue && (dto.TaxRate.Value < 0 || dto.TaxRate.Value > 100)) return "KDV orani 0 ile 100 arasinda olmali";
+        if (dto.SortOrder.HasValue && dto.SortOrder.Value < 0) return "Sira 0 veya daha buyuk olmali";
+
         var categoryExists = await _categories.GetAllQueryable()
             .AnyAsync(c => c.Id == dto.CategoryId && c.CustomerId == customerId);
         if (!categoryExists) return "Kategori bulunamadi";
@@ -517,6 +526,8 @@ public class SlnServiceFactory : ISlnServiceFactory
         ProcessingMinutes = s.ProcessingMinutes,
         Price = s.Price,
         ParentServiceId = s.ParentServiceId,
+        TaxRate = s.TaxRate,
+        SortOrder = s.SortOrder,
         IsAddOn = s.IsAddOn,
         RequiresConsultation = s.RequiresConsultation,
         RequiresPatchTest = s.RequiresPatchTest,

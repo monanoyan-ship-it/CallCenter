@@ -37,6 +37,8 @@ public class SlnServiceFactoryTests : IDisposable
         result.Success.Should().BeTrue();
         service.IsActive.Should().BeFalse();
         service.Name.Should().Be("Updated service");
+        service.TaxRate.Should().Be(8m);
+        service.SortOrder.Should().Be(4);
     }
 
     [Fact]
@@ -86,6 +88,42 @@ public class SlnServiceFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateServiceAsync_PersistsTaxRateAndSortOrder()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.TaxRate = 18m;
+        dto.SortOrder = 7;
+        var factory = CreateFactory();
+
+        var result = await factory.CreateServiceAsync(dto, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == result.Service!.Id);
+
+        result.Service.Should().NotBeNull();
+        result.Service!.TaxRate.Should().Be(18m);
+        result.Service.SortOrder.Should().Be(7);
+        service.TaxRate.Should().Be(18m);
+        service.SortOrder.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task UpdateServiceAsync_UpdatesTaxRateAndSortOrder()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.TaxRate = 18m;
+        dto.SortOrder = 7;
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateServiceAsync(10, dto, isActive: null, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeTrue();
+        service.TaxRate.Should().Be(18m);
+        service.SortOrder.Should().Be(7);
+    }
+
+    [Fact]
     public async Task CreateServiceAsync_RejectsCategoryOutsideCustomer()
     {
         await SeedServiceAsync(isActive: true);
@@ -115,6 +153,38 @@ public class SlnServiceFactoryTests : IDisposable
         result.Error.Should().Be("Kategori bulunamadi");
         service.CategoryId.Should().Be(20);
         service.Name.Should().Be("Existing service");
+    }
+
+    [Fact]
+    public async Task UpdateServiceAsync_RejectsInvalidTaxRateWithoutMutating()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.TaxRate = 101m;
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateServiceAsync(10, dto, isActive: null, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("KDV orani 0 ile 100 arasinda olmali");
+        service.TaxRate.Should().Be(8m);
+    }
+
+    [Fact]
+    public async Task UpdateServiceAsync_RejectsInvalidSortOrderWithoutMutating()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.SortOrder = -1;
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateServiceAsync(10, dto, isActive: null, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Sira 0 veya daha buyuk olmali");
+        service.SortOrder.Should().Be(4);
     }
 
     [Fact]
@@ -388,6 +458,8 @@ public class SlnServiceFactoryTests : IDisposable
             Name = "Existing service",
             DurationMinutes = 30,
             Price = 100m,
+            TaxRate = 8m,
+            SortOrder = 4,
             IsActive = isActive
         });
         if (includeRequirement)

@@ -172,6 +172,8 @@ public class SlnServiceDto
     public int ProcessingMinutes { get; set; }
     public decimal Price { get; set; }
     public int? ParentServiceId { get; set; }
+    public decimal TaxRate { get; set; }
+    public int SortOrder { get; set; }
     public bool IsAddOn { get; set; }
     public bool RequiresConsultation { get; set; }
     public bool RequiresPatchTest { get; set; }
@@ -189,6 +191,8 @@ public class SlnServiceCreateDto
     public int BufferAfterMinutes { get; set; }
     public int ProcessingMinutes { get; set; }
     public decimal Price { get; set; }
+    public decimal? TaxRate { get; set; }
+    public int? SortOrder { get; set; }
     public int? ParentServiceId { get; set; }
     public bool IsAddOn { get; set; }
     public bool RequiresConsultation { get; set; }

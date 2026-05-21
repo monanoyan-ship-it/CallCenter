@@ -199,6 +199,8 @@ public class SlnServiceController : ControllerBase
             BufferAfterMinutes = req.BufferAfterMinutes,
             ProcessingMinutes = req.ProcessingMinutes,
             Price = req.Price,
+            TaxRate = req.TaxRate,
+            SortOrder = req.SortOrder,
             ParentServiceId = req.ParentServiceId,
             IsAddOn = req.IsAddOn,
             RequiresConsultation = req.RequiresConsultation,
@@ -281,6 +283,8 @@ public class SlnServiceUpdateRequest
     public int BufferAfterMinutes { get; set; }
     public int ProcessingMinutes { get; set; }
     public decimal Price { get; set; }
+    public decimal? TaxRate { get; set; }
+    public int? SortOrder { get; set; }
     public int? ParentServiceId { get; set; }
     public bool IsAddOn { get; set; }
     public bool RequiresConsultation { get; set; }
