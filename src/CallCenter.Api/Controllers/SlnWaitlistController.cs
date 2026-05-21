@@ -69,6 +69,7 @@ public class SlnWaitlistController : ControllerBase
     }
 
     [HttpPost("{id}/convert")]
+    [RequireModule(SalonPortalModules.Ids.SlnAppointments)]
     public async Task<ActionResult<SlnWaitlistConversionDto>> ConvertToAppointment(int id, [FromBody] SlnWaitlistConvertToAppointmentDto dto, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
