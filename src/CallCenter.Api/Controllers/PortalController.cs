@@ -224,9 +224,18 @@ public class PortalController : AuditableControllerBase
         if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
         if (file.Length > 3_145_728) return BadRequest("Dosya 3 MB'dan buyuk olamaz.");
 
-        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        };
         if (!allowedTypes.Contains(file.ContentType))
             return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
+
+        var existingPhoto = await _portalFactory.GetPersonnelPhotoUrlAsync(cid.Value, id);
+        if (!existingPhoto.Success)
+            return BadRequest(new { message = existingPhoto.Error ?? "Personel bulunamadı." });
 
         var ext = file.ContentType switch { "image/png" => ".png", "image/webp" => ".webp", _ => ".jpg" };
         var path = $"personnel/{cid.Value}/{id}-{Guid.NewGuid():N}{ext}";
@@ -236,9 +245,31 @@ public class PortalController : AuditableControllerBase
         if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
 
         var (ok, err) = await _portalFactory.UpdatePersonnelPhotoAsync(cid.Value, id, url);
-        if (!ok) return BadRequest(err ?? "Foto guncellenemedi.");
+        if (!ok)
+        {
+            await TryDeleteGcsObjectAsync(path);
+            return BadRequest(new { message = err ?? "Foto güncellenemedi." });
+        }
+
+        var previousPath = _gcs.TryGetObjectPath(existingPhoto.PhotoUrl);
+        if (ShouldDeleteManagedPersonnelPhoto(previousPath, cid.Value, id, path))
+            await TryDeleteGcsObjectAsync(previousPath);
 
         return Ok(new { url, path });
+    }
+
+    private async Task TryDeleteGcsObjectAsync(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        await _gcs.DeleteAsync(path);
+    }
+
+    private static bool ShouldDeleteManagedPersonnelPhoto(string? path, int customerId, int personnelId, string newPath)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var normalized = path.Replace('\\', '/');
+        if (string.Equals(normalized, newPath, StringComparison.OrdinalIgnoreCase)) return false;
+        return normalized.StartsWith($"personnel/{customerId}/{personnelId}-", StringComparison.OrdinalIgnoreCase);
     }
 
     [HttpPatch("personnel/{id}/reports-to")]

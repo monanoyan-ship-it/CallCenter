@@ -417,10 +417,18 @@ public class PortalFactory : IPortalFactory
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error, string? PhotoUrl)> GetPersonnelPhotoUrlAsync(int customerId, int id)
+    {
+        var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
+        if (personnel == null) return (false, "Personel bulunamadı.", null);
+
+        return (true, null, personnel.PhotoUrl);
+    }
+
     public async Task<(bool Success, string? Error)> UpdatePersonnelPhotoAsync(int customerId, int id, string photoUrl)
     {
         var personnel = await _personnelEs.GetByIdWithUserAsync(id, customerId);
-        if (personnel == null) return (false, "Personel bulunamadi.");
+        if (personnel == null) return (false, "Personel bulunamadı.");
         personnel.PhotoUrl = photoUrl;
         await _uow.SaveChangesAsync();
         return (true, null);
