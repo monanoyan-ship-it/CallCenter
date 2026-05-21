@@ -427,7 +427,13 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        var (success, error) = await _portalFactory.UpdatePersonnelLeaveStatusAsync(cid.Value, id, dto, GetCustomerPersonnelId());
+        var (success, error) = await _portalFactory.UpdatePersonnelLeaveStatusAsync(
+            cid.Value,
+            id,
+            dto,
+            GetCustomerPersonnelId(),
+            GetCustomerRoleId(),
+            GetBranchId());
         if (!success) return BadRequest(new { message = error });
         await AuditCrudAsync("UpdateLeaveStatus", "SlnPersonnelLeave", id.ToString(), $"Personel izin durumu guncellendi: StatusID={dto.StatusId}", customerId: cid);
         return NoContent();

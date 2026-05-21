@@ -771,12 +771,18 @@ public class PortalFactory : IPortalFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> UpdatePersonnelLeaveStatusAsync(int customerId, int id, PortalPersonnelLeaveStatusDto dto, int? reviewedByPersonnelId)
+    public async Task<(bool Success, string? Error)> UpdatePersonnelLeaveStatusAsync(
+        int customerId,
+        int id,
+        PortalPersonnelLeaveStatusDto dto,
+        int? reviewedByPersonnelId,
+        int? callerRoleId = null,
+        int? callerBranchId = null)
     {
         if (SalonLeaveStatuses.GetById(dto.StatusId) == null) return (false, "Izin durumu gecersiz.");
         var leave = await _leaveEs.GetAllQueryable().FirstOrDefaultAsync(l => l.Id == id);
         if (leave == null) return (false, "Izin kaydi bulunamadi.");
-        var personnel = await _personnelEs.GetAllQueryable().FirstOrDefaultAsync(p => p.Id == leave.PersonnelId && p.CustomerId == customerId);
+        var personnel = await GetScopedPersonnelAsync(customerId, leave.PersonnelId, callerRoleId, callerBranchId);
         if (personnel == null) return (false, "Personel bulunamadi.");
         leave.StatusId = dto.StatusId;
         leave.ReviewedByPersonnelId = reviewedByPersonnelId;
@@ -875,6 +881,9 @@ public class PortalFactory : IPortalFactory
     private IQueryable<CustomerPersonnel> BuildPersonnelScopeQuery(int customerId, int? callerRoleId, int? callerBranchId)
     {
         var query = _personnelEs.GetAllQueryable().Where(p => p.CustomerId == customerId);
+        if (callerRoleId == SalonRoles.Ids.BranchManager && !callerBranchId.HasValue)
+            return query.Where(_ => false);
+
         var shouldApplyBranchScope = callerBranchId.HasValue
             && callerRoleId != SalonRoles.Ids.SalonOwner
             && callerRoleId != CustomerRoles.Ids.FirmaAdmin;

@@ -131,6 +131,87 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         skills.Single().ServiceId.Should().Be(100);
     }
 
+    [Fact]
+    public async Task UpdatePersonnelLeaveStatusAsync_RejectsBranchManagerOutsideBranch()
+    {
+        await SeedPersonnelAsync();
+        _db.Users.Add(new User
+        {
+            Id = 12,
+            UserName = "veli",
+            FullName = "Veli Veli",
+            Email = "veli@example.com",
+            PasswordHash = "hash",
+            RoleId = UserRoles.Ids.CustomerUser,
+            IsActive = true
+        });
+        _db.CustomerPersonnel.Add(new CustomerPersonnel
+        {
+            Id = 22,
+            UserId = 12,
+            CustomerId = 1,
+            Title = "Kuaför",
+            CustomerRoleId = SalonRoles.Ids.Hairdresser,
+            BranchId = 2,
+            IsActive = true
+        });
+        _db.SlnPersonnelLeaves.Add(new SlnPersonnelLeave
+        {
+            Id = 50,
+            PersonnelId = 22,
+            LeaveTypeId = SalonLeaveTypes.Ids.Annual,
+            StatusId = SalonLeaveStatuses.Ids.Pending,
+            StartDate = DateTime.UtcNow.Date,
+            EndDate = DateTime.UtcNow.Date
+        });
+        await _db.SaveChangesAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.UpdatePersonnelLeaveStatusAsync(
+            1,
+            50,
+            new PortalPersonnelLeaveStatusDto { StatusId = SalonLeaveStatuses.Ids.Approved },
+            reviewedByPersonnelId: 20,
+            callerRoleId: SalonRoles.Ids.BranchManager,
+            callerBranchId: 1);
+
+        var leave = await _db.SlnPersonnelLeaves.AsNoTracking().SingleAsync(l => l.Id == 50);
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Personel bulunamadi.");
+        leave.StatusId.Should().Be(SalonLeaveStatuses.Ids.Pending);
+        leave.ReviewedByPersonnelId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdatePersonnelLeaveStatusAsync_AllowsBranchManagerInsideBranch()
+    {
+        await SeedPersonnelAsync(branchId: 1);
+        _db.SlnPersonnelLeaves.Add(new SlnPersonnelLeave
+        {
+            Id = 50,
+            PersonnelId = 20,
+            LeaveTypeId = SalonLeaveTypes.Ids.Annual,
+            StatusId = SalonLeaveStatuses.Ids.Pending,
+            StartDate = DateTime.UtcNow.Date,
+            EndDate = DateTime.UtcNow.Date
+        });
+        await _db.SaveChangesAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.UpdatePersonnelLeaveStatusAsync(
+            1,
+            50,
+            new PortalPersonnelLeaveStatusDto { StatusId = SalonLeaveStatuses.Ids.Approved },
+            reviewedByPersonnelId: 20,
+            callerRoleId: SalonRoles.Ids.BranchManager,
+            callerBranchId: 1);
+
+        var leave = await _db.SlnPersonnelLeaves.AsNoTracking().SingleAsync(l => l.Id == 50);
+        result.Success.Should().BeTrue();
+        leave.StatusId.Should().Be(SalonLeaveStatuses.Ids.Approved);
+        leave.ReviewedByPersonnelId.Should().Be(20);
+    }
+
     private async Task SeedCustomersAsync()
     {
         _db.Customers.AddRange(
@@ -155,7 +236,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
-    private async Task SeedPersonnelAsync()
+    private async Task SeedPersonnelAsync(int? branchId = null)
     {
         await SeedCustomersAsync();
         _db.Users.Add(new User
@@ -175,6 +256,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             CustomerId = 1,
             Title = "Kuaför",
             CustomerRoleId = SalonRoles.Ids.Hairdresser,
+            BranchId = branchId,
             IsActive = true
         });
         await _db.SaveChangesAsync();
@@ -233,7 +315,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             new SlnServiceEntityService(_db),
             Substitute.For<ISlnPersonnelCommissionEntityService>(),
             Substitute.For<ISlnPersonnelShiftEntityService>(),
-            Substitute.For<ISlnPersonnelLeaveEntityService>(),
+            new SlnPersonnelLeaveEntityService(_db),
             Substitute.For<ISlnPersonnelTimesheetEntityService>(),
             Substitute.For<ISlnPayrollEntityService>(),
             Substitute.For<ISlnAdvanceEntityService>(),
