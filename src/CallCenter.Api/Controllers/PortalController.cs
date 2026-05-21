@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Filters;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
@@ -153,6 +154,7 @@ public class PortalController : AuditableControllerBase
 
     /// <summary>Kullanici adi musaitlik kontrolu</summary>
     [HttpGet("personnel/check-username")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> CheckUsername([FromQuery] string username, [FromQuery] int? excludeUserId)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -163,6 +165,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpGet("personnel")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> GetPersonnel([FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelView))
@@ -175,6 +178,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPost("personnel")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> CreatePersonnel([FromBody] PortalPersonnelCreateDto dto, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
@@ -193,6 +197,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPut("personnel/{id}")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> UpdatePersonnel(int id, [FromBody] PortalPersonnelUpdateDto dto, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
@@ -212,6 +217,7 @@ public class PortalController : AuditableControllerBase
 
     /// <summary>Personel profil fotografi yukle (max 3 MB, JPEG/PNG/WebP)</summary>
     [HttpPost("personnel/{id}/upload-photo")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     [RequestSizeLimit(3_145_728)]
     public async Task<IActionResult> UploadPersonnelPhoto(int id, IFormFile file, [FromQuery] int? customerId)
     {
@@ -273,6 +279,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPatch("personnel/{id}/reports-to")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> SetReportsTo(int id, [FromBody] SetReportsToDto dto, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
@@ -291,6 +298,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpDelete("personnel/{id}")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> DeactivatePersonnel(int id, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
@@ -309,6 +317,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPut("personnel/{id}/reactivate")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> ReactivatePersonnel(int id, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
@@ -327,6 +336,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPut("personnel/{id}/unlock")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> UnlockPersonnel(int id, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelManage))
@@ -345,6 +355,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpGet("personnel-ops")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> GetPersonnelOps([FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] int? customerId)
     {
         if (!HasPermission(CustomerPermissionTypes.Ids.PersonnelView))
@@ -359,6 +370,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPost("personnel-ops/shifts")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> UpsertShift([FromBody] PortalPersonnelShiftUpsertDto dto, [FromQuery] int? id, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
@@ -374,6 +386,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpDelete("personnel-ops/shifts/{id}")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> DeleteShift(int id, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
@@ -389,6 +402,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPost("personnel-ops/leaves")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> CreateLeave([FromBody] PortalPersonnelLeaveCreateDto dto, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
@@ -404,6 +418,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPatch("personnel-ops/leaves/{id}/status")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> UpdateLeaveStatus(int id, [FromBody] PortalPersonnelLeaveStatusDto dto, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
@@ -419,6 +434,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPost("personnel-ops/timesheets")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> UpsertTimesheet([FromBody] PortalPersonnelTimesheetUpsertDto dto, [FromQuery] int? id, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
@@ -434,6 +450,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPost("personnel-ops/advances")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> CreateAdvance([FromBody] PortalAdvanceCreateDto dto, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
@@ -449,6 +466,7 @@ public class PortalController : AuditableControllerBase
     }
 
     [HttpPost("personnel-ops/payroll")]
+    [RequireModule(SalonPortalModules.Ids.SlnStaff)]
     public async Task<IActionResult> GeneratePayroll([FromBody] PortalPayrollGenerateDto dto, [FromQuery] int? customerId)
     {
         if (!CanManagePersonnelOps())
