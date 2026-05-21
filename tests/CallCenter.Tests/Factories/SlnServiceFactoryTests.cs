@@ -26,6 +26,67 @@ public class SlnServiceFactoryTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     [Fact]
+    public async Task CreateCategoryAsync_PersistsMetadataAndActiveState()
+    {
+        await SeedServiceAsync(isActive: true);
+        var factory = CreateFactory();
+
+        var result = await factory.CreateCategoryAsync(
+            "Spa",
+            3,
+            customerId: 1,
+            iconClass: " bi-stars ",
+            color: " #112233 ",
+            isActive: false);
+        var category = await _db.SlnServiceCategories.AsNoTracking().SingleAsync(c => c.Id == result.Id);
+
+        result.IconClass.Should().Be("bi-stars");
+        result.Color.Should().Be("#112233");
+        result.IsActive.Should().BeFalse();
+        category.IconClass.Should().Be("bi-stars");
+        category.Color.Should().Be("#112233");
+        category.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateCategoryAsync_PreservesMetadataAndActiveStateWhenOmitted()
+    {
+        await SeedServiceAsync(isActive: true);
+        var category = await _db.SlnServiceCategories.SingleAsync(c => c.Id == 20);
+        category.IconClass = "bi-scissors";
+        category.Color = "#445566";
+        category.IsActive = false;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateCategoryAsync(20, "Updated category", 5, isActive: null, customerId: 1);
+        var updated = await _db.SlnServiceCategories.AsNoTracking().SingleAsync(c => c.Id == 20);
+
+        result.Success.Should().BeTrue();
+        updated.Name.Should().Be("Updated category");
+        updated.SortOrder.Should().Be(5);
+        updated.IconClass.Should().Be("bi-scissors");
+        updated.Color.Should().Be("#445566");
+        updated.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateCategoryAsync_UpdatesMetadataAndActiveStateWhenProvided()
+    {
+        await SeedServiceAsync(isActive: true);
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateCategoryAsync(20, "Updated category", 5, isActive: false, customerId: 1, iconClass: "bi-heart", color: "#778899");
+        var updated = await _db.SlnServiceCategories.AsNoTracking().SingleAsync(c => c.Id == 20);
+
+        result.Success.Should().BeTrue();
+        updated.IconClass.Should().Be("bi-heart");
+        updated.Color.Should().Be("#778899");
+        updated.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task UpdateServiceAsync_PreservesInactiveState_WhenIsActiveIsOmitted()
     {
         await SeedServiceAsync(isActive: false);

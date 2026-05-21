@@ -76,13 +76,16 @@ public class SlnServiceFactory : ISlnServiceFactory
         }).ToList();
     }
 
-    public async Task<SlnServiceCategoryDto> CreateCategoryAsync(string name, int sortOrder, int customerId)
+    public async Task<SlnServiceCategoryDto> CreateCategoryAsync(string name, int sortOrder, int customerId, string? iconClass = null, string? color = null, bool isActive = true)
     {
         var category = new SlnServiceCategory
         {
             CustomerId = customerId,
             Name = name,
-            SortOrder = sortOrder
+            IconClass = NormalizeOptional(iconClass),
+            Color = NormalizeOptional(color),
+            SortOrder = sortOrder,
+            IsActive = isActive
         };
 
         _categories.Add(category);
@@ -92,12 +95,14 @@ public class SlnServiceFactory : ISlnServiceFactory
         {
             Id = category.Id,
             Name = category.Name,
+            IconClass = category.IconClass,
+            Color = category.Color,
             SortOrder = category.SortOrder,
             IsActive = category.IsActive
         };
     }
 
-    public async Task<(bool Success, string? Error)> UpdateCategoryAsync(int categoryId, string name, int sortOrder, bool isActive, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateCategoryAsync(int categoryId, string name, int sortOrder, bool? isActive, int customerId, string? iconClass = null, string? color = null)
     {
         var category = await _categories.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == categoryId && c.CustomerId == customerId);
@@ -106,7 +111,10 @@ public class SlnServiceFactory : ISlnServiceFactory
 
         category.Name = name;
         category.SortOrder = sortOrder;
-        category.IsActive = isActive;
+        if (isActive.HasValue)
+            category.IsActive = isActive.Value;
+        if (iconClass != null) category.IconClass = NormalizeOptional(iconClass);
+        if (color != null) category.Color = NormalizeOptional(color);
 
         await _uow.SaveChangesAsync();
         return (true, null);
@@ -565,6 +573,9 @@ public class SlnServiceFactory : ISlnServiceFactory
 
     private static bool ResourceWriteScopeAllows(SlnResource resource, int? branchScopeId)
         => !branchScopeId.HasValue || resource.BranchId == branchScopeId.Value;
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static SlnServiceDto MapServiceToDto(SlnService s, string categoryName) => new()
     {

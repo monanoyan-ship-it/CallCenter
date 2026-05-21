@@ -36,7 +36,7 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var category = await _serviceFactory.CreateCategoryAsync(req.Name, req.SortOrder, customerId);
+        var category = await _serviceFactory.CreateCategoryAsync(req.Name, req.SortOrder, customerId, req.IconClass, req.Color, req.IsActive ?? true);
         return Ok(category);
     }
 
@@ -46,7 +46,7 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _serviceFactory.UpdateCategoryAsync(id, req.Name, req.SortOrder, req.IsActive, customerId);
+        var (success, error) = await _serviceFactory.UpdateCategoryAsync(id, req.Name, req.SortOrder, req.IsActive, customerId, req.IconClass, req.Color);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -267,11 +267,13 @@ public class SlnServiceCategoryCreateRequest
 {
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
+    public string? IconClass { get; set; }
+    public string? Color { get; set; }
+    public bool? IsActive { get; set; }
 }
 
 public class SlnServiceCategoryUpdateRequest : SlnServiceCategoryCreateRequest
 {
-    public bool IsActive { get; set; } = true;
 }
 
 public class SlnServiceUpdateRequest
