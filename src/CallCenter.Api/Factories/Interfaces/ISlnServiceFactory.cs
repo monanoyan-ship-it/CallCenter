@@ -12,10 +12,10 @@ public interface ISlnServiceFactory
     Task<SlnServiceDto> CreateServiceAsync(SlnServiceCreateDto dto, int customerId);
     Task<(bool Success, string? Error)> UpdateServiceAsync(int serviceId, SlnServiceCreateDto dto, bool? isActive, int customerId, bool syncResourceRequirements = true);
     Task<(bool Success, string? Error)> DeleteServiceAsync(int serviceId, int customerId);
-    Task<List<SlnResourceDto>> GetResourcesAsync(int customerId);
-    Task<SlnResourceDto> CreateResourceAsync(SlnResourceCreateDto dto, int customerId);
-    Task<(bool Success, string? Error)> UpdateResourceAsync(int resourceId, SlnResourceCreateDto dto, int customerId);
-    Task<(bool Success, string? Error)> DeleteResourceAsync(int resourceId, int customerId);
+    Task<List<SlnResourceDto>> GetResourcesAsync(int customerId, int? branchScopeId = null);
+    Task<SlnResourceDto> CreateResourceAsync(SlnResourceCreateDto dto, int customerId, int? branchScopeId = null);
+    Task<(bool Success, string? Error)> UpdateResourceAsync(int resourceId, SlnResourceCreateDto dto, int customerId, int? branchScopeId = null);
+    Task<(bool Success, string? Error)> DeleteResourceAsync(int resourceId, int customerId, int? branchScopeId = null);
     Task<List<SlnServiceComboDto>> GetCombosAsync(int customerId);
     Task<SlnServiceComboDto> CreateComboAsync(SlnServiceComboCreateDto dto, int customerId);
     Task<(bool Success, string? Error)> UpdateComboAsync(int comboId, SlnServiceComboCreateDto dto, int customerId);

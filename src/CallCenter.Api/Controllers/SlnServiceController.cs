@@ -87,7 +87,10 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        return Ok(await _serviceFactory.GetResourcesAsync(customerId));
+        var access = ResolveServiceBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        return Ok(await _serviceFactory.GetResourcesAsync(customerId, access.BranchScopeId));
     }
 
     [HttpPost("resources")]
@@ -96,7 +99,10 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        return Ok(await _serviceFactory.CreateResourceAsync(dto, customerId));
+        var access = ResolveServiceBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        return Ok(await _serviceFactory.CreateResourceAsync(dto, customerId, access.BranchScopeId));
     }
 
     [HttpPut("resources/{id}")]
@@ -105,7 +111,10 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _serviceFactory.UpdateResourceAsync(id, dto, customerId);
+        var access = ResolveServiceBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        var (success, error) = await _serviceFactory.UpdateResourceAsync(id, dto, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -115,7 +124,10 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _serviceFactory.DeleteResourceAsync(id, customerId);
+        var access = ResolveServiceBranchAccess();
+        if (!access.IsAllowed) return access.ErrorResult!;
+
+        var (success, error) = await _serviceFactory.DeleteResourceAsync(id, customerId, access.BranchScopeId);
         return success ? Ok() : BadRequest(error);
     }
 
@@ -215,6 +227,29 @@ public class SlnServiceController : ControllerBase
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return claim != null && int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private bool IsSalonOwner()
+    {
+        if (User.IsInRole("Admin")) return true;
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
+    }
+
+    private ServiceBranchAccess ResolveServiceBranchAccess()
+    {
+        if (IsSalonOwner()) return new(true, null, null);
+
+        var branchId = GetBranchId();
+        return branchId.HasValue ? new(true, branchId.Value, null) : new(false, null, Forbid());
+    }
+
+    private readonly record struct ServiceBranchAccess(bool IsAllowed, int? BranchScopeId, ActionResult? ErrorResult);
 
     private static bool IsDuplicateComboName(DbUpdateException ex)
     {

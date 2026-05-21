@@ -194,24 +194,27 @@ public class SlnServiceFactory : ISlnServiceFactory
         return (true, null);
     }
 
-    public async Task<List<SlnResourceDto>> GetResourcesAsync(int customerId)
+    public async Task<List<SlnResourceDto>> GetResourcesAsync(int customerId, int? branchScopeId = null)
     {
-        var resources = await _resources.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId)
-            .Include(r => r.Branch)
+        var query = _resources.GetAllQueryable()
+            .Where(r => r.CustomerId == customerId);
+
+        if (branchScopeId.HasValue)
+            query = query.Where(r => r.BranchId == null || r.BranchId == branchScopeId.Value);
+
+        var resources = await query.Include(r => r.Branch)
             .OrderBy(r => r.SortOrder).ThenBy(r => r.Name)
             .ToListAsync();
 
         return resources.Select(MapResourceToDto).ToList();
     }
 
-    public async Task<SlnResourceDto> CreateResourceAsync(SlnResourceCreateDto dto, int customerId)
+    public async Task<SlnResourceDto> CreateResourceAsync(SlnResourceCreateDto dto, int customerId, int? branchScopeId = null)
     {
-        var branchId = await NormalizeBranchIdAsync(dto.BranchId, customerId);
         var resource = new SlnResource
         {
             CustomerId = customerId,
-            BranchId = branchId,
+            BranchId = branchScopeId ?? await NormalizeBranchIdAsync(dto.BranchId, customerId),
             Name = dto.Name,
             ResourceKind = dto.ResourceKind,
             Quantity = Math.Max(1, dto.Quantity),
@@ -227,13 +230,17 @@ public class SlnServiceFactory : ISlnServiceFactory
         return MapResourceToDto(created);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateResourceAsync(int resourceId, SlnResourceCreateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateResourceAsync(int resourceId, SlnResourceCreateDto dto, int customerId, int? branchScopeId = null)
     {
         var resource = await _resources.GetAllQueryable()
             .FirstOrDefaultAsync(r => r.Id == resourceId && r.CustomerId == customerId);
         if (resource == null) return (false, "Kaynak bulunamadi");
+        if (!ResourceWriteScopeAllows(resource, branchScopeId))
+        {
+            return (false, "Bu kaynak icin yetkiniz yok");
+        }
 
-        resource.BranchId = await NormalizeBranchIdAsync(dto.BranchId, customerId);
+        resource.BranchId = branchScopeId ?? await NormalizeBranchIdAsync(dto.BranchId, customerId);
         resource.Name = dto.Name;
         resource.ResourceKind = dto.ResourceKind;
         resource.Quantity = Math.Max(1, dto.Quantity);
@@ -245,12 +252,16 @@ public class SlnServiceFactory : ISlnServiceFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteResourceAsync(int resourceId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteResourceAsync(int resourceId, int customerId, int? branchScopeId = null)
     {
         var resource = await _resources.GetAllQueryable()
             .Include(r => r.ServiceRequirements)
             .FirstOrDefaultAsync(r => r.Id == resourceId && r.CustomerId == customerId);
         if (resource == null) return (false, "Kaynak bulunamadi");
+        if (!ResourceWriteScopeAllows(resource, branchScopeId))
+        {
+            return (false, "Bu kaynak icin yetkiniz yok");
+        }
         if (resource.ServiceRequirements.Any()) return (false, "Bu kaynak hizmetlerde kullaniliyor");
 
         _resources.Remove(resource);
@@ -382,6 +393,9 @@ public class SlnServiceFactory : ISlnServiceFactory
 
         return exists ? branchId.Value : null;
     }
+
+    private static bool ResourceWriteScopeAllows(SlnResource resource, int? branchScopeId)
+        => !branchScopeId.HasValue || resource.BranchId == branchScopeId.Value;
 
     private static SlnServiceDto MapServiceToDto(SlnService s, string categoryName) => new()
     {

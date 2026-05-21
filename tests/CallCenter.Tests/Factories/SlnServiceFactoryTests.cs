@@ -85,6 +85,81 @@ public class SlnServiceFactoryTests : IDisposable
         requirementCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task GetResourcesAsync_FiltersByBranchScopeAndKeepsGlobalResources()
+    {
+        await SeedResourcesAsync();
+        var factory = CreateFactory();
+
+        var resources = await factory.GetResourcesAsync(customerId: 1, branchScopeId: 40);
+
+        resources.Select(r => r.Id).Should().BeEquivalentTo(new[] { 30, 31 });
+        resources.Should().NotContain(r => r.Id == 32);
+    }
+
+    [Fact]
+    public async Task CreateResourceAsync_ForcesBranchScope()
+    {
+        await SeedResourcesAsync(includeResources: false);
+        var factory = CreateFactory();
+
+        var created = await factory.CreateResourceAsync(new SlnResourceCreateDto
+        {
+            BranchId = 42,
+            Name = "Scoped room",
+            Quantity = 2,
+            IsActive = true
+        }, customerId: 1, branchScopeId: 40);
+        var saved = await _db.SlnResources.AsNoTracking().SingleAsync(r => r.Id == created.Id);
+
+        saved.BranchId.Should().Be(40);
+    }
+
+    [Fact]
+    public async Task UpdateResourceAsync_RejectsOutsideBranchScope()
+    {
+        await SeedResourcesAsync();
+        var factory = CreateFactory();
+
+        var otherBranch = await factory.UpdateResourceAsync(32, new SlnResourceCreateDto
+        {
+            BranchId = 40,
+            Name = "Other branch edit",
+            Quantity = 1,
+            IsActive = true
+        }, customerId: 1, branchScopeId: 40);
+        var global = await factory.UpdateResourceAsync(31, new SlnResourceCreateDto
+        {
+            BranchId = 40,
+            Name = "Global edit",
+            Quantity = 1,
+            IsActive = true
+        }, customerId: 1, branchScopeId: 40);
+
+        otherBranch.Success.Should().BeFalse();
+        otherBranch.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        global.Success.Should().BeFalse();
+        global.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        (await _db.SlnResources.AsNoTracking().SingleAsync(r => r.Id == 32)).Name.Should().Be("Other branch room");
+        (await _db.SlnResources.AsNoTracking().SingleAsync(r => r.Id == 31)).Name.Should().Be("Global room");
+    }
+
+    [Fact]
+    public async Task DeleteResourceAsync_RejectsOutsideBranchScope()
+    {
+        await SeedResourcesAsync();
+        var factory = CreateFactory();
+
+        var otherBranch = await factory.DeleteResourceAsync(32, customerId: 1, branchScopeId: 40);
+        var global = await factory.DeleteResourceAsync(31, customerId: 1, branchScopeId: 40);
+
+        otherBranch.Success.Should().BeFalse();
+        otherBranch.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        global.Success.Should().BeFalse();
+        global.Error.Should().Be("Bu kaynak icin yetkiniz yok");
+        (await _db.SlnResources.AsNoTracking().CountAsync()).Should().Be(3);
+    }
+
     private SlnServiceFactory CreateFactory()
         => new(
             new SlnServiceCategoryEntityService(_db),
@@ -164,6 +239,71 @@ public class SlnServiceFactoryTests : IDisposable
                 ResourceId = 30,
                 QuantityRequired = 2
             });
+        }
+
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedResourcesAsync(bool includeResources = true)
+    {
+        _db.Customers.Add(new Customer
+        {
+            Id = 1,
+            Uid = Guid.NewGuid(),
+            Name = "Salon",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        _db.SlnBranches.AddRange(
+            new SlnBranch
+            {
+                Id = 40,
+                CustomerId = 1,
+                Name = "Merkez",
+                IsActive = true
+            },
+            new SlnBranch
+            {
+                Id = 42,
+                CustomerId = 1,
+                Name = "Sube",
+                IsActive = true
+            });
+
+        if (includeResources)
+        {
+            _db.SlnResources.AddRange(
+                new SlnResource
+                {
+                    Id = 30,
+                    CustomerId = 1,
+                    BranchId = 40,
+                    Name = "Own branch room",
+                    Quantity = 1,
+                    IsActive = true,
+                    SortOrder = 2
+                },
+                new SlnResource
+                {
+                    Id = 31,
+                    CustomerId = 1,
+                    BranchId = null,
+                    Name = "Global room",
+                    Quantity = 1,
+                    IsActive = true,
+                    SortOrder = 1
+                },
+                new SlnResource
+                {
+                    Id = 32,
+                    CustomerId = 1,
+                    BranchId = 42,
+                    Name = "Other branch room",
+                    Quantity = 1,
+                    IsActive = true,
+                    SortOrder = 3
+                });
         }
 
         await _db.SaveChangesAsync();
