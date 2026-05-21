@@ -641,6 +641,8 @@ public class PortalFactory : IPortalFactory
         var nameMap = personnel.ToDictionary(p => p.Id, p => p.FullName);
         var fromDate = from.Date;
         var toDate = to.Date;
+        var fromPeriod = fromDate.Year * 100 + fromDate.Month;
+        var toPeriod = toDate.Year * 100 + toDate.Month;
 
         var shifts = await _shiftEs.GetAllQueryable()
             .Where(s => personnelIds.Contains(s.PersonnelId) && s.ShiftDate.Date >= fromDate && s.ShiftDate.Date <= toDate)
@@ -659,7 +661,9 @@ public class PortalFactory : IPortalFactory
             .OrderByDescending(a => a.AdvanceDate)
             .ToListAsync();
         var payrolls = await _payrollEs.GetAllQueryable()
-            .Where(p => personnelIds.Contains(p.PersonnelId))
+            .Where(p => personnelIds.Contains(p.PersonnelId)
+                && (p.Year * 100 + p.Month) >= fromPeriod
+                && (p.Year * 100 + p.Month) <= toPeriod)
             .OrderByDescending(p => p.Year).ThenByDescending(p => p.Month)
             .Take(100)
             .ToListAsync();

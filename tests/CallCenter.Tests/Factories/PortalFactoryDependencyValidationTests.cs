@@ -335,6 +335,26 @@ public class PortalFactoryDependencyValidationTests : IDisposable
         leave.ReviewedByPersonnelId.Should().Be(20);
     }
 
+    [Fact]
+    public async Task GetPersonnelOpsAsync_FiltersPayrollsByRequestedPeriodRange()
+    {
+        await SeedPersonnelAsync();
+        _db.SlnPayrolls.AddRange(
+            new SlnPayroll { Id = 40, PersonnelId = 20, Year = 2026, Month = 4, NetPay = 400 },
+            new SlnPayroll { Id = 41, PersonnelId = 20, Year = 2026, Month = 5, NetPay = 500 },
+            new SlnPayroll { Id = 42, PersonnelId = 20, Year = 2026, Month = 6, NetPay = 600 },
+            new SlnPayroll { Id = 43, PersonnelId = 20, Year = 2026, Month = 7, NetPay = 700 });
+        await _db.SaveChangesAsync();
+        var factory = CreateFactory(useRealOps: true);
+
+        var ops = await factory.GetPersonnelOpsAsync(
+            1,
+            new DateTime(2026, 5, 21),
+            new DateTime(2026, 6, 20));
+
+        ops.Payrolls.Select(p => $"{p.Year}-{p.Month}").Should().Equal("2026-6", "2026-5");
+    }
+
     private async Task SeedCustomersAsync()
     {
         _db.Customers.AddRange(
@@ -413,7 +433,7 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             SkillServiceIds = skillServiceIds
         };
 
-    private PortalFactory CreateFactory(IPasswordPolicyFactory? passwordPolicy = null)
+    private PortalFactory CreateFactory(IPasswordPolicyFactory? passwordPolicy = null, bool useRealOps = false)
     {
         var resolvedPasswordPolicy = passwordPolicy ?? Substitute.For<IPasswordPolicyFactory>();
         if (passwordPolicy == null)
@@ -422,6 +442,18 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             resolvedPasswordPolicy.IsPasswordReusedAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(false);
             resolvedPasswordPolicy.RecordPasswordAsync(Arg.Any<int>(), Arg.Any<string>()).Returns(Task.CompletedTask);
         }
+        var shiftEs = useRealOps
+            ? new SlnPersonnelShiftEntityService(_db)
+            : Substitute.For<ISlnPersonnelShiftEntityService>();
+        var timesheetEs = useRealOps
+            ? new SlnPersonnelTimesheetEntityService(_db)
+            : Substitute.For<ISlnPersonnelTimesheetEntityService>();
+        var payrollEs = useRealOps
+            ? new SlnPayrollEntityService(_db)
+            : Substitute.For<ISlnPayrollEntityService>();
+        var advanceEs = useRealOps
+            ? new SlnAdvanceEntityService(_db)
+            : Substitute.For<ISlnAdvanceEntityService>();
 
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -443,11 +475,11 @@ public class PortalFactoryDependencyValidationTests : IDisposable
             new SlnBranchEntityService(_db),
             new SlnServiceEntityService(_db),
             Substitute.For<ISlnPersonnelCommissionEntityService>(),
-            Substitute.For<ISlnPersonnelShiftEntityService>(),
+            shiftEs,
             new SlnPersonnelLeaveEntityService(_db),
-            Substitute.For<ISlnPersonnelTimesheetEntityService>(),
-            Substitute.For<ISlnPayrollEntityService>(),
-            Substitute.For<ISlnAdvanceEntityService>(),
+            timesheetEs,
+            payrollEs,
+            advanceEs,
             Substitute.For<ISlnInvoiceItemEntityService>(),
             new UnitOfWork(_db));
     }
