@@ -11,17 +11,23 @@ namespace CallCenter.Api.Factories;
 public class SlnWaitlistFactory : ISlnWaitlistFactory
 {
     private readonly ISlnWaitlistEntryEntityService _waitlistEs;
+    private readonly ISlnClientEntityService _clients;
+    private readonly ISlnServiceEntityService _services;
     private readonly ISlnBranchEntityService _branches;
     private readonly ICustomerPersonnelEntityService _personnel;
     private readonly IUnitOfWork _uow;
 
     public SlnWaitlistFactory(
         ISlnWaitlistEntryEntityService waitlistEs,
+        ISlnClientEntityService clients,
+        ISlnServiceEntityService services,
         ISlnBranchEntityService branches,
         ICustomerPersonnelEntityService personnel,
         IUnitOfWork uow)
     {
         _waitlistEs = waitlistEs;
+        _clients = clients;
+        _services = services;
         _branches = branches;
         _personnel = personnel;
         _uow = uow;
@@ -80,8 +86,11 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         return entry != null ? MapToDto(entry) : null;
     }
 
-    public async Task<SlnWaitlistEntryDto> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId = null)
+    public async Task<(bool Success, string? Error, SlnWaitlistEntryDto? Entry)> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId = null)
     {
+        var validation = await ValidateLookupOwnershipAsync(dto, customerId, branchScopeId);
+        if (!validation.Success) return (false, validation.Error, null);
+
         var branchId = await ResolveBranchIdAsync(customerId, dto.PreferredPersonnelId, branchScopeId, dto.BranchId);
         var entry = new SlnWaitlistEntry
         {
@@ -97,7 +106,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         };
         _waitlistEs.Add(entry);
         await _uow.SaveChangesAsync();
-        return (await GetEntryAsync(entry.Id, customerId))!;
+        return (true, null, (await GetEntryAsync(entry.Id, customerId))!);
     }
 
     public async Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId, int? branchScopeId = null)
@@ -106,6 +115,8 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         if (entry == null) return (false, "Kayit bulunamadi");
         if (branchScopeId.HasValue && entry.BranchId.HasValue && entry.BranchId.Value != branchScopeId.Value)
             return (false, "Bu kayit icin yetkiniz yok");
+        var validation = await ValidateLookupOwnershipAsync(dto, customerId, branchScopeId);
+        if (!validation.Success) return (false, validation.Error);
 
         entry.BranchId = await ResolveBranchIdAsync(customerId, dto.PreferredPersonnelId, branchScopeId, dto.BranchId);
         entry.SlnClientId = dto.SlnClientId;
@@ -115,6 +126,45 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         entry.PreferredTimeSlot = dto.PreferredTimeSlot;
         entry.Notes = dto.Notes;
         await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    private async Task<(bool Success, string? Error)> ValidateLookupOwnershipAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId)
+    {
+        if (dto.SlnClientId <= 0)
+            return (false, "Musteri zorunludur");
+        if (dto.ServiceId <= 0)
+            return (false, "Hizmet zorunludur");
+        if (branchScopeId.HasValue && dto.BranchId.HasValue && dto.BranchId.Value != branchScopeId.Value)
+            return (false, "Bu sube icin yetkiniz yok");
+
+        var clientExists = await _clients.GetAllQueryable()
+            .AnyAsync(c => c.Id == dto.SlnClientId && c.CustomerId == customerId && c.IsActive);
+        if (!clientExists)
+            return (false, "Musteri bulunamadi");
+
+        var serviceExists = await _services.GetAllQueryable()
+            .AnyAsync(s => s.Id == dto.ServiceId && s.CustomerId == customerId && s.IsActive);
+        if (!serviceExists)
+            return (false, "Hizmet bulunamadi");
+
+        if (dto.PreferredPersonnelId.HasValue)
+        {
+            var personnelExists = await _personnel.GetAllQueryable()
+                .AnyAsync(p => p.Id == dto.PreferredPersonnelId.Value && p.CustomerId == customerId && p.IsActive);
+            if (!personnelExists)
+                return (false, "Personel bulunamadi");
+        }
+
+        var requestedBranchId = branchScopeId ?? dto.BranchId;
+        if (requestedBranchId.HasValue)
+        {
+            var branchExists = await _branches.GetAllQueryable()
+                .AnyAsync(b => b.Id == requestedBranchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (!branchExists)
+                return (false, "Sube bulunamadi");
+        }
+
         return (true, null);
     }
 

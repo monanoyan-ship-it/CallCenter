@@ -45,7 +45,8 @@ public class SlnWaitlistController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
         dto.BranchId ??= branchId;
-        return Ok(await _factory.CreateEntryAsync(dto, customerId, GetBranchScopeId()));
+        var (success, error, entry) = await _factory.CreateEntryAsync(dto, customerId, GetBranchScopeId());
+        return success ? Ok(entry) : BadRequest(error);
     }
 
     [HttpPut("{id}")]
