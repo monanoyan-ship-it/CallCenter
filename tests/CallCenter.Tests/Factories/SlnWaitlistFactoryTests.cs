@@ -144,6 +144,31 @@ public class SlnWaitlistFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAndUpdateEntryAsync_StorePreferredDateAsDateOnlyUtc()
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true);
+        var factory = CreateFactory();
+
+        var createDto = CreateDto();
+        createDto.PreferredDate = new DateTime(2026, 5, 20, 18, 45, 0, DateTimeKind.Local);
+        var createResult = await factory.CreateEntryAsync(createDto, 1);
+
+        createResult.Success.Should().BeTrue();
+        createResult.Entry!.PreferredDate.Should().Be(new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc));
+
+        var updateDto = CreateUpdateDto();
+        updateDto.PreferredDate = new DateTime(2026, 6, 21, 23, 59, 0, DateTimeKind.Local);
+        var updateResult = await factory.UpdateEntryAsync(10, updateDto, 1);
+        var updatedDate = await _db.SlnWaitlistEntries.AsNoTracking()
+            .Where(w => w.Id == 10)
+            .Select(w => w.PreferredDate)
+            .SingleAsync();
+
+        updateResult.Success.Should().BeTrue();
+        updatedDate.Should().Be(new DateTime(2026, 6, 21, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
     public async Task UpdateEntryAsync_RejectsLookupIdsOutsideCustomer()
     {
         await SeedOwnershipLookupsAsync(includeEntry: true);

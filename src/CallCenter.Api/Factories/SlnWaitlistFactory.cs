@@ -99,7 +99,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             SlnClientId = dto.SlnClientId,
             ServiceId = dto.ServiceId,
             PreferredPersonnelId = dto.PreferredPersonnelId,
-            PreferredDate = dto.PreferredDate,
+            PreferredDate = ToDateOnlyUtc(dto.PreferredDate),
             PreferredTimeSlot = dto.PreferredTimeSlot,
             Notes = dto.Notes,
             StatusId = SlnWaitlistStatuses.Ids.Waiting
@@ -122,12 +122,15 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         entry.SlnClientId = dto.SlnClientId;
         entry.ServiceId = dto.ServiceId;
         entry.PreferredPersonnelId = dto.PreferredPersonnelId;
-        entry.PreferredDate = dto.PreferredDate;
+        entry.PreferredDate = ToDateOnlyUtc(dto.PreferredDate);
         entry.PreferredTimeSlot = dto.PreferredTimeSlot;
         entry.Notes = dto.Notes;
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    private static DateTime ToDateOnlyUtc(DateTime value)
+        => DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
 
     private async Task<(bool Success, string? Error)> ValidateLookupOwnershipAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId)
     {
