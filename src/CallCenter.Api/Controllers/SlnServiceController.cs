@@ -148,7 +148,8 @@ public class SlnServiceController : ControllerBase
 
         try
         {
-            return Ok(await _serviceFactory.CreateComboAsync(dto, customerId));
+            var (combo, error) = await _serviceFactory.CreateComboAsync(dto, customerId);
+            return combo != null ? Ok(combo) : BadRequest(error);
         }
         catch (DbUpdateException ex) when (IsDuplicateComboName(ex))
         {

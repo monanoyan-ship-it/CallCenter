@@ -178,6 +178,89 @@ public class SlnServiceFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateComboAsync_RejectsEmptyItems()
+    {
+        await SeedServiceAsync(isActive: true);
+        var factory = CreateFactory();
+
+        var result = await factory.CreateComboAsync(new SlnServiceComboCreateDto
+        {
+            Name = "Combo",
+            Price = 500m,
+            Items = []
+        }, customerId: 1);
+
+        result.Combo.Should().BeNull();
+        result.Error.Should().Be("Combo icin en az bir hizmet secin");
+        (await _db.SlnServiceCombos.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateComboAsync_RejectsInvalidServiceIdWithoutCreatingCombo()
+    {
+        await SeedServiceAsync(isActive: true);
+        var factory = CreateFactory();
+
+        var result = await factory.CreateComboAsync(new SlnServiceComboCreateDto
+        {
+            Name = "Combo",
+            Price = 500m,
+            Items = [new SlnServiceComboItemCreateDto { ServiceId = 999, SortOrder = 1 }]
+        }, customerId: 1);
+
+        result.Combo.Should().BeNull();
+        result.Error.Should().Be("Hizmet bulunamadi");
+        (await _db.SlnServiceCombos.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpdateComboAsync_RejectsInvalidServiceIdWithoutClearingExistingItems()
+    {
+        await SeedServiceAsync(isActive: true);
+        await SeedComboAsync();
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateComboAsync(60, new SlnServiceComboCreateDto
+        {
+            Name = "Updated combo",
+            Price = 750m,
+            Items = [new SlnServiceComboItemCreateDto { ServiceId = 999, SortOrder = 1 }]
+        }, customerId: 1);
+        var combo = await _db.SlnServiceCombos.AsNoTracking().SingleAsync(c => c.Id == 60);
+        var items = await _db.SlnServiceComboItems.AsNoTracking().Where(i => i.ComboId == 60).ToListAsync();
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Hizmet bulunamadi");
+        combo.Name.Should().Be("Existing combo");
+        items.Should().ContainSingle();
+        items.Single().ServiceId.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task DeleteComboAsync_RejectsHistoricalAppointmentUsage()
+    {
+        await SeedServiceAsync(isActive: true);
+        await SeedComboAsync();
+        _db.SlnAppointments.Add(new SlnAppointment
+        {
+            Id = 70,
+            CustomerId = 1,
+            ComboId = 60,
+            StartTime = new DateTime(2026, 5, 21, 9, 0, 0, DateTimeKind.Utc),
+            EndTime = new DateTime(2026, 5, 21, 10, 0, 0, DateTimeKind.Utc)
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+        var factory = CreateFactory();
+
+        var result = await factory.DeleteComboAsync(60, customerId: 1);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Bu combo randevularda kullaniliyor");
+        (await _db.SlnServiceCombos.AsNoTracking().AnyAsync(c => c.Id == 60)).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetResourcesAsync_FiltersByBranchScopeAndKeepsGlobalResources()
     {
         await SeedResourcesAsync();
@@ -260,6 +343,7 @@ public class SlnServiceFactoryTests : IDisposable
             new SlnServiceResourceRequirementEntityService(_db),
             new SlnServiceComboEntityService(_db),
             new SlnServiceComboItemEntityService(_db),
+            new SlnAppointmentEntityService(_db),
             new SlnBranchEntityService(_db),
             new UnitOfWork(_db),
             NullLogger<SlnServiceFactory>.Instance);
@@ -386,6 +470,28 @@ public class SlnServiceFactoryTests : IDisposable
             Name = "Other salon room",
             Quantity = 1,
             IsActive = true
+        });
+
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedComboAsync()
+    {
+        _db.SlnServiceCombos.Add(new SlnServiceCombo
+        {
+            Id = 60,
+            CustomerId = 1,
+            Name = "Existing combo",
+            Price = 500m,
+            IsActive = true
+        });
+        _db.SlnServiceComboItems.Add(new SlnServiceComboItem
+        {
+            Id = 61,
+            ComboId = 60,
+            ServiceId = 10,
+            SortOrder = 1
         });
 
         await _db.SaveChangesAsync();

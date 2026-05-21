@@ -17,7 +17,7 @@ public interface ISlnServiceFactory
     Task<(bool Success, string? Error)> UpdateResourceAsync(int resourceId, SlnResourceCreateDto dto, int customerId, int? branchScopeId = null);
     Task<(bool Success, string? Error)> DeleteResourceAsync(int resourceId, int customerId, int? branchScopeId = null);
     Task<List<SlnServiceComboDto>> GetCombosAsync(int customerId);
-    Task<SlnServiceComboDto> CreateComboAsync(SlnServiceComboCreateDto dto, int customerId);
+    Task<(SlnServiceComboDto? Combo, string? Error)> CreateComboAsync(SlnServiceComboCreateDto dto, int customerId);
     Task<(bool Success, string? Error)> UpdateComboAsync(int comboId, SlnServiceComboCreateDto dto, int customerId);
     Task<(bool Success, string? Error)> DeleteComboAsync(int comboId, int customerId);
 }

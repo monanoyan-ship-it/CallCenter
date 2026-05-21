@@ -15,6 +15,7 @@ public class SlnServiceFactory : ISlnServiceFactory
     private readonly ISlnServiceResourceRequirementEntityService _requirements;
     private readonly ISlnServiceComboEntityService _combos;
     private readonly ISlnServiceComboItemEntityService _comboItems;
+    private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnBranchEntityService _branches;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnServiceFactory> _logger;
@@ -26,6 +27,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         ISlnServiceResourceRequirementEntityService requirements,
         ISlnServiceComboEntityService combos,
         ISlnServiceComboItemEntityService comboItems,
+        ISlnAppointmentEntityService appointments,
         ISlnBranchEntityService branches,
         IUnitOfWork uow,
         ILogger<SlnServiceFactory> logger)
@@ -36,6 +38,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         _requirements = requirements;
         _combos = combos;
         _comboItems = comboItems;
+        _appointments = appointments;
         _branches = branches;
         _uow = uow;
         _logger = logger;
@@ -301,8 +304,12 @@ public class SlnServiceFactory : ISlnServiceFactory
         return combos.Select(MapComboToDto).ToList();
     }
 
-    public async Task<SlnServiceComboDto> CreateComboAsync(SlnServiceComboCreateDto dto, int customerId)
+    public async Task<(SlnServiceComboDto? Combo, string? Error)> CreateComboAsync(SlnServiceComboCreateDto dto, int customerId)
     {
+        var validationError = await ValidateComboSaveAsync(dto, customerId);
+        if (validationError != null)
+            return (null, validationError);
+
         var combo = new SlnServiceCombo
         {
             CustomerId = customerId,
@@ -315,9 +322,17 @@ public class SlnServiceFactory : ISlnServiceFactory
 
         _combos.Add(combo);
         await _uow.SaveChangesAsync();
-        await SyncComboItemsAsync(combo.Id, dto.Items, customerId);
 
-        return (await GetCombosAsync(customerId)).First(c => c.Id == combo.Id);
+        var syncResult = await SyncComboItemsAsync(combo.Id, dto.Items, customerId);
+        if (!syncResult.Success)
+        {
+            _combos.Remove(combo);
+            await _uow.SaveChangesAsync();
+            return (null, syncResult.Error);
+        }
+
+        await _uow.SaveChangesAsync();
+        return ((await GetCombosAsync(customerId)).First(c => c.Id == combo.Id), null);
     }
 
     public async Task<(bool Success, string? Error)> UpdateComboAsync(int comboId, SlnServiceComboCreateDto dto, int customerId)
@@ -327,13 +342,20 @@ public class SlnServiceFactory : ISlnServiceFactory
             .FirstOrDefaultAsync(c => c.Id == comboId && c.CustomerId == customerId);
         if (combo == null) return (false, "Combo bulunamadi");
 
+        var validationError = await ValidateComboSaveAsync(dto, customerId);
+        if (validationError != null)
+            return (false, validationError);
+
         combo.Name = dto.Name;
         combo.Description = dto.Description;
         combo.Price = dto.Price;
         combo.IsActive = dto.IsActive;
         combo.SortOrder = dto.SortOrder;
 
-        await SyncComboItemsAsync(combo.Id, dto.Items, customerId);
+        var syncResult = await SyncComboItemsAsync(combo.Id, dto.Items, customerId);
+        if (!syncResult.Success)
+            return (false, syncResult.Error);
+
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -343,6 +365,9 @@ public class SlnServiceFactory : ISlnServiceFactory
         var combo = await _combos.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.Id == comboId && c.CustomerId == customerId);
         if (combo == null) return (false, "Combo bulunamadi");
+        var hasAppointments = await _appointments.GetAllQueryable()
+            .AnyAsync(a => a.CustomerId == customerId && a.ComboId == comboId);
+        if (hasAppointments) return (false, "Bu combo randevularda kullaniliyor");
 
         _combos.Remove(combo);
         await _uow.SaveChangesAsync();
@@ -414,21 +439,20 @@ public class SlnServiceFactory : ISlnServiceFactory
         return validCount == resourceIds.Count ? null : "Kaynak bulunamadi";
     }
 
-    private async Task SyncComboItemsAsync(int comboId, List<SlnServiceComboItemCreateDto> incoming, int customerId)
+    private async Task<(bool Success, string? Error)> SyncComboItemsAsync(int comboId, List<SlnServiceComboItemCreateDto>? incoming, int customerId)
     {
+        var items = incoming ?? [];
+        var validationError = await ValidateComboItemsAsync(items, customerId);
+        if (validationError != null)
+            return (false, validationError);
+
         var existing = await _comboItems.GetAllQueryable()
             .Where(i => i.ComboId == comboId)
             .ToListAsync();
         _comboItems.RemoveRange(existing);
 
-        var serviceIds = incoming.Select(i => i.ServiceId).Distinct().ToList();
-        var validServiceIds = await _services.GetAllQueryable()
-            .Where(s => s.CustomerId == customerId && serviceIds.Contains(s.Id))
-            .Select(s => s.Id)
-            .ToListAsync();
-
         var sortOrder = 1;
-        foreach (var item in incoming.Where(i => validServiceIds.Contains(i.ServiceId)))
+        foreach (var item in items)
         {
             _comboItems.Add(new SlnServiceComboItem
             {
@@ -438,7 +462,31 @@ public class SlnServiceFactory : ISlnServiceFactory
             });
         }
 
-        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    private async Task<string?> ValidateComboSaveAsync(SlnServiceComboCreateDto dto, int customerId)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name)) return "Combo adi zorunlu";
+        if (dto.Price < 0) return "Fiyat 0 veya daha buyuk olmali";
+
+        return await ValidateComboItemsAsync(dto.Items, customerId);
+    }
+
+    private async Task<string?> ValidateComboItemsAsync(List<SlnServiceComboItemCreateDto>? incoming, int customerId)
+    {
+        var items = incoming ?? [];
+        var serviceIds = items
+            .Select(i => i.ServiceId)
+            .Distinct()
+            .ToList();
+        if (serviceIds.Count == 0) return "Combo icin en az bir hizmet secin";
+        if (serviceIds.Count != items.Count) return "Combo hizmetleri tekrar etmemeli";
+
+        var validCount = await _services.GetAllQueryable()
+            .CountAsync(s => s.CustomerId == customerId && serviceIds.Contains(s.Id));
+
+        return validCount == serviceIds.Count ? null : "Hizmet bulunamadi";
     }
 
     private async Task<int?> NormalizeBranchIdAsync(int? branchId, int customerId)
