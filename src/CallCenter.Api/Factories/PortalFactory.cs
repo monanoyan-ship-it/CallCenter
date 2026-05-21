@@ -20,6 +20,8 @@ public class PortalFactory : IPortalFactory
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly AesEncryptionService _encryption;
     private readonly ISlnPersonnelSkillEntityService _skillEs;
+    private readonly ISlnBranchEntityService _branchEs;
+    private readonly ISlnServiceEntityService _serviceEs;
     private readonly ISlnPersonnelCommissionEntityService _commissionEs;
     private readonly ISlnPersonnelShiftEntityService _shiftEs;
     private readonly ISlnPersonnelLeaveEntityService _leaveEs;
@@ -39,6 +41,8 @@ public class PortalFactory : IPortalFactory
         IPasswordPolicyFactory passwordPolicy,
         AesEncryptionService encryption,
         ISlnPersonnelSkillEntityService skillEs,
+        ISlnBranchEntityService branchEs,
+        ISlnServiceEntityService serviceEs,
         ISlnPersonnelCommissionEntityService commissionEs,
         ISlnPersonnelShiftEntityService shiftEs,
         ISlnPersonnelLeaveEntityService leaveEs,
@@ -57,6 +61,8 @@ public class PortalFactory : IPortalFactory
         _passwordPolicy = passwordPolicy;
         _encryption = encryption;
         _skillEs = skillEs;
+        _branchEs = branchEs;
+        _serviceEs = serviceEs;
         _commissionEs = commissionEs;
         _shiftEs = shiftEs;
         _leaveEs = leaveEs;
@@ -247,6 +253,14 @@ public class PortalFactory : IPortalFactory
             }
         }
 
+        var dependencyError = await ValidatePersonnelDependenciesAsync(
+            customerId,
+            dto.BranchId,
+            dto.ReportsToPersonnelId,
+            dto.SkillServiceIds);
+        if (dependencyError != null)
+            return (false, dependencyError);
+
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
         var user = new User
         {
@@ -288,9 +302,10 @@ public class PortalFactory : IPortalFactory
         await _uow.SaveChangesAsync();
 
         // Hizmet yetenekleri ekle
-        if (dto.SkillServiceIds?.Count > 0)
+        var skillServiceIds = DistinctSkillServiceIds(dto.SkillServiceIds);
+        if (skillServiceIds.Count > 0)
         {
-            foreach (var serviceId in dto.SkillServiceIds)
+            foreach (var serviceId in skillServiceIds)
                 _skillEs.Add(new SlnPersonnelSkill { PersonnelId = personnelEntity.Id, ServiceId = serviceId });
             await _uow.SaveChangesAsync();
         }
@@ -306,7 +321,7 @@ public class PortalFactory : IPortalFactory
             CustomerRoleName = SalonRoles.GetById(personnelEntity.CustomerRoleId)?.Description
                 ?? CustomerRoles.GetById(personnelEntity.CustomerRoleId)?.Description,
             BranchId = personnelEntity.BranchId,
-            SkillServiceIds = dto.SkillServiceIds,
+            SkillServiceIds = skillServiceIds,
             IsActive = true
         });
     }
@@ -349,6 +364,15 @@ public class PortalFactory : IPortalFactory
             if (activeAdminCount <= 1)
                 return (false, "Firmada en az bir yonetici olmalidir. Son yonetici deaktive edilemez.");
         }
+
+        var dependencyError = await ValidatePersonnelDependenciesAsync(
+            customerId,
+            dto.BranchId,
+            dto.ReportsToPersonnelId,
+            dto.SkillServiceIds,
+            currentPersonnelId: id);
+        if (dependencyError != null)
+            return (false, dependencyError);
 
         personnel.User.FullName = dto.FullName;
         personnel.User.Email = dto.Email;
@@ -409,13 +433,58 @@ public class PortalFactory : IPortalFactory
                 .ToListAsync();
             foreach (var s in existingSkills) _skillEs.Remove(s);
 
-            foreach (var serviceId in dto.SkillServiceIds)
+            foreach (var serviceId in DistinctSkillServiceIds(dto.SkillServiceIds))
                 _skillEs.Add(new SlnPersonnelSkill { PersonnelId = id, ServiceId = serviceId });
         }
 
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    private async Task<string?> ValidatePersonnelDependenciesAsync(
+        int customerId,
+        int? branchId,
+        int? reportsToPersonnelId,
+        List<int>? skillServiceIds,
+        int? currentPersonnelId = null)
+    {
+        if (branchId.HasValue)
+        {
+            var branchExists = await _branchEs.GetAllQueryable()
+                .AnyAsync(b => b.Id == branchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (!branchExists) return "Şube bulunamadı.";
+        }
+
+        if (reportsToPersonnelId.HasValue)
+        {
+            if (currentPersonnelId.HasValue && reportsToPersonnelId.Value == currentPersonnelId.Value)
+                return "Personel kendi amiri olamaz.";
+
+            var managerExists = await _personnelEs.GetAllQueryable()
+                .AnyAsync(p => p.Id == reportsToPersonnelId.Value && p.CustomerId == customerId && p.IsActive);
+            if (!managerExists) return "Amir personel bulunamadı.";
+        }
+
+        if (skillServiceIds is { Count: > 0 })
+        {
+            var distinctServiceIds = DistinctSkillServiceIds(skillServiceIds);
+            if (distinctServiceIds.Count != skillServiceIds.Count)
+                return "Hizmet yetenekleri tekrarsız ve geçerli olmalı.";
+
+            var validServiceCount = await _serviceEs.GetAllQueryable()
+                .CountAsync(s => s.CustomerId == customerId && distinctServiceIds.Contains(s.Id));
+            if (validServiceCount != distinctServiceIds.Count)
+                return "Hizmet yetenekleri bu salona ait olmalı.";
+        }
+
+        return null;
+    }
+
+    private static List<int> DistinctSkillServiceIds(List<int>? skillServiceIds)
+        => skillServiceIds?
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList() ?? [];
 
     public async Task<(bool Success, string? Error, string? PhotoUrl)> GetPersonnelPhotoUrlAsync(int customerId, int id)
     {

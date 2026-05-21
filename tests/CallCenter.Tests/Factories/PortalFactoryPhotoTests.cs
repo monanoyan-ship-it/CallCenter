@@ -89,6 +89,8 @@ public class PortalFactoryPhotoTests
             Substitute.For<IPasswordPolicyFactory>(),
             new AesEncryptionService(config),
             Substitute.For<ISlnPersonnelSkillEntityService>(),
+            Substitute.For<ISlnBranchEntityService>(),
+            Substitute.For<ISlnServiceEntityService>(),
             Substitute.For<ISlnPersonnelCommissionEntityService>(),
             Substitute.For<ISlnPersonnelShiftEntityService>(),
             Substitute.For<ISlnPersonnelLeaveEntityService>(),
