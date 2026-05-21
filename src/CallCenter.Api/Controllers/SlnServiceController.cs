@@ -77,8 +77,8 @@ public class SlnServiceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var service = await _serviceFactory.CreateServiceAsync(dto, customerId);
-        return Ok(service);
+        var (service, error) = await _serviceFactory.CreateServiceAsync(dto, customerId);
+        return service != null ? Ok(service) : BadRequest(error);
     }
 
     [HttpGet("resources")]

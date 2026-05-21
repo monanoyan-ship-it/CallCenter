@@ -86,6 +86,98 @@ public class SlnServiceFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateServiceAsync_RejectsCategoryOutsideCustomer()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.CategoryId = 999;
+        var factory = CreateFactory();
+
+        var result = await factory.CreateServiceAsync(dto, customerId: 1);
+
+        result.Service.Should().BeNull();
+        result.Error.Should().Be("Kategori bulunamadi");
+        (await _db.SlnServices.AsNoTracking().CountAsync(s => s.Name == "Updated service")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpdateServiceAsync_RejectsCategoryOutsideCustomerWithoutMutating()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.CategoryId = 999;
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateServiceAsync(10, dto, isActive: null, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Kategori bulunamadi");
+        service.CategoryId.Should().Be(20);
+        service.Name.Should().Be("Existing service");
+    }
+
+    [Fact]
+    public async Task CreateServiceAsync_RejectsParentOutsideCustomer()
+    {
+        await SeedServiceAsync(isActive: true);
+        await SeedForeignServiceAsync();
+        var dto = CreateDto();
+        dto.ParentServiceId = 11;
+        var factory = CreateFactory();
+
+        var result = await factory.CreateServiceAsync(dto, customerId: 1);
+
+        result.Service.Should().BeNull();
+        result.Error.Should().Be("Ust hizmet bulunamadi");
+        (await _db.SlnServices.AsNoTracking().CountAsync(s => s.Name == "Updated service")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpdateServiceAsync_RejectsSelfParentWithoutMutating()
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.ParentServiceId = 10;
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateServiceAsync(10, dto, isActive: null, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Hizmet kendisinin ust hizmeti olamaz");
+        service.ParentServiceId.Should().BeNull();
+        service.Name.Should().Be("Existing service");
+    }
+
+    [Fact]
+    public async Task UpdateServiceAsync_RejectsResourceOutsideCustomerWithoutClearingExistingRequirements()
+    {
+        await SeedServiceAsync(isActive: true, includeRequirement: true);
+        await SeedForeignResourceAsync();
+        var dto = CreateDto();
+        dto.ResourceRequirements =
+        [
+            new SlnServiceResourceRequirementCreateDto
+            {
+                ResourceId = 32,
+                QuantityRequired = 1
+            }
+        ];
+        var factory = CreateFactory();
+
+        var result = await factory.UpdateServiceAsync(10, dto, isActive: null, customerId: 1);
+        var service = await _db.SlnServices.AsNoTracking().SingleAsync(s => s.Id == 10);
+        var requirements = await _db.SlnServiceResourceRequirements.AsNoTracking().Where(r => r.ServiceId == 10).ToListAsync();
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("Kaynak bulunamadi");
+        service.Name.Should().Be("Existing service");
+        requirements.Should().ContainSingle();
+        requirements.Single().ResourceId.Should().Be(30);
+    }
+
+    [Fact]
     public async Task GetResourcesAsync_FiltersByBranchScopeAndKeepsGlobalResources()
     {
         await SeedResourcesAsync();
@@ -240,6 +332,61 @@ public class SlnServiceFactoryTests : IDisposable
                 QuantityRequired = 2
             });
         }
+
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedForeignServiceAsync()
+    {
+        _db.Customers.Add(new Customer
+        {
+            Id = 2,
+            Uid = Guid.NewGuid(),
+            Name = "Other salon",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        _db.SlnServiceCategories.Add(new SlnServiceCategory
+        {
+            Id = 21,
+            CustomerId = 2,
+            Name = "Other category",
+            IsActive = true
+        });
+        _db.SlnServices.Add(new SlnService
+        {
+            Id = 11,
+            CustomerId = 2,
+            CategoryId = 21,
+            Name = "Other service",
+            DurationMinutes = 30,
+            Price = 100m,
+            IsActive = true
+        });
+
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task SeedForeignResourceAsync()
+    {
+        _db.Customers.Add(new Customer
+        {
+            Id = 2,
+            Uid = Guid.NewGuid(),
+            Name = "Other salon",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        _db.SlnResources.Add(new SlnResource
+        {
+            Id = 32,
+            CustomerId = 2,
+            Name = "Other salon room",
+            Quantity = 1,
+            IsActive = true
+        });
 
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();

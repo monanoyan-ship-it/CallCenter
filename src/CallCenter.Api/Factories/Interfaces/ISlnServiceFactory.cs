@@ -9,7 +9,7 @@ public interface ISlnServiceFactory
     Task<(bool Success, string? Error)> UpdateCategoryAsync(int categoryId, string name, int sortOrder, bool isActive, int customerId);
     Task<(bool Success, string? Error)> DeleteCategoryAsync(int categoryId, int customerId);
     Task<List<SlnServiceDto>> GetServicesAsync(int customerId, int? categoryId = null);
-    Task<SlnServiceDto> CreateServiceAsync(SlnServiceCreateDto dto, int customerId);
+    Task<(SlnServiceDto? Service, string? Error)> CreateServiceAsync(SlnServiceCreateDto dto, int customerId);
     Task<(bool Success, string? Error)> UpdateServiceAsync(int serviceId, SlnServiceCreateDto dto, bool? isActive, int customerId, bool syncResourceRequirements = true);
     Task<(bool Success, string? Error)> DeleteServiceAsync(int serviceId, int customerId);
     Task<List<SlnResourceDto>> GetResourcesAsync(int customerId, int? branchScopeId = null);

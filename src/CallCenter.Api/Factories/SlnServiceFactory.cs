@@ -128,8 +128,12 @@ public class SlnServiceFactory : ISlnServiceFactory
         return services.Select(s => MapServiceToDto(s, s.Category?.Name ?? "")).ToList();
     }
 
-    public async Task<SlnServiceDto> CreateServiceAsync(SlnServiceCreateDto dto, int customerId)
+    public async Task<(SlnServiceDto? Service, string? Error)> CreateServiceAsync(SlnServiceCreateDto dto, int customerId)
     {
+        var validationError = await ValidateServiceSaveAsync(dto, customerId);
+        if (validationError != null)
+            return (null, validationError);
+
         var service = new SlnService
         {
             CustomerId = customerId,
@@ -149,9 +153,17 @@ public class SlnServiceFactory : ISlnServiceFactory
 
         _services.Add(service);
         await _uow.SaveChangesAsync();
-        await SyncRequirementsAsync(service.Id, dto.ResourceRequirements, customerId);
 
-        return (await GetServicesAsync(customerId)).First(s => s.Id == service.Id);
+        var syncResult = await SyncRequirementsAsync(service.Id, dto.ResourceRequirements, customerId);
+        if (!syncResult.Success)
+        {
+            _services.Remove(service);
+            await _uow.SaveChangesAsync();
+            return (null, syncResult.Error);
+        }
+
+        await _uow.SaveChangesAsync();
+        return ((await GetServicesAsync(customerId)).First(s => s.Id == service.Id), null);
     }
 
     public async Task<(bool Success, string? Error)> UpdateServiceAsync(int serviceId, SlnServiceCreateDto dto, bool? isActive, int customerId, bool syncResourceRequirements = true)
@@ -160,6 +172,10 @@ public class SlnServiceFactory : ISlnServiceFactory
             .FirstOrDefaultAsync(s => s.Id == serviceId && s.CustomerId == customerId);
 
         if (service == null) return (false, "Hizmet bulunamadi");
+
+        var validationError = await ValidateServiceSaveAsync(dto, customerId, serviceId, syncResourceRequirements);
+        if (validationError != null)
+            return (false, validationError);
 
         service.CategoryId = dto.CategoryId;
         service.Name = dto.Name;
@@ -177,7 +193,12 @@ public class SlnServiceFactory : ISlnServiceFactory
             service.IsActive = isActive.Value;
 
         if (syncResourceRequirements)
-            await SyncRequirementsAsync(service.Id, dto.ResourceRequirements, customerId);
+        {
+            var syncResult = await SyncRequirementsAsync(service.Id, dto.ResourceRequirements, customerId);
+            if (!syncResult.Success)
+                return (false, syncResult.Error);
+        }
+
         await _uow.SaveChangesAsync();
         return (true, null);
     }
@@ -328,20 +349,19 @@ public class SlnServiceFactory : ISlnServiceFactory
         return (true, null);
     }
 
-    private async Task SyncRequirementsAsync(int serviceId, List<SlnServiceResourceRequirementCreateDto> incoming, int customerId)
+    private async Task<(bool Success, string? Error)> SyncRequirementsAsync(int serviceId, List<SlnServiceResourceRequirementCreateDto>? incoming, int customerId)
     {
+        var requirements = incoming ?? [];
+        var validationError = await ValidateResourceRequirementsAsync(requirements, customerId);
+        if (validationError != null)
+            return (false, validationError);
+
         var existing = await _requirements.GetAllQueryable()
             .Where(r => r.ServiceId == serviceId)
             .ToListAsync();
         _requirements.RemoveRange(existing);
 
-        var resourceIds = incoming.Select(i => i.ResourceId).Distinct().ToList();
-        var validResourceIds = await _resources.GetAllQueryable()
-            .Where(r => r.CustomerId == customerId && resourceIds.Contains(r.Id))
-            .Select(r => r.Id)
-            .ToListAsync();
-
-        foreach (var item in incoming.Where(i => validResourceIds.Contains(i.ResourceId)))
+        foreach (var item in requirements)
         {
             _requirements.Add(new SlnServiceResourceRequirement
             {
@@ -351,7 +371,47 @@ public class SlnServiceFactory : ISlnServiceFactory
             });
         }
 
-        await _uow.SaveChangesAsync();
+        return (true, null);
+    }
+
+    private async Task<string?> ValidateServiceSaveAsync(
+        SlnServiceCreateDto dto,
+        int customerId,
+        int? currentServiceId = null,
+        bool validateResourceRequirements = true)
+    {
+        var categoryExists = await _categories.GetAllQueryable()
+            .AnyAsync(c => c.Id == dto.CategoryId && c.CustomerId == customerId);
+        if (!categoryExists) return "Kategori bulunamadi";
+
+        if (dto.ParentServiceId.HasValue)
+        {
+            if (currentServiceId.HasValue && dto.ParentServiceId.Value == currentServiceId.Value)
+                return "Hizmet kendisinin ust hizmeti olamaz";
+
+            var parentExists = await _services.GetAllQueryable()
+                .AnyAsync(s => s.Id == dto.ParentServiceId.Value && s.CustomerId == customerId);
+            if (!parentExists) return "Ust hizmet bulunamadi";
+        }
+
+        return validateResourceRequirements
+            ? await ValidateResourceRequirementsAsync(dto.ResourceRequirements, customerId)
+            : null;
+    }
+
+    private async Task<string?> ValidateResourceRequirementsAsync(List<SlnServiceResourceRequirementCreateDto>? incoming, int customerId)
+    {
+        var requirements = incoming ?? [];
+        var resourceIds = requirements
+            .Select(i => i.ResourceId)
+            .Distinct()
+            .ToList();
+        if (resourceIds.Count == 0) return null;
+
+        var validCount = await _resources.GetAllQueryable()
+            .CountAsync(r => r.CustomerId == customerId && resourceIds.Contains(r.Id));
+
+        return validCount == resourceIds.Count ? null : "Kaynak bulunamadi";
     }
 
     private async Task SyncComboItemsAsync(int comboId, List<SlnServiceComboItemCreateDto> incoming, int customerId)
