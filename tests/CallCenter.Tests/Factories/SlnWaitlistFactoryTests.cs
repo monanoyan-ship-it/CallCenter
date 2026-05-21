@@ -80,6 +80,45 @@ public class SlnWaitlistFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetEntryAsync_HidesEntriesOutsideBranchScope()
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true);
+        var factory = CreateFactory();
+
+        var entry = await factory.GetEntryAsync(10, 1, branchScopeId: 42);
+
+        entry.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_RejectsEntriesOutsideBranchScope()
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true);
+        var factory = CreateFactory();
+
+        var (success, error) = await factory.UpdateStatusAsync(10, SlnWaitlistStatuses.Ids.Notified, 1, branchScopeId: 42);
+
+        success.Should().BeFalse();
+        error.Should().Be("Bu kayit icin yetkiniz yok");
+        (await GetStatusAsync()).Should().Be(SlnWaitlistStatuses.Ids.Waiting);
+    }
+
+    [Fact]
+    public async Task DeleteEntryAsync_RejectsEntriesOutsideBranchScope()
+    {
+        await SeedOwnershipLookupsAsync(includeEntry: true);
+        var factory = CreateFactory();
+
+        var (success, error) = await factory.DeleteEntryAsync(10, 1, branchScopeId: 42);
+        var exists = await _db.SlnWaitlistEntries.AsNoTracking()
+            .AnyAsync(w => w.Id == 10);
+
+        success.Should().BeFalse();
+        error.Should().Be("Bu kayit icin yetkiniz yok");
+        exists.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetEntriesAsync_AppliesActiveAndArchiveScopes()
     {
         await SeedWaitlistEntriesAsync();

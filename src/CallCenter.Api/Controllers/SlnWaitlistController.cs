@@ -35,7 +35,7 @@ public class SlnWaitlistController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var entry = await _factory.GetEntryAsync(id, customerId);
+        var entry = await _factory.GetEntryAsync(id, customerId, GetBranchScopeId());
         return entry != null ? Ok(entry) : NotFound();
     }
 
@@ -64,7 +64,7 @@ public class SlnWaitlistController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId);
+        var (success, error) = await _factory.UpdateStatusAsync(id, statusId, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 
@@ -86,7 +86,7 @@ public class SlnWaitlistController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        var (success, error) = await _factory.DeleteEntryAsync(id, customerId);
+        var (success, error) = await _factory.DeleteEntryAsync(id, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 

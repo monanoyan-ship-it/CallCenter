@@ -92,7 +92,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             .ToListAsync();
     }
 
-    public async Task<SlnWaitlistEntryDto?> GetEntryAsync(int id, int customerId)
+    public async Task<SlnWaitlistEntryDto?> GetEntryAsync(int id, int customerId, int? branchScopeId = null)
     {
         var entry = await _waitlistEs.GetAllQueryable()
             .Include(w => w.SlnClient)
@@ -100,7 +100,8 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             .Include(w => w.PreferredPersonnel).ThenInclude(p => p!.User)
             .Include(w => w.Branch)
             .FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
-        return entry != null ? MapToDto(entry) : null;
+        if (entry == null || !BranchScopeAllows(entry, branchScopeId)) return null;
+        return MapToDto(entry);
     }
 
     public async Task<(bool Success, string? Error, SlnWaitlistEntryDto? Entry)> CreateEntryAsync(SlnWaitlistEntryCreateDto dto, int customerId, int? branchScopeId = null)
@@ -128,14 +129,14 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         };
         _waitlistEs.Add(entry);
         await _uow.SaveChangesAsync();
-        return (true, null, (await GetEntryAsync(entry.Id, customerId))!);
+        return (true, null, (await GetEntryAsync(entry.Id, customerId, branchScopeId))!);
     }
 
     public async Task<(bool Success, string? Error)> UpdateEntryAsync(int id, SlnWaitlistEntryUpdateDto dto, int customerId, int? branchScopeId = null)
     {
         var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
-        if (branchScopeId.HasValue && entry.BranchId.HasValue && entry.BranchId.Value != branchScopeId.Value)
+        if (!BranchScopeAllows(entry, branchScopeId))
             return (false, "Bu kayit icin yetkiniz yok");
         var validation = await ValidateLookupOwnershipAsync(dto, customerId, branchScopeId);
         if (!validation.Success) return (false, validation.Error);
@@ -237,10 +238,12 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         return hqBranch?.Id;
     }
 
-    public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, int statusId, int customerId, int? branchScopeId = null)
     {
         var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
+        if (!BranchScopeAllows(entry, branchScopeId))
+            return (false, "Bu kayit icin yetkiniz yok");
         if (!SlnWaitlistStatuses.IsDefined(statusId))
             return (false, "Gecersiz bekleme listesi durumu");
         if (!SlnWaitlistStatuses.CanTransition(entry.StatusId, statusId))
@@ -275,7 +278,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
 
         if (entry == null)
             return (false, "Kayit bulunamadi", null);
-        if (branchScopeId.HasValue && entry.BranchId.HasValue && entry.BranchId.Value != branchScopeId.Value)
+        if (!BranchScopeAllows(entry, branchScopeId))
             return (false, "Bu kayit icin yetkiniz yok", null);
         if (entry.SlnAppointmentId.HasValue)
             return (false, "Bu bekleme kaydi zaten bir randevuya bagli", null);
@@ -305,7 +308,7 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         await _uow.SaveChangesAsync();
         await tx.CommitAsync();
 
-        var waitlistEntry = await GetEntryAsync(entry.Id, customerId) ?? MapToDto(entry);
+        var waitlistEntry = await GetEntryAsync(entry.Id, customerId, branchScopeId) ?? MapToDto(entry);
         return (true, null, new SlnWaitlistConversionDto
         {
             WaitlistEntry = waitlistEntry,
@@ -313,15 +316,20 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
         });
     }
 
-    public async Task<(bool Success, string? Error)> DeleteEntryAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteEntryAsync(int id, int customerId, int? branchScopeId = null)
     {
         var entry = await _waitlistEs.GetAllQueryable().FirstOrDefaultAsync(w => w.Id == id && w.CustomerId == customerId);
         if (entry == null) return (false, "Kayit bulunamadi");
+        if (!BranchScopeAllows(entry, branchScopeId))
+            return (false, "Bu kayit icin yetkiniz yok");
 
         _waitlistEs.Remove(entry);
         await _uow.SaveChangesAsync();
         return (true, null);
     }
+
+    private static bool BranchScopeAllows(SlnWaitlistEntry entry, int? branchScopeId)
+        => !branchScopeId.HasValue || !entry.BranchId.HasValue || entry.BranchId.Value == branchScopeId.Value;
 
     private static SlnWaitlistEntryDto MapToDto(SlnWaitlistEntry w)
     {
