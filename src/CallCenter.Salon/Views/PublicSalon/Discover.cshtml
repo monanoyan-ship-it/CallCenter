@@ -119,13 +119,6 @@
                                     <i class="bi bi-geo-alt me-1"></i>
                                     <span data-bind="text: city ? ((district ? district + ', ' : '') + city) : '@T("salon.discover.no_location", "Konum belirtilmemiş")'"></span>
                                 </small>
-                                <!-- Fiyat araligi -->
-                                <!-- ko if: priceRange -->
-                                <small class="text-success d-block mt-1">
-                                    <i class="bi bi-tag me-1"></i>
-                                    <span data-bind="text: priceRange"></span>
-                                </small>
-                                <!-- /ko -->
                                 <div class="d-flex gap-2 mt-2">
                                     <a class="btn btn-sm btn-outline-primary"
                                        data-bind="attr: { href: '/salon/' + slug, 'aria-label': (branchName || salonName || 'Salon') + ' @T("salon.discover.profile_aria_suffix", "profilini gör")' },

@@ -1,42 +1,42 @@
 1
 00:00:00,000 --> 00:00:05,500
-Randevular, müşteriler, satışlar ve stok farklı yerlerde durduğunda salonu yönetmek zorlaşır.
+Defter, WhatsApp, kasa ve stok ayrı ayrı yönetilince gün uzar, kontrol azalır.
 
 2
 00:00:05,500 --> 00:00:10,000
-CorpLynk Salon, günlük operasyonunuzu tek panelde toplar.
+CorpLynk Salon, günün randevusunu, cirosunu, stoklarını ve ekibini tek panelde toplar.
 
 3
 00:00:10,000 --> 00:00:17,000
-Randevuları hizmet, personel ve şube bazında planlayın; durumları anlık takip edin.
+Randevuyu hizmet, personel ve şubeye göre planlayın; değişiklikleri anında takip edin.
 
 4
 00:00:17,000 --> 00:00:24,000
-Hizmet, ürün, paket ve hediye kartı satışlarını hızlıca tamamlayın.
+Hizmet, ürün, paket ve hediye kartı satışını tek işlemde tamamlayın.
 
 5
 00:00:24,000 --> 00:00:29,000
-Kasa ve adisyon kayıtları otomatik oluşsun.
+Ödeme alındığında kasa hareketi ve adisyon kaydı düzenli şekilde oluşur.
 
 6
 00:00:29,000 --> 00:00:37,000
-Müşteri geçmişini, seans haklarını, notları ve onay formlarını düzenli tutun.
+Müşteri geçmişini, seans haklarını, notları ve takip bilgilerini tek kartta görün.
 
 7
 00:00:37,000 --> 00:00:44,000
-Public salon sayfanızla müşterileriniz online randevu alabilir.
+Müşterileriniz salon sayfanızdan uygun saati seçip online randevu oluşturabilir.
 
 8
 00:00:44,000 --> 00:00:50,000
-Ödemelerini ve randevularını kendi panelinden takip edebilir.
+Randevu, ödeme ve salon bilgileri müşterinin kendi panelinde hazır durur.
 
 9
 00:00:50,000 --> 00:01:00,000
-Kampanya, üyelik, sadakat, yorum ve geri kazanım araçlarıyla müşterilerinizi tekrar salona çağırın.
+Üyelik, sadakat, kampanya, yorum ve geri kazanım akışları müşteriyi tekrar salona çağırır.
 
 10
 00:01:00,000 --> 00:01:09,000
-CorpLynk Salon ile salonunuzu daha düzenli, ölçülebilir ve müşteriye daha yakın yönetin.
+Kasa, şube, ekip ve gün sonu verileri salon yönetimini ölçülebilir hale getirir.
 
 11
 00:01:09,000 --> 00:01:12,000

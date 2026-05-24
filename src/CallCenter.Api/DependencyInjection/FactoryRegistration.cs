@@ -71,6 +71,7 @@ public static class FactoryRegistration
 
         // Salon Modulu
         services.AddScoped<ISlnClientFactory, SlnClientFactory>();
+        services.AddScoped<ISlnDataImportFactory, SlnDataImportFactory>();
         services.AddScoped<ISlnServiceFactory, SlnServiceFactory>();
         services.AddScoped<ISlnAppointmentFactory, SlnAppointmentFactory>();
         services.AddScoped<ISlnProductFactory, SlnProductFactory>();

@@ -20,6 +20,7 @@ src/CallCenter.Mobile/
 src/CallCenter.PbxService/
 
 # Gereksiz dosyalar
+docs/
 *.user
 *.suo
 *.md

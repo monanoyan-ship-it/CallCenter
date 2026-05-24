@@ -16,7 +16,7 @@ public class ProxyController : SlnBaseController
     }
 
     [HttpPost("proxy/{**path}")]
-    [RequestSizeLimit(10_485_760)] // 10 MB (dosya yuklemeleri icin)
+    [RequestSizeLimit(20_971_520)] // 20 MB (dosya yuklemeleri ve veri importu icin)
     public async Task<IActionResult> Post(string path)
     {
         using var client = CreateApiClient();

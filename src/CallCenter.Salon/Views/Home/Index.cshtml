@@ -1,9 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = Translation.T("salon.sidebar.dashboard", "Dashboard");
-    var dashboardJwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
-    var isSalonOwner = dashboardJwt.CustomerRoleId <= 0
-        || dashboardJwt.CustomerRoleId == CallCenter.Shared.Enums.SalonRoles.Ids.SalonOwner;
 }
 
 <div class="row g-3 mb-4">
@@ -81,41 +78,6 @@
         </div>
     </div>
     <div class="col-md-4">
-        <!-- Abonelik kartı -->
-        <div class="card border-0 shadow-sm mb-3" id="subscriptionCard" style="display:none;">
-            <div class="card-header bg-white border-0 fw-semibold d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-credit-card-2-front me-2 text-purple"></i><t key="salon.dashboard.subscription">Aboneliğim</t></span>
-                <span class="badge" id="subStatusBadge"></span>
-            </div>
-            <div class="card-body">
-                <div class="mb-2 small text-muted"><t key="salon.dashboard.active_packages">Aktif Paketler:</t></div>
-                <div id="subPackages" class="d-flex flex-wrap gap-1 mb-2">
-                    <span class="badge bg-secondary-subtle text-dark"><t key="salon.modules.base_package">Temel Paket</t></span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center border-top pt-2">
-                    <span class="small text-muted"><t key="salon.dashboard.monthly_total">Aylık Toplam</t></span>
-                    <span class="fw-bold text-purple" id="subMonthlyTotal">-</span>
-                </div>
-                <div class="small text-muted text-end mt-1" id="subBranchInfo" style="display:none;"></div>
-                <div class="d-flex justify-content-between align-items-center mt-1">
-                    <span class="small text-muted"><t key="salon.modules.next_billing">Sonraki Tahakkuk</t></span>
-                    <span class="small" id="subNextBilling">-</span>
-                </div>
-                @if (isSalonOwner)
-                {
-                <div class="d-flex gap-2 mt-2">
-                    <a href="/Modules" class="btn btn-sm btn-outline-purple flex-fill" style="border-color:#7b1fa2;color:#7b1fa2;">
-                        <i class="bi bi-puzzle me-1"></i><t key="salon.dashboard.manage_modules">Modülleri Yönet</t>
-                    </a>
-                    <a id="subPaymentBtn" href="/Modules?pay=subscription" class="btn btn-sm btn-purple flex-fill" style="background:#7b1fa2;border-color:#7b1fa2;color:#fff;display:none;">
-                        <i class="bi bi-credit-card me-1"></i><t key="salon.dashboard.pay">Ödeme Yap</t>
-                    </a>
-                </div>
-                <div class="small text-muted mt-2" id="subPaymentInfo" style="display:none;"></div>
-                }
-            </div>
-        </div>
-
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white border-0 fw-semibold d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-exclamation-triangle me-2 text-danger"></i><t key="salon.dashboard.critical_stock">Kritik Stok</t></span>

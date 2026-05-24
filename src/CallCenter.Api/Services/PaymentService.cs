@@ -1235,7 +1235,12 @@ public class PaymentService
     }
 
     /// <summary>Odeme gecmisi</summary>
-    public async Task<List<PaymentTransaction>> GetTransactionsAsync(int? customerId = null, int? platformUserId = null, int page = 1, int pageSize = 20)
+    public async Task<List<PaymentTransaction>> GetTransactionsAsync(
+        int? customerId = null,
+        int? platformUserId = null,
+        int page = 1,
+        int pageSize = 20,
+        IReadOnlyCollection<int>? paymentTypeIds = null)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -1243,6 +1248,7 @@ public class PaymentService
         var query = _db.PaymentTransactions.AsQueryable();
         if (customerId.HasValue) query = query.Where(t => t.CustomerId == customerId);
         if (platformUserId.HasValue) query = query.Where(t => t.PlatformUserId == platformUserId);
+        if (paymentTypeIds is { Count: > 0 }) query = query.Where(t => paymentTypeIds.Contains(t.PaymentTypeId));
         return await query
             .Include(t => t.Customer)
             .Include(t => t.PlatformUser)

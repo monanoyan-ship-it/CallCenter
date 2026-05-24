@@ -149,6 +149,12 @@ function ModulesViewModel() {
     });
 
     // Paket + temel (çoklu şubede Temel Paket yalnız şube satırında) — şube tutarı API'de
+    function formatAmount(value, options) {
+        var n = Number(value);
+        if (isNaN(n)) n = 0;
+        return n.toLocaleString(MODULE_LOCALE, options);
+    }
+
     self.baseMonthly = ko.computed(function () {
         self.packagePrices();
         var multi = self.branchCount() > 1;
@@ -179,6 +185,44 @@ function ModulesViewModel() {
             .replace('{count}', s.branchCount)
             .replace('{discount}', br)
             .replace('{amount}', net.toLocaleString(MODULE_LOCALE));
+    });
+
+    self.subscriptionStatusClass = ko.computed(function () {
+        var s = self.dashboardSub();
+        if (!s) return 'bg-secondary';
+        if (s.statusId === 1) return 'bg-success';
+        if (s.statusId === 2) return 'bg-warning text-dark';
+        return 'bg-secondary';
+    });
+
+    self.subscriptionStatusText = ko.computed(function () {
+        var s = self.dashboardSub();
+        if (s && s.statusId === 1) return moduleT('salon.common.status_active', 'Aktif');
+        if (s && s.statusId === 2) return moduleT('salon.dashboard.status.suspended', 'Askida');
+        return moduleT('salon.common.status_inactive', 'Pasif');
+    });
+
+    self.subscriptionPackageBadges = ko.computed(function () {
+        var s = self.dashboardSub();
+        if (!s) return [];
+        var badges = [{
+            css: 'bg-purple text-white',
+            label: moduleT('salon.modules.base_package', 'Temel Paket') + ' · ' + formatAmount(s.basicPackagePrice) + ' \u20ba'
+        }];
+        (s.activePackages || []).forEach(function (p) {
+            badges.push({
+                css: 'bg-success-subtle text-success',
+                label: (p.name || moduleT('salon.modules.package', 'Paket')) + ' · ' + formatAmount(p.monthlyPrice) + ' \u20ba'
+            });
+        });
+        return badges;
+    });
+
+    self.subscriptionNextBillingText = ko.computed(function () {
+        var s = self.dashboardSub();
+        if (!s || !s.nextBillingDate) return '-';
+        var d = new Date(s.nextBillingDate);
+        return isNaN(d.getTime()) ? '-' : d.toLocaleDateString(MODULE_LOCALE);
     });
 
     /**

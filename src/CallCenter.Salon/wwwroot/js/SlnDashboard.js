@@ -14,53 +14,6 @@
             .replace(/'/g, '&#39;');
     }
 
-    function updateSubscriptionPaymentCta(subscription) {
-        var btn = document.getElementById('subPaymentBtn');
-        var info = document.getElementById('subPaymentInfo');
-        if (!btn && !info) return;
-
-        if (btn) {
-            btn.style.display = 'none';
-            btn.classList.add('disabled');
-            btn.setAttribute('aria-disabled', 'true');
-            btn.href = '/Modules?pay=subscription';
-        }
-        if (info) {
-            info.style.display = '';
-            info.textContent = dashT('salon.dashboard.payment_status_checking', 'Ödeme durumu kontrol ediliyor...');
-        }
-
-        $.get('/proxy/subscriptions/my', function (d) {
-            var unpaid = d && Array.isArray(d.unpaidBillings) ? d.unpaidBillings : [];
-            var hasDebt = unpaid.some(function (b) {
-                var total = Number(b && b.total);
-                return !isNaN(total) && total > 0;
-            });
-
-            if (hasDebt) {
-                if (btn) {
-                    btn.style.display = '';
-                    btn.classList.remove('disabled');
-                    btn.removeAttribute('aria-disabled');
-                }
-                if (info) info.style.display = 'none';
-                return;
-            }
-
-            if (info) {
-                info.style.display = '';
-                info.textContent = subscription && subscription.isTrial
-                    ? dashT('salon.dashboard.trial_no_accrual', 'Demo sürecindesiniz; şu anda ödenecek tahakkuk yok.')
-                    : dashT('salon.dashboard.no_payable_accrual', 'Ödenecek tahakkuk yok.');
-            }
-        }).fail(function () {
-            if (info) {
-                info.style.display = '';
-                info.textContent = dashT('salon.modules.payment_status_failed', 'Ödeme durumu alınamadı.');
-            }
-        });
-    }
-
     function loadDashboard() {
         $.get('/proxy/sln-dashboard', function (d) {
             document.getElementById('totalClients').textContent = fmt(d.totalClients);
@@ -112,54 +65,6 @@
                             '<span class="badge ' + statusCss + '">' + statusText + '</span></div>';
                     }).join('');
                 }
-            }
-
-            // Abonelik kartı
-            var subCard = document.getElementById('subscriptionCard');
-            if (subCard && d.subscription) {
-                var s = d.subscription;
-                subCard.style.display = '';
-
-                var badge = document.getElementById('subStatusBadge');
-                if (s.statusId === 1) { badge.className = 'badge bg-success'; badge.textContent = dashT('salon.common.status_active', 'Aktif'); }
-                else if (s.statusId === 2) { badge.className = 'badge bg-warning text-dark'; badge.textContent = dashT('salon.dashboard.status.suspended', 'Askıda'); }
-                else { badge.className = 'badge bg-secondary'; badge.textContent = dashT('salon.common.status_inactive', 'Pasif'); }
-
-                var pkgWrap = document.getElementById('subPackages');
-                pkgWrap.innerHTML = '<span class="badge bg-purple text-white">' + escapeHtml(dashT('salon.modules.base_package', 'Temel Paket')) + ' · ' + fmt(s.basicPackagePrice) + ' ₺</span>';
-                (s.activePackages || []).forEach(function (p) {
-                    var el = document.createElement('span');
-                    el.className = 'badge bg-success-subtle text-success';
-                    el.textContent = p.name + ' · ' + fmt(p.monthlyPrice) + ' ₺';
-                    pkgWrap.appendChild(el);
-                });
-
-                document.getElementById('subMonthlyTotal').textContent = fmt(s.monthlyTotal) + ' ' + dashT('salon.modules.per_month_suffix', '₺/ay');
-                var branchInfo = document.getElementById('subBranchInfo');
-                if (branchInfo) {
-                    if (s.branchCount > 1) {
-                        branchInfo.style.display = '';
-                        var pct = typeof s.branchDiscountPercent === 'number' ? s.branchDiscountPercent : 0;
-                        var gross = typeof s.grossBranchMonthly === 'number' ? s.grossBranchMonthly : 0;
-                        var net = typeof s.netBranchMonthly === 'number' ? s.netBranchMonthly : 0;
-                        var branchText = dashT('salon.dashboard.branch_info', '{count} şube · şube eşik indirimi %{discount} · brüt {gross} ₺ → net {net} ₺/ay')
-                            .replace('{count}', s.branchCount)
-                            .replace('{discount}', pct)
-                            .replace('{gross}', fmt(gross))
-                            .replace('{net}', fmt(net));
-                        var baseText = dashT('salon.dashboard.branch_base', 'paket+temel: {amount} ₺')
-                            .replace('{amount}', fmt(s.baseMonthly));
-                        branchInfo.innerHTML = escapeHtml(branchText) + ' <span class="text-muted">(' + escapeHtml(baseText) + ')</span>';
-                    } else {
-                        branchInfo.style.display = 'none';
-                    }
-                }
-                document.getElementById('subNextBilling').textContent = s.nextBillingDate
-                    ? new Date(s.nextBillingDate).toLocaleDateString(DASH_LOCALE)
-                    : '-';
-                updateSubscriptionPaymentCta(s);
-            } else if (subCard) {
-                subCard.style.display = 'none';
             }
 
             // Hatirlatmalar — dogum gunleri

@@ -385,7 +385,15 @@ public class PaymentController : ControllerBase
             return Forbid();
         }
 
-        var transactions = await _paymentService.GetTransactionsAsync(scopedCustomerId, platformUserId, page);
+        var organizationPaymentTypeIds = User.IsInRole("CustomerUser")
+            ? new[] { PaymentTypes.Ids.PlatformAbonelik, PaymentTypes.Ids.ModulSatinAlma }
+            : null;
+
+        var transactions = await _paymentService.GetTransactionsAsync(
+            scopedCustomerId,
+            platformUserId,
+            page,
+            paymentTypeIds: organizationPaymentTypeIds);
         return Ok(transactions.Select(t => new
         {
             t.Uid,

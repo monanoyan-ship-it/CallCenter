@@ -100,6 +100,7 @@ public static class SalonRolePermissions
         "PageSettings",     // Public sayfa ayarlari
         "Modules",          // Modul yonetimi ve talep
         "PaymentInfo",      // iyzico Pazaryeri sub-merchant onboarding (PS.5)
+        "DataImport",       // Eski salon verisi importu
     };
 
     // ═══════════════════════════════════════════════════════════════
