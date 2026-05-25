@@ -31,6 +31,7 @@ var salonSlug = profileSlug;
             self.teamMembers = ko.observableArray([]);
             self.reviews = ko.observableArray([]);
             self.reviewStats = ko.observable({});
+            self.bookingPolicy = ko.observable(null);
             self.selectedPlanId = ko.observable(null);
             self.profileUrl = ko.computed(function () {
                 return window.location.origin + '/salon/' + (self.salon().slug || salonSlug);
@@ -47,6 +48,47 @@ var salonSlug = profileSlug;
             self.serviceCombos = ko.computed(function () {
                 var s = self.salon();
                 return s && Array.isArray(s.serviceCombos) ? s.serviceCombos : [];
+            });
+            self.formatMoney = function (amount) {
+                return (Number(amount) || 0).toLocaleString(self.profileLang || undefined) + ' ' + profileT('salon.common.currency_abbr', 'TL');
+            };
+            self.profileTrustItems = ko.computed(function () {
+                var s = self.salon() || {};
+                var stats = self.reviewStats() || {};
+                var policy = self.bookingPolicy() || {};
+                var items = [{
+                    icon: 'bi-calendar2-check',
+                    title: profileT('salon.profile.trust.direct_booking', 'Direkt online randevu'),
+                    description: profileT('salon.profile.trust.direct_booking_desc', 'Randevu kaydı salon paneline düşer.')
+                }, {
+                    icon: 'bi-bell',
+                    title: profileT('salon.profile.trust.waitlist', 'Uygun saat yoksa bekleme listesi'),
+                    description: profileT('salon.profile.trust.waitlist_desc', 'Slot açıldığında salon sizinle iletişime geçebilir.')
+                }];
+                if (policy.requireDeposit && Number(policy.depositAmount) > 0) {
+                    items.push({
+                        icon: 'bi-credit-card-2-front',
+                        title: profileT('salon.profile.trust.secure_payment', 'Güvenli ön ödeme'),
+                        description: profileT('salon.profile.trust.secure_payment_desc', '{amount} depozito 3D Secure formuyla alınır.')
+                            .replace('{amount}', self.formatMoney(policy.depositAmount))
+                    });
+                }
+                if (s.phone || s.city || s.district || s.address) {
+                    items.push({
+                        icon: 'bi-geo-alt',
+                        title: profileT('salon.profile.trust.location', 'İletişim ve konum bilgisi'),
+                        description: profileT('salon.profile.trust.location_desc', 'Salonun iletişim bilgileri bu sayfada görünür.')
+                    });
+                }
+                if (Number(stats.totalCount) > 0) {
+                    items.push({
+                        icon: 'bi-star',
+                        title: profileT('salon.profile.trust.reviews', 'Müşteri yorumları'),
+                        description: profileT('salon.profile.trust.reviews_desc', '{count} yorum ortalaması görünür.')
+                            .replace('{count}', stats.totalCount)
+                    });
+                }
+                return items.slice(0, 4);
             });
 
             // One cikan ilk 3 hizmet (kategorilerden flatten, fiyati > 0)
@@ -236,6 +278,11 @@ var salonSlug = profileSlug;
                                 self.reviewStats(d.stats || {});
                             });
                     }
+
+                    fetch('/proxy/salon/' + salonSlug + '/booking-policy')
+                        .then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (policy) { if (policy) self.bookingPolicy(policy); })
+                        .catch(function () {});
 
                     // Harita
                     if (data.showMap !== false && data.latitude && data.longitude) {

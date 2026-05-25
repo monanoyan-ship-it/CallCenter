@@ -52,6 +52,14 @@
         .book-logo img { width: 100%; height: 100%; object-fit: cover; }
         .booking-recovery { background: #fff; border: 1px solid rgba(123,31,162,.18); border-left: 4px solid #7b1fa2; border-radius: 8px; }
         .booking-recovery-icon { width: 2.2rem; height: 2.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .5rem; background: rgba(123,31,162,.1); color: #7b1fa2; flex: 0 0 auto; }
+        .trust-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-bottom: 1.25rem; }
+        .trust-chip { display: flex; gap: .65rem; align-items: flex-start; background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: .75rem; min-height: 72px; }
+        .trust-chip i { color: #0f766e; font-size: 1.05rem; line-height: 1.4; }
+        .trust-chip strong { display: block; font-size: .82rem; line-height: 1.2; }
+        .trust-chip small { display: block; color: #6c757d; line-height: 1.25; }
+        @@media (max-width: 575.98px) {
+            .trust-strip { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -79,6 +87,16 @@
                 <div>
                     <h4 class="mb-1"><t key="salon.book.title">Online Randevu</t></h4>
                     <div class="small" data-bind="text: displaySalonName"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="trust-strip" data-bind="foreach: bookingTrustItems">
+            <div class="trust-chip">
+                <i class="bi" data-bind="css: icon"></i>
+                <div>
+                    <strong data-bind="text: title"></strong>
+                    <small data-bind="text: description"></small>
                 </div>
             </div>
         </div>
@@ -420,6 +438,16 @@
         <span data-key="salon.book.staff.auto_suffix"><t key="salon.book.staff.auto_suffix">otomatik</t></span>
         <span data-key="salon.book.recovery.summary"><t key="salon.book.recovery.summary">{service} için {step}. adımda kalmışsınız.</t></span>
         <span data-key="salon.book.recovery.generic_summary"><t key="salon.book.recovery.generic_summary">Randevu akışına kaldığınız yerden devam edebilirsiniz.</t></span>
+        <span data-key="salon.book.trust.secure_flow"><t key="salon.book.trust.secure_flow">Güvenli randevu akışı</t></span>
+        <span data-key="salon.book.trust.secure_flow_desc"><t key="salon.book.trust.secure_flow_desc">Bilgileriniz yalnızca salon randevu kaydı için kullanılır.</t></span>
+        <span data-key="salon.book.trust.deposit"><t key="salon.book.trust.deposit">3D Secure depozito</t></span>
+        <span data-key="salon.book.trust.deposit_desc"><t key="salon.book.trust.deposit_desc">{amount} ön ödeme güvenli kart formuyla alınır.</t></span>
+        <span data-key="salon.book.trust.no_deposit"><t key="salon.book.trust.no_deposit">Ön ödeme yok</t></span>
+        <span data-key="salon.book.trust.no_deposit_desc"><t key="salon.book.trust.no_deposit_desc">Bu randevu akışında kart bilgisi istenmez.</t></span>
+        <span data-key="salon.book.trust.cancel"><t key="salon.book.trust.cancel">Esnek iptal</t></span>
+        <span data-key="salon.book.trust.cancel_desc"><t key="salon.book.trust.cancel_desc">{hours} saate kadar iptal politikası açık.</t></span>
+        <span data-key="salon.book.trust.waitlist"><t key="salon.book.trust.waitlist">Saat yoksa bekleme listesi</t></span>
+        <span data-key="salon.book.trust.waitlist_desc"><t key="salon.book.trust.waitlist_desc">Uygun saat bulamazsanız aynı hizmet için talep bırakabilirsiniz.</t></span>
         <span data-key="salon.common.minute_abbr"><t key="salon.common.minute_abbr">dk</t></span>
         <span data-key="salon.common.currency_abbr"><t key="salon.common.currency_abbr">TL</t></span>
     </div>

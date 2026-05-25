@@ -76,6 +76,17 @@
         .accordion-button::after { width: .9rem; height: .9rem; background-size: .9rem; }
         .gallery-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; }
         .branch-kicker { font-size: .8rem; letter-spacing: 0; opacity: .8; }
+        .profile-trust-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-top: 1.75rem; }
+        .profile-trust-item { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.24); border-radius: 8px; padding: .75rem; min-height: 88px; backdrop-filter: blur(6px); }
+        .profile-trust-item i { font-size: 1.05rem; opacity: .95; }
+        .profile-trust-item strong { display: block; margin-top: .35rem; font-size: .88rem; line-height: 1.2; }
+        .profile-trust-item small { display: block; margin-top: .2rem; color: rgba(255,255,255,.76); line-height: 1.25; }
+        @@media (max-width: 991.98px) {
+            .profile-trust-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @@media (max-width: 575.98px) {
+            .profile-trust-strip { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -140,6 +151,13 @@
                                 <i class="bi bi-box-arrow-in-right me-1"></i><t key="salon.profile.join.login_button">Giriş Yap / Üye Ol</t>
                             </a>
                         </div>
+                    </div>
+                </div>
+                <div class="profile-trust-strip" data-bind="foreach: profileTrustItems, visible: profileTrustItems().length > 0" style="display:none;">
+                    <div class="profile-trust-item">
+                        <i class="bi" data-bind="css: icon"></i>
+                        <strong data-bind="text: title"></strong>
+                        <small data-bind="text: description"></small>
                     </div>
                 </div>
             </div>

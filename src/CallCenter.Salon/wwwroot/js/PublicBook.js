@@ -84,6 +84,45 @@
 
             // Policy
             self.bookingPolicy = ko.observable(null);
+            self.formatMoney = function (amount) {
+                return (Number(amount) || 0).toLocaleString(self.pageLang) + ' ' + bookT('salon.common.currency_abbr', 'TL');
+            };
+            self.bookingTrustItems = ko.computed(function () {
+                var policy = self.bookingPolicy() || {};
+                var items = [{
+                    icon: 'bi-shield-lock',
+                    title: bookT('salon.book.trust.secure_flow', 'Güvenli randevu akışı'),
+                    description: bookT('salon.book.trust.secure_flow_desc', 'Bilgileriniz yalnızca salon randevu kaydı için kullanılır.')
+                }];
+                if (policy.requireDeposit && Number(policy.depositAmount) > 0) {
+                    items.push({
+                        icon: 'bi-credit-card-2-front',
+                        title: bookT('salon.book.trust.deposit', '3D Secure depozito'),
+                        description: bookT('salon.book.trust.deposit_desc', '{amount} ön ödeme güvenli kart formuyla alınır.')
+                            .replace('{amount}', self.formatMoney(policy.depositAmount))
+                    });
+                } else {
+                    items.push({
+                        icon: 'bi-wallet2',
+                        title: bookT('salon.book.trust.no_deposit', 'Ön ödeme yok'),
+                        description: bookT('salon.book.trust.no_deposit_desc', 'Bu randevu akışında kart bilgisi istenmez.')
+                    });
+                }
+                if (Number(policy.freeCancellationHours) > 0) {
+                    items.push({
+                        icon: 'bi-arrow-counterclockwise',
+                        title: bookT('salon.book.trust.cancel', 'Esnek iptal'),
+                        description: bookT('salon.book.trust.cancel_desc', '{hours} saate kadar iptal politikası açık.')
+                            .replace('{hours}', policy.freeCancellationHours)
+                    });
+                }
+                items.push({
+                    icon: 'bi-bell',
+                    title: bookT('salon.book.trust.waitlist', 'Saat yoksa bekleme listesi'),
+                    description: bookT('salon.book.trust.waitlist_desc', 'Uygun saat bulamazsanız aynı hizmet için talep bırakabilirsiniz.')
+                });
+                return items.slice(0, 4);
+            });
 
             self.form = {
                 fullName: ko.observable(''),
