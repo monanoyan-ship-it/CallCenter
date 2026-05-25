@@ -45,6 +45,181 @@ function ReportsViewModel() {
         return parseFloat(val).toLocaleString(REPORTS_LOCALE, { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
     };
 
+    function asNumber(value) {
+        var parsed = Number(value);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    self.priorityLabel = function (priority) {
+        if (priority === 'high') return reportT('salon.reports.actions.priority.high', 'Acil');
+        if (priority === 'medium') return reportT('salon.reports.actions.priority.medium', 'Bugün');
+        return reportT('salon.reports.actions.priority.low', 'Fırsat');
+    };
+
+    self.priorityBadgeClass = function (priority) {
+        if (priority === 'high') return 'bg-danger';
+        if (priority === 'medium') return 'bg-warning text-dark';
+        return 'bg-info text-dark';
+    };
+
+    self.openReportAction = function (action) {
+        if (action && action.href) {
+            window.location.href = action.href;
+        }
+    };
+
+    self.reportActions = ko.computed(function () {
+        var actions = [];
+        var priorityOrder = { high: 0, medium: 1, low: 2 };
+        var overview = self.overview() || {};
+        var sales = self.sales() || {};
+        var stock = self.stock() || {};
+        var finance = self.finance() || {};
+        var clients = self.clientReport() || {};
+
+        function add(priority, icon, title, description, href, source) {
+            actions.push({
+                priority: priority,
+                icon: icon,
+                title: title,
+                description: description,
+                href: href,
+                source: source
+            });
+        }
+
+        if (self.overview()) {
+            if (asNumber(overview.activeStaffCount) === 0) {
+                add('high', 'bi-person-exclamation',
+                    reportT('salon.reports.actions.staff_missing.title', 'Aktif personel yok'),
+                    reportT('salon.reports.actions.staff_missing.desc', 'Takvim doluluğu ve hizmet eşleşmesi için en az bir aktif personel tanımlayın.'),
+                    '/Staff',
+                    reportT('salon.sidebar.staff', 'Personel'));
+            }
+            if (asNumber(overview.appointmentCount) === 0) {
+                add('high', 'bi-calendar-plus',
+                    reportT('salon.reports.actions.no_appointments.title', 'Bu aralıkta randevu yok'),
+                    reportT('salon.reports.actions.no_appointments.desc', 'Boş takvimi yeni randevu veya bekleme listesi dönüşüyle doldurun.'),
+                    '/Appointments',
+                    reportT('salon.sidebar.appointments', 'Randevu'));
+            }
+            if (asNumber(overview.capacityHours) > 0 && asNumber(overview.occupancyPercent) < 35) {
+                add('medium', 'bi-graph-up-arrow',
+                    reportT('salon.reports.actions.low_occupancy.title', 'Doluluk düşük'),
+                    reportT('salon.reports.actions.low_occupancy.desc', 'Doluluk {percent}. Boş saatler için kampanya veya hatırlatma planlayın.')
+                        .replace('{percent}', self.formatPercent(overview.occupancyPercent)),
+                    '/Marketing',
+                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+            }
+            if (asNumber(overview.activeClientCount) > 0 && asNumber(overview.repeatVisitRatePercent) < 25) {
+                add('medium', 'bi-arrow-repeat',
+                    reportT('salon.reports.actions.low_repeat.title', 'Tekrar ziyaret zayıf'),
+                    reportT('salon.reports.actions.low_repeat.desc', 'Tekrar ziyaret {percent}. Sadakat, winback veya hatırlatma kampanyası kurun.')
+                        .replace('{percent}', self.formatPercent(overview.repeatVisitRatePercent)),
+                    '/Marketing',
+                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+            }
+        }
+
+        if (self.sales()) {
+            if (asNumber(sales.totalInvoices) === 0) {
+                add('high', 'bi-receipt',
+                    reportT('salon.reports.actions.no_sales.title', 'Satış kaydı yok'),
+                    reportT('salon.reports.actions.no_sales.desc', 'Bu tarih aralığında adisyon yok; randevu ve hızlı satış akışını kontrol edin.'),
+                    '/Sales',
+                    reportT('salon.sidebar.sales', 'Satış'));
+            }
+            if (asNumber(sales.serviceRevenue) > 0 && asNumber(sales.productRevenue) === 0) {
+                add('low', 'bi-bag-plus',
+                    reportT('salon.reports.actions.product_attach.title', 'Ürün ek satış fırsatı'),
+                    reportT('salon.reports.actions.product_attach.desc', 'Hizmet geliri var ama ürün satışı yok; hizmet sonrası ürün önerilerini hazırlayın.'),
+                    '/Products',
+                    reportT('salon.sidebar.products', 'Ürün'));
+            }
+        }
+
+        if (self.stock()) {
+            if (asNumber(stock.lowStockCount) > 0) {
+                var lowItems = (stock.items || []).filter(function (item) { return item.isLowStock; })
+                    .slice(0, 3)
+                    .map(function (item) { return item.productName; })
+                    .join(', ');
+                add('high', 'bi-box-seam',
+                    reportT('salon.reports.actions.low_stock.title', 'Düşük stok var'),
+                    reportT('salon.reports.actions.low_stock.desc', '{count} ürün minimum seviyede. {items}')
+                        .replace('{count}', stock.lowStockCount)
+                        .replace('{items}', lowItems || reportT('salon.reports.actions.low_stock.items_fallback', 'Ürün listesini kontrol edin.')),
+                    '/Products',
+                    reportT('salon.sidebar.inventory', 'Stok'));
+            }
+            if (asNumber(stock.supplierDebtTotal) > 0) {
+                add('medium', 'bi-truck',
+                    reportT('salon.reports.actions.supplier_debt.title', 'Tedarikçi bakiyesi açık'),
+                    reportT('salon.reports.actions.supplier_debt.desc', 'Açık bakiye {amount}; ödeme ve tedarik planını gözden geçirin.')
+                        .replace('{amount}', self.formatMoney(stock.supplierDebtTotal)),
+                    '/Suppliers',
+                    reportT('salon.sidebar.suppliers', 'Tedarikçi'));
+            }
+            if (asNumber(stock.totalProducts) > 0 && asNumber(stock.averageMarginPercent) < 20) {
+                add('low', 'bi-tags',
+                    reportT('salon.reports.actions.low_margin.title', 'Marj düşük görünüyor'),
+                    reportT('salon.reports.actions.low_margin.desc', 'Ortalama marj {percent}. Maliyet ve satış fiyatlarını kontrol edin.')
+                        .replace('{percent}', self.formatPercent(stock.averageMarginPercent)),
+                    '/Products',
+                    reportT('salon.sidebar.products', 'Ürün'));
+            }
+        }
+
+        if (self.finance()) {
+            if (asNumber(finance.netProfit) < 0) {
+                add('high', 'bi-cash-coin',
+                    reportT('salon.reports.actions.negative_profit.title', 'Dönem zararda'),
+                    reportT('salon.reports.actions.negative_profit.desc', 'Net sonuç {amount}. Masraf kalemlerini ve indirimleri kontrol edin.')
+                        .replace('{amount}', self.formatMoney(finance.netProfit)),
+                    '/Expenses',
+                    reportT('salon.sidebar.expenses', 'Masraf'));
+            }
+            if (asNumber(finance.cashNet) < 0) {
+                add('medium', 'bi-wallet2',
+                    reportT('salon.reports.actions.cash_negative.title', 'Kasa neti negatif'),
+                    reportT('salon.reports.actions.cash_negative.desc', 'Kasa neti {amount}; kasa hareketlerini kapatmadan önce doğrulayın.')
+                        .replace('{amount}', self.formatMoney(finance.cashNet)),
+                    '/Cash',
+                    reportT('salon.sidebar.cash', 'Kasa'));
+            }
+            if (asNumber(finance.vatPayable) > 0) {
+                add('low', 'bi-file-earmark-spreadsheet',
+                    reportT('salon.reports.actions.vat_payable.title', 'KDV yükümlülüğü oluştu'),
+                    reportT('salon.reports.actions.vat_payable.desc', 'Ödenecek KDV {amount}; muhasebe raporunu dışa aktarın.')
+                        .replace('{amount}', self.formatMoney(finance.vatPayable)),
+                    '/Reports',
+                    reportT('salon.sidebar.finance', 'Finans'));
+            }
+        }
+
+        if (self.clientReport()) {
+            if (asNumber(clients.totalClients) > 0 && asNumber(clients.newClientsInPeriod) === 0) {
+                add('medium', 'bi-person-plus',
+                    reportT('salon.reports.actions.no_new_clients.title', 'Yeni müşteri akışı durdu'),
+                    reportT('salon.reports.actions.no_new_clients.desc', 'Bu dönemde yeni müşteri yok; public link ve kampanya paylaşımını güçlendirin.'),
+                    '/Marketing',
+                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+            }
+            if (asNumber(clients.totalClients) > 0 && asNumber(clients.averageVisitFrequency) < 1.2) {
+                add('low', 'bi-chat-heart',
+                    reportT('salon.reports.actions.low_visit_frequency.title', 'Ziyaret sıklığı düşük'),
+                    reportT('salon.reports.actions.low_visit_frequency.desc', 'Ortalama ziyaret {count}. Tekrar randevu hatırlatması planlayın.')
+                        .replace('{count}', self.formatNumber(clients.averageVisitFrequency, 1)),
+                    '/Marketing',
+                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+            }
+        }
+
+        return actions
+            .sort(function (a, b) { return priorityOrder[a.priority] - priorityOrder[b.priority]; })
+            .slice(0, 6);
+    });
+
     // Hizli tarih seciciler
     self.setToday = function () {
         var d = new Date().toISOString().substring(0, 10);

@@ -116,6 +116,49 @@
     </div>
     <!-- /ko -->
 
+    <!-- Aksiyon Onerileri -->
+    <!-- ko if: overview() -->
+    <div class="mb-3">
+        <div class="d-flex align-items-end justify-content-between gap-2 mb-2">
+            <div>
+                <h6 class="mb-1"><i class="bi bi-lightning-charge me-1"></i><t key="salon.reports.actions.title">Aksiyon Önerileri</t></h6>
+                <div class="text-muted small"><t key="salon.reports.actions.desc">Rapor metriklerini yapılacak işe çevirir; ilgili ekrana tek tıkla geçebilirsiniz.</t></div>
+            </div>
+            <span class="badge bg-light text-dark border" data-bind="text: reportActions().length + ' ' + salonT('salon.reports.actions.count_suffix', 'öneri')"></span>
+        </div>
+
+        <!-- ko if: reportActions().length > 0 -->
+        <div class="row g-2" data-bind="foreach: reportActions">
+            <div class="col-md-6 col-xl-4">
+                <button type="button" class="btn text-start border bg-white w-100 h-100 p-3 shadow-sm" data-bind="click: $root.openReportAction">
+                    <div class="d-flex gap-2 align-items-start">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light border flex-shrink-0" style="width:34px;height:34px;">
+                            <i class="bi" data-bind="css: icon"></i>
+                        </span>
+                        <span class="d-block">
+                            <span class="d-flex align-items-center gap-2 mb-1">
+                                <span class="fw-semibold small" data-bind="text: title"></span>
+                                <span class="badge" data-bind="text: $root.priorityLabel(priority), css: $root.priorityBadgeClass(priority)"></span>
+                            </span>
+                            <span class="d-block text-muted small" data-bind="text: description"></span>
+                            <span class="d-block text-primary small mt-2">
+                                <span data-bind="text: source"></span>
+                                <i class="bi bi-arrow-right-short"></i>
+                            </span>
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: reportActions().length === 0 -->
+        <div class="border rounded bg-white p-3 text-muted small">
+            <i class="bi bi-check-circle text-success me-1"></i><t key="salon.reports.actions.empty">Bu aralıkta kritik aksiyon görünmüyor. Tabları açtıkça stok, finans ve müşteri önerileri de güncellenir.</t>
+        </div>
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
