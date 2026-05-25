@@ -6,7 +6,9 @@ public class EmailCampaignsController : SlnBaseController
 {
     public IActionResult Index()
     {
-        ViewData["Title"] = "E-posta Kampanyalari";
+        if (MarketingRouteAccess.CanUseConsolidated(HttpContext))
+            return RedirectToAction("Index", "Marketing", new { tab = "email" });
+
         return View();
     }
 }

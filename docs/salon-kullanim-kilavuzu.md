@@ -1,5 +1,7 @@
 # CorpLynk Salon Kullanım Kılavuzu
 
+> Not: Bu dosya geniş kapsamlı genel kılavuz taslağıdır. Default paketle login olan salon sahibinin ilk gün kullanım akışı için güncel odak dosyası: `docs/salon-default-paket-kullanim-akisi.md`.
+
 Sürüm: Taslak v0.1  
 Hedef kullanıcı: salon sahibi, şube yöneticisi ve salon personeli  
 Uygulama: `https://sln.corplynk.com`
@@ -594,4 +596,3 @@ E-posta ayarları tamam mı, gönderici hesabı bağlı mı, segmentte e-posta a
 6. Kasa, masraf ve gün sonu: 4 dk
 7. Public randevu ve müşteri paneli: 3 dk
 8. Sorular ve canlı kullanım kontrol listesi: 1 dk
-

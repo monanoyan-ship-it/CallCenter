@@ -6,7 +6,9 @@ public class ReviewsController : SlnBaseController
 {
     public IActionResult Index()
     {
-        ViewData["Title"] = "Yorumlar";
+        if (MarketingRouteAccess.CanUseConsolidated(HttpContext))
+            return RedirectToAction("Index", "Marketing", new { tab = "reviews" });
+
         return View();
     }
 }

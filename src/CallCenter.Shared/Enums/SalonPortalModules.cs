@@ -26,7 +26,7 @@ public static class SalonPortalModules
     public static readonly TypeItem SlnSales = new(214, "SlnSales", "SalonModule.Sales", "Hızlı Satış POS", "bi-cart-check-fill", "bg-success", 14, isDefault: true);
     public static readonly TypeItem SlnRecipes = new(215, "SlnRecipes", "SalonModule.Recipes", "Reçete Tanımları", "bi-journal-bookmark", "bg-purple", 15, isDefault: true);
     public static readonly TypeItem SlnGiftCards = new(216, "SlnGiftCards", "SalonModule.GiftCards", "Hediye Kartları", "bi-gift", "bg-warning text-dark", 16);
-    public static readonly TypeItem SlnPackages = new(217, "SlnPackages", "SalonModule.Packages", "Seans Paketleri", "bi-box-seam", "bg-info", 17);
+    public static readonly TypeItem SlnPackages = new(217, "SlnPackages", "SalonModule.Packages", "Seans Paketleri", "bi-box-seam", "bg-info", 17, isDefault: true);
     public static readonly TypeItem SlnMemberships = new(218, "SlnMemberships", "SalonModule.Memberships", "Üyelik Planları", "bi-award", "bg-primary", 18);
     public static readonly TypeItem SlnLoyalty = new(219, "SlnLoyalty", "SalonModule.Loyalty", "Sadakat Programı", "bi-star", "bg-warning", 19);
     public static readonly TypeItem SlnProfile = new(220, "SlnProfile", "SalonModule.Profile", "Salon Profili", "bi-shop", "bg-dark", 20, isDefault: true);

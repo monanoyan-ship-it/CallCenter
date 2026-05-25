@@ -1,0 +1,158 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+
+<div id="winback-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0"><t key="salon.winback.auto.kayip_musteri_geri_kazanim_kurallari">Kayıp Müşteri Geri Kazanım Kuralları</t></h6>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew">
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.winback.auto.yeni_kural">Yeni Kural</t>
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th><t key="salon.winback.auto.kural_adi">Kural Adi</t></th>
+                            <th><t key="salon.winback.auto.pasif_gun">Pasif Gun</t></th>
+                            <th><t key="salon.winback.auto.kanal">Kanal</t></th>
+                            <th><t key="salon.winback.auto.indirim">İndirim</t></th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
+                            <th style="width:190px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: rules">
+                        <tr>
+                            <td class="fw-semibold small" data-bind="text: name"></td>
+                            <td class="small" data-bind="text: inactiveDays + ' gun'"></td>
+                            <td class="small" data-bind="text: $parent.channelText(channelId)"></td>
+                            <td class="small" data-bind="text: discountPercent ? '%' + discountPercent : '-'"></td>
+                            <td class="small">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" data-bind="checked: isActiveObs, click: $parent.toggleRule" />
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="@(Translation.T("salon.winback.auto.duzenle", "Düzenle"))" data-bind="click: $parent.openEdit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" title="@(Translation.T("salon.winback.auto.title_onizle", "Önizle"))" data-bind="click: $parent.openPreview">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.winback.auto.title_kampanya_olustur", "Kampanya Oluştur"))" data-bind="click: $parent.createCampaign, enable: isActive">
+                                        <i class="bi bi-megaphone"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: rules().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-arrow-repeat" style="font-size:2rem;"></i>
+                <p class="mt-2 small"><t key="salon.winback.auto.henuz_geri_kazanim_kurali_tanimlanmamis">Henüz geri kazanım kuralı tanımlanmamış</t></p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Kural Modal -->
+    <div class="modal fade" id="winbackModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" data-bind="text: isEditing() ? salonT('salon.winback.auto.kural_duzenle', 'Kural Düzenle') : salonT('salon.winback.auto.yeni_kural', 'Yeni Kural')"></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.winback.auto.kural_adi_required">Kural Adi *</t></label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small"><t key="salon.winback.auto.pasif_gun_esigi_required">Pasif Gün Eşiği *</t></label>
+                            <input type="number" class="form-control form-control-sm" min="1" data-bind="value: form.inactiveDays" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small"><t key="salon.winback.auto.kanal_2">Kanal</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: form.channelId">
+                                <option value="1">SMS</option>
+                                <option value="2">WhatsApp</option>
+                                <option value="3"><t key="salon.account.email">E-posta</t></option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.winback.auto.mesaj_sablonu_required">Mesaj Şablonu *</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.messageTemplate"></textarea>
+                            <small class="text-muted"><t key="salon.winback.auto.degiskenler_ad_gun_indirim">Değişkenler: {ad}, {gün}, {indirim}</t></small>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small"><t key="salon.winback.auto.indirim_2">İndirim (%)</t></label>
+                            <input type="number" class="form-control form-control-sm" min="0" max="100" data-bind="value: form.discountPercent" />
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="ruleActive" data-bind="checked: form.isActive" />
+                                <label class="form-check-label small" for="ruleActive"><t key="salon.common.status_active">Aktif</t></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onizleme Modal -->
+    <div class="modal fade" id="winbackPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-eye me-2"></i><t key="salon.winback.auto.winback_onizleme">Winback Önizleme</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-3" data-bind="visible: isPreviewLoading">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
+                    <!-- ko if: preview -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="salon.winback.auto.uygun_musteri">Uygun Müşteri</t></div><div class="fw-bold" data-bind="text: preview().eligibleClients"></div></div></div>
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="salon.winback.auto.sms_uygun">SMS Uygun</t></div><div class="fw-bold" data-bind="text: preview().smsReachableClients"></div></div></div>
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="salon.winback.auto.e_posta_uygun">E-posta Uygun</t></div><div class="fw-bold" data-bind="text: preview().emailReachableClients"></div></div></div>
+                        <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="salon.winback.auto.iletisim_eksik">İletişim Eksik</t></div><div class="fw-bold" data-bind="text: preview().missingContactCount"></div></div></div>
+                    </div>
+                    <div class="alert alert-light border small" data-bind="text: preview().messagePreview"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th><t key="salon.panel.payments.customer">Müşteri</t></th><th><t key="salon.account.phone">Telefon</t></th><th><t key="salon.account.email">E-posta</t></th><th><t key="salon.winback.auto.pasif_gun_2">Pasif Gun</t></th><th><t key="salon.winback.auto.son_ziyaret">Son Ziyaret</t></th></tr></thead>
+                            <tbody data-bind="foreach: preview().candidates">
+                                <tr>
+                                    <td data-bind="text: clientName"></td>
+                                    <td data-bind="text: phone || '-'"></td>
+                                    <td data-bind="text: email || '-'"></td>
+                                    <td data-bind="text: inactiveDays"></td>
+                                    <td data-bind="text: lastVisitAt ? new Date(lastVisitAt).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- /ko -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

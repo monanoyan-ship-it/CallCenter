@@ -1,5 +1,7 @@
 # CorpLynk Salon Canli Screenshot Index
 
+> Not: Bu eski/genel screenshot indexidir. Default paket kullanım rehberi için güncel index: `docs/salon-default-paket-screenshot-index.md`.
+
 Surum: Taslak v0.1  
 Cekim tarihi: 2026-05-21  
 Kaynak: `https://sln.corplynk.com` canli Salon demo hesabi  

@@ -53,6 +53,11 @@ bld/
 ## Landing libman (restored via libman restore)
 src/CallCenter.Landing/wwwroot/lib/
 
+## Generated docs media
+docs/assets/salon-promo-video/
+docs/assets/salon-wide-screenshots/
+docs/assets/salon-promo-screenshots/
+
 ## OS
 Thumbs.db
 ehthumbs.db

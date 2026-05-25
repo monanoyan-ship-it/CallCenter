@@ -1,0 +1,164 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+
+<div id="reviews-vm">
+    <!-- Ozet Kartlari -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center py-2">
+                <div class="small text-muted"><t key="salon.reviews.auto.toplam">Toplam</t></div>
+                <div class="fw-bold" data-bind="text: stats().totalReviews"></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center py-2">
+                <div class="small text-muted"><t key="salon.reviews.auto.bekleyen">Bekleyen</t></div>
+                <div class="fw-bold text-warning" data-bind="text: stats().pendingCount"></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center py-2">
+                <div class="small text-muted"><t key="salon.reviews.auto.onaylanan">Onaylanan</t></div>
+                <div class="fw-bold text-success" data-bind="text: stats().approvedCount"></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center py-2">
+                <div class="small text-muted"><t key="salon.reviews.auto.reddedilen">Reddedilen</t></div>
+                <div class="fw-bold text-danger" data-bind="text: stats().rejectedCount"></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-0 shadow-sm text-center py-2">
+                <div class="small text-muted"><t key="salon.reviews.auto.ort_puan">Ort. Puan</t></div>
+                <div class="fw-bold text-primary">
+                    <i class="bi bi-star-fill text-warning me-1"></i><span data-bind="text: stats().averageRating.toFixed(1)"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 d-flex align-items-center">
+                    <small class="text-muted"><t key="salon.reviews.objectivity_notice">Yorumlar müşteri tarafından eklenir. Salon panelinden yorum eklenemez (objektiflik için).</t></small>
+        </div>
+    </div>
+
+    <!-- Filtre -->
+    <div class="mb-3">
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" data-bind="click: function() { filterStatus(0); }, css: { active: filterStatus() === 0 }"><t key="salon.reviews.auto.tumu">Tümü</t></button>
+            <button class="btn btn-outline-warning" data-bind="click: function() { filterStatus(1); }, css: { active: filterStatus() === 1 }"><t key="salon.reviews.auto.bekleyen">Bekleyen</t></button>
+            <button class="btn btn-outline-success" data-bind="click: function() { filterStatus(2); }, css: { active: filterStatus() === 2 }"><t key="salon.reviews.auto.onaylanan">Onaylanan</t></button>
+            <button class="btn btn-outline-danger" data-bind="click: function() { filterStatus(3); }, css: { active: filterStatus() === 3 }"><t key="salon.reviews.auto.reddedilen">Reddedilen</t></button>
+        </div>
+    </div>
+
+    <!-- Yorum Listesi -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th><t key="salon.panel.payments.customer">Müşteri</t></th>
+                            <th><t key="salon.reviews.auto.puan">Puan</t></th>
+                            <th><t key="salon.reviews.auto.yorum">Yorum</t></th>
+                            <th><t key="salon.reviews.auto.kaynak">Kaynak</t></th>
+                            <th><t key="salon.appointments.status">Durum</t></th>
+                            <th><t key="salon.panel.payments.date">Tarih</t></th>
+                            <th style="width:150px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredReviews">
+                        <tr>
+                            <td class="fw-semibold small" data-bind="text: clientName"></td>
+                            <td class="small">
+                                <!-- ko foreach: new Array(rating) -->
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <!-- /ko -->
+                            </td>
+                            <td class="small text-truncate" style="max-width:300px;" data-bind="text: comment || '-'"></td>
+                            <td class="small" data-bind="text: $parent.sourceText(sourceId)"></td>
+                            <td class="small">
+                                <span class="badge" data-bind="text: $parent.reviewStatusText(statusId), css: $parent.reviewStatusBadge(statusId)"></span>
+                            </td>
+                            <td class="small" data-bind="text: new Date(createdAt).toLocaleDateString(document.documentElement.lang || undefined)"></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <!-- ko if: statusId === 1 -->
+                                    <button class="btn btn-outline-success" title="@(Translation.T("salon.common.btn.confirm", "Onayla"))" data-bind="click: function() { $parent.updateStatus($data, 2); }">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" title="@(Translation.T("salon.reviews.auto.title_reddet", "Reddet"))" data-bind="click: function() { $parent.updateStatus($data, 3); }">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                    <!-- /ko -->
+                                    <button class="btn btn-outline-secondary" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- ko if: filteredReviews().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-chat-square-text" style="font-size:2rem;"></i>
+                <p class="mt-2 small"><t key="salon.reviews.auto.henuz_yorum_yok">Henüz yorum yok</t></p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
+    <!-- Yeni Yorum Modal -->
+    <div class="modal fade" id="reviewModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-chat-square-text me-2"></i><t key="salon.reviews.auto.yeni_yorum">Yeni Yorum</t></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.reviews.auto.musteri_adi">Müşteri Adı *</t></label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: form.clientName" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small"><t key="salon.reviews.auto.puan_required">Puan *</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: form.rating">
+                                <option value="5"><t key="salon.reviews.auto.5_mukemmel">5 - Mükemmel</t></option>
+                                <option value="4"><t key="salon.reviews.auto.4_iyi">4 - İyi</t></option>
+                                <option value="3"><t key="salon.reviews.auto.3_orta">3 - Orta</t></option>
+                                <option value="2"><t key="salon.reviews.auto.2_kotu">2 - Kötü</t></option>
+                                <option value="1"><t key="salon.reviews.auto.1_cok_kotu">1 - Çok Kötü</t></option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small"><t key="salon.reviews.auto.kaynak_2">Kaynak</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: form.sourceId">
+                                <option value="1"><t key="salon.reviews.auto.dahili">Dahili</t></option>
+                                <option value="2">Google</option>
+                                <option value="3">Instagram</option>
+                                <option value="4">Facebook</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.reviews.auto.yorum_2">Yorum</t></label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.comment"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="salon.reviews.auto.harici_url">Harici URL</t></label>
+                            <input type="text" class="form-control form-control-sm" placeholder="https://..." data-bind="value: form.externalUrl" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="salon.common.btn.cancel">İptal</t></button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
+                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="salon.common.btn.save">Kaydet</t>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

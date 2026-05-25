@@ -276,7 +276,7 @@
                         <div class="row g-3">
                             <!-- ko foreach: $parent.membershipPlans -->
                             <div class="col-md-6 col-lg-4">
-                                <div class="card border-0 shadow-sm plan-card h-100" data-bind="css: { selected: $parent.selectedPlanId() === id }, click: function() { $parent.selectedPlanId(id); }">
+                                <div class="card border-0 shadow-sm plan-card h-100" data-bind="css: { selected: $root.selectedPlanId() === id }, click: function() { $root.selectedPlanId(id); }">
                                     <div class="card-body text-center py-4">
                                         <i class="fs-1 d-block mb-2" data-bind="attr: { 'class': iconClass || 'bi bi-star' }, style: { color: color || '#7b1fa2' }"></i>
                                         <h5 class="fw-bold" data-bind="text: name"></h5>
@@ -299,7 +299,7 @@
                                             <span class="plan-badge badge bg-warning-subtle text-warning"><t key="salon.profile.membership.priority_booking">Öncelikli randevu</t></span>
                                             <!-- /ko -->
                                         </div>
-                                        <button class="btn btn-book btn-sm mt-3 px-4" data-bind="click: function() { $parents[1].openSignup(id, name); }">
+                                        <button class="btn btn-book btn-sm mt-3 px-4" data-bind="click: function() { $root.openSignup(id, name); }, clickBubble: false">
                                             <i class="bi bi-person-plus me-1"></i><t key="salon.profile.membership.join">Üye Ol</t>
                                         </button>
                                     </div>

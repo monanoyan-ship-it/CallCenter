@@ -64,6 +64,7 @@ public static class SalonRolePermissions
         "Products",         // Urunler
         "Suppliers",        // Tedarikciler
         "Expenses",         // Masraflar
+        "Marketing",        // Pazarlama ve sadakat ortak ekrani
         "Campaigns",        // SMS kampanyalari
         "EmailCampaigns",   // E-posta kampanyalari
         "Memberships",      // Uyelik planlari

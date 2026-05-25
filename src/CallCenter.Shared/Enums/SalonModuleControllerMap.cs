@@ -20,6 +20,7 @@ public static class SalonModuleControllerMap
         ["Staff"] = SalonPortalModules.Ids.SlnStaff,                 // 209
         ["Suppliers"] = SalonPortalModules.Ids.SlnSuppliers,         // 210
         ["Reports"] = SalonPortalModules.Ids.SlnReports,             // 211
+        ["Marketing"] = SalonPortalModules.Ids.SlnCampaigns,         // 212 (Musteri Sadakati / Pazarlama ortak ekrani)
         ["Campaigns"] = SalonPortalModules.Ids.SlnCampaigns,         // 212
         ["Branches"] = SalonPortalModules.Ids.SlnBranches,           // 213
         ["Sales"] = SalonPortalModules.Ids.SlnSales,                 // 214

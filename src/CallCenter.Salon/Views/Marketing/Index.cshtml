@@ -1,0 +1,147 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    ViewData["Title"] = Translation.T("salon.modules.package.loyalty_marketing", "Pazarlama ve Sadakat");
+    var activeTab = (ViewData["MarketingTab"] as string) ?? "campaigns";
+    var visibleTabs = new HashSet<string>(
+        (ViewData["MarketingTabs"] as System.Collections.Generic.IEnumerable<string>) ?? new[] { activeTab },
+        StringComparer.OrdinalIgnoreCase);
+    bool Active(string tab) => string.Equals(activeTab, tab, StringComparison.OrdinalIgnoreCase);
+    bool Show(string tab) => visibleTabs.Contains(tab);
+}
+
+<h5 class="mb-3"><t key="salon.modules.package.loyalty_marketing">Pazarlama ve Sadakat</t></h5>
+
+<ul class="nav nav-pills flex-wrap gap-2 mb-3" role="tablist">
+    @if (Show("campaigns"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("campaigns") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-campaigns" type="button" role="tab">
+                <i class="bi bi-megaphone me-1"></i><t key="salon.sidebar.campaigns">Kampanyalar</t>
+            </button>
+        </li>
+    }
+    @if (Show("email"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("email") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-email" type="button" role="tab">
+                <i class="bi bi-envelope me-1"></i><t key="salon.sidebar.email_campaigns">E-posta Kampanyalari</t>
+            </button>
+        </li>
+    }
+    @if (Show("winback"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("winback") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-winback" type="button" role="tab">
+                <i class="bi bi-arrow-repeat me-1"></i><t key="salon.sidebar.winback">Geri Kazanim</t>
+            </button>
+        </li>
+    }
+    @if (Show("loyalty"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("loyalty") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-loyalty" type="button" role="tab">
+                <i class="bi bi-star me-1"></i><t key="salon.sidebar.loyalty">Sadakat Programi</t>
+            </button>
+        </li>
+    }
+    @if (Show("memberships"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("memberships") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-memberships" type="button" role="tab">
+                <i class="bi bi-award me-1"></i><t key="salon.sidebar.memberships">Uyelik Planlari</t>
+            </button>
+        </li>
+    }
+    @if (Show("giftcards"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("giftcards") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-giftcards" type="button" role="tab">
+                <i class="bi bi-gift me-1"></i><t key="salon.sidebar.gift_cards">Hediye Kartlari</t>
+            </button>
+        </li>
+    }
+    @if (Show("reviews"))
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Active("reviews") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-reviews" type="button" role="tab">
+                <i class="bi bi-chat-square-text me-1"></i><t key="salon.sidebar.reviews">Yorumlar</t>
+            </button>
+        </li>
+    }
+</ul>
+
+<div class="tab-content">
+    @if (Show("campaigns"))
+    {
+        <div class="tab-pane fade @(Active("campaigns") ? "show active" : "")" id="marketing-campaigns" role="tabpanel">
+            @await Html.PartialAsync("_CampaignsPane")
+        </div>
+    }
+    @if (Show("email"))
+    {
+        <div class="tab-pane fade @(Active("email") ? "show active" : "")" id="marketing-email" role="tabpanel">
+            @await Html.PartialAsync("_EmailCampaignsPane")
+        </div>
+    }
+    @if (Show("winback"))
+    {
+        <div class="tab-pane fade @(Active("winback") ? "show active" : "")" id="marketing-winback" role="tabpanel">
+            @await Html.PartialAsync("_WinbackPane")
+        </div>
+    }
+    @if (Show("loyalty"))
+    {
+        <div class="tab-pane fade @(Active("loyalty") ? "show active" : "")" id="marketing-loyalty" role="tabpanel">
+            @await Html.PartialAsync("_LoyaltyPane")
+        </div>
+    }
+    @if (Show("memberships"))
+    {
+        <div class="tab-pane fade @(Active("memberships") ? "show active" : "")" id="marketing-memberships" role="tabpanel">
+            @await Html.PartialAsync("_MembershipsPane")
+        </div>
+    }
+    @if (Show("giftcards"))
+    {
+        <div class="tab-pane fade @(Active("giftcards") ? "show active" : "")" id="marketing-giftcards" role="tabpanel">
+            @await Html.PartialAsync("_GiftCardsPane")
+        </div>
+    }
+    @if (Show("reviews"))
+    {
+        <div class="tab-pane fade @(Active("reviews") ? "show active" : "")" id="marketing-reviews" role="tabpanel">
+            @await Html.PartialAsync("_ReviewsPane")
+        </div>
+    }
+</div>
+
+@section Scripts {
+    @if (Show("campaigns"))
+    {
+        <script src="~/js/Campaigns.js" asp-append-version="true"></script>
+    }
+    @if (Show("email"))
+    {
+        <script src="~/js/EmailCampaigns.js" asp-append-version="true"></script>
+    }
+    @if (Show("winback"))
+    {
+        <script src="~/js/Winback.js" asp-append-version="true"></script>
+    }
+    @if (Show("loyalty"))
+    {
+        <script src="~/js/Loyalty.js" asp-append-version="true"></script>
+    }
+    @if (Show("memberships"))
+    {
+        <script src="~/js/Memberships.js" asp-append-version="true"></script>
+    }
+    @if (Show("giftcards"))
+    {
+        <script src="~/js/GiftCards.js" asp-append-version="true"></script>
+    }
+    @if (Show("reviews"))
+    {
+        <script src="~/js/Reviews.js" asp-append-version="true"></script>
+    }
+}

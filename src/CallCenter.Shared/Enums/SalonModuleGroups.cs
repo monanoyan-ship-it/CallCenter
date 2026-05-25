@@ -49,6 +49,7 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnWaitlist] = Ids.Core,
         [SalonPortalModules.Ids.SlnNoShowPolicy] = Ids.Core,
         [SalonPortalModules.Ids.SlnConsentForms] = Ids.Core,
+        [SalonPortalModules.Ids.SlnPackages] = Ids.Core,
 
         // ── Stok Tedarik / Finans (1) — 400 TL ─────────────────────────────
         [SalonPortalModules.Ids.SlnSuppliers] = Ids.StockFinance,
@@ -56,7 +57,6 @@ public static class SalonModuleGroups
 
         // ── Müşteri Sadakati / Pazarlama (3) — 1.500 TL ────────────────────
         [SalonPortalModules.Ids.SlnGiftCards] = Ids.LoyaltyMarketing,
-        [SalonPortalModules.Ids.SlnPackages] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnMemberships] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnLoyalty] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnCampaigns] = Ids.LoyaltyMarketing,

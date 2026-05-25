@@ -1,5 +1,7 @@
 # CorpLynk Salon Tanıtım Videosu Planı
 
+> Not: Bu dosya genel/marketing tanıtım taslağıdır. Şu anki iş public/discover tanıtımı değil, default paket kullanım eğitimi olduğu için güncel akış: `docs/salon-default-paket-egitim-video-akisi.md`.
+
 Sürüm: Taslak v0.1  
 Amaç: Salon/güzellik merkezi sahiplerine ürünü hızlı ve güven verici şekilde anlatmak  
 Ana video süresi: 60-75 saniye  
