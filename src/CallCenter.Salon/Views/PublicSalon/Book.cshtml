@@ -50,6 +50,8 @@
         .book-logo { width: 56px; height: 56px; border-radius: 50%; background: rgba(123,31,162,.12); display: flex; align-items: center; justify-content: center; overflow: hidden; flex: 0 0 auto; }
         .book-hero.has-cover .book-logo { background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.35); }
         .book-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .booking-recovery { background: #fff; border: 1px solid rgba(123,31,162,.18); border-left: 4px solid #7b1fa2; border-radius: 8px; }
+        .booking-recovery-icon { width: 2.2rem; height: 2.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .5rem; background: rgba(123,31,162,.1); color: #7b1fa2; flex: 0 0 auto; }
     </style>
 </head>
 <body>
@@ -88,6 +90,26 @@
             <div class="step" data-bind="css: { active: currentStep() === 3, done: currentStep() > 3 }">3. <t key="salon.book.step2">Tarih &amp; Saat</t></div>
             <div class="step" data-bind="css: { active: currentStep() === 4, done: currentStep() > 4 }">4. <t key="salon.book.step3">Bilgiler</t></div>
             <div class="step" data-bind="css: { active: currentStep() === 5 }">5. <t key="salon.book.step4">Onay</t></div>
+        </div>
+
+        <div class="booking-recovery p-3 mb-3" data-bind="visible: resumeAvailable() && !bookingDone()" style="display:none;">
+            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+                <div class="d-flex gap-2">
+                    <span class="booking-recovery-icon"><i class="bi bi-arrow-counterclockwise"></i></span>
+                    <div>
+                        <div class="fw-semibold small"><t key="salon.book.recovery.title">Yarım kalan randevunuz var</t></div>
+                        <div class="text-muted small" data-bind="text: resumeSummary"></div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-purple btn-sm" data-bind="click: continueBookingDraft">
+                        <i class="bi bi-play-fill me-1"></i><t key="salon.book.recovery.continue">Devam Et</t>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: clearBookingDraft">
+                        <t key="salon.book.recovery.dismiss">Vazgeç</t>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Adim 1: Hizmet Sec (Accordion) -->
@@ -396,6 +418,8 @@
         <span data-key="salon.book.error.connection"><t key="salon.book.error.connection">Bağlantı hatası</t></span>
         <span data-key="salon.book.staff.any"><t key="salon.book.staff.any">Fark etmez</t></span>
         <span data-key="salon.book.staff.auto_suffix"><t key="salon.book.staff.auto_suffix">otomatik</t></span>
+        <span data-key="salon.book.recovery.summary"><t key="salon.book.recovery.summary">{service} için {step}. adımda kalmışsınız.</t></span>
+        <span data-key="salon.book.recovery.generic_summary"><t key="salon.book.recovery.generic_summary">Randevu akışına kaldığınız yerden devam edebilirsiniz.</t></span>
         <span data-key="salon.common.minute_abbr"><t key="salon.common.minute_abbr">dk</t></span>
         <span data-key="salon.common.currency_abbr"><t key="salon.common.currency_abbr">TL</t></span>
     </div>

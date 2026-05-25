@@ -1,9 +1,11 @@
 (function () {
     toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };
 
-var bookData = document.getElementById('book-data');
+        var bookData = document.getElementById('book-data');
         var bookSlug = bookData ? bookData.getAttribute('data-slug') : '';
         var bookDocumentTitlePrefix = bookData ? bookData.getAttribute('data-title-prefix') : 'Randevu';
+        var bookingDraftKey = 'corplynk.salon.bookingDraft.' + bookSlug;
+        var bookingFunnelKey = 'corplynk.salon.bookingFunnel.' + bookSlug;
         var bookTexts = {};
         document.querySelectorAll('#book-i18n [data-key]').forEach(function (el) {
             bookTexts[el.dataset.key] = (el.textContent || '').trim();
@@ -76,6 +78,9 @@ var bookData = document.getElementById('book-data');
             self.currentStep = ko.observable(1);
             self.isSaving = ko.observable(false);
             self.bookingDone = ko.observable(false);
+            self.resumeAvailable = ko.observable(false);
+            self.resumeSummary = ko.observable('');
+            self.recoveryDraft = ko.observable(null);
 
             // Policy
             self.bookingPolicy = ko.observable(null);
@@ -98,6 +103,126 @@ var bookData = document.getElementById('book-data');
                 notes: ko.observable('')
             };
 
+            function readJson(key, fallback) {
+                try { return JSON.parse(localStorage.getItem(key) || 'null') || fallback; }
+                catch (e) { return fallback; }
+            }
+
+            function draftHasProgress(draft) {
+                if (!draft) return false;
+                var ageMs = Date.now() - new Date(draft.updatedAt || 0).getTime();
+                if (ageMs > 7 * 24 * 60 * 60 * 1000) return false;
+                return (draft.serviceIds && draft.serviceIds.length)
+                    || draft.comboId
+                    || draft.step > 1
+                    || draft.slot;
+            }
+
+            function selectedServiceSummary(serviceIds, comboId) {
+                var combo = comboId ? self.serviceCombos().find(function (c) { return c.id === comboId; }) : null;
+                if (combo) return combo.name || '';
+                var ids = serviceIds || self.selectedServiceIds();
+                var names = ids.map(function (serviceId) {
+                    var service = self.allServices().find(function (s) { return s.id === serviceId; });
+                    return service ? service.name : null;
+                }).filter(Boolean);
+                return names.join(' + ');
+            }
+
+            self.trackBookingFunnel = function (eventName, extra) {
+                var events = readJson(bookingFunnelKey, []);
+                events.push({
+                    at: new Date().toISOString(),
+                    event: eventName,
+                    step: self.currentStep(),
+                    serviceIds: self.selectedServiceIds(),
+                    comboId: self.selectedComboId(),
+                    hasStaff: self.selectedStaffId() !== null,
+                    hasSlot: !!self.selectedSlot(),
+                    extra: extra || null
+                });
+                localStorage.setItem(bookingFunnelKey, JSON.stringify(events.slice(-80)));
+            };
+
+            self.buildBookingDraft = function () {
+                return {
+                    slug: bookSlug,
+                    step: self.currentStep(),
+                    serviceIds: self.selectedServiceIds().slice(),
+                    comboId: self.selectedComboId(),
+                    staffId: self.selectedStaffId(),
+                    date: self.selectedDate(),
+                    slot: self.selectedSlot(),
+                    autoAssignedStaffId: self.autoAssignedStaffId(),
+                    autoAssignedStaffName: self.autoAssignedStaffName(),
+                    form: {
+                        fullName: self.form.fullName(),
+                        phone: self.form.phone(),
+                        email: self.form.email(),
+                        notes: self.form.notes()
+                    },
+                    updatedAt: new Date().toISOString()
+                };
+            };
+
+            self.saveBookingDraft = function () {
+                if (self.bookingDone()) return;
+                var draft = self.buildBookingDraft();
+                if (!draftHasProgress(draft)) {
+                    localStorage.removeItem(bookingDraftKey);
+                    return;
+                }
+                localStorage.setItem(bookingDraftKey, JSON.stringify(draft));
+            };
+
+            self.refreshRecoveryDraft = function () {
+                var draft = readJson(bookingDraftKey, null);
+                if (!draftHasProgress(draft)) {
+                    localStorage.removeItem(bookingDraftKey);
+                    self.resumeAvailable(false);
+                    self.recoveryDraft(null);
+                    return;
+                }
+                var service = selectedServiceSummary(draft.serviceIds || [], draft.comboId) || self.displaySalonName() || bookT('salon.book.title', 'Online Randevu');
+                self.resumeSummary(bookT('salon.book.recovery.summary', '{service} için {step}. adımda kalmışsınız.')
+                    .replace('{service}', service)
+                    .replace('{step}', draft.step || 1));
+                self.recoveryDraft(draft);
+                self.resumeAvailable(true);
+            };
+
+            self.continueBookingDraft = function () {
+                var draft = self.recoveryDraft() || readJson(bookingDraftKey, null);
+                if (!draftHasProgress(draft)) return;
+                self.selectedComboId(draft.comboId || null);
+                self.selectedServiceIds((draft.serviceIds || []).slice());
+                self.selectedServiceId((draft.serviceIds && draft.serviceIds.length) ? draft.serviceIds[0] : null);
+                self.selectedStaffId(draft.staffId == null ? null : draft.staffId);
+                self.selectedDate(draft.date || localDateInputValue());
+                self.selectedSlot(draft.slot || null);
+                self.autoAssignedStaffId(draft.autoAssignedStaffId || null);
+                self.autoAssignedStaffName(draft.autoAssignedStaffName || null);
+                if (draft.form) {
+                    self.form.fullName(draft.form.fullName || self.form.fullName());
+                    self.form.phone(draft.form.phone || self.form.phone());
+                    self.form.email(draft.form.email || self.form.email());
+                    self.form.notes(draft.form.notes || '');
+                }
+                self.currentStep(Math.min(Math.max(draft.step || 1, 1), 5));
+                self.resumeAvailable(false);
+                if (self.currentStep() >= 2) self.loadStaff(true);
+                if (self.currentStep() >= 3) self.loadSlots(true);
+                self.trackBookingFunnel('draft_resumed');
+                self.saveBookingDraft();
+            };
+
+            self.clearBookingDraft = function () {
+                localStorage.removeItem(bookingDraftKey);
+                self.resumeAvailable(false);
+                self.recoveryDraft(null);
+                self.trackBookingFunnel('draft_dismissed');
+            };
+
             self.openWaitlist = function () {
                 // form.fullName/phone doluysa onceden doldur
                 self.waitlist.fullName(self.form.fullName() || '');
@@ -106,6 +231,7 @@ var bookData = document.getElementById('book-data');
                 self.waitlist.timeSlot('Farketmez');
                 self.waitlist.notes('');
                 self.waitlistOpen(true);
+                self.trackBookingFunnel('waitlist_opened');
             };
 
             self.closeWaitlist = function () { self.waitlistOpen(false); };
@@ -141,6 +267,8 @@ var bookData = document.getElementById('book-data');
                        if (res.ok) {
                            toastr.success(res.body.message || bookT('salon.book.waitlist.success', 'Bekleme listesine eklendiniz.'));
                            self.closeWaitlist();
+                           self.trackBookingFunnel('waitlist_submitted');
+                           self.clearBookingDraft();
                        } else {
                            toastr.error(res.body.message || bookT('salon.book.waitlist.save_failed', 'Kayıt başarısız'));
                        }
@@ -243,6 +371,25 @@ var bookData = document.getElementById('book-data');
                 return true;
             });
 
+            [
+                self.selectedServiceIds,
+                self.selectedComboId,
+                self.selectedStaffId,
+                self.selectedDate,
+                self.selectedSlot,
+                self.form.fullName,
+                self.form.phone,
+                self.form.email,
+                self.form.notes
+            ].forEach(function (obs) {
+                obs.subscribe(function () { self.saveBookingDraft(); });
+            });
+
+            self.currentStep.subscribe(function (step) {
+                self.trackBookingFunnel('step_view', { step: step });
+                self.saveBookingDraft();
+            });
+
             // Giris yapan kullanicinin bilgilerini doldur
             var platformUser = null;
             try { platformUser = JSON.parse(localStorage.getItem('platformUser') || 'null'); } catch (e) {}
@@ -291,6 +438,7 @@ var bookData = document.getElementById('book-data');
                     if (data.serviceCategories && data.serviceCategories.length > 0) {
                         self.expandedCategoryId(data.serviceCategories[0].id);
                     }
+                    self.refreshRecoveryDraft();
                 });
 
             // Load booking policy
@@ -315,6 +463,7 @@ var bookData = document.getElementById('book-data');
                 self.slots([]);
                 self.selectedStaffId(null);
                 self.selectedSlot(null);
+                self.trackBookingFunnel('service_selected', { serviceId: svc.id, selectedCount: ids.length });
             };
 
             self.selectCombo = function (combo) {
@@ -322,23 +471,29 @@ var bookData = document.getElementById('book-data');
                 self.selectedComboId(combo.id);
                 self.selectedServiceIds(ids);
                 self.selectedServiceId(ids.length ? ids[0] : null);
+                self.trackBookingFunnel('combo_selected', { comboId: combo.id, selectedCount: ids.length });
             };
 
-            self.selectStaff = function (staff) { self.selectedStaffId(staff.id); };
+            self.selectStaff = function (staff) {
+                self.selectedStaffId(staff.id);
+                self.trackBookingFunnel('staff_selected', { staffId: staff.id });
+            };
 
             // Load staff for selected service
-            self.loadStaff = function () {
+            self.loadStaff = function (preserveSelection) {
                 var ids = self.selectedServiceIds();
                 if (!ids.length && !self.selectedComboId()) return;
+                var previousStaffId = self.selectedStaffId();
                 self.staffLoading(true);
                 self.availableStaff([]);
-                self.selectedStaffId(null);
+                if (!preserveSelection) self.selectedStaffId(null);
                 var url = '/proxy/salon/' + bookSlug + '/available-staff?serviceIds=' + ids.join(',');
                 if (self.selectedComboId()) url += '&comboId=' + self.selectedComboId();
                 fetch(url)
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         self.availableStaff(data || []);
+                        if (preserveSelection) self.selectedStaffId(previousStaffId == null ? null : previousStaffId);
                         self.staffLoading(false);
                     })
                     .catch(function () { self.staffLoading(false); });
@@ -346,15 +501,20 @@ var bookData = document.getElementById('book-data');
 
             self.selectedDate.subscribe(function () { self.loadSlots(); });
 
-            self.loadSlots = function () {
+            self.loadSlots = function (preserveSelection) {
                 var ids = self.selectedServiceIds();
                 var date = self.selectedDate();
                 if ((!ids.length && !self.selectedComboId()) || !date) return;
+                var previousSlot = self.selectedSlot();
+                var previousAutoStaffId = self.autoAssignedStaffId();
+                var previousAutoStaffName = self.autoAssignedStaffName();
                 self.slotsLoaded(false);
-                self.selectedSlot(null);
+                if (!preserveSelection) self.selectedSlot(null);
                 self.isDayClosed(false);
-                self.autoAssignedStaffId(null);
-                self.autoAssignedStaffName(null);
+                if (!preserveSelection) {
+                    self.autoAssignedStaffId(null);
+                    self.autoAssignedStaffName(null);
+                }
 
                 var url = '/proxy/salon/' + bookSlug + '/available-slots?serviceIds=' + ids.join(',') + '&date=' + date;
                 if (self.selectedComboId()) {
@@ -378,6 +538,11 @@ var bookData = document.getElementById('book-data');
                             items.forEach(function(s) { if (!s.availableStaff) s.availableStaff = []; });
                             self.slots(items);
                         }
+                        if (preserveSelection && previousSlot && self.slots().some(function (s) { return s.startTime === previousSlot; })) {
+                            self.selectedSlot(previousSlot);
+                            self.autoAssignedStaffId(previousAutoStaffId || null);
+                            self.autoAssignedStaffName(previousAutoStaffName || null);
+                        }
                         self.slotsLoaded(true);
                     })
                     .catch(function () { self.slotsLoaded(true); });
@@ -393,6 +558,7 @@ var bookData = document.getElementById('book-data');
                     self.autoAssignedStaffId(null);
                     self.autoAssignedStaffName(null);
                 }
+                self.trackBookingFunnel('slot_selected', { startTime: slot.startTime });
             };
 
             self.nextStep = function () {
@@ -401,12 +567,18 @@ var bookData = document.getElementById('book-data');
                 if (step === 1) { self.loadStaff(); }
                 if (step === 2) { self.loadSlots(); }
                 self.currentStep(step + 1);
+                self.trackBookingFunnel('next_clicked', { fromStep: step, toStep: step + 1 });
             };
 
-            self.prevStep = function () { self.currentStep(self.currentStep() - 1); };
+            self.prevStep = function () {
+                var step = self.currentStep();
+                self.currentStep(step - 1);
+                self.trackBookingFunnel('back_clicked', { fromStep: step, toStep: step - 1 });
+            };
 
             self.confirmBooking = function () {
                 self.isSaving(true);
+                self.trackBookingFunnel('booking_confirm_clicked');
                 var payload = {
                     fullName: self.form.fullName(),
                     phone: self.form.phone(),
@@ -437,12 +609,15 @@ var bookData = document.getElementById('book-data');
                         if (res.data.requireDeposit && res.data.htmlContent) {
                             // 3DS ödeme formu göster
                             self.checkoutActive(true);
+                            self.trackBookingFunnel('payment_started');
                             var container = document.getElementById('iyzico-checkout-container');
                             container.style.display = '';
                             $(container).html(res.data.htmlContent);
                         } else {
                             self.ensureSalonLink();
                             self.bookingDone(true);
+                            self.trackBookingFunnel('booking_completed');
+                            self.clearBookingDraft();
                         }
                     } else {
                         var msg = (res.data && (res.data.message || res.data)) || bookT('salon.book.error.create_failed', 'Randevu oluşturulamadı.');
@@ -462,9 +637,12 @@ var bookData = document.getElementById('book-data');
                     document.getElementById('iyzico-checkout-container').style.display = 'none';
                     self.ensureSalonLink();
                     self.bookingDone(true);
+                    self.trackBookingFunnel('payment_completed');
+                    self.clearBookingDraft();
                 } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
                     self.checkoutActive(false);
                     document.getElementById('iyzico-checkout-container').style.display = 'none';
+                    self.trackBookingFunnel('payment_failed');
                     toastr.error((e.data && e.data.error) || bookT('salon.book.payment.failed', 'Ödeme başarısız oldu. Lütfen tekrar deneyin.'));
                 }
             });
@@ -496,7 +674,10 @@ var bookData = document.getElementById('book-data');
                 bookVm.currentStep(5);
                 bookVm.ensureSalonLink();
                 bookVm.bookingDone(true);
+                bookVm.trackBookingFunnel('payment_return_completed');
+                bookVm.clearBookingDraft();
             } else {
+                bookVm.trackBookingFunnel('payment_return_failed');
                 toastr.error(payerr ? decodeURIComponent(payerr) : bookT('salon.book.payment.not_completed', 'Ödeme tamamlanamadı. Lütfen tekrar deneyin.'));
             }
         })();
