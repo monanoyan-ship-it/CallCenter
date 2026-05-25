@@ -66,6 +66,19 @@
     </div>
 </div>
 
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm dashboard-action-center">
+            <div class="card-header bg-white border-0 fw-semibold d-flex align-items-center justify-content-between gap-2">
+                <span><i class="bi bi-lightning-charge-fill me-2 text-warning"></i><t key="salon.dashboard.action_center">Bugün neye bakmalıyım?</t></span>
+            </div>
+            <div class="card-body pt-0" id="actionCenterList">
+                <p class="text-muted small mb-0"><t key="salon.common.loading">Yükleniyor...</t></p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
     <div class="col-md-8">
         <div class="card border-0 shadow-sm">
@@ -103,6 +116,31 @@
     .text-purple { color: #7b1fa2 !important; }
     .bg-purple { background-color: #7b1fa2 !important; }
     .bg-purple-subtle { background-color: rgba(123,31,162,0.12) !important; }
+    .dashboard-action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .85rem 0;
+        border-bottom: 1px solid rgba(15, 23, 42, .08);
+        color: inherit;
+        text-decoration: none;
+    }
+    .dashboard-action:last-child { border-bottom: 0; }
+    .dashboard-action:hover .dashboard-action-title { color: #7b1fa2; }
+    .dashboard-action-icon {
+        width: 2.35rem;
+        height: 2.35rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .5rem;
+        background: rgba(123,31,162,0.1);
+        color: #7b1fa2;
+        flex: 0 0 auto;
+    }
+    .dashboard-action-title { font-weight: 600; }
+    .dashboard-action-desc { color: #6c757d; font-size: .82rem; }
 </style>
 
 @section Scripts {
