@@ -171,7 +171,7 @@
             </div>
             <div data-bind="visible: !staffLoading()">
                 <!-- Fark etmez secenegi -->
-                <button type="button" class="card border-0 shadow-sm mb-3 staff-card" data-bind="click: function() { selectedStaffId(null); }, css: { selected: selectedStaffId() === null }">
+                <button type="button" class="card border-0 shadow-sm mb-3 staff-card" data-bind="visible: availableStaff().length > 0, click: function() { selectedStaffId(null); }, css: { selected: selectedStaffId() === null }">
                     <div class="card-body py-3">
                         <div class="staff-avatar">
                             <i class="bi bi-shuffle" style="font-size:1.5rem;color:#7b1fa2;"></i>
@@ -203,6 +203,10 @@
                 <div data-bind="visible: availableStaff().length === 0 && !staffLoading()" class="text-center text-muted py-3">
                     <i class="bi bi-person-x" style="font-size:2rem;opacity:.3;"></i>
                     <p class="mt-2 small"><t key="salon.book.no_staff">Bu hizmet için uygun personel bulunamadı</t></p>
+                    <button type="button" class="btn btn-outline-purple btn-sm mt-1" style="border:1px solid #7b1fa2;color:#7b1fa2;"
+                            data-bind="click: openWaitlist">
+                        <i class="bi bi-bell me-1"></i><t key="salon.book.join_waitlist">Bekleme Listesine Ekle</t>
+                    </button>
                 </div>
             </div>
         </div>
@@ -230,7 +234,7 @@
                 <label class="form-label small fw-semibold"><t key="salon.book.available_times">Müsait Saatler</t></label>
                 <div class="d-flex flex-wrap gap-2">
                     <!-- ko foreach: slots -->
-                    <button class="btn btn-outline-secondary btn-sm slot-btn"
+                    <button type="button" class="btn btn-outline-secondary btn-sm slot-btn"
                             data-bind="click: $root.selectSlot, css: { selected: $root.selectedSlot() === startTime }">
                         <span data-bind="text: timeText"></span>
                         <!-- ko if: $root.selectedStaffId() === null && availableStaff && availableStaff.length -->
@@ -252,7 +256,7 @@
             <div data-bind="visible: slotsLoaded() && !isDayClosed() && slots().length === 0" class="text-center text-muted py-4">
                 <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3;"></i>
                 <p class="mt-2 small"><t key="salon.book.no_slots">Bu tarih için müsait saat bulunamadı</t></p>
-                <button class="btn btn-outline-purple btn-sm mt-2" style="border:1px solid #7b1fa2;color:#7b1fa2;"
+                <button type="button" class="btn btn-outline-purple btn-sm mt-2" style="border:1px solid #7b1fa2;color:#7b1fa2;"
                         data-bind="click: openWaitlist">
                     <i class="bi bi-bell me-1"></i><t key="salon.book.join_waitlist">Bekleme Listesine Ekle</t>
                 </button>
@@ -269,7 +273,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="small text-muted mb-3">
-                            <t key="salon.book.waitlist.desc">Müsait saat bulunamadı. Bekleme listesine adınızı bırakın, slot boşalınca salon sizinle iletişime geçecek.</t>
+                            <t key="salon.book.waitlist.desc">Şu an uygun saat görünmüyor. Adınızı bırakın; yer açılırsa salon sizi arasın.</t>
                         </p>
                         <div class="row g-2">
                             <div class="col-12">
@@ -409,14 +413,14 @@
 
         <!-- Navigation -->
         <div class="d-flex justify-content-between mt-4" data-bind="visible: !bookingDone()">
-            <button class="btn btn-outline-secondary" data-bind="visible: currentStep() > 1, click: prevStep">
+            <button type="button" class="btn btn-outline-secondary" data-bind="visible: currentStep() > 1, click: prevStep">
                 <i class="bi bi-arrow-left me-1"></i><t key="salon.book.btn.back">Geri</t>
             </button>
             <span data-bind="visible: currentStep() <= 1"></span>
-            <button class="btn btn-purple" data-bind="visible: currentStep() < 5, click: nextStep, disable: !canProceed()">
+            <button type="button" class="btn btn-purple" data-bind="visible: currentStep() < 5, click: nextStep, disable: !canProceed()">
                 <t key="salon.book.btn.next">İleri</t><i class="bi bi-arrow-right ms-1"></i>
             </button>
-            <button class="btn btn-purple" data-bind="visible: currentStep() === 5 && !bookingDone() && !checkoutActive(), click: confirmBooking, disable: isSaving">
+            <button type="button" class="btn btn-purple" data-bind="visible: currentStep() === 5 && !bookingDone() && !checkoutActive(), click: confirmBooking, disable: isSaving">
                 <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                 <t key="salon.book.btn.confirm">Randevu Al</t>
             </button>
@@ -428,7 +432,7 @@
         <span data-key="salon.book.waitlist.service_required"><t key="salon.book.waitlist.service_required">Önce hizmet seçiniz</t></span>
         <span data-key="salon.book.waitlist.success"><t key="salon.book.waitlist.success">Bekleme listesine eklendiniz.</t></span>
         <span data-key="salon.book.waitlist.save_failed"><t key="salon.book.waitlist.save_failed">Kayıt başarısız</t></span>
-        <span data-key="salon.book.payment.deposit_3ds_desc"><t key="salon.book.payment.deposit_3ds_desc">{amount} tutarındaki depozito için 3D Secure güvenli ödeme sayfasına yönlendirileceksiniz.</t></span>
+        <span data-key="salon.book.payment.deposit_3ds_desc"><t key="salon.book.payment.deposit_3ds_desc">Randevuyu kesinleştirmek için {amount} ön ödeme alınacak. Ödeme ekranına yönlendirileceksiniz.</t></span>
         <span data-key="salon.book.payment.failed"><t key="salon.book.payment.failed">Ödeme başarısız oldu. Lütfen tekrar deneyin.</t></span>
         <span data-key="salon.book.payment.not_completed"><t key="salon.book.payment.not_completed">Ödeme tamamlanamadı. Lütfen tekrar deneyin.</t></span>
         <span data-key="salon.book.error.create_failed"><t key="salon.book.error.create_failed">Randevu oluşturulamadı.</t></span>
@@ -437,17 +441,17 @@
         <span data-key="salon.book.staff.any"><t key="salon.book.staff.any">Fark etmez</t></span>
         <span data-key="salon.book.staff.auto_suffix"><t key="salon.book.staff.auto_suffix">otomatik</t></span>
         <span data-key="salon.book.recovery.summary"><t key="salon.book.recovery.summary">{service} için {step}. adımda kalmışsınız.</t></span>
-        <span data-key="salon.book.recovery.generic_summary"><t key="salon.book.recovery.generic_summary">Randevu akışına kaldığınız yerden devam edebilirsiniz.</t></span>
-        <span data-key="salon.book.trust.secure_flow"><t key="salon.book.trust.secure_flow">Güvenli randevu akışı</t></span>
-        <span data-key="salon.book.trust.secure_flow_desc"><t key="salon.book.trust.secure_flow_desc">Bilgileriniz yalnızca salon randevu kaydı için kullanılır.</t></span>
-        <span data-key="salon.book.trust.deposit"><t key="salon.book.trust.deposit">3D Secure depozito</t></span>
-        <span data-key="salon.book.trust.deposit_desc"><t key="salon.book.trust.deposit_desc">{amount} ön ödeme güvenli kart formuyla alınır.</t></span>
-        <span data-key="salon.book.trust.no_deposit"><t key="salon.book.trust.no_deposit">Ön ödeme yok</t></span>
-        <span data-key="salon.book.trust.no_deposit_desc"><t key="salon.book.trust.no_deposit_desc">Bu randevu akışında kart bilgisi istenmez.</t></span>
-        <span data-key="salon.book.trust.cancel"><t key="salon.book.trust.cancel">Esnek iptal</t></span>
-        <span data-key="salon.book.trust.cancel_desc"><t key="salon.book.trust.cancel_desc">{hours} saate kadar iptal politikası açık.</t></span>
-        <span data-key="salon.book.trust.waitlist"><t key="salon.book.trust.waitlist">Saat yoksa bekleme listesi</t></span>
-        <span data-key="salon.book.trust.waitlist_desc"><t key="salon.book.trust.waitlist_desc">Uygun saat bulamazsanız aynı hizmet için talep bırakabilirsiniz.</t></span>
+        <span data-key="salon.book.recovery.generic_summary"><t key="salon.book.recovery.generic_summary">Randevunuza kaldığınız yerden devam edebilirsiniz.</t></span>
+        <span data-key="salon.book.trust.secure_flow"><t key="salon.book.trust.secure_flow">Bilgileriniz güvende</t></span>
+        <span data-key="salon.book.trust.secure_flow_desc"><t key="salon.book.trust.secure_flow_desc">Adınız ve iletişim bilginiz sadece randevu için salona iletilir.</t></span>
+        <span data-key="salon.book.trust.deposit"><t key="salon.book.trust.deposit">Güvenli ön ödeme</t></span>
+        <span data-key="salon.book.trust.deposit_desc"><t key="salon.book.trust.deposit_desc">Randevuyu kesinleştirmek için {amount} ön ödeme alınır.</t></span>
+        <span data-key="salon.book.trust.no_deposit"><t key="salon.book.trust.no_deposit">Kart bilgisi gerekmiyor</t></span>
+        <span data-key="salon.book.trust.no_deposit_desc"><t key="salon.book.trust.no_deposit_desc">Bu randevuda kart bilgisi istenmez.</t></span>
+        <span data-key="salon.book.trust.cancel"><t key="salon.book.trust.cancel">Plan değişirse sorun değil</t></span>
+        <span data-key="salon.book.trust.cancel_desc"><t key="salon.book.trust.cancel_desc">{hours} saat öncesine kadar randevunuzu rahatça iptal edebilirsiniz.</t></span>
+        <span data-key="salon.book.trust.waitlist"><t key="salon.book.trust.waitlist">Saat bulamazsanız haber verelim</t></span>
+        <span data-key="salon.book.trust.waitlist_desc"><t key="salon.book.trust.waitlist_desc">Uygun saat açılırsa salon sizinle iletişime geçebilir.</t></span>
         <span data-key="salon.common.minute_abbr"><t key="salon.common.minute_abbr">dk</t></span>
         <span data-key="salon.common.currency_abbr"><t key="salon.common.currency_abbr">TL</t></span>
     </div>

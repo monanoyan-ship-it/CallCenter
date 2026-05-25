@@ -91,35 +91,35 @@
                 var policy = self.bookingPolicy() || {};
                 var items = [{
                     icon: 'bi-shield-lock',
-                    title: bookT('salon.book.trust.secure_flow', 'Güvenli randevu akışı'),
-                    description: bookT('salon.book.trust.secure_flow_desc', 'Bilgileriniz yalnızca salon randevu kaydı için kullanılır.')
+                    title: bookT('salon.book.trust.secure_flow', 'Bilgileriniz güvende'),
+                    description: bookT('salon.book.trust.secure_flow_desc', 'Adınız ve iletişim bilginiz sadece randevu için salona iletilir.')
                 }];
                 if (policy.requireDeposit && Number(policy.depositAmount) > 0) {
                     items.push({
                         icon: 'bi-credit-card-2-front',
-                        title: bookT('salon.book.trust.deposit', '3D Secure depozito'),
-                        description: bookT('salon.book.trust.deposit_desc', '{amount} ön ödeme güvenli kart formuyla alınır.')
+                        title: bookT('salon.book.trust.deposit', 'Güvenli ön ödeme'),
+                    description: bookT('salon.book.trust.deposit_desc', 'Randevuyu kesinleştirmek için {amount} ön ödeme alınır.')
                             .replace('{amount}', self.formatMoney(policy.depositAmount))
                     });
                 } else {
                     items.push({
                         icon: 'bi-wallet2',
-                        title: bookT('salon.book.trust.no_deposit', 'Ön ödeme yok'),
-                        description: bookT('salon.book.trust.no_deposit_desc', 'Bu randevu akışında kart bilgisi istenmez.')
+                        title: bookT('salon.book.trust.no_deposit', 'Kart bilgisi gerekmiyor'),
+                    description: bookT('salon.book.trust.no_deposit_desc', 'Bu randevuda kart bilgisi istenmez.')
                     });
                 }
                 if (Number(policy.freeCancellationHours) > 0) {
                     items.push({
                         icon: 'bi-arrow-counterclockwise',
-                        title: bookT('salon.book.trust.cancel', 'Esnek iptal'),
-                        description: bookT('salon.book.trust.cancel_desc', '{hours} saate kadar iptal politikası açık.')
+                        title: bookT('salon.book.trust.cancel', 'Plan değişirse sorun değil'),
+                        description: bookT('salon.book.trust.cancel_desc', '{hours} saat öncesine kadar randevunuzu rahatça iptal edebilirsiniz.')
                             .replace('{hours}', policy.freeCancellationHours)
                     });
                 }
                 items.push({
                     icon: 'bi-bell',
-                    title: bookT('salon.book.trust.waitlist', 'Saat yoksa bekleme listesi'),
-                    description: bookT('salon.book.trust.waitlist_desc', 'Uygun saat bulamazsanız aynı hizmet için talep bırakabilirsiniz.')
+                    title: bookT('salon.book.trust.waitlist', 'Saat bulamazsanız haber verelim'),
+                    description: bookT('salon.book.trust.waitlist_desc', 'Uygun saat açılırsa salon sizinle iletişime geçebilir.')
                 });
                 return items.slice(0, 4);
             });
@@ -383,7 +383,7 @@
                 var policy = self.bookingPolicy();
                 if (!policy || !policy.depositAmount) return '';
                 var amount = policy.depositAmount.toLocaleString(self.pageLang) + ' ' + bookT('salon.common.currency_abbr', 'TL');
-                return bookT('salon.book.payment.deposit_3ds_desc', '{amount} tutarındaki depozito için 3D Secure güvenli ödeme sayfasına yönlendirileceksiniz.')
+                return bookT('salon.book.payment.deposit_3ds_desc', 'Randevuyu kesinleştirmek için {amount} ön ödeme alınacak. Ödeme ekranına yönlendirileceksiniz.')
                     .replace('{amount}', amount);
             });
 
@@ -401,10 +401,14 @@
                 return s ? s.timeText : '';
             });
 
+            self.hasBookableStaff = ko.computed(function () {
+                return self.availableStaff().length > 0;
+            });
+
             self.canProceed = ko.computed(function () {
                 var step = self.currentStep();
                 if (step === 1) return self.selectedServiceIds().length > 0 || !!self.selectedComboId();
-                if (step === 2) return true; // null = fark etmez, her zaman gecerli
+                if (step === 2) return !self.staffLoading() && self.hasBookableStaff();
                 if (step === 3) return !!self.selectedSlot();
                 if (step === 4) return !!self.form.fullName() && !!self.form.phone();
                 return true;
@@ -510,6 +514,12 @@
                 self.selectedComboId(combo.id);
                 self.selectedServiceIds(ids);
                 self.selectedServiceId(ids.length ? ids[0] : null);
+                self.availableStaff([]);
+                self.slots([]);
+                self.selectedStaffId(null);
+                self.selectedSlot(null);
+                self.autoAssignedStaffId(null);
+                self.autoAssignedStaffName(null);
                 self.trackBookingFunnel('combo_selected', { comboId: combo.id, selectedCount: ids.length });
             };
 
@@ -531,8 +541,13 @@
                 fetch(url)
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
-                        self.availableStaff(data || []);
-                        if (preserveSelection) self.selectedStaffId(previousStaffId == null ? null : previousStaffId);
+                        var staff = data || [];
+                        self.availableStaff(staff);
+                        if (preserveSelection && previousStaffId != null && staff.some(function (p) { return p.id === previousStaffId; })) {
+                            self.selectedStaffId(previousStaffId);
+                        } else {
+                            self.selectedStaffId(null);
+                        }
                         self.staffLoading(false);
                     })
                     .catch(function () { self.staffLoading(false); });

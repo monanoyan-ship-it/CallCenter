@@ -111,7 +111,7 @@ function ClientDetailViewModel() {
 
     self.membershipSubtext = ko.computed(function () {
         var active = self.activeMemberships();
-        if (!active.length) return slnJsT('salon.clients.wallet.membership_hint', 'Satış veya public üyelikten eklenebilir');
+        if (!active.length) return slnJsT('salon.clients.wallet.membership_hint', 'Satıştan veya üyelik formundan eklenebilir');
         var suffix = active.length > 1 ? ' +' + (active.length - 1) : '';
         var discount = active[0].discountPercent ? '%' + active[0].discountPercent + ' ' + slnJsT('salon.profile.membership.discount_suffix', 'indirim') : slnJsT('salon.common.status_active', 'Aktif');
         return discount + suffix;
@@ -119,13 +119,13 @@ function ClientDetailViewModel() {
 
     self.packageSessionsText = ko.computed(function () {
         var total = self.activePackages().reduce(function (sum, pkg) { return sum + (pkg.remainingSessions || 0); }, 0);
-        return total > 0 ? total.toLocaleString(document.documentElement.lang || undefined) + ' ' + slnJsT('salon.clients.wallet.session_rights_suffix', 'hak') : '-';
+        return total > 0 ? total.toLocaleString(document.documentElement.lang || undefined) + ' ' + slnJsT('salon.clients.wallet.session_rights_suffix', 'seans') : '-';
     });
 
     self.packageSubtext = ko.computed(function () {
         var packages = self.activePackages();
         if (!packages.length) return slnJsT('salon.clients.wallet.no_packages', 'Aktif seans hakkı yok');
-        return packages.length + ' ' + slnJsT('salon.clients.wallet.package_count_suffix', 'aktif paket');
+        return packages.length + ' ' + slnJsT('salon.clients.wallet.package_count_suffix', 'aktif seans paketi');
     });
 
     self.giftCardBalanceText = ko.computed(function () {

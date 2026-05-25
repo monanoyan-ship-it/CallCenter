@@ -92,29 +92,29 @@ function ReportsViewModel() {
             if (asNumber(overview.activeStaffCount) === 0) {
                 add('high', 'bi-person-exclamation',
                     reportT('salon.reports.actions.staff_missing.title', 'Aktif personel yok'),
-                    reportT('salon.reports.actions.staff_missing.desc', 'Takvim doluluğu ve hizmet eşleşmesi için en az bir aktif personel tanımlayın.'),
+                    reportT('salon.reports.actions.staff_missing.desc', 'Randevu takibi için en az bir aktif personel tanımlayın.'),
                     '/Staff',
                     reportT('salon.sidebar.staff', 'Personel'));
             }
             if (asNumber(overview.appointmentCount) === 0) {
                 add('high', 'bi-calendar-plus',
                     reportT('salon.reports.actions.no_appointments.title', 'Bu aralıkta randevu yok'),
-                    reportT('salon.reports.actions.no_appointments.desc', 'Boş takvimi yeni randevu veya bekleme listesi dönüşüyle doldurun.'),
+                    reportT('salon.reports.actions.no_appointments.desc', 'Boş saatleri doldurmak için bekleme listesindeki veya eski müşterilere haber verin.'),
                     '/Appointments',
                     reportT('salon.sidebar.appointments', 'Randevu'));
             }
             if (asNumber(overview.capacityHours) > 0 && asNumber(overview.occupancyPercent) < 35) {
                 add('medium', 'bi-graph-up-arrow',
                     reportT('salon.reports.actions.low_occupancy.title', 'Doluluk düşük'),
-                    reportT('salon.reports.actions.low_occupancy.desc', 'Doluluk {percent}. Boş saatler için kampanya veya hatırlatma planlayın.')
+                    reportT('salon.reports.actions.low_occupancy.desc', 'Doluluk {percent}. Boş saatler için kısa bir kampanya veya hatırlatma gönderebilirsiniz.')
                         .replace('{percent}', self.formatPercent(overview.occupancyPercent)),
                     '/Marketing',
                     reportT('salon.sidebar.marketing', 'Pazarlama'));
             }
             if (asNumber(overview.activeClientCount) > 0 && asNumber(overview.repeatVisitRatePercent) < 25) {
                 add('medium', 'bi-arrow-repeat',
-                    reportT('salon.reports.actions.low_repeat.title', 'Tekrar ziyaret zayıf'),
-                    reportT('salon.reports.actions.low_repeat.desc', 'Tekrar ziyaret {percent}. Sadakat, winback veya hatırlatma kampanyası kurun.')
+                    reportT('salon.reports.actions.low_repeat.title', 'Müşteriler yeterince sık dönmüyor'),
+                    reportT('salon.reports.actions.low_repeat.desc', 'Tekrar ziyaret {percent}. Sadakat, hatırlatma veya geri çağırma kampanyası deneyin.')
                         .replace('{percent}', self.formatPercent(overview.repeatVisitRatePercent)),
                     '/Marketing',
                     reportT('salon.sidebar.marketing', 'Pazarlama'));
@@ -125,14 +125,14 @@ function ReportsViewModel() {
             if (asNumber(sales.totalInvoices) === 0) {
                 add('high', 'bi-receipt',
                     reportT('salon.reports.actions.no_sales.title', 'Satış kaydı yok'),
-                    reportT('salon.reports.actions.no_sales.desc', 'Bu tarih aralığında adisyon yok; randevu ve hızlı satış akışını kontrol edin.'),
+                    reportT('salon.reports.actions.no_sales.desc', 'Bu tarih aralığında adisyon yok; randevu ve hızlı satış kayıtlarını kontrol edin.'),
                     '/Sales',
                     reportT('salon.sidebar.sales', 'Satış'));
             }
             if (asNumber(sales.serviceRevenue) > 0 && asNumber(sales.productRevenue) === 0) {
                 add('low', 'bi-bag-plus',
-                    reportT('salon.reports.actions.product_attach.title', 'Ürün ek satış fırsatı'),
-                    reportT('salon.reports.actions.product_attach.desc', 'Hizmet geliri var ama ürün satışı yok; hizmet sonrası ürün önerilerini hazırlayın.'),
+                    reportT('salon.reports.actions.product_attach.title', 'Hizmet sonrası ürün önerilebilir'),
+                    reportT('salon.reports.actions.product_attach.desc', 'Hizmet geliri var ama ürün satışı yok; uygun ürünleri hizmet sonrası önermeyi deneyin.'),
                     '/Products',
                     reportT('salon.sidebar.products', 'Ürün'));
             }
@@ -145,10 +145,10 @@ function ReportsViewModel() {
                     .map(function (item) { return item.productName; })
                     .join(', ');
                 add('high', 'bi-box-seam',
-                    reportT('salon.reports.actions.low_stock.title', 'Düşük stok var'),
-                    reportT('salon.reports.actions.low_stock.desc', '{count} ürün minimum seviyede. {items}')
+                    reportT('salon.reports.actions.low_stock.title', 'Stokta azalan ürün var'),
+                    reportT('salon.reports.actions.low_stock.desc', '{count} ürün minimum seviyeye yaklaşmış. {items}')
                         .replace('{count}', stock.lowStockCount)
-                        .replace('{items}', lowItems || reportT('salon.reports.actions.low_stock.items_fallback', 'Ürün listesini kontrol edin.')),
+                        .replace('{items}', lowItems || reportT('salon.reports.actions.low_stock.items_fallback', 'Ürün listesini gözden geçirin.')),
                     '/Products',
                     reportT('salon.sidebar.inventory', 'Stok'));
             }
@@ -200,15 +200,15 @@ function ReportsViewModel() {
         if (self.clientReport()) {
             if (asNumber(clients.totalClients) > 0 && asNumber(clients.newClientsInPeriod) === 0) {
                 add('medium', 'bi-person-plus',
-                    reportT('salon.reports.actions.no_new_clients.title', 'Yeni müşteri akışı durdu'),
-                    reportT('salon.reports.actions.no_new_clients.desc', 'Bu dönemde yeni müşteri yok; public link ve kampanya paylaşımını güçlendirin.'),
+                    reportT('salon.reports.actions.no_new_clients.title', 'Yeni müşteri gelmemiş'),
+                    reportT('salon.reports.actions.no_new_clients.desc', 'Bu dönemde yeni müşteri yok; profil ve randevu linklerini yeniden paylaşmayı deneyin.'),
                     '/Marketing',
                     reportT('salon.sidebar.marketing', 'Pazarlama'));
             }
             if (asNumber(clients.totalClients) > 0 && asNumber(clients.averageVisitFrequency) < 1.2) {
                 add('low', 'bi-chat-heart',
                     reportT('salon.reports.actions.low_visit_frequency.title', 'Ziyaret sıklığı düşük'),
-                    reportT('salon.reports.actions.low_visit_frequency.desc', 'Ortalama ziyaret {count}. Tekrar randevu hatırlatması planlayın.')
+                    reportT('salon.reports.actions.low_visit_frequency.desc', 'Ortalama ziyaret {count}. Tekrar randevu hatırlatması gönderebilirsiniz.')
                         .replace('{count}', self.formatNumber(clients.averageVisitFrequency, 1)),
                     '/Marketing',
                     reportT('salon.sidebar.marketing', 'Pazarlama'));

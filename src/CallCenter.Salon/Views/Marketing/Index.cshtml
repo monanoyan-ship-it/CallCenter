@@ -17,19 +17,19 @@
         <div class="col-lg-4">
             <div class="border rounded bg-white p-3 h-100">
                 <div class="fw-semibold small mb-1"><i class="bi bi-send me-1"></i><t key="salon.marketing.intent.reach">Müşteriye ulaş</t></div>
-                <div class="text-muted small mb-2"><t key="salon.marketing.intent.reach_desc">SMS, e-posta ve geri kazanım akışları.</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.reach_desc">SMS, e-posta ve eski müşterileri yeniden davet etme araçları.</t></div>
                 <div class="d-flex flex-wrap gap-2">
                     @if (Show("campaigns"))
                     {
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-campaigns" type="button"><t key="salon.sidebar.campaigns">Kampanyalar</t></button>
+                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="campaigns" type="button"><t key="salon.sidebar.campaigns">Kampanyalar</t></button>
                     }
                     @if (Show("email"))
                     {
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-email" type="button"><t key="salon.sidebar.email_campaigns">E-posta</t></button>
+                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="email" type="button"><t key="salon.sidebar.email_campaigns">E-posta</t></button>
                     }
                     @if (Show("winback"))
                     {
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-winback" type="button"><t key="salon.sidebar.winback">Geri Kazanım</t></button>
+                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="winback" type="button"><t key="salon.sidebar.winback">Geri Kazanım</t></button>
                     }
                 </div>
             </div>
@@ -39,20 +39,20 @@
     {
         <div class="col-lg-4">
             <div class="border rounded bg-white p-3 h-100">
-                <div class="fw-semibold small mb-1"><i class="bi bi-stars me-1"></i><t key="salon.marketing.intent.loyalty">Sadakat ve gelir</t></div>
-                <div class="text-muted small mb-2"><t key="salon.marketing.intent.loyalty_desc">Puan, üyelik ve hediye kartı yönetimi.</t></div>
+                <div class="fw-semibold small mb-1"><i class="bi bi-stars me-1"></i><t key="salon.marketing.intent.loyalty">Sadakat ve üyelik</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.loyalty_desc">Puan, üyelik ve hediye kartlarını takip edin.</t></div>
                 <div class="d-flex flex-wrap gap-2">
                     @if (Show("loyalty"))
                     {
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-loyalty" type="button"><t key="salon.sidebar.loyalty">Sadakat</t></button>
+                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="loyalty" type="button"><t key="salon.sidebar.loyalty">Sadakat</t></button>
                     }
                     @if (Show("memberships"))
                     {
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-memberships" type="button"><t key="salon.sidebar.memberships">Üyelik</t></button>
+                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="memberships" type="button"><t key="salon.sidebar.memberships">Üyelik</t></button>
                     }
                     @if (Show("giftcards"))
                     {
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-giftcards" type="button"><t key="salon.sidebar.gift_cards">Hediye Kartı</t></button>
+                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="giftcards" type="button"><t key="salon.sidebar.gift_cards">Hediye Kartı</t></button>
                     }
                 </div>
             </div>
@@ -62,9 +62,9 @@
     {
         <div class="col-lg-4">
             <div class="border rounded bg-white p-3 h-100">
-                <div class="fw-semibold small mb-1"><i class="bi bi-chat-square-heart me-1"></i><t key="salon.marketing.intent.reputation">İtibar</t></div>
-                <div class="text-muted small mb-2"><t key="salon.marketing.intent.reputation_desc">Yorumları ve müşteri geri bildirimini takip edin.</t></div>
-                <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-reviews" type="button"><t key="salon.sidebar.reviews">Yorumlar</t></button>
+                <div class="fw-semibold small mb-1"><i class="bi bi-chat-square-heart me-1"></i><t key="salon.marketing.intent.reputation">Yorumlar</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.reputation_desc">Müşteri yorumlarını ve geri bildirimleri takip edin.</t></div>
+                <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="reviews" type="button"><t key="salon.sidebar.reviews">Yorumlar</t></button>
             </div>
         </div>
     }
@@ -91,7 +91,7 @@
     {
         <li class="nav-item" role="presentation">
             <button class="nav-link @(Active("winback") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-winback" type="button" role="tab">
-                <i class="bi bi-arrow-repeat me-1"></i><t key="salon.sidebar.winback">Geri Kazanim</t>
+                <i class="bi bi-arrow-repeat me-1"></i><t key="salon.sidebar.winback">Geri Kazanım</t>
             </button>
         </li>
     }
@@ -175,6 +175,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/Marketing.js" asp-append-version="true"></script>
     @if (Show("campaigns"))
     {
         <script src="~/js/Campaigns.js" asp-append-version="true"></script>

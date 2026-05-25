@@ -137,7 +137,7 @@ function WinbackViewModel() {
     self.createCampaign = function (rule) {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.winback.js.create_campaign_confirm', "'{name}' kuralından kampanya oluşturulsun mu?").replace('{name}', rule.name || ''), function () {
             $.ajax({ url: '/proxy/sln-winback/' + rule.id + '/create-campaign', method: 'POST' })
-                .done(function () { toastr.success(slnJsT('salon.winback.js.campaign_created', 'Winback kampanyası oluşturuldu')); })
+                .done(function () { toastr.success(slnJsT('salon.winback.js.campaign_created', 'Geri kazanım kampanyası oluşturuldu')); })
                 .fail(function (xhr) { toastr.error(readError(xhr)); });
         });
     };

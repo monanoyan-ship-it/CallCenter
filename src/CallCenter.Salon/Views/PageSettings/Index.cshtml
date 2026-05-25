@@ -17,7 +17,7 @@
         <!-- ko if: hasPublicBranchLinks() -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2">
-                <h6 class="mb-0 small"><i class="bi bi-link-45deg me-1"></i><t key="salon.pagesettings.branch_growth_links">Şube Public Linkleri</t></h6>
+                <h6 class="mb-0 small"><i class="bi bi-link-45deg me-1"></i><t key="salon.pagesettings.branch_growth_links">Şube Linkleri</t></h6>
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3"><t key="salon.pagesettings.branch_growth_links_hint">Salon profili henüz tamamlanmasa bile aktif şube linklerinizi paylaşabilirsiniz.</t></p>
@@ -29,7 +29,7 @@
                             <span class="badge bg-light text-dark"><t key="salon.branches.auto.ana_sube_merkez">Ana Şube (Merkez)</t></span>
                             <!-- /ko -->
                         </div>
-                        <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Public profil linki</t></label>
+                        <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Profil linki</t></label>
                         <div class="input-group input-group-sm mb-2">
                             <input type="text" class="form-control" readonly data-bind="value: publicPageUrl" />
                             <button class="btn btn-outline-secondary" type="button" data-bind="click: $parent.copyBranchPublicUrl">
@@ -60,7 +60,7 @@
         <!-- Onizleme Linki -->
         <div class="alert alert-info py-2 d-flex justify-content-between align-items-center">
             <small>
-                <i class="bi bi-globe me-1"></i><t key="salon.pagesettings.public_page">Public sayfa</t>:
+                <i class="bi bi-globe me-1"></i><t key="salon.pagesettings.public_page">Profil sayfası</t>:
                 <a data-bind="attr: { href: salonT('salon.pagesettings.auto.salon', '/salon/') + slug() }, text: salonT('salon.pagesettings.auto.salon', '/salon/') + slug()" target="_blank" class="fw-semibold"></a>
             </small>
             <span class="badge" data-bind="text: isPublished() ? salonT('salon.status.published', 'Yayında') : salonT('salon.status.draft', 'Taslak'), css: isPublished() ? 'bg-success' : 'bg-secondary'"></span>
@@ -68,13 +68,13 @@
 
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2">
-                <h6 class="mb-0 small"><i class="bi bi-megaphone me-1"></i><t key="salon.pagesettings.growth_links">Public Büyüme Linkleri</t></h6>
+                <h6 class="mb-0 small"><i class="bi bi-megaphone me-1"></i><t key="salon.pagesettings.growth_links">Paylaşım Linkleri</t></h6>
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3"><t key="salon.pagesettings.growth_links_hint">Bu linkleri Instagram bio, Google Business, QR kod ve kampanya görsellerinde kullanın. Müşteri marketplace komisyonu olmadan doğrudan sizin randevu akışınıza gelir.</t></p>
+                <p class="text-muted small mb-3"><t key="salon.pagesettings.growth_links_hint">Bu linkleri Instagram bio, Google Business, QR kod ve kampanya görsellerinde kullanın. Müşteriler doğrudan sizin randevu sayfanıza gelir.</t></p>
                 <div class="row g-3">
                     <div class="col-lg-6">
-                        <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Public profil linki</t></label>
+                        <label class="form-label small"><t key="salon.pagesettings.public_profile_link">Profil linki</t></label>
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control" readonly data-bind="value: publicPageUrl" />
                             <button class="btn btn-outline-secondary" type="button" data-bind="click: copyPublicPageUrl">
@@ -179,7 +179,7 @@
             </div>
             <div class="card-body">
                 <!-- ko if: galleryImages().length === 0 -->
-                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.gallery_empty">Galeri boş. Public sayfanızda salon fotoğraflarınızı sergileyebilirsiniz.</t></p>
+                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.gallery_empty">Galeri boş. Salon fotoğraflarınızı profil sayfanızda gösterebilirsiniz.</t></p>
                 <!-- /ko -->
                 <div class="row g-2" data-bind="foreach: galleryImages">
                     <div class="col-4 col-md-3 col-lg-2 position-relative">
@@ -199,7 +199,7 @@
                 <h6 class="mb-0 small"><i class="bi bi-layout-text-sidebar me-1"></i><t key="salon.pagesettings.sections">Sayfa Bölümleri</t></h6>
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3"><t key="salon.pagesettings.sections_hint">Public sayfanızda hangi bölümlerin görüneceğini seçin. Sıralamak için sürükleyin.</t></p>
+                <p class="text-muted small mb-3"><t key="salon.pagesettings.sections_hint">Profil sayfanızda hangi bölümlerin görüneceğini seçin. Sıralamak için sürükleyin.</t></p>
 
                 <div id="sectionList" class="list-group">
                     <!-- ko foreach: sections -->
@@ -228,7 +228,7 @@
             </div>
             <div class="card-body">
                 <!-- ko if: banners().length === 0 -->
-                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.banners_empty">Henüz görsel eklenmemiş. Public sayfanızda carousel/slider olarak gösterilir.</t></p>
+                <p class="text-muted small text-center mb-0"><t key="salon.pagesettings.banners_empty">Henüz görsel eklenmemiş. Eklediğiniz görseller profil sayfanızda kayar alan olarak görünür.</t></p>
                 <!-- /ko -->
                 <div data-bind="foreach: banners">
                     <div class="d-flex align-items-center gap-2 mb-2 p-2 border rounded">

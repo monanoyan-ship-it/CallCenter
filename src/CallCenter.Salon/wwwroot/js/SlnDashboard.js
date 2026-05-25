@@ -55,7 +55,7 @@
                 priority: 'high',
                 icon: 'bi-person-plus',
                 title: dashT('salon.dashboard.action.staff_title', 'Aktif personel yok'),
-                desc: dashT('salon.dashboard.action.staff_desc', 'Takvim ve hizmet eşleştirmeleri için en az bir personel aktif olmalı.'),
+                desc: dashT('salon.dashboard.action.staff_desc', 'Randevu verebilmek için en az bir aktif personel gerekir.'),
                 href: '/Staff'
             });
         }
@@ -65,7 +65,7 @@
                 priority: 'high',
                 icon: 'bi-person-heart',
                 title: dashT('salon.dashboard.action.first_client_title', 'İlk müşteriyi ekle'),
-                desc: dashT('salon.dashboard.action.first_client_desc', 'Müşteri listesi boşsa randevu ve satış akışları zayıf kalır.'),
+                desc: dashT('salon.dashboard.action.first_client_desc', 'İlk müşteri kaydını açınca randevu ve satış takibi de anlam kazanır.'),
                 href: '/Clients'
             });
         }
@@ -96,7 +96,7 @@
                 priority: 'medium',
                 icon: 'bi-calendar-plus',
                 title: dashT('salon.dashboard.action.empty_calendar_title', 'Bugün takvim boş'),
-                desc: dashT('salon.dashboard.action.empty_calendar_desc', 'Bekleme listesi ve pasif müşterilerden gün içine doluluk yarat.'),
+                desc: dashT('salon.dashboard.action.empty_calendar_desc', 'Bekleme listesindeki veya uzun süredir gelmeyen müşterilere haber verilebilir.'),
                 href: '/Waitlist'
             });
         }
@@ -106,8 +106,8 @@
             items.push({
                 priority: 'high',
                 icon: 'bi-box-seam',
-                title: tmpl(dashT('salon.dashboard.action.critical_stock_title', '{count} ürün kritik stokta'), { count: fmt(d.lowStockCount) }),
-                desc: tmpl(dashT('salon.dashboard.action.critical_stock_desc', 'En düşük stok: {product}. Sipariş miktarını kontrol et.'), { product: firstStock }),
+                title: tmpl(dashT('salon.dashboard.action.critical_stock_title', '{count} ürün azalmış'), { count: fmt(d.lowStockCount) }),
+                desc: tmpl(dashT('salon.dashboard.action.critical_stock_desc', 'En az kalan ürün: {product}. Sipariş ihtiyacını kontrol et.'), { product: firstStock }),
                 href: '/Products'
             });
         }
@@ -116,8 +116,8 @@
             items.push({
                 priority: 'medium',
                 icon: 'bi-balloon-heart',
-                title: tmpl(dashT('salon.dashboard.action.birthday_title', '{count} doğum günü fırsatı'), { count: fmt(reminders.length) }),
-                desc: tmpl(dashT('salon.dashboard.action.birthday_desc', '{client} ile başlayarak kişisel kampanya gönder.'), { client: reminders[0].fullName || '-' }),
+                title: tmpl(dashT('salon.dashboard.action.birthday_title', '{count} müşterinin doğum günü var'), { count: fmt(reminders.length) }),
+                desc: tmpl(dashT('salon.dashboard.action.birthday_desc', 'İlk olarak {client} için kişisel mesaj hazırlayabilirsin.'), { client: reminders[0].fullName || '-' }),
                 href: '/Marketing?tab=campaigns'
             });
         }
@@ -126,8 +126,8 @@
             items.push({
                 priority: 'low',
                 icon: 'bi-cash-coin',
-                title: dashT('salon.dashboard.action.cash_title', 'Gün sonu kasa kontrolünü kaçırma'),
-                desc: tmpl(dashT('salon.dashboard.action.cash_desc', 'Bugünkü ciro {amount} ₺. Kasa kapanışını hazırla.'), { amount: fmtMoney(d.todayRevenue) }),
+                title: dashT('salon.dashboard.action.cash_title', 'Gün sonu kasa kontrolünü unutma'),
+                desc: tmpl(dashT('salon.dashboard.action.cash_desc', 'Bugünkü ciro {amount} TL. Kasa kapanışını kontrol et.'), { amount: fmtMoney(d.todayRevenue) }),
                 href: '/Cash'
             });
         }
@@ -142,8 +142,8 @@
         var items = buildActionItems(d);
         if (!items.length) {
             list.innerHTML = '<div class="py-2">' +
-                '<div class="small fw-semibold">' + escapeHtml(dashT('salon.dashboard.action.all_clear_title', 'Bugün kritik aksiyon yok')) + '</div>' +
-                '<div class="dashboard-action-desc">' + escapeHtml(dashT('salon.dashboard.action.all_clear_desc', 'Takvim, stok ve hatırlatmalar şu an sakin.')) + '</div>' +
+                '<div class="small fw-semibold">' + escapeHtml(dashT('salon.dashboard.action.all_clear_title', 'Bugün için acil bir iş görünmüyor')) + '</div>' +
+                '<div class="dashboard-action-desc">' + escapeHtml(dashT('salon.dashboard.action.all_clear_desc', 'Randevular, stok ve hatırlatmalar şu an yolunda görünüyor.')) + '</div>' +
                 '</div>';
             return;
         }

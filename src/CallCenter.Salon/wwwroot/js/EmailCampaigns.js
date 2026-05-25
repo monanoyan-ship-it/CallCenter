@@ -79,7 +79,7 @@ function EmailCampaignsViewModel() {
         $.ajax({ url: '/proxy/sln-email-campaigns/segment-presets', method: 'GET' }).done(function (data) {
             self.segmentPresets(data || []);
         }).fail(function () {
-            toastr.error(slnJsT('salon.campaigns.js.segment_presets_load_failed', 'Hazır segmentler yüklenemedi'));
+            toastr.error(slnJsT('salon.campaigns.js.segment_presets_load_failed', 'Hazır müşteri grupları yüklenemedi'));
         });
     };
 
@@ -128,7 +128,7 @@ function EmailCampaignsViewModel() {
         }).done(function (data) {
             setSegmentPreview(data);
         }).fail(function () {
-            toastr.error(slnJsT('salon.emailcampaigns.js.segment_preview_failed', 'Segment önizlemesi alınamadı'));
+            toastr.error(slnJsT('salon.emailcampaigns.js.segment_preview_failed', 'Müşteri listesi önizlenemedi'));
         });
     };
 

@@ -63,7 +63,7 @@ function PageSettingsViewModel() {
     };
 
     self.copyPublicPageUrl = function () {
-        self.copyText(self.publicPageUrl(), slnJsT('salon.pagesettings.public_link_copied', 'Public profil linki kopyalandı.'));
+        self.copyText(self.publicPageUrl(), slnJsT('salon.pagesettings.public_link_copied', 'Profil linki kopyalandı.'));
     };
 
     self.copyBookingUrl = function () {
@@ -71,7 +71,7 @@ function PageSettingsViewModel() {
     };
 
     self.copyBranchPublicUrl = function (branch) {
-        self.copyText(branch.publicPageUrl, slnJsT('salon.pagesettings.public_link_copied', 'Public profil linki kopyalandı.'));
+        self.copyText(branch.publicPageUrl, slnJsT('salon.pagesettings.public_link_copied', 'Profil linki kopyalandı.'));
     };
 
     self.copyBranchBookingUrl = function (branch) {

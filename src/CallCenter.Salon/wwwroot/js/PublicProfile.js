@@ -58,18 +58,18 @@ var salonSlug = profileSlug;
                 var policy = self.bookingPolicy() || {};
                 var items = [{
                     icon: 'bi-calendar2-check',
-                    title: profileT('salon.profile.trust.direct_booking', 'Direkt online randevu'),
-                    description: profileT('salon.profile.trust.direct_booking_desc', 'Randevu kaydı salon paneline düşer.')
+                    title: profileT('salon.profile.trust.direct_booking', 'Online randevu alın'),
+                    description: profileT('salon.profile.trust.direct_booking_desc', 'Randevunuz doğrudan salona iletilir.')
                 }, {
                     icon: 'bi-bell',
-                    title: profileT('salon.profile.trust.waitlist', 'Uygun saat yoksa bekleme listesi'),
-                    description: profileT('salon.profile.trust.waitlist_desc', 'Slot açıldığında salon sizinle iletişime geçebilir.')
+                    title: profileT('salon.profile.trust.waitlist', 'Uygun saat yoksa haber bırakın'),
+                    description: profileT('salon.profile.trust.waitlist_desc', 'Yer açılırsa salon sizinle iletişime geçebilir.')
                 }];
                 if (policy.requireDeposit && Number(policy.depositAmount) > 0) {
                     items.push({
                         icon: 'bi-credit-card-2-front',
                         title: profileT('salon.profile.trust.secure_payment', 'Güvenli ön ödeme'),
-                        description: profileT('salon.profile.trust.secure_payment_desc', '{amount} depozito 3D Secure formuyla alınır.')
+                        description: profileT('salon.profile.trust.secure_payment_desc', 'Randevuyu kesinleştirmek için {amount} ön ödeme alınır.')
                             .replace('{amount}', self.formatMoney(policy.depositAmount))
                     });
                 }
@@ -77,14 +77,14 @@ var salonSlug = profileSlug;
                     items.push({
                         icon: 'bi-geo-alt',
                         title: profileT('salon.profile.trust.location', 'İletişim ve konum bilgisi'),
-                        description: profileT('salon.profile.trust.location_desc', 'Salonun iletişim bilgileri bu sayfada görünür.')
+                        description: profileT('salon.profile.trust.location_desc', 'Adres ve iletişim bilgilerini buradan görebilirsiniz.')
                     });
                 }
                 if (Number(stats.totalCount) > 0) {
                     items.push({
                         icon: 'bi-star',
                         title: profileT('salon.profile.trust.reviews', 'Müşteri yorumları'),
-                        description: profileT('salon.profile.trust.reviews_desc', '{count} yorum ortalaması görünür.')
+                        description: profileT('salon.profile.trust.reviews_desc', '{count} yoruma göre puan ortalaması gösterilir.')
                             .replace('{count}', stats.totalCount)
                     });
                 }

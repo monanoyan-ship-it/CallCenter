@@ -279,9 +279,9 @@
             if (isPrepaid && prepaidAmount > 0) {
                 var hoursLeft = (new Date(startTime) - new Date()) / 3600000;
                 if (hoursLeft >= 24) {
-                    msg += '<br><br><span class="text-success fw-semibold">' + salonT('salon.panel.cancel.refund_yes', 'Ücretsiz iptal penceresindeyiz; depozitonuz iade edilecektir.') + '</span>';
+                    msg += '<br><br><span class="text-success fw-semibold">' + salonT('salon.panel.cancel.refund_yes', 'Ücretsiz iptal süresi içindesiniz; depozitonuz iade edilir.') + '</span>';
                 } else {
-                    msg += '<br><br><span class="text-danger fw-semibold">' + salonT('salon.panel.cancel.refund_maybe_no', 'Ücretsiz iptal süresi geçmiş olabilir; depozitonuz iade edilmeyebilir.') + '</span>';
+                    msg += '<br><br><span class="text-danger fw-semibold">' + salonT('salon.panel.cancel.refund_maybe_no', 'Ücretsiz iptal süresi geçmiş olabilir; depozito iadesi yapılamayabilir.') + '</span>';
                 }
             }
             document.getElementById('cancelModalMsg').innerHTML = msg;

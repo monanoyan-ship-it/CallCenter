@@ -93,7 +93,7 @@
                             <textarea class="form-control form-control-sm" rows="8" data-bind="textInput: form.htmlBody"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="salon.emailcampaigns.auto.segment_filtresi_json">Segment Filtresi (JSON)</t></label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.segment_filtresi_json">Müşteri Filtresi (JSON)</t></label>
                             <input type="text" class="form-control form-control-sm" placeholder='{"genderId":1}' data-bind="textInput: form.segmentFilter" />
                         </div>
                         <div class="col-3">
@@ -106,7 +106,7 @@
                             </button>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small"><t key="salon.emailcampaigns.auto.hazir_segmentler">Hazır Segmentler</t></label>
+                            <label class="form-label small"><t key="salon.emailcampaigns.auto.hazir_segmentler">Hazır Müşteri Grupları</t></label>
                             <div class="d-flex flex-wrap gap-2" data-bind="foreach: segmentPresets">
                                 <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">
                                     <span class="fw-semibold" data-bind="text: name"></span>

@@ -124,7 +124,7 @@ function CampaignsViewModel() {
         $.ajax({ url: '/proxy/sln-marketing/campaigns/segment-presets', method: 'GET' }).done(function (data) {
             self.segmentPresets(data || []);
         }).fail(function () {
-            toastr.error(slnJsT('salon.campaigns.js.segment_presets_load_failed', 'Hazır segmentler yüklenemedi'));
+            toastr.error(slnJsT('salon.campaigns.js.segment_presets_load_failed', 'Hazır müşteri grupları yüklenemedi'));
         });
     };
 
@@ -237,7 +237,7 @@ function CampaignsViewModel() {
                 self.campaignForm.filter.hasActiveMembership(f.hasActiveMembership === true ? 'true' : (f.hasActiveMembership === false ? 'false' : ''));
                 self.campaignForm.filter.hasActivePackage(f.hasActivePackage === true ? 'true' : (f.hasActivePackage === false ? 'false' : ''));
             } catch (e) {
-                toastr.error(slnJsT('salon.campaigns.js.segment_filter_read_failed', 'Segment filtresi okunamadı'));
+            toastr.error(slnJsT('salon.campaigns.js.segment_filter_read_failed', 'Müşteri filtresi okunamadı'));
             }
         }
 

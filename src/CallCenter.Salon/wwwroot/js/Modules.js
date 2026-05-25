@@ -60,31 +60,31 @@ function ModulesViewModel() {
         6: moduleT('salon.modules.package.corporate', 'Kurumsal / Raporlama')
     };
     var PACKAGE_SUMMARIES = {
-        1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve finans derinliğini temel stok takibinin üzerine ekler.'),
-        3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Üyelik, hediye kartı, sadakat, yorum, winback, segment ve kampanya gelirlerini tek büyüme akışında toplar.'),
-        5: moduleT('salon.modules.package.professional.summary', 'Önce/sonra fotoğraflarıyla uzman işlemlerde görsel kanıtı, takip hissini ve müşteri güvenini güçlendirir.'),
-        6: moduleT('salon.modules.package.corporate.summary', 'Gelişmiş raporlar, şube karşılaştırma, CSV/Excel/PDF dışa aktarım ve zamanlanmış e-posta raporlarını kurumsal denetim akışında toplar.')
+        1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve daha detaylı finans takibi ekler.'),
+        3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Üyelik, hediye kartı, puan, yorum, müşteri geri çağırma ve kampanyaları tek yerde toplar.'),
+        5: moduleT('salon.modules.package.professional.summary', 'Önce/sonra fotoğraflarıyla işlem sonucunu ve müşteri takibini daha net gösterir.'),
+        6: moduleT('salon.modules.package.corporate.summary', 'Gelişmiş raporlar, şube karşılaştırması, dışa aktarım ve zamanlanmış e-posta raporları ekler.')
     };
     var PACKAGE_OUTCOMES = {
-        1: moduleT('salon.modules.package.stock_finance.outcome', 'Amaç: stok operasyonunu denetlemek, tedarik borcunu görmek ve kârlılık/maliyet kararlarını hızlandırmak.'),
-        3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Amaç: müşteriyi geri getirmek ve tek seferlik satışları tekrarlı gelire çevirmek.'),
-        5: moduleT('salon.modules.package.professional.outcome', 'Amaç: uzman işi yapan merkezlerde işlem sonucunu ve değişimi müşteriye net göstermek.'),
-        6: moduleT('salon.modules.package.corporate.outcome', 'Amaç: sahibin veya franchise yöneticisinin şube, personel, hizmet, ürün ve finans performansını kıyaslayıp denetlemesini sağlamak.')
+        1: moduleT('salon.modules.package.stock_finance.outcome', 'Stok kontrolünü, tedarikçi borçlarını ve maliyet kararlarını daha rahat takip edersiniz.'),
+        3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Müşterilerin tekrar gelmesini ve tek seferlik satışların düzenli gelire dönüşmesini destekler.'),
+        5: moduleT('salon.modules.package.professional.outcome', 'Uzman işlem yapan merkezlerde sonuçları müşteriye daha anlaşılır göstermenizi sağlar.'),
+        6: moduleT('salon.modules.package.corporate.outcome', 'Şube, personel, hizmet, ürün ve finans performansını karşılaştırmayı kolaylaştırır.')
     };
     var PACKAGE_FLOW_NOTES = {
-        3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Akış: önce üyelik veya hediye kartı satışı, sonra sadakat puanı ve yorum, en sonda segment kampanyası veya winback ile geri dönüş.'),
-        5: moduleT('salon.modules.package.professional.flow_note', 'Akış: müşteri ve randevu seçilir, önce/sonra fotoğrafı ile işlem notu aynı takip kaydında tutulur.'),
-        6: moduleT('salon.modules.package.corporate.flow_note', 'Akış: şube karşılaştırması, rapor filtresi, dışa aktarım ve e-posta zamanlaması tek raporlama hattında çalışır.')
+        3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Önce üyelik veya hediye kartı satışı yapılır; ardından puan, yorum ve kampanyalarla müşteri tekrar davet edilir.'),
+        5: moduleT('salon.modules.package.professional.flow_note', 'Müşteri ve randevu seçilir; önce/sonra fotoğrafları ve işlem notu aynı kayıtta tutulur.'),
+        6: moduleT('salon.modules.package.corporate.flow_note', 'Şube karşılaştırması, rapor filtresi, dışa aktarım ve e-posta zamanlaması aynı rapor ekranından yönetilir.')
     };
     var PACKAGE_USAGE_NOTES = {
-        3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri paket ücretinden ayrı kredi/kullanım bazlı takip edilebilir.'),
-        6: moduleT('salon.modules.package.corporate.usage_note', 'Çok şube sayısı temel abonelik hesabına dahil edilir; bu paket şube denetimi, rapor derinliği ve dışa aktarım değerini satar.')
+        3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri ayrıca kredi/kullanım olarak takip edilebilir.'),
+        6: moduleT('salon.modules.package.corporate.usage_note', 'Şube sayısı temel abonelikte ayrıca hesaplanır; bu paket rapor derinliği ve dışa aktarım özelliklerini açar.')
     };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
     var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
     self.packagePrices = ko.observable({});
-    self.basePackageSummary = ko.observable(moduleT('salon.modules.base_package_summary', 'Randevu, müşteri, hizmet, personel, ürün/stok takibi, POS/adisyon, kasa, profil, bekleme listesi ve temel güvenlik akışları dahildir.'));
-    self.basePackageOutcome = ko.observable(moduleT('salon.modules.base_package_outcome', 'Amaç: yeni salonun ilk günden satışa ve randevuya hazır görünmesi.'));
+    self.basePackageSummary = ko.observable(moduleT('salon.modules.base_package_summary', 'Randevu, müşteri, hizmet, personel, ürün/stok takibi, adisyon, kasa, profil, bekleme listesi ve temel güvenlik özellikleri dahildir.'));
+    self.basePackageOutcome = ko.observable(moduleT('salon.modules.base_package_outcome', 'Yeni bir salonun ilk günden randevu almaya ve satış yapmaya hazır olmasını sağlar.'));
 
     self.priceForGroup = function (gId) {
         self.packagePrices();
@@ -364,7 +364,7 @@ function ModulesViewModel() {
             self.purchasePackage({ groupId: payment.packageGroupId, groupName: payment.paymentType || moduleT('salon.modules.package', 'Paket') });
             return;
         }
-        toastr.warning(moduleT('salon.modules.retry_not_available', 'Bu ödeme için tekrar deneme akışı bulunamadı.'));
+        toastr.warning(moduleT('salon.modules.retry_not_available', 'Bu ödeme için tekrar deneme yapılamıyor. Lütfen sayfayı yenileyip tekrar deneyin.'));
     };
 
     var initialPlatformPayRequested = false;
