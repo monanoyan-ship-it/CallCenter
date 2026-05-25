@@ -12,6 +12,10 @@ function ClientDetailViewModel() {
     self.treatmentRecords = ko.observableArray([]);
     self.appointments = ko.observableArray([]);
     self.invoices = ko.observableArray([]);
+    self.walletMemberships = ko.observableArray([]);
+    self.walletPackages = ko.observableArray([]);
+    self.walletGiftCards = ko.observableArray([]);
+    self.loyalty = ko.observable(null);
     self.totalSpent = ko.observable(0);
     self.lastVisit = ko.observable(null);
     self.isSaving = ko.observable(false);
@@ -67,6 +71,74 @@ function ClientDetailViewModel() {
         return date.toISOString().slice(0, 16);
     }
 
+    function fmtMoney(value) {
+        return (Number(value) || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL';
+    }
+
+    function normalizePhone(value) {
+        return String(value || '').replace(/\D/g, '').replace(/^90/, '').replace(/^0/, '');
+    }
+
+    function silentGet(url, done) {
+        $.ajax({ url: url, method: 'GET', global: false }).done(done);
+    }
+
+    self.activeMemberships = ko.computed(function () {
+        return self.walletMemberships().filter(function (m) { return m.statusId === 1; });
+    });
+
+    self.activePackages = ko.computed(function () {
+        return self.walletPackages().filter(function (pkg) {
+            return pkg.isActive !== false && (pkg.remainingSessions || 0) > 0;
+        });
+    });
+
+    self.loyaltyPointsText = ko.computed(function () {
+        var loyalty = self.loyalty();
+        return loyalty ? ((loyalty.currentBalance || 0).toLocaleString(document.documentElement.lang || undefined) + ' ' + slnJsT('salon.clients.wallet.points_suffix', 'puan')) : '-';
+    });
+
+    self.loyaltyValueText = ko.computed(function () {
+        var loyalty = self.loyalty();
+        return loyalty ? slnJsT('salon.clients.wallet.balance_value', 'Yaklaşık değer') + ': ' + fmtMoney(loyalty.balanceValue) : slnJsT('salon.clients.wallet.no_loyalty', 'Sadakat kaydı yok');
+    });
+
+    self.membershipText = ko.computed(function () {
+        var active = self.activeMemberships();
+        if (!active.length) return slnJsT('salon.clients.wallet.membership_none', 'Aktif üyelik yok');
+        return active[0].planName || slnJsT('salon.clients.wallet.membership', 'Üyelik');
+    });
+
+    self.membershipSubtext = ko.computed(function () {
+        var active = self.activeMemberships();
+        if (!active.length) return slnJsT('salon.clients.wallet.membership_hint', 'Satış veya public üyelikten eklenebilir');
+        var suffix = active.length > 1 ? ' +' + (active.length - 1) : '';
+        var discount = active[0].discountPercent ? '%' + active[0].discountPercent + ' ' + slnJsT('salon.profile.membership.discount_suffix', 'indirim') : slnJsT('salon.common.status_active', 'Aktif');
+        return discount + suffix;
+    });
+
+    self.packageSessionsText = ko.computed(function () {
+        var total = self.activePackages().reduce(function (sum, pkg) { return sum + (pkg.remainingSessions || 0); }, 0);
+        return total > 0 ? total.toLocaleString(document.documentElement.lang || undefined) + ' ' + slnJsT('salon.clients.wallet.session_rights_suffix', 'hak') : '-';
+    });
+
+    self.packageSubtext = ko.computed(function () {
+        var packages = self.activePackages();
+        if (!packages.length) return slnJsT('salon.clients.wallet.no_packages', 'Aktif seans hakkı yok');
+        return packages.length + ' ' + slnJsT('salon.clients.wallet.package_count_suffix', 'aktif paket');
+    });
+
+    self.giftCardBalanceText = ko.computed(function () {
+        var balance = self.walletGiftCards().reduce(function (sum, card) { return sum + (card.remainingBalance || 0); }, 0);
+        return balance > 0 ? fmtMoney(balance) : '-';
+    });
+
+    self.giftCardSubtext = ko.computed(function () {
+        var cards = self.walletGiftCards();
+        if (!cards.length) return slnJsT('salon.clients.wallet.no_gift_cards', 'Aktif hediye kartı yok');
+        return cards.length + ' ' + slnJsT('salon.clients.wallet.gift_card_count_suffix', 'kart');
+    });
+
     function getAppointmentServiceOptions(appointment) {
         if (!appointment) return [];
         var ids = appointment.serviceIds || [];
@@ -120,8 +192,31 @@ function ClientDetailViewModel() {
             self.healthForm.medicalNotes(data.medicalNotes || '');
             self.totalSpent(data.totalSpent || 0);
             self.lastVisit(data.lastVisit ? new Date(data.lastVisit).toLocaleDateString(document.documentElement.lang || undefined) : null);
+            self.loadWallet();
         }).fail(function () {
             toastr.error(slnJsT('salon.clientdetail.js.musteri_bilgisi_yuklenemedi', 'Müşteri bilgisi yüklenemedi'));
+        });
+    };
+
+    self.loadWallet = function () {
+        silentGet('/proxy/sln-loyalty/clients/' + id, function (data) {
+            self.loyalty(data || null);
+        });
+        silentGet('/proxy/sln-memberships?clientId=' + id, function (data) {
+            self.walletMemberships(data.items || data || []);
+        });
+        silentGet('/proxy/sln-packages/client-packages?clientId=' + id, function (data) {
+            self.walletPackages(data.items || data || []);
+        });
+        silentGet('/proxy/sln-gift-cards', function (data) {
+            var phone = normalizePhone(self.client().phone);
+            var cards = (data.items || data || []).filter(function (card) {
+                return card.isActive !== false
+                    && (card.remainingBalance || 0) > 0
+                    && phone
+                    && normalizePhone(card.recipientPhone) === phone;
+            });
+            self.walletGiftCards(cards);
         });
     };
 
