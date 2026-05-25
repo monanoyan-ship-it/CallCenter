@@ -14,6 +14,7 @@ function AppointmentsViewModel() {
     self.editingId = ko.observable(null);
     self.isSaving = ko.observable(false);
     self.isLoadingAppointments = ko.observable(false);
+    self.activeWaitlistCount = ko.observable(0);
 
     // ═══ Coklu Tarih Araligi ═══
     self.dateRanges = ko.observableArray([]);
@@ -196,6 +197,18 @@ function AppointmentsViewModel() {
         self.dateRanges.removeAll();
     };
 
+    self.addTodayRange = function () {
+        var d = toDateStr(new Date());
+        var exists = self.dateRanges().some(function (r) { return r.from === d && r.to === d; });
+        if (!exists) {
+            self.dateRanges.push({
+                from: d,
+                to: d,
+                label: appointmentT('salon.reports.today', 'Bugün')
+            });
+        }
+    };
+
     self.rangesDescription = ko.computed(function () {
         var ranges = self.dateRanges();
         if (ranges.length === 0) return appointmentT('salon.appointments.no_range_selected', 'Aralık seçilmedi');
@@ -296,6 +309,18 @@ function AppointmentsViewModel() {
         });
         $.ajax({ url: '/proxy/portal/personnel', method: 'GET' }).done(function (data) {
             self.staffList(data.items || data);
+        });
+    };
+
+    self.loadWaitlistHint = function () {
+        $.ajax({ url: '/proxy/sln-waitlist?scope=active', method: 'GET' }).done(function (data) {
+            var items = data.items || data || [];
+            var activeItems = items.filter(function (e) {
+                return e.statusId === 1 || e.statusId === 2 || e.statusId === 3;
+            });
+            self.activeWaitlistCount(activeItems.length);
+        }).fail(function () {
+            self.activeWaitlistCount(0);
         });
     };
 
@@ -563,6 +588,7 @@ function AppointmentsViewModel() {
     $(document).ready(function () {
         formModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
         self.loadLookups();
+        self.loadWaitlistHint();
         // Default: Bu Hafta (Pazartesi - Pazar)
         var mon = getMonday(new Date());
         self.dateRanges.push({
