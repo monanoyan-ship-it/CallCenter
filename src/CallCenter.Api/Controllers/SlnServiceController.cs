@@ -31,6 +31,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPost("categories")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult<SlnServiceCategoryDto>> CreateCategory([FromBody] SlnServiceCategoryCreateRequest req)
     {
         var customerId = GetCustomerId();
@@ -41,6 +42,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPut("categories/{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> UpdateCategory(int id, [FromBody] SlnServiceCategoryUpdateRequest req)
     {
         var customerId = GetCustomerId();
@@ -51,6 +53,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpDelete("categories/{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> DeleteCategory(int id)
     {
         var customerId = GetCustomerId();
@@ -72,6 +75,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPost]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult<SlnServiceDto>> CreateService([FromBody] SlnServiceCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -94,6 +98,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPost("resources")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult<SlnResourceDto>> CreateResource([FromBody] SlnResourceCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -106,6 +111,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPut("resources/{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> UpdateResource(int id, [FromBody] SlnResourceCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -119,6 +125,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpDelete("resources/{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> DeleteResource(int id)
     {
         var customerId = GetCustomerId();
@@ -141,6 +148,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPost("combos")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult<SlnServiceComboDto>> CreateCombo([FromBody] SlnServiceComboCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -158,6 +166,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPut("combos/{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> UpdateCombo(int id, [FromBody] SlnServiceComboCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -175,6 +184,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpDelete("combos/{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> DeleteCombo(int id)
     {
         var customerId = GetCustomerId();
@@ -185,6 +195,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> UpdateService(int id, [FromBody] SlnServiceUpdateRequest req)
     {
         var customerId = GetCustomerId();
@@ -219,6 +230,7 @@ public class SlnServiceController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequireSalonPage("Services")]
     public async Task<ActionResult> DeleteService(int id)
     {
         var customerId = GetCustomerId();

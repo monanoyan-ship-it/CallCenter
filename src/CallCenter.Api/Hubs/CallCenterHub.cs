@@ -221,6 +221,8 @@ public class CallCenterHub : Hub
     /// <summary>Belirli bir agent'a gelen arama bildirimi gonderir.</summary>
     public async Task NotifySpecificAgent(int agentId, CallNotification notification)
     {
+        if (!await CanAccessTargetUserAsync(agentId)) return;
+
         await Clients.User(agentId.ToString()).SendAsync("IncomingCall", notification);
     }
 
@@ -242,8 +244,28 @@ public class CallCenterHub : Hub
             return new();
 
         // Agent ve CustomerUser rollerini dahil et (portal'dan olusturulan operatorler CustomerUser rolunde)
-        var users = await _db.Users
+        var usersQuery = _db.Users
             .Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser))
+            .AsQueryable();
+
+        if (user.RoleId != UserRoles.Ids.Admin)
+        {
+            var scope = await GetCurrentUserScopeAsync(userId.Value);
+            if (scope == null) return new();
+
+            var scopedUserIds = _db.CustomerPersonnel
+                .Where(cp => cp.IsActive && cp.CustomerId == scope.Value.CustomerId);
+
+            if (scope.Value.BranchId.HasValue)
+            {
+                var branchId = scope.Value.BranchId.Value;
+                scopedUserIds = scopedUserIds.Where(cp => cp.BranchId == branchId);
+            }
+
+            usersQuery = usersQuery.Where(u => scopedUserIds.Select(cp => cp.UserId).Contains(u.Id));
+        }
+
+        var users = await usersQuery
             .Select(u => new { u.Id, u.FullName, u.Extension, u.RoleId, u.StatusId })
             .ToListAsync();
 
@@ -324,6 +346,8 @@ public class CallCenterHub : Hub
     /// </summary>
     public async Task<object?> GetUserPresence(int targetUserId)
     {
+        if (!await CanAccessTargetUserAsync(targetUserId)) return null;
+
         var user = await _db.Users.FindAsync(targetUserId);
         if (user == null) return null;
 
@@ -351,6 +375,7 @@ public class CallCenterHub : Hub
     {
         var userId = GetUserId();
         if (userId == null) return;
+        if (!await CanAccessTargetUserAsync(receiverUserId)) return;
 
         var sender = await _db.Users.FindAsync(userId.Value);
         if (sender == null) return;
@@ -377,6 +402,7 @@ public class CallCenterHub : Hub
     {
         var userId = GetUserId();
         if (userId == null) return;
+        if (!await CanAccessTargetUserAsync(senderUserId)) return;
 
         var notification = new MessageReadNotification
         {
@@ -393,6 +419,7 @@ public class CallCenterHub : Hub
     {
         var userId = GetUserId();
         if (userId == null) return;
+        if (!await CanAccessTargetUserAsync(receiverUserId)) return;
 
         await Clients.User(receiverUserId.ToString()).SendAsync("UserTyping", new
         {
@@ -432,16 +459,26 @@ public class CallCenterHub : Hub
     /// <summary>
     /// Sayfa acildiginda mevcut gateway durumlarini doner (Supervisor/Admin only).
     /// </summary>
-    public List<GatewayHealthUpdate> GetAllGatewayStatuses()
+    public async Task<List<GatewayHealthUpdate>> GetAllGatewayStatuses()
     {
         var userId = GetUserId();
         if (userId == null) return new();
 
-        var roleClaim = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
-        if (roleClaim != "Admin" && roleClaim != "Supervisor")
+        var user = await _db.Users.FindAsync(userId.Value);
+        if (user == null || (user.RoleId != UserRoles.Ids.Admin && user.RoleId != UserRoles.Ids.Supervisor))
             return new();
 
-        return _gatewayStates.Values.ToList();
+        if (user.RoleId == UserRoles.Ids.Admin)
+            return _gatewayStates.Values.ToList();
+
+        var result = new List<GatewayHealthUpdate>();
+        foreach (var state in _gatewayStates.Values)
+        {
+            if (await CanAccessTargetUserAsync(state.AgentId))
+                result.Add(state);
+        }
+
+        return result;
     }
 
 
@@ -493,6 +530,68 @@ public class CallCenterHub : Hub
         return !string.IsNullOrEmpty(customerIdClaim) ? $"customer_{customerIdClaim}" : null;
     }
 
+    private static int? GetCustomerIdFromGroupName(string? groupName)
+    {
+        if (string.IsNullOrWhiteSpace(groupName) || !groupName.StartsWith("customer_", StringComparison.Ordinal))
+            return null;
+
+        return int.TryParse(groupName["customer_".Length..], out var customerId) && customerId > 0
+            ? customerId
+            : null;
+    }
+
+    private int? GetClaimInt(string claimType)
+    {
+        var value = Context.User?.FindFirst(claimType)?.Value;
+        return int.TryParse(value, out var id) && id > 0 ? id : null;
+    }
+
+    private async Task<UserScope?> GetCurrentUserScopeAsync(int userId)
+    {
+        var customerId = GetClaimInt("CustomerId");
+        if (customerId.HasValue)
+            return new UserScope(customerId.Value, GetClaimInt("BranchId"));
+
+        return await GetUserScopeFromDbAsync(userId);
+    }
+
+    private async Task<UserScope?> GetUserScopeFromDbAsync(int userId)
+    {
+        var scope = await _db.CustomerPersonnel
+            .AsNoTracking()
+            .Where(cp => cp.IsActive && cp.UserId == userId)
+            .Select(cp => new { cp.CustomerId, cp.BranchId })
+            .FirstOrDefaultAsync();
+
+        return scope == null ? null : new UserScope(scope.CustomerId, scope.BranchId);
+    }
+
+    private async Task<bool> CanAccessTargetUserAsync(int targetUserId)
+    {
+        var currentUserId = GetUserId();
+        if (currentUserId == null) return false;
+        if (currentUserId.Value == targetUserId) return true;
+
+        var currentUser = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == currentUserId.Value)
+            .Select(u => new { u.RoleId })
+            .FirstOrDefaultAsync();
+
+        if (currentUser == null) return false;
+        if (currentUser.RoleId == UserRoles.Ids.Admin) return true;
+
+        var currentScope = await GetCurrentUserScopeAsync(currentUserId.Value);
+        if (currentScope == null) return false;
+
+        var targetScope = await GetUserScopeFromDbAsync(targetUserId);
+        if (targetScope == null) return false;
+        if (currentScope.Value.CustomerId != targetScope.Value.CustomerId) return false;
+
+        return !currentScope.Value.BranchId.HasValue ||
+               targetScope.Value.BranchId == currentScope.Value.BranchId;
+    }
+
     /// <summary>
     /// Agent durum degisikliklerinde Dashboard KPI guncellemesini broadcast eder.
     /// </summary>
@@ -501,21 +600,37 @@ public class CallCenterHub : Hub
         try
         {
             var activeStatusIds = CallStatuses.ActiveStatuses.Select(s => s.Id).ToList();
+            var customerId = GetCustomerIdFromGroupName(groupName);
 
-            var activeCallCount = await _db.CallRecords
+            var callQuery = _db.CallRecords.AsQueryable();
+            var userQuery = _db.Users
+                .Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser));
+
+            if (customerId.HasValue)
+            {
+                var scopedCustomerId = customerId.Value;
+                var scopedUserIds = _db.CustomerPersonnel
+                    .Where(cp => cp.IsActive && cp.CustomerId == scopedCustomerId)
+                    .Select(cp => cp.UserId);
+
+                callQuery = callQuery.Where(c => c.CustomerId == scopedCustomerId);
+                userQuery = userQuery.Where(u => scopedUserIds.Contains(u.Id));
+            }
+
+            var activeCallCount = await callQuery
                 .Where(c => activeStatusIds.Contains(c.StatusId))
                 .CountAsync();
 
-            var queueWaitingCount = await _db.CallRecords
+            var queueWaitingCount = await callQuery
                 .Where(c => c.StatusId == CallStatuses.Ids.Queued || c.StatusId == CallStatuses.Ids.Ringing)
                 .CountAsync();
 
-            var availableAgentCount = await _db.Users
-                .Where(u => u.IsActive && (u.RoleId == UserRoles.Ids.Agent || u.RoleId == UserRoles.Ids.CustomerUser) && u.StatusId == AgentStatuses.Ids.Available)
+            var availableAgentCount = await userQuery
+                .Where(u => u.StatusId == AgentStatuses.Ids.Available)
                 .CountAsync();
 
             var today = DateTime.UtcNow.Date;
-            var todayCalls = await _db.CallRecords
+            var todayCalls = await callQuery
                 .Where(c => c.StartedAt >= today)
                 .Select(c => c.StatusId)
                 .ToListAsync();
@@ -543,4 +658,6 @@ public class CallCenterHub : Hub
         var claim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return claim != null ? int.Parse(claim) : null;
     }
+
+    private readonly record struct UserScope(int CustomerId, int? BranchId);
 }

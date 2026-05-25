@@ -1,6 +1,7 @@
 using CallCenter.Landing.Conventions;
 using CallCenter.Landing.Data;
 using CallCenter.Shared.Localization;
+using CallCenter.Shared.Security;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +32,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseCorpLynkSecurityHeaders();
 app.UseStaticFiles();
 app.UseAppLocalization();
 app.UseRouting();

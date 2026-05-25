@@ -62,6 +62,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult<SlnProductDto>> CreateProduct([FromBody] SlnProductCreateDto dto, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
@@ -78,6 +79,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> UpdateProduct(int id, [FromBody] SlnProductUpdateRequest req, [FromQuery] int? branchId, [FromQuery] bool allBranches = false)
     {
         var customerId = GetCustomerId();
@@ -107,6 +109,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> DeleteProduct(int id, [FromQuery] int? branchId)
     {
         var customerId = GetCustomerId();
@@ -129,6 +132,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost("categories")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> CreateCategory([FromBody] SlnNameSortOrderRequest req)
     {
         var customerId = GetCustomerId();
@@ -139,6 +143,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPut("categories/{id}")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> UpdateCategory(int id, [FromBody] SlnNameSortOrderRequest req)
     {
         var customerId = GetCustomerId();
@@ -149,6 +154,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpDelete("categories/{id}")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> DeleteCategory(int id)
     {
         var customerId = GetCustomerId();
@@ -171,6 +177,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPost("brands")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> CreateBrand([FromBody] SlnNameRequest req)
     {
         var customerId = GetCustomerId();
@@ -182,6 +189,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpPut("brands/{id}")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> UpdateBrand(int id, [FromBody] SlnNameRequest req)
     {
         var customerId = GetCustomerId();
@@ -193,6 +201,7 @@ public class SlnProductController : ControllerBase
     }
 
     [HttpDelete("brands/{id}")]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> DeleteBrand(int id)
     {
         var customerId = GetCustomerId();
@@ -236,6 +245,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPost("supplier-orders")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Suppliers")]
     public async Task<ActionResult<SlnSupplierOrderDto>> CreateSupplierOrder([FromBody] SlnSupplierOrderCreateDto dto)
     {
         var userId = GetUserId();
@@ -248,6 +258,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPut("supplier-orders/{id}/status")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Suppliers")]
     public async Task<ActionResult> UpdateSupplierOrderStatus(int id, [FromBody] SlnSupplierOrderStatusUpdateDto dto)
     {
         var customerId = GetCustomerId();
@@ -259,6 +270,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPost("suppliers")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Suppliers")]
     public async Task<ActionResult<SlnSupplierDto>> CreateSupplier([FromBody] SlnSupplierCreateDto dto)
     {
         var customerId = GetCustomerId();
@@ -270,6 +282,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPut("suppliers/{id}")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Suppliers")]
     public async Task<ActionResult> UpdateSupplier(int id, [FromBody] SlnSupplierUpdateRequest req)
     {
         var customerId = GetCustomerId();
@@ -292,6 +305,7 @@ public class SlnProductController : ControllerBase
 
     [HttpDelete("suppliers/{id}")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Suppliers")]
     public async Task<ActionResult> DeleteSupplier(int id)
     {
         var customerId = GetCustomerId();
@@ -305,6 +319,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPost("{id}/stock-movements")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> AddStockMovement(int id, [FromBody] SlnStockMovementRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
@@ -322,6 +337,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPost("{id}/stock-transfer")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> TransferStock(int id, [FromBody] SlnStockTransferRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();
@@ -339,6 +355,7 @@ public class SlnProductController : ControllerBase
 
     [HttpPost("{id}/stock-count")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnSuppliers, SalonPortalModules.Ids.SlnExpenses)]
+    [RequireSalonPage("Products")]
     public async Task<ActionResult> AdjustStockCount(int id, [FromBody] SlnStockCountRequest req, [FromQuery] int? branchId)
     {
         var userId = GetUserId();

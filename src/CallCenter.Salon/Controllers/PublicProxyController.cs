@@ -1,3 +1,4 @@
+using CallCenter.Shared.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Salon.Controllers;
@@ -10,20 +11,22 @@ public class PublicProxyController : Controller
     [HttpGet("proxy/salon/{**path}")]
     public async Task<IActionResult> Get(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.SalonPublic, out var safePath)) return ForbidProxyPath();
         var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
         var client = factory.CreateClient("SalonApi");
-        var response = await client.GetAsync($"api/salon/{path}{Request.QueryString}");
+        var response = await client.GetAsync($"api/salon/{safePath}{Request.QueryString}");
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpPost("proxy/salon/{**path}")]
     public async Task<IActionResult> Post(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.SalonPublic, out var safePath)) return ForbidProxyPath();
         var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
         var client = factory.CreateClient("SalonApi");
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PostAsync($"api/salon/{path}",
+        var response = await client.PostAsync($"api/salon/{safePath}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
@@ -33,18 +36,20 @@ public class PublicProxyController : Controller
     [HttpGet("public-proxy/{**path}")]
     public async Task<IActionResult> PlatformGet(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.PlatformPublic, out var safePath)) return ForbidProxyPath();
         var client = CreatePlatformClient();
-        var response = await client.GetAsync($"api/{path}{Request.QueryString}");
+        var response = await client.GetAsync($"api/{safePath}{Request.QueryString}");
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
     [HttpPost("public-proxy/{**path}")]
     public async Task<IActionResult> PlatformPost(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.PlatformPublic, out var safePath)) return ForbidProxyPath();
         var client = CreatePlatformClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PostAsync($"api/{path}",
+        var response = await client.PostAsync($"api/{safePath}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
@@ -52,10 +57,11 @@ public class PublicProxyController : Controller
     [HttpPut("public-proxy/{**path}")]
     public async Task<IActionResult> PlatformPut(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.PlatformPublic, out var safePath)) return ForbidProxyPath();
         var client = CreatePlatformClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PutAsync($"api/{path}",
+        var response = await client.PutAsync($"api/{safePath}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
@@ -63,8 +69,9 @@ public class PublicProxyController : Controller
     [HttpDelete("public-proxy/{**path}")]
     public async Task<IActionResult> PlatformDelete(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.PlatformPublic, out var safePath)) return ForbidProxyPath();
         var client = CreatePlatformClient();
-        var response = await client.DeleteAsync($"api/{path}");
+        var response = await client.DeleteAsync($"api/{safePath}");
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
@@ -99,5 +106,8 @@ public class PublicProxyController : Controller
             client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authHeader);
         return client;
     }
+
+    private static IActionResult ForbidProxyPath()
+        => new ObjectResult(new { message = "Proxy path not allowed." }) { StatusCode = StatusCodes.Status403Forbidden };
 
 }

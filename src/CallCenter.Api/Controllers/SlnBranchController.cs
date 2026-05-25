@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
+using CallCenter.Api.Security;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
@@ -105,29 +106,17 @@ public class SlnBranchController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
-        if (file.Length > 5_242_880) return BadRequest("Dosya 5 MB'dan buyuk olamaz.");
-
-        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
-        if (!allowedTypes.Contains(file.ContentType))
-            return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
-
         var normalizedType = NormalizeBranchImageType(type);
         if (normalizedType == null) return BadRequest("Gecersiz gorsel tipi.");
 
-        var ext = file.ContentType switch
-        {
-            "image/jpeg" => ".jpg",
-            "image/png" => ".png",
-            "image/webp" => ".webp",
-            _ => ".jpg"
-        };
+        var validation = await FileUploadValidation.ValidateImageAsync(file);
+        if (!validation.Success) return BadRequest(validation.Error);
 
-        var fileName = $"{normalizedType}-{Guid.NewGuid():N}{ext}";
+        var fileName = $"{normalizedType}-{Guid.NewGuid():N}{validation.Extension}";
         var path = $"salons/{customerId}/branches/{fileName}";
 
         using var stream = file.OpenReadStream();
-        var (url, error) = await _gcs.UploadAsync(stream, path, file.ContentType);
+        var (url, error) = await _gcs.UploadAsync(stream, path, validation.ContentType);
 
         if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
         return Ok(new { url, path });

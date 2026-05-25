@@ -3,6 +3,7 @@ using System.Text;
 using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Helpers;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Security;
 using CallCenter.Api.Hubs;
 using CallCenter.Api.Middleware;
 using CallCenter.Data;
@@ -224,6 +225,7 @@ forwardedOptions.KnownIPNetworks.Clear();
 forwardedOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedOptions);
 app.UseGlobalExceptionHandling();
+app.UseCorpLynkSecurityHeaders();
 
 // CORS, redirect/auth'dan once (OPTIONS ve tarayıcı istekleri için tutarlı sıra)
 app.Use(async (context, next) =>

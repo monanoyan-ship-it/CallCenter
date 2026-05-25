@@ -36,21 +36,24 @@ public class CallForwardingController : AuditableControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<CallForwardingRuleDto>> GetById(int id)
     {
-        var result = await _callForwardingFactory.GetByIdAsync(id);
+        var result = await _callForwardingFactory.GetByIdAsync(id, CurrentCustomerId);
         if (result == null) return NotFound(new { message = "Kural bulunamadi." });
+        if (!IsSystemAdminOrSupervisor && result.UserId != CurrentUserId) return Forbid();
         return Ok(result);
     }
 
     [HttpPost]
     public async Task<ActionResult> Create(CallForwardingRuleCreateDto dto)
     {
-        if (!User.IsInRole("Admin") && !User.IsInRole("Supervisor"))
+        if (!IsSystemAdminOrSupervisor)
         {
             if (dto.UserId != CurrentUserId)
                 return Forbid();
+            if (CurrentCustomerId.HasValue)
+                dto.CustomerId = CurrentCustomerId.Value;
         }
 
-        var (success, id, error) = await _callForwardingFactory.CreateAsync(dto);
+        var (success, id, error) = await _callForwardingFactory.CreateAsync(dto, CurrentCustomerId);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Create", "CallForwardingRule", id.ToString(),
@@ -63,14 +66,14 @@ public class CallForwardingController : AuditableControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, CallForwardingRuleUpdateDto dto)
     {
-        if (!User.IsInRole("Admin") && !User.IsInRole("Supervisor"))
+        if (!IsSystemAdminOrSupervisor)
         {
-            var existing = await _callForwardingFactory.GetByIdAsync(id);
+            var existing = await _callForwardingFactory.GetByIdAsync(id, CurrentCustomerId);
             if (existing == null) return NotFound(new { message = "Kural bulunamadi." });
             if (existing.UserId != CurrentUserId) return Forbid();
         }
 
-        var (success, error) = await _callForwardingFactory.UpdateAsync(id, dto);
+        var (success, error) = await _callForwardingFactory.UpdateAsync(id, dto, CurrentCustomerId);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Update", "CallForwardingRule", id.ToString(),
@@ -82,14 +85,14 @@ public class CallForwardingController : AuditableControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        if (!User.IsInRole("Admin") && !User.IsInRole("Supervisor"))
+        if (!IsSystemAdminOrSupervisor)
         {
-            var existing = await _callForwardingFactory.GetByIdAsync(id);
+            var existing = await _callForwardingFactory.GetByIdAsync(id, CurrentCustomerId);
             if (existing == null) return NotFound(new { message = "Kural bulunamadi." });
             if (existing.UserId != CurrentUserId) return Forbid();
         }
 
-        var (success, error) = await _callForwardingFactory.DeleteAsync(id);
+        var (success, error) = await _callForwardingFactory.DeleteAsync(id, CurrentCustomerId);
         if (!success) return BadRequest(new { message = error });
 
         await AuditCrudAsync("Delete", "CallForwardingRule", id.ToString(),
@@ -97,4 +100,6 @@ public class CallForwardingController : AuditableControllerBase
 
         return NoContent();
     }
+
+    private bool IsSystemAdminOrSupervisor => User.IsInRole("Admin") || User.IsInRole("Supervisor");
 }

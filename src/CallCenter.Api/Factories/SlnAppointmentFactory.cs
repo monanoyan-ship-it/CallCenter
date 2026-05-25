@@ -78,16 +78,15 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<List<SlnAppointmentDto>> GetAppointmentsAsync(int customerId, DateTime? from, DateTime? to, int? personnelId = null, int? statusId = null, int? branchId = null, int? slnClientId = null)
     {
-        var cleanupBranchId = slnClientId.HasValue && slnClientId.Value > 0 ? null : branchId;
-        await ExpireStaleAwaitingPaymentAppointmentsAsync(customerId, cleanupBranchId, slnClientId);
+        await ExpireStaleAwaitingPaymentAppointmentsAsync(customerId, branchId, slnClientId);
 
         var query = _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId);
 
-        // Musteri detay sayfasi: o musterinin tum randevulari (sube filtresi olmadan — musteri farkli subede de randevu almis olabilir)
         if (slnClientId.HasValue && slnClientId.Value > 0)
             query = query.Where(a => a.SlnClientId == slnClientId.Value);
-        else if (branchId.HasValue)
+
+        if (branchId.HasValue)
             query = query.Where(a => a.BranchId == branchId.Value);
 
         if (from.HasValue)

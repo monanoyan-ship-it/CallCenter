@@ -88,6 +88,43 @@ public class SlnAppointmentFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetAppointmentsAsync_WithClientFilter_StillRespectsBranchScope()
+    {
+        SeedRecipeAppointment();
+        _db.SlnBranches.Add(new SlnBranch
+        {
+            Id = 4,
+            CustomerId = 1,
+            Name = "Diger Sube",
+            Slug = "test-salon-diger-sube",
+            IsActive = true
+        });
+        _db.SlnAppointments.Add(new SlnAppointment
+        {
+            Id = 40,
+            CustomerId = 1,
+            BranchId = 4,
+            SlnClientId = 10,
+            PersonnelId = 11,
+            StartTime = DateTime.UtcNow.AddHours(3),
+            EndTime = DateTime.UtcNow.AddHours(4),
+            StatusId = 2,
+            Services =
+            [
+                new SlnAppointmentService { Id = 41, SlnServiceId = 7, SortOrder = 1 }
+            ]
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var appointments = await factory.GetAppointmentsAsync(1, null, null, branchId: 3, slnClientId: 10);
+
+        appointments.Select(a => a.Id).Should().Equal(30);
+    }
+
+    [Fact]
     public async Task GetAvailableSlotsAsync_ReturnsEmpty_WhenPersonnelBelongsToAnotherCustomer()
     {
         SeedSlotScopeData();

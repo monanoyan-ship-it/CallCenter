@@ -1,5 +1,6 @@
 using CallCenter.Api.Services.Payment;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Security;
 using CallCenter.Data;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
@@ -288,10 +289,6 @@ public class PaymentService
         if (string.IsNullOrWhiteSpace(base64))
             return (null, null, null, null);
 
-        var ext = GetAllowedReceiptExtension(fileName, contentType);
-        if (ext == null)
-            return (null, null, null, "Dekont dosyasi PDF, JPG, PNG veya WEBP olmalidir.");
-
         var payload = base64.Trim();
         var comma = payload.IndexOf(',');
         if (payload.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma >= 0)
@@ -307,21 +304,20 @@ public class PaymentService
             return (null, null, null, "Dekont dosyasi okunamadi.");
         }
 
-        if (bytes.Length == 0)
-            return (null, null, null, "Dekont dosyasi bos.");
-        if (bytes.Length > 5 * 1024 * 1024)
-            return (null, null, null, "Dekont dosyasi en fazla 5 MB olabilir.");
+        var validation = FileUploadValidation.ValidateReceiptBytes(bytes, fileName, contentType);
+        if (!validation.Success)
+            return (null, null, null, validation.Error);
 
-        var originalName = SanitizeFileName(fileName, $"havale-dekont{ext}");
+        var originalName = SanitizeFileName(fileName, $"havale-dekont{validation.Extension}");
         var root = GetPaymentReceiptRoot();
         var customerFolder = Path.Combine(root, customerId.ToString());
         Directory.CreateDirectory(customerFolder);
 
-        var storedName = transactionUid.ToString("N") + ext;
+        var storedName = transactionUid.ToString("N") + validation.Extension;
         var fullPath = Path.Combine(customerFolder, storedName);
         await File.WriteAllBytesAsync(fullPath, bytes);
 
-        return ($"{customerId}/{storedName}", originalName, GuessReceiptContentType(contentType, ext), null);
+        return ($"{customerId}/{storedName}", originalName, validation.ContentType, null);
     }
 
     private static (string? RelativePath, string? OriginalFileName, string? ContentType) GetHavaleReceiptInfo(PaymentTransaction tx)
@@ -1234,6 +1230,20 @@ public class PaymentService
         return await _db.PaymentTransactions.FirstOrDefaultAsync(t => t.ProviderTransactionId == token);
     }
 
+    public async Task<string?> GetActiveIyzicoSecretKeyAsync()
+    {
+        var config = await _db.PlatformPaymentConfigs
+            .Where(c => c.IsActive && c.ProviderTypeId == PaymentProviders.Ids.Iyzico)
+            .OrderByDescending(c => c.Id)
+            .FirstOrDefaultAsync();
+
+        if (config == null)
+            return null;
+
+        var credentials = _gatewayFactory.GetIyzicoCredentials(config);
+        return credentials.SecretKey;
+    }
+
     /// <summary>Odeme gecmisi</summary>
     public async Task<List<PaymentTransaction>> GetTransactionsAsync(
         int? customerId = null,
@@ -1625,6 +1635,17 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
     public async Task<PaymentResult> CompleteCheckoutAsync(string token)
     {
+        var tx = await _db.PaymentTransactions
+            .FirstOrDefaultAsync(t => t.ProviderTransactionId == token);
+
+        if (tx == null) return PaymentResult.Fail("Bekleyen islem bulunamadi.");
+
+        if (tx.StatusId == PaymentStatuses.Ids.Basarili)
+            return PaymentResult.Ok(tx.Uid, tx.ProviderTransactionId);
+
+        if (tx.StatusId != PaymentStatuses.Ids.Beklemede)
+            return PaymentResult.Fail(tx.ErrorMessage ?? "Odeme islemi beklemede degil.");
+
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return PaymentResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
 
@@ -1633,11 +1654,6 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             return PaymentResult.Fail("Checkout dogrulama sadece Iyzico destekler.");
 
         var verifyResult = await iyzicoGw.VerifyCheckoutFormAsync(token);
-
-        var tx = await _db.PaymentTransactions
-            .FirstOrDefaultAsync(t => t.ProviderTransactionId == token && t.StatusId == PaymentStatuses.Ids.Beklemede);
-
-        if (tx == null) return PaymentResult.Fail("Bekleyen islem bulunamadi.");
 
         if (verifyResult.Success)
         {
@@ -2051,6 +2067,22 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         };
     }
 
+    private static string? FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private static string ResolveIyzicoWebhookEventId(
+        Controllers.PaymentController.IyzicoWebhookPayload payload,
+        string eventType,
+        DateTime eventTime)
+    {
+        var explicitId = FirstNonEmpty(payload.IyziReferenceCode, payload.PaymentTransactionId);
+        if (!string.IsNullOrWhiteSpace(explicitId))
+            return explicitId;
+
+        var paymentRef = FirstNonEmpty(payload.IyziPaymentId, payload.PaymentId, payload.Token, payload.PaymentConversationId) ?? "-";
+        return $"{eventType}|{paymentRef}|{payload.PaymentConversationId ?? "-"}|{payload.Status ?? "-"}|{eventTime:O}";
+    }
+
     /// <summary>
     /// PS.9 — iyzico webhook event handler. Sub-merchant settlement, refund, balance-funded
     /// gibi server-to-server async event-leri yakalar ve ilgili PaymentTransaction.Notes
@@ -2064,13 +2096,20 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         var eventTime = payload.IyziEventTime.HasValue
             ? DateTimeOffset.FromUnixTimeMilliseconds(payload.IyziEventTime.Value).UtcDateTime
             : DateTime.UtcNow;
+        var iyzicoPaymentId = FirstNonEmpty(payload.IyziPaymentId, payload.PaymentId);
+        var eventId = ResolveIyzicoWebhookEventId(payload, eventType, eventTime);
 
-        // ProviderPaymentId veya ConversationId ile transaction'i bul
+        // ProviderPaymentId, checkout token veya ConversationId ile transaction'i bul.
         PaymentTransaction? tx = null;
-        if (!string.IsNullOrEmpty(payload.IyziPaymentId))
+        if (!string.IsNullOrEmpty(iyzicoPaymentId))
         {
             tx = await _db.PaymentTransactions
-                .FirstOrDefaultAsync(t => t.ProviderPaymentId == payload.IyziPaymentId);
+                .FirstOrDefaultAsync(t => t.ProviderPaymentId == iyzicoPaymentId);
+        }
+        if (tx == null && !string.IsNullOrEmpty(payload.Token))
+        {
+            tx = await _db.PaymentTransactions
+                .FirstOrDefaultAsync(t => t.ProviderTransactionId == payload.Token);
         }
         if (tx == null && !string.IsNullOrEmpty(payload.PaymentConversationId))
         {
@@ -2081,9 +2120,17 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         if (tx == null)
         {
             _logger.LogWarning("Iyzico webhook: matching transaction yok. Event={Event}, PaymentId={PaymentId}, Conv={Conv}",
-                eventType, payload.IyziPaymentId, payload.PaymentConversationId);
+                eventType, iyzicoPaymentId, payload.PaymentConversationId);
             return (false, "Eslesen transaction yok.");
         }
+
+        if (ReadDecodedNoteValues(tx.Notes, "IyzicoWebhookId:").Contains(eventId, StringComparer.Ordinal))
+        {
+            _logger.LogInformation("Iyzico webhook duplicate ignored: TxId={TxId}, EventId={EventId}", tx.Id, eventId);
+            return (true, $"Duplicate event ignored: {eventId}");
+        }
+
+        tx.Notes = AddEncodedNoteValue(tx.Notes, "IyzicoWebhookId:", eventId);
 
         // Event detayini Notes log alanina ekle
         var detail = $"Event={eventType}, EventTime={eventTime:O}, Status={payload.Status ?? "-"}, " +

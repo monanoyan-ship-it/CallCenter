@@ -23,6 +23,11 @@ public class PlatformAuthFactory : IPlatformAuthFactory
     private const int VerificationResendCooldownMinutes = 5;
     private const int PasswordResetTokenHours = 1;
     private const int DailyEmailLimit = 10;
+    private const int LoginMaxFailedAttempts = 5;
+    private const int LoginWindowMinutes = 15;
+    private const int LoginLockoutMinutes = 15;
+    private const int RegisterMaxAttempts = 3;
+    private const int RegisterWindowMinutes = 60;
 
     public PlatformAuthFactory(
         IPlatformUserEntityService userEs,
@@ -48,6 +53,9 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         var normalizedPhone = CallCenter.Shared.Helpers.PhoneHelper.Normalize(dto.Phone) ?? "";
         if (string.IsNullOrEmpty(normalizedPhone))
             return (null, "Geçerli bir telefon numarası giriniz.");
+
+        if (!TryConsumeFixedWindow($"platform_register:{normalizedPhone}", RegisterMaxAttempts, TimeSpan.FromMinutes(RegisterWindowMinutes)))
+            return (null, "Cok fazla kayit denemesi yapildi. Lutfen daha sonra tekrar deneyin.");
 
         var exists = await _userEs.GetAllQueryable().AnyAsync(u => u.Phone == normalizedPhone);
         if (exists)
@@ -100,12 +108,24 @@ public class PlatformAuthFactory : IPlatformAuthFactory
     public async Task<(PlatformAuthResponse? Result, string? Error)> LoginAsync(PlatformLoginDto dto)
     {
         var normalizedPhone = CallCenter.Shared.Helpers.PhoneHelper.Normalize(dto.Phone) ?? "";
+        if (string.IsNullOrEmpty(normalizedPhone))
+            return (null, "Telefon veya ÅŸifre hatalÄ±.");
+
+        if (TryGetLoginLockout(normalizedPhone, out var lockoutError))
+            return (null, lockoutError);
+
         var user = await _userEs.GetAllQueryable()
             .Include(u => u.Salons)
             .FirstOrDefaultAsync(u => u.Phone == normalizedPhone);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        if (user == null
+            || string.IsNullOrEmpty(user.PasswordHash)
+            || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        {
+            RecordFailedLogin(normalizedPhone);
             return (null, "Telefon veya şifre hatalı.");
+
+        }
 
         if (!user.IsActive)
             return (null, "Hesabınız devre dışı bırakılmış.");
@@ -116,6 +136,7 @@ public class PlatformAuthFactory : IPlatformAuthFactory
             return (null, "Email adresinizi doğrulayın. Mail kutunuza gönderilen bağlantı üzerinden hesabınızı aktif edin.");
 
         user.LastLoginAt = DateTime.UtcNow;
+        ClearLoginFailures(normalizedPhone);
         await _uow.SaveChangesAsync();
 
         var token = _tokenService.GeneratePlatformToken(user);
@@ -318,6 +339,69 @@ public class PlatformAuthFactory : IPlatformAuthFactory
         user.PasswordResetSentAt = null;
         await _uow.SaveChangesAsync();
         return (true, null);
+    }
+
+    private bool TryGetLoginLockout(string normalizedPhone, out string error)
+    {
+        error = string.Empty;
+        var state = _cache.Get<LoginAttemptState>(GetLoginAttemptKey(normalizedPhone));
+        if (state?.LockedUntilUtc == null || state.LockedUntilUtc <= DateTime.UtcNow)
+            return false;
+
+        var remaining = state.LockedUntilUtc.Value - DateTime.UtcNow;
+        var minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+        error = $"Cok fazla basarisiz giris denemesi yapildi. Lutfen {minutes} dakika sonra tekrar deneyin.";
+        return true;
+    }
+
+    private void RecordFailedLogin(string normalizedPhone)
+    {
+        var key = GetLoginAttemptKey(normalizedPhone);
+        var now = DateTime.UtcNow;
+        var state = _cache.Get<LoginAttemptState>(key);
+
+        if (state == null || now - state.FirstFailedAtUtc > TimeSpan.FromMinutes(LoginWindowMinutes))
+            state = new LoginAttemptState { FirstFailedAtUtc = now, FailedCount = 0 };
+
+        state.FailedCount++;
+        if (state.FailedCount >= LoginMaxFailedAttempts)
+            state.LockedUntilUtc = now.AddMinutes(LoginLockoutMinutes);
+
+        _cache.Set(key, state, TimeSpan.FromMinutes(LoginWindowMinutes + LoginLockoutMinutes));
+    }
+
+    private void ClearLoginFailures(string normalizedPhone)
+        => _cache.Remove(GetLoginAttemptKey(normalizedPhone));
+
+    private static string GetLoginAttemptKey(string normalizedPhone)
+        => $"platform_login_attempts:{normalizedPhone}";
+
+    private bool TryConsumeFixedWindow(string key, int limit, TimeSpan window)
+    {
+        var state = _cache.Get<FixedWindowCounter>(key);
+        var now = DateTime.UtcNow;
+        if (state == null || state.ExpiresAtUtc <= now)
+            state = new FixedWindowCounter { Count = 0, ExpiresAtUtc = now.Add(window) };
+
+        if (state.Count >= limit)
+            return false;
+
+        state.Count++;
+        _cache.Set(key, state, state.ExpiresAtUtc - now);
+        return true;
+    }
+
+    private sealed class LoginAttemptState
+    {
+        public int FailedCount { get; set; }
+        public DateTime FirstFailedAtUtc { get; set; }
+        public DateTime? LockedUntilUtc { get; set; }
+    }
+
+    private sealed class FixedWindowCounter
+    {
+        public int Count { get; set; }
+        public DateTime ExpiresAtUtc { get; set; }
     }
 
     private bool TryIncrementDailyEmailCount(string email, string scope)

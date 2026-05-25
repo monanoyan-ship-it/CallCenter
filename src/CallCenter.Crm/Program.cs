@@ -1,4 +1,5 @@
 using CallCenter.Shared.Localization;
+using CallCenter.Shared.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +35,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCorpLynkSecurityHeaders();
 app.UseStaticFiles();
 app.UseAppLocalization();
 app.UseRouting();

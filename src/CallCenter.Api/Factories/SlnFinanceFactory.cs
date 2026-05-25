@@ -131,15 +131,21 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return invoices.Select(MapInvoiceToDto).ToList();
     }
 
-    public async Task<SlnInvoiceDto?> GetInvoiceAsync(int invoiceId, int customerId)
+    public async Task<SlnInvoiceDto?> GetInvoiceAsync(int invoiceId, int customerId, int? branchId = null)
     {
-        var invoice = await _invoices.GetAllQueryable()
+        var query = _invoices.GetAllQueryable()
+            .Where(i => i.Id == invoiceId && i.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.BranchId == branchId.Value);
+
+        var invoice = await query
             .Include(i => i.SlnClient)
             .Include(i => i.Personnel).ThenInclude(p => p!.User)
             .Include(i => i.Items).ThenInclude(it => it.Service)
             .Include(i => i.Items).ThenInclude(it => it.Product)
             .Include(i => i.Items).ThenInclude(it => it.Personnel).ThenInclude(p => p!.User)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.CustomerId == customerId);
+            .FirstOrDefaultAsync();
 
         return invoice != null ? MapInvoiceToDto(invoice) : null;
     }
@@ -544,7 +550,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             var (statusSuccess, statusError, _) = await _appointmentFactory.UpdateStatusAsync(
                 dto.SlnAppointmentId.Value,
                 3,
-                customerId);
+                customerId,
+                branchId);
             if (!statusSuccess)
                 return (null, statusError ?? "Randevu tamamlanamadi");
         }
@@ -565,11 +572,17 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         return (MapInvoiceToDto(created), null);
     }
 
-    public async Task<(bool Success, string? Error)> CancelInvoiceAsync(int invoiceId, int customerId)
+    public async Task<(bool Success, string? Error)> CancelInvoiceAsync(int invoiceId, int customerId, int? branchId = null)
     {
-        var invoice = await _invoices.GetAllQueryable()
+        var query = _invoices.GetAllQueryable()
+            .Where(i => i.Id == invoiceId && i.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.BranchId == branchId.Value);
+
+        var invoice = await query
             .Include(i => i.Items)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.CustomerId == customerId);
+            .FirstOrDefaultAsync();
 
         if (invoice == null) return (false, "Adisyon bulunamadi");
         if (invoice.StatusId == 3) return (false, "Adisyon zaten iptal edilmis");
@@ -903,10 +916,15 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         };
     }
 
-    public async Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId)
+    public async Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId, int? branchId = null)
     {
-        var expense = await _expenses.GetAllQueryable()
-            .FirstOrDefaultAsync(e => e.Id == expenseId && e.CustomerId == customerId);
+        var query = _expenses.GetAllQueryable()
+            .Where(e => e.Id == expenseId && e.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(e => e.BranchId == branchId.Value);
+
+        var expense = await query.FirstOrDefaultAsync();
 
         if (expense == null) return (false, "Masraf bulunamadi");
 
@@ -1235,11 +1253,17 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
     // ═══ İADE ═══
 
-    public async Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId)
+    public async Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId, int? branchId = null)
     {
-        var invoice = await _invoices.GetAllQueryable()
+        var query = _invoices.GetAllQueryable()
+            .Where(i => i.Id == invoiceId && i.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.BranchId == branchId.Value);
+
+        var invoice = await query
             .Include(i => i.Items).ThenInclude(item => item.Product)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.CustomerId == customerId);
+            .FirstOrDefaultAsync();
         if (invoice == null) return (null, "Adisyon bulunamadi.");
         if (invoice.StatusId == 3) return (null, "Iptal edilmis adisyon icin iade yapilamaz.");
 

@@ -1,5 +1,6 @@
 using CallCenter.Shared.Auth;
 using CallCenter.Shared.Localization;
+using CallCenter.Shared.Security;
 using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +39,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCorpLynkSecurityHeaders();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAppLocalization();

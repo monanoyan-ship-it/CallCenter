@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using CallCenter.Api.Services;
+using CallCenter.Api.Services.Payment;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -31,8 +32,11 @@ public class PaymentController : ControllerBase
     {
         public string? IyziEventType { get; set; }
         public long? IyziEventTime { get; set; }
+        public string? PaymentId { get; set; }
         public string? IyziPaymentId { get; set; }
+        public string? Token { get; set; }
         public string? PaymentConversationId { get; set; }
+        public string? IyziReferenceCode { get; set; }
         public string? Status { get; set; }
         public string? PaymentTransactionId { get; set; }
         public decimal? Amount { get; set; }
@@ -261,11 +265,30 @@ public class PaymentController : ControllerBase
         if (payload == null || string.IsNullOrEmpty(payload.IyziEventType))
             return BadRequest(new { message = "Webhook payload bos veya event type eksik." });
 
+        var secretKey = await _paymentService.GetActiveIyzicoSecretKeyAsync();
+        if (string.IsNullOrWhiteSpace(secretKey))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Aktif Iyzico odeme yapilandirmasi bulunamadi." });
+
+        var signature = Request.Headers["X-IYZ-SIGNATURE-V3"].FirstOrDefault();
+        if (!IyzicoWebhookSignatureValidator.Verify(ToSignatureInput(payload), secretKey, signature))
+            return Unauthorized(new { message = "Webhook imzasi gecersiz." });
+
         var (handled, message) = await _paymentService.HandleIyzicoWebhookAsync(payload);
         // Iyzico, 200 OK haricinde retry yapar — handle edilemese bile 200 don
         // (manual review icin loglanir, retry gurultusu olusturmamak icin).
         return Ok(new { received = true, handled, message });
     }
+
+    private static IyzicoWebhookSignatureInput ToSignatureInput(IyzicoWebhookPayload payload)
+        => new()
+        {
+            IyziEventType = payload.IyziEventType,
+            PaymentId = payload.PaymentId,
+            IyziPaymentId = payload.IyziPaymentId,
+            Token = payload.Token,
+            PaymentConversationId = payload.PaymentConversationId,
+            Status = payload.Status
+        };
 
     /// <summary>
     /// Ust pencere / tam ekran donusu: Iyzico POST cevabini gosteren sayfa, Salon(veya Web) uzerine yonlendirir;

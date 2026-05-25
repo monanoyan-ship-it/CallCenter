@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Text.Json;
+using CallCenter.Shared.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Management.Controllers;
@@ -14,12 +15,15 @@ public class ProxyController : MgmtBaseController
     [HttpGet("proxy/{**path}")]
     public async Task<IActionResult> Get(string path)
     {
-        return await ForwardAsync(client => client.GetAsync($"api/{path}{Request.QueryString}"));
+        if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        return await ForwardAsync(client => client.GetAsync($"api/{safePath}{Request.QueryString}"));
     }
 
     [HttpPost("proxy/{**path}")]
     public async Task<IActionResult> Post(string path)
     {
+        if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
         return await ForwardAsync(async client =>
         {
             if (Request.HasFormContentType && Request.Form.Files.Count > 0)
@@ -30,12 +34,12 @@ public class ProxyController : MgmtBaseController
                     var stream = file.OpenReadStream();
                     content.Add(new StreamContent(stream), file.Name, file.FileName);
                 }
-                return await client.PostAsync($"api/{path}{Request.QueryString}", content);
+                return await client.PostAsync($"api/{safePath}{Request.QueryString}", content);
             }
 
             using var reader = new StreamReader(Request.Body);
             var body = await reader.ReadToEndAsync();
-            return await client.PostAsync($"api/{path}{Request.QueryString}",
+            return await client.PostAsync($"api/{safePath}{Request.QueryString}",
                 new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         });
     }
@@ -43,11 +47,13 @@ public class ProxyController : MgmtBaseController
     [HttpPut("proxy/{**path}")]
     public async Task<IActionResult> Put(string path)
     {
+        if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
         return await ForwardAsync(async client =>
         {
             using var reader = new StreamReader(Request.Body);
             var body = await reader.ReadToEndAsync();
-            return await client.PutAsync($"api/{path}{Request.QueryString}",
+            return await client.PutAsync($"api/{safePath}{Request.QueryString}",
                 new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         });
     }
@@ -55,8 +61,19 @@ public class ProxyController : MgmtBaseController
     [HttpDelete("proxy/{**path}")]
     public async Task<IActionResult> Delete(string path)
     {
-        return await ForwardAsync(client => client.DeleteAsync($"api/{path}"));
+        if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
+        return await ForwardAsync(client => client.DeleteAsync($"api/{safePath}"));
     }
+
+    private static bool TryNormalizePath(string path, out string safePath)
+        => ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.Management, out safePath);
+
+    private static IActionResult ForbidProxyPath()
+        => new ObjectResult(new { message = "Proxy path not allowed." }) { StatusCode = StatusCodes.Status403Forbidden };
+
+    private static IActionResult ForbidCsrf()
+        => new ObjectResult(new { message = "Cross-site proxy request blocked." }) { StatusCode = StatusCodes.Status403Forbidden };
 
     private async Task<IActionResult> ForwardAsync(Func<HttpClient, Task<HttpResponseMessage>> send)
     {

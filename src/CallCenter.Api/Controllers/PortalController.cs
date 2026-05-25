@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
+using CallCenter.Api.Security;
 using CallCenter.Api.Services;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Enums;
@@ -246,27 +247,17 @@ public class PortalController : AuditableControllerBase
         var cid = ResolveCustomerId(customerId);
         if (cid == null) return BadRequest("CustomerId gerekli.");
 
-        if (file == null || file.Length == 0) return BadRequest("Dosya secilmedi.");
-        if (file.Length > 3_145_728) return BadRequest("Dosya 3 MB'dan buyuk olamaz.");
-
-        var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "image/jpeg",
-            "image/png",
-            "image/webp"
-        };
-        if (!allowedTypes.Contains(file.ContentType))
-            return BadRequest("Sadece JPEG, PNG ve WebP desteklenir.");
+        var validation = await FileUploadValidation.ValidateImageAsync(file, FileUploadValidation.MaxPersonnelPhotoBytes);
+        if (!validation.Success) return BadRequest(validation.Error);
 
         var existingPhoto = await _portalFactory.GetPersonnelPhotoUrlAsync(cid.Value, id);
         if (!existingPhoto.Success)
             return BadRequest(new { message = existingPhoto.Error ?? "Personel bulunamadı." });
 
-        var ext = file.ContentType switch { "image/png" => ".png", "image/webp" => ".webp", _ => ".jpg" };
-        var path = $"personnel/{cid.Value}/{id}-{Guid.NewGuid():N}{ext}";
+        var path = $"personnel/{cid.Value}/{id}-{Guid.NewGuid():N}{validation.Extension}";
 
         using var stream = file.OpenReadStream();
-        var (url, error) = await _gcs.UploadAsync(stream, path, file.ContentType);
+        var (url, error) = await _gcs.UploadAsync(stream, path, validation.ContentType);
         if (url == null) return BadRequest(error ?? "Yukleme hatasi.");
 
         var (ok, err) = await _portalFactory.UpdatePersonnelPhotoAsync(cid.Value, id, url);

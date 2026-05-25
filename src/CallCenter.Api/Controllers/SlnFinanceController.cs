@@ -45,7 +45,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var invoice = await _financeFactory.GetInvoiceAsync(id, customerId);
+        var invoice = await _financeFactory.GetInvoiceAsync(id, customerId, GetBranchScopeId());
         return invoice != null ? Ok(invoice) : NotFound();
     }
 
@@ -67,7 +67,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _financeFactory.CancelInvoiceAsync(id, customerId);
+        var (success, error) = await _financeFactory.CancelInvoiceAsync(id, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 
@@ -196,7 +196,7 @@ public class SlnFinanceController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _financeFactory.DeleteExpenseAsync(id, customerId);
+        var (success, error) = await _financeFactory.DeleteExpenseAsync(id, customerId, GetBranchScopeId());
         return success ? Ok() : BadRequest(error);
     }
 
@@ -295,7 +295,7 @@ public class SlnFinanceController : ControllerBase
     {
         var cid = GetCustomerId();
         if (cid == 0) return Unauthorized();
-        var (result, error) = await _financeFactory.CreateRefundAsync(cid, invoiceId, request.Amount, request.RefundMethodId, request.Reason, GetPersonnelId());
+        var (result, error) = await _financeFactory.CreateRefundAsync(cid, invoiceId, request.Amount, request.RefundMethodId, request.Reason, GetPersonnelId(), GetBranchScopeId());
         if (error != null) return BadRequest(new { message = error });
         return Ok(result);
     }

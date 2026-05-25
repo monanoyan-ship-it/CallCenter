@@ -26,13 +26,22 @@ public class PaymentGatewayFactory
 
         return config.ProviderTypeId switch
         {
-            PaymentProviders.Ids.Iyzico => CreateIyzicoGateway(credentialsJson, config.IsSandbox),
+            PaymentProviders.Ids.Iyzico => new IyzicoGateway(GetIyzicoCredentials(credentialsJson, config.IsSandbox)),
             PaymentProviders.Ids.PayTR => CreatePayTrGateway(credentialsJson),
             PaymentProviders.Ids.Param => CreateParamGateway(credentialsJson),
             _ => throw new NotSupportedException(
                 $"PaymentProvider {config.ProviderTypeId} desteklenmiyor. " +
                 $"Desteklenen: Iyzico(1), PayTR(2), Param(3)")
         };
+    }
+
+    public IyzicoCredentials GetIyzicoCredentials(PlatformPaymentConfig config)
+    {
+        if (config.ProviderTypeId != PaymentProviders.Ids.Iyzico)
+            throw new InvalidOperationException("Aktif odeme yapilandirmasi Iyzico degil.");
+
+        var credentialsJson = _encryption.Decrypt(config.EncryptedCredentials);
+        return GetIyzicoCredentials(credentialsJson, config.IsSandbox);
     }
 
     /// <summary>Config'in banka bilgilerini cozumler</summary>
@@ -92,7 +101,7 @@ public class PaymentGatewayFactory
 
     // ─── Private factory methods ───
 
-    private static IyzicoGateway CreateIyzicoGateway(string json, bool isSandbox)
+    private static IyzicoCredentials GetIyzicoCredentials(string json, bool isSandbox)
     {
         var creds = JsonSerializer.Deserialize<IyzicoCredentials>(json, JsonOpts)
             ?? throw new InvalidOperationException("Iyzico credential bilgileri okunamadi");
@@ -103,7 +112,7 @@ public class PaymentGatewayFactory
         else if (!isSandbox && creds.BaseUrl.Contains("sandbox"))
             creds.BaseUrl = "https://api.iyzipay.com";
 
-        return new IyzicoGateway(creds);
+        return creds;
     }
 
     private static PayTrGateway CreatePayTrGateway(string json)

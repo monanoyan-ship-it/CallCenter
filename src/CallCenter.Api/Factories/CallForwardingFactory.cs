@@ -64,9 +64,11 @@ public class CallForwardingFactory : ICallForwardingFactory
             .ToListAsync();
     }
 
-    public async Task<CallForwardingRuleDto?> GetByIdAsync(int id)
+    public async Task<CallForwardingRuleDto?> GetByIdAsync(int id, int? customerId = null)
     {
-        var rule = await _ruleEs.GetByIdWithUserAsync(id);
+        var rule = await GetScopedRuleQuery(id, customerId)
+            .Include(f => f.User)
+            .FirstOrDefaultAsync();
         if (rule == null) return null;
 
         return new CallForwardingRuleDto
@@ -87,11 +89,19 @@ public class CallForwardingFactory : ICallForwardingFactory
         };
     }
 
-    public async Task<(bool Success, int? Id, string? Error)> CreateAsync(CallForwardingRuleCreateDto dto)
+    public async Task<(bool Success, int? Id, string? Error)> CreateAsync(CallForwardingRuleCreateDto dto, int? customerId = null)
     {
-        var userExists = await _userEs.GetAllQueryable().AnyAsync(u => u.Id == dto.UserId);
-        if (!userExists)
+        if (customerId.HasValue)
+            dto.CustomerId = customerId.Value;
+
+        var user = await _userEs.GetAllQueryable()
+            .Include(u => u.CustomerPersonnel)
+            .FirstOrDefaultAsync(u => u.Id == dto.UserId);
+        if (user == null)
             return (false, null, "Kullanici bulunamadi");
+
+        if (dto.CustomerId.HasValue && user.CustomerPersonnel?.CustomerId != dto.CustomerId.Value)
+            return (false, null, "Kullanici bu firmaya ait degil");
 
         if (dto.ForwardType == ForwardTypes.Always && dto.IsActive)
         {
@@ -119,9 +129,9 @@ public class CallForwardingFactory : ICallForwardingFactory
         return (true, rule.Id, null);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateAsync(int id, CallForwardingRuleUpdateDto dto)
+    public async Task<(bool Success, string? Error)> UpdateAsync(int id, CallForwardingRuleUpdateDto dto, int? customerId = null)
     {
-        var rule = await _ruleEs.GetByIdAsync(id);
+        var rule = await GetScopedRuleQuery(id, customerId).FirstOrDefaultAsync();
         if (rule == null)
             return (false, "Kural bulunamadi");
 
@@ -138,9 +148,9 @@ public class CallForwardingFactory : ICallForwardingFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteAsync(int id)
+    public async Task<(bool Success, string? Error)> DeleteAsync(int id, int? customerId = null)
     {
-        var rule = await _ruleEs.GetByIdAsync(id);
+        var rule = await GetScopedRuleQuery(id, customerId).FirstOrDefaultAsync();
         if (rule == null)
             return (false, "Kural bulunamadi");
 
@@ -177,4 +187,22 @@ public class CallForwardingFactory : ICallForwardingFactory
         Description = f.Description,
         CreatedAt = f.CreatedAt
     };
+
+    private IQueryable<CallForwardingRule> GetScopedRuleQuery(int id, int? customerId)
+    {
+        var query = _ruleEs.GetAllQueryable()
+            .Include(f => f.User)
+                .ThenInclude(u => u!.CustomerPersonnel)
+            .Where(f => f.Id == id);
+
+        if (customerId.HasValue)
+        {
+            query = query.Where(f =>
+                f.CustomerId == customerId.Value ||
+                (f.CustomerId == null && f.User != null && f.User.CustomerPersonnel != null &&
+                 f.User.CustomerPersonnel.CustomerId == customerId.Value));
+        }
+
+        return query;
+    }
 }

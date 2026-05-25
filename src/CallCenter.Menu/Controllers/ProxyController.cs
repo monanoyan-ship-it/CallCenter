@@ -1,3 +1,4 @@
+using CallCenter.Shared.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Menu.Controllers;
@@ -8,8 +9,13 @@ public class ProxyController : MenuBaseController
     [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
     public async Task<IActionResult> Proxy(string path)
     {
+        if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.MenuPublic, out var safePath))
+            return new ObjectResult(new { message = "Proxy path not allowed." }) { StatusCode = StatusCodes.Status403Forbidden };
+        if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request))
+            return new ObjectResult(new { message = "Cross-site proxy request blocked." }) { StatusCode = StatusCodes.Status403Forbidden };
+
         using var client = CreateApiClient();
-        using var request = new HttpRequestMessage(new HttpMethod(Request.Method), $"api/menu/{path}{Request.QueryString}");
+        using var request = new HttpRequestMessage(new HttpMethod(Request.Method), $"api/menu/{safePath}{Request.QueryString}");
 
         if (Request.ContentLength > 0 || Request.Body.CanRead && Request.Method is "POST" or "PUT" or "PATCH")
         {

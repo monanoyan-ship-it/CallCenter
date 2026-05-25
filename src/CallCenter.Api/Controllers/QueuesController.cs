@@ -30,9 +30,9 @@ public class QueuesController : AuditableControllerBase
 
     /// <summary>Kuyruk detay (atanmis agent'lar dahil)</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<QueueDetailDto>> GetById(int id)
+    public async Task<ActionResult<QueueDetailDto>> GetById(int id, [FromQuery] int? customerId = null)
     {
-        var result = await _queueFactory.GetByIdAsync(id);
+        var result = await _queueFactory.GetByIdAsync(id, ResolveCustomerScope(customerId));
         if (result == null) return NotFound(new { message = "Kuyruk bulunamadi." });
         return Ok(result);
     }
@@ -41,6 +41,10 @@ public class QueuesController : AuditableControllerBase
     [HttpPost]
     public async Task<ActionResult> Create(QueueCreateDto dto)
     {
+        var scopedCustomerId = ResolveCustomerScope(dto.CustomerId);
+        if (scopedCustomerId.HasValue)
+            dto.CustomerId = scopedCustomerId.Value;
+
         var (success, id, error) = await _queueFactory.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
 
@@ -52,9 +56,9 @@ public class QueuesController : AuditableControllerBase
 
     /// <summary>Kuyruk guncelle</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult> Update(int id, QueueUpdateDto dto)
+    public async Task<ActionResult> Update(int id, QueueUpdateDto dto, [FromQuery] int? customerId = null)
     {
-        var (success, error) = await _queueFactory.UpdateAsync(id, dto);
+        var (success, error) = await _queueFactory.UpdateAsync(id, dto, ResolveCustomerScope(customerId));
         if (!success)
         {
             if (error == "Kuyruk bulunamadi.") return NotFound(new { message = error });
@@ -69,9 +73,9 @@ public class QueuesController : AuditableControllerBase
 
     /// <summary>Kuyruk sil (soft delete)</summary>
     [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(int id)
+    public async Task<ActionResult> Delete(int id, [FromQuery] int? customerId = null)
     {
-        var (success, error) = await _queueFactory.DeleteAsync(id);
+        var (success, error) = await _queueFactory.DeleteAsync(id, ResolveCustomerScope(customerId));
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("Delete", "Queue", id.ToString(),
@@ -82,9 +86,9 @@ public class QueuesController : AuditableControllerBase
 
     /// <summary>Kuyruga agent ata</summary>
     [HttpPost("{id}/agents")]
-    public async Task<ActionResult> AssignAgent(int id, QueueAgentAssignDto dto)
+    public async Task<ActionResult> AssignAgent(int id, QueueAgentAssignDto dto, [FromQuery] int? customerId = null)
     {
-        var (success, error) = await _queueFactory.AssignAgentAsync(id, dto);
+        var (success, error) = await _queueFactory.AssignAgentAsync(id, dto, ResolveCustomerScope(customerId));
         if (!success)
         {
             if (error!.Contains("bulunamadi")) return NotFound(new { message = error });
@@ -99,9 +103,9 @@ public class QueuesController : AuditableControllerBase
 
     /// <summary>Kuyruktan agent cikar</summary>
     [HttpDelete("{id}/agents/{agentId}")]
-    public async Task<ActionResult> RemoveAgent(int id, int agentId)
+    public async Task<ActionResult> RemoveAgent(int id, int agentId, [FromQuery] int? customerId = null)
     {
-        var (success, error) = await _queueFactory.RemoveAgentAsync(id, agentId);
+        var (success, error) = await _queueFactory.RemoveAgentAsync(id, agentId, ResolveCustomerScope(customerId));
         if (!success) return NotFound(new { message = error });
 
         await AuditCrudAsync("RemoveAgent", "Queue", id.ToString(),
@@ -109,4 +113,7 @@ public class QueuesController : AuditableControllerBase
 
         return NoContent();
     }
+
+    private int? ResolveCustomerScope(int? requestedCustomerId)
+        => CurrentCustomerId ?? requestedCustomerId;
 }

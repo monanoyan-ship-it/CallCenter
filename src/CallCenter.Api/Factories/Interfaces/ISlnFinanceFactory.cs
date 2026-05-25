@@ -12,9 +12,9 @@ public interface ISlnFinanceFactory
         int? statusId = null,
         int? branchId = null,
         int? slnClientId = null);
-    Task<SlnInvoiceDto?> GetInvoiceAsync(int invoiceId, int customerId);
+    Task<SlnInvoiceDto?> GetInvoiceAsync(int invoiceId, int customerId, int? branchId = null);
     Task<(SlnInvoiceDto? Invoice, string? Error)> CreateInvoiceAsync(SlnInvoiceCreateDto dto, int userId, int customerId, int? branchId = null);
-    Task<(bool Success, string? Error)> CancelInvoiceAsync(int invoiceId, int customerId);
+    Task<(bool Success, string? Error)> CancelInvoiceAsync(int invoiceId, int customerId, int? branchId = null);
 
     // Kasa
     Task<List<object>> GetCashRegistersAsync(int customerId, int? branchId = null);
@@ -34,7 +34,7 @@ public interface ISlnFinanceFactory
     Task<object> CreateExpenseCategoryAsync(string name, int customerId);
     Task<List<SlnExpenseDto>> GetExpensesAsync(int customerId, DateTime? from, DateTime? to, int? categoryId = null, int? branchId = null);
     Task<SlnExpenseDto> CreateExpenseAsync(SlnExpenseCreateDto dto, int userId, int customerId, int? branchId = null);
-    Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId);
+    Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId, int? branchId = null);
 
     // Z Raporu
     Task<object> GetZReportAsync(int registerId, int customerId, DateTime? date = null, int? branchId = null);
@@ -47,7 +47,7 @@ public interface ISlnFinanceFactory
     Task AddLedgerEntryAsync(int customerId, int slnClientId, int typeId, decimal amount, int? invoiceId, string? description);
 
     // Iade
-    Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId);
+    Task<(object? Result, string? Error)> CreateRefundAsync(int customerId, int invoiceId, decimal refundAmount, int refundMethodId, string reason, int personnelId, int? branchId = null);
 
     // Personel Hasilat
     Task<object> GetStaffRevenueAsync(int customerId, DateTime startDate, DateTime endDate, int? branchId = null);

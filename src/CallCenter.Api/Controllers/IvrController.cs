@@ -1,4 +1,5 @@
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Security;
 using CallCenter.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,6 +49,7 @@ public class IvrController : AuditableControllerBase
     }
 
     [HttpPost("greetings")]
+    [RequestSizeLimit(FileUploadValidation.MaxAudioBytes)]
     public async Task<ActionResult<GreetingMessageDto>> CreateGreeting(
         [FromForm] CreateGreetingMessageRequest request,
         IFormFile? audioFile,
@@ -60,9 +62,12 @@ public class IvrController : AuditableControllerBase
         // Dosya yukleme (TTS degilse)
         if (!request.IsTextToSpeech && audioFile != null && audioFile.Length > 0)
         {
+            var validation = await FileUploadValidation.ValidateAudioAsync(audioFile);
+            if (!validation.Success) return BadRequest(new { message = validation.Error });
+
             var dir = EnsureAudioDirectory();
             audioFileName = audioFile.FileName;
-            var fileName = $"greeting_{cid}_{Guid.NewGuid():N}{Path.GetExtension(audioFile.FileName)}";
+            var fileName = $"greeting_{cid}_{Guid.NewGuid():N}{validation.Extension}";
             audioFilePath = Path.Combine(dir, fileName);
 
             await using var stream = new FileStream(audioFilePath, FileMode.Create);
@@ -160,6 +165,7 @@ public class IvrController : AuditableControllerBase
     }
 
     [HttpPost("hold-music")]
+    [RequestSizeLimit(FileUploadValidation.MaxAudioBytes)]
     public async Task<ActionResult<HoldMusicDto>> CreateHoldMusic(
         [FromForm] CreateHoldMusicRequest request,
         IFormFile? audioFile,
@@ -171,9 +177,12 @@ public class IvrController : AuditableControllerBase
 
         if (audioFile != null && audioFile.Length > 0)
         {
+            var validation = await FileUploadValidation.ValidateAudioAsync(audioFile);
+            if (!validation.Success) return BadRequest(new { message = validation.Error });
+
             var dir = EnsureAudioDirectory();
             audioFileName = audioFile.FileName;
-            var fileName = $"holdmusic_{cid}_{Guid.NewGuid():N}{Path.GetExtension(audioFile.FileName)}";
+            var fileName = $"holdmusic_{cid}_{Guid.NewGuid():N}{validation.Extension}";
             audioFilePath = Path.Combine(dir, fileName);
 
             await using var stream = new FileStream(audioFilePath, FileMode.Create);

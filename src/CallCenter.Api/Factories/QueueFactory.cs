@@ -64,9 +64,18 @@ public class QueueFactory : IQueueFactory
         };
     }
 
-    public async Task<QueueDetailDto?> GetByIdAsync(int id)
+    public async Task<QueueDetailDto?> GetByIdAsync(int id, int? customerId = null)
     {
-        var q = await _queues.GetByIdWithAgentsAsync(id);
+        var query = _queues.GetAllQueryable()
+            .Include(q => q.Customer)
+            .Include(q => q.QueueAgents)
+                .ThenInclude(qa => qa.Agent)
+            .Where(q => q.Id == id);
+
+        if (customerId.HasValue)
+            query = query.Where(q => q.CustomerId == customerId.Value);
+
+        var q = await query.FirstOrDefaultAsync();
         if (q == null) return null;
 
         return new QueueDetailDto
@@ -114,9 +123,9 @@ public class QueueFactory : IQueueFactory
         return (true, queue.Id, null);
     }
 
-    public async Task<(bool Success, string? Error)> UpdateAsync(int id, QueueUpdateDto dto)
+    public async Task<(bool Success, string? Error)> UpdateAsync(int id, QueueUpdateDto dto, int? customerId = null)
     {
-        var queue = await _queues.GetByIdAsync(id);
+        var queue = await GetScopedQueueAsync(id, customerId);
         if (queue == null) return (false, "Kuyruk bulunamadi.");
 
         if (await _queues.ExistsByNameAndCustomerAsync(queue.CustomerId, dto.Name, id))
@@ -131,9 +140,9 @@ public class QueueFactory : IQueueFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeleteAsync(int id)
+    public async Task<(bool Success, string? Error)> DeleteAsync(int id, int? customerId = null)
     {
-        var queue = await _queues.GetByIdAsync(id);
+        var queue = await GetScopedQueueAsync(id, customerId);
         if (queue == null) return (false, "Kuyruk bulunamadi.");
 
         queue.IsActive = false;
@@ -142,13 +151,17 @@ public class QueueFactory : IQueueFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> AssignAgentAsync(int queueId, QueueAgentAssignDto dto)
+    public async Task<(bool Success, string? Error)> AssignAgentAsync(int queueId, QueueAgentAssignDto dto, int? customerId = null)
     {
-        var queue = await _queues.GetByIdAsync(queueId);
+        var queue = await GetScopedQueueAsync(queueId, customerId);
         if (queue == null) return (false, "Kuyruk bulunamadi.");
 
-        var agent = await _users.GetByIdAsync(dto.AgentId);
+        var agent = await _users.GetAllQueryable()
+            .Include(u => u.CustomerPersonnel)
+            .FirstOrDefaultAsync(u => u.Id == dto.AgentId);
         if (agent == null) return (false, "Temsilci bulunamadi.");
+        if (agent.CustomerPersonnel?.CustomerId != queue.CustomerId)
+            return (false, "Temsilci bu firmaya ait degil.");
 
         if (await _queues.GetQueueAgentAsync(queueId, dto.AgentId) != null)
             return (false, "Temsilci zaten bu kuyruga atanmis.");
@@ -163,8 +176,11 @@ public class QueueFactory : IQueueFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> RemoveAgentAsync(int queueId, int agentId)
+    public async Task<(bool Success, string? Error)> RemoveAgentAsync(int queueId, int agentId, int? customerId = null)
     {
+        var queue = await GetScopedQueueAsync(queueId, customerId);
+        if (queue == null) return (false, "Kuyruk bulunamadi.");
+
         var qa = await _queues.GetQueueAgentAsync(queueId, agentId);
         if (qa == null) return (false, "Atama bulunamadi.");
 
@@ -172,5 +188,13 @@ public class QueueFactory : IQueueFactory
         await _uow.SaveChangesAsync();
 
         return (true, null);
+    }
+
+    private Task<Queue?> GetScopedQueueAsync(int id, int? customerId)
+    {
+        var query = _queues.GetAllQueryable().Where(q => q.Id == id);
+        if (customerId.HasValue)
+            query = query.Where(q => q.CustomerId == customerId.Value);
+        return query.FirstOrDefaultAsync();
     }
 }

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CallCenter.Api.Factories.Interfaces;
+using CallCenter.Api.Security;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,8 +42,8 @@ public class SlnDataImportController : ControllerBase
         if (!CanImport()) return Forbid();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        if (file == null || file.Length == 0) return BadRequest(new { message = "Dosya secilmedi." });
-        if (!IsSupportedFile(file.FileName)) return BadRequest(new { message = "Sadece Excel XLSX dosyalari desteklenir. Eski XLS dosyalarini Excel'de XLSX olarak kaydedin." });
+        var validation = await FileUploadValidation.ValidateExcelWorkbookAsync(file);
+        if (!validation.Success) return BadRequest(new { message = validation.Error });
 
         await using var stream = file.OpenReadStream();
         var result = await _dataImportFactory.PreviewAsync(importType, stream, file.FileName, customerId, GetBranchId() ?? branchId);
@@ -56,8 +57,8 @@ public class SlnDataImportController : ControllerBase
         if (!CanImport()) return Forbid();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        if (file == null || file.Length == 0) return BadRequest(new { message = "Dosya secilmedi." });
-        if (!IsSupportedFile(file.FileName)) return BadRequest(new { message = "Sadece Excel XLSX dosyalari desteklenir. Eski XLS dosyalarini Excel'de XLSX olarak kaydedin." });
+        var validation = await FileUploadValidation.ValidateExcelWorkbookAsync(file);
+        if (!validation.Success) return BadRequest(new { message = validation.Error });
 
         await using var stream = file.OpenReadStream();
         var result = await _dataImportFactory.ImportAsync(importType, stream, file.FileName, customerId, GetUserId(), GetBranchId() ?? branchId);
@@ -74,12 +75,6 @@ public class SlnDataImportController : ControllerBase
     {
         var claim = User.FindFirst("BranchId")?.Value;
         return int.TryParse(claim, out var id) && id > 0 ? id : null;
-    }
-
-    private static bool IsSupportedFile(string fileName)
-    {
-        var ext = Path.GetExtension(fileName).ToLowerInvariant();
-        return ext is ".xlsx" or ".xlsm" or ".xltx";
     }
 
     private bool CanImport()

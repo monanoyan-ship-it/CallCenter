@@ -1,4 +1,5 @@
 using CallCenter.Api.Services;
+using CallCenter.Api.Controllers;
 using CallCenter.Data;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
@@ -47,6 +48,65 @@ public sealed class PaymentServiceTests : IDisposable
         result.Select(t => t.PaymentTypeId).Should().Equal(
             PaymentTypes.Ids.PlatformAbonelik,
             PaymentTypes.Ids.ModulSatinAlma);
+    }
+
+    [Fact]
+    public async Task CompleteCheckoutAsync_WhenAlreadySuccessful_ReturnsSuccessWithoutGateway()
+    {
+        var uid = Guid.NewGuid();
+        _db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Uid = uid,
+            PaymentTypeId = PaymentTypes.Ids.ModulSatinAlma,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Basarili,
+            Amount = 100m,
+            ProviderTransactionId = "checkout-token",
+            ProviderPaymentId = "28157248",
+            CompletedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.CompleteCheckoutAsync("checkout-token");
+
+        result.Success.Should().BeTrue();
+        result.TransactionUid.Should().Be(uid);
+        result.ProviderTransactionId.Should().Be("checkout-token");
+    }
+
+    [Fact]
+    public async Task HandleIyzicoWebhookAsync_WhenSameEventArrivesTwice_DoesNotAppendDuplicateEvent()
+    {
+        _db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.SalonAdisyon,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Basarili,
+            Amount = 100m,
+            ProviderPaymentId = "28157248"
+        });
+        await _db.SaveChangesAsync();
+
+        var payload = new PaymentController.IyzicoWebhookPayload
+        {
+            IyziEventType = "MARKETPLACE_SETTLEMENT_RECEIVED",
+            IyziEventTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            IyziPaymentId = "28157248",
+            PaymentConversationId = Guid.NewGuid().ToString("N"),
+            IyziReferenceCode = "event-123",
+            Status = "SUCCESS",
+            Amount = 100m
+        };
+
+        var first = await _sut.HandleIyzicoWebhookAsync(payload);
+        var second = await _sut.HandleIyzicoWebhookAsync(payload);
+        var tx = _db.PaymentTransactions.Single();
+
+        first.Handled.Should().BeTrue();
+        second.Handled.Should().BeTrue();
+        second.Message.Should().Contain("Duplicate");
+        tx.Notes.Should().Contain("IyzicoWebhookId:");
+        tx.Notes!.Split("IyzicoWebhookId:", StringSplitOptions.None).Length.Should().Be(2);
     }
 
     private void AddTransaction(int customerId, int paymentTypeId, DateTime createdAt)
