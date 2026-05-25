@@ -145,6 +145,18 @@ function ServicesViewModel() {
         return self.services().length ? self.services() : list;
     });
 
+    self.serviceStats = ko.computed(function () {
+        var services = self.allServicesFlat();
+        return {
+            totalServices: services.length,
+            activeServices: services.filter(function (svc) { return !!svc.isActive; }).length,
+            categories: self.categories().length,
+            combos: self.combos().length,
+            resources: self.resources().length,
+            packageDefinitions: self.packageDefinitions().length
+        };
+    });
+
     self.parentServiceOptions = ko.computed(function () {
         var editingId = self.isEditingService() ? parseInt(self.editingServiceId()) : 0;
         return self.allServicesFlat().filter(function (svc) {

@@ -247,7 +247,15 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-12">
+                            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#campaignAdvancedFilters">
+                                <i class="bi bi-funnel me-1"></i><t key="salon.campaigns.advanced_filters">Detaylı filtreler</t>
+                            </button>
+                        </div>
+                        <div class="col-12 collapse" id="campaignAdvancedFilters">
+                            <div class="border rounded bg-light p-3">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.cinsiyet">Cinsiyet</t></label>
                             <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.genderId">
                                 <option value=""><t key="salon.campaigns.auto.tumu">Tümü</t></option>
@@ -255,35 +263,35 @@
                                 <option value="2"><t key="salon.campaigns.auto.erkek">Erkek</t></option>
                             </select>
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.min_yas">Min Yaş</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="textInput: campaignForm.filter.minAge" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.maks_yas">Maks Yaş</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="textInput: campaignForm.filter.maxAge" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.sehir">Şehir</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="textInput: campaignForm.filter.city" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.son_ziyaret_gun">Son Ziyaret (gün)</t></label>
                             <input type="number" class="form-control form-control-sm" placeholder="@(Translation.T("salon.campaigns.auto.placeholder_orn_30", "örn: 30"))" data-bind="textInput: campaignForm.filter.lastVisitDays" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.pasif_gun_esigi_2">Pasif Gün Eşiği</t></label>
                             <input type="number" class="form-control form-control-sm" placeholder="@(Translation.T("salon.campaigns.auto.placeholder_orn_60", "örn: 60"))" data-bind="textInput: campaignForm.filter.inactiveDays" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.dogum_gunu_gun">Doğum Günü (gün)</t></label>
                             <input type="number" class="form-control form-control-sm" placeholder="@(Translation.T("salon.campaigns.auto.placeholder_orn_30", "örn: 30"))" data-bind="textInput: campaignForm.filter.birthdayInDays" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.min_harcama_tl">Min Harcama (TL)</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="textInput: campaignForm.filter.minSpent" />
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.uyelik_durumu">Üyelik Durumu</t></label>
                             <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.hasActiveMembership">
                                 <option value=""><t key="salon.campaigns.auto.tumu_2">Tümü</t></option>
@@ -291,13 +299,16 @@
                                 <option value="false"><t key="salon.campaigns.auto.aktif_uyeligi_olmayan">Aktif üyeliği olmayan</t></option>
                             </select>
                         </div>
-                        <div class="col-4">
+                                    <div class="col-md-4">
                             <label class="form-label small"><t key="salon.campaigns.auto.paket_durumu">Paket Durumu</t></label>
                             <select class="form-select form-select-sm" data-bind="value: campaignForm.filter.hasActivePackage">
                                 <option value=""><t key="salon.campaigns.auto.tumu_3">Tümü</t></option>
                                 <option value="true"><t key="salon.campaigns.auto.aktif_paketi_olan">Aktif paketi olan</t></option>
                                 <option value="false"><t key="salon.campaigns.auto.aktif_paketi_olmayan">Aktif paketi olmayan</t></option>
                             </select>
+                        </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

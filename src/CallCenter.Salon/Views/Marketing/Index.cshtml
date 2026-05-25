@@ -11,6 +11,65 @@
 
 <h5 class="mb-3"><t key="salon.modules.package.loyalty_marketing">Pazarlama ve Sadakat</t></h5>
 
+<div class="row g-2 mb-3">
+    @if (Show("campaigns") || Show("email") || Show("winback"))
+    {
+        <div class="col-lg-4">
+            <div class="border rounded bg-white p-3 h-100">
+                <div class="fw-semibold small mb-1"><i class="bi bi-send me-1"></i><t key="salon.marketing.intent.reach">Müşteriye ulaş</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.reach_desc">SMS, e-posta ve geri kazanım akışları.</t></div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Show("campaigns"))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-campaigns" type="button"><t key="salon.sidebar.campaigns">Kampanyalar</t></button>
+                    }
+                    @if (Show("email"))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-email" type="button"><t key="salon.sidebar.email_campaigns">E-posta</t></button>
+                    }
+                    @if (Show("winback"))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-winback" type="button"><t key="salon.sidebar.winback">Geri Kazanım</t></button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    @if (Show("loyalty") || Show("memberships") || Show("giftcards"))
+    {
+        <div class="col-lg-4">
+            <div class="border rounded bg-white p-3 h-100">
+                <div class="fw-semibold small mb-1"><i class="bi bi-stars me-1"></i><t key="salon.marketing.intent.loyalty">Sadakat ve gelir</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.loyalty_desc">Puan, üyelik ve hediye kartı yönetimi.</t></div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Show("loyalty"))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-loyalty" type="button"><t key="salon.sidebar.loyalty">Sadakat</t></button>
+                    }
+                    @if (Show("memberships"))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-memberships" type="button"><t key="salon.sidebar.memberships">Üyelik</t></button>
+                    }
+                    @if (Show("giftcards"))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-giftcards" type="button"><t key="salon.sidebar.gift_cards">Hediye Kartı</t></button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    @if (Show("reviews"))
+    {
+        <div class="col-lg-4">
+            <div class="border rounded bg-white p-3 h-100">
+                <div class="fw-semibold small mb-1"><i class="bi bi-chat-square-heart me-1"></i><t key="salon.marketing.intent.reputation">İtibar</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.reputation_desc">Yorumları ve müşteri geri bildirimini takip edin.</t></div>
+                <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="pill" data-bs-target="#marketing-reviews" type="button"><t key="salon.sidebar.reviews">Yorumlar</t></button>
+            </div>
+        </div>
+    }
+</div>
+
 <ul class="nav nav-pills flex-wrap gap-2 mb-3" role="tablist">
     @if (Show("campaigns"))
     {
