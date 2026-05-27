@@ -178,7 +178,11 @@ public class ServicePricingFactory
             callCenter = ccItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = ServiceTypes.GetById(i.ServiceId)?.IsDefault ?? false }),
             salon = slnItems.Select(i => new { i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice, isDefault = SalonPortalModules.GetById(i.ServiceId)?.IsDefault ?? false }),
             salonGroups = salonGrouped,
-            salonPackages = pkgItems.Select(i => new { i.Id, packageGroupId = i.PackageGroupId!.Value, name = i.ServiceName, i.MonthlyPrice, i.PreviousPrice }),
+            salonPackages = pkgItems.Select(i =>
+            {
+                var group = SalonModuleGroups.GetById(i.PackageGroupId!.Value);
+                return new { i.Id, packageGroupId = i.PackageGroupId!.Value, name = group?.Description ?? i.ServiceName, i.MonthlyPrice, i.PreviousPrice };
+            }),
             branchDiscountTiers = period.BranchDiscountTiers
                 .OrderBy(t => t.SortOrder)
                 .ThenBy(t => t.MinBranches)

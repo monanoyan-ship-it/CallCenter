@@ -46,7 +46,7 @@
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-                var crmOpen = ctrl is "Home" or "Contacts" or "Tickets" or "Deals" or "CrmTasks" or "Surveys";
+                var crmOpen = ctrl is "Home" or "Contacts" or "Tickets" or "Deals" or "CrmTasks" or "Surveys" or "Modules";
                 var trackOpen = ctrl is "Calls" or "Activities" or "Tasks" or "Campaigns";
                 var integrationOpen = ctrl is "Integrations";
                 var reportOpen = ctrl is "Reports";
@@ -74,6 +74,9 @@
                 </a>
                 <a class="nav-link @(ctrl == "Surveys" ? "active" : "")" href="/Surveys">
                     <i class="bi bi-clipboard2-data me-2"></i>Anketler
+                </a>
+                <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules">
+                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Hizmet Kapsamı
                 </a>
             </div>
 

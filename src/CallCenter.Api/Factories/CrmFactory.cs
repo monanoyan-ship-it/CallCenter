@@ -108,6 +108,53 @@ public class CrmFactory : ICrmFactory
         };
     }
 
+    public Task<List<CrmModuleDto>> GetModuleCatalogAsync()
+    {
+        var modules = CrmModules.All
+            .OrderBy(m => m.DisplayOrder)
+            .Select(m =>
+            {
+                var sourceSalonModuleId = CrmModules.GetSalonModuleId(m.Id);
+                var sourceSalonModule = sourceSalonModuleId.HasValue
+                    ? SalonPortalModules.GetById(sourceSalonModuleId.Value)
+                    : null;
+
+                return new CrmModuleDto
+                {
+                    Id = m.Id,
+                    SystemName = m.SystemName,
+                    NameResourceKey = m.NameResourceKey,
+                    Description = m.Description,
+                    Icon = m.Icon,
+                    CssClass = m.CssClass,
+                    DisplayOrder = m.DisplayOrder,
+                    IsDefault = m.IsDefault,
+                    GroupName = GetCrmModuleGroupName(sourceSalonModuleId),
+                    SourceSalonModuleId = sourceSalonModuleId,
+                    SourceSalonModuleName = sourceSalonModule?.Description
+                };
+            })
+            .ToList();
+
+        return Task.FromResult(modules);
+    }
+
+    private static string GetCrmModuleGroupName(int? sourceSalonModuleId)
+    {
+        if (!sourceSalonModuleId.HasValue)
+            return "CRM Çekirdek";
+
+        var salonGroupId = SalonModuleGroups.GetGroupId(sourceSalonModuleId.Value);
+        return salonGroupId switch
+        {
+            SalonModuleGroups.Ids.LoyaltyMarketing => "Salon CRM",
+            SalonModuleGroups.Ids.StockFinance => "Salon Operasyon",
+            SalonModuleGroups.Ids.Professional => "Salon Profesyonel",
+            SalonModuleGroups.Ids.Enterprise => "Salon Raporlama",
+            _ => "Salon Kaynaklı"
+        };
+    }
+
     // ═══════════════════════════════════════
     // CONTACTS
     // ═══════════════════════════════════════

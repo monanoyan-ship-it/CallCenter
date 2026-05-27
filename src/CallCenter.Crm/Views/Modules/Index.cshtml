@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "CRM Hizmet Kapsamı";
+}
+
+<div id="crm-modules-vm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <div class="small text-muted">Satış ve yetki dili için CRM tarafındaki hizmet kataloğu</div>
+            <h5 class="mb-0">CRM Hizmet Kapsamı</h5>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: load, disable: isLoading">
+            <span class="spinner-border spinner-border-sm me-1" data-bind="visible: isLoading"></span>
+            <i class="bi bi-arrow-clockwise me-1" data-bind="visible: !isLoading()"></i>Yenile
+        </button>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <h6 class="text-muted mb-2"><i class="bi bi-person-lines-fill me-1"></i>CRM Çekirdek</h6>
+            <div class="row g-2" data-bind="foreach: coreModules">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-start gap-2">
+                                <i data-bind="attr: { class: 'bi text-primary mt-1 ' + (icon || 'bi-puzzle') }"></i>
+                                <div>
+                                    <div class="fw-semibold" data-bind="text: description || systemName"></div>
+                                    <div class="small text-muted" data-bind="text: systemName"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <h6 class="text-muted mb-2"><i class="bi bi-scissors me-1"></i>Salon Kaynaklı CRM Hizmetleri</h6>
+            <div class="row g-2" data-bind="foreach: salonModules">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-start gap-2">
+                                <i data-bind="attr: { class: 'bi text-success mt-1 ' + (icon || 'bi-puzzle') }"></i>
+                                <div>
+                                    <div class="fw-semibold" data-bind="text: description || systemName"></div>
+                                    <div class="small text-muted">
+                                        <span class="badge bg-light text-dark border me-1" data-bind="text: groupName"></span>
+                                        <span data-bind="text: systemName"></span>
+                                        <span data-bind="visible: sourceSalonModuleId"> · Salon #<span data-bind="text: sourceSalonModuleId"></span></span>
+                                    </div>
+                                    <div class="small text-muted" data-bind="visible: sourceSalonModuleName, text: sourceSalonModuleName"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-light border small mt-3 mb-0">
+                Salon müşteri verisi Salon tablolarında kalır; bu katalog CRM hizmetinin satış/yetki karşılığını verir.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Modules.js" asp-append-version="true"></script>
+}

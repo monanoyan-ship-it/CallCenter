@@ -10,12 +10,14 @@ public static class SalonModuleGroups
     // Id=0 Temel → pricing key 0 ile eşleşir. Diğer gruplar mevcut kayıtlarla uyumlu tutulur.
     public static readonly ModuleGroup Core = new(0, "Core", "Temel Paket", "bi-house-fill", "bg-success", 1700m, 0);
     public static readonly ModuleGroup StockFinance = new(1, "StockFinance", "Stok Tedarik / Finans", "bi-box-seam", "bg-secondary", 400m, 1);
-    public static readonly ModuleGroup LoyaltyMarketing = new(3, "LoyaltyMarketing", "Müşteri Sadakati / Pazarlama", "bi-heart-fill", "bg-danger", 1500m, 2);
+    // SystemName ve Id eski kayıtlarla uyumluluk için korunur; satış yüzeyinde bu grup Salon CRM hizmetidir.
+    public static readonly ModuleGroup LoyaltyMarketing = new(3, "LoyaltyMarketing", "Salon CRM", "bi-person-heart", "bg-danger", 1500m, 2);
     public static readonly ModuleGroup Professional = new(5, "Professional", "Profesyonel", "bi-star-fill", "bg-warning text-dark", 1500m, 3);
     public static readonly ModuleGroup Enterprise = new(6, "Enterprise", "Kurumsal", "bi-building", "bg-primary", 200m, 4);
 
     public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Professional, Enterprise };
     public static ModuleGroup? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
+    public static bool IsCrmServiceGroup(int? groupId) => groupId == Ids.LoyaltyMarketing;
 
     public static class Ids
     {
@@ -55,7 +57,7 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnSuppliers] = Ids.StockFinance,
         [SalonPortalModules.Ids.SlnExpenses] = Ids.StockFinance,
 
-        // ── Müşteri Sadakati / Pazarlama (3) — 1.500 TL ────────────────────
+        // ── Salon CRM (3) — 1.500 TL ────────────────────
         [SalonPortalModules.Ids.SlnGiftCards] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnMemberships] = Ids.LoyaltyMarketing,
         [SalonPortalModules.Ids.SlnLoyalty] = Ids.LoyaltyMarketing,

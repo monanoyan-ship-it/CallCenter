@@ -26,6 +26,15 @@ public class CrmController : ControllerBase
         return Ok(await _crm.GetDashboardAsync(cid.Value));
     }
 
+    [HttpGet("modules")]
+    public async Task<ActionResult<List<CrmModuleDto>>> GetModules()
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+
+        return Ok(await _crm.GetModuleCatalogAsync());
+    }
+
     // ─── Caller ID Lookup ───
 
     [HttpGet("contacts/lookup")]

@@ -14,7 +14,7 @@ public static class ServiceTypes
     // ─── Premium (Ucretli) Hizmetler ───
     public static readonly TypeItem IVR = new(4, "IVR", "Service.IVR", "Sesli Yönlendirme (IVR)", "bi-telephone-inbound-fill", "bg-warning text-dark", 4);
     public static readonly TypeItem KaliteYonetimi = new(5, "KaliteYonetimi", "Service.KaliteYonetimi", "Kalite Değerlendirme", "bi-clipboard-check", "bg-warning text-dark", 5);
-    public static readonly TypeItem CRM = new(6, "CRM", "Service.CRM", "CRM Modülü (Müşteri Kartı, Ticket, Pipeline)", "bi-person-lines-fill", "bg-warning text-dark", 6);
+    public static readonly TypeItem CRM = new(6, "CRM", "Service.CRM", "CRM Hizmeti (Müşteri Kartı, Ticket, Pipeline)", "bi-person-lines-fill", "bg-warning text-dark", 6);
     public static readonly TypeItem KampanyaModulu = new(7, "KampanyaModulu", "Service.KampanyaModulu", "Kampanya Modülü", "bi-megaphone-fill", "bg-success", 7, isDefault: true);
     public static readonly TypeItem GelismisRaporlama = new(8, "GelismisRaporlama", "Service.GelismisRaporlama", "Gelişmiş Raporlama", "bi-file-earmark-bar-graph", "bg-success", 8, isDefault: true);
     public static readonly TypeItem SMSMesajlasma = new(9, "SMSMesajlasma", "Service.SMSMesajlasma", "SMS / Mesajlaşma", "bi-chat-dots-fill", "bg-warning text-dark", 9);
@@ -188,7 +188,7 @@ public static class PaymentTypes
     public static readonly TypeItem SalonAdisyon = new(1, "SalonAdisyon", "PaymentType.SalonAdisyon", "Salon Adisyon Ödemesi", "bi-receipt", "bg-info", 1);
     public static readonly TypeItem PlatformAbonelik = new(2, "PlatformAbonelik", "PaymentType.PlatformAbonelik", "Platform Abonelik Ödemesi", "bi-box-seam", "bg-primary", 2);
     public static readonly TypeItem UyelikOdemesi = new(3, "UyelikOdemesi", "PaymentType.UyelikOdemesi", "Üyelik Ödemesi", "bi-person-check", "bg-success", 3);
-    public static readonly TypeItem ModulSatinAlma = new(4, "ModulSatinAlma", "PaymentType.ModulSatinAlma", "Modül Satın Alma", "bi-cart-check", "bg-warning text-dark", 4);
+    public static readonly TypeItem ModulSatinAlma = new(4, "ModulSatinAlma", "PaymentType.ModulSatinAlma", "Hizmet Satın Alma", "bi-cart-check", "bg-warning text-dark", 4);
     public static readonly TypeItem RandevuOnOdemesi = new(5, "RandevuOnOdemesi", "PaymentType.RandevuOnOdemesi", "Randevu Ön Ödemesi/Depozito", "bi-calendar-check", "bg-info", 5);
 
     public static IEnumerable<TypeItem> All => new[] { SalonAdisyon, PlatformAbonelik, UyelikOdemesi, ModulSatinAlma, RandevuOnOdemesi };

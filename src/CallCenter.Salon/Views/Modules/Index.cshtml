@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("salon.modules.title", "Modül Yönetimi");
+    ViewData["Title"] = Translation.T("salon.modules.service_packages_title", "Hizmet Paketleri");
 }
 
 <div id="modules-vm">
@@ -82,9 +82,9 @@
         </div>
     </div>
 
-    <!-- Aktif Modulleriniz -->
+    <!-- Aktif hizmetler -->
     <!-- ko if: activeGroups().length > 0 -->
-    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i><t key="salon.modules.active_title">Aktif Modülleriniz</t></h6>
+    <h6 class="text-muted mb-3"><i class="bi bi-check-circle me-1"></i><t key="salon.modules.active_services_title">Aktif Hizmetleriniz</t></h6>
     <!-- ko foreach: activeGroups -->
     <div class="card border-0 shadow-sm mb-3 border-start border-3 border-success">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-start gap-3">
@@ -121,17 +121,17 @@
     <!-- /ko -->
     <!-- /ko -->
 
-    <!-- Satin Alinabilir Moduller -->
-    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-cart-plus me-1"></i><t key="salon.modules.available_title">Satın Alınabilir Modüller</t></h6>
+    <!-- Satin alinabilir hizmetler -->
+    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-cart-plus me-1"></i><t key="salon.modules.available_services_title">Satın Alınabilir Hizmetler</t></h6>
     <!-- ko if: availableModules().length === 0 -->
-    <div class="alert alert-info py-2 small"><t key="salon.modules.all_active">Tüm modüller zaten aktif.</t></div>
+    <div class="alert alert-info py-2 small"><t key="salon.modules.all_services_active">Tüm hizmetler zaten aktif.</t></div>
     <!-- /ko -->
     <!-- ko foreach: availableGroups -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-start gap-3">
             <div>
                 <strong data-bind="text: groupName"></strong>
-                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' ' + salonT('salon.modules.module_count_suffix', 'modül') + ')'"></span>
+                <span class="text-muted small ms-1" data-bind="text: '(' + modules.length + ' ' + salonT('salon.modules.feature_count_suffix', 'özellik') + ')'"></span>
                 <div class="small text-muted mt-1" data-bind="visible: summary, text: summary"></div>
                 <div class="small mt-1" data-bind="visible: outcome, text: outcome"></div>
                 <div class="small text-primary mt-1" data-bind="visible: flowNote, text: flowNote"></div>
@@ -147,7 +147,7 @@
                 </button>
                 <!-- /ko -->
                 <!-- ko ifnot: hasImplemented -->
-                <button class="btn btn-sm btn-outline-secondary" disabled title="@(Translation.T("salon.modules.package_coming_soon", "Bu paket yakında aktif edilecek; şu an satın alınamaz."))">
+                <button class="btn btn-sm btn-outline-secondary" disabled title="@(Translation.T("salon.modules.package_coming_soon", "Bu hizmet yakında aktif edilecek; şu an satın alınamaz."))">
                     <i class="bi bi-lock me-1"></i><t key="salon.modules.coming_soon_short">Yakında</t>
                 </button>
                 <!-- /ko -->
@@ -172,7 +172,7 @@
     <div class="card border-0 shadow-sm mt-4 bg-light">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-bold"><t key="salon.modules.monthly_total">Aylık Modül Tutarı</t></span>
+                <span class="fw-bold"><t key="salon.modules.monthly_service_total">Aylık Hizmet Tutarı</t></span>
                 <span class="fs-5 fw-bold text-primary" data-bind="text: displayMonthlyTotal().toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
             </div>
             <!-- ko if: branchSummaryText().length > 0 -->
@@ -266,7 +266,7 @@
                             </div>
                             <table class="table table-sm mb-3">
                                 <tr>
-                                    <td class="text-muted"><t key="salon.modules.module">Modül</t></td>
+                                    <td class="text-muted"><t key="salon.modules.module">Hizmet</t></td>
                                     <td class="fw-bold text-end" data-bind="text: purchasePreview() ? purchasePreview().packageName : ''"></td>
                                 </tr>
                                 <tr>
@@ -294,7 +294,7 @@
                             </table>
                             <div class="small text-muted mb-3">
                                 <i class="bi bi-calendar-check me-1"></i>
-                                 <span data-bind="text: purchasePreview() && purchasePreview().billingNote ? purchasePreview().billingNote : salonT('salon.modules.default_billing_note', 'Sonraki tahakkuktan itibaren paket aylık olarak faturalandırılacaktır.')"></span>
+                                 <span data-bind="text: purchasePreview() && purchasePreview().billingNote ? purchasePreview().billingNote : salonT('salon.modules.default_billing_note', 'Sonraki tahakkuktan itibaren hizmet aylık olarak faturalandırılacaktır.')"></span>
                             </div>
                             <button class="btn btn-success w-100" data-bind="click: startCheckout, disable: purchaseLoading()">
                                 <i class="bi bi-credit-card me-1"></i><t key="salon.modules.go_to_payment">Ödemeye Geç</t>
@@ -323,7 +323,7 @@
                             <p class="text-muted small mb-1" data-bind="text: purchaseResultMessage"></p>
                             <div class="alert alert-warning py-2 small mt-3 text-start" data-bind="visible: purchaseResultRequiresSessionRefresh">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong><t key="salon.modules.session_refresh_required">Yeni modülü menüde görmek için oturumu yenileyin.</t></strong>
+                                <strong><t key="salon.modules.session_refresh_required">Yeni hizmeti menüde görmek için oturumu yenileyin.</t></strong>
                             </div>
                             <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: purchaseResultRequiresSessionRefresh">
                                 <i class="bi bi-arrow-clockwise me-1"></i><t key="salon.modules.refresh_session">Oturumu Yenile</t>

@@ -7,17 +7,17 @@
     <!-- Yukleniyor -->
     <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
 
-    <!-- Modul bulunamadi -->
+    <!-- Hizmet bulunamadi -->
     <div class="text-center py-5" data-bind="visible: !isLoading() && !moduleInfo()">
         <i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-2"></i>
-        <p><t key="salon.modules.auto.modul_bilgisi_bulunamadi">Modül bilgisi bulunamadi.</t></p>
-        <a href="/Modules" class="btn btn-outline-primary btn-sm"><t key="salon.modules.back_to_modules">Modüllere Dön</t></a>
+        <p><t key="salon.modules.service_not_found">Hizmet bilgisi bulunamadı.</t></p>
+        <a href="/Modules" class="btn btn-outline-primary btn-sm"><t key="salon.modules.back_to_services">Hizmet Paketlerine Dön</t></a>
     </div>
 
-    <!-- Modul Bilgisi + Odeme Formu -->
+    <!-- Hizmet bilgisi + Odeme Formu -->
     <div data-bind="visible: !isLoading() && moduleInfo()">
         <div class="row g-3">
-            <!-- Sol: Modul Bilgisi -->
+            <!-- Sol: Hizmet bilgisi -->
             <div class="col-md-5">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
@@ -28,7 +28,7 @@
                             <span class="text-muted"><t key="salon.modules.monthly_fee">Aylık Ücret</t>:</span>
                             <span class="fs-4 fw-bold text-primary" data-bind="text: moduleInfo() ? moduleInfo().monthlyPrice.toLocaleString(document.documentElement.lang || undefined, {style:'currency', currency:'TRY'}) : ''"></span>
                         </div>
-                        <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i><t key="salon.modules.auto.odeme_sonrasi_modul_hemen_aktif_olacaktir">Ödeme sonrası modül hemen aktif olacaktır.</t></div>
+                        <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i><t key="salon.modules.service_active_after_payment">Ödeme sonrası hizmet hemen aktif olacaktır.</t></div>
                     </div>
                 </div>
 
@@ -38,10 +38,10 @@
                         <div data-bind="visible: paymentResult() && paymentResult().success">
                             <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
                             <h5 class="text-success" data-bind="text: paymentResult() && paymentResult().message ? salonT('salon.modules.request_received', 'Talep Alındı') : salonT('salon.modules.auto.odeme_basarili', 'Ödeme Başarılı!')"></h5>
-                            <p class="text-muted small mb-2" data-bind="text: paymentResult() && paymentResult().message ? paymentResult().message : salonT('salon.modules.activated', 'Modülünüz aktif edildi.')"></p>
+                            <p class="text-muted small mb-2" data-bind="text: paymentResult() && paymentResult().message ? paymentResult().message : salonT('salon.modules.service_activated', 'Hizmetiniz aktif edildi.')"></p>
                             <div class="alert alert-warning py-2 small text-start" data-bind="visible: paymentResult() && !paymentResult().message">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                <strong><t key="salon.modules.auto.yeni_modulu_menude_gormek_icin_oturumu_yenileyin">Yeni modülu menude gormek icin oturumu yenileyin.</t></strong>
+                                <strong><t key="salon.modules.refresh_to_see_service">Yeni hizmeti menüde görmek için oturumu yenileyin.</t></strong>
                             </div>
                             <a href="/Account/RefreshSession?returnUrl=/Modules" class="btn btn-primary btn-sm mt-1" data-bind="visible: paymentResult() && !paymentResult().message">
                                 <i class="bi bi-arrow-clockwise me-1"></i><t key="salon.modules.refresh_session">Oturumu Yenile</t>

@@ -18,7 +18,7 @@ public class ModulesController : MgmtBaseController
 
     public IActionResult Pricing()
     {
-        ViewData["Title"] = "Modul Fiyatlari";
+        ViewData["Title"] = "Hizmet Fiyatları";
         return View();
     }
 
@@ -30,13 +30,13 @@ public class ModulesController : MgmtBaseController
 
     public IActionResult Requests()
     {
-        ViewData["Title"] = "Modul Talepleri";
+        ViewData["Title"] = "Hizmet Talepleri";
         return View();
     }
 
     public IActionResult Inventory()
     {
-        ViewData["Title"] = "Modul Envanteri";
+        ViewData["Title"] = "Hizmet Envanteri";
         return View();
     }
 

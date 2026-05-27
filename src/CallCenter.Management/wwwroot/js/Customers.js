@@ -203,7 +203,7 @@ function CustomersViewModel() {
                 if (pel !== null) msg += ' (aday musteri: ' + pel + ')';
                 msg += '. CC: ' + (data.created || 0) + ' donem, ' + (data.skipped || 0) + ' atlandi (zaten vardi).';
                 if (pel === 0) {
-                    toastr.info(msg + ' Aboneliksiz salon musterisi yok; platform tahakkuku Moduller → Abonelikler (aktif abonelikler) ile ayri kesilir.');
+                    toastr.info(msg + ' Aboneliksiz salon musterisi yok; platform tahakkuku Hizmet Yonetimi → Abonelikler (aktif abonelikler) ile ayri kesilir.');
                 } else {
                     toastr.success(msg);
                 }

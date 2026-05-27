@@ -27,7 +27,7 @@ public class MarketingController : SlnBaseController
             ? tab
             : availableTabs[0];
 
-        ViewData["Title"] = "Pazarlama ve Sadakat";
+        ViewData["Title"] = "Salon CRM";
         ViewData["MarketingTab"] = activeTab;
         ViewData["MarketingTabs"] = availableTabs;
         return View();

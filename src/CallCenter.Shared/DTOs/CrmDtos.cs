@@ -210,3 +210,18 @@ public class CrmDashboardDto
     public List<CrmActivityDto> RecentActivities { get; set; } = new();
     public List<CrmTaskDto> UpcomingTasks { get; set; } = new();
 }
+
+public class CrmModuleDto
+{
+    public int Id { get; set; }
+    public string SystemName { get; set; } = string.Empty;
+    public string NameResourceKey { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public string? CssClass { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsDefault { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public int? SourceSalonModuleId { get; set; }
+    public string? SourceSalonModuleName { get; set; }
+}

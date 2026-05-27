@@ -43,7 +43,7 @@ function RequestsViewModel() {
                     contentType: 'application/json',
                     data: JSON.stringify({ notes: notes || null }),
                     success: function () {
-                        toastr.success('Talep onaylandi. Modul aktif edildi.');
+                        toastr.success('Talep onaylandi. Hizmet aktif edildi.');
                         self.load();
                     },
                     error: function (xhr) {

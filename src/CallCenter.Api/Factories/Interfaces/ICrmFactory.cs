@@ -6,6 +6,7 @@ public interface ICrmFactory
 {
     // Dashboard
     Task<CrmDashboardDto> GetDashboardAsync(int customerId);
+    Task<List<CrmModuleDto>> GetModuleCatalogAsync();
 
     // CrmContacts
     Task<CrmCallerIdDto?> LookupByPhoneAsync(int customerId, string phoneNumber);

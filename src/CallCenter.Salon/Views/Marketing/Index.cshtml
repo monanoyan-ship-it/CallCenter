@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("salon.modules.package.loyalty_marketing", "Pazarlama ve Sadakat");
+    ViewData["Title"] = Translation.T("salon.modules.package.salon_crm", "Salon CRM");
     var activeTab = (ViewData["MarketingTab"] as string) ?? "campaigns";
     var visibleTabs = new HashSet<string>(
         (ViewData["MarketingTabs"] as System.Collections.Generic.IEnumerable<string>) ?? new[] { activeTab },
@@ -9,7 +9,7 @@
     bool Show(string tab) => visibleTabs.Contains(tab);
 }
 
-<h5 class="mb-3"><t key="salon.modules.package.loyalty_marketing">Pazarlama ve Sadakat</t></h5>
+<h5 class="mb-3"><t key="salon.modules.package.salon_crm">Salon CRM</t></h5>
 
 <div class="row g-2 mb-3">
     @if (Show("campaigns") || Show("email") || Show("winback"))

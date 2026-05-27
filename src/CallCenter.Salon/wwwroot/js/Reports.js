@@ -109,7 +109,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.low_occupancy.desc', 'Doluluk {percent}. Boş saatler için kısa bir kampanya veya hatırlatma gönderebilirsiniz.')
                         .replace('{percent}', self.formatPercent(overview.occupancyPercent)),
                     '/Marketing',
-                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+                    reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
             if (asNumber(overview.activeClientCount) > 0 && asNumber(overview.repeatVisitRatePercent) < 25) {
                 add('medium', 'bi-arrow-repeat',
@@ -117,7 +117,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.low_repeat.desc', 'Tekrar ziyaret {percent}. Sadakat, hatırlatma veya geri çağırma kampanyası deneyin.')
                         .replace('{percent}', self.formatPercent(overview.repeatVisitRatePercent)),
                     '/Marketing',
-                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+                    reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
         }
 
@@ -203,7 +203,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.no_new_clients.title', 'Yeni müşteri gelmemiş'),
                     reportT('salon.reports.actions.no_new_clients.desc', 'Bu dönemde yeni müşteri yok; profil ve randevu linklerini yeniden paylaşmayı deneyin.'),
                     '/Marketing',
-                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+                    reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
             if (asNumber(clients.totalClients) > 0 && asNumber(clients.averageVisitFrequency) < 1.2) {
                 add('low', 'bi-chat-heart',
@@ -211,7 +211,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.low_visit_frequency.desc', 'Ortalama ziyaret {count}. Tekrar randevu hatırlatması gönderebilirsiniz.')
                         .replace('{count}', self.formatNumber(clients.averageVisitFrequency, 1)),
                     '/Marketing',
-                    reportT('salon.sidebar.marketing', 'Pazarlama'));
+                    reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
         }
 

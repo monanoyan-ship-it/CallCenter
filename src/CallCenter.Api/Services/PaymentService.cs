@@ -1432,13 +1432,13 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         if (group == null) return null;
 
         var moduleIds = SalonModuleGroups.GetModuleIds(packageGroupId);
-        if (moduleIds.Count == 0) return new { error = "Bu paket henuz satin almaya acik degil." };
+        if (moduleIds.Count == 0) return new { error = "Bu hizmet henuz satin almaya acik degil." };
 
         var activeIds = await _db.CustomerPortalModules
             .Where(m => m.CustomerId == customerId && m.IsActive && moduleIds.Contains(m.ModuleId))
             .Select(m => m.ModuleId)
             .ToListAsync();
-        if (moduleIds.All(activeIds.Contains)) return new { error = "Bu paket zaten aktif." };
+        if (moduleIds.All(activeIds.Contains)) return new { error = "Bu hizmet zaten aktif." };
 
         var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
 
@@ -1460,7 +1460,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             proRata = new { days = daysUntilBilling, dailyRate = Math.Round(dailyRate, 2), amount = proRataAmount },
             nextBillingDate = nextBilling.ToString("yyyy-MM-dd"),
             totalNow = proRataAmount,
-            billingNote = "Fiyatlar KDV dahil aylik paket tutaridir. Bugun yalniz sonraki tahakkuk tarihine kadar olan kist donem tahsil edilir."
+            billingNote = "Fiyatlar KDV dahil aylık hizmet tutarıdır. Bugün yalnız sonraki tahakkuk tarihine kadar olan kıst dönem tahsil edilir."
         };
     }
 
@@ -1486,16 +1486,16 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
     public async Task<CheckoutFormResult> InitPackageCheckoutAsync(int customerId, int packageGroupId, string callbackUrl, string? buyerIp = null)
     {
         var group = SalonModuleGroups.GetById(packageGroupId);
-        if (group == null) return CheckoutFormResult.Fail("Paket bulunamadi.");
+        if (group == null) return CheckoutFormResult.Fail("Hizmet bulunamadi.");
 
         var moduleIds = SalonModuleGroups.GetModuleIds(packageGroupId);
-        if (moduleIds.Count == 0) return CheckoutFormResult.Fail("Bu paket henuz satin almaya acik degil.");
+        if (moduleIds.Count == 0) return CheckoutFormResult.Fail("Bu hizmet henuz satin almaya acik degil.");
 
         var activeIds = await _db.CustomerPortalModules
             .Where(m => m.CustomerId == customerId && m.IsActive && moduleIds.Contains(m.ModuleId))
             .Select(m => m.ModuleId)
             .ToListAsync();
-        if (moduleIds.All(activeIds.Contains)) return CheckoutFormResult.Fail("Bu paket zaten aktif.");
+        if (moduleIds.All(activeIds.Contains)) return CheckoutFormResult.Fail("Bu hizmet zaten aktif.");
 
         var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId) ?? group.MonthlyPrice;
 

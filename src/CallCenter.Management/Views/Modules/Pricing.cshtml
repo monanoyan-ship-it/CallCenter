@@ -1,10 +1,10 @@
 @{
-    ViewData["Title"] = "Modul Fiyatlari";
+    ViewData["Title"] = "Hizmet Fiyatları";
 }
 
 <div id="pricing-vm">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <small class="text-muted">Salon modullerinin katalog fiyatlarini buradan belirleyin. Firma bazli ozel fiyat icin musteri detayina gidin.</small>
+        <small class="text-muted">Salon hizmet paketlerinin katalog fiyatlarını buradan belirleyin. Firma bazlı özel fiyat için müşteri detayına gidin.</small>
         <button class="btn btn-primary btn-sm" data-bind="click: saveAll, disable: isSaving">
             <i class="bi bi-check-lg me-1"></i>Tumu Kaydet
         </button>
@@ -15,7 +15,7 @@
         <div class="col-md-3">
             <div class="card stat-card border-start border-primary border-3">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Toplam Modul</div>
+                    <div class="text-muted small">Toplam Özellik</div>
                     <h4 class="mb-0" data-bind="text: modules().length"></h4>
                 </div>
             </div>
@@ -46,14 +46,14 @@
         </div>
     </div>
 
-    <!-- Default Moduller -->
+    <!-- Default hizmetler -->
     <h6 class="text-muted mb-2"><i class="bi bi-check-circle me-1"></i>Temel Paket (Her Abonelikte Dahil)</h6>
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
-                        <tr><th style="width:40px;"></th><th>Modul</th><th>Aciklama</th><th style="width:80px;">Durum</th></tr>
+                        <tr><th style="width:40px;"></th><th>Özellik</th><th>Açıklama</th><th style="width:80px;">Durum</th></tr>
                     </thead>
                     <tbody data-bind="foreach: defaultModules">
                         <tr>
@@ -68,8 +68,8 @@
         </div>
     </div>
 
-    <!-- Opsiyonel Moduller - Grup Bazli -->
-    <h6 class="text-muted mb-2"><i class="bi bi-tags me-1"></i>Opsiyonel Modüller (Ayrı Satın Alınır)</h6>
+    <!-- Opsiyonel hizmetler - grup bazli -->
+    <h6 class="text-muted mb-2"><i class="bi bi-tags me-1"></i>Opsiyonel Hizmetler (Ayrı Satın Alınır)</h6>
     <div class="accordion" id="pricingAccordion">
         <!-- ko foreach: groupedModules -->
         <div class="accordion-item border-0 shadow-sm mb-2">
@@ -77,7 +77,7 @@
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bind="attr: { 'data-bs-target': '#priceGrp' + groupId }">
                     <strong data-bind="text: groupName"></strong>
-                    <span class="ms-2 text-muted small" data-bind="text: '(' + modules.length + ' modül)'"></span>
+                    <span class="ms-2 text-muted small" data-bind="text: '(' + modules.length + ' özellik)'"></span>
                 </button>
             </h2>
             <div class="accordion-collapse collapse" data-bind="attr: { id: 'priceGrp' + groupId }">
@@ -87,7 +87,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th style="width:40px;"></th>
-                                    <th>Modül</th>
+                                    <th>Özellik</th>
                                     <th>Açıklama</th>
                                     <th style="width:160px;">Aylık Fiyat (TL)</th>
                                     <th style="width:100px;">Durum</th>

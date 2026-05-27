@@ -50,7 +50,7 @@ function PricingViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({ prices: prices }),
             success: function (resp) {
-                toastr.success((resp.count || prices.length) + ' modul fiyati kaydedildi.');
+                toastr.success((resp.count || prices.length) + ' hizmet fiyati kaydedildi.');
                 self.dirtyIds([]);
                 self.load();
             },

@@ -165,12 +165,12 @@
             @if (mktLinks.Length > 0)
             {
                 <button type="button" class="nav-group-toggle mt-1" data-nav-group-toggle="1">
-                    <span><t key="salon.sidebar.marketing">Pazarlama</t></span><i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
+                    <span><t key="salon.sidebar.customer_relations">Müşteri İlişkileri</t></span><i class="bi bi-chevron-down chevron @(marketingOpen ? "open" : "")"></i>
                 </button>
                 <div class="nav-group-items @(marketingOpen ? "show" : "")">
                     @if (canShow("Marketing"))
                     {
-                        <a class="nav-link @(marketingOpen ? "active" : "")" href="/Marketing"><i class="bi bi-heart-fill me-2"></i><t key="salon.modules.package.loyalty_marketing">Musteri Sadakati / Pazarlama</t></a>
+                        <a class="nav-link @(marketingOpen ? "active" : "")" href="/Marketing"><i class="bi bi-person-heart me-2"></i><t key="salon.modules.package.salon_crm">Salon CRM</t></a>
                     }
                     else
                     {
@@ -210,7 +210,7 @@
                     @if (canShow("EmailSettings")) { <a class="nav-link @(ctrl == "EmailSettings" ? "active" : "")" href="/EmailSettings"><i class="bi bi-envelope-at me-2"></i><t key="salon.sidebar.email_settings">E-posta Ayarlari</t></a> }
                     @if (canShow("PageSettings")) { <a class="nav-link @(ctrl == "PageSettings" ? "active" : "")" href="/PageSettings"><i class="bi bi-layout-text-sidebar me-2"></i><t key="salon.sidebar.page_settings">Sayfa Ayarlari</t></a> }
                     @if (canShow("PaymentInfo")) { <a class="nav-link @(ctrl == "PaymentInfo" ? "active" : "")" href="/PaymentInfo"><i class="bi bi-bank me-2"></i><t key="salon.sidebar.payment_info">Odeme Bilgileri</t></a> }
-                    @if (canShow("Modules")) { <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules"><i class="bi bi-puzzle me-2"></i><t key="salon.sidebar.modules">Moduller</t></a> }
+                    @if (canShow("Modules")) { <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules"><i class="bi bi-grid-3x3-gap me-2"></i><t key="salon.sidebar.service_packages">Hizmet Paketleri</t></a> }
                 </div>
             }
 

@@ -55,29 +55,29 @@ function ModulesViewModel() {
     // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
     var PACKAGE_NAMES = {
         1: moduleT('salon.modules.package.stock_finance', 'Stok Tedarik / Finans'),
-        3: moduleT('salon.modules.package.loyalty_marketing', 'Müşteri Sadakati / Pazarlama'),
+        3: moduleT('salon.modules.package.salon_crm', 'Salon CRM'),
         5: moduleT('salon.modules.package.professional', 'Profesyonel'),
         6: moduleT('salon.modules.package.corporate', 'Kurumsal / Raporlama')
     };
     var PACKAGE_SUMMARIES = {
         1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve daha detaylı finans takibi ekler.'),
-        3: moduleT('salon.modules.package.loyalty_marketing.summary', 'Üyelik, hediye kartı, puan, yorum, müşteri geri çağırma ve kampanyaları tek yerde toplar.'),
+        3: moduleT('salon.modules.package.salon_crm.summary', 'Müşteri kartını satış sonrası takip, üyelik, hediye kartı, sadakat, yorum ve geri kazanım işleriyle güçlendirir.'),
         5: moduleT('salon.modules.package.professional.summary', 'Önce/sonra fotoğraflarıyla işlem sonucunu ve müşteri takibini daha net gösterir.'),
         6: moduleT('salon.modules.package.corporate.summary', 'Gelişmiş raporlar, şube karşılaştırması, dışa aktarım ve zamanlanmış e-posta raporları ekler.')
     };
     var PACKAGE_OUTCOMES = {
         1: moduleT('salon.modules.package.stock_finance.outcome', 'Stok kontrolünü, tedarikçi borçlarını ve maliyet kararlarını daha rahat takip edersiniz.'),
-        3: moduleT('salon.modules.package.loyalty_marketing.outcome', 'Müşterilerin tekrar gelmesini ve tek seferlik satışların düzenli gelire dönüşmesini destekler.'),
+        3: moduleT('salon.modules.package.salon_crm.outcome', 'Müşteriyle ilişkiniz randevudan sonra da devam eder; tekrar geliş, düzenli gelir ve memnuniyet takibi aynı hizmette toplanır.'),
         5: moduleT('salon.modules.package.professional.outcome', 'Uzman işlem yapan merkezlerde sonuçları müşteriye daha anlaşılır göstermenizi sağlar.'),
         6: moduleT('salon.modules.package.corporate.outcome', 'Şube, personel, hizmet, ürün ve finans performansını karşılaştırmayı kolaylaştırır.')
     };
     var PACKAGE_FLOW_NOTES = {
-        3: moduleT('salon.modules.package.loyalty_marketing.flow_note', 'Önce üyelik veya hediye kartı satışı yapılır; ardından puan, yorum ve kampanyalarla müşteri tekrar davet edilir.'),
+        3: moduleT('salon.modules.package.salon_crm.flow_note', 'Müşteri kaydı, satış sonrası haklar ve geri dönüş işleri aynı CRM hizmetinde takip edilir.'),
         5: moduleT('salon.modules.package.professional.flow_note', 'Müşteri ve randevu seçilir; önce/sonra fotoğrafları ve işlem notu aynı kayıtta tutulur.'),
         6: moduleT('salon.modules.package.corporate.flow_note', 'Şube karşılaştırması, rapor filtresi, dışa aktarım ve e-posta zamanlaması aynı rapor ekranından yönetilir.')
     };
     var PACKAGE_USAGE_NOTES = {
-        3: moduleT('salon.modules.package.loyalty_marketing.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri ayrıca kredi/kullanım olarak takip edilebilir.'),
+        3: moduleT('salon.modules.package.salon_crm.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri CRM hizmetinden ayrı kredi/kullanım olarak izlenebilir.'),
         6: moduleT('salon.modules.package.corporate.usage_note', 'Şube sayısı temel abonelikte ayrıca hesaplanır; bu paket rapor derinliği ve dışa aktarım özelliklerini açar.')
     };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
@@ -145,7 +145,7 @@ function ModulesViewModel() {
     self.platformBillingHint = ko.computed(function () {
         return self.hasUpcomingPlatformBilling()
             ? moduleT('salon.modules.platform_activation_hint', 'Demo bitişindeki ilk abonelik dönemini şimdiden kartla ödeyebilirsiniz.')
-            : moduleT('salon.modules.platform_payment_hint', 'Iyzico güvenli ödeme; modül satın alma ile aynı kart altyapısı.');
+            : moduleT('salon.modules.service_payment_hint', 'Iyzico güvenli ödeme; hizmet satın alma ile aynı kart altyapısı.');
     });
 
     // Paket + temel (çoklu şubede Temel Paket yalnız şube satırında) — şube tutarı API'de
@@ -457,8 +457,8 @@ function ModulesViewModel() {
     self.requestDeactivation = function (mod) {
         var name = mod.description || mod.systemName;
         confirmModal(
-            moduleT('salon.modules.cancel_module_title', 'Modül İptali'),
-            moduleT('salon.modules.cancel_module_body', '{name} modülünü iptal etmek istediğinize emin misiniz?\\nİptal talebi admin onayına gönderilecektir.').replace('{name}', name),
+            moduleT('salon.modules.cancel_service_title', 'Hizmet İptali'),
+            moduleT('salon.modules.cancel_service_body', '{name} hizmetini iptal etmek istediğinize emin misiniz?\\nİptal talebi admin onayına gönderilecektir.').replace('{name}', name),
             function () {
             confirmModal(moduleT('salon.modules.cancel_reason_title', 'İptal Sebebi'), moduleT('salon.modules.cancel_reason_body', 'İptal sebebini girebilirsiniz (zorunlu değil):'), function (notes) {
                 $.ajax({
@@ -480,8 +480,8 @@ function ModulesViewModel() {
         var name = pkg.groupName;
         var count = pkg.modules.length;
         confirmModal(
-            moduleT('salon.modules.cancel_package_title', 'Paket İptali'),
-            moduleT('salon.modules.cancel_package_body', '{name} paketini iptal etmek ister misiniz?\\n\\nİçindeki {count} modül için toplu iptal talebi oluşturulacak.')
+            moduleT('salon.modules.cancel_service_package_title', 'Hizmet İptali'),
+            moduleT('salon.modules.cancel_service_package_body', '{name} hizmetini iptal etmek ister misiniz?\\n\\nİçindeki {count} özellik için toplu iptal talebi oluşturulacak.')
                 .replace('{name}', name)
                 .replace('{count}', count),
             function () {
@@ -491,18 +491,18 @@ function ModulesViewModel() {
                     url: '/proxy/sln-module-requests',
                     method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ moduleId: m.id, requestTypeId: 2, notes: moduleT('salon.modules.package_cancel_note', 'Paket iptali:') + ' ' + name })
+                    data: JSON.stringify({ moduleId: m.id, requestTypeId: 2, notes: moduleT('salon.modules.service_cancel_note', 'Hizmet iptali:') + ' ' + name })
                 }).always(function (res, status) {
                     done++;
                     if (status === 'error') errors++;
                     if (done === pkg.modules.length) {
-                        if (errors === 0) toastr.success(moduleT('salon.modules.package_cancel_created', 'Paket iptal talebi oluşturuldu ({count} modül).').replace('{count}', done));
-                        else toastr.warning(moduleT('salon.modules.package_cancel_partial', '{ok}/{total} modül için iptal talebi oluşturuldu.').replace('{ok}', done - errors).replace('{total}', done));
+                        if (errors === 0) toastr.success(moduleT('salon.modules.service_cancel_created', 'Hizmet iptal talebi oluşturuldu ({count} özellik).').replace('{count}', done));
+                        else toastr.warning(moduleT('salon.modules.service_cancel_partial', '{ok}/{total} özellik için iptal talebi oluşturuldu.').replace('{ok}', done - errors).replace('{total}', done));
                         self.load();
                     }
                 });
             });
-        }, { confirmClass: 'btn-danger', confirmText: moduleT('salon.modules.cancel_package_button', 'Paketi İptal Et') });
+        }, { confirmClass: 'btn-danger', confirmText: moduleT('salon.modules.cancel_service_button', 'Hizmeti İptal Et') });
     };
 
     // === SATIN ALMA AKISI ===
@@ -511,7 +511,7 @@ function ModulesViewModel() {
     self.purchasePreview = ko.observable(null);
     self.purchaseResult = ko.observable(null);
     self.purchaseGroupId = ko.observable(null);
-    self.purchaseModalTitle = ko.observable(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
+    self.purchaseModalTitle = ko.observable(moduleT('salon.modules.service_purchase_modal_title', 'Hizmet Satın Al'));
     /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
     self.checkoutFormHtml = ko.observable('');
 
@@ -525,7 +525,7 @@ function ModulesViewModel() {
     self.purchaseResultMessage = ko.computed(function () {
         var r = self.purchaseResult();
         if (!r) return '';
-        if (r.success) return r.message || moduleT('salon.modules.module_activated', 'Modülünüz aktif edildi.');
+        if (r.success) return r.message || moduleT('salon.modules.service_activated', 'Hizmetiniz aktif edildi.');
         return r.error || moduleT('salon.modules.payment_failed_message', 'Ödeme başarısız oldu.');
     });
 
@@ -540,11 +540,11 @@ function ModulesViewModel() {
 
     self.purchasePackage = function (pkg) {
         if (pkg && pkg.hasImplemented === false) {
-            toastr.info(moduleT('salon.modules.package_coming_soon', 'Bu paket yakında aktif edilecek; şu an satın alınamaz.'));
+            toastr.info(moduleT('salon.modules.service_coming_soon', 'Bu hizmet yakında aktif edilecek; şu an satın alınamaz.'));
             return;
         }
 
-        self.purchaseModalTitle(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
+        self.purchaseModalTitle(moduleT('salon.modules.service_purchase_modal_title', 'Hizmet Satın Al'));
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
@@ -582,8 +582,8 @@ function ModulesViewModel() {
     };
 
     self.purchaseModule = function (mod) {
-        // Tek modul icin de ayni akis, groupId yerine moduleId gonder
-        self.purchaseModalTitle(moduleT('salon.modules.purchase_modal_title', 'Modül Satın Al'));
+        // Tekil hizmet kartlari da paket satin alma akisini kullanir.
+        self.purchaseModalTitle(moduleT('salon.modules.service_purchase_modal_title', 'Hizmet Satın Al'));
         self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);

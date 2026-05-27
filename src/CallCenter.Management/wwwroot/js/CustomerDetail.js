@@ -189,9 +189,9 @@ function DetailViewModel() {
             success: function (data) {
                 var count = data.addedCount || 0;
                 if (count > 0) {
-                    toastr.success(count + ' eksik modul eklendi.');
+                    toastr.success(count + ' eksik hizmet eklendi.');
                 } else {
-                    toastr.info('Tum moduller zaten mevcut.');
+                    toastr.info('Tum hizmetler zaten mevcut.');
                 }
                 self.loadTabs();
             },
@@ -206,9 +206,9 @@ function DetailViewModel() {
             url: '/proxy/customers/' + customerId + '/modules/assign',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ moduleIds: defaultIds, notes: 'Default moduller toplu aktif edildi' }),
+            data: JSON.stringify({ moduleIds: defaultIds, notes: 'Temel paket hizmetleri toplu aktif edildi' }),
             success: function () {
-                toastr.success('Default moduller aktif edildi.');
+                toastr.success('Temel paket hizmetleri aktif edildi.');
                 self.loadTabs();
             },
             error: function () { toastr.error('Islem hatasi.'); }
@@ -220,7 +220,7 @@ function DetailViewModel() {
         var url = '/proxy/customers/' + customerId + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
         $.ajax({
             url: url, method: 'POST',
-            success: function () { toastr.success('Modul guncellendi.'); self.loadTabs(); },
+            success: function () { toastr.success('Hizmet guncellendi.'); self.loadTabs(); },
             error: function () { toastr.error('Islem hatasi.'); }
         });
     };

@@ -1,19 +1,19 @@
 @using CallCenter.Shared.Enums
 @{
-    ViewData["Title"] = "Modül Envanteri";
+    ViewData["Title"] = "Hizmet Envanteri";
     var groups = SalonModuleGroups.GetAllWithModules();
     var defaultModules = SalonPortalModules.Defaults.ToList();
 }
 
 <div>
-    <small class="text-muted d-block mb-3">Salon uygulamasındaki tüm modüllerin durumu. Bu sayfa kod tarafından otomatik oluşturulur.</small>
+    <small class="text-muted d-block mb-3">Salon uygulamasındaki hizmet ve özellik katalog durumu. Bu sayfa kod tarafından otomatik oluşturulur.</small>
 
     <!-- Özet -->
     <div class="row g-3 mb-3">
         <div class="col-md-3">
             <div class="card stat-card border-start border-primary border-3">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Toplam Modül</div>
+                    <div class="text-muted small">Toplam Özellik</div>
                     <h4 class="mb-0">@SalonPortalModules.All.Count()</h4>
                 </div>
             </div>
@@ -46,7 +46,7 @@
 
     <!-- Temel Paket -->
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white py-2"><strong><i class="bi bi-check-circle text-success me-1"></i>Temel Paket (@defaultModules.Count modül)</strong></div>
+        <div class="card-header bg-white py-2"><strong><i class="bi bi-check-circle text-success me-1"></i>Temel Paket (@defaultModules.Count özellik)</strong></div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
@@ -74,7 +74,7 @@
     {
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white py-2">
-                <strong><i class="bi @g.Group.Icon me-1"></i>@g.Group.Description (@g.Modules.Count modül)</strong>
+                <strong><i class="bi @g.Group.Icon me-1"></i>@g.Group.Description (@g.Modules.Count özellik)</strong>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
