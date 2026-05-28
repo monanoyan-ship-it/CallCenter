@@ -104,7 +104,7 @@
                                 <th class="text-end">Dönem toplamı</th>
                                 <th>Odeme</th>
                                 <th>Durum</th>
-                                <th style="width:100px;">Islem</th>
+                                <th style="width:150px;">Islem</th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: items">
@@ -128,6 +128,15 @@
                                              statusId === 4 ? 'bg-danger' : 'bg-warning text-dark'"></span>
                                 </td>
                                 <td>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Tahakkuk Kalemleri"
+                                        data-bind="click: function() { $parent.showTahakkukDetail(periodId); }">
+                                        <i class="bi bi-list-ul"></i>
+                                    </button>
+                                    <!-- Sadece hic islem gormemis tahakkuk silinebilir -->
+                                    <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Tahakkuku Sil"
+                                        data-bind="visible: $parent.canDeletePeriod($data), click: function() { $parent.deletePeriod($data); }">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                     <!-- Tahakkuk veya Gecikme -> Odeme Al -->
                                     <button class="btn btn-outline-success btn-sm py-0 px-1" title="Odeme Al"
                                         data-bind="visible: statusId === 1 || statusId === 4, click: function() { $parent.showPaymentModal('single', periodId); }">
@@ -153,6 +162,96 @@
                         Toplam: <span data-bind="text: items().length"></span> kayit |
                         Toplam tutar: <span data-bind="text: summary().totalAmount + ' TL'"></span>
                     </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tahakkuk detay modali -->
+    <div class="modal fade" id="salonTahakkukDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title mb-0">Tahakkuk kalemleri</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-4" data-bind="visible: tahakkukDetailLoading">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
+                    <div class="alert alert-danger py-2 small mb-0" data-bind="visible: tahakkukDetailError, text: tahakkukDetailError"></div>
+                    <div data-bind="with: tahakkukDetail">
+                        <div class="small text-muted mb-2">
+                            <strong data-bind="text: customerName"></strong>
+                            <span class="mx-1">-</span>
+                            <span data-bind="text: 'Donem: ' + (month || '-') + '/' + (year || '-')"></span>
+                        </div>
+
+                        <div class="row g-2 small mb-3">
+                            <div class="col-md-4">
+                                <div class="border rounded p-2 bg-light">
+                                    <div class="text-muted">Temel + sube</div>
+                                    <div class="fw-semibold" data-bind="text: Number(operatorAmount || 0).toFixed(2) + ' TL'"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-2 bg-light">
+                                    <div class="text-muted">Hizmet paketleri</div>
+                                    <div class="fw-semibold" data-bind="text: Number(serviceAmount || 0).toFixed(2) + ' TL'"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded p-2 bg-light">
+                                    <div class="text-muted">Toplam</div>
+                                    <div class="fw-semibold" data-bind="text: Number((operatorAmount || 0) + (serviceAmount || 0)).toFixed(2) + ' TL'"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="small text-uppercase text-muted mb-2">Temel paket ve subeler</h6>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Kalem</th>
+                                        <th class="text-end" style="width:120px;">Adet</th>
+                                        <th class="text-end" style="width:120px;">Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Temel paket ve aktif sube kullanimi</td>
+                                        <td class="text-end font-monospace" data-bind="text: userCount || 0"></td>
+                                        <td class="text-end font-monospace" data-bind="text: Number(operatorAmount || 0).toFixed(2)"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h6 class="small text-uppercase text-muted mb-2">Hizmet paketleri</h6>
+                        <div class="table-responsive" data-bind="visible: salonModuleLines && salonModuleLines.length > 0">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Paket</th>
+                                        <th class="text-end" style="width:120px;">Aylik birim</th>
+                                        <th class="text-end" style="width:120px;">Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-bind="foreach: salonModuleLines">
+                                    <tr>
+                                        <td data-bind="text: moduleDisplayName"></td>
+                                        <td class="text-end font-monospace" data-bind="text: Number(monthlyUnitPrice || 0).toFixed(2)"></td>
+                                        <td class="text-end font-monospace" data-bind="text: Number(lineAmount || 0).toFixed(2)"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small mb-0" data-bind="visible: !salonModuleLines || salonModuleLines.length === 0">Ek hizmet paketi yok.</p>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Kapat</button>
                 </div>
             </div>
         </div>

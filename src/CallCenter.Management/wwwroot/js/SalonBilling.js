@@ -9,6 +9,9 @@ function SalonBillingViewModel() {
     self.selectAll = ko.observable(false);
     self.summary = ko.observable({});
     self._invoicedPeriods = ko.observableArray([]); // Faturalanmis olanlari takip et
+    self.tahakkukDetailLoading = ko.observable(false);
+    self.tahakkukDetailError = ko.observable(null);
+    self.tahakkukDetail = ko.observable(null);
 
     self.selectAll.subscribe(function(val) {
         self.selectedIds(val ? self.items().map(function(i) { return i.periodId; }) : []);
@@ -61,6 +64,57 @@ function SalonBillingViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         });
+    };
+
+    self.canDeletePeriod = function(item) {
+        return item
+            && item.statusId === 1
+            && !item.isPaid
+            && !item.paidAt
+            && !item.paymentMethodId
+            && !item.paymentMethodName;
+    };
+
+    self.deletePeriod = function(item) {
+        if (!self.canDeletePeriod(item)) {
+            toastr.warning('Sadece islem gormemis tahakkuk silinebilir.');
+            return;
+        }
+
+        var message = (item.customerName || 'Salon') + ' icin ' + (item.month || '-') + '/' + (item.year || '-') +
+            ' donemi tahakkuku silinsin mi?';
+        confirmModal('Tahakkuk Silme', message, function() {
+            $.ajax({
+                url: '/proxy/customers/billing/' + item.periodId,
+                method: 'DELETE'
+            }).done(function() {
+                toastr.success('Tahakkuk silindi.');
+                self.loadData();
+            }).fail(function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Tahakkuk silinemedi.');
+            });
+        }, { confirmClass: 'btn-danger', confirmText: 'Sil' });
+    };
+
+    self.showTahakkukDetail = function(periodId) {
+        self.tahakkukDetailLoading(true);
+        self.tahakkukDetailError(null);
+        self.tahakkukDetail(null);
+        $.get('/proxy/billing/periods/' + periodId + '/detail')
+            .done(function(data) {
+                self.tahakkukDetail(data);
+                new bootstrap.Modal(document.getElementById('salonTahakkukDetailModal')).show();
+            })
+            .fail(function(xhr) {
+                var msg = 'Detay yuklenemedi.';
+                try {
+                    var json = xhr.responseJSON || (xhr.responseText && JSON.parse(xhr.responseText));
+                    if (json && json.message) msg = json.message;
+                } catch (err) { /* ignore */ }
+                self.tahakkukDetailError(msg);
+                new bootstrap.Modal(document.getElementById('salonTahakkukDetailModal')).show();
+            })
+            .always(function() { self.tahakkukDetailLoading(false); });
     };
 
     // Fatura Kes (odenmis kayitlara)
