@@ -3,15 +3,29 @@
 @inject AuthService AuthService
 @inject PermissionService PermService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @using CallCenter.Shared.Enums
 @implements IDisposable
 
 <div class="sidebar-header">
     <div class="d-flex align-items-center justify-content-between px-3 py-2">
-        <a class="brand" href="customer/dashboard">
-            <i class="bi bi-headset me-2"></i>
-            <span class="brand-text">CorpLynk</span>
-        </a>
+        <div class="app-switcher" aria-label="Uygulama gecisi">
+            <a class="app-link active" href="customer/dashboard" title="CallCenter" aria-label="CallCenter" aria-current="page">
+                <i class="bi bi-headset"></i>
+            </a>
+            @if (HasCrmAccess)
+            {
+                <a class="app-link" href="@CrmBaseUrl" title="CRM" aria-label="CRM">
+                    <i class="bi bi-person-lines-fill"></i>
+                </a>
+            }
+            @if (HasSalonAccess)
+            {
+                <a class="app-link" href="@SalonBaseUrl" title="Salon" aria-label="Salon">
+                    <i class="bi bi-scissors"></i>
+                </a>
+            }
+        </div>
         <button class="btn btn-link sidebar-toggle d-lg-none" @onclick="ToggleNavMenu">
             <i class="bi bi-x-lg"></i>
         </button>
@@ -277,6 +291,10 @@
     private bool IsOperator => PermService.CustomerRoleId == CustomerRoles.Ids.Operator;
     private bool HasModule(int moduleId) => PermService.HasModule(moduleId);
     private bool HasPermission(int permTypeId) => PermService.HasPermission(permTypeId);
+    private string CrmBaseUrl => (Configuration["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
+    private string SalonBaseUrl => (Configuration["SalonBaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
+    private bool HasCrmAccess => CrmModules.All.Any(module => HasModule(module.Id));
+    private bool HasSalonAccess => SalonPortalModules.All.Any(module => HasModule(module.Id));
 
     private static readonly Dictionary<int, string[]> GroupRoutes = new()
     {

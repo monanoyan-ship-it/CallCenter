@@ -1,6 +1,7 @@
 @using System.Text.Json
 @using CallCenter.Shared.DTOs
 @inject CallCenter.Shared.Services.ITranslationService Translation
+@inject IConfiguration Configuration
 @{
     var __crmLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
     var __crmTranslations = await Translation.GetAllAsync(__crmLang);
@@ -23,8 +24,15 @@
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             color: #fff; overflow-y: auto; z-index: 1000;
         }
-        .sidebar .brand { padding: 1rem; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.1); }
-        .sidebar .brand span { color: #4fc3f7; }
+        .sidebar .brand { padding: .75rem .85rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+        .app-switcher { display: flex; gap: .45rem; align-items: center; }
+        .app-switcher .app-link {
+            width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,.72); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 8px; text-decoration: none; font-size: 1.05rem;
+        }
+        .app-switcher .app-link:hover { color: #fff; background: rgba(255,255,255,.14); }
+        .app-switcher .app-link.active { color: #fff; background: rgba(79,195,247,.24); border-color: rgba(79,195,247,.55); }
         .sidebar .nav-link { color: rgba(255,255,255,.7); padding: .6rem 1rem; font-size: .875rem; border-radius: 6px; margin: 2px 8px; }
         .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.1); }
         .sidebar .nav-link.active { color: #fff; background: rgba(79,195,247,.2); }
@@ -38,7 +46,7 @@
         .sidebar .nav-group-toggle .chevron { font-size: .6rem; transition: transform .2s ease; opacity: .5; }
         .sidebar .nav-group-toggle .chevron.open { transform: rotate(180deg); }
         .sidebar .nav-group-items { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
-        .sidebar .nav-group-items.show { max-height: 360px; }
+        .sidebar .nav-group-items.show { max-height: 560px; }
         .content-area { margin-left: var(--sidebar-width); padding: 1.5rem; min-height: 100vh; }
         .topbar { background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
     </style>
@@ -67,10 +75,28 @@
         {
             showCore = true;
         }
+        var callCenterBaseUrl = (Configuration["CallCenterBaseUrl"] ?? "https://cc.corplynk.com").TrimEnd('/');
+        var salonBaseUrl = (Configuration["SalonBaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
 
         <nav class="sidebar d-print-none">
             <div class="brand">
-                <i class="bi bi-person-lines-fill me-2"></i>CorpLynk <span>CRM</span>
+                <div class="app-switcher" aria-label="Uygulama gecisi">
+                    @if (showCallCenter)
+                    {
+                        <a class="app-link" href="@callCenterBaseUrl" title="CallCenter" aria-label="CallCenter">
+                            <i class="bi bi-headset"></i>
+                        </a>
+                    }
+                    <a class="app-link active" href="/Home" title="CRM" aria-label="CRM" aria-current="page">
+                        <i class="bi bi-person-lines-fill"></i>
+                    </a>
+                    @if (showSalon)
+                    {
+                        <a class="app-link" href="@salonBaseUrl" title="Salon" aria-label="Salon">
+                            <i class="bi bi-scissors"></i>
+                        </a>
+                    }
+                </div>
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -153,6 +179,18 @@
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "GiftCards" ? "active" : "")" href="/SalonCrm/GiftCards">
                         <i class="bi bi-gift-fill me-2"></i><t key="crm.sidebar.salon.giftcards">Hediye Kartlari</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "Campaigns" ? "active" : "")" href="/SalonCrm/Campaigns">
+                        <i class="bi bi-megaphone-fill me-2"></i><t key="crm.sidebar.salon.campaigns">Pazarlama ve SMS</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "EmailCampaigns" ? "active" : "")" href="/SalonCrm/EmailCampaigns">
+                        <i class="bi bi-envelope-fill me-2"></i><t key="crm.sidebar.salon.emailcampaigns">E-posta Kampanyalari</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "Reviews" ? "active" : "")" href="/SalonCrm/Reviews">
+                        <i class="bi bi-chat-square-text-fill me-2"></i><t key="crm.sidebar.salon.reviews">Yorum Yonetimi</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "Winback" ? "active" : "")" href="/SalonCrm/Winback">
+                        <i class="bi bi-arrow-repeat me-2"></i><t key="crm.sidebar.salon.winback">Kayip Musteri</t>
                     </a>
                 </div>
             }

@@ -1,4 +1,5 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
+@inject IConfiguration Configuration
 @{
     var __layoutLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
     var __layoutTranslations = await Translation.GetAllAsync(__layoutLang);
@@ -21,8 +22,15 @@
             background: linear-gradient(180deg, #2d1b3d 0%, #1a1028 100%);
             color: #fff; overflow-y: auto; z-index: 1000;
         }
-        .sidebar .brand { padding: 1rem; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.1); }
-        .sidebar .brand span { color: #ce93d8; }
+        .sidebar .brand { padding: .75rem .85rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+        .app-switcher { display: flex; gap: .45rem; align-items: center; }
+        .app-switcher .app-link {
+            width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,.72); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 8px; text-decoration: none; font-size: 1.05rem;
+        }
+        .app-switcher .app-link:hover { color: #fff; background: rgba(255,255,255,.14); }
+        .app-switcher .app-link.active { color: #fff; background: rgba(206,147,216,.24); border-color: rgba(206,147,216,.55); }
         .sidebar .nav-link { color: rgba(255,255,255,.7); padding: .6rem 1rem; font-size: .875rem; border-radius: 6px; margin: 2px 8px; }
         .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.1); }
         .sidebar .nav-link.active { color: #fff; background: rgba(206,147,216,.2); }
@@ -60,9 +68,35 @@
          data-translations="@__layoutTranslationsJson"></div>
     @if (__jwt.IsAuthenticated)
     {
+        var __crmBaseUrl = (Configuration["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
+        var __callCenterBaseUrl = (Configuration["CallCenterBaseUrl"] ?? "https://cc.corplynk.com").TrimEnd('/');
+        var __brandModuleIds = __jwt.CustomerModules.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => int.TryParse(s.Trim(), out var mid) ? mid : 0)
+            .Where(id => id > 0)
+            .ToHashSet();
+        var __hasCallCenterAccess = __brandModuleIds.Any(id => CallCenter.Shared.Enums.PortalModules.GetById(id) != null);
+        var __hasCrmAccess = __brandModuleIds.Any(id => CallCenter.Shared.Enums.CrmModules.GetById(id) != null)
+            || __brandModuleIds.Any(id => CallCenter.Shared.Enums.SalonModuleGroups.GetGroupId(id) == CallCenter.Shared.Enums.SalonModuleGroups.Ids.LoyaltyMarketing);
+
         <nav class="sidebar d-print-none">
             <div class="brand">
-                <i class="bi bi-scissors me-2"></i>CorpLynk <span><t key="salon.shared.auto.salon">Salon</t></span>
+                <div class="app-switcher" aria-label="Uygulama gecisi">
+                    @if (__hasCallCenterAccess)
+                    {
+                        <a class="app-link" href="@__callCenterBaseUrl" title="CallCenter" aria-label="CallCenter">
+                            <i class="bi bi-headset"></i>
+                        </a>
+                    }
+                    @if (__hasCrmAccess)
+                    {
+                        <a class="app-link" href="@__crmBaseUrl" title="CRM" aria-label="CRM">
+                            <i class="bi bi-person-lines-fill"></i>
+                        </a>
+                    }
+                    <a class="app-link active" href="/Home" title="Salon" aria-label="Salon" aria-current="page">
+                        <i class="bi bi-scissors"></i>
+                    </a>
+                </div>
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";

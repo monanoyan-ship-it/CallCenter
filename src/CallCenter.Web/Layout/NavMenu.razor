@@ -2,14 +2,25 @@
 @inject NavigationManager NavigationManager
 @inject AuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @implements IDisposable
 
 <div class="sidebar-header">
     <div class="d-flex align-items-center justify-content-between px-3 py-2">
-        <a class="brand" href="dashboard">
-            <i class="bi bi-headset me-2"></i>
-            <span class="brand-text">CorpLynk</span>
-        </a>
+        <div class="app-switcher" aria-label="Uygulama gecisi">
+            <a class="app-link active" href="dashboard" title="CallCenter" aria-label="CallCenter" aria-current="page">
+                <i class="bi bi-headset"></i>
+            </a>
+            @if (IsAdmin)
+            {
+                <a class="app-link" href="@CrmBaseUrl" title="CRM" aria-label="CRM">
+                    <i class="bi bi-person-lines-fill"></i>
+                </a>
+                <a class="app-link" href="@SalonBaseUrl" title="Salon" aria-label="Salon">
+                    <i class="bi bi-scissors"></i>
+                </a>
+            }
+        </div>
         <button class="btn btn-link sidebar-toggle d-lg-none" @onclick="ToggleNavMenu">
             <i class="bi bi-x-lg"></i>
         </button>
@@ -104,6 +115,8 @@
     private string userRole = "";
 
     private bool IsAdmin => string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase);
+    private string CrmBaseUrl => (Configuration["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
+    private string SalonBaseUrl => (Configuration["SalonBaseUrl"] ?? "https://sln.corplynk.com").TrimEnd('/');
 
     private static readonly Dictionary<string, string> RoleNames = new(StringComparer.OrdinalIgnoreCase)
     {
