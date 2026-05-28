@@ -1,0 +1,53 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    ViewData["Title"] = Translation.T("crm.salon.emailcampaigns.page_title", "Salon - E-posta Kampanyalari");
+}
+
+<div id="salon-emailcampaigns-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0"><t key="crm.salon.emailcampaigns.title">E-posta Kampanyalari</t></h6>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew"><i class="bi bi-plus-lg me-1"></i><t key="crm.common.new">Yeni</t></button>
+    </div>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 align-middle">
+                    <thead class="table-light"><tr><th><t key="crm.common.subject">Konu</t></th><th><t key="crm.common.status">Durum</t></th><th><t key="crm.salon.campaigns.recipients">Alici</t></th><th><t key="crm.salon.campaigns.sent">Gonderilen</t></th><th>Acilma</th><th>Tiklama</th><th class="text-end"></th></tr></thead>
+                    <tbody data-bind="foreach: campaigns">
+                        <tr>
+                            <td class="fw-semibold small" data-bind="text: subject"></td>
+                            <td><span class="badge" data-bind="text: $parent.statusText(statusId), css: $parent.statusClass(statusId)"></span></td>
+                            <td class="small" data-bind="text: totalRecipients || 0"></td>
+                            <td class="small" data-bind="text: sentCount || 0"></td>
+                            <td class="small" data-bind="text: openCount || 0"></td>
+                            <td class="small" data-bind="text: clickCount || 0"></td>
+                            <td class="text-end"><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" data-bind="click: $parent.edit"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-success" data-bind="click: $parent.send"><i class="bi bi-send"></i></button><button class="btn btn-outline-danger" data-bind="click: $parent.remove"><i class="bi bi-trash"></i></button></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center text-muted py-4" data-bind="visible: campaigns().length === 0"><t key="crm.salon.emailcampaigns.empty">E-posta kampanyasi yok.</t></div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="salonEmailCampaignModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.emailcampaigns.form_title">E-posta Kampanyasi</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <label class="form-label small"><t key="crm.common.subject">Konu</t></label>
+                    <input class="form-control form-control-sm mb-2" data-bind="value: form.subject" />
+                    <label class="form-label small"><t key="crm.common.content">Icerik</t></label>
+                    <textarea class="form-control form-control-sm mb-2" rows="8" data-bind="value: form.htmlBody"></textarea>
+                    <label class="form-label small"><t key="crm.common.schedule">Zamanlama</t></label>
+                    <input type="datetime-local" class="form-control form-control-sm" data-bind="value: form.scheduledAt" />
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SalonEmailCampaigns.js" asp-append-version="true"></script>
+}

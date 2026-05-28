@@ -1,0 +1,50 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    ViewData["Title"] = Translation.T("crm.salon.winback.page_title", "Salon - Kayip Musteri Geri Kazanim");
+}
+
+<div id="salon-winback-vm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0"><t key="crm.salon.winback.title">Kayip Musteri Geri Kazanim</t></h6>
+        <button class="btn btn-primary btn-sm" data-bind="click: openNew"><i class="bi bi-plus-lg me-1"></i><t key="crm.common.new">Yeni</t></button>
+    </div>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 align-middle">
+                    <thead class="table-light"><tr><th>Ad</th><th>Pasif gun</th><th>Kanal</th><th>Indirim</th><th>Durum</th><th class="text-end"></th></tr></thead>
+                    <tbody data-bind="foreach: rules">
+                        <tr>
+                            <td class="fw-semibold small" data-bind="text: name"></td>
+                            <td class="small" data-bind="text: inactiveDays"></td>
+                            <td class="small" data-bind="text: $parent.channelText(channelId)"></td>
+                            <td class="small" data-bind="text: discountPercent ? '%' + discountPercent : '-'"></td>
+                            <td><span class="badge" data-bind="css: isActive ? 'bg-success' : 'bg-secondary', text: isActive ? window.crmT('crm.common.active', 'Aktif') : window.crmT('crm.common.closed', 'Kapali')"></span></td>
+                            <td class="text-end"><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" data-bind="click: $parent.edit"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-info" data-bind="click: $parent.previewRule"><i class="bi bi-eye"></i></button><button class="btn btn-outline-success" data-bind="click: $parent.createCampaign"><i class="bi bi-megaphone"></i></button><button class="btn btn-outline-warning" data-bind="click: $parent.toggle"><i class="bi bi-power"></i></button><button class="btn btn-outline-danger" data-bind="click: $parent.remove"><i class="bi bi-trash"></i></button></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center text-muted py-4" data-bind="visible: rules().length === 0">Geri kazanim kurali yok.</div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="salonWinbackModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title">Geri Kazanim Kurali</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <label class="form-label small">Ad</label><input class="form-control form-control-sm mb-2" data-bind="value: form.name" />
+                    <div class="row g-2 mb-2"><div class="col-6"><label class="form-label small">Pasif gun</label><input type="number" class="form-control form-control-sm" data-bind="value: form.inactiveDays" /></div><div class="col-6"><label class="form-label small">Kanal</label><select class="form-select form-select-sm" data-bind="value: form.channelId"><option value="1">SMS</option><option value="2">WhatsApp</option><option value="3">E-posta</option></select></div></div>
+                    <label class="form-label small">Mesaj</label><textarea class="form-control form-control-sm mb-2" rows="4" data-bind="value: form.messageTemplate"></textarea>
+                    <label class="form-label small">Indirim (%)</label><input type="number" class="form-control form-control-sm" data-bind="value: form.discountPercent" />
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button><button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">Kaydet</button></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SalonWinback.js" asp-append-version="true"></script>
+}

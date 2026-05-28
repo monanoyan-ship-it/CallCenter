@@ -1,0 +1,38 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    ViewData["Title"] = Translation.T("crm.salon.reviews.page_title", "Salon - Yorum Yonetimi");
+}
+
+<div id="salon-reviews-vm">
+    <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="card border-0 shadow-sm text-center py-3"><div class="small text-muted">Toplam</div><div class="fs-4 fw-bold" data-bind="text: stats().totalReviews || 0"></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm text-center py-3"><div class="small text-muted">Bekleyen</div><div class="fs-4 fw-bold text-warning" data-bind="text: stats().pendingCount || 0"></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm text-center py-3"><div class="small text-muted">Onaylanan</div><div class="fs-4 fw-bold text-success" data-bind="text: stats().approvedCount || 0"></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm text-center py-3"><div class="small text-muted">Ortalama</div><div class="fs-4 fw-bold text-primary" data-bind="text: (stats().averageRating || 0).toFixed(1)"></div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 align-middle">
+                    <thead class="table-light"><tr><th>Musteri</th><th>Puan</th><th>Yorum</th><th>Durum</th><th>Tarih</th><th class="text-end"></th></tr></thead>
+                    <tbody data-bind="foreach: reviews">
+                        <tr>
+                            <td class="fw-semibold small" data-bind="text: clientName"></td>
+                            <td class="small" data-bind="text: rating"></td>
+                            <td class="small text-truncate" style="max-width:420px" data-bind="text: comment || '-'"></td>
+                            <td><span class="badge" data-bind="text: $parent.statusText(statusId), css: $parent.statusClass(statusId)"></span></td>
+                            <td class="small" data-bind="text: $parent.dateText(createdAt)"></td>
+                            <td class="text-end"><div class="btn-group btn-group-sm"><button class="btn btn-outline-success" data-bind="click: function(){ $parent.updateStatus($data, 2); }"><i class="bi bi-check-lg"></i></button><button class="btn btn-outline-danger" data-bind="click: function(){ $parent.updateStatus($data, 3); }"><i class="bi bi-x-lg"></i></button><button class="btn btn-outline-secondary" data-bind="click: $parent.remove"><i class="bi bi-trash"></i></button></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center text-muted py-4" data-bind="visible: reviews().length === 0">Yorum yok.</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SalonReviews.js" asp-append-version="true"></script>
+}
