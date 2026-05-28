@@ -25,6 +25,45 @@ function DetailViewModel() {
     self.modules = ko.observableArray([]);
     self.moduleRequests = ko.observableArray([]);
 
+    function normalizedGroupId(value) {
+        var n = parseInt(value, 10);
+        return isNaN(n) ? null : n;
+    }
+
+    function moneyValue(value) {
+        var n = parseFloat(value);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function firstMoneyValue() {
+        for (var i = 0; i < arguments.length; i++) {
+            if (arguments[i] !== null && arguments[i] !== undefined && arguments[i] !== '') {
+                return moneyValue(arguments[i]);
+            }
+        }
+        return 0;
+    }
+
+    function packagePriceForModule(m) {
+        var groupPrice = firstMoneyValue(m.groupEffectivePrice, m.groupCatalogPrice);
+        if (groupPrice > 0) return groupPrice;
+        if (m.groupCustomerPrice !== null && m.groupCustomerPrice !== undefined) return 0;
+        return moneyValue(m.effectivePrice);
+    }
+
+    function moduleGroupKey(m) {
+        var groupId = normalizedGroupId(m.groupId);
+        if (m.productTypeId === 2) {
+            if (groupId === 3) return '__skip__';
+            if (m.isDefault) return null;
+            return groupId !== null ? 'salon-' + groupId : null;
+        }
+        if (m.productTypeId === 3) {
+            return groupId !== null ? 'crm-' + groupId : null;
+        }
+        return null;
+    }
+
     // Default moduller (grupsuz, temel paket)
     self.defaultModules = ko.computed(function () {
         return (self.modules() || []).filter(function (m) {
@@ -51,26 +90,39 @@ function DetailViewModel() {
                         : 'bi-puzzle',
                     sortOrder: productOrder,
                     modules: [],
-                    activeCount: 0
+                    activeCount: 0,
+                    groupEffectivePrice: 0
                 };
             }
             grouped[key].modules.push(m);
-            if (m.isActive) grouped[key].activeCount++;
+            if (m.isActive) {
+                grouped[key].activeCount++;
+                if (grouped[key].groupEffectivePrice <= 0) {
+                    grouped[key].groupEffectivePrice = packagePriceForModule(m);
+                }
+            }
         });
         return Object.values(grouped);
     }
 
     // Salon modulleri grup bazli
     self.salonModuleGroups = ko.computed(function () {
-        var all = (self.modules() || []).filter(function (m) { return m.productTypeId === 2 && !m.isDefault; });
+        var all = (self.modules() || []).filter(function (m) {
+            return m.productTypeId === 2 && !m.isDefault && normalizedGroupId(m.groupId) !== 3;
+        });
         var grouped = {};
         all.forEach(function (m) {
             var gId = m.groupId || 0;
             var gName = m.groupName || t('management.common.other', 'Diger');
             var gIcon = 'bi-puzzle';
-            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, groupIcon: gIcon, modules: [], activeCount: 0 };
+            if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, groupIcon: gIcon, modules: [], activeCount: 0, groupEffectivePrice: 0 };
             grouped[gId].modules.push(m);
-            if (m.isActive) grouped[gId].activeCount++;
+            if (m.isActive) {
+                grouped[gId].activeCount++;
+                if (grouped[gId].groupEffectivePrice <= 0) {
+                    grouped[gId].groupEffectivePrice = packagePriceForModule(m);
+                }
+            }
         });
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
@@ -91,8 +143,20 @@ function DetailViewModel() {
 
     self.moduleTotalPrice = ko.computed(function () {
         var total = 0;
+        var countedGroups = {};
         (self.modules() || []).forEach(function (m) {
-            if (m && m.isActive && !m.isDefault) total += (m.effectivePrice || 0);
+            if (!m || !m.isActive) return;
+
+            var groupKey = moduleGroupKey(m);
+            if (groupKey === '__skip__') return;
+            if (groupKey) {
+                if (countedGroups[groupKey]) return;
+                countedGroups[groupKey] = true;
+                total += packagePriceForModule(m);
+                return;
+            }
+
+            if (!m.isDefault) total += moneyValue(m.effectivePrice);
         });
         return total.toLocaleString('tr-TR');
     });

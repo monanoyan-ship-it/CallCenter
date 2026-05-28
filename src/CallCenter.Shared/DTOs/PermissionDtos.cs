@@ -20,7 +20,7 @@ public class PortalModuleDto
     public string? Icon { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
-    /// <summary>1 = CallCenter, 2 = Salon</summary>
+    /// <summary>1 = CallCenter, 2 = Salon, 3 = CRM</summary>
     public int ProductTypeId { get; set; }
     /// <summary>Modül grup ID (SalonModuleGroups.Ids). null = grupsuz (default modül)</summary>
     public int? GroupId { get; set; }
@@ -28,6 +28,9 @@ public class PortalModuleDto
     public decimal CatalogPrice { get; set; }
     public decimal? CustomerPrice { get; set; }
     public decimal EffectivePrice => CustomerPrice ?? CatalogPrice;
+    public decimal GroupCatalogPrice { get; set; }
+    public decimal? GroupCustomerPrice { get; set; }
+    public decimal GroupEffectivePrice => GroupCustomerPrice ?? GroupCatalogPrice;
     public DateTime? TrialEndsAt { get; set; }
     public bool IsImplemented { get; set; } = true;
     public List<PermissionTypeDto> Permissions { get; set; } = new();

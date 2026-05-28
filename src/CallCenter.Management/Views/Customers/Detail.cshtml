@@ -280,6 +280,7 @@
                             <strong data-bind="text: groupName"></strong>
                             <span class="ms-2 badge" data-bind="text: activeCount + '/' + modules.length + ' aktif',
                                 css: activeCount === modules.length ? 'bg-success' : activeCount > 0 ? 'bg-warning text-dark' : 'bg-secondary'"></span>
+                            <span class="ms-2 small text-muted" data-bind="visible: (groupEffectivePrice || 0) > 0, text: Number(groupEffectivePrice || 0).toLocaleString('tr-TR') + ' TL / ay'"></span>
                         </button>
                     </h2>
                     <div class="accordion-collapse collapse" data-bind="attr: { id: 'mgrp' + groupId }">

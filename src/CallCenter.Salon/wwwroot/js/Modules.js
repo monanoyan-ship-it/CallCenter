@@ -47,9 +47,36 @@ function ModulesViewModel() {
     self.activeModules = ko.observableArray([]);
     self.availableModules = ko.observableArray([]);
     self.requests = ko.observableArray([]);
+    var SALON_PRODUCT_TYPE_ID = 2;
+    var CRM_PRODUCT_TYPE_ID = 3;
+    var CRM_SALON_GROUP_ID = 1;
+    var SALON_CRM_BRIDGE_GROUP_ID = 3;
+
+    function normalizedGroupId(value) {
+        var n = parseInt(value, 10);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function isSalonCatalogModule(m) {
+        return !m || typeof m.productTypeId === 'undefined' || m.productTypeId === SALON_PRODUCT_TYPE_ID;
+    }
+
+    function isSalonCrmBridgeModule(m) {
+        return isSalonCatalogModule(m) && normalizedGroupId(m.groupId) === SALON_CRM_BRIDGE_GROUP_ID;
+    }
+
+    function isCrmBillingModule(m) {
+        return m && m.productTypeId === CRM_PRODUCT_TYPE_ID && m.isActive;
+    }
+
+    function hasActiveCrmGroup(groupId) {
+        return self.activeModules().some(function (m) {
+            return isCrmBillingModule(m) && normalizedGroupId(m.groupId) === groupId;
+        });
+    }
 
     self.defaultModules = ko.computed(function () {
-        return self.activeModules().filter(function (m) { return m.isDefault; });
+        return self.activeModules().filter(function (m) { return isSalonCatalogModule(m) && m.isDefault; });
     });
 
     // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
@@ -75,7 +102,18 @@ function ModulesViewModel() {
     };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
     var PACKAGE_PRICE_FALLBACK = { 0: 1700, 3: 1500, 5: 1500 };
+    var CRM_PACKAGE_NAMES = {
+        0: moduleT('salon.modules.crm_package.core', 'Genel CRM'),
+        1: moduleT('salon.modules.crm_package.salon', 'Salon CRM'),
+        2: moduleT('salon.modules.crm_package.callcenter', 'CallCenter CRM')
+    };
+    var CRM_PACKAGE_SUMMARIES = {
+        0: moduleT('salon.modules.crm_package.core.summary', 'Kisiler, talepler, firsatlar, gorevler, kampanyalar ve raporlar CRM uygulamasinda yonetilir.'),
+        1: moduleT('salon.modules.crm_package.salon.summary', 'Hediye karti, uyelik, sadakat, yorum, kampanya ve geri kazanim isleri CRM uygulamasinda yonetilir.'),
+        2: moduleT('salon.modules.crm_package.callcenter.summary', 'CallCenter tarafindaki cagri, talep, takip ve kampanya isleri CRM uygulamasinda izlenir.')
+    };
     self.packagePrices = ko.observable({});
+    self.crmPackagePrices = ko.observable({});
     self.basePackageSummary = ko.observable(moduleT('salon.modules.base_package_summary', 'Randevu, müşteri, hizmet, personel, ürün/stok takibi, adisyon, kasa, profil, bekleme listesi ve temel güvenlik özellikleri dahildir.'));
     self.basePackageOutcome = ko.observable(moduleT('salon.modules.base_package_outcome', 'Yeni bir salonun ilk günden randevu almaya ve satış yapmaya hazır olmasını sağlar.'));
 
@@ -92,9 +130,22 @@ function ModulesViewModel() {
         return PACKAGE_PRICE_FALLBACK[n] != null ? PACKAGE_PRICE_FALLBACK[n] : 0;
     };
 
+    self.crmPriceForGroup = function (gId) {
+        self.crmPackagePrices();
+        var m = self.crmPackagePrices() || {};
+        var n = parseInt(gId, 10);
+        if (isNaN(n)) n = 0;
+        var v = m[n];
+        if (v == null) v = m[String(n)];
+        if (v != null) return typeof v === 'number' ? v : parseFloat(String(v), 10);
+        return 1500;
+    };
+
     self.activeGroups = ko.computed(function () {
         self.packagePrices();
-        var nonDefault = self.activeModules().filter(function (m) { return !m.isDefault && m.isActive; });
+        var nonDefault = self.activeModules().filter(function (m) {
+            return isSalonCatalogModule(m) && !m.isDefault && m.isActive && !isSalonCrmBridgeModule(m);
+        });
         var grouped = {};
         nonDefault.forEach(function (m) {
             var gId = m.groupId || 0;
@@ -105,9 +156,31 @@ function ModulesViewModel() {
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
 
+    self.otherActiveCrmGroups = ko.computed(function () {
+        self.crmPackagePrices();
+        var grouped = {};
+        self.activeModules().filter(isCrmBillingModule).forEach(function (m) {
+            var gId = normalizedGroupId(m.groupId);
+            var gName = CRM_PACKAGE_NAMES[gId] || m.groupName || moduleT('salon.modules.crm_package.other', 'CRM Hizmeti');
+            if (!grouped[gId]) {
+                grouped[gId] = {
+                    groupId: gId,
+                    groupName: gName,
+                    packagePrice: self.crmPriceForGroup(gId),
+                    summary: CRM_PACKAGE_SUMMARIES[gId] || moduleT('salon.modules.crm_package.summary', 'Bu hizmet CRM uygulamasinda yonetilir ve tahakkuku ayri izlenir.'),
+                    modules: []
+                };
+            }
+            grouped[gId].modules.push(m);
+        });
+        return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
+    });
+
     self.availableGroups = ko.computed(function () {
         self.packagePrices();
-        var all = self.availableModules();
+        var all = self.availableModules().filter(function (m) {
+            return !(isSalonCrmBridgeModule(m) && hasActiveCrmGroup(CRM_SALON_GROUP_ID));
+        });
         var grouped = {};
         all.forEach(function (m) {
             var gId = m.groupId || 0;
@@ -154,7 +227,9 @@ function ModulesViewModel() {
         var total = multi ? 0 : self.priceForGroup(0);
         var activeGroupIds = {};
         self.activeModules().forEach(function (m) {
-            if (!m.isDefault && m.isActive && m.groupId) activeGroupIds[m.groupId] = true;
+            if (isSalonCatalogModule(m) && !m.isDefault && m.isActive && m.groupId && !isSalonCrmBridgeModule(m)) {
+                activeGroupIds[m.groupId] = true;
+            }
         });
         Object.keys(activeGroupIds).forEach(function (gId) {
             total += self.priceForGroup(gId);
@@ -388,6 +463,13 @@ function ModulesViewModel() {
                 toastr.warning(moduleT('salon.modules.price_list_fallback', 'Fiyat listesi yüklenemedi; varsayılan fiyatlar kullanılıyor.'));
                 self.packagePrices({});
             });
+
+        $.ajax({ url: '/proxy/sln-module-requests/crm-package-prices', dataType: 'text', cache: false })
+            .done(function (text, st, xhr) {
+                var d = parseAjaxBody(text, xhr);
+                self.crmPackagePrices(d && typeof d === 'object' && !Array.isArray(d) ? d : {});
+            })
+            .fail(function () { self.crmPackagePrices({}); });
 
         $.ajax({ url: '/proxy/sln-module-requests', dataType: 'text', cache: false })
             .done(function (text, st, xhr) {

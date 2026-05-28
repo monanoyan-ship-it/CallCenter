@@ -1062,6 +1062,7 @@ public class SubscriptionFactory : ISubscriptionFactory
             var groupId = SalonModuleGroups.GetGroupId(mod.ModuleId);
             if (!groupId.HasValue) continue;
             if (groupId.Value == SalonModuleGroups.Ids.Core) continue;
+            if (SalonModuleGroups.IsCrmServiceGroup(groupId.Value)) continue;
 
             var def = SalonPortalModules.GetById(mod.ModuleId);
             if (def?.IsDefault == true) continue;

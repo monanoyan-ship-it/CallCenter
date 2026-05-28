@@ -199,7 +199,6 @@ public class AppDbContext : DbContext
     public DbSet<SalonRolePermission> SalonRolePermissions => Set<SalonRolePermission>();
 
     // ─── Module Licensing ───
-    public DbSet<ModulePricing> ModulePricings => Set<ModulePricing>();
     public DbSet<ModuleRequest> ModuleRequests => Set<ModuleRequest>();
 
     // ─── Integration & Webhook ───
@@ -695,14 +694,6 @@ public class AppDbContext : DbContext
             e.HasKey(p => p.Id);
             e.HasIndex(p => new { p.RoleId, p.PageName }).IsUnique();
             e.Property(p => p.PageName).HasMaxLength(100);
-        });
-
-        // ModulePricing (modul katalog fiyatlari)
-        modelBuilder.Entity<ModulePricing>(e =>
-        {
-            e.HasKey(p => p.Id);
-            e.HasIndex(p => p.ModuleId).IsUnique();
-            e.Property(p => p.MonthlyPrice).HasPrecision(18, 2);
         });
 
         // ModuleRequest (firma modul talepleri)

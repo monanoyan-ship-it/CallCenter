@@ -429,56 +429,30 @@ public class PaymentService
     /// <summary>Modul satin alma odemesi (Salon admin odiyor)</summary>
     public async Task<PaymentResult> ProcessModulePurchaseAsync(int customerId, int moduleId, PaymentCardInfo card, string? buyerIp = null)
     {
-        var pricing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == moduleId);
-        if (pricing == null) return PaymentResult.Fail("Modul fiyati tanimlanmamis.");
-        if (pricing.MonthlyPrice <= 0) return PaymentResult.Fail("Bu modul ucretsizdir.");
-
-        // Zaten aktif mi kontrol et
-        var existing = await _db.CustomerPortalModules
-            .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.ModuleId == moduleId && m.IsActive);
-        if (existing != null) return PaymentResult.Fail("Bu modul zaten aktif.");
+        var resolved = await ResolveLegacyModulePurchaseAsync(customerId, moduleId, checkAlreadyActive: true);
+        if (resolved.Error != null) return PaymentResult.Fail(resolved.Error);
+        var purchase = resolved.Purchase!;
 
         var tx = new PaymentTransaction
         {
             PaymentTypeId = PaymentTypes.Ids.ModulSatinAlma,
             CustomerId = customerId,
             ModuleId = moduleId,
-            Amount = pricing.MonthlyPrice,
+            Amount = purchase.MonthlyPrice,
             PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
             InstallmentCount = card.Installment,
-            CardLastFour = card.CardNumber?.Length >= 4 ? card.CardNumber[^4..] : null
+            CardLastFour = card.CardNumber?.Length >= 4 ? card.CardNumber[^4..] : null,
+            Notes = $"PackageGroup:{purchase.PackageGroupId}"
         };
 
         var gatewayResult = await ExecutePaymentAsync(tx, card, buyerIp);
 
         if (gatewayResult.Success)
         {
-            // Modulu aktif et
-            var cpm = await _db.CustomerPortalModules
-                .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.ModuleId == moduleId);
-            if (cpm != null)
-            {
-                cpm.IsActive = true;
-                cpm.ActivatedAt = DateTime.UtcNow;
-                cpm.DeactivatedAt = null;
-            }
-            else
-            {
-                _db.CustomerPortalModules.Add(new CustomerPortalModule
-                {
-                    CustomerId = customerId,
-                    ModuleId = moduleId,
-                    IsActive = true,
-                    ActivatedAt = DateTime.UtcNow,
-                    MonthlyPrice = pricing.MonthlyPrice
-                });
-            }
+            await ActivateSalonPackageModulesAsync(customerId, purchase);
 
-            if (CrmModules.HasSalonModule(moduleId))
-                await ActivateCrmModulesForSalonPackageAsync(customerId, new[] { moduleId });
-
-            _logger.LogInformation("Modul satin alma basarili: CustomerId={CustomerId}, ModuleId={ModuleId}, Amount={Amount}",
-                customerId, moduleId, pricing.MonthlyPrice);
+            _logger.LogInformation("Modul satin alma basarili: CustomerId={CustomerId}, ModuleId={ModuleId}, PackageGroupId={PackageGroupId}, Amount={Amount}",
+                customerId, moduleId, purchase.PackageGroupId, purchase.MonthlyPrice);
         }
 
         await _db.SaveChangesAsync();
@@ -494,19 +468,20 @@ public class PaymentService
         string? receiptContentType = null,
         string? receiptBase64 = null)
     {
-        var pricing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == moduleId);
-        if (pricing == null) return PaymentResult.Fail("Modul fiyati tanimlanmamis.");
-        if (pricing.MonthlyPrice <= 0) return PaymentResult.Fail("Bu modul ucretsizdir.");
+        var resolved = await ResolveLegacyModulePurchaseAsync(customerId, moduleId, checkAlreadyActive: true);
+        if (resolved.Error != null) return PaymentResult.Fail(resolved.Error);
+        var purchase = resolved.Purchase!;
 
         var tx = new PaymentTransaction
         {
             PaymentTypeId = PaymentTypes.Ids.ModulSatinAlma,
             CustomerId = customerId,
             ModuleId = moduleId,
-            Amount = pricing.MonthlyPrice,
+            Amount = purchase.MonthlyPrice,
             PaymentMethodId = BillingPaymentMethods.Ids.Havale,
             StatusId = PaymentStatuses.Ids.Beklemede,
-            Provider = "Havale"
+            Provider = "Havale",
+            Notes = $"PackageGroup:{purchase.PackageGroupId}"
         };
 
         tx.Notes = AddNoteEvent(tx.Notes, "CustomerHavaleRequested", "Havale/EFT talebi olusturuldu.");
@@ -549,29 +524,10 @@ public class PaymentService
         // Modul satin almaysa modulu aktif et
         if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.ModuleId.HasValue && tx.CustomerId.HasValue)
         {
-            var cpm = await _db.CustomerPortalModules
-                .FirstOrDefaultAsync(m => m.CustomerId == tx.CustomerId && m.ModuleId == tx.ModuleId);
-            if (cpm != null)
-            {
-                cpm.IsActive = true;
-                cpm.ActivatedAt = DateTime.UtcNow;
-                cpm.DeactivatedAt = null;
-            }
-            else
-            {
-                var pricing = await _db.ModulePricings.FirstOrDefaultAsync(p => p.ModuleId == tx.ModuleId);
-                _db.CustomerPortalModules.Add(new CustomerPortalModule
-                {
-                    CustomerId = tx.CustomerId.Value,
-                    ModuleId = tx.ModuleId.Value,
-                    IsActive = true,
-                    ActivatedAt = DateTime.UtcNow,
-                    MonthlyPrice = pricing?.MonthlyPrice
-                });
-            }
+            var resolved = await ResolveLegacyModulePurchaseAsync(tx.CustomerId.Value, tx.ModuleId.Value, checkAlreadyActive: false);
+            if (resolved.Error != null) return PaymentResult.Fail(resolved.Error);
 
-            if (CrmModules.HasSalonModule(tx.ModuleId.Value))
-                await ActivateCrmModulesForSalonPackageAsync(tx.CustomerId.Value, new[] { tx.ModuleId.Value });
+            await ActivateSalonPackageModulesAsync(tx.CustomerId.Value, resolved.Purchase!);
         }
 
         await _db.SaveChangesAsync();
@@ -1478,6 +1434,16 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             .FirstOrDefaultAsync();
         if (activePeriod == null) return null;
 
+        if (SalonModuleGroups.IsCrmServiceGroup(packageGroupId))
+        {
+            var crmItem = await _db.ServicePricingItems
+                .FirstOrDefaultAsync(i => i.PeriodId == activePeriod.Id
+                    && i.ProductTypeId == CrmModules.ProductTypeId
+                    && i.PackageGroupId == CrmModuleGroups.Ids.Salon);
+            if (crmItem != null && crmItem.MonthlyPrice > 0m)
+                return crmItem.MonthlyPrice;
+        }
+
         var item = await _db.ServicePricingItems
             .FirstOrDefaultAsync(i => i.PeriodId == activePeriod.Id
                 && i.ProductTypeId == SalonPortalModules.ProductTypeId
@@ -1489,6 +1455,76 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             return null;
 
         return item.MonthlyPrice;
+    }
+
+    private async Task<(LegacyModulePurchase? Purchase, string? Error)> ResolveLegacyModulePurchaseAsync(
+        int customerId,
+        int moduleId,
+        bool checkAlreadyActive)
+    {
+        var module = SalonPortalModules.GetById(moduleId);
+        if (module == null)
+            return (null, "Hizmet bulunamadi.");
+
+        if (module.IsDefault)
+            return (null, "Temel paket hizmetleri ayrica satin alinamaz.");
+
+        var packageGroupId = SalonModuleGroups.GetGroupId(moduleId);
+        if (!packageGroupId.HasValue || packageGroupId.Value == SalonModuleGroups.Ids.Core)
+            return (null, "Bu hizmet icin satin alma paketi tanimlanmamis.");
+
+        var group = SalonModuleGroups.GetById(packageGroupId.Value);
+        if (group == null)
+            return (null, "Hizmet paketi aktif katalogda bulunamadi.");
+
+        var moduleIds = SalonModuleGroups.GetModuleIds(packageGroupId.Value);
+        if (moduleIds.Count == 0)
+            return (null, "Bu hizmet henuz satin almaya acik degil.");
+
+        if (checkAlreadyActive)
+        {
+            var activeIds = await _db.CustomerPortalModules
+                .Where(m => m.CustomerId == customerId && m.IsActive && moduleIds.Contains(m.ModuleId))
+                .Select(m => m.ModuleId)
+                .ToListAsync();
+            if (moduleIds.All(activeIds.Contains))
+                return (null, "Bu hizmet zaten aktif.");
+        }
+
+        var monthlyPrice = await GetActivePackagePriceAsync(packageGroupId.Value) ?? group.MonthlyPrice;
+        if (monthlyPrice <= 0m)
+            return (null, "Bu hizmet icin aktif fiyat doneminde ucret tanimlanmamis.");
+
+        return (new LegacyModulePurchase(packageGroupId.Value, group.Description, moduleIds, monthlyPrice), null);
+    }
+
+    private async Task ActivateSalonPackageModulesAsync(int customerId, LegacyModulePurchase purchase)
+    {
+        foreach (var moduleId in purchase.ModuleIds)
+        {
+            var cpm = await _db.CustomerPortalModules
+                .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.ModuleId == moduleId);
+            if (cpm != null)
+            {
+                cpm.IsActive = true;
+                cpm.ActivatedAt = DateTime.UtcNow;
+                cpm.DeactivatedAt = null;
+                cpm.MonthlyPrice = purchase.MonthlyPrice;
+                continue;
+            }
+
+            _db.CustomerPortalModules.Add(new CustomerPortalModule
+            {
+                CustomerId = customerId,
+                ModuleId = moduleId,
+                IsActive = true,
+                ActivatedAt = DateTime.UtcNow,
+                MonthlyPrice = purchase.MonthlyPrice
+            });
+        }
+
+        if (purchase.PackageGroupId == SalonModuleGroups.Ids.LoyaltyMarketing)
+            await ActivateCrmModulesForSalonPackageAsync(customerId, purchase.ModuleIds);
     }
 
     private async Task EnsureCrmProductAsync(int customerId)
@@ -1547,6 +1583,12 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             });
         }
     }
+
+    private sealed record LegacyModulePurchase(
+        int PackageGroupId,
+        string PackageName,
+        IReadOnlyList<int> ModuleIds,
+        decimal MonthlyPrice);
 
     public async Task<CheckoutFormResult> InitPackageCheckoutAsync(int customerId, int packageGroupId, string callbackUrl, string? buyerIp = null)
     {
@@ -1745,6 +1787,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             {
                 var moduleIds = SalonModuleGroups.GetModuleIds(pgId);
                 var group = SalonModuleGroups.GetById(pgId);
+                var monthlyPrice = await GetActivePackagePriceAsync(pgId) ?? group?.MonthlyPrice;
                 foreach (var moduleId in moduleIds)
                 {
                     var cpm = await _db.CustomerPortalModules
@@ -1754,7 +1797,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                         cpm.IsActive = true;
                         cpm.ActivatedAt = DateTime.UtcNow;
                         cpm.DeactivatedAt = null;
-                        cpm.MonthlyPrice = group?.MonthlyPrice;
+                        cpm.MonthlyPrice = monthlyPrice;
                     }
                     else
                     {
@@ -1764,7 +1807,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                             ModuleId = moduleId,
                             IsActive = true,
                             ActivatedAt = DateTime.UtcNow,
-                            MonthlyPrice = group?.MonthlyPrice
+                            MonthlyPrice = monthlyPrice
                         });
                     }
                 }

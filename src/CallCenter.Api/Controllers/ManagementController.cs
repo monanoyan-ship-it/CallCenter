@@ -79,29 +79,6 @@ public class ManagementController : ControllerBase
 
     // ═══ MODULE PRICING ═══
 
-    /// <summary>Tum modul fiyatlarini listele</summary>
-    [HttpGet("module-pricing")]
-    public async Task<IActionResult> GetModulePricing()
-    {
-        return Ok(await _factory.GetModulePricingAsync());
-    }
-
-    /// <summary>Tek modul fiyat guncelle (upsert)</summary>
-    [HttpPost("module-pricing")]
-    public async Task<IActionResult> UpdateModulePricing([FromBody] UpdateModulePricingRequest request)
-    {
-        await _factory.UpdateModulePricingAsync(request.ModuleId, request.MonthlyPrice);
-        return Ok(new { success = true });
-    }
-
-    /// <summary>Toplu modul fiyat guncelle</summary>
-    [HttpPost("module-pricing/bulk")]
-    public async Task<IActionResult> BulkUpdateModulePricing([FromBody] BulkUpdateModulePricingRequest request)
-    {
-        var count = await _factory.BulkUpdateModulePricingAsync(request.Prices);
-        return Ok(new { success = true, count });
-    }
-
     // ═══ MODULE REQUESTS (Admin) ═══
 
     /// <summary>Modul talepleri (varsayilan: sadece bekleyenler, all=true ile tumu)</summary>

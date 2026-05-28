@@ -11,40 +11,40 @@ namespace CallCenter.Api.Factories;
 public class ModuleRequestFactory : IModuleRequestFactory
 {
     private readonly IModuleRequestEntityService _requestEs;
-    private readonly IModulePricingEntityService _pricingEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
     private readonly ICustomerProductEntityService _customerProductEs;
     private readonly ISubscriptionFactory _subscriptionFactory;
+    private readonly ServicePricingFactory _servicePricingFactory;
     private readonly IUnitOfWork _uow;
 
     public ModuleRequestFactory(
         IModuleRequestEntityService requestEs,
-        IModulePricingEntityService pricingEs,
         ICustomerPortalModuleEntityService moduleEs,
         ICustomerProductEntityService customerProductEs,
         ISubscriptionFactory subscriptionFactory,
+        ServicePricingFactory servicePricingFactory,
         IUnitOfWork uow)
     {
         _requestEs = requestEs;
-        _pricingEs = pricingEs;
         _moduleEs = moduleEs;
         _customerProductEs = customerProductEs;
         _subscriptionFactory = subscriptionFactory;
+        _servicePricingFactory = servicePricingFactory;
         _uow = uow;
     }
 
     public async Task<List<ModuleRequestDto>> GetCustomerRequestsAsync(int customerId)
     {
         var requests = await _requestEs.GetByCustomerAsync(customerId);
-        var pricings = await _pricingEs.GetAllAsync();
-        return requests.Select(r => MapToDto(r, pricings)).ToList();
+        var prices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
+        return requests.Select(r => MapToDto(r, prices)).ToList();
     }
 
     public async Task<List<ModuleRequestDto>> GetPendingRequestsAsync()
     {
         var requests = await _requestEs.GetPendingAsync();
-        var pricings = await _pricingEs.GetAllAsync();
-        return requests.Select(r => MapToDto(r, pricings)).ToList();
+        var prices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
+        return requests.Select(r => MapToDto(r, prices)).ToList();
     }
 
     public async Task<ModuleRequestDto> CreateRequestAsync(int customerId, int personnelId, CreateModuleRequestDto dto)
@@ -86,8 +86,8 @@ public class ModuleRequestFactory : IModuleRequestFactory
         _requestEs.Add(request);
         await _uow.SaveChangesAsync();
 
-        var pricings = await _pricingEs.GetAllAsync();
-        return MapToDto(request, pricings);
+        var prices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
+        return MapToDto(request, prices);
     }
 
     public async Task<ModuleRequestDto> ApproveRequestAsync(int requestId, int reviewerUserId, string? adminNotes)
@@ -144,8 +144,8 @@ public class ModuleRequestFactory : IModuleRequestFactory
         await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(request.CustomerId, saveChanges: false);
         await _uow.SaveChangesAsync();
 
-        var pricings = await _pricingEs.GetAllAsync();
-        return MapToDto(request, pricings);
+        var prices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
+        return MapToDto(request, prices);
     }
 
     public async Task<ModuleRequestDto> RejectRequestAsync(int requestId, int reviewerUserId, string? adminNotes)
@@ -163,8 +163,8 @@ public class ModuleRequestFactory : IModuleRequestFactory
 
         await _uow.SaveChangesAsync();
 
-        var pricings = await _pricingEs.GetAllAsync();
-        return MapToDto(request, pricings);
+        var prices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
+        return MapToDto(request, prices);
     }
 
     public async Task CancelRequestAsync(int requestId, int customerId)
@@ -185,8 +185,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
     public async Task<List<ModulePricingDto>> GetAvailableModulesAsync(int customerId)
     {
         var activeIds = await _moduleEs.GetActiveModuleIdsAsync(customerId);
-        var pricings = await _pricingEs.GetAllAsync();
-        var pricingMap = pricings.ToDictionary(p => p.ModuleId);
+        var pricingMap = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
 
         return SalonPortalModules.All
             .Where(m => !m.IsDefault && !activeIds.Contains(m.Id))
@@ -202,7 +201,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
                     IsDefault = m.IsDefault,
                     GroupId = groupId,
                     GroupName = SalonModuleGroups.GetById(groupId ?? 0)?.Description,
-                    MonthlyPrice = pricingMap.TryGetValue(m.Id, out var p) ? p.MonthlyPrice : 0,
+                    MonthlyPrice = pricingMap.TryGetValue(m.Id, out var price) ? price : 0,
                     HasPricing = pricingMap.ContainsKey(m.Id),
                     IsImplemented = SalonPortalModules.IsImplemented(m.Id)
                 };
@@ -210,10 +209,10 @@ public class ModuleRequestFactory : IModuleRequestFactory
             .ToList();
     }
 
-    private static ModuleRequestDto MapToDto(ModuleRequest r, List<ModulePricing> pricings)
+    private static ModuleRequestDto MapToDto(ModuleRequest r, IReadOnlyDictionary<int, decimal> prices)
     {
         var module = SalonPortalModules.GetById(r.ModuleId);
-        var pricing = pricings.FirstOrDefault(p => p.ModuleId == r.ModuleId);
+        prices.TryGetValue(r.ModuleId, out var price);
         var status = ModuleRequestStatuses.GetById(r.StatusId);
         var requestType = ModuleRequestTypes.GetById(r.RequestTypeId);
 
@@ -226,7 +225,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
             ModuleId = r.ModuleId,
             ModuleName = module?.Description ?? module?.SystemName,
             ModuleIcon = module?.Icon,
-            CatalogPrice = pricing?.MonthlyPrice,
+            CatalogPrice = price,
             RequestTypeId = r.RequestTypeId,
             RequestTypeName = requestType?.Description,
             StatusId = r.StatusId,

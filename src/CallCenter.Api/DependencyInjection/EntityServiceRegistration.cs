@@ -25,7 +25,6 @@ public static class EntityServiceRegistration
         services.AddScoped<ISipLineEntityService, SipLineEntityService>();
         services.AddScoped<IOrganizationEntityService, OrganizationEntityService>();
         services.AddScoped<ICustomerPortalModuleEntityService, CustomerPortalModuleEntityService>();
-        services.AddScoped<IModulePricingEntityService, ModulePricingEntityService>();
         services.AddScoped<IModuleRequestEntityService, ModuleRequestEntityService>();
         services.AddScoped<CallCenter.Api.Services.SalonRolePermissionService>();
         services.AddScoped<CallCenter.Api.Services.PaymentService>();

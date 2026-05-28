@@ -17,7 +17,6 @@ public class CustomerFactory : ICustomerFactory
     private readonly ICustomerPortalModuleEntityService _moduleEs;
     private readonly IUserEntityService _userEs;
     private readonly ICustomerProductEntityService _customerProductEs;
-    private readonly IModulePricingEntityService _modulePricingEs;
     private readonly ISlnServiceCategoryEntityService _serviceCategoryEs;
     private readonly ISlnServiceEntityService _serviceEs;
     private readonly ISlnExpenseCategoryEntityService _expenseCategoryEs;
@@ -28,6 +27,7 @@ public class CustomerFactory : ICustomerFactory
     private readonly IPasswordPolicyFactory _passwordPolicy;
     private readonly IAuthFactory _authFactory;
     private readonly ISubscriptionFactory _subscriptionFactory;
+    private readonly ServicePricingFactory _servicePricingFactory;
     private readonly IUnitOfWork _uow;
     private readonly IConfiguration _config;
 
@@ -37,7 +37,6 @@ public class CustomerFactory : ICustomerFactory
         ICustomerPortalModuleEntityService moduleEs,
         IUserEntityService userEs,
         ICustomerProductEntityService customerProductEs,
-        IModulePricingEntityService modulePricingEs,
         ISlnServiceCategoryEntityService serviceCategoryEs,
         ISlnServiceEntityService serviceEs,
         ISlnExpenseCategoryEntityService expenseCategoryEs,
@@ -48,6 +47,7 @@ public class CustomerFactory : ICustomerFactory
         IPasswordPolicyFactory passwordPolicy,
         IAuthFactory authFactory,
         ISubscriptionFactory subscriptionFactory,
+        ServicePricingFactory servicePricingFactory,
         IUnitOfWork uow,
         IConfiguration config)
     {
@@ -56,7 +56,6 @@ public class CustomerFactory : ICustomerFactory
         _moduleEs = moduleEs;
         _userEs = userEs;
         _customerProductEs = customerProductEs;
-        _modulePricingEs = modulePricingEs;
         _serviceCategoryEs = serviceCategoryEs;
         _serviceEs = serviceEs;
         _expenseCategoryEs = expenseCategoryEs;
@@ -67,6 +66,7 @@ public class CustomerFactory : ICustomerFactory
         _passwordPolicy = passwordPolicy;
         _authFactory = authFactory;
         _subscriptionFactory = subscriptionFactory;
+        _servicePricingFactory = servicePricingFactory;
         _uow = uow;
         _config = config;
     }
@@ -443,8 +443,10 @@ public class CustomerFactory : ICustomerFactory
         var customer = await _customerEs.GetByIdWithPortalModulesAsync(customerId);
         if (customer == null) return null;
 
-        var pricings = await _modulePricingEs.GetAllAsync();
-        var pricingMap = pricings.ToDictionary(p => p.ModuleId);
+        var salonModulePrices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
+        var crmModulePrices = await _servicePricingFactory.GetActiveCrmModuleCatalogPricesAsync();
+        var salonPackagePrices = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
+        var crmPackagePrices = await _servicePricingFactory.GetActiveCrmPackagePricesAsync();
 
         return customer.PortalModules
             .Select(pm =>
@@ -456,7 +458,16 @@ public class CustomerFactory : ICustomerFactory
                 if (moduleDef == null) return null;
                 var salonGroupId = slnDef != null ? SalonModuleGroups.GetGroupId(pm.ModuleId) : null;
                 var crmGroupId = crmDef != null ? CrmModuleGroups.GetGroupId(pm.ModuleId) : null;
-                pricingMap.TryGetValue(pm.ModuleId, out var pricing);
+                var groupCatalogPrice = 0m;
+                if (salonGroupId.HasValue)
+                    salonPackagePrices.TryGetValue(salonGroupId.Value, out groupCatalogPrice);
+                else if (crmGroupId.HasValue)
+                    crmPackagePrices.TryGetValue(crmGroupId.Value, out groupCatalogPrice);
+                var catalogPrice = 0m;
+                if (slnDef != null)
+                    salonModulePrices.TryGetValue(pm.ModuleId, out catalogPrice);
+                else if (crmDef != null)
+                    crmModulePrices.TryGetValue(pm.ModuleId, out catalogPrice);
                 return new PortalModuleDto
                 {
                     Id = moduleDef.Id,
@@ -474,8 +485,10 @@ public class CustomerFactory : ICustomerFactory
                     GroupName = crmDef != null
                         ? CrmModuleGroups.GetById(crmGroupId ?? CrmModuleGroups.Ids.Core)?.Description
                         : SalonModuleGroups.GetById(salonGroupId ?? 0)?.Description,
-                    CatalogPrice = pricing?.MonthlyPrice ?? 0,
+                    CatalogPrice = salonGroupId.HasValue || crmGroupId.HasValue ? 0m : catalogPrice,
                     CustomerPrice = pm.MonthlyPrice,
+                    GroupCatalogPrice = groupCatalogPrice,
+                    GroupCustomerPrice = pm.MonthlyPrice,
                     TrialEndsAt = pm.TrialEndsAt,
                     IsImplemented = crmDef != null || SalonPortalModules.IsImplemented(pm.ModuleId),
                     Permissions = CustomerPermissionTypes.GetByModule(moduleDef.Id).Select(p => new PermissionTypeDto

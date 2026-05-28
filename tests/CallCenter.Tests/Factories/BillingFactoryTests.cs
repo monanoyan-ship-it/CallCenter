@@ -24,7 +24,6 @@ public class BillingFactoryTests : IDisposable
         var servicePricingFactory = new ServicePricingFactory(
             new ServicePricingPeriodEntityService(_db),
             new ServicePricingItemEntityService(_db),
-            new ModulePricingEntityService(_db),
             uow);
         _sut = new BillingFactory(
             new BillingPeriodEntityService(_db),

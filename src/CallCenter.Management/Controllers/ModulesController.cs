@@ -26,7 +26,7 @@ public class ModulesController : MgmtBaseController
     public IActionResult Pricing()
     {
         ViewData["Title"] = "Hizmet Fiyatları";
-        return View();
+        return RedirectToAction(nameof(PricingPeriods));
     }
 
     public IActionResult PricingPeriods()

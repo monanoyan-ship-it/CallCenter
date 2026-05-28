@@ -2975,38 +2975,6 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("IvrMenuOptions");
                 });
 
-            modelBuilder.Entity("CallCenter.Shared.Entities.ModulePricing", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ModuleId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("MonthlyPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ModuleId")
-                        .IsUnique();
-
-                    b.ToTable("ModulePricings");
-                });
-
             modelBuilder.Entity("CallCenter.Shared.Entities.ModuleRequest", b =>
                 {
                     b.Property<int>("Id")

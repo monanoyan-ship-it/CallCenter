@@ -1,6 +1,14 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = Translation.T("salon.modules.service_packages_title", "Hizmet Paketleri");
+    var crmBaseUrl = Configuration["CrmBaseUrl"];
+    if (string.IsNullOrWhiteSpace(crmBaseUrl))
+    {
+        crmBaseUrl = Context.Request.Host.Host.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+            ? "http://localhost:5176"
+            : "https://crm.corplynk.com";
+    }
 }
 
 <div id="modules-vm">
@@ -112,6 +120,40 @@
                         <!-- ko if: typeof isImplemented !== 'undefined' && isImplemented === false -->
                         <i class="bi bi-lock text-warning" style="font-size:.7rem;cursor:help;" title="@(Translation.T("salon.modules.coming_soon", "Bu hizmet yakın zamanda aktif edilecektir."))"></i>
                         <!-- /ko -->
+                    </div>
+                </div>
+                <!-- /ko -->
+            </div>
+        </div>
+    </div>
+    <!-- /ko -->
+    <!-- /ko -->
+
+    <!-- Diger aktif CRM hizmetleri -->
+    <!-- ko if: otherActiveCrmGroups().length > 0 -->
+    <h6 class="text-muted mb-3 mt-4"><i class="bi bi-person-lines-fill me-1"></i><t key="salon.modules.other_active_services_title">Diğer Aktif Hizmetleriniz</t></h6>
+    <!-- ko foreach: otherActiveCrmGroups -->
+    <div class="card border-0 shadow-sm mb-3 border-start border-3 border-info">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-start gap-3">
+            <div>
+                <span class="badge bg-info text-dark" data-bind="text: groupName"></span>
+                <span class="badge bg-info-subtle text-info ms-1" data-bind="text: packagePrice.toLocaleString(document.documentElement.lang || undefined) + ' ' + salonT('salon.modules.per_month_suffix', '₺/ay')"></span>
+                <div class="small text-muted mt-1" data-bind="text: summary"></div>
+                <div class="small text-primary mt-1">
+                    <i class="bi bi-info-circle me-1"></i><t key="salon.modules.crm_billing_note">Bu hizmet CRM uygulamasında kullanılır ve CRM tahakkukunda ayrı izlenir.</t>
+                </div>
+            </div>
+            <a class="btn btn-sm btn-outline-info py-0 flex-shrink-0" href="@crmBaseUrl" target="_blank" rel="noopener">
+                <i class="bi bi-box-arrow-up-right me-1"></i><t key="salon.modules.open_crm">CRM'i Aç</t>
+            </a>
+        </div>
+        <div class="card-body py-2">
+            <div class="row g-1">
+                <!-- ko foreach: modules -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="d-flex align-items-center gap-2 py-1">
+                        <i data-bind="attr: { 'class': 'bi ' + (icon || 'bi-puzzle') }" style="color:#0dcaf0;font-size:.9rem;"></i>
+                        <span class="small" data-bind="text: description || systemName || moduleName"></span>
                     </div>
                 </div>
                 <!-- /ko -->

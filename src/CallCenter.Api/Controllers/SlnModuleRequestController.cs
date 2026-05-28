@@ -3,6 +3,7 @@ using CallCenter.Api.Factories;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Filters;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,17 @@ public class SlnModuleRequestController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var map = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
+        return Ok(map);
+    }
+
+    /// <summary>Aktif fiyat dÃ¶nemindeki CRM paket fiyatlari (0=Genel CRM, 1=Salon CRM, 2=CallCenter CRM).</summary>
+    [HttpGet("crm-package-prices")]
+    public async Task<IActionResult> GetActiveCrmPackagePrices()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var map = await _servicePricingFactory.GetActiveCrmPackagePricesAsync();
         return Ok(map);
     }
 

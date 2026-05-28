@@ -15,11 +15,10 @@ public class ManagementFactory : IManagementFactory
     private readonly ICustomerProductEntityService _products;
     private readonly ICustomerPortalModuleEntityService _modules;
     private readonly ICustomerPersonnelEntityService _personnel;
-    private readonly IModulePricingEntityService _pricing;
     private readonly IModuleRequestEntityService _requests;
     private readonly ISlnSalonProfileEntityService _profiles;
+    private readonly ServicePricingFactory _servicePricingFactory;
     private readonly ISupervisorFactory? _supervisorFactory;
-    private readonly IUnitOfWork _uow;
 
     public ManagementFactory(
         ICustomerEntityService customers,
@@ -27,10 +26,9 @@ public class ManagementFactory : IManagementFactory
         ICustomerProductEntityService products,
         ICustomerPortalModuleEntityService modules,
         ICustomerPersonnelEntityService personnel,
-        IModulePricingEntityService pricing,
         IModuleRequestEntityService requests,
         ISlnSalonProfileEntityService profiles,
-        IUnitOfWork uow,
+        ServicePricingFactory servicePricingFactory,
         IServiceProvider sp)
     {
         _customers = customers;
@@ -38,10 +36,9 @@ public class ManagementFactory : IManagementFactory
         _products = products;
         _modules = modules;
         _personnel = personnel;
-        _pricing = pricing;
         _requests = requests;
         _profiles = profiles;
-        _uow = uow;
+        _servicePricingFactory = servicePricingFactory;
         _supervisorFactory = sp.GetService<ISupervisorFactory>();
     }
 
@@ -174,76 +171,6 @@ public class ManagementFactory : IManagementFactory
         }).ToList();
     }
 
-    public async Task<List<ModulePricingDto>> GetModulePricingAsync()
-    {
-        var pricings = await _pricing.GetAllAsync();
-        var pricingMap = pricings.ToDictionary(p => p.ModuleId);
-
-        return SalonPortalModules.All.Select(m =>
-        {
-            pricingMap.TryGetValue(m.Id, out var pricing);
-            var groupId = SalonModuleGroups.GetGroupId(m.Id);
-            return new ModulePricingDto
-            {
-                ModuleId = m.Id,
-                ModuleName = m.SystemName,
-                Description = m.Description,
-                Icon = m.Icon,
-                IsDefault = m.IsDefault,
-                GroupId = groupId,
-                GroupName = SalonModuleGroups.GetById(groupId ?? 0)?.Description,
-                MonthlyPrice = pricing?.MonthlyPrice ?? 0,
-                HasPricing = pricing != null
-            };
-        }).OrderBy(x => x.ModuleId).ToList();
-    }
-
-    public async Task UpdateModulePricingAsync(int moduleId, decimal monthlyPrice)
-    {
-        var existing = await _pricing.GetByModuleIdAsync(moduleId);
-        if (existing != null)
-        {
-            existing.MonthlyPrice = monthlyPrice;
-            existing.UpdatedAt = DateTime.UtcNow;
-        }
-        else
-        {
-            _pricing.Add(new ModulePricing
-            {
-                ModuleId = moduleId,
-                MonthlyPrice = monthlyPrice
-            });
-        }
-
-        await _uow.SaveChangesAsync();
-    }
-
-    public async Task<int> BulkUpdateModulePricingAsync(List<UpdateModulePricingRequest> prices)
-    {
-        var existingPricings = await _pricing.GetAllAsync();
-        var existingMap = existingPricings.ToDictionary(p => p.ModuleId);
-
-        foreach (var price in prices)
-        {
-            if (existingMap.TryGetValue(price.ModuleId, out var existing))
-            {
-                existing.MonthlyPrice = price.MonthlyPrice;
-                existing.UpdatedAt = DateTime.UtcNow;
-            }
-            else
-            {
-                _pricing.Add(new ModulePricing
-                {
-                    ModuleId = price.ModuleId,
-                    MonthlyPrice = price.MonthlyPrice
-                });
-            }
-        }
-
-        await _uow.SaveChangesAsync();
-        return prices.Count;
-    }
-
     public async Task<List<ModuleRequestDto>> GetModuleRequestsAsync(bool all)
     {
         var query = _requests.GetAllQueryable()
@@ -274,14 +201,14 @@ public class ManagementFactory : IManagementFactory
             .ToListAsync();
 
         // Modul bilgilerini ekle
-        var pricings = await _pricing.GetAllAsync();
+        var prices = await _servicePricingFactory.GetActiveSalonModuleCatalogPricesAsync();
         foreach (var req in requests)
         {
             var module = SalonPortalModules.GetById(req.ModuleId);
             req.ModuleName = module?.SystemName;
             req.ModuleIcon = module?.Icon;
             req.StatusName = ModuleRequestStatuses.GetById(req.StatusId)?.Description;
-            req.CatalogPrice = pricings.FirstOrDefault(p => p.ModuleId == req.ModuleId)?.MonthlyPrice;
+            req.CatalogPrice = prices.TryGetValue(req.ModuleId, out var price) ? price : null;
         }
 
         return requests;
